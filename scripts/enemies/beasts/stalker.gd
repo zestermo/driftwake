@@ -95,7 +95,7 @@ func _wake_move() -> String:
 
 
 func _ready() -> void:
-	_cd = {"claws": 0.5, "pounce": 3.0, "lash": 5.0, "stalk": 99.0}
+	_cd = {"claws": 0.5, "pounce": 3.0, "lash": 5.0, "stalk": 99.0, "feint": 99.0, "rush": 99.0}
 	super._ready()
 	hurt_ball(0.9, Vector3(0, 1.3, -0.7))
 	hurt_ball(0.8, Vector3(0, 1.25, 0.8))
@@ -130,20 +130,28 @@ func _pose_for(delta: float) -> void:
 				pose = {"crouch": 0.5, "jaw": 0.3}
 		"lash":
 			pose = {"crouch": 0.35, "tail": 1.0}
+		"feint":
+			pose = {"crouch": 0.95, "jaw": 0.5, "tail": 1.0} if mv_t < 0.5 else {"crouch": 0.4, "tail": 1.0}
+		"rush":
+			pose = {"stretch": 1.0, "jaw": 0.8, "crouch": 0.2}
 		"stalk":
 			pose = {"crouch": 0.75, "head": -0.1}
 
 
+## (1.20, docs/v1_20_beasts.md 3: the rules - never a move twice in a row, pick() - and room for the cats built on it
+## to add theirs: _kind_moves)
 func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	_face(to)
-	if phase >= 2 and _cd["stalk"] <= 0.0 and not (arena.brush as Array).is_empty():
-		begin("stalk")
-	elif dist < 4.6 and _cd["claws"] <= 0.0:
-		begin("claws")
-	elif dist < 4.5 and _cd["lash"] <= 0.0:
-		begin("lash")
-	elif dist > 6.0 and dist < 15.0 and _cd["pounce"] <= 0.0:
-		begin("pounce")
+	var wants: Array = _kind_moves(dist)
+	if phase >= 2 and arena != null and not (arena.brush as Array).is_empty():
+		wants.append("stalk")
+	if dist < 4.6:
+		wants.append_array(["claws", "lash"])
+	elif dist > 6.0 and dist < 15.0:
+		wants.append("pounce")
+	var m := pick(wants)
+	if m != "":
+		begin(m)
 	elif dist > 4.0:
 		var nd := _nav_dir(p.global_position, delta)
 		_face(nd)
@@ -153,8 +161,21 @@ func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	return Vector3.ZERO
 
 
-func _on_phase(_k: int) -> void:
+## The kind's own moves it could start at `dist` (before the shared ones; the first ready one wins). The Shade's: a
+## feint (phase 2+, close-ish) and a shadow rush (phase 3).
+func _kind_moves(dist: float) -> Array:
+	var out: Array = []
+	if phase >= 3 and dist < 14.0:
+		out.append("rush")
+	if phase >= 2 and dist > 5.0 and dist < 14.0:
+		out.append("feint")
+	return out
+
+
+func _on_phase(k: int) -> void:
 	_cd["stalk"] = 0.0
+	_cd["feint"] = 0.0 if k >= 2 else 99.0
+	_cd["rush"] = 0.0 if k >= 3 else 99.0
 	if not _hidden:
 		begin("roar")
 
@@ -183,6 +204,16 @@ func _on_begin(m: String) -> void:
 		"lash":
 			_cd["lash"] = _rng.randf_range(6.0, 8.0)
 			warn_ring(global_position, 4.3, 0.55)
+		"feint":
+			_cd["feint"] = _rng.randf_range(7.0, 9.0)
+			_cd["pounce"] = maxf(float(_cd["pounce"]), 1.5)
+			say("snarl", global_position, 5.0, 0.9)
+			Net.fx("sparkle", [_eyes(), 10, Color(0.9, 1.0, 0.4)])
+		"rush":
+			_cd["rush"] = _rng.randf_range(12.0, 15.0)
+			_hide(true)
+			_fly = true
+			say("catroar", global_position, 2.0, 1.2)
 		"stalk":
 			_cd["stalk"] = _rng.randf_range(22.0, 28.0)
 			_spot = _near_brush()
@@ -209,7 +240,7 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 		"roar":
 			if mv_t > 1.0 and not _hit:
 				_hit = true
-				strike("ring", [global_position, 6.5], 8.0, true, false, 1.1)
+				strike("ring", [global_position, 6.5], 8.0, false, false, 1.1, 10.0)
 				Net.fx("dust_ring", [global_position, 24, 1.8])
 			if mv_t > 1.8:
 				end_move(0.2)
@@ -218,7 +249,7 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 				_face(_flat(p.global_position - global_position))
 			if _n < 3 and mv_t > CLAW_AT[_n]:
 				var heavy := _n == 2
-				strike("cone", [global_position, _fwd(), 4.2, 70.0], 20.0 if heavy else 13.0, heavy, heavy)
+				strike("cone", [global_position, _fwd(), 4.2, 70.0], 20.0 if heavy else 13.0, false, heavy, 1.1, 10.0 if heavy else 6.0)
 				Net.fx("sfx", ["whoosh_big" if heavy else "whoosh", global_position + _fwd() * 2.0, 0.0, 0.05, 0.85])
 				var side := _fwd().cross(Vector3.UP) * (1.0 if _n % 2 == 0 else -1.0)
 				Net.fx("streak", [global_position + _fwd() * 2.2 + side * 1.4 + Vector3(0, 1.8, 0), global_position + _fwd() * 2.4 - side * 1.4 + Vector3(0, 0.6, 0),
@@ -236,11 +267,15 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 				model.rotation.y = _yaw
 				if not _hit:
 					_hit = true
-					strike("ring", [global_position, 4.3], 17.0, true, false, 1.0)
+					strike("ring", [global_position, 4.3], 17.0, false, false, 1.0, 9.0)
 					Net.fx("sfx", ["whoosh_big", global_position, 2.0, 0.05, 0.7])
 					Net.fx("dust_ring", [global_position, 14, 1.0])
 			if mv_t > 1.2:
 				end_move(0.5)
+		"feint":
+			return _feint_tick(p)
+		"rush":
+			return _rush_tick(p)
 		"stalk":
 			return _stalk_tick(delta, p)
 	return Vector3.ZERO
@@ -380,3 +415,59 @@ func _event(what: String, args: Array) -> void:
 		"hide":
 			_hidden = bool(args[0])
 			eyes_only(_hidden)
+
+
+## A pounce's tell that stops short: a sidestep, then the real pounce from the side.
+func _feint_tick(p: Node3D) -> Vector3:
+	if p == null:
+		end_move(0.4)
+		return Vector3.ZERO
+	var to := _flat(p.global_position - global_position)
+	if mv_t < 0.5:
+		_face(to)
+		return Vector3.ZERO
+	if mv_t < 0.9:
+		return to.normalized().cross(Vector3.UP) * (8.0 if variant % 2 == 0 else -8.0)
+	move = "pounce"
+	mv_t = 0.0
+	_n = 0
+	_hit = false
+	_pounce_at(p.global_position)
+	return Vector3.ZERO
+
+
+## Gone into the dark, then three dashes past you on lines through where you stand (a red lane before each), out
+## panting.
+const RUSH_EACH := 0.9
+func _rush_tick(p: Node3D) -> Vector3:
+	var k := int(mv_t / RUSH_EACH)
+	var u := fmod(mv_t, RUSH_EACH)
+	if k >= 3 or p == null:
+		_fly = false
+		_hide(false)
+		end_move(1.4)
+		say("snarl", global_position, -2.0, 0.7)
+		return Vector3.ZERO
+	if _n == k and u < 0.45:
+		# (set up this dash: across the captain at an angle of its own)
+		_n = k + 1
+		var a := _rng.randf() * TAU
+		var dir := Vector3(cos(a), 0.0, sin(a))
+		_from = ground_at(p.global_position + dir * 7.0)
+		_to = ground_at(p.global_position - dir * 7.0)
+		global_position = _from
+		reset_physics_interpolation()
+		_face(_flat(_to - _from))
+		warn_lane(_from, _to, 1.6, 0.45)
+		_hit = false
+	if u >= 0.45:
+		if not _hit:
+			_hit = true
+			_hide(false)
+			strike("lane", [_from, _to, 0.8], 16.0, false, false, 1.1, 8.0)
+			Net.fx("sfx", ["whoosh_big", global_position, 2.0, 0.05, 0.9])
+		var w := clampf((u - 0.45) / 0.35, 0.0, 1.0)
+		global_position = _from.lerp(_to, w)
+		if w >= 1.0 and k < 2:
+			_hide(true)
+	return Vector3.ZERO

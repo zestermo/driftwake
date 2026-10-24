@@ -66,3 +66,109 @@ func _paint(part: MeshBuilder, coat: Material) -> void:
 
 func trophy(t: int) -> ItemData:
 	return Gear.make("accessory", "cape", {"cape": true, "cape_color": spec["coat"]}, "Sand Lion's Mane", t)
+
+
+# ==========================================================================
+# 1.20's moves (docs/v1_20_beasts.md 13), with the stalker's claws, pounce and lash
+#   maul    rears (0.5 s): stands and rakes twice in front (push); 0.8 s
+#   bellow  its mane flares (0.7 s): a cone of sand and sound, pushing you back (a stagger close in); 1.0 s
+#   pride   (phase 2+) a long roar: it comes on faster for a while (the lionesses who'd answer it wait for a co-op
+#           spawn of their own, docs/v1_20_beasts.md)
+# ==========================================================================
+const SAND := Color(0.95, 0.82, 0.55)
+const MAUL_R := 3.6
+const BELLOW_R := 8.0
+var _pride_t := 0.0
+
+
+func _kind_moves(dist: float) -> Array:
+	var out: Array = []
+	if phase >= 2:
+		out.append("pride")
+	if dist < MAUL_R + 0.6:
+		out.append("maul")
+	elif dist < BELLOW_R - 1.0:
+		out.append("bellow")
+	return out
+
+
+func _ready() -> void:
+	super._ready()
+	_cd.merge({"maul": 0.5, "bellow": 2.0, "pride": 99.0}, true)
+
+
+func _on_phase(k: int) -> void:
+	super._on_phase(k)
+	if k >= 2:
+		_cd["pride"] = 0.0
+
+
+func _speed() -> float:
+	return super._speed() * (1.3 if _pride_t > 0.0 else 1.0)
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	_pride_t -= delta
+
+
+func _on_begin(m: String) -> void:
+	match m:
+		"maul":
+			_n = 0
+			_cd["maul"] = _rng.randf_range(2.0, 2.8)
+			say("snarl", global_position, 2.0, 0.8)
+		"bellow":
+			_cd["bellow"] = _rng.randf_range(6.0, 8.0)
+			warn_ring(global_position + _fwd() * BELLOW_R * 0.5, BELLOW_R * 0.5, 0.7, SAND)
+		"pride":
+			_cd["pride"] = _rng.randf_range(16.0, 20.0)
+			say("catroar", global_position, 7.0, 0.85)
+		_:
+			super._on_begin(m)
+
+
+func _move_tick(delta: float, p: Node3D) -> Vector3:
+	match move:
+		"maul":
+			if p and mv_t < 0.3:
+				_face(_flat(p.global_position - global_position))
+			for k in range(2):
+				if _n == k and mv_t > 0.5 + k * 0.28:
+					_n += 1
+					strike("cone", [global_position, _fwd(), MAUL_R, 80.0], 15.0, false, true, 1.1, 7.0)
+					Net.fx("sfx", ["whoosh_big", global_position + _fwd(), 0.0, 0.05, 0.85])
+			if mv_t > 1.0:
+				end_move(0.8)
+			return Vector3.ZERO
+		"bellow":
+			if mv_t > 0.7 and not _hit:
+				_hit = true
+				say("catroar", global_position, 6.0, 0.95)
+				strike("cone", [global_position, _fwd(), BELLOW_R, 60.0], 8.0, false, false, 1.1, 14.0)
+				Net.fx("dust", [global_position + _fwd() * 3.0, 16, 1.6])
+			if mv_t > 1.0:
+				end_move(1.0)
+			return Vector3.ZERO
+		"pride":
+			if mv_t > 0.8 and not _hit:
+				_hit = true
+				_pride_t = 8.0
+				Net.fx("dust_ring", [global_position, 26, 2.0])
+			if mv_t > 1.6:
+				end_move(0.6)
+			return Vector3.ZERO
+	return super._move_tick(delta, p)
+
+
+func _pose_for(delta: float) -> void:
+	super._pose_for(delta)
+	if state != S.FIGHT:
+		return
+	match move:
+		"maul":
+			pose = {"rear": 0.9 if mv_t < 0.5 else 0.4, "jaw": 0.7, "head": 0.1}
+		"bellow":
+			pose = {"crouch": 0.3, "head": 0.3, "jaw": 1.0 if mv_t > 0.5 else 0.3, "tail": 1.0}
+		"pride":
+			pose = {"rear": 0.5, "head": 0.5, "jaw": 1.0, "tail": 1.0}

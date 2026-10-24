@@ -5,7 +5,7 @@ extends SceneTree
 ## KINDS grows as each kind's moves land.
 const TK := preload("res://tools/dev/test_kit.gd")
 ## [theme, kind]
-const KINDS := [["snow", "great_bear"], ["snow", "ice_golem"], ["forest", "elder_treant"]]
+const KINDS := [["snow", "great_bear"], ["snow", "ice_golem"], ["snow", "snow_leopard"], ["forest", "elder_treant"], ["jungle", "stalker"], ["desert", "sand_lion"]]
 const MIN_MOVES := 3
 const FIGHT_S := 16.0
 var stage
