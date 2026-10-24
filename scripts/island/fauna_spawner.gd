@@ -21,10 +21,10 @@ static func make(theme: String, k: String) -> Creature:
 ## The creatures are put on the island over this many build steps (each builds its own model: 3 steps of ~24 were
 ## a chain island's worst hitch, 262 ms).
 const SPAWN_STEPS := 10
-const MIN_KINDS := 3
+const MIN_KINDS := 4
 const MAX_KINDS := 8
-## Most creatures an island holds (the pool's density is scaled down to fit).
-const CAP := 72
+## Most creatures an island holds (the pool's density is scaled down to fit; 1.20: 72 -> 96, more life between places).
+const CAP := 96
 ## Groups keep this far apart (m).
 const SPACING := 16.0
 

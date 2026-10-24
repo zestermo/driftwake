@@ -1,6 +1,6 @@
 extends SceneTree
 ## Encounters on generated islands (IslandEncounters): every theme's pool has every kind with all its text; an
-## island's roll is the same from the same seed (guests build what the host built), 0-3 kinds, never one twice,
+## island's roll is the same from the same seed (guests build what the host built), 0-4 kinds, never one twice,
 ## never a kind its theme weighs 0, and across many seeds every kind turns up and some islands get none. Then a
 ## jungle island built with every kind forced: each that finds its place is built (its people, its quest in the
 ## crew's journal, turned in to whoever gave it), and two builds of it place them the same.
@@ -105,7 +105,7 @@ func _rolls() -> void:
 				zero_w = zero_w or float(t.encounters[k]["weight"]) <= 0.0
 		var weighed: Array = IE.KINDS.filter(func(k): return float(t.encounters[k]["weight"]) > 0.0)
 		check("[%s] the same seed rolls the same encounters" % t.name, same)
-		check("[%s] 0-3 an island, some none and some three (%s)" % [t.name, sizes], sizes.keys().all(func(n): return n <= 3) and sizes.has(0) and sizes.has(3))
+		check("[%s] 0-4 an island, mostly two or three, some four (%s)" % [t.name, sizes], sizes.keys().all(func(n): return n <= 4) and sizes.has(4) and int(sizes.get(2, 0)) + int(sizes.get(3, 0)) > int(sizes.get(0, 0)) + int(sizes.get(1, 0)))
 		check("[%s] never a kind twice on one island, never one it weighs 0" % t.name, not twice and not zero_w)
 		check("[%s] every kind it weighs turns up over 300 seeds (%d of %d)" % [t.name, seen.size(), weighed.size()], seen.size() == weighed.size())
 

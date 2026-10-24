@@ -12,8 +12,8 @@ extends Node3D
 ## Guests roll and build the same; the ambush's and the duel's crews are GruntCamps (the host runs them).
 
 const KINDS := ["traveller", "ambush", "festival", "shipwreck", "merchant", "lost_child", "hermit", "wounded", "note", "duelist"]
-## How many an island has: 0, 1, 2 or 3 (chances).
-const COUNT := [0.15, 0.4, 0.33, 0.12]
+## How many an island has: 0, 1, 2, 3 or 4 (chances; 1.20: more people between places, about 2.2 an island, was 1.4).
+const COUNT := [0.05, 0.2, 0.35, 0.28, 0.12]
 ## Where each kind goes: beside a trail out of the village, on a beach, at the village's plaza, at a wild place.
 const WHERE := {"traveller": "trail", "ambush": "trail", "festival": "village", "shipwreck": "beach", "merchant": "trail",
 	"lost_child": "village", "hermit": "poi", "wounded": "trail", "note": "trail", "duelist": "trail"}

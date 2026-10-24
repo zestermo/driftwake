@@ -6067,3 +6067,18 @@ double-poise, strike()'s stun), alpha_boar.gd (the move-table runner: _table/_tb
 _on_table_hit), each kind's file. Gotchas: a table must not read `spec` (it's made before _build); kinds that hang things
 on feet use foot_part()/foot_y(); a two-legged kind's `_last_move` drives its recovery pose. Tests: t/island/beast_moves,
 serpent_train, beast_prebuild, forest_beasts, desert_beasts; tools/dev/beastsheet.gd for looks.
+
+## v1.20 pieces 2-3: the arenas and life between places (2026-10-23, unstable 1.19.2)
+- **Arenas** (docs/v1_20_plan.md "Arenas"): `ThemeDef.arena_dress` dresses every boss's ground of a theme before a kind's
+  own "dress" (BeastArena._dress). Snow: `"arena": "open"` and SnowTheme._dress_grotto (an ice grotto: rock walls sheathed
+  in ice climbing to the back, an overhang hung with icicles, crystals, frozen pools; walls solid, the way in open).
+  Desert: DesertTheme._ruin_court after its pillars (a flagstone courtyard drowned in drifts, broken wall arcs, a toppled
+  archway; nothing across the way in). Forest: ForestTheme._dress_stones (tall mossy standing stones for every forest boss
+  but the Stag King, whose grove has its own). Jungle: the canopy as before. Renders: genshot (seeds 3 snow, 2 desert,
+  5 forest; `<prefix>_boss.png`).
+- **Between places**: KitWayside (scripts/island/kit/kit_wayside.gd, IslandContent.steps' last): along every path, every
+  26-38 m beside it a trunk, boulders or a wall stub (the desert: bones; the snow: snow caps), and about every 110 m a find
+  (a wayside shrine, a lone chest keyed "wayside_<id>_<n>", a left camp); never a solid piece within PATH_CLEAR (1.8 m) of a
+  path, nothing reserved, steep or wet; one mesh (visibility 200 m) and simple colliders. ~7 ms an island. FaunaSpawner CAP
+  72 -> 96, MIN_KINDS 3 -> 4. IslandEncounters.COUNT 0-4 a island (about 2.2, was 1.4). Tests: t/island/wayside,
+  t/quests/encounter_rolls (0-4), smoketest.
