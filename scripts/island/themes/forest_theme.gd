@@ -168,6 +168,7 @@ func _init() -> void:
 	land = LAND
 	radius = [340.0, 460.0]
 	style = STYLE
+	arena_dress = _dress_stones
 	props = {
 		"forest_lamp": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return ForestProps.lamp_post(2.6 * size),
 		"forest_waymark": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return ForestProps.waymark(rng.randi()),
@@ -384,3 +385,39 @@ static func _dress_hollow(arena, body: StaticBody3D, mb: MeshBuilder, rng: Rando
 			mb.add_cone(bark, Transform3D(Basis(), at + Vector3(cos(a) * 0.3, 0.9, sin(a) * 0.3)), 0.2, rng.randf_range(0.3, 0.8), 4)
 		mb.add_cylinder(ends, Transform3D(Basis(), at + Vector3.UP * 0.9), 0.48, 0.48, 0.02, 7, 1.0)
 		KitLandmarks.cyl_col(body, 0.55, 1.0, at + Vector3.UP * 0.5)
+
+
+## Every forest boss's ground (ThemeDef.arena_dress, 1.20, docs/v1_20_plan.md "Arenas": an ancient grove): a ring of
+## old standing stones under the giants, moss on them, leaning, one fallen; the way in kept open. The Stag King's own
+## grove has its ring already (_dress_grove), so not there. Arena-local (the floor's middle at 0, its ground y0).
+static func _dress_stones(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	if str(arena.kind) == "stag_king":
+		return
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var stone := PSXMat.lit("moss_stone", Color(0.95, 0.95, 0.92), {"affine": 0.6})
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	var ent: float = (arena._ground()["entry"] as Vector2).angle()
+	var n := rng.randi_range(8, 10)
+	var a0 := rng.randf() * TAU
+	var fallen := rng.randi() % n
+	for k in range(n):
+		var a := a0 + TAU * k / n + rng.randf_range(-0.1, 0.1)
+		if absf(wrapf(a - ent, -PI, PI)) < 0.32:
+			continue
+		var q := Vector2.from_angle(a) * (r - 2.5 + rng.randf_range(0.0, 1.0))
+		var h := rng.randf_range(3.2, 5.6)
+		var w := rng.randf_range(1.3, 1.9)
+		var base := Vector3(q.x, gy.call(q) - 0.3, q.y)
+		if k == fallen:
+			# fallen on its side across the floor's edge
+			var b := Basis(Vector3.UP, -a + rng.randf_range(-0.5, 0.5)) * Basis(Vector3.BACK, PI * 0.5)
+			mb.add_box(stone, Transform3D(b, base + Vector3(0, w * 0.3, 0)), Vector3(w, h, w * 0.5), 0.6, Color.WHITE.darkened(0.2))
+			KitLandmarks.box_col_xf(body, Vector3(w, h, w * 0.5), Transform3D(b, base + Vector3(0, w * 0.3, 0)))
+			continue
+		var b := Basis(Vector3.UP, -a + PI * 0.5) * Basis(Vector3.BACK, rng.randf_range(-0.12, 0.12)) * Basis(Vector3.RIGHT, rng.randf_range(-0.08, 0.08))
+		mb.add_box(stone, Transform3D(b, base + Vector3(0, h * 0.5, 0)), Vector3(w, h, w * 0.45), 0.6, Color.WHITE.darkened(rng.randf() * 0.18))
+		# a cap stone across the tallest pairs (a trilithon) now and then
+		if h > 4.8 and rng.randf() < 0.4:
+			mb.add_box(stone, Transform3D(b, base + Vector3(0, h + 0.25, 0)), Vector3(w * 1.6, 0.5, w * 0.5), 0.6, Color.WHITE.darkened(0.1))
+		KitLandmarks.box_col_xf(body, Vector3(w, h, w * 0.45), Transform3D(b, base + Vector3(0, h * 0.5, 0)))
