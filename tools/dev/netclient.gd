@@ -1182,7 +1182,9 @@ func _chain_step() -> void:
 			hd.damage = 999999.0
 			hd.unblockable = true
 			hd.knockback_force = 0.0
-			ape.hurtbox.take_hit(hd, p)
+			# (a beast's own hurtbox; the fog isle's Drowned Captain is a captain under his node: hit him)
+			var hb = ape.hurtbox if "hurtbox" in ape else ape.captain.hurtbox
+			hb.take_hit(hd, p)
 			data["ape"] = ape
 			go(112)
 		112:
