@@ -237,10 +237,14 @@ static func _dress_arena(arena, body: StaticBody3D, mb: MeshBuilder, rng: Random
 	var bone := PSXMat.flat(Color(0.92, 0.88, 0.76))
 	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
 	# pillars round the edge, broken at different heights, a capital on the tallest
+	var ent: float = (arena._ground()["entry"] as Vector2).angle()
 	var n := rng.randi_range(4, 6)
 	var a0 := rng.randf() * TAU
 	for k in range(n):
 		var a := a0 + TAU * k / n + rng.randf_range(-0.2, 0.2)
+		# (none on the way in: nudged aside)
+		if absf(wrapf(a - ent, -PI, PI)) < 0.35:
+			a = ent + (0.45 if wrapf(a - ent, -PI, PI) >= 0.0 else -0.45)
 		var q := Vector2.from_angle(a) * (r + rng.randf_range(1.5, 3.5))
 		var h := rng.randf_range(1.6, 5.5)
 		var base := Vector3(q.x, gy.call(q) - 0.4, q.y)
@@ -284,6 +288,59 @@ static func _dress_arena(arena, body: StaticBody3D, mb: MeshBuilder, rng: Random
 		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(4.0, r - 2.0)
 		var b2 := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.BACK, PI * 0.5)
 		mb.add_cylinder(bone, Transform3D(b2, Vector3(q.x, gy.call(q) + 0.06, q.y)), 0.06, 0.05, rng.randf_range(0.7, 1.3), 5, 1.0, Color.WHITE, true, true)
+	_ruin_court(arena, body, mb, rng, c, y0)
+
+
+## (1.20, docs/v1_20_plan.md "Arenas": a half-buried ruin) The sunken courtyard: flagstones laid across the floor,
+## half drowned in drifts of sand; arcs of low broken wall round it, gaps between; a toppled archway (two stubs and
+## its lintel fallen across the sand). Arena-local.
+static func _ruin_court(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var stone := PSXMat.lit("sandstone")
+	var sand := PSXMat.lit("sand", Color(1.0, 0.95, 0.85))
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	# flagstones in a grid, some missing, the drifts over the rest
+	var step := 2.2
+	var half := int((r - 3.0) / step)
+	for ix in range(-half, half + 1):
+		for iz in range(-half, half + 1):
+			var q := Vector2(ix, iz) * step + Vector2(rng.randf_range(-0.12, 0.12), rng.randf_range(-0.12, 0.12))
+			if q.length() > r - 2.5 or rng.randf() < 0.28:
+				continue
+			mb.add_box(stone, Transform3D(Basis(Vector3.UP, rng.randf_range(-0.06, 0.06)), Vector3(q.x, gy.call(q) + 0.03, q.y)), Vector3(step * 0.92, 0.12, step * 0.92), 0.7, Color.WHITE.darkened(rng.randf() * 0.18))
+	for k in range(7):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(3.0, r - 3.0)
+		mb.add_blob(sand, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(q.x, gy.call(q) + 0.05, q.y)), Vector3(rng.randf_range(2.0, 4.0), 0.35, rng.randf_range(1.5, 3.0)), rng, 0.15, 3, 7, 0.7)
+	# the low wall round the court, in broken arcs (none across the way in)
+	var ea: float = (arena._ground()["entry"] as Vector2).angle()
+	var a := rng.randf() * TAU
+	while a < TAU * 2.0:
+		var arc := rng.randf_range(0.35, 0.8)
+		var segs := int(arc * (r + 1.0) / 1.6)
+		for k in range(segs):
+			var t := a + arc * k / maxf(segs, 1)
+			if absf(wrapf(t - ea, -PI, PI)) < 0.4:
+				continue
+			var q := Vector2.from_angle(t) * (r + 1.0)
+			var h := rng.randf_range(0.6, 1.7) * (0.6 if k == 0 or k == segs - 1 else 1.0)
+			var b := Basis(Vector3.UP, -t + PI * 0.5)
+			var at := Vector3(q.x, gy.call(q) - 0.2 + h * 0.5, q.y)
+			mb.add_box(stone, Transform3D(b, at), Vector3(1.6, h, 0.7), 0.7, Color.WHITE.darkened(rng.randf() * 0.15))
+			KitLandmarks.box_col_xf(body, Vector3(1.6, h, 0.7), Transform3D(b, at))
+		a += arc + rng.randf_range(0.25, 0.6)
+	# the toppled archway: two stubs, the lintel across the sand between them
+	var ga := rng.randf() * TAU
+	var gq := Vector2.from_angle(ga) * (r - 5.0)
+	var side := Vector2.from_angle(ga + PI * 0.5)
+	for s in [-1.0, 1.0]:
+		var q: Vector2 = gq + side * s * 1.8
+		var h := rng.randf_range(1.6, 2.6)
+		var at := Vector3(q.x, gy.call(q) - 0.3 + h * 0.5, q.y)
+		mb.add_box(stone, Transform3D(Basis(Vector3.UP, -ga), at), Vector3(0.9, h, 0.9), 0.7)
+		KitLandmarks.box_col_xf(body, Vector3(0.9, h, 0.9), Transform3D(Basis(Vector3.UP, -ga), at))
+	var lq := gq + Vector2.from_angle(ga) * 1.4
+	mb.add_box(stone, Transform3D(Basis(Vector3.UP, -ga + PI * 0.5 + 0.3) * Basis(Vector3.BACK, 0.12), Vector3(lq.x, gy.call(lq) + 0.35, lq.y)), Vector3(4.6, 0.7, 0.9), 0.7)
 
 
 func place_kind(kind: String) -> String:
