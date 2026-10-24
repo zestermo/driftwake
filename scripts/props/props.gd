@@ -381,6 +381,10 @@ static func grave_mesh() -> ArrayMesh:
 	return mb.commit()
 
 
+## Every campfire's flame quad and material, built once.
+static var _fire_quad: QuadMesh
+
+
 static func campfire() -> Node3D:
 	var n := Node3D.new()
 	n.name = "Campfire"
@@ -418,19 +422,27 @@ static func campfire() -> Node3D:
 	curve.add_point(Vector2(0, 1))
 	curve.add_point(Vector2(1, 0.1))
 	p.scale_amount_curve = curve
+	# FX's flame recipe (soft sprite, additive, fading out): opaque untextured quads stacked into a tall
+	# pale block on the PS1 grid at dusk. Props can't name the FX autoload, so it's built here.
 	var grad := Gradient.new()
-	grad.set_color(0, Color(1.0, 0.85, 0.3))
-	grad.set_color(1, Color(0.8, 0.15, 0.05))
+	grad.offsets = PackedFloat32Array([0.0, 0.25, 0.6, 1.0])
+	grad.colors = PackedColorArray([Color(1.0, 0.9, 0.5, 1.0), Color(1.0, 0.55, 0.12, 0.95),
+		Color(0.8, 0.2, 0.05, 0.7), Color(0.3, 0.06, 0.02, 0.0)])
 	p.color_ramp = grad
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.28, 0.28)
-	var fm := StandardMaterial3D.new()
-	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fm.vertex_color_use_as_albedo = true
-	fm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	fm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	quad.material = fm
-	p.mesh = quad
+	if _fire_quad == null:
+		_fire_quad = QuadMesh.new()
+		_fire_quad.size = Vector2(0.4, 0.4)
+		var fm := StandardMaterial3D.new()
+		fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fm.albedo_texture = load("res://assets/textures/fx/dust.png")
+		fm.vertex_color_use_as_albedo = true
+		fm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		fm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_fire_quad.material = fm
+	p.mesh = _fire_quad
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.add_child(p)
 	var light := OmniLight3D.new()
 	light.name = "FireLight"

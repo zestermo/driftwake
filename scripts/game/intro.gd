@@ -177,7 +177,7 @@ func _start_fight() -> void:
 	for i in range(2):
 		var lk: Dictionary = CharacterLook.random_look(rng)
 		EnemyShip.marine_look(lk, rng, false)
-		lk["name"] = "Marine"
+		lk["name"] = "Admiralty marine"
 		var brain := CaptainBrain.new()
 		brain.skill = 0.25
 		var m := Player.spawn_ai(self, lk, _deck.global_position + Vector3(-1.5 + i * 3.0, DECK_Y + 0.5, -4.0), 0.0, brain, "IntroMarine_%d" % i)

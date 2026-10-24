@@ -24,7 +24,7 @@ const TEXT := {
 			"A sledge-trader swore the sea froze so hard last winter he drove his dogs from one island to the next.",
 			"Somebody's carving faces into the bergs off the north shore. Big faces. All looking toward {isle}.",
 			"There's a hot spring up the peak, the monks say. Bathe in it and you'll never feel cold again. Or anything else.",
-			"I met a man who'd eaten a Devil Fruit that made him colder. He wasn't happy about it. Nobody up here is.",
+			"I met a man who'd eaten a Driftfruit that made him colder. He wasn't happy about it. Nobody up here is.",
 			"Pirates on these isles trade cider casks like gold. A full one can buy a sloop, near enough."],
 		"gift_ask": "Can you spare anything for the road?",
 		"gift": ["Here. Smoked hare in birch bark. It's kept me alive three winters; it can manage you for one night.",

@@ -452,7 +452,7 @@ static func harbourfolk() -> Array:
 			{"text": "The water's been sweeter since the smugglers went. Ask the mackerel.", "after": "smugglers"}]],
 		["Kit Garrow", 1.15, "UpperHouse6", ["tavern:side:1", "tavern:side:1"], [
 			"Don't stand on my line. Don't stand near my line. Don't look at my line.",
-			"Hob and Marrin take the smacks out at dawn. Back by the afternoon, if the Sea King's in a good mood.",
+			"Hob and Marrin take the smacks out at dawn. Back by the afternoon, if the Leviathan's in a good mood.",
 			"A pier's the only place on the island nobody asks you to carry anything."]],
 		["Fen Doyle", 0.95, "UpperHouse4", ["tavern:seat:7", "tavern:seat:7"], [
 			"Ysolde lets me fish off her pier if I keep the gulls off her deck. I do not keep the gulls off her deck.",

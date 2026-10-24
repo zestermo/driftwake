@@ -49,7 +49,7 @@ const JAW_OPEN := 0.75
 const HEAD_C := Vector3(0, 0.3 * HEAD_K, -1.6 * HEAD_K)
 ## How high its head lies over the deck after a bite (jaw resting on the planks).
 const DOWN_Y := 1.3
-const BANNER :=["A Sea King!", "It's rising beside the ship - man the guns!"]
+const BANNER :=["A Leviathan!", "It's rising beside the ship - man the guns!"]
 
 var lair := Vector2.ZERO
 var state: S = S.LURK
@@ -660,7 +660,7 @@ func _die() -> void:
 func _dead_fx() -> void:
 	FX.sfx("roar", _head.global_position, 8.0, 0.02, 0.4)
 	FX.splash(_head.global_position, 40, 3.0)
-	get_tree().call_group("hud", "show_banner", "The Sea King falls!", "Its hoard floats up from the deep.", true)
+	get_tree().call_group("hud", "show_banner", "The Leviathan falls!", "Its hoard floats up from the deep.", true)
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	var items: Array[ItemStack] = []
 	# (and a blade from something it swallowed: purple, or now and then gold)
@@ -687,7 +687,7 @@ func _process(delta: float) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	var show := visible and state != S.DEAD and state != S.LURK and me != null and me.global_position.distance_to(_head.global_position) < 150.0
 	if show:
-		get_tree().call_group("hud", "show_boss", "Sea King", hp / maxf(max_hp, 1.0), 1)
+		get_tree().call_group("hud", "show_boss", "Leviathan", hp / maxf(max_hp, 1.0), 1)
 		_boss_shown = true
 	elif _boss_shown:
 		_boss_shown = false

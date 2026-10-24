@@ -30,7 +30,7 @@ const NOTES := [
 	"Whoever finds this: the reefs past here have taken better ships than mine.",
 	"Turn back. There's something in this water bigger than any ship.",
 	"My share of the last haul. Spend it better than I did.",
-	"The log pose doesn't lie. The sea between does.",
+	"The lodestone doesn't lie. The sea between does.",
 	"Three days adrift. If you're reading this, I'm out of rum.",
 ]
 

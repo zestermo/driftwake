@@ -36,5 +36,10 @@ static func get_fruit(id: String) -> Dictionary:
 	return FRUITS.get(id, {})
 
 
+## Display names for the type ids (docs/originality_plan.md); the ids stay in saves and co-op.
+const TYPE_NAMES := {"logia": "Flux", "zoan": "Feral", "paramecia": "Knack"}
+
+
 static func type_name(id: String) -> String:
-	return str(get_fruit(id).get("type", "")).capitalize()
+	var t := str(get_fruit(id).get("type", ""))
+	return TYPE_NAMES.get(t, t.capitalize())

@@ -18,13 +18,13 @@ const RENAMED := {"suplex": "cannonball_fist", "giant_swing": "meteor_fist"}
 
 const ALL := {
 	# --- Mobility / Survival (Rokushiki-style body techniques) ---
-	"soru": {"name": "Soru", "tree": "base", "cost": 14.0, "cooldown": 4.0, "needs": "", "fruit": "",
+	"soru": {"name": "Squall Step", "tree": "base", "cost": 14.0, "cooldown": 4.0, "needs": "", "fruit": "",
 		"desc": "Kick off the ground so fast you vanish: an instant step forward, untouchable, on the ground or in the air.",
 		"tiers": [
 			{"uses": 15, "cost": 2, "name": "Double Step", "desc": "Cast it again within a second of the first for a second step, free."},
 			{"uses": 50, "cost": 3, "name": "Shadow Step", "desc": "Mastered: your dodge vanishes you too. For about a second you're invisible and nothing can touch you (8 energy a dodge; a normal dodge without it)."},
 		]},
-	"tekkai": {"name": "Tekkai", "tree": "base", "cost": 20.0, "cooldown": 14.0, "needs": "", "fruit": "",
+	"tekkai": {"name": "Ballast", "tree": "base", "cost": 20.0, "cooldown": 14.0, "needs": "", "fruit": "",
 		"desc": "Harden your whole body for 3 s: take 70% less damage and nothing knocks you down or makes you flinch, but you can barely move.",
 		"tiers": [
 			{"uses": 12, "cost": 2, "name": "Walking Iron", "desc": "Lasts 5 s, and you can still walk at a steady pace."},
@@ -39,11 +39,11 @@ const ALL := {
 	"bullet_storm": {"name": "Bullet Storm", "tree": "pistol", "cost": 24.0, "cooldown": 9.0, "needs": "gun", "fruit": "",
 		"desc": "Fan the hammer: seven shots swept across everything in front of you. Doesn't use your loaded shots."},
 	# --- Haki ---
-	"armament_coat": {"name": "Armament: Coat", "tree": "base", "cost": 30.0, "cooldown": 20.0, "needs": "", "fruit": "",
-		"desc": "Coat your weapon (or fists) in black Haki for 8 s: +30% damage, nothing can block it, and your heavy attacks break guards.",
+	"armament_coat": {"name": "Iron Will: Coat", "tree": "base", "cost": 30.0, "cooldown": 20.0, "needs": "", "fruit": "",
+		"desc": "Coat your weapon (or fists) in Iron Will for 8 s: +30% damage, nothing can block it, and your heavy attacks break guards.",
 		"tiers": [
 			{"uses": 12, "cost": 2, "name": "Hardened", "desc": "The coat holds for 12 s."},
-			{"uses": 40, "cost": 3, "name": "Ryuo", "desc": "Mastered: Haki flows out of the blade. Every coated heavy hit bursts outward, striking everyone around the target."},
+			{"uses": 40, "cost": 3, "name": "Outflow", "desc": "Mastered: Will flows out of the blade. Every coated heavy hit bursts outward, striking everyone around the target."},
 		]},
 	"foresight": {"name": "Foresight", "tree": "base", "cost": 25.0, "cooldown": 18.0, "needs": "", "fruit": "",
 		"desc": "Sense what's coming for 5 s: the next attack that would hit you is dodged automatically, and time slows for a moment.",
@@ -52,7 +52,7 @@ const ALL := {
 			{"uses": 40, "cost": 3, "cooldown": 3.0, "name": "Future Sight", "desc": "Mastered: a stance you switch on and off. While on, it dodges an attack by itself every 3 s; it drains 2 energy a second and drops when you run dry."},
 		]},
 	# --- Ember Fruit (Logia) ---
-	"fire_fist": {"name": "Fire Fist", "tree": "Ember", "cost": 18.0, "cooldown": 2.5, "needs": "", "fruit": "ember",
+	"fire_fist": {"name": "Cinder Fist", "tree": "Ember", "cost": 18.0, "cooldown": 2.5, "needs": "", "fruit": "ember",
 		"desc": "Hurl a ball of fire where you aim. It bursts on impact and sets enemies ablaze."},
 	"fire_ring": {"name": "Blazing Ring", "tree": "Ember", "cost": 32.0, "cooldown": 9.0, "needs": "", "fruit": "ember",
 		"desc": "A ring of fire explodes out around you, throwing nearby enemies off their feet."},
@@ -231,10 +231,10 @@ const ALL := {
 		"desc": "A leaping uppercut that launches you and everyone in front of you into the air."},
 	"palm_strike": {"name": "Shockwave Palm", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Drive an open palm forward: a burst of air hurls everything in a cone in front of you."},
-	"sea_king_fist": {"name": "Sea King Fist", "tree": "unarmed", "cost": 0.0, "cooldown": 3.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique", "ult": true,
+	"sea_king_fist": {"name": "Leviathan Fist", "tree": "unarmed", "cost": 0.0, "cooldown": 3.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Your fist takes the power and glows: for 8 s move as you like, then attack (or R) to let it go. On the ground a punch that tears 16 m ahead and blows up where it lands; in the air a dive onto the ground, harder the further you fall; right after a parry it hits the attacker first; out of a dash it carries your speed. Unused, it fades and half the ultimate comes back."},
 	# --- Haki ---
-	"conquerors_haki": {"name": "Conqueror's Haki", "tree": "base", "cost": 0.0, "cooldown": 3.0, "state": "Technique", "ult": true,
+	"conquerors_haki": {"name": "Captain's Will", "tree": "base", "cost": 0.0, "cooldown": 3.0, "state": "Technique", "ult": true,
 		"desc": "Ultimate. Unleash the will of a king: weak foes around you (common pirates and bugs below 40% health) faint on the spot; everyone else is thrown back, reeling."},
 }
 

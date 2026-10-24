@@ -37,7 +37,7 @@
 		"intro": {
 			"text": [
 				"You. Captain {captain}. You walk like someone who's never been hit properly.",
-				"Retired Marine, twenty years. These dummies are my pupils now. They listen better than recruits ever did."
+				"Retired Admiralty man, twenty years. These dummies are my pupils now. They listen better than recruits ever did."
 			],
 			"next": "menu"
 		},
@@ -49,7 +49,7 @@
 				{ "text": "Dodging", "next": "dodge" },
 				{ "text": "Parrying", "next": "parry" },
 				{ "text": "Buy or sell armour.", "next": "arms" },
-				{ "text": "Why'd you leave the Marines?", "next": "story" },
+				{ "text": "Why'd you leave the Admiralty?", "next": "story" },
 				{ "text": "Dismissed.", "next": "bye" }
 			]
 		},

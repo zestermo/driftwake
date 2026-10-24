@@ -37,7 +37,7 @@ const TREES := {
 	"sea": {"name": "Sailing", "tab": "LIFE", "kind": "life"},
 	"cook": {"name": "Cooking", "tab": "LIFE", "kind": "life"},
 	"fish": {"name": "Fishing", "tab": "LIFE", "kind": "life"},
-	"fruit": {"name": "Devil Fruit", "tab": "FRUIT", "kind": "fruit"},
+	"fruit": {"name": "Driftfruit", "tab": "FRUIT", "kind": "fruit"},
 }
 const TAB_ORDER := ["base", "unarmed", "black_leg", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "polearm", "hammer", "dual_axe", "greatsword", "corsair", "pistol", "life", "fruit"]
 const LIFE_SKILLS := ["swim", "sea", "cook", "fish"]

@@ -542,7 +542,7 @@ func _define_elder(notices: Array, qn: KitQuests) -> void:
 	var beyond := "Past us? %s." % " or ".join(ahead.map(func(n): return "%s, %s" % [n["name"], IslandThemes.of(n["theme"]).blurb])) if not ahead.is_empty() else "Past us? The end of this sea, they say."
 	var menu := {"text": "What do you need, Captain?", "choices": [
 		{"text": "Tell me about this island.", "next": "about"},
-		{"text": "Where does the log pose point from here?", "next": "beyond"},
+		{"text": "Where does the lodestone point from here?", "next": "beyond"},
 	]}
 	var nodes := {
 		"intro": {"text": ["Visitors! It's been a long season. Welcome to %s." % isl.island_name,

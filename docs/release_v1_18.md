@@ -29,8 +29,8 @@ release himself (2026-10-19), so no extra confirmation is needed at the tag.
 - We built tools and workflows (parallel feature lanes, a landing queue, cached dependency-based tests, the release
   gates) that keep quality and content consistent.
 - This update solidified much more of the vision, and **the roadmap was rebuilt** to match the new scope and goals
-  (the 1.19-1.22 release plan: the Marines + rival crews + a new intro; the world + cities; combat + gear;
-  strongholds + Devil Fruits).
+  (the 1.19-1.22 release plan: the Admiralty + rival crews + a new intro; the world + cities; combat + gear;
+  strongholds + Driftfruits).
 - It's genuinely getting very fun to play as the systems come together.
 - A brief mention of the plans and investigation into releasing on **Steam** in the future.
 - Screenshots and GIFs of 1.18's content.

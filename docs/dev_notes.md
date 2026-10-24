@@ -6144,3 +6144,21 @@ fidelity report:
 - **People**: IslandLife.AMBIENT 8-10 -> 12-15 (a village ~20 -> ~25 people; Brinehollow has 38). lifetest's range 19-26.
 - Not changed (by design, noted): lit windows ~0.4x Brinehollow's (smaller one-storey houses), paths unpaved (Brinehollow
   paves 4%).
+
+## 2026-10-24: 1.20 names (docs/originality_plan.md) and the campfire flame
+- **Names, display text only (ids kept, no save migration):** Soru -> Squall Step, Tekkai -> Ballast, Armament: Coat ->
+  Iron Will: Coat (its mastery Ryuo -> Outflow), Fire Fist -> Cinder Fist, Sea King Fist -> Leviathan Fist, Conqueror's
+  Haki -> Captain's Will, Haki Legs -> Will Legs, the skill map's Devil Fruit tab -> Driftfruit. Fruit types show as
+  Flux / Feral / Knack (`DevilFruits.TYPE_NAMES`; `type_name()` reads it). Sea King -> Leviathan (banners, boss bar,
+  chart, tips, dialogue, Leviathan's Fang), log pose -> lodestone (banners, toasts, controls list, village and
+  world lines), Marines -> the Admiralty (dialogue; the squads' mates are "Greycoat <name>", the intro's "Admiralty
+  marine"). Fruit items and inventory text say Driftfruit. A jungle hermit "Haki" -> "Tama".
+- **Published text:** README, documentation/gdd.html, docs/release_v1_18.md and every web/site page; the "Inspired by
+  One Piece" credit footer dropped from every page. GitHub release bodies are only changelog links (nothing to edit).
+- **Left as is:** internal ids, node names, comments, skill_tree.gd's unused REGION_* keys, generic words (the Warlord
+  talent, the Dune Emperor). **Open for Zach:** the borrowed rule "fruit users can't swim" still stands (the item text
+  says so in the new names).
+- **Campfire flame (noted 2026-10-20):** Props.campfire's flames were opaque untextured quads that stacked into a tall
+  pale block at dusk; now FX's flame recipe (dust.png sprite, additive, alpha ramp to 0, no shadow), one shared
+  quad/material (`Props._fire_quad`). Checked with siteshot camp.
+- Tests: t/combat/admiralty_hunter (checks "Greycoat"), t/progression, t/weapons/fist_sea_king.

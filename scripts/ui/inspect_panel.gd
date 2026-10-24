@@ -88,7 +88,7 @@ func show_kit(k: Dictionary) -> void:
 	var fruit := str(k["fruit"])
 	var fname := ""
 	if fruit != "":
-		fname = "    " + str(load("res://scripts/powers/devil_fruits.gd").get_fruit(fruit).get("name", "Devil Fruit")).to_upper()
+		fname = "    " + str(load("res://scripts/powers/devil_fruits.gd").get_fruit(fruit).get("name", "Driftfruit")).to_upper()
 	_line.text = "LV %d    %s%s" % [int(k["level"]), str(STYLES.get(str(k["style"]), str(k["style"]))).to_upper(), fname]
 	items.clear()
 	items["weapon"] = sg.item_from(k["weapon"])

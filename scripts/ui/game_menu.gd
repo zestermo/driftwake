@@ -188,7 +188,7 @@ func _on_dialogue_event(ev: String) -> void:
 		var gm := get_node("/root/GameManager")
 		if not gm.charted.has("king"):
 			gm.charted["king"] = true
-			get_tree().call_group("hud", "show_toast", "The Sea King's waters are on your chart (M)")
+			get_tree().call_group("hud", "show_toast", "The Leviathan's waters are on your chart (M)")
 
 
 ## A trader's stall, now or (talking) when the talk ends.
@@ -535,7 +535,7 @@ const BINDINGS := [
 	["Ready / sheathe weapon", "Z", "ready_weapon"], ["Light attack (3-hit combo)", "Left click", "light_attack"], ["Heavy attack", "Right click", "heavy_attack"],
 	["Dodge roll", "Left Ctrl", "dodge"], ["Sneak (toggle)", "C", "crouch"], ["Emote wheel (hold, point to pick)", "T", "emote"], ["Parry", "Q", "parry"], ["Interact / talk", "F", "interact"], ["Skills", "1 - 5", "LB+X Y B A RB"],
 	["Ultimate", "R", "ultimate"], ["Eat / drink (hold: choose)", "E", "quick_item"], ["Action wheel (hold: camp...)", "N", "action_wheel"], ["Swap weapon loadout (hold: choose)", "X", "loadout"], ["Crew chat (co-op)", "Enter", "-"],["Block (hold)", "Q", "parry"],
-	["Inventory", "Tab / I", "inventory"], ["Skill map", "K", "skill_map"], ["Map: out / away (click: mark)", "M", "sea_chart"], ["Belt lantern on / off", "L", "lantern"], ["Read the log pose (hold)", "H", "log_pose"], ["Zoan: shift form", "V", "transform"], ["Summon your ship (hold)", "B", "summon_ship"], ["Pause menu", "Esc", "pause"], ["Zoom camera", "Mouse wheel", "-"],
+	["Inventory", "Tab / I", "inventory"], ["Skill map", "K", "skill_map"], ["Map: out / away (click: mark)", "M", "sea_chart"], ["Belt lantern on / off", "L", "lantern"], ["Read the lodestone (hold)", "H", "log_pose"], ["Zoan: shift form", "V", "transform"], ["Summon your ship (hold)", "B", "summon_ship"], ["Pause menu", "Esc", "pause"], ["Zoom camera", "Mouse wheel", "-"],
 	["PSX resolution / dither", "F2 / F3", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter", "F11 / Alt+Enter"],
 ]
 var _binding_keys: Array[Label] = []

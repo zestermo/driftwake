@@ -40,7 +40,7 @@ func _process(_d: float) -> bool:
 			var marines: Array = e.rivals.slice(0, e.rivals.size() - 1)
 			check("Commander Vael and a squad of marines turn up (%d)" % e.rivals.size(),
 				str(off.net_profile.get("name", "")) == "Commander Idris Vael" and marines.size() >= 2 and e.squad())
-			check("...the marines in the grey", marines.all(func(m): return str(m.net_profile.get("name", "")).begins_with("Marine") and m.body_model.look["top_color"].r < 0.5))
+			check("...the marines in the grey", marines.all(func(m): return str(m.net_profile.get("name", "")).begins_with("Greycoat") and m.body_model.look["top_color"].r < 0.5))
 			check("...the meeting plays", load("res://scripts/dialogue/cutscene.gd").active != null)
 			TK.act("interact")
 			until = TK.wait_ticks(4)

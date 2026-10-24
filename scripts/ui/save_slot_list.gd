@@ -85,7 +85,7 @@ static func slot_text(i: int, info: Dictionary) -> String:
 	if info.is_empty():
 		return "Slot %d      - empty -" % i
 	var fr := str(info["fruit"])
-	var fruit_name := "No Devil Fruit" if fr == "" else str(DevilFruits.get_fruit(fr).get("name", fr))
+	var fruit_name := "No Driftfruit" if fr == "" else str(DevilFruits.get_fruit(fr).get("name", fr))
 	return "Slot %d   %s   Lv %d\n%s  -  %s  -  %s" % [i, str(info["name"]), int(info["level"]),
 		fruit_name, SaveGame.format_time(float(info["play_time"])), when(int(info["saved_at"]))]
 

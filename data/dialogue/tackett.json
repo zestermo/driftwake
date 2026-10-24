@@ -14,7 +14,7 @@
 				"Odile sent you? Then you're the one who did for Grell. Huh. Thought you'd be taller.",
 				"The sloop. Aye, she could be yours. Hull's sound, rigging's new. But her keel's half rot, and oak won't do for what's out past the reef.",
 				"What I need is chitin. Brood chitin, off the queen bug nesting in the cave in the deep forest, west of the ruins. Harder than iron, and it never rots.",
-				"Bring me the queen's shell and I'll lay you a keel the Sea King couldn't bite through. Then she's yours."
+				"Bring me the queen's shell and I'll lay you a keel the Leviathan couldn't bite through. Then she's yours."
 			],
 			"event": "story:see_tackett",
 			"next": "end"

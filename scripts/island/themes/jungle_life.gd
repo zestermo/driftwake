@@ -128,7 +128,7 @@ const TEXT := {
 			"Paddled out past the reef at dawn. Sea was glass. Fish were gone."],
 		"stall": ["Fresh this morning. Well. This morning somewhere.", "Fish, rope, rum. The three things a sailor can't do without, in no order.",
 			"Dried fish, two for a coin. Three if you stop sniffing them.", "Sea salt, scraped off the rocks myself. Finest on the island.",
-			"Fishhooks! Sharp enough to catch a sea king. A small one.", "Look, don't touch. Touch, and you've bought it.",
+			"Fishhooks! Sharp enough to catch a leviathan. A small one.", "Look, don't touch. Touch, and you've bought it.",
 			"The trader's ship took all my good stock. This is the rest."],
 		"market": ["Shells, fruit, a fish that only smells a bit. What d'you need?", "Prices go up when ships come in. That's you. Sorry.", "Haggle all you like. I'm deaf on that side.",
 			"Mangoes! Ripe today, rotten tomorrow, so buy now.", "Woven mats, fine as silk, tough as a pirate's hide.",

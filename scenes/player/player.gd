@@ -1705,7 +1705,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("log_pose") and not has_log_pose():
-		_toast("You've no log pose")
+		_toast("You've no lodestone")
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ping_marker"):
@@ -1738,7 +1738,7 @@ func give_log_pose() -> void:
 		return
 	Dialogue.set_flag("log_pose")
 	refresh_look()
-	get_tree().call_group("hud", "show_banner", "A Log Pose!", "Hold H to read it. It points the way past Redtide Rock.", true)
+	get_tree().call_group("hud", "show_banner", "A Lodestone!", "Hold H to read it. It points the way past Redtide Rock.", true)
 
 
 func _debug_to_next_island() -> void:
@@ -1747,7 +1747,7 @@ func _debug_to_next_island() -> void:
 	if not GameManager.log_pose_set() and not Net.is_client():
 		GameManager.chain_settle()
 	if ids.is_empty() or not w.chain_islands.has(ids[0]):
-		_toast("Debug: the log pose is set; the next island's being built - again in a moment")
+		_toast("Debug: the lodestone is set; the next island's being built - again in a moment")
 		return
 	var isl: GenIsland = w.chain_islands[ids[0]]
 	var moor: Array = isl.mooring()
@@ -2452,7 +2452,7 @@ func _spill_use() -> void:
 ## Eat a Devil Fruit (the inventory asks first: it can't be undone).
 func eat_devil_fruit(item: ItemData) -> void:
 	if power.has_fruit():
-		_toast("A second Devil Fruit would kill you")
+		_toast("A second Driftfruit would kill you")
 		return
 	if not inventory_component.remove_item(item, 1):
 		return
@@ -2488,7 +2488,7 @@ func _finish_use() -> void:
 		var line: String = {"logia": "Your body is %s now... but the sea will never hold you again." % ("fire" if item.devil_fruit == "ember" else "an element"),
 			"zoan": "The beast is in you now (press V)... but the sea will never hold you again.",
 			"paramecia": "Plants answer to you now... but the sea will never hold you again."}.get(power.fruit_type(), "")
-		get_tree().call_group("hud", "show_banner", "%s (%s)" % [fd.get("name", "Devil Fruit"), DevilFruits.type_name(item.devil_fruit)], line, true)
+		get_tree().call_group("hud", "show_banner", "%s (%s)" % [fd.get("name", "Driftfruit"), DevilFruits.type_name(item.devil_fruit)], line, true)
 		SaveGame.save(self)
 		return
 	var got: Array = []

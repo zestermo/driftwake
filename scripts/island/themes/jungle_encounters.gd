@@ -137,7 +137,7 @@ const TEXT := {
 			"Every rustle in the ferns, I think it's them coming home.", "You're back. Is there news? Any news?"],
 		"talk_menu": "What's your little one like?",
 		"talk": ["Brave as a boar and twice as stubborn. Gets it from me, my mother says. She means it as a complaint.",
-			"They want to be a pirate. Climb the masts, fight sea kings. I told them to start by tidying up.",
+			"They want to be a pirate. Climb the masts, fight leviathans. I told them to start by tidying up.",
 			"They collect beetles. Shiny ones. The hut's full of them. I don't mind. I mind a bit.",
 			"Always running off to the edge of the jungle to see the beast. Says it's lonely. Children.",
 			"I can't go after them myself. My leg's not been right since the rains. Every step's a coin I don't have."],
@@ -159,7 +159,7 @@ const TEXT := {
 	},
 	"hermit": {
 		"weight": 1.2,
-		"who": ["Old Mother Wairua", "Stone-reader Tehau", "Hermit Kumu", "Mad Opa Tikane", "Root-witch Aolani", "Hollow-tree Haki"],
+		"who": ["Old Mother Wairua", "Stone-reader Tehau", "Hermit Kumu", "Mad Opa Tikane", "Root-witch Aolani", "Hollow-tree Tama"],
 		"intro": ["Visitors. Hm. The frogs told me you'd come. The frogs tell me a lot. Most of it is about frogs.",
 			"I've lived out here since before the village had a name. The stones and I keep each other company."],
 		"menu": ["Back, are you? The roots said you would be.", "Sit on that stump. Not that one. That one's a cousin of mine.",

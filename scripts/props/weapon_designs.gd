@@ -160,7 +160,7 @@ const DESIGNS := {
 			"blade": Color(0.58, 0.57, 0.56), "fit": Color(0.4, 0.38, 0.36), "grip": Color(0.36, 0.25, 0.16), "grip_tex": "planks_dark",
 			"speed": 0.88, "reach": 0.96, "weight": 1.25},
 		# (rare: kept a third of the times it's rolled)
-		"fang": {"id": "sea_kings_fang", "name": "Sea King's Fang", "desc": "A Sea King's tooth as long as a man, bound to a whalebone grip. Nothing on the waves has a longer reach.",
+		"fang": {"id": "sea_kings_fang", "name": "Leviathan's Fang", "desc": "A Leviathan's tooth as long as a man, bound to a whalebone grip. Nothing on the waves has a longer reach.",
 			"dmg": 1.26, "worth": 2.6, "len": 1.3, "w": 0.15, "taper": 0.42, "curve": 0.34, "guard": "bone", "pommel": "drop",
 			"blade": Color(1.12, 1.05, 0.88), "fit": Color(0.92, 0.88, 0.78), "grip": Color(0.25, 0.4, 0.42), "grip_tex": "fabric",
 			"speed": 0.86, "reach": 1.12, "weight": 1.15, "rare": true},

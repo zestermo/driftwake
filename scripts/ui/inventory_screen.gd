@@ -887,7 +887,7 @@ static func _kind(it: ItemData) -> String:
 				return "fishing rod"
 			return "equipment" if it.gear_slot == "equipment" else Gear.slot_label(it.gear_slot) + " gear"
 		ItemData.ItemType.CONSUMABLE:
-			return "devil fruit" if it.devil_fruit != "" else "consumable"
+			return "driftfruit" if it.devil_fruit != "" else "consumable"
 	return "treasure"
 
 
@@ -1106,9 +1106,9 @@ func _confirm_fruit(it: ItemData) -> void:
 	t.add_theme_font_size_override("font_size", 16)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
-	var body := "Its power is yours. But a Devil Fruit's curse is forever: you will never swim again, and deep water will drag you under."
+	var body := "Its power is yours. But a Driftfruit's curse is forever: you will never swim again, and deep water will drag you under."
 	if pl and pl.power.has_fruit():
-		body = "You already carry a Devil Fruit's power. A second would kill you."
+		body = "You already carry a Driftfruit's power. A second would kill you."
 	var d := _text(body, UIStyle.TEXT)
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size = Vector2(220, 0)
@@ -1197,7 +1197,7 @@ func _fill_sheet() -> void:
 	if gm:
 		_row("Ship's chest", "%d gold" % gm.stored_count("gold"), "%d treasure" % gm.stored_count("treasure"))
 
-	_section("Devil Fruit")
+	_section("Driftfruit")
 	if pl.power.has_fruit():
 		var fd := pl.power.fruit_data()
 		_sheet.add_child(_text("%s (%s)" % [fd["name"], DevilFruits.type_name(pl.power.fruit)], fd["color"]))

@@ -127,7 +127,7 @@ func _process(delta: float) -> void:
 	# the moment the log pose sets on the next island(s)
 	var now_set := log_pose_set()
 	if now_set and not _was_set and chain_at >= 0 and player.has_log_pose():
-		get_tree().call_group("hud", "show_banner", "The log pose has set", "Its needle points on, past this island. Hold H.", true)
+		get_tree().call_group("hud", "show_banner", "The lodestone has set", "Its needle points on, past this island. Hold H.", true)
 	_was_set = now_set
 	if _autosave_t >= AUTOSAVE_EVERY:
 		_autosave_t = 0.0
@@ -225,7 +225,7 @@ func apply_chain(at: int, is_set: bool, since: float) -> void:
 			rival_watch.arrived(at)
 		var c := chain()
 		if c and at >= 0:
-			get_tree().call_group("hud", "show_toast", "Arrived at %s. The log pose will set in time." % c.node(at)["name"])
+			get_tree().call_group("hud", "show_toast", "Arrived at %s. The lodestone will set in time." % c.node(at)["name"])
 
 
 func _get_ship() -> Ship:

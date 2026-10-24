@@ -289,9 +289,9 @@ static func _build_captain() -> void:
 	_tree("captain", ["Milestones", "Talents", "Will"])
 	_root("c_root", "Captain", {},
 		"Every level makes you a little stronger by itself: +5.5 health, +2% damage, +0.6 stamina and energy, +0.5 defense. Milestones come at their level; every 5 levels you pick one of two talents; Will comes from the bosses you beat.")
-	_big("m_soru", "Soru", "auto", 0, 8, {}, "", "soru")
+	_big("m_soru", "Squall Step", "auto", 0, 8, {}, "", "soru")
 	_big("c_quarter", "Quartermaster", "auto", 0, 10, {"loadout_slots": 1}, "A third weapon loadout on the loadout wheel (X): three setups to swap between mid-fight.")
-	_big("v_tekkai", "Tekkai", "auto", 0, 14, {}, "", "tekkai")
+	_big("v_tekkai", "Ballast", "auto", 0, 14, {}, "", "tekkai")
 	_big("c_slot4", "Fourth Slot", "auto", 0, 25, {}, "A fourth passive slot.")
 	_talent(5, ["v_mend", "Mend", {"regen_hp": 2.5}, "Out of combat (no damage for 5 s) you heal 2.5 health a second."],
 		["v_stomach", "Iron Stomach", {"potion_pct": 0.4}, "Food and drink heal you 40% more."])
@@ -317,7 +317,7 @@ static func _build_captain() -> void:
 		["h_instinct", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider still."])
 	_will("h_fore", "Foresight", {}, "foresight", "Beat a great beast in its arena. Sense what's coming before it comes.",
 		["h_weak", "Weak Points", {"crit_all": 0.06}, "Passive (a slot). You see where to strike: 6% more of your hits land 50% harder."])
-	_will("h_conq", "Captain's Will", {}, "conquerors_haki", "Beat a Sea King, with every other Will yours. A will that bends others.",
+	_will("h_conq", "Captain's Will", {}, "conquerors_haki", "Beat a Leviathan, with every other Will yours. A will that bends others.",
 		["h_will", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."])
 
 
@@ -367,7 +367,7 @@ static func _build_acrobatics() -> void:
 	_big("ac_skyleap", "Sky Leap", "move", 0, 22, {"sky_leap": 1},
 		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.")
 	_big("ac_heavenward", "Heavenward", "move", 0, 28, {"heavenward": 1},
-		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Haki Legs.")
+		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Will Legs.")
 	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
 		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
 	_variant("ac_dodge", "Dodge Style", 1, [
@@ -390,7 +390,7 @@ static func _build_acrobatics() -> void:
 	_step("ac_hang", "Hang Time", "m_skywalk", 3, {"dodge_iframe_pct": 0.08}, "Untouchable 8% longer in a dodge, a step.")
 	_step("ac_spring", "Spring", "m_sprinter", 3, {"sprint_cost_pct": 0.05}, "Sprinting burns 5% less stamina a step.")
 	_step("ac_wind", "Wind", "ac_bound", 3, {"max_stamina": 4.0}, "+4 max stamina a step.")
-	_step("ac_hakilegs", "Haki Legs", "ac_skyleap", 3, {"sky_leap_steps": 1}, "Sky Leap goes 5 m higher and 2 m further a step.")
+	_step("ac_hakilegs", "Will Legs", "ac_skyleap", 3, {"sky_leap_steps": 1}, "Sky Leap goes 5 m higher and 2 m further a step.")
 	_nodes["ac_hakilegs"]["level"] = 23
 
 
@@ -1024,7 +1024,7 @@ static func _build_unarmed() -> void:
 	_big("u_hundred", "Hundred Fists", "tech", 1, 13, {}, "", "hundred_fists")
 	_elem(1)
 	_elem(2)
-	_big("u_seaking", "Sea King Fist", "ult", 1, 30, {}, "", "sea_king_fist")
+	_big("u_seaking", "Leviathan Fist", "ult", 1, 30, {}, "", "sea_king_fist")
 	_big("u_round", "Uppercut", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a dipping rear uppercut that lifts them off their feet.")
 	_big("u_meteor", "Diving Fist", "move", 2, 6, {"mv_meteor_kick": 1},
 		"Attack in the air: dive fist-first at the enemy you're looking at, a punch that knocks them flat and bounces you back up for another (three in a row); a miss drives the fist into the ground.")
@@ -1089,9 +1089,9 @@ static func _build_black_leg() -> void:
 # --------------------------------------------------------------------------
 static func _build_ember() -> void:
 	_tree("ember", ["Fist", "Body", "Blaze"])
-	_root("e_root", "Ember Fruit (Logia)", {},
-		"Logia: your body is fire. Your dodge turns you to flame - fully untouchable, passing straight through enemies and gunfire. Use its powers to grow it.")
-	_big("e_fist", "Fire Fist", "tech", 0, 1, {}, "", "fire_fist")
+	_root("e_root", "Ember Fruit (Flux)", {},
+		"Flux: your body is fire. Your dodge turns you to flame - fully untouchable, passing straight through enemies and gunfire. Use its powers to grow it.")
+	_big("e_fist", "Cinder Fist", "tech", 0, 1, {}, "", "fire_fist")
 	_big("e_dash", "Flame Dash", "tech", 0, 6, {}, "", "flame_dash")
 	_big("e_kindled", "Kindled Blade", "mech", 1, 4, {"kindled_blade": 1}, "Every melee hit sears: the target burns for a moment.")
 	_big("e_smolder", "Smoldering Body", "mech", 1, 11, {"smoldering": 1}, "Your flame-form dodge leaves burning embers behind.")
@@ -1106,8 +1106,8 @@ static func _build_ember() -> void:
 
 static func _build_wolf() -> void:
 	_tree("wolf", ["Fang", "Pelt", "Pack"])
-	_root("z_root", "Wolf Fruit (Zoan)", {},
-		"Zoan: press V to shift between your human and hybrid wolf form. Hybrid: claws instead of weapons, 25% more damage and 15% faster. Fight in hybrid form and use its powers to grow it.")
+	_root("z_root", "Wolf Fruit (Feral)", {},
+		"Feral: press V to shift between your human and hybrid wolf form. Hybrid: claws instead of weapons, 25% more damage and 15% faster. Fight in hybrid form and use its powers to grow it.")
 	_big("z_fang", "Rending Fang", "tech", 0, 1, {}, "", "rending_fang")
 	_big("z_hunt", "Predator", "mech", 0, 9, {"hybrid_speed_pct": 0.1}, "Hybrid form is another 10% faster.")
 	_big("z_pelt", "Thick Pelt", "mech", 1, 5, {"hybrid_defense": 8.0}, "+8 defense in hybrid form.")
@@ -1121,8 +1121,8 @@ static func _build_wolf() -> void:
 
 static func _build_vine() -> void:
 	_tree("vine", ["Snare", "Root", "Thorn"])
-	_root("p_root", "Vine Fruit (Paramecia)", {},
-		"Paramecia: Photosynthesis - out of combat you slowly heal and regain energy while on land. Use its powers to grow it.")
+	_root("p_root", "Vine Fruit (Knack)", {},
+		"Knack: Photosynthesis - out of combat you slowly heal and regain energy while on land. Use its powers to grow it.")
 	_big("p_snare", "Vine Snare", "tech", 0, 1, {}, "", "vine_snare")
 	_big("p_roots", "Deep Roots", "mech", 1, 5, {"photo_mult": 1.0}, "Photosynthesis works twice as fast.")
 	_big("p_whip", "Thorn Whip", "tech", 1, 12, {}, "", "thorn_whip")

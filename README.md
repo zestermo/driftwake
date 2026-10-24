@@ -15,7 +15,7 @@
 
 <p align="center">
   A pirate action RPG with a PlayStation 1 look. Sail a living ocean, fight with blades, guns<br>
-  and Haki, and make a name for yourself with up to three friends.
+  and Will, and make a name for yourself with up to three friends.
 </p>
 
 ---
@@ -24,11 +24,11 @@
 
 You wake on the sand of Brinehollow, a sleepy fishing island at the edge of dangerous
 waters. Make a captain, pick up a cutlass and earn your way off the island. Then take your
-sloop out to sea and follow the log pose down a chain of islands, past pirate fleets, Marines,
+sloop out to sea and follow the lodestone down a chain of islands, past pirate fleets, the Admiralty,
 reefs, whirlpools, storms and something very large in the deep.
 
 Driftwake is inspired by shonen pirate adventures. Combat is fast and readable, and you build
-a fighting style from your weapons, a web of skills and Haki.
+a fighting style from your weapons, a web of skills and Will.
 
 Nearly everything in the game is themed in a PSX style: the characters, islands, ships,
 textures, music and sound effects. It's all rendered like a late-90s console game, with
@@ -38,16 +38,16 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/media/fight.jpg" alt="A katana fight at the smugglers' camp"><br><b>Fight like a shonen hero.</b> Cutlass, katana, axe, pistols and fists, each with its own combo, heavy attack and jump attack. Parry, block, dodge, and break red wind-ups with Haki.</td>
+    <td width="50%"><img src="docs/media/fight.jpg" alt="A katana fight at the smugglers' camp"><br><b>Fight like a shonen hero.</b> Cutlass, katana, axe, pistols and fists, each with its own combo, heavy attack and jump attack. Parry, block, dodge, and break red wind-ups with Will.</td>
     <td width="50%"><img src="docs/media/sailing.jpg" alt="The sloop sailing away from Brinehollow"><br><b>Sail your own ship.</b> Trim the sail to the wind, man the cannons, drop anchor at the capstan, and patch, pump and douse when the hull takes hits.</td>
   </tr>
   <tr>
-    <td><img src="docs/media/haki_iai.jpg" alt="The captain crouched by a campfire, charging a katana draw with a Haki-blackened arm"><br><b>Armament Haki and the iai draw.</b> Coat your arm and blade in Haki, then hold the katana in its scabbard to charge a single dashing cut.</td>
-    <td><img src="docs/media/whirlwind.jpg" alt="The captain spinning a Haki-coated axe in a purple arc"><br><b>The axe's whirlwind.</b> Right click spins the axe around you, catching everyone in reach and knocking them flat on the second turn.</td>
+    <td><img src="docs/media/haki_iai.jpg" alt="The captain crouched by a campfire, charging a katana draw with a Will-blackened arm"><br><b>Iron Will and the iai draw.</b> Coat your arm and blade in Will, then hold the katana in its scabbard to charge a single dashing cut.</td>
+    <td><img src="docs/media/whirlwind.jpg" alt="The captain spinning a Will-coated axe in a purple arc"><br><b>The axe's whirlwind.</b> Right click spins the axe around you, catching everyone in reach and knocking them flat on the second turn.</td>
   </tr>
   <tr>
-    <td><img src="docs/media/seaking.jpg" alt="The Sea King coiling around the ship"><br><b>Face the Sea King.</b> A serpent lurks in deep water. Jump its tail slam, cut at its head when it bites the deck, and claim its hoard.</td>
-    <td><img src="docs/media/fleet.jpg" alt="Four enemy ships: sloop, gunboat, brig and Marines"><br><b>Pirate fleets and Marines</b> that hunt you, fire broadsides, ram, flee and strike their colours. Board them and take their prize.</td>
+    <td><img src="docs/media/seaking.jpg" alt="The Leviathan coiling around the ship"><br><b>Face the Leviathan.</b> A serpent lurks in deep water. Jump its tail slam, cut at its head when it bites the deck, and claim its hoard.</td>
+    <td><img src="docs/media/fleet.jpg" alt="Four enemy ships: sloop, gunboat, brig and Admiralty cutters"><br><b>Pirate fleets and the Admiralty</b> that hunt you, fire broadsides, ram, flee and strike their colours. Board them and take their prize.</td>
   </tr>
   <tr>
     <td><img src="docs/media/village.jpg" alt="Brinehollow's main road"><br><b>Brinehollow,</b> the starter island: a fishing village, a lighthouse, jungle ruins, a smugglers' camp and traders who buy and sell.</td>
@@ -70,21 +70,21 @@ wobbly vertices, dithered colour and a chunky pixel grid.
   with a charged iai draw), axe (a splitter combo, a whirlwind and the Skybreaker leap),
   pistol, dual pistols (gun kata and Gun Rain), and bare fists (a boxing stance).
 - **Parry, block and dodge.** A well-timed parry staggers. Red "peril" attacks can't be
-  blocked, only dodged, or broken with Armament Haki.
+  blocked, only dodged, or broken with Iron Will.
 - **Physics ragdolls, blood and dismemberment.** Heavy hits knock people flying, and a katana
   can cut a cannonball in half.
-- **Skill trees (K):** a tree for every weapon, Base & Haki and your Devil Fruit. Weapon trees
+- **Skill trees (K):** a tree for every weapon, Base & Will and your Driftfruit. Weapon trees
   grow with mastery, and mastering a tree wakes its techniques' element. Put an ultimate on R.
 - **Grapples and martial arts:** suplex, throw or giant-swing a pirate into his friends.
 - **Enemies:** pirate grunts who circle, feint, shoot and raise the alarm; riflemen; scuttlebugs
   and canopy spitters; Captain Grell's den in the forest; the Brood Queen in her cave; Captain
-  Morrow, a three-phase boss at Redtide Rock; and the Sea King.
+  Morrow, a three-phase boss at Redtide Rock; and the Leviathan.
 
-### Haki
-- **Armament and Observation Haki** awaken at level 10, Conqueror's Haki at level 20.
-- **Armament: Coat** turns your weapon arm and blade glossy black: nothing can block you, and
+### Will
+- **Iron Will and Weather Eye** awaken at level 10, Captain's Will at level 20.
+- **Iron Will: Coat** turns your weapon arm and blade glossy black: nothing can block you, and
   every hit breaks red wind-ups.
-- **Observation** makes enemy wind-ups flash, widens your parry window, and with Foresight
+- **Weather Eye** makes enemy wind-ups flash, widens your parry window, and with Foresight
   dodges the next hit for you.
 
 ### The sea
@@ -97,7 +97,7 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 - **A sea you can hear and see:** surf on the shore, the open swell, the hull's wash and
   creaking timbers, gusting wind in the rigging; surf rolling over the shallows, whitecaps
   in a blow, wind streaks and spray over the bow.
-- **The log pose (hold H):** Captain Morrow's glass points to the next islands of the chain.
+- **The lodestone (hold H):** Captain Morrow's glass points to the next islands of the chain.
 - **Hazards and plunder:** reefs, fog banks, whirlpools, storm cells, wrecks, bottles and buried
   treasure.
 - **The sea chart (M)** fills in as you explore. Set your own marks to sail by.
@@ -148,7 +148,7 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 | Eat / drink (hold for the item wheel) | E | | Read the needle (hold) | H |
 | Weapon loadouts (hold for the wheel) | X | | Belt lantern | L |
 | Action wheel: camp, cook, train, fish... (hold) | N | | Crew journal | J |
-| Crew chat (co-op) | Enter | | Zoan fruit: shift form | V |
+| Crew chat (co-op) | Enter | | Feral fruit: shift form | V |
 
 The map (M) unrolls in your hands; scroll to zoom from the island out to the sea chart.
 
@@ -230,7 +230,7 @@ device in use.
 Skills rebuilt from the ground up. Each weapon has its own tree in three branches that grows only while you fight
 with it: moves, techniques and its element come by themselves at their mastery level (1-30), stat steps are bought with
 the points each level gives, and choices are versions you own both of and switch at the ship's bunk. Your captain grows
-stronger every level, with milestones (Soru, a third loadout, Tekkai, a fourth passive slot) and a talent every five
+stronger every level, with milestones (Squall Step, a third loadout, Ballast, a fourth passive slot) and a talent every five
 levels; Will (armament, sense, foresight, the captain's will) comes from beating great foes. Adventure trees for
 sailing, swimming, cooking, fishing, acrobatics, defense, stealth and tinkering appear the first time you earn them. One
 skill bar across your weapon loadouts (using another weapon's skill switches to it), three passive slots and a library;
@@ -374,11 +374,11 @@ Light, music and a living sea.
 - **Rain:** dimmer, lit streaks that stop and splash on ground, roofs and decks, puddles that soak in and dry,
   rings on the sea.
 - **Also:** days run longer than nights (14 minutes of daylight to 10 of night), pixelation is one on/off option
-  at the sharper grid, and the log pose moved to H.
+  at the sharper grid, and the lodestone moved to H.
 
 ### v1.11: Sea Legs (October 13, 2026)
 The feel update.
-- **Moves:** standing, running and sprinting jumps, a somersault double jump, a snappier dash, the log pose
+- **Moves:** standing, running and sprinting jumps, a somersault double jump, a snappier dash, the lodestone
   held properly, and every weapon's own draw and sheathe with 13 new sounds (axes on the back).
 - **Healing in a fight:** quick-slot food, rum, stew and the new Sea Tonic on an 8 s shared cooldown, eaten or
   drunk over a moment; a hit spills it.
@@ -413,13 +413,13 @@ for a properly fun, replayable game.
   step back too.
 
 ### v1.9: Beasts and Blades (October 12, 2026)
-- **The beasts rebuilt:** the Silverback is a real gorilla, and the Sea King a long serpent that
+- **The beasts rebuilt:** the Silverback is a real gorilla, and the Leviathan a long serpent that
   circles your ship, rears over the deck and bites.
 - **Sword and pistol:** the Corsair style. Blade and pistol in one combo, Powder Lunge, Dead Man's
   Drop and Powder Finale, a butt-strike while reloading, and its own skill tree with an ultimate.
 - **Dual wield:** fixed and polished. A sword with a second sword, an axe or a dagger, the off hand
   changing the weight of each hit, and Twin Spin in the tree.
-- **Devil Fruits rest for now:** chests no longer hold them while their powers are reworked. Fruits
+- **Driftfruits rest for now:** chests no longer hold them while their powers are reworked. Fruits
   already eaten stay yours.
 - **Co-op:** a pistol shot fired across your own body no longer vanishes, and a guest reaching an
   island that's still building keeps its fights.
@@ -427,15 +427,15 @@ for a properly fun, replayable game.
   giving every chain island its level of detail.
 
 ### v1.8: The Chain (October 9, 2026)
-- **The island chain:** past Redtide, the log pose leads to islands generated from your world's
+- **The island chain:** past Redtide, the lodestone leads to islands generated from your world's
   seed. Jungle isles have a pirate camp and its named captain, a bug lair, ruins and a summit lookout,
   and each one is tougher than the last (enemies scale with the island's level).
 - **Outpost villages:** an inn, a trader and a cook, a job board and an elder on every island.
 - **The Silverback:** each jungle isle's beast, with its hoard and the Silverback Pelt.
-- **Reading the log pose:** needles on the compass, each island's theme and danger, forks you
+- **Reading the lodestone:** needles on the compass, each island's theme and danger, forks you
   pick by sailing, and a chart that follows you along the chain. The needle settles after 15
   minutes on an island, or as soon as its beast falls.
-- **The sea between:** pirate fleets of the next island's level, hazards, Sea Kings, wrecks,
+- **The sea between:** pirate fleets of the next island's level, hazards, Leviathans, wrecks,
   bottles and islets on every leg.
 - **Combat:** the katana and the axe reworked (Thousand Petals, Maelstrom, Earthsplitter), and
   jumping attacks for every weapon.
@@ -452,7 +452,7 @@ for a properly fun, replayable game.
   canopy and the Brood Queen's cave.
 - **The harbour town:** a stone quay with piers, trading ships and a harbour tower; the village
   gets dressed houses, a furnished tavern, a cobbled plaza, a smithy and a sea chapel.
-- **Morrow's log pose:** hold L to see where the islands of the chain lie.
+- **Morrow's lodestone:** hold L to see where the islands of the chain lie.
 - **Combat:** a new cutlass combo and polished techniques (the Kraken's Wake), elements woken
   by weapon mastery, and heavy attacks that tire you when spammed.
 - **Fairer sea fights:** enemy hull bars, far fewer holes, faster pumping, and ships that ram or
@@ -463,17 +463,17 @@ for a properly fun, replayable game.
 - **Climbing by hand** and interaction prompts only when you're right next to things.
 
 ### v1.6: Trees and Timbers (October 7, 2026)
-- **Skill trees (K):** a tree for every weapon, Base & Haki and your Devil Fruit, grown with
+- **Skill trees (K):** a tree for every weapon, Base & Will and your Driftfruit, grown with
   weapon mastery. Old saves get every skill point back.
 - **26 new techniques** (Riposte, Wind Severer, Blade Dance, Deadeye, Smoke Bomb...) and an
   ultimate for every weapon, on R.
 - **Grapples and martial arts:** Suplex, Shoulder Throw, Giant Swing, Hundred Fists, Rising
-  Dragon and the Sea King Fist.
-- **Ability tiers:** Soru becomes Shadow Step, Foresight a stance that dodges for you, Tekkai
+  Dragon and the Leviathan Fist.
+- **Ability tiers:** Squall Step becomes Shadow Step, Foresight a stance that dodges for you, Ballast
   hardens you by itself.
 - **Cut the bullets:** a parry upgrade that cuts gunshots out of the air, and sends them back
   once mastered.
-- **Haki:** 17 new passives and Conqueror's Haki at level 20.
+- **Will:** 17 new passives and Captain's Will at level 20.
 - **Bigger ships** with a quarterdeck over a crew cabin, a crow's nest, rigging and swing ropes.
 - **Life aboard:** a bunk, a galley and the crew's shared chest; you wake in the cabin when
   you fall, and your bag waits on a grave.
@@ -484,8 +484,8 @@ for a properly fun, replayable game.
   hole, burn and flood while the crew patches, pumps and douses.
 - **Sea hazards:** reefs, fog banks, whirlpools and drifting storm cells.
 - **Plunder:** wrecks to loot, messages in bottles and buried treasure.
-- **The Sea King:** a serpent at its lair with bites, tail slams and a hoard.
-- **Enemy fleets:** sloops, gunboats, brigs and Marines that ram, flee and surrender.
+- **The Leviathan:** a serpent at its lair with bites, tail slams and a hoard.
+- **Enemy fleets:** sloops, gunboats, brigs and Admiralty cutters that ram, flee and surrender.
   You can board their ships, and their crews are visible on deck.
 - **Navigation:** a sea chart, a compass strip and map marks.
 - **Brinehollow's traders and Tackett the shipwright:** refits, paint, a flag designer
@@ -528,7 +528,7 @@ for a properly fun, replayable game.
 
 ### v1.1: Skills and Crew (October 4, 2026)
 - **Skills:** a skill bar and energy.
-- **Progression:** levels and the skill map, with Armament and Observation Haki.
+- **Progression:** levels and the skill map, with Iron Will and Weather Eye.
 - **Fighting styles:** sword, dual swords, boxing, pistol and dual pistols.
 - **Defence:** blocking, red unblockable attacks, fall damage and foot IK.
 - **Saves:** a title screen and three save slots.
@@ -603,7 +603,7 @@ To play co-op, one captain picks **Co-op → Host** on the title screen and the 
 |---|---|
 | `scenes/player`, `scripts/player_states` | The player and its state machine |
 | `scripts/npc` | Procedural bodies, the animator, the character creator's looks |
-| `scripts/combat`, `scripts/enemies` | Hit boxes, ragdolls, grunts, bosses, the Sea King |
+| `scripts/combat`, `scripts/enemies` | Hit boxes, ragdolls, grunts, bosses, the Leviathan |
 | `scripts/powers`, `scripts/progression` | Powers, skills, the skill map |
 | `scripts/ship`, `scripts/ocean` | Ships, cannons, enemy fleets, the sea and its waves |
 | `scripts/island`, `scripts/world` | Islands, Brinehollow, weather, clouds, sea features |

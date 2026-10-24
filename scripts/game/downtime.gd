@@ -33,9 +33,9 @@ const RECIPE := "captains_feast"
 const LORE := [
 	"The old charts say the sea gets rougher the further you sail from home. The old charts were drawn by cowards.",
 	"A ship that's named and loved sails truer. Shipwrights swear to it, and they'd know.",
-	"Sea Kings sleep deep in calm water. They wake for storms, and for cannon fire.",
+	"Leviathans sleep deep in calm water. They wake for storms, and for cannon fire.",
 	"Gulls follow a ship with a good cook. Crews follow one too.",
-	"A log pose sets itself to the next island's pull. Leave before it's set and you sail blind.",
+	"A lodestone sets itself to the next island's pull. Leave before it's set and you sail blind.",
 	"Pirates bury treasure because a full hold is a slow ship, not for the riddles.",
 	"Salt keeps meat, salt keeps fish, and enough of it keeps a sailor from scurvy. Mostly.",
 	"Lashing a helm keeps her heading. It won't keep her off the rocks.",

@@ -279,7 +279,7 @@ func _draw() -> void:
 				pts.append(c + Vector2(-8 + j * 2.0, sin(j * 1.3) * 2.5))
 			draw_polyline(pts, serp, 1.5)
 			draw_circle(pts[pts.size() - 1], 1.8, serp)
-			draw_string(_font, c + Vector2(-26, 12), "here be a Sea King", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, serp)
+			draw_string(_font, c + Vector2(-26, 12), "here be a Leviathan", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, serp)
 		# X marks the spot
 		for t in gm.maps.keys():
 			var ti := int(t)

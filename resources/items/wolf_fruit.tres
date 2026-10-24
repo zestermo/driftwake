@@ -7,7 +7,7 @@
 script = ExtResource("1")
 id = "wolf_fruit"
 display_name = "Wolf Fruit"
-description = "A shaggy, grey-skinned fruit with swirling stripes, warm like a living thing. A Zoan Devil Fruit: eat it and you can become a wolf-man - but the sea will never let you swim again."
+description = "A shaggy, grey-skinned fruit with swirling stripes, warm like a living thing. A Feral Driftfruit: eat it and you can become a wolf-man - but the sea will never let you swim again."
 value = 0
 rarity = 4
 stackable = false
