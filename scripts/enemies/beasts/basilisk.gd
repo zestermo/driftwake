@@ -24,21 +24,32 @@ func _init() -> void:
 
 func _spec() -> Dictionary:
 	var c: Array = LOOKS[variant % LOOKS.size()]
-	return {"hip_h": 1.05, "len": 3.0, "chest_r": 1.0, "hip_r": 0.9, "neck": Vector3(0, 0.05, -0.75), "head": Vector3(0.62, 0.42, 0.8),
-		"snout": 0.85, "tail": 5.0, "tail_r": 0.55, "coat": c[0], "under": c[1], "mark": c[2], "tex": "scales", "ears": 0.05,
-		"eye": Color(1.0, 0.85, 0.2)}
+	# (1.20: rebuilt on the quadruped rig, docs/v1_20_beasts.md 12: low and long on sprawled clawed legs, a longer neck
+	# with a flat wedge of a head, the frill a fan of membrane between its spines, a long tapering tail)
+	return {"hip_h": 0.95, "len": 3.4, "chest_r": 0.78, "hip_r": 0.72, "neck": Vector3(0, 0.4, -1.0), "head": Vector3(0.5, 0.3, 0.78),
+		"snout": 0.8, "tail": 5.0, "tail_r": 0.42, "coat": c[0], "under": c[1], "mark": c[2], "tex": "scales", "ears": 0.0,
+		"eye": Color(1.0, 0.85, 0.2), "sprawl": 0.8, "foot": "claw", "leg_k": 1.1, "bend": 1.2}
 
 
-## A frill of spines round the neck, a crest down the back, horns over the eyes, banded scales.
+## A frill fanned out behind the head (spines with membrane between), a crest down the back, horns over the eyes,
+## banded scales.
 func _extras() -> void:
 	var hd: Vector3 = spec["head"]
 	var cr: float = spec["chest_r"]
 	var ln: float = spec["len"]
 	var spine := PSXMat.flat((spec["mark"] as Color).lightened(0.2))
+	var skin := PSXMat.lit("leather", (spec["mark"] as Color).lightened(0.35))
 	var rng := _rng_fixed()
+	var nk: Vector3 = spec["neck"]
 	for k in range(11):
 		var a := -1.4 + k * 0.28
-		mb("Neck").add_cylinder(spine, Transform3D(Basis(Vector3.BACK, a) * Basis(Vector3.RIGHT, 0.35), Vector3(sin(a) * cr * 0.55, cos(a) * cr * 0.55, 0.1)), 0.09, 0.0, 1.0 + (0.4 if k % 2 == 0 else 0.0), 4, 1.0, Color.WHITE, false, false, false)
+		var r := 1.0 + (0.35 if k % 2 == 0 else 0.0)
+		var at := nk * 0.85 + Vector3(sin(a) * cr * 0.35, cos(a) * cr * 0.35, 0.2)
+		mb("Neck").add_cylinder(spine, Transform3D(Basis(Vector3.BACK, a) * Basis(Vector3.RIGHT, 0.35), at), 0.07, 0.0, r, 4, 1.0, Color.WHITE, false, false, false)
+		# the membrane: a thin vane from this spine toward the next
+		if k < 10:
+			var b := a + 0.14
+			mb("Neck").add_box(skin, Transform3D(Basis(Vector3.BACK, b) * Basis(Vector3.RIGHT, 0.35), at + Basis(Vector3.BACK, b) * Vector3(0, r * 0.42, 0)), Vector3(0.26, r * 0.8, 0.03), 1.0, Color.WHITE, false)
 	for k in range(10):
 		var z := -ln * 0.6 + k * ln * 0.13
 		mb("Body").add_cylinder(spine, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, cr * 0.9, z)), 0.12, 0.0, 0.6 - absf(k - 4.5) * 0.04, 4, 1.0, Color.WHITE, false, false, false)
@@ -46,7 +57,8 @@ func _extras() -> void:
 		mb("Head").add_cylinder(spine, Transform3D(Basis(Vector3.RIGHT, 1.2) * Basis(Vector3.BACK, -s * 0.3), Vector3(s * hd.x * 0.55, hd.y * 0.65, -hd.z * 0.2)), 0.1, 0.0, 0.7, 4, 1.0, Color.WHITE, false, false, false)
 	for i in range(4):
 		mb("Tail%d" % i).add_cylinder(spine, Transform3D(Basis(Vector3.RIGHT, 0.4), Vector3(0, float(spec["tail_r"]) * 0.8, 0.3)), 0.08, 0.0, 0.4, 4, 1.0, Color.WHITE, false, false, false)
-	mb("Tail3").add_blob(spec["coat_mat"], Transform3D(Basis(), Vector3(0, 0, float(spec["tail"]) * 0.25)), Vector3(0.6, 0.45, 0.7), rng, 0.2, 3, 7, 1.0, Color(0.8, 0.8, 0.8))
+	# (a tapering tail for its whip, a small flat spade at the tip)
+	mb("Tail3").add_box(spine, Transform3D(Basis(Vector3.UP, PI * 0.25), Vector3(0, 0, float(spec["tail"]) * 0.25)), Vector3(0.38, 0.05, 0.38), 1.0, Color.WHITE, false)
 
 
 ## Banded across the back, pale underneath.
