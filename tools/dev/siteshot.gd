@@ -15,6 +15,7 @@ extends SceneTree
 ## 1.18: fishing dive shark galley (Brinehollow), heldmap camp snow desert (chain islands; snow and desert on the
 ##   first seed from 1 that opens on one); clips: clip_fish clip_dive clip_map clip_loadout.
 ##   The held map is the game's own camera (own_cam off), the rest a stand-in camera.
+## 1.20: fog (the fog isle's village under its giant trees, dusk and day).
 ## 1.19: rivals admiralty (chain island, a crew and a squad facing the captain), wanted (Brinehollow's notice board),
 ##   brig, intro (the opening's storm, its own camera); clips: clip_duel clip_squad.
 const W := 1600
@@ -149,6 +150,7 @@ func _run() -> void:
 			"camp": await _shot_camp()
 			"snow": await _shot_theme("snow", [[16.9, 3, "blizzard"], [12.0, 2, "fall"]])
 			"desert": await _shot_theme("desert", [[17.3, 0, "gold"], [10.5, 0, "day"]])
+			"fog": await _shot_theme("fog", [[18.5, 1, "dusk"], [11.0, 1, "day"]])
 			"clip_fish": await _clip_fish()
 			"clip_dive": await _clip_dive()
 			"clip_map": await _clip_map()
@@ -329,7 +331,7 @@ func _quiet_seas() -> void:
 ## The first island of the chain built for `cfg` (seed, village layout, harbour kind,
 ## temple; the seed's own roll for what's left out) and manned. Rebuilt only when cfg changes.
 func _isle(cfg: Dictionary) -> void:
-	var want_cfg := {"seed": base_seed, "village": "", "harbour": "", "temple": false}
+	var want_cfg := {"seed": base_seed, "village": "", "harbour": "", "temple": false, "node": -1}
 	want_cfg.merge(cfg, true)
 	if isl and want_cfg == isl_cfg:
 		return
@@ -344,7 +346,7 @@ func _isle(cfg: Dictionary) -> void:
 	load("res://scripts/island/kit/kit_harbour_gen.gd").force = want_cfg["harbour"]
 	load("res://scripts/island/kit/kit_dungeons.gd").force_temple = want_cfg["temple"]
 	gm.chain_seed = int(want_cfg["seed"])
-	var id := int(wg.chain().start_next[0])
+	var id := int(wg.chain().start_next[0]) if int(want_cfg["node"]) < 0 else int(want_cfg["node"])
 	# (the log pose never sets: the shots jump the clock, and the islands ahead would be built)
 	gm.apply_chain(id, false, w.world_time() + 1.0e9)
 	await process_frame
@@ -1444,7 +1446,8 @@ func _seed_theme(theme: String) -> int:
 
 ## A themed island's village from the road in, the captain in front: [hour, weather, label] each.
 func _shot_theme(theme: String, looks: Array) -> void:
-	await _isle({"seed": _seed_theme(theme)})
+	# (a fog isle is never a chain's first island: chain seed 1's node 8 is one, Wraithholm Key)
+	await _isle({"seed": 1, "node": 8} if theme == "fog" else {"seed": _seed_theme(theme)})
 	var v: Vector2 = isl.sites["village"]
 	var dd: Vector2 = (isl.sites["dock"] - v).normalized()
 	var side := Vector2(-dd.y, dd.x)

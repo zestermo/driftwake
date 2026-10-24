@@ -1192,8 +1192,10 @@ func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: floa
 	_bucket(buckets, pick[0], "giant", xf)
 	_bucket(buckets, pick[1], "giant_detail", xf)
 	_crowns.append(xf * GrapplePoints.crown_of(pick[0]))
-	_shapes.append([1.1 * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
-	reserve(p, 3.5)
+	# a tree that gives its trunk radius (the fog isle's giants: [body, detail, lean, r]) gets a trunk that thick
+	var tr: float = float(pick[3]) if pick.size() > 3 else 1.1
+	_shapes.append([tr * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
+	reserve(p, maxf(3.5, tr * s + 1.5))
 	return {"xf": xf, "body": pick[0]}
 
 

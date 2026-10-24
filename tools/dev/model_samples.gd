@@ -68,6 +68,37 @@ static func _body(n: String, size: Vector3, centre: Vector3) -> StaticBody3D:
 
 ## A ship's anchor stood on its crown, rope from the ring: extruded shank and
 ## flukes, tube arms on a curve, a lathe crown, a tube ring, a banded stock.
+## A big tree's [body, detail, lean] (ForestPlants / FogPlants) stood together as one model.
+static func tree(parts: Array) -> Node3D:
+	var n := Node3D.new()
+	for m in parts:
+		if m is Mesh:
+			var mi := MeshInstance3D.new()
+			mi.mesh = m
+			n.add_child(mi)
+	return n
+
+
+## A patch of big trees on the island's giant grid (10 m, jittered 3.5 m, turned at random): `kinds` are
+## FogPlants/ForestPlants static funcs named "Class.func", taken in turn.
+static func grove(kinds: Array, n := 3, seed_value := 1) -> Node3D:
+	var root := Node3D.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var i := 0
+	for gx in range(n):
+		for gz in range(n):
+			var k: PackedStringArray = str(kinds[i % kinds.size()]).split(".")
+			var cls: Script = load("res://scripts/props/fog_plants.gd") if k[0] == "FogPlants" else load("res://scripts/props/forest_plants.gd")
+			var t := tree(Callable(cls, k[1]).call(seed_value * 100 + i))
+			t.position = Vector3((gx - (n - 1) * 0.5) * 10.0 + rng.randf_range(-3.5, 3.5), 0, (gz - (n - 1) * 0.5) * 10.0 + rng.randf_range(-3.5, 3.5))
+			t.rotation.y = rng.randf() * TAU
+			t.scale = Vector3.ONE * rng.randf_range(0.9, 1.15)
+			root.add_child(t)
+			i += 1
+	return root
+
+
 static func anchor() -> Node3D:
 	var mb := MeshBuilder.new()
 	var iron := PSXMat.lit("metal", Color(0.42, 0.42, 0.45))

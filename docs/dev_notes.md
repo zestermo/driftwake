@@ -6162,3 +6162,24 @@ fidelity report:
   pale block at dusk; now FX's flame recipe (dust.png sprite, additive, alpha ramp to 0, no shadow), one shared
   quad/material (`Props._fire_quad`). Checked with siteshot camp.
 - Tests: t/combat/admiralty_hunter (checks "Greycoat"), t/progression, t/weapons/fist_sea_king.
+
+## 2026-10-24: the fog isle's giant trees (Zach's pick)
+- **What:** the fog isle's big trees replaced (Zach didn't like the bare oaks, willows and dead firs; he asked for "big
+  spooky trees that can make big spooky forests" and sent a photo of a misty gnarled wood). Picked from five candidates
+  rendered as single trees and 3x3 groves: **the spiral giant** (24-32 m, a 1.8-2.3 m trunk twisting like wrung rope with
+  two strands wound round it, six or seven limbs ending in tightening curls) as the main tree, **the gnarled giant**
+  (18-26 m, two or three twisting trunks from one mossy foot, limbs snaking 10-16 m out, some sagging to the ground and
+  rising again, twig sprays, moss on trunks and limb tops) mixed in. Turned down: a hunched giant, a stilt giant on arched
+  roots, a thicket giant.
+- **Where:** `FogPlants.spiral_giant` / `gnarl_giant` and their helpers `_curl` (a turtle walk turning ever tighter about
+  the axis across the limb), `_curl_crown`, `_snake` (a limb weaving side to side and arching or sagging), `_twigs`,
+  `_shroud` (moss as two crossed fog_grass cutout cards hung upside down: dense at the limb, strands below). Dark grey-violet
+  bark. FogTheme.meshes: giant/emergent spiral, fig gnarled, kapok both; canopy 0.5 -> 0.75 (the twisted wood 0.9);
+  districts renamed (gnarled hollows, the twisted wood). dead_oak / dead_willow / dead_fir gone.
+- **Collision:** a big tree may give its trunk radius as a 4th element ([body, detail, lean, r]); `GenIsland._add_giant`
+  sizes its trunk collider and reserve by it (others keep 1.1 m: no change to the other themes).
+- **Cost:** ~3.3-4.2k tris a giant (the old oak ~1.1k); the fog isle isn't in the Brinehollow bench, so watch F8 there.
+  A lower-detail far version is the fix if it shows.
+- **Tools:** `S.tree(parts)` and `S.grove(kinds, n, seed)` in model_samples.gd (modelshot: a big tree whole, a patch on the
+  10 m giant grid). genshot seed 1 node 8 is a fog isle (Wraithholm Key).
+- Tests: t/island/fog_isle, t/island/theme_registry, smoketest.

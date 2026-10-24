@@ -6,7 +6,7 @@ extends SceneTree
 ## contact sheet of them all (<out>_sheet.png). Prints its build times.
 ## Args: <out_prefix> [chain seed | -] [node id | -] [psx]
 ## (env GSHOT_SEED / GSHOT_ID still work; GSHOT_HOUR=21 renders at that hour, 11 by default;
-## GSHOT_BEAST=<kind> swaps the island's beast; GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots; the coast's are cliff, cliff_foot, shelf, shelf_out)
+## GSHOT_NOCAP=1 leaves the captions off (site art); GSHOT_BEAST=<kind> swaps the island's beast; GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots; the coast's are cliff, cliff_foot, shelf, shelf_out)
 const SITE_COLS := {"dock": Color(1, 1, 1), "village": Color(1.0, 0.85, 0.2), "boss": Color(1.0, 0.25, 0.2), "camp": Color(1.0, 0.55, 0.15),
 	"lair": Color(0.75, 0.4, 1.0), "ruins": Color(0.6, 0.75, 0.9), "summit": Color(0.3, 0.95, 1.0)}
 var t := 0.0
@@ -102,6 +102,7 @@ func _setup(island) -> void:
 	caption.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	caption.add_theme_constant_override("outline_size", 6)
 	cl.add_child(caption)
+	caption.visible = OS.get_environment("GSHOT_NOCAP") == ""
 	_mark_sites()
 	var r: float = isl.radius
 	var dd: Vector2 = isl.dock_dir

@@ -1,30 +1,30 @@
 extends ThemeDef
 ## The fog isles (docs/v1_20_plan.md, 1.20): a haunted grey isle under fog that never quite lifts. Dead woods of
-## bare oaks hung with grey moss, drowned willows over black water, the spires of dead firs; moor and peat, a grey
+## giant trees twisting up like wrung rope, gnarled giants snaking their limbs along the ground; moor and peat, a grey
 ## shingle strand; a cursed fishing village keeping its lanterns lit against the fog and what walks in it - the
 ## drowned up out of the bay, ghosts among the dead trees, a wreck in the bay whose captain never left her. Its
 ## plants are FogPlants, its land the forest's (forest_land.gd: rolling ground, slow black rivers), its people's
 ## text fog_life.gd. Ghosts take no harm from shot; the drowned shrug most of it off.
 
 ## Land (the jungle's keys, jungle_theme.gd; the forest's own: roll_h, rivers, river_w, falls). The mesh slots:
-## "giant" dead oaks, "fig" drowned willows, "kapok" more willows, "emergent" dead firs; "tree" crooked snags and
+## "giant" spiral giants, "fig" gnarled giants, "kapok" both, "emergent" more spiral giants; "tree" crooked snags and
 ## a dark living fir now and then; "beach_tree" snags and a shore pine; "shrub" dead whips, "bush" brambles,
 ## "fern" withered bracken, "grass" pale dead grass, "broadleaf" fallen logs, stumps and pale caps, "bamboo"
-## stumps and caps, "mangrove" cattails in the black water, "rock" dark lichened stones. Sparser than the
-## forest: the fog closes the distance, not the crowns.
+## stumps and caps, "mangrove" cattails in the black water, "rock" dark lichened stones. The woods are deep and dark
+## (Zach, 2026-10-24: "big spooky forests"), the moor and the fog the open ground between.
 const LAND := {
 	"peak": [22.0, 34.0], "hills": [3, 6], "hill_h": [6.0, 13.0], "roll": 4.0, "base": 3.8,
 	"ramp": [30.0, 50.0], "cliffs": [1, 3], "cliff_h": [8.0, 15.0],
 	"tree": 0.3, "edge": 0.12, "beach_tree": 0.1, "fern": 0.36, "bush": 0.26, "grass": 0.46, "rock": 0.05,
 	"cover": 0.6,
-	"canopy": 0.5, "giants": {"giant": 4.0, "fig": 2.4, "kapok": 0.8, "emergent": 1.6},
+	"canopy": 0.75, "giants": {"giant": 4.0, "fig": 2.4, "kapok": 0.8, "emergent": 1.6},
 	"bamboo": 0.05, "palm_inland": 0.0, "mangrove": 0.12,
 	"broadleaf": 0.14, "shrub": 0.2, "floor": 0.3, "overgrown": 0.2,
 	"roll_h": [4.0, 8.0], "rivers": [1, 2], "river_w": [6.0, 9.0], "falls": 0.25,
 	"forests": [
 		["dead wood", {}],
-		["drowned willows", {"giants": {"giant": 1.0, "fig": 6.0, "kapok": 2.0, "emergent": 0.4}, "mangrove": 0.2, "rivers": [2, 3], "river_w": [8.0, 11.0]}],
-		["spire firs", {"giants": {"giant": 1.0, "fig": 0.4, "kapok": 0.2, "emergent": 6.0}, "canopy": 0.4, "tree": 0.36, "grass": 0.52}],
+		["gnarled hollows", {"giants": {"giant": 1.0, "fig": 6.0, "kapok": 2.0, "emergent": 0.4}, "mangrove": 0.2, "rivers": [2, 3], "river_w": [8.0, 11.0]}],
+		["the twisted wood", {"giants": {"giant": 4.0, "fig": 0.4, "kapok": 0.2, "emergent": 2.0}, "canopy": 0.9, "tree": 0.36, "grass": 0.52}],
 		["bare moor", {"canopy": 0.28, "tree": 0.18, "grass": 0.6, "rock": 0.08, "bush": 0.32, "roll_h": [6.0, 10.0]}],
 	],
 }
@@ -255,10 +255,11 @@ func meshes() -> Dictionary:
 		"grass": [FogPlants.grass()],
 		"rock": [FogPlants.bog_stone(941), FogPlants.bog_stone(942), FogPlants.bog_stone(943)],
 		# big trees: [body, detail, lean]
-		"giant": [FogPlants.dead_oak(951), FogPlants.dead_oak(952), FogPlants.dead_oak(953)],
-		"fig": [FogPlants.dead_willow(955), FogPlants.dead_willow(956), FogPlants.dead_willow(957)],
-		"kapok": [FogPlants.dead_willow(958), FogPlants.dead_oak(959)],
-		"emergent": [FogPlants.dead_fir(961), FogPlants.dead_fir(962)],
+		# (Zach, 2026-10-24: spiral giants the main tree, gnarled giants mixed in)
+		"giant": [FogPlants.spiral_giant(951), FogPlants.spiral_giant(952), FogPlants.spiral_giant(953), FogPlants.spiral_giant(954)],
+		"fig": [FogPlants.gnarl_giant(955), FogPlants.gnarl_giant(956), FogPlants.gnarl_giant(957)],
+		"kapok": [FogPlants.spiral_giant(958), FogPlants.gnarl_giant(959)],
+		"emergent": [FogPlants.spiral_giant(961), FogPlants.spiral_giant(962)],
 		"roof": [FogPlants.limb_roof(965), FogPlants.limb_roof(966)],
 		"mangrove": [ForestPlants.cattails(971), ForestPlants.cattails(972)],
 		"bamboo": [FogPlants.stump(975), FogPlants.pale_caps(976)],

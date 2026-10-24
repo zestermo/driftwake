@@ -1,9 +1,9 @@
 class_name FogPlants
 extends RefCounted
-## The fog isle's vegetation and rocks for GenIsland's MultiMeshes (FogTheme.meshes): a dead wood. Big trees
-## are bare grey oaks forking into crooked limbs hung with grey moss, drowned willows weeping strands, dead firs
-## standing as spires of broken stubs, a few still holding brown leaves in clumps; the big ones come as [body,
-## detail, lean] like ForestPlants' (the detail - roots, a hollow, a noose of old rope, lichen - only up close).
+## The fog isle's vegetation and rocks for GenIsland's MultiMeshes (FogTheme.meshes): a dark giant wood. Big trees
+## are spiral giants twisting up like wrung rope into curling limbs, and gnarled giants snaking their limbs out
+## sideways and down to the ground; they come as [body, detail, lean, trunk radius] like ForestPlants' [body,
+## detail, lean] (the detail - roots, a hollow, a noose of old rope, lichen - only up close).
 ## Then crooked snags, brambles, dead bracken and bog grass, cattails in the black water and dark lichened
 ## stones. Origins on the ground.
 
@@ -20,10 +20,6 @@ static func bark() -> Material:
 
 static func _moss() -> Material:
 	return PSXMat.lit("fog_moor", Color(1.35, 1.35, 1.3), {"affine": 0.5})
-
-
-static func _dead_leaves() -> Material:
-	return PSXMat.lit("leaves_oak", Color(0.42, 0.39, 0.36), {"affine": 0.5})
 
 
 static func _lean(rng: RandomNumberGenerator, k: float) -> Vector3:
@@ -60,80 +56,6 @@ static func _hang(mb: MeshBuilder, m: Material, rng: RandomNumberGenerator, at: 
 			Color(sh, sh, sh))
 
 
-## A dead oak (11-16 m): a thick leaning trunk forking low into crooked bare limbs, grey moss hanging off them,
-## now and then a clump of brown leaves the winter never took.
-static func dead_oak(seed_value: int) -> Array:
-	var rng := _rng(seed_value)
-	var body := MeshBuilder.new()
-	var b := bark()
-	var h := rng.randf_range(11.0, 16.0)
-	var r := rng.randf_range(0.7, 0.95)
-	var lean := _lean(rng, 0.8)
-	var fy := h * rng.randf_range(0.3, 0.42)
-	var top := lean * 0.6 + Vector3.UP * fy
-	body.add_tube(b, PackedVector3Array([Vector3.DOWN * 0.3, lean * 0.2 + Vector3.UP * fy * 0.45, top]), r, r * 0.75, 7, 0.6)
-	var ends: Array = []
-	var n := rng.randi_range(3, 5)
-	var a0 := rng.randf() * TAU
-	for k in range(n):
-		var a := a0 + TAU * k / n + rng.randf_range(-0.3, 0.3)
-		var dir := (Vector3(cos(a), 0, sin(a)) * rng.randf_range(0.6, 1.0) + Vector3.UP * rng.randf_range(0.6, 1.2)).normalized()
-		_limb(body, b, rng, top, dir, (h - fy) * rng.randf_range(0.42, 0.55), r * 0.5, 2, ends)
-	var moss := _moss()
-	var leaves := _dead_leaves()
-	for e in ends:
-		if rng.randf() < 0.45:
-			_hang(body, moss, rng, e, rng.randf_range(1.2, 2.6))
-		elif rng.randf() < 0.08:
-			var s := rng.randf_range(0.7, 1.1)
-			body.add_blob(leaves, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), e), Vector3(s, s * 0.7, s), rng, 0.25, 3, 5, 0.5, Color(0.85, 0.85, 0.85))
-	return [body.commit(), _foot(rng, r, b, lean, h, true).commit(), lean]
-
-
-## A drowned willow (8-12 m): a short split trunk, long limbs arching out and down, moss hanging off every one in
-## curtains to the ground.
-static func dead_willow(seed_value: int) -> Array:
-	var rng := _rng(seed_value)
-	var body := MeshBuilder.new()
-	var b := bark()
-	var h := rng.randf_range(8.0, 12.0)
-	var r := rng.randf_range(0.55, 0.75)
-	var lean := _lean(rng, 0.6)
-	var top := lean * 0.5 + Vector3.UP * h * 0.38
-	body.add_tube(b, PackedVector3Array([Vector3.DOWN * 0.3, lean * 0.25 + Vector3.UP * h * 0.2, top]), r, r * 0.7, 7, 0.6)
-	var ends: Array = []
-	var n := rng.randi_range(4, 6)
-	var a0 := rng.randf() * TAU
-	for k in range(n):
-		var a := a0 + TAU * k / n + rng.randf_range(-0.3, 0.3)
-		var dir := (Vector3(cos(a), 0, sin(a)) * 0.8 + Vector3.UP * rng.randf_range(0.9, 1.3)).normalized()
-		_limb(body, b, rng, top, dir, h * rng.randf_range(0.35, 0.45), r * 0.45, 1, ends, 0.55)
-	var moss := _moss()
-	for e in ends:
-		_hang(body, moss, rng, e, clampf((e as Vector3).y * rng.randf_range(0.45, 0.75), 1.2, 4.5))
-	return [body.commit(), _foot(rng, r, b, lean, h, false).commit(), lean]
-
-
-## A dead fir (16-24 m): a tall bare spire, broken stubs of branches down its length, the top snapped off.
-static func dead_fir(seed_value: int) -> Array:
-	var rng := _rng(seed_value)
-	var body := MeshBuilder.new()
-	var b := bark()
-	var h := rng.randf_range(16.0, 24.0)
-	var lean := _lean(rng, 0.5)
-	var r := rng.randf_range(0.42, 0.55)
-	var top := lean + Vector3.UP * h
-	body.add_tube(b, PackedVector3Array([Vector3.DOWN * 0.3, lean * 0.3 + Vector3.UP * h * 0.5, top]), r, 0.08, 6, 0.6)
-	var stubs := rng.randi_range(9, 14)
-	for k in range(stubs):
-		var t := rng.randf_range(0.25, 0.95)
-		var at := lean * t * t + Vector3.UP * h * t
-		var a := rng.randf() * TAU
-		var L := lerpf(2.6, 0.6, t) * rng.randf_range(0.4, 1.0)
-		var dir := Vector3(cos(a), rng.randf_range(-0.5, -0.1), sin(a)).normalized()
-		body.add_tube(b, PackedVector3Array([at, at + dir * L]), lerpf(0.09, 0.04, t), 0.02, 4, 1.0)
-	var foot := _foot(rng, r, b, lean, h, false)
-	return [body.commit(), foot.commit(), lean]
 
 
 ## The foot of a big dead tree: root flares, lichen up the trunk, sometimes a black hollow or a frayed rope from a
@@ -300,3 +222,178 @@ static func fallen_log(seed_value: int) -> ArrayMesh:
 	mb.add_tube(bark(), pts, r, r * 0.8, 6, 0.8, Color.WHITE, true, true)
 	mb.add_tube(_moss(), PackedVector3Array([pts[0] + Vector3.UP * r * 0.8, pts[1] + Vector3.UP * r * 0.85, pts[2] + Vector3.UP * r * 0.65]), r * 0.35, r * 0.25, 4, 1.0)
 	return mb.commit()
+
+
+# --------------------------------------------------------------------------
+# The giants (Zach, 2026-10-24: "big spooky trees that can make big spooky forests", and a photo of a misty
+# gnarled wood): the spiral giant, the forest's main tree, and the gnarled giant mixed in. Dark grey-violet bark,
+# limbs ending in tightening curls or sprays of twigs, moss in pale curtains.
+# --------------------------------------------------------------------------
+static func _gbark() -> Material:
+	return PSXMat.lit("bark", Color(0.42, 0.38, 0.44))
+
+
+## Hanging moss as stringy curtains: two crossed pale cards hung upside down (dense at the limb, thin strands below).
+static func _shroud(mb: MeshBuilder, rng: RandomNumberGenerator, at: Vector3, length: float) -> void:
+	var m := PSXMat.cutout("fog_grass", Color(0.95, 0.97, 0.92), 0.15, 2.0)
+	var L := length * rng.randf_range(0.8, 1.2)
+	var w := rng.randf_range(0.9, 1.5)
+	var down := Basis(Vector3.FORWARD, PI)
+	for k in range(2):
+		mb.add_card(m, Transform3D(Basis(Vector3.UP, rng.randf() * PI + k * PI * 0.5) * down, at), w, L)
+
+
+## A limb that ends in a curl: from `from` along `dir` for `length`, turning ever tighter about the axis across it
+## (`up` true curls up and back, false hooks down). Returns the tip.
+static func _curl(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator, from: Vector3, dir: Vector3, length: float, r: float, up: bool) -> Vector3:
+	var flat := Vector3(dir.x, 0, dir.z)
+	if flat.length() < 0.05:
+		flat = Vector3(1, 0, 0)
+	var axis := flat.normalized().cross(Vector3.UP) * (1.0 if up else -1.0)
+	var n := 14
+	var pts := PackedVector3Array([from])
+	var p := from
+	var h := dir.normalized()
+	for i in range(n):
+		var t := float(i) / n
+		p += h * length / n * lerpf(1.3, 0.45, t)
+		pts.append(p)
+		h = h.rotated(axis, lerpf(0.04, 0.55, t * t) + rng.randf_range(-0.03, 0.03))
+	mb.add_tube(b, pts, r, 0.02, 5 if r > 0.2 else 4, 0.7)
+	return p
+
+
+## A giant's crown of curling limbs from `top`: `n` limbs reaching out and up, each curling at its end, a smaller
+## curl or two off each; moss off some tips.
+static func _curl_crown(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator, top: Vector3, n: int, reach: float, r: float, ends: Array) -> void:
+	var a0 := rng.randf() * TAU
+	for k in range(n):
+		var a := a0 + TAU * k / n + rng.randf_range(-0.3, 0.3)
+		var out := Vector3(cos(a), 0, sin(a))
+		var L := reach * rng.randf_range(0.7, 1.0)
+		var mid := top + out * L * 0.45 + Vector3.UP * L * rng.randf_range(0.35, 0.7)
+		var elbow := top + out * L * 0.7 + Vector3.UP * L * rng.randf_range(0.3, 0.8)
+		mb.add_tube(b, MeshBuilder.curve_points(top, mid, elbow, 6), r, r * 0.45, 6, 0.6)
+		var d := (elbow - mid).normalized()
+		ends.append(_curl(mb, b, rng, elbow, d, L * rng.randf_range(0.5, 0.75), r * 0.45, rng.randf() < 0.5))
+		for j in range(rng.randi_range(1, 2)):
+			var at := top.lerp(elbow, rng.randf_range(0.45, 0.85))
+			var side := out.rotated(Vector3.UP, rng.randf_range(-1.2, 1.2))
+			ends.append(_curl(mb, b, rng, at, (side + Vector3.UP * rng.randf_range(-0.2, 0.6)).normalized(), L * rng.randf_range(0.3, 0.5),
+				r * 0.28, rng.randf() < 0.4))
+
+
+## Moss curtains off some of the tips, and a black hollow or two in the trunk.
+static func _haunt(mb: MeshBuilder, rng: RandomNumberGenerator, ends: Array, odds: float, moss_len: Vector2) -> void:
+	for e in ends:
+		if rng.randf() < odds:
+			_shroud(mb, rng, e, rng.randf_range(moss_len.x, moss_len.y))
+
+
+## The spiral giant (24-32 m): a massive trunk twisting up like a wrung rope, a crown of six or seven long limbs
+## each ending in a curl, moss hanging in long curtains.
+static func spiral_giant(seed_value: int) -> Array:
+	var rng := _rng(seed_value)
+	var body := MeshBuilder.new()
+	var b := _gbark()
+	var h := rng.randf_range(24.0, 32.0)
+	var r := rng.randf_range(1.8, 2.3)
+	var lean := _lean(rng, 1.2)
+	var fy := h * rng.randf_range(0.55, 0.65)
+	var spin := rng.randf() * TAU
+	var tw := rng.randf_range(0.9, 1.4)
+	var pts := PackedVector3Array()
+	for i in range(8):
+		var t := float(i) / 7.0
+		pts.append(Vector3(cos(spin + t * 4.0), 0, sin(spin + t * 4.0)) * tw * sin(t * PI) + lean * t + Vector3.UP * (fy * t - 0.3 * (1.0 - t)))
+	body.add_tube(b, pts, r, r * 0.55, 9, 0.5)
+	# two strands wound round the trunk, the twist made visible
+	for k in range(2):
+		var sp := PackedVector3Array()
+		for i in range(12):
+			var t := float(i) / 11.0 * 0.85
+			var base: Vector3 = pts[0].lerp(pts[pts.size() - 1], t)
+			var rr := lerpf(r, r * 0.6, t) * 0.92
+			sp.append(base + Vector3(cos(spin + t * 7.0 + PI * k), 0, sin(spin + t * 7.0 + PI * k)) * rr)
+		body.add_tube(b, sp, r * 0.28, r * 0.12, 5, 0.6)
+	var ends: Array = []
+	_curl_crown(body, b, rng, pts[pts.size() - 1], rng.randi_range(6, 7), h - fy + 4.0, r * 0.42, ends)
+	_haunt(body, rng, ends, 0.4, Vector2(3.0, 6.0))
+	return [body.commit(), _foot(rng, r, b, lean, h, true).commit(), lean, r]
+
+
+
+
+## A snaking limb from a to b: weaving side to side and rising or dipping along the way (`arch` > 0 bows up, < 0
+## sags down to the ground and back). Returns its points.
+static func _snake(rng: RandomNumberGenerator, a: Vector3, b: Vector3, arch: float, wobble: float) -> PackedVector3Array:
+	var d := b - a
+	var side := d.cross(Vector3.UP).normalized() if absf(d.normalized().y) < 0.95 else Vector3.RIGHT
+	var ph := rng.randf() * TAU
+	var waves := rng.randf_range(1.2, 2.2)
+	var pts := PackedVector3Array()
+	for i in range(11):
+		var t := float(i) / 10.0
+		var env := sin(t * PI)
+		pts.append(a + d * t + side * sin(ph + t * TAU * waves) * wobble * env + Vector3.UP * (arch * env + sin(ph * 1.7 + t * TAU * waves * 0.7) * wobble * 0.4 * env))
+	return pts
+
+
+## A spray of fine bare twigs off a point: thin crooked forks, two levels.
+static func _twigs(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator, at: Vector3, dir: Vector3, size: float) -> void:
+	var ends: Array = []
+	for k in range(rng.randi_range(2, 3)):
+		var d := (dir + Vector3(rng.randf_range(-0.8, 0.8), rng.randf_range(0.0, 0.9), rng.randf_range(-0.8, 0.8))).normalized()
+		_limb(mb, b, rng, at, d, size * rng.randf_range(0.6, 1.0), 0.09, 1, ends)
+
+
+## The gnarled giant (18-26 m tall, limbs 10-16 m out), after Zach's photo: two or three twisting trunks splitting
+## from one mossy foot, long limbs snaking out sideways, some sagging to the ground and rising again, sprays of fine
+## bare twigs along them and at their ends, green moss up the trunks and along the tops of the limbs.
+static func gnarl_giant(seed_value: int) -> Array:
+	var rng := _rng(seed_value)
+	var body := MeshBuilder.new()
+	var b := _gbark()
+	var moss := PSXMat.lit("moss_stone", Color(0.85, 0.95, 0.75), {"affine": 0.5})
+	var h := rng.randf_range(18.0, 26.0)
+	var r := rng.randf_range(1.4, 1.8)
+	var n := rng.randi_range(2, 3)
+	var a0 := rng.randf() * TAU
+	var tops: Array = []
+	for k in range(n):
+		var a := a0 + TAU * k / n + rng.randf_range(-0.4, 0.4)
+		var out := Vector3(cos(a), 0, sin(a))
+		var top := out * rng.randf_range(3.0, 6.0) + Vector3.UP * h * rng.randf_range(0.75, 0.95)
+		var tr := r * (0.75 if k == 0 else 0.55)
+		var pts := _snake(rng, Vector3.DOWN * 0.3 + out * 0.3, top, 0.0, rng.randf_range(0.8, 1.6))
+		body.add_tube(b, pts, tr, tr * 0.55, 8, 0.5)
+		for i in range(1, 6):
+			var q: Vector3 = pts[i]
+			body.add_blob(moss, Transform3D(Basis(Vector3.UP, a), q + out * tr * 0.4 + Vector3.UP * 0.2), Vector3(tr * 0.85, 0.4, tr * 0.7), rng, 0.3, 2, 5, 0.6)
+		tops.append([pts, out, tr])
+	var ends: Array = []
+	for t in tops:
+		var pts: PackedVector3Array = t[0]
+		var out: Vector3 = t[1]
+		var tr: float = t[2]
+		for j in range(rng.randi_range(2, 3)):
+			var from: Vector3 = pts[rng.randi_range(5, 10)]
+			var dir := out.rotated(Vector3.UP, rng.randf_range(-1.4, 1.4))
+			var L := rng.randf_range(10.0, 16.0)
+			var sag := rng.randf() < 0.35
+			var to := from + dir * L + Vector3.UP * (rng.randf_range(-from.y + 1.0, -from.y + 3.0) if sag else rng.randf_range(-3.0, 3.0))
+			var lp := _snake(rng, from, to, -from.y * 0.6 if sag else rng.randf_range(0.5, 2.5), rng.randf_range(0.6, 1.4))
+			var lr := tr * rng.randf_range(0.55, 0.65)
+			body.add_tube(b, lp, lr, lr * 0.3, 6, 0.6)
+			for i in range(2, 9, 2):
+				if rng.randf() < 0.45:
+					var q: Vector3 = lp[i]
+					body.add_blob(moss, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), q + Vector3.UP * lr * 0.6), Vector3(lr * 1.4, lr * 0.5, lr * 1.0), rng, 0.3, 2, 5, 0.6)
+				if rng.randf() < 0.3:
+					_twigs(body, b, rng, lp[i], (Vector3.UP + dir * 0.5).normalized(), rng.randf_range(3.0, 4.5))
+			_twigs(body, b, rng, lp[lp.size() - 1], dir, rng.randf_range(2.0, 3.5))
+			ends.append(lp[lp.size() - 1])
+		_twigs(body, b, rng, pts[pts.size() - 1], (Vector3.UP + out).normalized(), rng.randf_range(2.5, 4.0))
+	var foot := _foot(rng, r, b, Vector3.ZERO, h, true)
+	foot.add_blob(moss, Transform3D(Basis(), Vector3.UP * 0.5), Vector3(r * 1.6, 0.9, r * 1.6), rng, 0.3, 3, 7, 0.6)
+	return [body.commit(), foot.commit(), (tops[0][1] as Vector3) * 2.0, r * 0.95]
