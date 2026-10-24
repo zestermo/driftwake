@@ -310,11 +310,12 @@ static func _stairs(mb: MeshBuilder, m: Dictionary) -> void:
 ## The enemies' (and wrecks') whole model under `parent`. opts: hull (Color),
 ## sail (Color), trim (Color), emblem ("jolly": skull and crossbones on the
 ## sail and flag, "marine": the Admiralty's steel gull; the node is "Jolly" either
-## way), wreck (bool: a broken hulk - mast snapped, no sail, flag or lights).
+## way), wreck (bool: a broken hulk - mast snapped, no sail, flag or lights), hull_tex (the hull's planks:
+## "planks_dark", the Admiralty's painted "planks_grey").
 static func build(parent: Node3D, opts: Dictionary = {}) -> Node3D:
 	var mb := MeshBuilder.new()
 	var mats := {
-		"hull": PSXMat.lit("planks_dark", opts.get("hull", Color.WHITE), {"affine": 0.6}),
+		"hull": PSXMat.lit(str(opts.get("hull_tex", "planks_dark")), opts.get("hull", Color.WHITE), {"affine": 0.6}),
 		"deck": PSXMat.lit("planks", opts.get("deck", Color.WHITE), {"affine": 0.6}),
 		"trim": PSXMat.lit("planks", opts.get("trim", Color(0.85, 0.65, 0.35))),
 		"wood": PSXMat.lit("bark"),

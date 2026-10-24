@@ -248,13 +248,13 @@ static func den(ctx: KitContext, c: Vector2, opts: Dictionary, crew_name := "Den
 	var cap_p: Vector2 = at.call(-11.0, -5.0)
 	var rough: Dictionary = ctx.style["rough"]
 	ctx.house({"w": 7.5, "d": 5.5, "h": 2.8, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch",
-		"porch": 1.8, "lean_to": "left", "name": "CaptainsShack"}.merged(rough), cap_p, f)
+		"porch": 1.8, "lean_to": "left", "name": "CaptainsShack"}.merged(rough, true), cap_p, f)
 	var shack_a: Vector2 = at.call(-6.0, 10.0)
-	ctx.house({"w": 5.0, "d": 4.0, "h": 2.3, "roof": "shed", "wall": "planks_weathered", "roof_tex": "thatch"}.merged(rough), shack_a, c - shack_a)
+	ctx.house({"w": 5.0, "d": 4.0, "h": 2.3, "roof": "shed", "wall": "planks_weathered", "roof_tex": "thatch"}.merged(rough, true), shack_a, c - shack_a)
 	var shack_b: Vector2 = at.call(2.0, -14.0)
-	ctx.house({"w": 4.5, "d": 4.0, "h": 2.3, "roof": "gable", "wall": "planks", "roof_tex": "thatch", "chimney": true}.merged(rough), shack_b, c - shack_b)
+	ctx.house({"w": 4.5, "d": 4.0, "h": 2.3, "roof": "gable", "wall": "planks", "roof_tex": "thatch", "chimney": true}.merged(rough, true), shack_b, c - shack_b)
 	var shed: Vector2 = rim + s * 11.0 - f * 3.0
-	ctx.house({"w": 4.5, "d": 3.5, "h": 2.2, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.2}.merged(rough), shed, f)
+	ctx.house({"w": 4.5, "d": 3.5, "h": 2.2, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.2}.merged(rough, true), shed, f)
 
 	# the lookout tower over the cliff, its ladder on the landward side
 	var tower_p: Vector2 = rim - f * 2.0 - s * 11.0

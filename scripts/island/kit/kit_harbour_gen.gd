@@ -555,7 +555,8 @@ func _wharf() -> void:
 	var doors: Array = []
 	for c in [-27.0, -14.0, 14.0, 27.0]:
 		var spec := {"w": _rng.randf_range(8.5, 10.5), "d": _rng.randf_range(6.0, 7.0), "h": _rng.randf_range(3.4, 4.0),
-			"wall": ["planks", "planks_weathered"][_rng.randi() % 2], "roof": st["harbour_roof"], "seed": _rng.randi(), "pitch": _rng.randf_range(0.38, 0.46)}
+			"wall": (st["harbour_walls"] as Array)[_rng.randi() % (st["harbour_walls"] as Array).size()], "roof": st["harbour_roof"], "seed": _rng.randi(),
+			"pitch": _rng.randf_range(0.38, 0.46)}
 		var r := maxf(spec["w"], spec["d"]) * 0.55
 		# (a few spots from its slot toward the pier and up the beach: a short, steep or bitten shore loses the first)
 		var s := INF

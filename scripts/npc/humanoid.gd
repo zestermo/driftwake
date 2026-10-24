@@ -387,7 +387,7 @@ func _build() -> void:
 ## Every mesh under `n` the ghosts' pale cold blue-white, faintly glowing (one shared material), casting no shadow.
 static func spirit_glow(n: Node) -> void:
 	# (lit, so its shape still reads; a cold light of its own over it)
-	var m := PSXMat.lit("", Color(0.62, 0.86, 0.92), {"emission": Color(0.22, 0.55, 0.62), "emission_energy": 0.8, "affine": 0.4})
+	var m := PSXMat.lit("", Color(0.66, 0.84, 0.9), {"emission": Color(0.2, 0.45, 0.52), "emission_energy": 0.4, "affine": 0.4})
 	for c in n.find_children("*", "MeshInstance3D", true, false):
 		(c as MeshInstance3D).material_override = m
 		(c as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

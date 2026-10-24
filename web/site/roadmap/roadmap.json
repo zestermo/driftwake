@@ -558,6 +558,22 @@
 			]
 		},
 		{
+			"v": "1.19.4",
+			"name": "Polish",
+			"date": "2026-10-24",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "A pass over every island type: their own roofs and walls throughout, fuller villages, the Admiralty in grey.",
+			"img": "rivals_duel",
+			"alt": "The captain trading blows with a rival crew's mate in the snow at sunset",
+			"github": true,
+			"added": [
+				["Their own look", "Camps, towers, gates and wells in each island type's own roofs and walls."],
+				["Fuller villages", "More people about every village."],
+				["The Admiralty in grey", "Their ships' hulls painted grey."]
+			]
+		},
+		{
 			"v": "1.19.3",
 			"name": "The Fog Isle",
 			"date": "2026-10-24",

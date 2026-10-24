@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.19.3-e0b040" alt="Version 1.19.3">
+  <img src="https://img.shields.io/badge/version-1.19.4-e0b040" alt="Version 1.19.4">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -164,6 +164,12 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.19.4: Polish (October 24, 2026), unstable
+A pass over every island type. Pirate camps, watchtowers, gates and wells take each island's own roofs and walls
+(green shingle in the snow, adobe in the desert, shingle in the forest and the fog) instead of jungle thatch; desert
+wharves get adobe warehouses; villages are fuller; the fog isle's sea goes grey under its fog; the Admiralty's ships
+are painted grey.
 
 ### v1.19.3: The Fog Isle (October 24, 2026), unstable
 The fifth island type: a haunted isle under endless fog. Dead woods of bare oaks hung with grey moss, drowned

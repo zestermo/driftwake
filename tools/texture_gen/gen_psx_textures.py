@@ -2598,6 +2598,10 @@ def main():
     if "technique_icons" in sys.argv[1:]:
         gen_technique_icons()
         return
+    if "ships" in sys.argv[1:]:
+        # the Admiralty's painted hull: blue-grey planks, white seams
+        planks(3104, pal("4a525c", "56606a", "626c76", "6e7882", "7a848e"), "planks_grey", plank_h=8, gap="2a3038")
+        return
     if "jungle" in sys.argv[1:]:
         gen_bamboo(); gen_woven(); gen_palm_thatch(); gen_flagstones(); gen_vines(); gen_broadleaf()
         return

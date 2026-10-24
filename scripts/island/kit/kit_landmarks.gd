@@ -82,8 +82,9 @@ static func chapel(ctx: KitContext, p: Vector2, face: Vector2) -> Node3D:
 
 ## A lookout tower: four posts, a railed platform at `h` m (6 by default), a
 ## ladder up the +Z side. A tall one (over 8 m) gets a landing half way up on
-## its +X side: a ladder from the ground to the landing, another on to the top.
-static func lookout_tower(h := 6.0) -> StaticBody3D:
+## its +X side: a ladder from the ground to the landing, another on to the top. `roof`: its roof's texture (a theme's
+## style mat "thatch": the snow's green shingles, the forest's shingles).
+static func lookout_tower(h := 6.0, roof := "thatch") -> StaticBody3D:
 	var H := h
 	const W := 1.4
 	var body := StaticBody3D.new()
@@ -118,7 +119,7 @@ static func lookout_tower(h := 6.0) -> StaticBody3D:
 		box_col(body, (b * Vector3(e * 2, 1.0, 0.1)).abs(), b * Vector3(0, H + 0.5, e))
 		mb.add_box(wood, Transform3D(b, top), Vector3(e * 2 + 0.1, 0.1, 0.14), 1.0)
 	# a little roof against the sun
-	mb.add_pyramid_roof(PSXMat.lit("thatch"), Transform3D(Basis(), Vector3(0, H + 2.3, 0)), e * 2 + 0.5, e * 2 + 0.5, 1.1)
+	mb.add_pyramid_roof(PSXMat.lit(roof), Transform3D(Basis(), Vector3(0, H + 2.3, 0)), e * 2 + 0.5, e * 2 + 0.5, 1.1)
 	for x in [-e, e]:
 		for z in [-e, e]:
 			mb.add_box(wood, Transform3D(Basis(), Vector3(x, H + 1.65, z)), Vector3(0.08, 1.3, 0.08), 1.0)

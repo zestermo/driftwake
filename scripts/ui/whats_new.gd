@@ -7,6 +7,7 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
+	["1.19.4: polish", "A pass over every island type: camps, watchtowers, gates and wells in each island's own roofs and walls (no more jungle thatch in the snow), adobe warehouses on desert wharves, fuller villages, a grey sea under the fog, and the Admiralty's ships in painted grey. Unstable: tell us what breaks."],
 	["1.19.3: the fog isle", "A haunted isle under endless fog: dead woods, a cursed fishing village, a graveyard, the drowned who get back up and ghosts that bullets pass through. Light the old lanterns to push the fog and the dead back. Its boss is the Drowned Captain on his wreck. Unstable: tell us what breaks."],
 	["1.19.2: grounds and wilds", "Boss grounds of their own: an ice grotto on the snow, a sunken ruin in the desert, a grove of standing stones in the forest. Trunks, boulders, old walls, shrines, lone chests and left camps along the ways between places, more creatures and more people on the trails. Unstable: tell us what breaks."],
 	["1.19.1: beasts reborn", "Every beast boss and roamer reworked: eight rebuilt bodies, jointed legs, and each with its own moves. Big attacks have a readable wind-up and an opening after; only one move each knocks you down. This is an unstable build: tell us what breaks."],

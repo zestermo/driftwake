@@ -172,13 +172,13 @@ static func room(spec: Dictionary) -> StaticBody3D:
 	if str(spec.get("roof", "hip")) == "gable":
 		var rise := d * pitch
 		mb.add_gable_roof(thatch, _xf(Vector3(0, ry, 0), PI * 0.5), d, w, rise, 0.75, 0.5, Color.WHITE, wall)
-		mb.add_box(PSXMat.lit("thatch", Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, ry + rise + 0.04, 0)), Vector3(w + 1.6, 0.2, 0.34), 0.8)
+		mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, ry + rise + 0.04, 0)), Vector3(w + 1.6, 0.2, 0.34), 0.8)
 		top = ry + rise
 	else:
 		var rise := minf(w, d) * pitch
 		Buildings.add_hip_roof(mb, thatch, _xf(Vector3(0, ry, 0)), w, d, rise, 0.75)
 		var r := absf(w - d) * 0.5
-		mb.add_box(PSXMat.lit("thatch", Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, ry + rise + 0.03, 0)), Vector3(r * 2.0 + 0.5, 0.2, 0.3) if w >= d else Vector3(0.3, 0.2, r * 2.0 + 0.5), 0.8)
+		mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, ry + rise + 0.03, 0)), Vector3(r * 2.0 + 0.5, 0.2, 0.3) if w >= d else Vector3(0.3, 0.2, r * 2.0 + 0.5), 0.8)
 		top = ry + rise
 	var ly := fl + h - 0.2
 	var lf := fl + h - 0.75
@@ -477,7 +477,7 @@ static func workshop(spec: Dictionary) -> StaticBody3D:
 	var weave := PSXMat.lit("straw")
 	var dark := PSXMat.lit("planks_dark")
 	var planks := PSXMat.lit("planks")
-	var thatch := PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8})
+	var thatch := PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color.WHITE, {"affine": 0.8})
 	var iron := PSXMat.lit("metal", Color(0.32, 0.32, 0.34))
 	# a floor of packed boards, posts, the roof
 	mb.add_box(planks, _xf(Vector3(0, -found * 0.5 + 0.05, 0)), Vector3(w + 0.2, found + 0.1, d + 0.2), 0.5, Color(0.85, 0.85, 0.85), true, false)
@@ -561,7 +561,7 @@ static func shrine(spec: Dictionary) -> StaticBody3D:
 	var stone := PSXMat.lit("stone_brick", Color(0.8, 0.85, 0.78))
 	var rock := PSXMat.lit("rock", Color(0.7, 0.78, 0.7))
 	var palm := _palm()
-	var thatch := PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8})
+	var thatch := PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color.WHITE, {"affine": 0.8})
 	var paint := [PSXMat.flat(Color(0.7, 0.18, 0.12)), PSXMat.flat(Color(0.85, 0.65, 0.2)), PSXMat.flat(Color(0.9, 0.88, 0.8))]
 	var t1 := 0.45
 	var t2 := 0.85
@@ -672,7 +672,7 @@ static func storehouse(spec: Dictionary) -> StaticBody3D:
 	var palm := _palm()
 	var weave := PSXMat.lit("straw")
 	var dark := PSXMat.lit("planks_dark")
-	var thatch := PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8})
+	var thatch := PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color.WHITE, {"affine": 0.8})
 	for x in [-w * 0.5 + 0.2, w * 0.5 - 0.2]:
 		for z in [-d * 0.5 + 0.2, d * 0.5 - 0.2]:
 			mb.add_cylinder(palm,_xf(Vector3(x, -found, z)), 0.15, 0.13, st + found, 6, 0.6)
@@ -685,7 +685,7 @@ static func storehouse(spec: Dictionary) -> StaticBody3D:
 			mb.add_cylinder(palm,_xf(Vector3(x, st, z)), 0.1, 0.09, h, 5, 0.8)
 	mb.add_box(dark, _xf(Vector3(0, st + h, 0)), Vector3(w + 0.1, 0.12, d + 0.1), 0.6, Color.WHITE, false)
 	mb.add_gable_roof(thatch, _xf(Vector3(0, st + h + 0.06, 0), PI * 0.5), d, w, d * 0.95, 0.6, 0.5, Color.WHITE, weave)
-	mb.add_box(PSXMat.lit("thatch", Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, st + h + d * 0.95 + 0.08, 0)), Vector3(w + 1.4, 0.2, 0.3), 0.8)
+	mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, st + h + d * 0.95 + 0.08, 0)), Vector3(w + 1.4, 0.2, 0.3), 0.8)
 	_box(body, Vector3(w + 0.3, h + 0.2, d + 0.3), Vector3(0, st + h * 0.5, 0))
 	Buildings.panel_door(mb, _xf(Vector3(0, st, d * 0.5)), 0.75, 1.4, Buildings.door_leaf(), dark)
 	# the ladder up to it
@@ -705,7 +705,7 @@ static func storehouse(spec: Dictionary) -> StaticBody3D:
 
 
 ## The village well: a ring of stones round dark water, palm posts and a little thatch, a bucket on a rope.
-static func well() -> StaticBody3D:
+static func well(roof := "thatch") -> StaticBody3D:
 	var body := _body("Well")
 	var mb := MeshBuilder.new()
 	var rock := PSXMat.lit("rock", Color(0.8, 0.78, 0.72))
@@ -730,7 +730,7 @@ static func well() -> StaticBody3D:
 	mb.add_cylinder(PSXMat.lit("rope", Color(0.8, 0.75, 0.6)), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.3, 1.9, 0)), 0.13, 0.13, 0.6, 7, 1.5, Color.WHITE, true, true)
 	mb.add_box(PSXMat.lit("rope"), _xf(Vector3(0.1, 1.45, 0)), Vector3(0.025, 0.9, 0.025), 1.0)
 	mb.add_cylinder(PSXMat.lit("planks_dark"), _xf(Vector3(0.1, 0.85, 0)), 0.14, 0.17, 0.26, 7, 1.0)
-	mb.add_gable_roof(PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 2.25, 0)), 1.4, 2.6, 0.75, 0.25, 0.6)
+	mb.add_gable_roof(PSXMat.lit(roof, Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 2.25, 0)), 1.4, 2.6, 0.75, 0.25, 0.6)
 	_jar(mb, PSXMat.lit("plaster", Color(0.75, 0.42, 0.25)), _xf(Vector3(r0 + 0.45, 0.0, 0.5)), 1.2)
 	body.add_child(mb.to_instance())
 	_cyl(body, r0 + 0.05, hh, Vector3.ZERO)
@@ -926,7 +926,7 @@ static func palisade_rails(ctx: KitContext, body: StaticBody3D, c: Vector2, r: f
 
 ## A gate in a palisade (the way through along local z): two great posts, lintels, a
 ## carved board, torches on the posts, a little thatch over it.
-static func gate(width := 4.4) -> StaticBody3D:
+static func gate(width := 4.4, roof := "thatch") -> StaticBody3D:
 	var body := _body("Gate")
 	var mb := MeshBuilder.new()
 	var bark := PSXMat.lit("palm_bark", Color(0.85, 0.8, 0.75), {"affine": 0.6})
@@ -939,7 +939,7 @@ static func gate(width := 4.4) -> StaticBody3D:
 		_torch_into(mb, Vector3(s * (hw + 0.45), 0.0, 0.55), 2.3)
 	mb.add_cylinder(bark, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(hw + 0.6, 4.25, 0)), 0.2, 0.2, hw * 2.0 + 1.2, 7, 0.6, Color.WHITE, true, true)
 	mb.add_box(dark, _xf(Vector3(0, 3.75, 0)), Vector3(hw * 2.0 + 0.3, 0.18, 0.22), 0.6, Color.WHITE, false)
-	mb.add_gable_roof(PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 4.45, 0), PI * 0.5), 1.3, hw * 2.0 + 1.8, 0.55, 0.2, 0.6)
+	mb.add_gable_roof(PSXMat.lit(roof, Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 4.45, 0), PI * 0.5), 1.3, hw * 2.0 + 1.8, 0.55, 0.2, 0.6)
 	var board := _xf(Vector3(0, 3.25, 0.16))
 	mb.add_box(PSXMat.lit("planks", Color(0.85, 0.75, 0.6)), board, Vector3(1.8, 0.55, 0.06), 1.0)
 	var paint := [PSXMat.flat(Color(0.7, 0.18, 0.12)), PSXMat.flat(Color(0.95, 0.85, 0.75))]
@@ -998,7 +998,7 @@ static func ruin(spec: Dictionary) -> StaticBody3D:
 			mb.add_cylinder(palm, _xf(Vector3(x, fl, z)), 0.14, 0.12, rng.randf_range(0.8, h + 0.2), 6, 0.6)
 	# the roof, fallen in against the back wall, and its rafters
 	var roof := Transform3D(Basis(Vector3.RIGHT, 0.55), Vector3(rng.randf_range(-0.4, 0.4), fl + 0.95, -d * 0.1))
-	mb.add_box(PSXMat.lit("thatch", Color(0.6, 0.55, 0.45), {"affine": 0.8}), roof, Vector3(w * 0.75, 0.14, d * 0.75), 0.5, Color.WHITE, false)
+	mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.6, 0.55, 0.45), {"affine": 0.8}), roof, Vector3(w * 0.75, 0.14, d * 0.75), 0.5, Color.WHITE, false)
 	var dark := PSXMat.lit("planks_dark")
 	for k in range(3):
 		var x := -w * 0.35 + k * w * 0.35

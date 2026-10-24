@@ -312,12 +312,12 @@ func _make(b: Dictionary) -> Dictionary:
 			if nl and SHOPS.has(kind):
 				nl.always = true
 		"workshop":
-			n = ctx.place(KitHouses.workshop({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
+			n = ctx.place(KitHouses.workshop({"seed": rng.randi(), "found": found, "roof_tex": str(ctx.style["mat"]["thatch"])}), p, yaw, r, 0.0, false)
 		"shrine":
-			n = ctx.place(KitHouses.shrine({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
+			n = ctx.place(KitHouses.shrine({"seed": rng.randi(), "found": found, "roof_tex": str(ctx.style["mat"]["thatch"])}), p, yaw, r, 0.0, false)
 			KitLights.light(ctx, n, Vector3(0, 2.4, 2.0), 1.2, 9.0)
 		"storehouse":
-			n = ctx.place(KitHouses.storehouse({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
+			n = ctx.place(KitHouses.storehouse({"seed": rng.randi(), "found": found, "roof_tex": str(ctx.style["mat"]["thatch"])}), p, yaw, r, 0.0, false)
 		"ruin":
 			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin")}), p, yaw, r, 0.0, false)
 		"tall":
@@ -397,7 +397,7 @@ func _palisade_rails() -> void:
 
 func _gates() -> void:
 	for g in isl.village_plan["extra"]["gates"]:
-		var gate := KitHouses.gate()
+		var gate := KitHouses.gate(4.4, str(ctx.style["mat"]["thatch"]))
 		gate.name = _uniq("Gate")
 		ctx.place(gate, g["p"], KitContext.face_yaw(g["t"]))
 

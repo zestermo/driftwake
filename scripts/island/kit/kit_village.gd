@@ -476,7 +476,7 @@ static func build_items(ctx: KitContext, items: Array, range_end := 130.0) -> Ar
 				n = Props.fence_segment(float(it["len"]), 0.9)
 				ctx.put(n, Vector3(p.x, ctx.hv(p), p.y), yaw)
 			"well":
-				n = ctx.place(KitHouses.well(), p, yaw, 1.2, 0.0, false)
+				n = ctx.place(KitHouses.well(str(ctx.style["mat"]["thatch"])), p, yaw, 1.2, 0.0, false)
 			"rubble":
 				n = ctx.place(KitHouses.rubble(int(it["seed"])), p, yaw, 0.8, 0.0, false)
 		if n and it.has("y"):

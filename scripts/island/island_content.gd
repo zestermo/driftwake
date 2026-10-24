@@ -89,7 +89,7 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary) -> 
 		isl.place(KitCamps.tent(st["camp_tent"]), site, tp, StarterIsland.face_yaw(c - tp), 2.0)
 	var shack_p: Vector2 = at.call(-11.0, 0.0)
 	if str(st["camp_shack"]) == "":
-		isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(st["rough"]), site, shack_p, f)
+		isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(st["rough"], true), site, shack_p, f)
 	else:
 		isl.place(KitStyle.model(st["camp_shack"], KitVillage._seeded(int(isl.node["seed"]) + 61), 5.5), site, shack_p, StarterIsland.face_yaw(f), 3.4)
 	k.merge({"c": c, "site": site, "f": f, "s": s, "at": at, "log_a": log_a, "log_b": log_b, "st": st, "shack_p": shack_p})

@@ -198,7 +198,7 @@ static func model(kind: String, rng: RandomNumberGenerator, size := 1.0) -> Node
 ## The style's lookout tower, its platform at `h` (the kit's timber one unless the theme has its own; `seed_value` varies a theme's).
 static func lookout(st: Dictionary, h := 6.0, seed_value := 0) -> Node3D:
 	if str(st["lookout"]) == "":
-		return KitLandmarks.lookout_tower(h)
+		return KitLandmarks.lookout_tower(h, str(st["mat"]["thatch"]))
 	return model(st["lookout"], KitVillage._seeded(seed_value), h)
 
 

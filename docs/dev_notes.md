@@ -6123,3 +6123,24 @@ serpent_train, beast_prebuild, forest_beasts, desert_beasts; tools/dev/beastshee
 - **Tools**: genshot `GSHOT_BEAST=<kind>` swaps the island's beast (its ground dressed for it); genshot now refreshes Weather's zone at each shot (it looked the place up only twice a second, so a jump of the camera rendered the last place's fog).
 - **Tests**: t/combat/undead, t/island/fog_isle (chains, the island, lanterns, graveyard, haunts, the captain), the theme
   registry. Renders: tools/dev/undeadshot.gd (the dead in a row), genshot on a fog island.
+
+## v1.20 piece 5: the polish pass (2026-10-24, unstable 1.19.4)
+From a genshot sheet of each theme (tools/dev/out/polish/, seeds 4 snow, 3 snow, 2 desert, 5 forest, 2/5 fog) and the
+fidelity report:
+- **Camp houses took the jungle's thatch on every theme**: `{...}.merged(st["rough"])` keeps the base dict's keys, so a
+  theme's rough `wall`/`roof_tex` never applied (IslandContent's camp shack, KitCamps.pirate_camp's four houses): now
+  `merged(.., true)`. Brinehollow's rough has neither key, so its den and camps are unchanged. The snow's rough gets
+  `roof_tex: roof_green`.
+- **Thatch hardcoded in kit pieces other themes use**: KitLandmarks.lookout_tower(h, roof) (KitStyle.lookout passes the
+  style's `mat.thatch`), KitHouses.gate(width, roof), well(roof), and workshop/shrine/storehouse/ruin/room's ridge caps
+  read spec `roof_tex` (IslandVillage passes `mat.thatch`). Snow towers and gates are green shingle, the forest's and fog's
+  shingle, the desert's adobe.
+- **The wharf's warehouses** were always planks: GenHarbour now picks their walls from the style's `harbour_walls`
+  (the desert's adobe and sandstone).
+- **The Admiralty's hull** (a 1.19 follow-up): `planks_grey` (gen_psx_textures.py `ships`: blue-grey painted planks),
+  HullBuilder.build's `hull_tex`, the marine look's.
+- **The fog isle**: its sea greys and darkens under the mist (Weather's ocean colours by `misty`); a spirit's look is
+  softer (emission 0.4, so a giant's shape reads).
+- **People**: IslandLife.AMBIENT 8-10 -> 12-15 (a village ~20 -> ~25 people; Brinehollow has 38). lifetest's range 19-26.
+- Not changed (by design, noted): lit windows ~0.4x Brinehollow's (smaller one-storey houses), paths unpaved (Brinehollow
+  paves 4%).

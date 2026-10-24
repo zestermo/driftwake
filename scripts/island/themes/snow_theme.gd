@@ -61,7 +61,7 @@ const STYLE := {
 	"goods": [Color(0.55, 0.4, 0.28), Color(0.85, 0.82, 0.76), Color(0.75, 0.2, 0.16), Color(0.4, 0.3, 0.22), Color(0.6, 0.7, 0.8)],
 	"tent": Color(0.82, 0.78, 0.7),
 	"camp_tent": Color(0.48, 0.44, 0.4),
-	"rough": {"flowers": false, "trim": Color(0.3, 0.26, 0.24), "beam": "planks_dark", "pitch": 0.75, "eaves": 0.6},
+	"rough": {"flowers": false, "trim": Color(0.3, 0.26, 0.24), "beam": "planks_dark", "roof_tex": "roof_green", "pitch": 0.75, "eaves": 0.6},
 	"crew_flag": Color(0.72, 0.18, 0.16),
 
 	"mat": {"wall": "brick_pink", "beam": "planks_dark", "floor": "planks", "deck": "planks_weathered", "post": "planks_dark",

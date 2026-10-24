@@ -630,6 +630,9 @@ func _update_env() -> void:
 		var dk := 1.0 - storm * 0.35
 		var dc := Color(_base_deep.r * dk, _base_deep.g * dk, _base_deep.b * dk * 1.02, _base_deep.a)
 		var sc := _base_shallow.lerp(Color(0.25, 0.32, 0.36, _base_shallow.a), storm * 0.5)
+		# (a misty place, the fog isle: the sea goes grey and dark under its fog)
+		sc = sc.lerp(Color(0.24, 0.3, 0.3, _base_shallow.a), misty * 0.85)
+		dc = dc.lerp(Color(0.1, 0.14, 0.15, _base_deep.a), misty * 0.7)
 		_ocean_mat.set_shader_parameter("deep_color", dc)
 		_ocean_mat.set_shader_parameter("shallow_color", sc)
 		_ocean_mat.set_shader_parameter("whitecaps", whitecaps())

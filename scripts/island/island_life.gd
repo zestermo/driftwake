@@ -10,7 +10,7 @@ extends RefCounted
 ## IslandVillage and sites give). Each hamlet (a spot's "hub") gets its share of
 ## the people; no village spots, no people and no quests.
 
-const AMBIENT := [8, 10]
+const AMBIENT := [12, 15]
 const NAMED := 3
 const PER_STEP := 4
 const JOBS := ["nets", "forage", "market", "home", "plaza"]

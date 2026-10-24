@@ -1,5 +1,5 @@
 extends SceneTree
-## A chain island's life (IslandLife): 15-20 people, villagers on routines that
+## A chain island's life (IslandLife): 19-26 people, villagers on routines that
 ## follow the world clock (work by day, the inn or the plaza in the evening, home
 ## at night, walking between), named characters whose dialogue trees talk of the
 ## island, its beast and the islands ahead, quests of every kind taken, their steps
@@ -74,7 +74,7 @@ func walk_len(v, k: int) -> float:
 func _routines(island, tag: String) -> Array:
 	var npcs: Array = get_nodes_in_group("npcs").filter(func(x): return x.get_parent() == island)
 	print("   %s: %d people: %s" % [island.island_name, npcs.size(), ", ".join(npcs.map(func(x): return x.npc_name))])
-	check(tag + "15-20 people on the island (%d)" % npcs.size(), npcs.size() >= 15 and npcs.size() <= 20)
+	check(tag + "19-26 people on the island (%d)" % npcs.size(), npcs.size() >= 19 and npcs.size() <= 26)
 	check(tag + "each one's name is its own", npcs.all(func(x): return npcs.filter(func(y): return y.name == x.name).size() == 1))
 	var vs: Array = island.life.people
 	check(tag + "villagers on routines (%d), each with 4-5 stays" % vs.size(), vs.size() >= 11 and vs.all(func(v): return v.stays.size() >= 4 and v.walks.size() == v.stays.size()))

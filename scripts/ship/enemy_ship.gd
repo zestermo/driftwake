@@ -42,7 +42,7 @@ const KINDS := {
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
 	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
 		"boards": false, "rams": true, "double": false, "yields": false,
-		"look": {"hull": Color(0.72, 0.77, 0.86), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
+		"look": {"hull_tex": "planks_grey", "hull": Color(0.95, 0.97, 1.0), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 }
 
 const ACCEL := 2.6
