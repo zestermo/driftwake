@@ -14,22 +14,39 @@ func _init() -> void:
 	boss_name = "The Sand Lion"
 
 
+## (1.20: rebuilt on the quadruped rig, docs/v1_20_beasts.md 13: heavier than the stalker it hunts like - a deep chest,
+## the shoulders a little high over thick forelegs and big paws, a broad head with a square muzzle, a full mane, a
+## tufted tail, a cat's bound)
 func _spec() -> Dictionary:
 	var c: Array = LION_COATS[variant % LION_COATS.size()]
-	return {"hip_h": 1.45, "len": 2.1, "chest_r": 0.72, "hip_r": 0.56, "neck": Vector3(0, 0.3, -0.55), "head": Vector3(0.46, 0.42, 0.46),
-		"snout": 0.32, "tail": 2.2, "tail_r": 0.12, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur", "ears": 0.3,
-		"eye": Color(1.0, 0.8, 0.25)}
+	return {"hip_h": 1.5, "front_h": 1.68, "len": 2.4, "chest_r": 0.86, "hip_r": 0.6, "neck": Vector3(0, 0.25, -0.5), "head": Vector3(0.5, 0.44, 0.5),
+		"snout": 0.36, "tail": 2.0, "tail_r": 0.11, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur", "ears": 0.2,
+		"eye": Color(1.0, 0.8, 0.25), "hump": 0.2, "leg_k": 1.2, "front_k": 1.15, "tail_kind": "tuft", "gait": "bound"}
 
 
-## The mane heaped round the head and down the chest, the tuft at the tail's end.
+## A square muzzle and a heavy brow; the mane: a ruff framing the face, heaped over the neck and shoulders and hanging
+## down the chest (the Neck part, painted dark whole, with the tail's tuft).
 func _extras() -> void:
 	var cr: float = spec["chest_r"]
+	var hd: Vector3 = spec["head"]
+	var sn: float = spec["snout"]
+	var coat: Material = spec["coat_mat"]
 	var rng := _rng_fixed()
-	for k in range(16):
-		var a := TAU * k / 16.0
-		mb("Neck").add_blob(spec["coat_mat"], Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(sin(a) * cr * 0.75, cos(a) * cr * 0.7 + 0.15, 0.1 + absf(cos(a)) * 0.1)),
-			Vector3(cr * 0.32, cr * 0.42, cr * 0.38), rng, 0.3, 3, 5, 1.0, Color(0.95, 0.95, 0.95))
-	mb("Tail3").add_blob(spec["coat_mat"], Transform3D(Basis(), Vector3(0, 0, float(spec["tail"]) * 0.25)), Vector3(0.16, 0.16, 0.22), rng, 0.3, 3, 5, 1.0, Color(0.95, 0.95, 0.95))
+	mb("Head").add_blob(coat, Transform3D(Basis(), Vector3(0, -hd.y * 0.28, -hd.z * 0.85 - sn * 0.45)), Vector3(hd.x * 0.62, hd.y * 0.4, sn * 0.7), rng, 0.06, 3, 7, 1.0, Color(1.08, 1.08, 1.08))
+	mb("Head").add_blob(coat, Transform3D(Basis(), Vector3(0, hd.y * 0.38, -hd.z * 0.55)), Vector3(hd.x * 0.8, hd.y * 0.22, hd.z * 0.35), rng, 0.1, 3, 6, 1.0, Color(0.92, 0.92, 0.92))
+	# the ruff round the face
+	for k in range(18):
+		var a := TAU * k / 18.0
+		mb("Neck").add_blob(coat, Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(sin(a) * cr * 0.85, cos(a) * cr * 0.8 + 0.2, 0.15 + absf(cos(a)) * 0.1)),
+			Vector3(cr * 0.36, cr * 0.48, cr * 0.42), rng, 0.3, 3, 5, 1.0, Color(0.95, 0.95, 0.95))
+	# heaped back over the neck and shoulders, and down the chest
+	for k in range(10):
+		var f := float(k) / 9.0
+		var side := -1.0 if k % 2 == 0 else 1.0
+		mb("Neck").add_blob(coat, Transform3D(Basis(Vector3.FORWARD, side * 0.3), Vector3(side * cr * 0.4 * (1.0 - f * 0.4), cr * (0.75 - f * 0.25), 0.35 + f * cr * 0.9)),
+			Vector3(cr * 0.42, cr * 0.45, cr * 0.45), rng, 0.3, 3, 5, 1.0, Color(0.9, 0.9, 0.9))
+	for k in range(5):
+		mb("Neck").add_blob(coat, Transform3D(Basis(), Vector3((k - 2) * cr * 0.18, -cr * 0.35 - absf(k - 2) * 0.05, 0.25)), Vector3(cr * 0.26, cr * 0.5, cr * 0.3), rng, 0.3, 3, 5, 1.0, Color(0.85, 0.85, 0.85))
 
 
 ## The mane and the tuft dark; tawny elsewhere.
