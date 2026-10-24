@@ -558,6 +558,21 @@
 			]
 		},
 		{
+			"v": "1.19.2",
+			"name": "Grounds and Wilds",
+			"date": "2026-10-23",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "Boss grounds of their own for every island type, and more along the ways between places.",
+			"img": "rivals_duel",
+			"alt": "The captain trading blows with a rival crew's mate in the snow at sunset",
+			"github": true,
+			"added": [
+				["Boss grounds", "An ice grotto on the snow, a sunken ruin in the desert, a grove of standing stones in the forest."],
+				["Between places", "Trunks, boulders, old walls, shrines, lone chests and left camps along the ways; more creatures and more people on the trails."]
+			]
+		},
+		{
 			"v": "1.20",
 			"name": "The World",
 			"status": "building",
