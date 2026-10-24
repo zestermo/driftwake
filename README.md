@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.19-e0b040" alt="Version 1.19">
+  <img src="https://img.shields.io/badge/version-1.19.1-e0b040" alt="Version 1.19.1">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -164,6 +164,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.19.1: Beasts Reborn (October 23, 2026), unstable
+The first piece of 1.20: every beast boss and roamer reworked. Eight rebuilt bodies (the Bear King, a woolly mammoth
+Rimeback, the Sand Lion, a lean long-legged Dune Strider, the armoured Thornback, a low frilled Basilisk, and two new
+two-legged giants, the Ice Golem and the Elder Treant) on a reworked rig: jointed legs, real gaits, bodies that follow
+the slope. Every beast fights by its own move list: readable wind-ups, an opening after each big move, only one move
+that knocks you down, and never the same move twice in a row. The Strangler charges right across its arena like a
+train; the Sand King no longer chains its dives.
 
 ### v1.19: Wanted (October 23, 2026)
 Rival captains run by the game, built like yours: the same weapons, moves, skills and ultimates, reading your spacing,

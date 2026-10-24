@@ -543,6 +543,21 @@
 			]
 		},
 		{
+			"v": "1.19.1",
+			"name": "Beasts Reborn",
+			"date": "2026-10-23",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The first piece of 1.20: every beast boss and roamer reworked, eight with new bodies, all with their own moves.",
+			"img": "rivals_duel",
+			"alt": "The captain trading blows with a rival crew's mate in the snow at sunset",
+			"github": true,
+			"added": [
+				["Rebuilt bodies", "Eight beasts rebuilt, two of them new two-legged giants, on a rig with jointed legs and slope-following bodies."],
+				["Their own moves", "Every beast fights by its own list: readable wind-ups, openings after big moves, one knockdown each, no repeats."]
+			]
+		},
+		{
 			"v": "1.20",
 			"name": "The World",
 			"status": "building",
