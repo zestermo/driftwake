@@ -13,7 +13,7 @@ extends JungleBeast
 ##   twist     radians, the torso turned (+ left)
 ##   hug       0..1 the arms wrapped round the chest
 ##   slump     0..1 collapsed (rubble, a dead tree)
-## Fair melee (docs/v1_20_beasts.md "Rules"): hits while it's getting over a move (mv_t < 0) count double toward a
+## Fair melee (docs/v1_20_beasts.md "Rules", in JungleBeast for every beast): hits while it's getting over a move count double toward a
 ## stagger; a move never runs twice in a row (pick()).
 
 ## spec: hip_h, torso (half sizes), shoulder (half width), arm (upper, lower), arm_r, hand_r, leg_r, head (half sizes),
@@ -26,7 +26,6 @@ var _gait: float = 0.0
 var _last := Vector3.ZERO
 var _spd: float = 0.0
 var _coat: ShaderMaterial
-var _last_move := ""
 
 
 func _spec() -> Dictionary:
@@ -180,28 +179,6 @@ func _animate(delta: float) -> void:
 		a.rotation.x = lerp_angle(a.rotation.x, ax, k)
 		a.rotation.z = lerp_angle(a.rotation.z, az, k)
 		e.rotation.x = lerp_angle(e.rotation.x, 0.25 + up * 0.4 + wind * 1.1 + hug * 1.4 + reach * 0.3, k)
-
-
-## A move it didn't just do: the first of `wants` whose cooldown is up and isn't the last one, else "".
-func pick(wants: Array) -> String:
-	for m in wants:
-		if str(m) != _last_move and float(_cd.get(m, 0.0)) <= 0.0:
-			return str(m)
-	return ""
-
-
-func _on_begin(m: String) -> void:
-	_last_move = m
-
-
-## Getting over a move (an opening): its hits count double toward a stagger.
-func _on_hit(hit: HitData, attacker: Node) -> void:
-	var opening := state == S.FIGHT and move == "" and mv_t < 0.0
-	super._on_hit(hit, attacker)
-	if opening and state == S.FIGHT:
-		_poise += hit.damage
-		if _poise >= _poise_max():
-			stagger(2.0)
 
 
 func _hit_point() -> Vector3:

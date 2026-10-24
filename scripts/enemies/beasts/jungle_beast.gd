@@ -368,12 +368,25 @@ func _set_state(s: S) -> void:
 	st_t = 0.0
 
 
+## The last move begun: pick() won't start it again straight after (docs/v1_20_beasts.md "Rules": no move twice in a row).
+var _last_move := ""
+
+
 func begin(m: String) -> void:
 	move = m
+	_last_move = m
 	mv_t = 0.0
 	_hit = false
 	_fly = false
 	_on_begin(m)
+
+
+## A move it didn't just do: the first of `wants` whose cooldown is up and isn't the last one begun, else "".
+func pick(wants: Array) -> String:
+	for m in wants:
+		if str(m) != _last_move and float(_cd.get(m, 0.0)) <= 0.0:
+			return str(m)
+	return ""
 
 
 ## (tools: bossshot, the tests) Do `m` now, whatever the brain would pick.
@@ -602,7 +615,9 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if (hit.haki or hit.breaker) and _armoured() and mv_t < 0.6:
 		stagger(1.6)
 		return
-	_poise += hit.damage * (1.6 if hit.knockdown else 1.0)
+	# (hits while it's getting over a move - an opening - count double toward a stagger)
+	var opening := move == "" and mv_t < 0.0
+	_poise += hit.damage * (1.6 if hit.knockdown else 1.0) * (2.0 if opening else 1.0)
 	if _poise >= _poise_max() and not _armoured():
 		stagger(2.0)
 
