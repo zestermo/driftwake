@@ -6082,3 +6082,44 @@ serpent_train, beast_prebuild, forest_beasts, desert_beasts; tools/dev/beastshee
   path, nothing reserved, steep or wet; one mesh (visibility 200 m) and simple colliders. ~7 ms an island. FaunaSpawner CAP
   72 -> 96, MIN_KINDS 3 -> 4. IslandEncounters.COUNT 0-4 a island (about 2.2, was 1.4). Tests: t/island/wayside,
   t/quests/encounter_rolls (0-4), smoketest.
+
+## v1.20 piece 4: the fog isle (2026-10-24, unstable 1.19.3)
+- **What** (docs/v1_20_plan.md "The spooky island" .. "Its boss"): the fifth theme, `scripts/island/themes/fog_theme.gd`
+  ("fog", "Fog Isle"), registered last in IslandThemes.SCRIPTS but **rolled apart** from the chain's weighted draw
+  (`ThemeDef.apart`: `weight` is then its own chance, 0.18, on a regular island past the first, from a hash of the
+  chain's seed, the layer and the branch, Chain._apart), so every chain that was a chain stays the same but for the islands
+  that turn to fog, and no chain opens on one. Land: the forest's (forest_land.gd) on its own numbers (rolling, sparser,
+  slow black rivers). Plants: `scripts/props/fog_plants.gd` (FogPlants: dead oaks hung with grey moss, drowned willows
+  weeping moss curtains, dead fir spires of broken stubs, crooked snags, brambles, withered bracken, pale dead grass, pale
+  caps, dark lichened stones, a roof of dead limbs). Textures: `tools/texture_gen/gen_fog_textures.py` (fog_moor, fog_mud,
+  fog_rock, fog_beach, fog_grass, fog_bracken). Style: weathered grey plank cottages, black shingles, a lamp at every door,
+  weather [0.1, 0.6, 0.9], haze 0.7 grey-green and KitStyle "mist" 0.8 (Weather: the fog pulled in to MIST_END 70 m and the whole sky greyed into it, both thinned round a lit lantern), the forest town's buildings (ForestTown log cabins and timber houses, shingles everywhere), no butterflies or fireflies; forest_night / village_night music for now.
+  People: `fog_life.gd` (a cursed fishing village: lamplighter, net-mender, gravedigger, widow, bell-ringer, eel-catcher,
+  salt-seller), `fog_encounters.gd`.
+- **The dead**: `scripts/enemies/drowned.gd` (extends PirateGrunt: grey-green, rotten clothes, no guns (`_guns_free`
+  false, a rifle post is a blade's), a shot does 0.3 of its damage and never knocks down, no blood (`_take_damage`: sea
+  water and murk), cut down once he lies RISE_DOWN s and gets up with 45% (`_rise`, deferred: the blow's own hit-stun
+  would land over the fall), the second time he stays down) and `ghost.gd` (extends Drowned: the look's "spirit" glow,
+  shot passes through, fire (dot) x2, 1.35 x speed, fades out for 0.35 s every 3-6 s, burns 8/s in a lit lantern's glow,
+  never rises, nothing severed). Both steer straight out of a lit lantern's glow (`_move_tail`). Camps on a fog isle are
+  drowned crews with ghosts among them (KitStyle "crew_script", "ghost_script", "ghost_share"; IslandContent.undead).
+  `BleedStatus.apply` skips anything `bloodless()`. A look's `"spirit"` (Humanoid._build, Humanoid.spirit_glow) makes the body pale blue-white and faintly glowing (lit, so its shape reads: a flat glow turned a body into a blob).
+- **Lanterns** (`fog_places.gd`, `fog_lantern.gd`, FogTheme.steps): an iron post every 48 m along the ways (22 at most,
+  nearest the village first), two at the graveyard's gate; F lights one (Net.world_flag "isle<id>_lantern_<n>": every
+  machine, saved, late joiners); lit: a warm glow and a light (fades past 50 m), `FogClear` tells Weather how close the
+  camera is to the nearest lit one (`Weather.lantern_clear`, the fog thinned up to LANTERN_CLEAR), the dead keep out of
+  its 7 m glow (FogPlaces.away_from_light).
+- **Places**: the graveyard (FogTheme.plan_places: 30-80 m out of the village, flat, off the paths, a trail to its gate;
+  a low wall, rows of leaning headstones and crosses with their mounds, an iron arch, a crypt with a grilled black door);
+  haunts (2-4 GruntCamps: the drowned and a ghost at the graveyard, ghosts in pairs out on the far ways).
+- **Bosses**: `scripts/enemies/ghost_captain.gd`, the drowned captain on his wreck: a Node3D with the arena's boss
+  interface owning a captain-style AI (RivalDuel.build: CaptainBrain skill 0.9, his look's "spirit", hp_k 6 x Levels) built
+  under it on every machine (the guests a puppet of the same name). Three acts: the duel; below 60% three drowned climb
+  out round the floor; below 30% he steps out of the fog behind his foe every 6.5 s. `Player` with a "spirit" look takes
+  no harm from shot. The arena: FogTheme._dress_wreck (his ship broken in two round the floor: the stern rolled on her
+  bilge with the quarterdeck, the cabin and a green lantern, the bow nosed up, ribs, the fallen mainmast, barrels and a
+  cannon); every other fog boss's ground is FogTheme._dress_graves (a drowned graveyard ring). The other bosses are
+  spectral (BeastPool "spirit": the stalker, the serpent and the treant glow and shot passes through them).
+- **Tools**: genshot `GSHOT_BEAST=<kind>` swaps the island's beast (its ground dressed for it); genshot now refreshes Weather's zone at each shot (it looked the place up only twice a second, so a jump of the camera rendered the last place's fog).
+- **Tests**: t/combat/undead, t/island/fog_isle (chains, the island, lanterns, graveyard, haunts, the captain), the theme
+  registry. Renders: tools/dev/undeadshot.gd (the dead in a row), genshot on a fog island.

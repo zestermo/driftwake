@@ -81,7 +81,17 @@ func setup(cfg: Dictionary) -> JungleBeast:
 	level = int(cfg["level"])
 	variant = int(cfg.get("variant", 0))
 	boss_name = str(cfg.get("name", boss_name))
+	spirit = bool(cfg.get("spirit", false))
 	return self
+
+
+## A spectral beast (the fog isle's bosses, BeastPool "spirit"): it glows the cold blue-white of the dead, shot passes
+## through it and it has no blood.
+var spirit := false
+
+
+func bloodless() -> bool:
+	return spirit
 
 
 # ==========================================================================
@@ -213,6 +223,8 @@ func _ready() -> void:
 	hurtbox.owner = self
 	hurtbox.hit_received.connect(_on_hit)
 	_build()
+	if spirit:
+		Humanoid.spirit_glow(model)
 	_yaw = post_yaw
 	model.rotation.y = _yaw
 	if Net.hosting:
@@ -589,6 +601,9 @@ func quake(at: Vector3, size: float = 1.0) -> void:
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
+	if spirit and (hit.ranged or hit.impact == "shot"):
+		Net.fx("sparkle", [_hit_point(), 6, Humanoid.SPIRIT])
+		return
 	_hit_by = attacker
 	if hit.dot:
 		Net.damage_number(hit.damage, global_position + Vector3(0, 2.0, 0))
@@ -600,7 +615,10 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	Net.event(self, "flash", [])
 	Net.damage_number(hit.damage, _hit_point())
 	Net.fx("impact", [_hit_point() - dir * 0.5, Color(1.0, 0.6, 0.45)])
-	Net.fx("blood", [_hit_point(), dir, clampi(int(hit.damage * 0.5), 6, 20)])
+	if spirit:
+		Net.fx("sparkle", [_hit_point(), clampi(int(hit.damage * 0.4), 6, 16), Humanoid.SPIRIT])
+	else:
+		Net.fx("blood", [_hit_point(), dir, clampi(int(hit.damage * 0.5), 6, 20)])
 	CombatManager.impact(hit, global_position, -1.0, 0.1, 0.8 if hit.damage > 20.0 else 0.95)
 	if not Net.active or attacker == Net.local_player:
 		get_node("/root/CombatManager").apply_hit_effects(hit, [attacker])

@@ -45,6 +45,12 @@ var storm: float = 0.0
 var wind: float = 0.3
 var waves: float = 1.0
 var fog: float = 0.0
+## How near the camera is to a lit lantern on a fog isle (0 none .. 1 in its glow; FogPlaces.FogClear sets it), and how
+## much of the fog that takes away.
+var lantern_clear: float = 0.0
+const LANTERN_CLEAR := 0.75
+## How far you see in a misty place's fog (KitStyle "mist" at 1).
+const MIST_END := 70.0
 var night: float = 0.0
 var state: int = W.CLEAR
 ## Snow falling (0..1: SNOW_LIGHT always on a snow island, heavy in its rain and storm slots) and blowing
@@ -435,6 +441,8 @@ func _update_slow(t: float) -> void:
 		coverage = maxf(coverage, lw.x * 0.9)
 		wind = maxf(wind, lw.x * 0.85)
 		fog = maxf(fog, lw.y)
+	# a lit lantern near the camera (the fog isle's, FogPlaces.FogClear) thins the fog round it
+	fog *= 1.0 - LANTERN_CLEAR * lantern_clear
 	state = current_state()
 	if state != _prev_state:
 		_prev_state = state
@@ -559,8 +567,11 @@ func _update_env() -> void:
 	var top := _top.lerp(grey * (1.0 - night * 0.75), storm * 0.7)
 	# (a hazy place's sky pales toward its haze overhead too: a snow island's white, a desert's dusty pale blue)
 	var hz: Color = _zone_style["haze_color"]
-	top = top.lerp(Color(hz.r, hz.g, hz.b) * lerpf(1.0, 0.2, night), hz.a * zk * 0.4)
+	# (a misty place, the fog isle: the whole sky greys into its fog)
+	var misty := float(_zone_style["mist"]) * zk * (1.0 - LANTERN_CLEAR * lantern_clear)
+	top = top.lerp(Color(hz.r, hz.g, hz.b) * lerpf(1.0, 0.2, night), maxf(hz.a * zk * 0.4, misty * 0.85))
 	var hor := _hor.lerp(grey * 1.2 * (1.0 - night * 0.75), storm * 0.7)
+	hor = hor.lerp(Color(hz.r, hz.g, hz.b) * lerpf(1.0, 0.2, night), misty * 0.9)
 	if _sky_mat:
 		_sky_mat.set_shader_parameter("top_color", top)
 		_sky_mat.set_shader_parameter("horizon_color", hor)
@@ -590,6 +601,10 @@ func _update_env() -> void:
 		# (a whiteout or a sandstorm: the next house is a shape in it)
 		begin = lerpf(begin, 2.0, murk)
 		end = lerpf(end, 65.0, murk)
+		# (a misty place, the fog isle: the fog close in all round, thinned round a lit lantern)
+		var mist := float(_zone_style["mist"]) * zk * (1.0 - LANTERN_CLEAR * lantern_clear)
+		begin = lerpf(begin, 3.0, mist)
+		end = lerpf(end, MIST_END, mist)
 		begin = lerpf(begin, 0.0, in_cloud)
 		end = lerpf(end, 28.0, in_cloud)
 		if under_water:
@@ -607,8 +622,8 @@ func _update_env() -> void:
 		fog_color = fogc
 		fog_begin = begin
 		fog_end = end
-		var hazed := float((_zone_style["haze_color"] as Color).a) * zk * 0.3
-		haze_height = lerpf(lerpf(lerpf(0.09, 0.3, fog) + hazed, 1.3, murk), 1.6, in_cloud)
+		var hazed := float((_zone_style["haze_color"] as Color).a) * zk * 0.3 * (1.0 - LANTERN_CLEAR * lantern_clear)
+		haze_height = lerpf(lerpf(lerpf(lerpf(0.09, 0.3, fog) + hazed, 1.0, mist), 1.3, murk), 1.6, in_cloud)
 		RenderingServer.global_shader_parameter_set("sky_haze", Vector4(fogc.r, fogc.g, fogc.b, haze_height))
 		RenderingServer.global_shader_parameter_set("fog_range", Vector2(begin, end))
 	if _ocean_mat:

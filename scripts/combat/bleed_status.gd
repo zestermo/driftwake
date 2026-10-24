@@ -20,6 +20,9 @@ var _tick: float = 0.0
 static func apply(t: Node3D, secs: float, damage_per_sec: float, src: Node) -> void:
 	if t == null or not is_instance_valid(t) or not BurnStatus.alive(t):
 		return
+	# (the dead and the spirits have no blood to lose: the fog isle's drowned and ghosts)
+	if t.has_method("bloodless") and t.bloodless():
+		return
 	var hb := t.get("hurtbox") as Hurtbox
 	if hb == null:
 		return

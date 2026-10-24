@@ -558,6 +558,23 @@
 			]
 		},
 		{
+			"v": "1.19.3",
+			"name": "The Fog Isle",
+			"date": "2026-10-24",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "A haunted fog isle: dead woods, the drowned and ghosts, lanterns to light, and the Drowned Captain on his wreck.",
+			"img": "rivals_duel",
+			"alt": "The captain trading blows with a rival crew's mate in the snow at sunset",
+			"github": true,
+			"added": [
+				["The fog isle", "Dead woods, a cursed fishing village, a graveyard and thick fog."],
+				["The dead", "Drowned crews that get back up and shrug off bullets; ghosts that bullets pass through."],
+				["Lanterns", "Light the old lanterns to thin the fog and keep the dead out of their glow."],
+				["The Drowned Captain", "A ghost captain who fights like you, on his wreck."]
+			]
+		},
+		{
 			"v": "1.19.2",
 			"name": "Grounds and Wilds",
 			"date": "2026-10-23",

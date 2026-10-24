@@ -121,6 +121,24 @@ static func _camp_props(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionar
 	k["tower_p"] = tower_p
 
 
+## A camp crewman's setup as the island's style crews it (KitStyle "crew_script": the fog isle's drowned, a share
+## of them ghosts by "ghost_share"), seeded by the camp's seed and `salt`; as it was on a living crew's island, or for
+## one with a script of his own (a miniboss chief). The look comes with it, so the camp warms the right body.
+static func undead(isl: GenIsland, cfg: Dictionary, salt: int) -> Dictionary:
+	var st := KitStyle.of(isl.theme)
+	if str(st["crew_script"]) == "" or cfg.has("script"):
+		return cfg
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(cfg.get("seed", 1)), salt, "undead"])
+	var ghost: bool = str(st["ghost_script"]) != "" and not cfg.get("captain", false) and rng.randf() < float(st["ghost_share"])
+	cfg["script"] = str(st["ghost_script"]) if ghost else str(st["crew_script"])
+	if not cfg.has("look"):
+		var lrng := RandomNumberGenerator.new()
+		lrng.seed = int(cfg.get("seed", 1))
+		cfg["look"] = load(cfg["script"]).drowned_look(lrng)
+	return cfg
+
+
 static func _camp_crew(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary) -> void:
 	var c: Vector2 = k["c"]
 	var site: Node3D = k["site"]
@@ -148,14 +166,14 @@ static func _camp_crew(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary
 	var seed0 := rng.randi() % 100000
 	var sit_a: Vector2 = log_a + (c - log_a).normalized() * 0.15
 	var sit_b: Vector2 = log_b + (c - log_b).normalized() * 0.15
-	crew.add_grunt({"post": v3.call(sit_a), "yaw": _yaw_to(sit_a, c), "mode": "sit", "seat_y": 0.42, "seed": seed0 + 1})
-	crew.add_grunt({"post": v3.call(sit_b), "yaw": _yaw_to(sit_b, c), "mode": "sit", "seat_y": 0.42, "seed": seed0 + 2})
+	crew.add_grunt(undead(isl, {"post": v3.call(sit_a), "yaw": _yaw_to(sit_a, c), "mode": "sit", "seat_y": 0.42, "seed": seed0 + 1}, 1))
+	crew.add_grunt(undead(isl, {"post": v3.call(sit_b), "yaw": _yaw_to(sit_b, c), "mode": "sit", "seat_y": 0.42, "seed": seed0 + 2}, 2))
 	var route := [v3.call(at.call(-4.0, 8.0)), v3.call(at.call(5.0, 8.0)), v3.call(at.call(7.0, -7.0)), v3.call(at.call(-5.0, -9.0))]
-	crew.add_grunt({"post": route[0], "yaw": 0.0, "mode": "patrol", "patrol": route, "seed": seed0 + 3})
+	crew.add_grunt(undead(isl, {"post": route[0], "yaw": 0.0, "mode": "patrol", "patrol": route, "seed": seed0 + 3}, 3))
 	var road: Vector2 = at.call(12.0, 1.5)
-	crew.add_grunt({"post": v3.call(road), "yaw": _yaw_to(road, road + f), "mode": "stand", "seed": seed0 + 4, "role": "rifle"})
+	crew.add_grunt(undead(isl, {"post": v3.call(road), "yaw": _yaw_to(road, road + f), "mode": "stand", "seed": seed0 + 4, "role": "rifle"}, 4))
 	var tower_foot: Vector2 = tower_p - f * 3.0
-	crew.add_grunt({"post": v3.call(tower_foot), "yaw": _yaw_to(tower_foot, tower_foot + s), "mode": "stand", "seed": seed0 + 5, "role": "rifle"})
+	crew.add_grunt(undead(isl, {"post": v3.call(tower_foot), "yaw": _yaw_to(tower_foot, tower_foot + s), "mode": "stand", "seed": seed0 + 5, "role": "rifle"}, 5))
 	var lk := PirateGrunt.crew_look(rng)
 	var C := CharacterLook.CLOTH
 	lk.merge({"name": cap_name, "build": "broad", "height": 1.1, "hat": ["tricorn", "bandana", "bicorne"][rng.randi() % 3],
@@ -170,7 +188,7 @@ static func _camp_crew(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary
 		if info.get("camp", false):
 			var chief = load(info["script"])
 			cap.merge({"script": info["script"], "look": chief.chief_look(KitVillage._seeded(int(isl.node["seed"]) + 73)), "title": BeastPool.mini_name(isl, str(m))}, true)
-	crew.add_grunt(cap)
+	crew.add_grunt(undead(isl, cap, 7))
 	site.add_child(crew)
 	var baker := isl.get_parent().get_node_or_null("NavBaker")
 	if baker:

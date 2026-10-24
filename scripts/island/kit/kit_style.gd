@@ -33,6 +33,11 @@ const BRINEHOLLOW := {
 	"rough": {"flowers": false, "trim": Color(0.36, 0.34, 0.32)},
 	"crew_flag": Color(0.75, 0.3, 0.28),
 	"pirate_flag": Color(0.18, 0.16, 0.16),
+	# who crews its camps (the fog isle: the drowned, with ghosts among them): a PirateGrunt script for the crew, another
+	# for a share of them; "" the living (IslandContent.undead)
+	"crew_script": "",
+	"ghost_script": "",
+	"ghost_share": 0.0,
 	# a theme's own models (ThemeDef.props) for a lookout tower (made at its platform's height; KitLandmarks.lookout_tower's
 	# interface) and the pirates' camp house (made at its width); "" = the kit's timber tower and a rough house
 	"lookout": "",
@@ -95,6 +100,8 @@ const BRINEHOLLOW := {
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog
 	"weather": [0.36, 0.66, 0.86],
 	"haze": 0.0,
+	# a close fog of its own all round (0..1: the fog isle's), past the weather's: the fog's far edge pulled in to MIST_END
+	"mist": 0.0,
 	# what falls in its rain and storm slots (Weather): "rain", "snow" (a light fall always, heavy in those) or "sand" (sandstorms)
 	"precip": "rain",
 	# the fog's colour here (alpha: how far it leans to it; at home the fog is the sky's horizon) and the sky's and fog's in a storm

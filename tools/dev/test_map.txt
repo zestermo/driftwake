@@ -517,3 +517,10 @@ scripts/game/blade_aura.gd              t/fx
 tools/texture_gen/gen_drawn_fx.py       t/fx
 scripts/npc/wield_moves.gd              t/weapons
 scripts/npc/dagger_moves.gd             t/weapons
+# --- the fog isle (1.20) ---
+scripts/island/themes/fog_*             t/island/fog_isle t/island/theme_registry smoketest
+scripts/props/fog_plants.gd             t/island/fog_isle
+scripts/enemies/drowned.gd              t/combat/undead t/island/fog_isle
+scripts/enemies/ghost.gd                t/combat/undead t/island/fog_isle
+scripts/enemies/ghost_captain.gd        t/island/fog_isle
+scripts/world/chain.gd                  t/island/fog_isle

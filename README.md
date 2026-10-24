@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.19.2-e0b040" alt="Version 1.19.2">
+  <img src="https://img.shields.io/badge/version-1.19.3-e0b040" alt="Version 1.19.3">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -164,6 +164,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.19.3: The Fog Isle (October 24, 2026), unstable
+The fifth island type: a haunted isle under endless fog. Dead woods of bare oaks hung with grey moss, drowned
+willows, a grey strand, and a cursed fishing village keeping its lamps lit. Drowned crews hold its camps (bullets
+barely slow them, they don't bleed, and they get back up once); ghosts are quick, flicker in and out, and shot passes
+straight through them. Light the old lantern posts along its ways to thin the fog and keep the dead out of their
+glow; a lit lantern stays lit for the whole crew. Its boss is the Drowned Captain, a ghost who fights like a captain,
+calls his crew up out of the ground and steps out of the fog behind you; the isle's other bosses walk as ghosts too.
 
 ### v1.19.2: Grounds and Wilds (October 23, 2026), unstable
 The next pieces of 1.20. Every island type has a boss ground of its own: an ice grotto on the snow islands (rock

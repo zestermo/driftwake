@@ -547,6 +547,10 @@ func attack_cost_k() -> float:
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished():
 		return
+	# a spirit (the drowned captain): shot and shell pass through him
+	if bloodless() and (hit.ranged or hit.impact == "shot"):
+		Net.fx("sparkle", [global_position + Vector3.UP * 1.4, 6, Humanoid.SPIRIT])
+		return
 	# captains only hurt each other in a duel, and lightly
 	if attacker and attacker != self and attacker.is_in_group("players") and not is_ai:
 		if not Duel.foes(self, attacker):
@@ -2522,6 +2526,10 @@ func _toast(text: String) -> void:
 # ==========================================================================
 # Captain-style AI (docs/v1_19_plan.md "Build notes")
 # ==========================================================================
+## A spirit's look (the fog isle's drowned captain): no blood, and no harm from shot.
+func bloodless() -> bool:
+	return bool(appearance.get("spirit", false))
+
 ## An AI captain beaten (health out): it's down for good.
 signal defeated
 

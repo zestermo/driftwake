@@ -336,11 +336,13 @@ func spawn_boss() -> void:
 		boss = ape
 	else:
 		# (the first one's model built ahead, GenIsland.start_beasts)
-		var b: JungleBeast = isl.take_beast("boss", kind) if boss_gen == 0 else null
+		# (a JungleBeast, or a boss of its own kind: the fog isle's drowned captain, ghost_captain.gd)
+		var info := BeastPool.info(isl.theme, kind)
+		var b: Node3D = isl.take_beast("boss", kind) if boss_gen == 0 else null
 		if b == null:
-			b = load(BeastPool.info(isl.theme, kind)["script"]).new()
+			b = load(info["script"]).new()
 		b.setup({"post": global_position, "yaw": yaw, "level": IslandContent.level(isl), "variant": int(isl.node["beast_look"]),
-			"name": str(isl.node["beast_name"])})
+			"name": str(isl.node["beast_name"]), "spirit": bool(info.get("spirit", false))})
 		boss = b
 	boss.name = "Beast%d" % boss_gen
 	boss.set("arena", self)

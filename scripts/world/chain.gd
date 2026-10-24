@@ -98,7 +98,10 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		var used: Array = []
 		for b in range(offs.size()):
 			var off: float = offs[b]
-			var theme := _pick_theme(rng, [prev_theme.get(b, ""), prev_theme.get(0, "")] + used)
+			var avoid: Array = [prev_theme.get(b, ""), prev_theme.get(0, "")] + used
+			var theme := _pick_theme(rng, avoid)
+			if role == "regular" and layer > 1:
+				theme = _apart(layer, b, avoid, theme)
 			used.append(theme)
 			var n := {
 				"id": nodes.size(), "sea": 1, "layer": layer, "branch": b, "theme": theme, "role": role,
@@ -194,7 +197,7 @@ static func _excess(n: Dictionary) -> float:
 ## A registered theme by its weight (ThemeDef.weight), the ones to avoid left out unless
 ## that leaves none; one draw whatever the themes, so the stream is the same as with one.
 func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
-	var ready: Array = IslandThemes.all()
+	var ready: Array = IslandThemes.all().filter(func(t): return not t.apart)
 	var pool: Array = ready.filter(func(t): return not avoid.has(t.name))
 	if pool.is_empty():
 		pool = ready
@@ -208,6 +211,18 @@ func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
 			return t.name
 	return pool[-1].name
 
+
+
+## A theme rolled apart from the draw (ThemeDef.apart) taking this island instead, by its own chance from a hash (no
+## draw on the chain's stream: every other island stays as it was); `theme` (the draw's) when none does.
+func _apart(layer: int, branch: int, avoid: Array, theme: String) -> String:
+	for t in IslandThemes.all():
+		if not t.apart or avoid.has(t.name):
+			continue
+		var roll := float(hash([seed_value, layer, branch, t.name]) & 0xffffff) / 16777216.0
+		if roll < float(t.weight):
+			return t.name
+	return theme
 
 ## (a name not given yet in this sea; once a theme's run out, one not on the
 ## islands of this layer or the two before, so a fork's two never match)

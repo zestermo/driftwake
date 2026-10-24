@@ -346,6 +346,9 @@ var _soft_dur: float = 0.0
 var _getup_face_up := true
 
 
+## A spirit's glow (a look's "spirit": the fog isle's ghosts).
+const SPIRIT := Color(0.55, 0.95, 1.0)
+
 func setup(look_dict: Dictionary) -> Humanoid:
 	look = look_dict
 	_build()
@@ -376,6 +379,18 @@ func _build() -> void:
 		ApeBuilder.build(self, look)
 	else:
 		BodyBuilder.build(self, look)
+	# a ghost (the fog isle's dead, the drowned captain): the body glows the cold blue-white of the dead all over
+	if look.get("spirit", false):
+		spirit_glow(self)
+
+
+## Every mesh under `n` the ghosts' pale cold blue-white, faintly glowing (one shared material), casting no shadow.
+static func spirit_glow(n: Node) -> void:
+	# (lit, so its shape still reads; a cold light of its own over it)
+	var m := PSXMat.lit("", Color(0.62, 0.86, 0.92), {"emission": Color(0.22, 0.55, 0.62), "emission_energy": 0.8, "affine": 0.4})
+	for c in n.find_children("*", "MeshInstance3D", true, false):
+		(c as MeshInstance3D).material_override = m
+		(c as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## Rebuild the body with a new look (character creator), keeping the weapon

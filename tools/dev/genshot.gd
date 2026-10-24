@@ -6,7 +6,7 @@ extends SceneTree
 ## contact sheet of them all (<out>_sheet.png). Prints its build times.
 ## Args: <out_prefix> [chain seed | -] [node id | -] [psx]
 ## (env GSHOT_SEED / GSHOT_ID still work; GSHOT_HOUR=21 renders at that hour, 11 by default;
-## GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots; the coast's are cliff, cliff_foot, shelf, shelf_out)
+## GSHOT_BEAST=<kind> swaps the island's beast; GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots; the coast's are cliff, cliff_foot, shelf, shelf_out)
 const SITE_COLS := {"dock": Color(1, 1, 1), "village": Color(1.0, 0.85, 0.2), "boss": Color(1.0, 0.25, 0.2), "camp": Color(1.0, 0.55, 0.15),
 	"lair": Color(0.75, 0.4, 1.0), "ruins": Color(0.6, 0.75, 0.9), "summit": Color(0.3, 0.95, 1.0)}
 var t := 0.0
@@ -56,6 +56,9 @@ func _process(d: float) -> bool:
 	if isl == null:
 		if not w.chain_ready() or not w.chain_islands.has(want):
 			return false
+		# (GSHOT_BEAST=<kind>: the island's beast swapped for that kind of its theme, its ground dressed for it)
+		if OS.get_environment("GSHOT_BEAST") != "":
+			load("res://scripts/island/beast_arena.gd").rebuild(w.chain_islands[want], OS.get_environment("GSHOT_BEAST"))
 		_setup(w.chain_islands[want])
 		return false
 	settle += 1
@@ -223,6 +226,8 @@ func _aim():
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 		cam.global_position = isl.to_global(s[2])
 		cam.look_at(isl.to_global(s[3]), Vector3.UP)
+	# (the camera jumped: Weather looks up the place's style again now, not in half a second, so its fog is in the shot)
+	root.get_node("Weather").set("_zone_t", 0.0)
 
 
 ## Every shot at half size on one sheet, three across.
