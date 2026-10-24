@@ -7,16 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["1.19.4: polish", "A pass over every island type: camps, watchtowers, gates and wells in each island's own roofs and walls (no more jungle thatch in the snow), adobe warehouses on desert wharves, fuller villages, a grey sea under the fog, and the Admiralty's ships in painted grey. Unstable: tell us what breaks."],
-	["1.19.3: the fog isle", "A haunted isle under endless fog: dead woods, a cursed fishing village, a graveyard, the drowned who get back up and ghosts that bullets pass through. Light the old lanterns to push the fog and the dead back. Its boss is the Drowned Captain on his wreck. Unstable: tell us what breaks."],
-	["1.19.2: grounds and wilds", "Boss grounds of their own: an ice grotto on the snow, a sunken ruin in the desert, a grove of standing stones in the forest. Trunks, boulders, old walls, shrines, lone chests and left camps along the ways between places, more creatures and more people on the trails. Unstable: tell us what breaks."],
-	["1.19.1: beasts reborn", "Every beast boss and roamer reworked: eight rebuilt bodies, jointed legs, and each with its own moves. Big attacks have a readable wind-up and an opening after; only one move each knocks you down. This is an unstable build: tell us what breaks."],
-	["Rival crews", "Four pirate crews sail the first chain: the Gilded Gulls, the Brine Wolves, the Lantern Saints and the Mudlark Brigade. Their captains fight with your weapons, skills and ultimates. Meet them and duel them one at a time while the rest of the crew waits at the side, drilling, reading, playing music or watching. They'll remember who won."],
-	["A price on your head", "Every captain has a bounty now. Climb it and your poster goes up, townsfolk know your face, and shops pick a side. The Admiralty's grey ships come about for you, bounty hunters wait ashore, and named officers bring their squads."],
-	["Arrested", "Lose to the Admiralty (the whole crew, in co-op) and you wake in their brig with your weapons in a chest past the guards. Pick the lock and fight your way out."],
-	["A new opening", "New games start on a stormy night at sea, on Captain Maren Holt's deck. Cutscenes can be skipped (in co-op, once everyone presses skip)."],
-	["In the water and on the islands", "Attack while swimming to strike with your own weapon; sharks and morays can be fought. Pirates now carry spears, hammers, greatswords and twin axes, or fight with their feet."],
-	["Since 1.18", "New weapon kinds (polearms, hammers, twin axes, greatswords, Black Leg), simpler skill points, mastered guards, new techniques and acrobatics, controller support, and a first look at the royal capital."],
+	["Beasts reborn", "Every beast boss and roamer reworked: eight rebuilt bodies with jointed legs that follow the slope, and each beast with its own moves. Big attacks have a readable wind-up and an opening after, and only one move each knocks you down."],
+	["Grounds of their own", "A boss ground for every island type: the jungle canopy, an ice grotto on the snow, a half-buried ruin in the desert, a grove of standing stones in the forest."],
+	["The fog isle", "A fifth island type: deep woods of giant twisted trees under endless fog, a cursed fishing village, the drowned who get back up and ghosts that bullets pass through. Light the old lanterns to push the fog and the dead back, then face the Drowned Captain on his wreck."],
+	["Between places", "Fallen trunks, boulders, old walls, shrines, lone chests and left camps along the ways; more creatures and more people on the trails. Each island type builds in its own roofs and walls."],
+	["New names", "Driftwake's powers, places and factions have their own names now: Driftfruits (Flux, Feral, Knack), Will (Iron Will, Weather Eye, Captain's Will), the Leviathan, the lodestone and the Admiralty."],
+	["Since 1.19", "Rival crews who fight like you, bounties and the Admiralty, arrest and escape from the brig, a new opening at sea, and fighting in the water."],
 ]
 
 

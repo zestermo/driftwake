@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.19",
+	"here": "1.20",
 	"versions": [
 		{
 			"v": "0.1",
@@ -608,17 +608,25 @@
 		{
 			"v": "1.20",
 			"name": "The World",
-			"status": "building",
-			"headline": "A spooky island, the first cities, reworked beasts and bosses, and a polish pass across the chain.",
-			"img": "brinehollow",
-			"alt": "Brinehollow's harbour and market street (current build)",
-			"plan": [
-				["A spooky island", "A fifth island type."],
-				["Cities", "At least two on the first chain: a royal capital and a canal city."],
-				["Beasts and bosses", "Roaming beasts and boss fights reworked, with an arena of its own kind for every island type."],
-				["Life between places", "More creatures and obstacles between points of interest."],
-				["A polish pass", "Fidelity and generation fixes across every chain island."],
-				["Final names", "The game's powers, places and factions get their final names everywhere you see them."]
+			"date": "2026-10-24",
+			"status": "shipped",
+			"headline": "Every beast reworked with a ground of its own for every island type, a haunted fog isle under giant twisted trees, and more between places.",
+			"img": "fog_pier",
+			"alt": "A pier at dusk leading into a fog-bound fishing village under giant twisted trees",
+			"shots": [
+				["grotto", "An ice grotto in a snowy mountainside: dark rock walls sheathed in blue ice round a frozen floor"],
+				["sunken_ruin", "A giant red scorpion in a sunken flagstone courtyard among broken desert walls"],
+				["fog_ruins", "Broken stone columns at dusk, giant twisted trees fading into the fog behind"]
+			],
+			"news": "/news/v1-20-the-world/",
+			"github": true,
+			"added": [
+				["Beasts reborn", "Eight rebuilt bodies on a rig with jointed legs; every beast with its own moves, readable wind-ups and openings."],
+				["Grounds of their own", "An ice grotto, a half-buried ruin and a ring of standing stones; the jungle keeps its canopy."],
+				["The fog isle", "A fifth island type: giant twisted woods, the drowned and ghosts, lanterns that push back the fog, the Drowned Captain."],
+				["Between places", "Trunks, boulders, old walls, shrines, lone chests, left camps, more creatures and people."],
+				["A polish pass", "Each island type's own roofs and walls throughout, fuller villages."],
+				["Driftwake's own names", "Driftfruits, Will, the Leviathan, the lodestone and the Admiralty, everywhere you see them."]
 			]
 		},
 		{

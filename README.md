@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.19.4-e0b040" alt="Version 1.19.4">
+  <img src="https://img.shields.io/badge/version-1.20-e0b040" alt="Version 1.20">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,18 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.20: The World (October 24, 2026)
+Every beast boss and roamer reworked: eight rebuilt bodies on a rig with jointed legs and bodies that follow the
+slope, each beast with its own move list, readable wind-ups and an opening after each big move, and only one move
+that knocks you down. A boss ground for every island type: the jungle's canopy, an ice grotto on the snow, a
+half-buried ruin in the desert, a grove of standing stones in the forest. The fifth island type, the fog isle: deep
+woods of giant twisted trees, a cursed fishing village, drowned crews that get back up, ghosts that shot passes
+through, lanterns that push back the fog, and the Drowned Captain on his wreck. More along the ways between places
+(trunks, boulders, old walls, shrines, lone chests, left camps, more creatures and people), each island type's own
+roofs and walls throughout, a campfire that looks like fire, and Driftwake's own names for its powers, places and
+factions: Driftfruit, Will, the Leviathan, the lodestone. Everything from the v1.19.1-1.19.4 unstable builds.
 
 ### v1.19.4: Polish (October 24, 2026), unstable
 A pass over every island type. Pirate camps, watchtowers, gates and wells take each island's own roofs and walls
