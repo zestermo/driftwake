@@ -94,7 +94,7 @@ func _wake_move() -> String:
 # ==========================================================================
 func _build() -> void:
 	_skin = SKINS[variant % SKINS.size()]
-	_cd = {"strike": 1.0, "sweep": 3.0, "coil": 6.0, "ambush": 99.0, "tree": 99.0, "spit": 99.0}
+	_cd = {"strike": 1.0, "sweep": 3.0, "coil": 6.0, "ambush": 99.0, "tree": 99.0, "spit": 99.0, "train": 4.0}
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.8
@@ -321,6 +321,10 @@ func _pose_from_move() -> void:
 			_lift = 2.6 if mv_t < STRIKE_WIND else 1.0
 			_pitch = 0.3 if mv_t < STRIKE_WIND else -0.15
 			_jaw_open = 1.0
+		"train":
+			_lift = 0.8
+			_pitch = -0.1
+			_jaw_open = 1.0
 		"ambush":
 			_lift = 0.3
 		"coil", "sweep":
@@ -336,18 +340,24 @@ func _brain(_delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	_pitch = 0.0
 	_jaw_open = 0.1
 	_sway = 0.0
-	if phase >= 2 and _cd["ambush"] <= 0.0:
-		begin("ambush")
-	elif phase >= 2 and _cd["tree"] <= 0.0 and dist > 5.0:
-		begin("tree")
-	elif dist < 8.5 and _cd["strike"] <= 0.0:
-		begin("strike")
-	elif dist < 7.0 and _cd["coil"] <= 0.0:
-		begin("coil")
-	elif dist < 7.0 and _cd["sweep"] <= 0.0:
-		begin("sweep")
-	elif phase >= 2 and dist > 8.0 and _cd["spit"] <= 0.0:
-		begin("spit")
+	# (1.20, docs/v1_20_beasts.md 2: the rules - pick(), never a move twice running - and the train)
+	var wants: Array = []
+	var arena_ok := arena != null and not (arena.brush as Array).is_empty()
+	if phase >= 2 and arena_ok:
+		wants.append("ambush")
+	if phase >= 2 and arena != null and not (arena.trees as Array).is_empty() and dist > 5.0:
+		wants.append("tree")
+	if dist > 6.0:
+		wants.append("train")
+	if dist < 8.5:
+		wants.append("strike")
+	if dist < 7.0:
+		wants.append_array(["coil", "sweep"])
+	if phase >= 2 and dist > 8.0:
+		wants.append("spit")
+	var m := pick(wants)
+	if m != "":
+		begin(m)
 	elif dist > 5.5:
 		var nd := _nav_dir(p.global_position, _delta)
 		_face(nd)
@@ -409,6 +419,11 @@ func _on_begin(m: String) -> void:
 			_tree = _far_brush(_aim)
 			_to = arena.brush[_tree]
 			say("slither", global_position, 2.0, 1.0)
+		"train":
+			_cd["train"] = _rng.randf_range(11.0, 14.0)
+			_train_passes = 3 if phase >= 3 else 2
+			_fly = true
+			say("slither", global_position, 4.0, 0.8, 120.0)
 		"tree":
 			_cd["tree"] = _rng.randf_range(22.0, 28.0)
 			_tree = _near_tree()
@@ -441,7 +456,7 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 			_sway = 1.0 if mv_t > 0.7 and mv_t < 1.1 else 0.0
 			if mv_t > 0.8 and not _hit:
 				_hit = true
-				strike("ring", [ground_at(_segs[12]), 5.6], 20.0, true, false, 1.0)
+				strike("ring", [ground_at(_segs[12]), 5.6], 20.0, false, false, 1.0, 9.0)
 				Net.fx("dust_ring", [ground_at(_segs[12]), 18, 1.3])
 				Net.fx("sfx", ["whoosh_big", _segs[12], 2.0, 0.05, 0.6])
 			if mv_t > 1.4:
@@ -461,7 +476,7 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 				Net.fx("dust", [global_position, 4, 0.8])
 			if mv_t > COIL_T and not _hit:
 				_hit = true
-				strike("ring", [_aim, COIL_R - 0.6], 30.0, true, false, 1.4)
+				strike("ring", [_aim, COIL_R - 0.6], 30.0, false, false, 1.4, 4.0, 1.2)
 				Net.fx("dust_ring", [_aim, 30, 2.0])
 				Net.fx("sfx", ["crunch", _aim, 6.0, 0.05, 0.6])
 				get_node("/root/CombatManager").apply_camera_shake(0.35)
@@ -478,6 +493,8 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 				_spit(p)
 			if mv_t > 1.3:
 				end_move(0.5)
+		"train":
+			return _train_tick(delta, p)
 		"ambush":
 			return _ambush_tick(delta, p)
 		"tree":
@@ -498,7 +515,7 @@ func _strike_tick(_delta: float, p: Node3D) -> Vector3:
 	global_position = _from.lerp(_to, u * (2.0 - u))
 	if not _hit and u > 0.3:
 		_hit = true
-		strike("lane", [_from, _to, 1.4], 24.0, true, true)
+		strike("lane", [_from, _to, 1.4], 24.0, false, true, 1.1, 10.0)
 		Net.fx("sfx", ["whoosh_big", global_position, 2.0, 0.05, 0.8])
 	if mv_t > STRIKE_WIND + 0.24:
 		_fly = false
@@ -579,7 +596,7 @@ func _ambush_tick(delta: float, p: Node3D) -> Vector3:
 		global_position = _from.lerp(_to, u * (2.0 - u))
 		if not _hit and u > 0.3:
 			_hit = true
-			strike("lane", [_from, _to, 1.5], 28.0, true, true)
+			strike("lane", [_from, _to, 1.5], 28.0, false, true, 1.1, 11.0)
 			Net.fx("sfx", ["whoosh_big", global_position, 3.0, 0.05, 0.7])
 	if mv_t > 1.6:
 		end_move(1.0)
@@ -632,7 +649,7 @@ func _tree_tick(delta: float, p: Node3D) -> Vector3:
 			global_position = _from.lerp(_aim, u * u)
 			if u >= 1.0 and not _hit:
 				_hit = true
-				strike("ring", [_aim, 4.4], 32.0, true, false, 1.2)
+				strike("ring", [_aim, 4.4], 32.0, false, false, 1.2, 10.0)
 				quake(_aim, 1.0)
 				_n = 3
 				mv_t = 0.0
@@ -729,3 +746,95 @@ func _event(what: String, args: Array) -> void:
 			BeastFX.brush(args[0], 6)
 		"shake":
 			arena.shake(int(args[0]), float(args[1]))
+		"train_hide":
+			model.visible = not bool(args[0])
+			_skel.visible = not bool(args[0])
+
+
+# ==========================================================================
+# The train (1.20, docs/v1_20_beasts.md 2; Zach: it barely came into its arena): gone into the brush, then out of it
+# at the floor's edge on a line through you (a red lane and the ground rumbling), straight across the whole floor and
+# out the far side at a train's speed; back on another line; two passes, three enraged. Then it lies there, its head
+# on the ground: the opening. Its one knockdown.
+# ==========================================================================
+const TRAIN_SPEED := 24.0
+const TRAIN_WARN := 0.9
+var _train_passes := 2
+
+
+func _train_r() -> float:
+	return BeastArena.FLOOR_R + 3.0
+
+
+func _train_tick(delta: float, p: Node3D) -> Vector3:
+	var c: Vector3 = p.global_position if p else (arena.centre() if arena else global_position)
+	if _n == 0:
+		# into the brush (hidden), set up the first pass
+		_train_hide(true)
+		_n = 1
+		mv_t = 0.0
+		_train_line(c)
+		return Vector3.ZERO
+	if _n % 2 == 1:
+		# the warning: under the brush at the floor's edge, a lane through you, the ground rumbling
+		_fx_t -= delta
+		if _fx_t <= 0.0:
+			_fx_t = 0.15
+			Net.fx("dust", [_from.lerp(_to, randf()), 4, 0.8])
+		if mv_t >= TRAIN_WARN:
+			_n += 1
+			mv_t = 0.0
+			_hit = false
+			_train_hide(false)
+			say("hiss", _from, 6.0, 0.7, 120.0)
+			BeastFX.brush(_from, 14)
+			Net.event(self, "brush", [_from])
+		return Vector3.ZERO
+	# the pass: the head runs the whole line, the body pouring along behind it
+	var ln := _flat(_to - _from).length()
+	var u := clampf(mv_t * TRAIN_SPEED / maxf(ln, 1.0), 0.0, 1.0)
+	global_position = _from.lerp(_to, u)
+	global_position.y = ground_at(global_position).y
+	if not _hit and u > 0.05:
+		_hit = true
+		strike("lane", [_from, _to, 1.7], 30.0, true)
+		Net.fx("sfx", ["whoosh_big", global_position, 4.0, 0.05, 0.6])
+	_fx_t -= delta
+	if _fx_t <= 0.0:
+		_fx_t = 0.1
+		Net.fx("dust", [global_position, 5, 1.0])
+	if u >= 1.0:
+		var done := floori(_n / 2.0)
+		if done >= _train_passes:
+			# down at the far side, its head on the ground: the opening
+			_fly = false
+			_lift = 0.35
+			end_move(1.6)
+			return Vector3.ZERO
+		_train_hide(true)
+		_n += 1
+		mv_t = 0.0
+		_train_line(c)
+	return Vector3.ZERO
+
+
+## A line through `c` at an angle of its own, from outside the floor's edge to past the far side; the body laid
+## back along it behind the head.
+func _train_line(c: Vector3) -> void:
+	var a := _rng.randf() * TAU
+	var d := Vector3(cos(a), 0.0, sin(a))
+	_from = ground_at(c - d * _train_r())
+	_to = ground_at(c + d * _train_r())
+	global_position = _from
+	reset_physics_interpolation()
+	_face(d)
+	for i in range(SEGS):
+		_segs[i] = _from - d * (1.0 + i * SPACING)
+	warn_lane(_from, _to, 3.4, TRAIN_WARN)
+
+
+func _train_hide(on: bool) -> void:
+	model.visible = not on
+	_skel.visible = not on
+	hurtbox.monitorable = not on
+	Net.event(self, "train_hide", [on])

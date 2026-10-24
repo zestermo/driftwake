@@ -15,6 +15,10 @@ const SEG_LEN := 1.45
 const HEAD_R := 1.5
 const TALL := 8.0
 const WARN := 1.15
+## The sinkhole (phase 2+, 1.20): the ground round it funnels toward a pit for SINK_S, its middle biting.
+const SINK_R := 7.5
+const SINK_S := 4.0
+const SINK_PULL := 3.2
 const LOOKS := [
 	[Color(0.86, 0.66, 0.36), Color(0.62, 0.42, 0.22), Color(0.98, 0.86, 0.6)],
 	[Color(0.66, 0.3, 0.16), Color(0.4, 0.18, 0.1), Color(0.9, 0.6, 0.4)],
@@ -32,6 +36,10 @@ var _spit: Array = []
 var _runs: int = 0
 var _lean: float = 0.0
 var _trail_t: float = 0.0
+var _twin := Vector3.INF
+var _sink_t := 0.0
+var _sink_at := Vector3.ZERO
+var _bites := 0
 
 
 func _init() -> void:
@@ -151,7 +159,7 @@ func _build() -> void:
 
 
 func _ready() -> void:
-	_cd = {"bite": 1.0, "slam": 3.0, "spit": 2.0, "dive": 6.0}
+	_cd = {"bite": 1.0, "slam": 3.0, "spit": 2.0, "dive": 6.0, "sinkhole": 99.0}
 	super._ready()
 	_fly = true
 	model.visible = false
@@ -187,18 +195,25 @@ func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	if rise < 0.5:
 		# under: a beat, then up under whoever it hunts
 		if mv_t > 0.6:
-			_runs = 1 + (1 if phase >= 2 else 0) + (1 if phase >= 3 else 0)
+			# (1.20: once per dive, never chained: it comes up and fights, docs/v1_20_beasts.md 10)
+			_runs = 1
 			begin("erupt")
 		return Vector3.ZERO
 	_face(to)
-	if phase >= 2 and _cd["spit"] <= 0.0 and dist > 5.0:
-		begin("spit")
-	elif dist < 9.0 and _cd["bite"] <= 0.0:
-		begin("bite")
-	elif _cd["slam"] <= 0.0 and dist < 16.0:
-		begin("slam")
-	elif _cd["dive"] <= 0.0 or dist > 22.0:
-		begin("dive")
+	var wants: Array = []
+	if phase >= 2:
+		wants.append("sinkhole")
+		if dist > 5.0:
+			wants.append("spit")
+	if dist < 9.0:
+		wants.append("bite")
+	if dist < 16.0:
+		wants.append("slam")
+	if dist > 22.0 or float(_cd.get("dive", 0.0)) <= 0.0:
+		wants.append("dive")
+	var m := pick(wants)
+	if m != "":
+		begin(m)
 	return Vector3.ZERO
 
 
@@ -209,6 +224,12 @@ func _on_begin(m: String) -> void:
 		"erupt":
 			_goal = ground_at(p.global_position if p else global_position)
 			warn_ring(_goal, 4.2, WARN)
+			# (phase 3: it comes up in two places at once, the second smaller, near you)
+			_twin = Vector3.INF
+			if phase >= 3:
+				var a := _rng.randf() * TAU
+				_twin = ground_at(_goal + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(4.5, 6.5))
+				warn_ring(_twin, 2.8, WARN)
 			say("slither", global_position, 4.0, 0.5, 120.0)
 		"bite":
 			_cd["bite"] = _rng.randf_range(2.2, 3.4)
@@ -229,6 +250,11 @@ func _on_begin(m: String) -> void:
 				warn_ring(q, 2.6, 0.9, Color(1.0, 0.55, 0.12))
 		"dive":
 			_cd["dive"] = _rng.randf_range(7.0, 10.0)
+		"sinkhole":
+			_cd["sinkhole"] = _rng.randf_range(14.0, 18.0)
+			_goal = global_position
+			warn_ring(_goal, SINK_R, 0.9, Color(1.0, 0.55, 0.12))
+			say("slither", global_position, 6.0, 0.4, 140.0)
 
 
 func _move_tick(delta: float, _p: Node3D) -> Vector3:
@@ -248,7 +274,10 @@ func _move_tick(delta: float, _p: Node3D) -> Vector3:
 				if not _hit:
 					_hit = true
 					global_position = _goal
-					strike("ring", [_goal, 4.2], 26.0, true, false, 1.2, 12.0)
+					strike("ring", [_goal, 4.2], 26.0, false, false, 1.2, 12.0)
+					if _twin != Vector3.INF:
+						strike("ring", [_twin, 2.8], 18.0, false, false, 1.2, 9.0)
+						Net.fx("puff", [_twin + Vector3.UP * 0.5, "sand", 8, 2.6, 1.2, Color.WHITE, 2.4, Vector3.UP])
 					quake(_goal, 1.4)
 					Net.fx("puff", [_goal + Vector3.UP * 0.5, "sand", 10, 3.5, 1.4, Color.WHITE, 3.0, Vector3.UP])
 					say("bellow", _goal, 6.0, 0.6, 140.0)
@@ -262,7 +291,7 @@ func _move_tick(delta: float, _p: Node3D) -> Vector3:
 			_lean = sin(clampf((mv_t - 0.5) / 0.4, 0.0, 1.0) * PI) if mv_t > 0.5 else -0.25 * minf(mv_t / 0.5, 1.0)
 			if mv_t > 0.62 and not _hit:
 				_hit = true
-				strike("cone", [global_position, _fwd(), 9.5, 38.0], 22.0, true, true, 1.6)
+				strike("cone", [global_position, _fwd(), 9.5, 38.0], 22.0, false, true, 1.6, 10.0)
 				Net.fx("puff", [global_position + _fwd() * 7.0, "sand", 5, 2.0, 0.9, Color.WHITE, 1.5, Vector3.UP])
 			if mv_t > 1.3:
 				_lean = 0.0
@@ -287,6 +316,8 @@ func _move_tick(delta: float, _p: Node3D) -> Vector3:
 			if mv_t > 1.4:
 				_lean = 0.0
 				end_move(0.5)
+		"sinkhole":
+			return _sink_tick(delta)
 		"dive":
 			rise = move_toward(rise, 0.0, delta * 1.6)
 			if not _hit and rise < 0.6:
@@ -319,9 +350,11 @@ func _on_stagger() -> void:
 	_lean = 0.0
 
 
-func _on_phase(_n: int) -> void:
+func _on_phase(n: int) -> void:
 	say("bellow", _hit_point(), 6.0, 0.5, 140.0)
 	_cd["spit"] = 0.0
+	if n >= 2:
+		_cd["sinkhole"] = 2.0
 
 
 func _on_die() -> void:
@@ -410,3 +443,53 @@ var _t_anim: float = 0.0
 static func _bez(a: Vector3, b: Vector3, c: Vector3, t: float) -> Vector3:
 	var u := 1.0 - t
 	return a * u * u + b * 2.0 * u * t + c * t * t
+
+
+## The sinkhole: under, a spin, then the sand round it pulls toward the pit for SINK_S (run out of it); the pit's middle
+## bites three times; then its head comes up out of the pit, open.
+func _sink_tick(delta: float) -> Vector3:
+	if mv_t < 0.9:
+		rise = move_toward(rise, 0.0, delta * 2.0)
+		return Vector3.ZERO
+	if _sink_t <= 0.0 and _bites == 0 and mv_t < 1.0:
+		_sink(_goal, SINK_S)
+		Net.event(self, "sink", [_goal, SINK_S])
+	if _bites < 3 and mv_t > 1.6 + _bites * 1.1:
+		_bites += 1
+		strike("ring", [_goal, 2.6], 20.0, false, false, 1.0, 6.0)
+		Net.fx("puff", [_goal + Vector3.UP * 0.4, "sand", 8, 2.2, 1.0, Color.WHITE, 2.0, Vector3.UP])
+	if mv_t > 1.0 + SINK_S:
+		rise = move_toward(rise, 1.0, delta * 2.0)
+		if rise >= 1.0:
+			_bites = 0
+			end_move(1.2)
+	return Vector3.ZERO
+
+
+## (every screen) the sand runs toward the pit: its own captain dragged in while they stand in it.
+func _sink(at: Vector3, secs: float) -> void:
+	_sink_at = at
+	_sink_t = secs
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	if _sink_t <= 0.0:
+		return
+	_sink_t -= delta
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	if me == null:
+		return
+	var to := _flat(_sink_at - me.global_position)
+	if to.length() < SINK_R and to.length() > 0.5:
+		me.global_position += to.normalized() * SINK_PULL * delta
+	_trail_t -= delta
+	if _trail_t <= 0.0:
+		_trail_t = 0.25
+		var a := randf() * TAU
+		FX.dust(_sink_at + Vector3(cos(a), 0, sin(a)) * randf_range(1.0, SINK_R), 3, 0.6)
+
+
+func _event(what: String, args: Array) -> void:
+	if what == "sink":
+		_sink(args[0], float(args[1]))
