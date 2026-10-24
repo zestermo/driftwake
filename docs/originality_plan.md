@@ -15,7 +15,8 @@ Get a short consult with a games/IP lawyer before charging money (and check the 
 - **New content from now on uses the new names**, so 1.19's Marines and the 1.22 strongholds are written with
   them from the start instead of renamed afterwards.
 - **Check borrowed rules, not just names.** Example: if fruit users can't swim, that is One Piece's rule; give
-  Driftwake's fruits a cost of their own.
+  Driftwake's fruits a cost of their own. **Decided (Zach, 2026-10-24): the sea rule stays** (Driftfruit users sink and
+  drown in deep water); offered and turned down: a salt-water penalty, a Drift meter, a reserved bar slot.
 - Comments in code can keep the old words for now; they don't ship to players.
 
 ## The names (bold = picked, others are the alternatives)

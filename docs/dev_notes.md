@@ -6156,7 +6156,7 @@ fidelity report:
 - **Published text:** README, documentation/gdd.html, docs/release_v1_18.md and every web/site page; the "Inspired by
   One Piece" credit footer dropped from every page. GitHub release bodies are only changelog links (nothing to edit).
 - **Left as is:** internal ids, node names, comments, skill_tree.gd's unused REGION_* keys, generic words (the Warlord
-  talent, the Dune Emperor). **Open for Zach:** the borrowed rule "fruit users can't swim" still stands (the item text
+  talent, the Dune Emperor). **Decided (Zach, 2026-10-24):** the rule "fruit users can't swim" stays (the item text
   says so in the new names).
 - **Campfire flame (noted 2026-10-20):** Props.campfire's flames were opaque untextured quads that stacked into a tall
   pale block at dusk; now FX's flame recipe (dust.png sprite, additive, alpha ramp to 0, no shadow), one shared
