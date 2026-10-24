@@ -28,6 +28,9 @@ class_name JungleApe
 
 signal phase_changed(phase: int)
 
+## The grab's wind-up (phase 3, 1.20).
+const GRAB_WIND := 0.6
+
 const APE_HP := 1500.0
 ## Look height: the rig's scale (ApeBuilder's unit body): ~3.5 m reared up, ~2.3 m on its knuckles.
 const APE_H := 2.4
@@ -71,7 +74,9 @@ var _sp_t: float = 0.0
 var _sp_from := Vector3.ZERO
 var _sp_target := Vector3.ZERO
 var _sp_hit: bool = false
-var _cd := {"swipe": 0.0, "slam": 3.0, "leap": 6.0, "throw": 5.0, "canopy": 0.0}
+var _cd := {"swipe": 0.0, "slam": 3.0, "leap": 6.0, "throw": 5.0, "canopy": 0.0, "grab": 4.0}
+## The last move it chose: _choose() won't pick it straight again (docs/v1_20_beasts.md "Rules").
+var _last_pick := ""
 var _poise: float = 0.0
 var _hit_swipe: HitData
 var _rock: MeshInstance3D
@@ -235,18 +240,29 @@ func _physics_process(delta: float) -> void:
 
 
 func _choose(dist: float) -> String:
+	var m := _choose_any(dist)
+	if m != "":
+		_last_pick = m
+	return m
+
+
+func _choose_any(dist: float) -> String:
 	if phase >= 2 and _cd["canopy"] <= 0.0 and arena != null and not (arena.trees as Array).is_empty():
 		return "climb"
+	if phase >= 3 and dist < 6.0 and _cd["grab"] <= 0.0 and _last_pick != "grab":
+		_cd["grab"] = _rng.randf_range(8.0, 11.0)
+		return "grab"
 	if dist < SWIPE_RANGE and _cd["swipe"] <= 0.0:
-		if dist < 5.5 and _cd["slam"] <= 0.0 and _rng.randf() < 0.35:
+		if dist < 5.5 and _cd["slam"] <= 0.0 and _last_pick != "slam" and (_rng.randf() < 0.35 or _last_pick == "swipe"):
 			_cd["slam"] = _rng.randf_range(5.0, 7.0)
 			return "slam"
-		_cd["swipe"] = _rng.randf_range(1.0, 1.8)
-		return "swipe"
-	if dist > 7.0 and dist < 22.0 and _cd["leap"] <= 0.0 and _rng.randf() < 0.6:
+		if _last_pick != "swipe":
+			_cd["swipe"] = _rng.randf_range(1.0, 1.8)
+			return "swipe"
+	if dist > 7.0 and dist < 22.0 and _cd["leap"] <= 0.0 and _last_pick != "leap" and _rng.randf() < 0.6:
 		_cd["leap"] = _rng.randf_range(7.0, 10.0)
 		return "leap"
-	if dist > 9.0 and dist < 30.0 and _cd["throw"] <= 0.0:
+	if dist > 9.0 and dist < 30.0 and _cd["throw"] <= 0.0 and _last_pick != "throw":
 		_cd["throw"] = _rng.randf_range(6.0, 9.0)
 		return "throw"
 	return ""
@@ -285,6 +301,10 @@ func _begin_special(what: String) -> void:
 		"swipe":
 			humanoid.play("ape_swipe", ActionSpecs.length("ape_swipe"))
 			Net.fx("sfx", ["whoosh_big", global_position, -2.0, 0.05, 0.7])
+		"grab":
+			# (1.20, phase 3: a low lunge that catches you, shakes you and throws you - a long stagger)
+			humanoid.hold("ape_crouch", GRAB_WIND)
+			Net.fx("sfx", ["peril", global_position, -1.0, 0.03, 0.8])
 		"slam":
 			humanoid.hold("ape_slam_wind", SLAM_WIND)
 			_sp_target = _ground_at(global_position + _fwd() * 3.2)
@@ -328,7 +348,7 @@ func _special_update(delta: float) -> void:
 		"roar":
 			if _sp_t > ROAR_LEN * 0.8 and not _sp_hit:
 				_sp_hit = true
-				_aoe(global_position, ROAR_R, 10.0, true)
+				_aoe(global_position, ROAR_R, 10.0, false)
 				Net.fx("dust_ring", [global_position, 30, 2.2])
 				get_node("/root/CombatManager").apply_camera_shake(0.35)
 			if _sp_t > ROAR_LEN:
@@ -348,6 +368,21 @@ func _special_update(delta: float) -> void:
 				hitbox.deactivate()
 			if u >= 1.0:
 				_end_special(0.5)
+		"grab":
+			if p and _sp_t < GRAB_WIND * 0.6:
+				_face(_flat(p.global_position - global_position))
+			if _sp_t > GRAB_WIND and _sp_t < GRAB_WIND + 0.25:
+				want = _fwd() * 9.0
+				if not has_meta("grab_lunge"):
+					set_meta("grab_lunge", true)
+					humanoid.play("ape_swipe", ActionSpecs.length("ape_swipe"))
+			if _sp_t > GRAB_WIND + 0.2 and not _sp_hit:
+				_sp_hit = true
+				_aoe(global_position + _fwd() * 2.0, 2.4, 24.0, false, 1.4)
+				Net.fx("sfx", ["thud", global_position, 4.0, 0.05, 0.7])
+			if _sp_t > GRAB_WIND + 1.0:
+				remove_meta("grab_lunge")
+				_end_special(1.2)
 		"slam":
 			if _sp_t > SLAM_WIND and not has_meta("slam_down"):
 				set_meta("slam_down", true)
@@ -376,7 +411,7 @@ func _special_update(delta: float) -> void:
 				if u >= 1.0:
 					_sp_hit = true
 					humanoid.play("ape_slam", ActionSpecs.length("ape_slam"))
-					_aoe(global_position, LEAP_R, 30.0, true)
+					_aoe(global_position, LEAP_R, 30.0, false)
 					Net.fx("dust_ring", [global_position, 32, 2.0])
 					Net.fx("impact", [global_position + Vector3(0, 0.5, 0), Color(1.0, 0.5, 0.3)])
 					Net.fx("sfx", ["thud", global_position, 7.0, 0.05, 0.45])
@@ -440,7 +475,7 @@ func _hurl_at(p: Node3D, speed: float, min_t: float) -> void:
 	Net.event(self, "rock", ["throw", from, to, dur])
 	get_tree().create_timer(dur).timeout.connect(func():
 		if is_instance_valid(self):
-			_aoe(to, ROCK_R, 24.0, true))
+			_aoe(to, ROCK_R, 24.0, false))
 
 
 func _end_special(recover: float) -> void:
@@ -634,7 +669,7 @@ func _drop_update() -> void:
 		_sp_hit = true
 		_go_up(false)
 		humanoid.play("ape_slam", ActionSpecs.length("ape_slam"))
-		_aoe(global_position, DROP_R, 34.0, true)
+		_aoe(global_position, DROP_R, 34.0, false)
 		Net.fx("dust_ring", [global_position, 40, 2.6])
 		Net.fx("impact", [global_position + Vector3(0, 0.5, 0), Color(1.0, 0.5, 0.3)])
 		Net.fx("sfx", ["thud", global_position, 8.0, 0.05, 0.4])
@@ -690,13 +725,14 @@ func _come_down() -> void:
 
 
 ## A shockwave: every machine checks its own captain (jump it or dodge through).
-func _aoe(center: Vector3, radius: float, dmg: float, knock: bool) -> void:
+## (1.20: only the slam knocks you down; the rest push, docs/v1_20_beasts.md 1. `stun`: the stagger, the grab's long)
+func _aoe(center: Vector3, radius: float, dmg: float, knock: bool, stun: float = 0.4) -> void:
 	dmg = _dmg(dmg)
-	_aoe_local(center, radius, dmg, knock)
-	Net.event(self, "aoe", [center, radius, dmg, knock])
+	_aoe_local(center, radius, dmg, knock, stun)
+	Net.event(self, "aoe", [center, radius, dmg, knock, stun])
 
 
-func _aoe_local(center: Vector3, radius: float, dmg: float, knock: bool) -> void:
+func _aoe_local(center: Vector3, radius: float, dmg: float, knock: bool, stun: float = 0.4) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me == null or not me.has_node("Hurtbox"):
 		return
@@ -709,8 +745,8 @@ func _aoe_local(center: Vector3, radius: float, dmg: float, knock: bool) -> void
 	hd.damage = dmg
 	hd.knockdown = knock
 	hd.unblockable = true
-	hd.knockback_force = 9.0
-	hd.stagger_duration = 0.4
+	hd.knockback_force = 12.0 if stun > 1.0 else 9.0
+	hd.stagger_duration = stun
 	hd.hitstop_duration = 0.07
 	hd.camera_shake_intensity = 0.25
 	hb.take_hit(hd, self)
@@ -906,7 +942,7 @@ func _net_update(delta: float) -> void:
 func net_event(what: String, args: Array) -> void:
 	match what:
 		"aoe":
-			_aoe_local(args[0], float(args[1]), float(args[2]), bool(args[3]))
+			_aoe_local(args[0], float(args[1]), float(args[2]), bool(args[3]), float(args[4]) if args.size() > 4 else 0.4)
 			return
 		"rock":
 			match str(args[0]):

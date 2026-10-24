@@ -75,7 +75,7 @@ func _wake_move() -> String:
 # ==========================================================================
 func _build() -> void:
 	_skin = SKINS[variant % SKINS.size()]
-	_cd = {"scythe": 0.5, "snap": 3.0, "flit": 99.0, "whirl": 99.0}
+	_cd = {"scythe": 0.5, "snap": 3.0, "flit": 99.0, "whirl": 99.0, "brood": 99.0}
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.9
@@ -275,14 +275,21 @@ func _animate(delta: float) -> void:
 # ==========================================================================
 func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	_face(to)
-	if phase >= 2 and _cd["flit"] <= 0.0 and not (arena.trees as Array).is_empty():
-		begin("flit")
-	elif phase >= 3 and dist < 5.0 and _cd["whirl"] <= 0.0:
-		begin("whirl")
-	elif dist < 5.2 and _cd["scythe"] <= 0.0:
-		begin("scythe")
-	elif dist > 4.5 and dist < 9.5 and _cd["snap"] <= 0.0:
-		begin("snap")
+	# (1.20, docs/v1_20_beasts.md 4: pick() - never a move twice running - and the brood)
+	var wants: Array = []
+	if phase >= 2 and arena != null and not (arena.trees as Array).is_empty():
+		wants.append("flit")
+	if phase >= 2 and dist < 12.0:
+		wants.append("brood")
+	if phase >= 3 and dist < 5.0:
+		wants.append("whirl")
+	if dist < 5.2:
+		wants.append("scythe")
+	if dist > 4.5 and dist < 9.5:
+		wants.append("snap")
+	var m := pick(wants)
+	if m != "":
+		begin(m)
 	elif dist > 4.2:
 		var nd := _nav_dir(p.global_position, delta)
 		_face(nd)
@@ -292,8 +299,39 @@ func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	return Vector3.ZERO
 
 
+## The brood (phase 2+, 1.20): she taps the ground and her young drop out of the canopy round you (red rings), the
+## blows where they land. (Brood that stay and fight wait for a co-op spawn, docs/v1_20_beasts.md.)
+const BROOD_N := 3
+const BROOD_R := 1.7
+var _brood: Array = []
+
+
+func _brood_begin(p: Node3D) -> void:
+	_cd["brood"] = _rng.randf_range(10.0, 13.0)
+	_brood = []
+	var c: Vector3 = p.global_position if p else global_position + _fwd() * 5.0
+	for k in range(BROOD_N):
+		var a := TAU * k / float(BROOD_N) + _rng.randf() * 0.7
+		var s := ground_at(c + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(0.5, 3.0))
+		_brood.append(s)
+		warn_ring(s, BROOD_R, 1.0, Color(0.6, 0.95, 0.35))
+	shower(c + Vector3.UP * 6.0, 20, 3.0)
+
+
+func _brood_tick() -> void:
+	if mv_t > 1.0 and not _hit:
+		_hit = true
+		for s in _brood:
+			strike("ring", [s, BROOD_R], 14.0, false, false, 1.0, 6.0)
+			Net.fx("dust", [s, 6, 0.7])
+			shower(s + Vector3.UP * 2.0, 6, 0.8)
+	if mv_t > 1.3:
+		end_move(0.8)
+
+
 func _on_phase(k: int) -> void:
 	_cd["flit"] = 1.0
+	_cd["brood"] = 2.0
 	if k >= 3:
 		_cd["whirl"] = 2.0
 	begin("display")
@@ -310,6 +348,9 @@ func _armoured() -> bool:
 func _on_begin(m: String) -> void:
 	_n = 0
 	var p := _target()
+	if m == "brood":
+		_brood_begin(p)
+		return
 	match m:
 		"display":
 			say("screech", global_position, 6.0, 1.0)
@@ -338,11 +379,14 @@ func _on_begin(m: String) -> void:
 
 
 func _move_tick(delta: float, p: Node3D) -> Vector3:
+	if move == "brood":
+		_brood_tick()
+		return Vector3.ZERO
 	match move:
 		"display":
 			if mv_t > 0.9 and not _hit:
 				_hit = true
-				strike("ring", [global_position, 7.0], 10.0, true, false, 1.1)
+				strike("ring", [global_position, 7.0], 10.0, false, false, 1.1, 10.0)
 				Net.fx("dust_ring", [global_position, 26, 2.0])
 				get_node("/root/CombatManager").apply_camera_shake(0.3)
 			if mv_t > 1.8:
@@ -352,7 +396,7 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 				_face(_flat(p.global_position - global_position))
 			if _n < 2 and mv_t > SCY_AT[_n]:
 				var heavy := _n == 1
-				strike("cone", [global_position, _fwd(), 5.0, 55.0], 22.0 if heavy else 15.0, heavy, heavy)
+				strike("cone", [global_position, _fwd(), 5.0, 55.0], 22.0 if heavy else 15.0, false, heavy, 1.1, 9.0 if heavy else 6.0, 0.7 if heavy else 0.4)
 				Net.fx("sfx", ["whoosh_big", global_position + _fwd() * 2.5, 2.0, 0.05, 1.1])
 				var side := _fwd().cross(Vector3.UP) * (1.0 if _n == 0 else -1.0)
 				Net.fx("streak", [global_position + _fwd() * 3.0 + side * 2.0 + Vector3(0, 2.6, 0), global_position + _fwd() * 3.2 - side * 2.0 + Vector3(0, 0.5, 0),
@@ -369,7 +413,7 @@ func _move_tick(delta: float, p: Node3D) -> Vector3:
 			global_position = _from.lerp(_to, u * (2.0 - u))
 			if not _hit and u > 0.4:
 				_hit = true
-				strike("lane", [_from, _to, 1.5], 26.0, true)
+				strike("lane", [_from, _to, 1.5], 26.0, false, false, 1.1, 10.0)
 				Net.fx("sfx", ["crunch", _to, 4.0, 0.05, 1.2])
 			if mv_t > SNAP_WIND + 1.0:
 				end_move(0.9)
@@ -423,7 +467,7 @@ func _flit_tick(delta: float, p: Node3D) -> Vector3:
 	global_position = _from.lerp(_to, u)
 	if not _hit and u > 0.5:
 		_hit = true
-		strike("lane", [ground_at(_from), _to, 1.6], 28.0, true)
+		strike("lane", [ground_at(_from), _to, 1.6], 28.0, false, false, 1.1, 10.0)
 		Net.fx("sfx", ["whoosh_big", global_position, 4.0, 0.05, 0.9])
 	if u >= 1.0 and _n == 3:
 		_n = 4

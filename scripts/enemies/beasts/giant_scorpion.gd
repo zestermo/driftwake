@@ -52,7 +52,7 @@ func _coins_base() -> int:
 	return 42
 
 
-func _speed() -> float:
+func _base_speed() -> float:
 	return 5.6 if phase < 3 else 6.6
 
 
@@ -143,7 +143,7 @@ func _build() -> void:
 
 
 func _ready() -> void:
-	_cd = {"pinch": 0.6, "sting": 2.0, "sweep": 99.0, "ambush": 99.0}
+	_cd = {"pinch": 0.6, "sting": 2.0, "sweep": 99.0, "ambush": 99.0, "venom": 99.0, "molt": 99.0}
 	super._ready()
 	_last = global_position
 
@@ -154,14 +154,23 @@ func _wake_move() -> String:
 
 func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	_face(to)
-	if phase >= 3 and _cd["ambush"] <= 0.0 and dist > 6.0:
-		begin("ambush")
-	elif phase >= 2 and dist < 5.5 and _cd["sweep"] <= 0.0:
-		begin("sweep")
-	elif dist < 5.0 and _cd["pinch"] <= 0.0:
-		begin("pinch")
-	elif dist < 11.0 and _cd["sting"] <= 0.0:
-		begin("sting")
+	# (1.20, docs/v1_20_beasts.md 11: pick() - never a move twice running - venom and the molt)
+	var wants: Array = []
+	if phase >= 3 and not _molted:
+		wants.append("molt")
+	if phase >= 3 and dist > 6.0:
+		wants.append("ambush")
+	if phase >= 2 and dist < VENOM_R - 1.0:
+		wants.append("venom")
+	if phase >= 2 and dist < 5.5:
+		wants.append("sweep")
+	if dist < 5.0:
+		wants.append("pinch")
+	if dist < 11.0:
+		wants.append("sting")
+	var m := pick(wants)
+	if m != "":
+		begin(m)
 	elif dist > 4.0:
 		var nd := _nav_dir(p.global_position, delta)
 		_face(nd)
@@ -169,17 +178,61 @@ func _brain(delta: float, p: Node3D, to: Vector3, dist: float) -> Vector3:
 	return Vector3.ZERO
 
 
+## Venom (phase 2+, 1.20): its tail quivers, then sprays an arc in front that slows you (a long stagger).
+## The molt (phase 3, once): its shell cracks and comes off - faster, and its blows land on soft body (more damage).
+const VENOM_R := 7.5
+var _molted := false
+
+
+func _venom_tick() -> void:
+	if mv_t > 0.6 and not _hit:
+		_hit = true
+		strike("cone", [global_position, _fwd(), VENOM_R, 60.0], 10.0, false, false, 1.1, 3.0, 1.2)
+		for k in range(4):
+			Net.fx("sparkle", [global_position + _fwd() * (2.0 + k * 1.4) + Vector3.UP * 0.6, 8, Color(0.55, 0.95, 0.3)])
+	if mv_t > 0.9:
+		end_move(0.8)
+
+
+func _molt_tick() -> void:
+	if mv_t > 0.9 and not _molted:
+		_molted = true
+		Net.fx("dust", [global_position + Vector3.UP * 0.6, 18, 1.6])
+		Net.fx("sfx", ["rock_crash", global_position, 2.0, 0.1, 1.2])
+		say("hiss", global_position, 6.0, 1.3)
+	if mv_t > 1.4:
+		end_move(0.5)
+
+
+func _speed() -> float:
+	return _base_speed() * (1.3 if _molted else 1.0)
+
+
+func _on_hit(hit: HitData, attacker: Node) -> void:
+	if _molted and not hit.dot:
+		hit.damage *= 1.3
+	super._on_hit(hit, attacker)
+
+
 func _on_phase(n: int) -> void:
 	say("hiss", global_position, 4.0, 0.5)
 	if n == 2:
 		_cd["sweep"] = 0.0
+		_cd["venom"] = 1.0
 	else:
 		_cd["ambush"] = 0.0
+		_cd["molt"] = 0.0
 
 
 func _on_begin(m: String) -> void:
 	var p := _target()
 	match m:
+		"venom":
+			_cd["venom"] = _rng.randf_range(7.0, 9.0)
+			warn_ring(global_position + _fwd() * VENOM_R * 0.5, VENOM_R * 0.5, 0.6, Color(0.55, 0.95, 0.3))
+			say("hiss", global_position, 3.0, 0.9)
+		"molt":
+			_cd["molt"] = INF
 		"pinch":
 			_cd["pinch"] = _rng.randf_range(1.8, 2.6)
 			say("click", global_position, 2.0, 0.6)
@@ -198,6 +251,10 @@ func _on_begin(m: String) -> void:
 
 func _move_tick(_delta: float, p: Node3D) -> Vector3:
 	match move:
+		"venom":
+			_venom_tick()
+		"molt":
+			_molt_tick()
 		"pinch":
 			if p and mv_t < 0.3:
 				_face(_flat(p.global_position - global_position))
@@ -219,7 +276,7 @@ func _move_tick(_delta: float, p: Node3D) -> Vector3:
 		"sweep":
 			if mv_t > 0.8 and not _hit:
 				_hit = true
-				strike("ring", [global_position, 6.2], 16.0, true, false, 1.0)
+				strike("ring", [global_position, 6.2], 16.0, false, false, 1.0, 9.0)
 				Net.fx("dust_ring", [global_position, 24, 2.0])
 			if mv_t > 1.4:
 				end_move(0.5)
@@ -240,7 +297,7 @@ func _move_tick(_delta: float, p: Node3D) -> Vector3:
 				reset_physics_interpolation()
 				model.visible = true
 				hurtbox.monitorable = true
-				strike("ring", [_aim, 3.2], 22.0, true, false, 1.1)
+				strike("ring", [_aim, 3.2], 22.0, false, false, 1.1, 10.0)
 				quake(_aim, 1.0)
 				Net.fx("puff", [_aim + Vector3.UP * 0.5, "sand", 10, 3.0, 1.3, Color.WHITE, 2.4, Vector3.UP])
 			if mv_t > 2.4:
