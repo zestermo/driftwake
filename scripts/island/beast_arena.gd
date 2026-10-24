@@ -109,6 +109,10 @@ func _dress(rng: RandomNumberGenerator, site: Node3D) -> void:
 		trees.append({"base": at, "top": top, "r": 1.1 * xf.basis.get_scale().x, "perch": perch, "ang": atan2(at.z, at.x)})
 	_brush(rng, g)
 	_floor(mb, bark, rng, g)
+	# (1.20: the theme's own ground for every boss of it - the snow's ice grotto - then the kind's own dressing)
+	var th := IslandThemes.of(isl.theme)
+	if th.arena_dress.is_valid():
+		th.arena_dress.call(self, body, mb, rng, c, y0)
 	match kind:
 		"ape":
 			_dress_ape(mb, body, rng, c, y0)

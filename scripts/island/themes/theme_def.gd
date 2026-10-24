@@ -51,6 +51,9 @@ var bosses: Array = []
 var minis: Array = []
 var roamers: Array = []
 var beasts := {}
+## (1.20) The theme's own boss ground, dressing every boss's arena of the theme (before a kind's own "dress"):
+## arena_dress.call(arena, body, mb, rng, c, y0), arena-local (the floor's middle at 0, its ground y0). Unset: none.
+var arena_dress := Callable()
 ## Its wildlife (FaunaSpawner): kind -> {"zones": where it lives (floor, shore, canopy, swamp, cave), "p": the chance
 ## an island has it, "dens": [lo, hi] groups when it does}, and each kind's Creature script.
 var fauna := {}

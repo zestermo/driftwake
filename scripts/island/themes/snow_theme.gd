@@ -33,6 +33,8 @@ const LAND_FEATURES := preload("res://scripts/island/themes/snow_land.gd")
 const PLACES := preload("res://scripts/island/themes/snow_places.gd")
 
 const STYLE := {
+	# (1.20: no jungle canopy over its boss: an ice grotto, SnowTheme._dress_grotto)
+	"arena": "open",
 	"row_walls": ["brick_pink", "planks_dark", "brick_pink", "stone_brick", "planks"],
 	"row_upper": ["planks_dark", "brick_pink", "planks"],
 	"row_roofs": ["hip", "gable", "gable_front", "hip"],
@@ -161,6 +163,7 @@ func _init() -> void:
 	land = LAND
 	radius = [360.0, 450.0]
 	style = STYLE
+	arena_dress = _dress_grotto
 	props = {
 		"snow_lamp": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.lamp_post(2.6 * size),
 		"snow_waymark": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.waymark(rng.randi()),
@@ -296,3 +299,64 @@ static func _glyph(ci: CanvasItem, p: Vector2, s: float, col: Color) -> void:
 			var at: Vector2 = p + d * 0.55 * e
 			ci.draw_line(at, at + d.rotated(0.8) * 0.3 * e, col, 1.0)
 			ci.draw_line(at, at + d.rotated(-0.8) * 0.3 * e, col, 1.0)
+
+
+## Every snow boss's ground (ThemeDef.arena_dress, 1.20, docs/v1_20_plan.md "Arenas"): an ice grotto - walls of
+## dark rock sheathed in ice ringing the floor, low by the way in and climbing to a cliff at the back, an overhang
+## across the back half hung with icicles, crystals glowing in clusters, frozen pools, a deer frozen in the ice.
+## Arena-local (the floor's middle at 0, its ground y0); the walls are solid, the roof out of reach.
+static func _dress_grotto(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var rock := PSXMat.lit("rock", Color(0.42, 0.46, 0.55))
+	var ice := PSXMat.lit("ice", Color(0.82, 0.92, 1.0), {"affine": 0.4})
+	var crystal := PSXMat.glow(Color(0.45, 0.8, 1.0), 1.8)
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	var entry: Vector2 = arena._ground()["entry"]
+	var ea := entry.angle()
+	# the walls: boulders stacked round the edge, the gap at the way in, rising from it to the back
+	var n := 26
+	for k in range(n):
+		var a := TAU * k / n
+		var off := absf(wrapf(a - ea, -PI, PI))
+		if off < 0.42:
+			continue
+		var back := off / PI
+		var h := lerpf(5.0, 13.0, back) + rng.randf_range(-1.0, 1.0)
+		var d := r + 3.5 + rng.randf_range(-0.6, 1.2)
+		var q := Vector2.from_angle(a) * d
+		var base := Vector3(q.x, gy.call(q) - 0.5, q.y)
+		var w := TAU * d / n * 0.75
+		var b := Basis(Vector3.UP, -a + PI * 0.5)
+		mb.add_blob(rock, Transform3D(b, base + Vector3(0, h * 0.5, 0)), Vector3(w, h * 0.55, 2.4), rng, 0.25, 3, 7, 0.6)
+		# ice sheathing the inner face, in sheets
+		var inner := base - Vector3(cos(a), 0, sin(a)) * 1.6
+		mb.add_blob(ice, Transform3D(b, inner + Vector3(0, h * rng.randf_range(0.3, 0.6), 0)), Vector3(w * 0.7, h * 0.35, 0.5), rng, 0.2, 3, 6, 0.6)
+		KitLandmarks.box_col_xf(body, Vector3(w * 1.6, h, 3.2), Transform3D(b, base + Vector3(0, h * 0.5, 0)))
+		# the overhang across the back half, icicles hanging from its lip
+		if back > 0.55:
+			var lip := base + Vector3(0, h - 0.5, 0) - Vector3(cos(a), 0, sin(a)) * (4.0 + back * 4.0)
+			mb.add_blob(rock, Transform3D(b, (base + lip) * 0.5 + Vector3(0, h - (base.y + lip.y) * 0.5 - 0.3, 0)), Vector3(w * 0.9, 0.9, 3.5 + back * 3.0), rng, 0.25, 3, 6, 0.6)
+			for j in range(3):
+				var t := lip + Vector3(cos(a + PI * 0.5), 0, sin(a + PI * 0.5)) * rng.randf_range(-w * 0.4, w * 0.4)
+				mb.add_cylinder(ice, Transform3D(Basis(Vector3.RIGHT, PI), t), rng.randf_range(0.15, 0.3), 0.0, rng.randf_range(1.0, 2.6), 5, 0.6)
+	# crystal clusters glowing at the walls' feet
+	for k in range(7):
+		var a := ea + PI + rng.randf_range(-2.3, 2.3)
+		var q := Vector2.from_angle(a) * (r + rng.randf_range(-0.5, 1.5))
+		var at := Vector3(q.x, gy.call(q), q.y)
+		for j in range(rng.randi_range(3, 5)):
+			var tilt := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(0.1, 0.6))
+			mb.add_cylinder(crystal, Transform3D(tilt, at + Vector3(rng.randf_range(-0.4, 0.4), 0, rng.randf_range(-0.4, 0.4))), rng.randf_range(0.12, 0.25), 0.0, rng.randf_range(0.8, 2.0), 4, 1.0)
+	# frozen pools on the floor
+	for k in range(3):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(4.0, r - 4.0)
+		mb.add_blob(ice, Transform3D(Basis(), Vector3(q.x, gy.call(q) + 0.02, q.y)), Vector3(rng.randf_range(1.5, 3.0), 0.05, rng.randf_range(1.5, 3.0)), rng, 0.1, 2, 8, 0.6)
+	# a deer caught in the ice by the back wall: antlers and a hoof out of a frozen block
+	var dq := Vector2.from_angle(ea + PI + rng.randf_range(-0.6, 0.6)) * (r - 1.5)
+	var dat := Vector3(dq.x, gy.call(dq), dq.y)
+	mb.add_box(ice, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), dat + Vector3(0, 0.8, 0)), Vector3(2.2, 1.6, 1.4), 0.6)
+	var bone := PSXMat.flat(Color(0.88, 0.84, 0.74))
+	for s in [-1.0, 1.0]:
+		var at := dat + Vector3(s * 0.4, 1.5, 0)
+		mb.add_tube(bone, MeshBuilder.curve_points(at, at + Vector3(s * 0.4, 0.5, 0.1), at + Vector3(s * 0.6, 1.1, -0.1), 4), 0.06, 0.02, 4, 1.0)
