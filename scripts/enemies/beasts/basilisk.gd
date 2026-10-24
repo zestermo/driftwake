@@ -92,9 +92,6 @@ func _speed() -> float:
 	return 5.0 if phase < 3 else 6.2
 
 
-func _wake_move() -> String:
-	return "charge"
-
 
 func _ready() -> void:
 	super._ready()
@@ -109,3 +106,83 @@ func _on_begin(m: String) -> void:
 
 func trophy(t: int) -> ItemData:
 	return Gear.make("accessory", "cape", {"cape": true, "cape_color": spec["coat"]}, "Basilisk Hide", t)
+
+
+# 1.20's moves (docs/v1_20_beasts.md 12), as a table: its one knockdown the burrow run. The gaze holds only a
+# captain facing it (look away); basking heals it until it's struck (knocked off: an opening).
+const GAZE_R := 10.0
+const GAZE_DEG := 50.0
+
+
+func _table() -> Dictionary:
+	var gold := Color(1.0, 0.85, 0.2)
+	return {
+		"bask": {"phase": 2, "min": 6.0, "max": 30.0, "cd": [14.0, 18.0], "tell": 3.5, "shape": "none", "rec": 0.4, "fx": "none",
+			"pose": [{"rear": 0.5, "head": 0.5}, {"rear": 0.5, "head": 0.5}, {"crouch": 0.6}]},
+		"gaze": {"min": 3.0, "max": GAZE_R, "cd": [7.0, 9.0], "tell": 0.8, "shape": "none", "rec": 1.0, "fx": "none", "say": ["hiss", 0.7],
+			"pose": [{"rear": 0.3, "head": 0.25, "jaw": 0.4}, {"head": 0.2, "jaw": 1.0}, {}]},
+		"tail": {"max": 5.0, "cd": [3.0, 4.0], "tell": 0.5, "shape": "behind", "r": 5.0, "deg": 150.0, "dmg": 18.0, "kb": 9.0, "rec": 0.8,
+			"pose": [{"tail": 1.0, "crouch": 0.3}, {"tail": 0.0}, {}]},
+		"bite": {"max": 4.0, "cd": [1.6, 2.4], "tell": 0.4, "shape": "cone", "r": 3.6, "deg": 50.0, "dmg": 20.0, "kb": 7.0, "parry": true, "rec": 0.6,
+			"pose": [{"head": 0.3, "jaw": 0.3}, {"head": -0.3, "jaw": 1.0}, {"head": -0.2}]},
+		"burrow": {"min": 6.0, "max": 18.0, "cd": [7.0, 9.0], "tell": 0.9, "shape": "charge", "len": 16.0, "w": 1.6, "speed": 14.0, "dmg": 28.0, "knock": true,
+			"rec": 1.4, "col": gold, "pose": [{"crouch": 0.9, "head": -0.4}, {"crouch": 0.6, "stretch": 0.6}, {"crouch": 0.3}]},
+	}
+
+
+func _wake_move() -> String:
+	return "bite"
+
+
+var _bask_hp := 0.0
+
+
+func _table_tick(m: String, _e: Dictionary, _p: Node3D) -> Vector3:
+	if m != "bask":
+		return Vector3.INF
+	if mv_t < 0.05:
+		_bask_hp = health.current_health
+	# struck while basking: knocked off it, an opening
+	if health.current_health < _bask_hp - 1.0:
+		say("hiss", global_position, 2.0, 1.3)
+		end_move(1.6)
+		return Vector3.ZERO
+	health.current_health = minf(health.max_health, health.current_health + health.max_health * 0.03 / float(Engine.physics_ticks_per_second))
+	_bask_hp = health.current_health
+	return Vector3.INF
+
+
+func _on_table_hit(m: String, _e: Dictionary, _at: Vector3) -> void:
+	if m == "gaze":
+		var args := [global_position + Vector3.UP * 1.0, _fwd(), GAZE_R, GAZE_DEG]
+		Net.fx("sparkle", [global_position + _fwd() * 1.5 + Vector3.UP * 1.2, 20, Color(1.0, 0.9, 0.3)])
+		_gaze_local(args)
+		Net.event(self, "gaze", args)
+
+
+## Each screen judges its own captain: in the cone and facing the basilisk, held (a long stagger).
+func _gaze_local(args: Array) -> void:
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	if me == null or not me.has_node("Hurtbox"):
+		return
+	var at: Vector3 = args[0]
+	if not BeastShapes.inside("cone", [at, args[1], float(args[2]), float(args[3])], me.global_position, 1.1):
+		return
+	var look: Vector3 = -(me.get("player_model") as Node3D).global_basis.z if me.get("player_model") else Vector3.ZERO
+	var to := _flat(at - me.global_position).normalized()
+	if _flat(look).normalized().dot(to) < 0.3:
+		return
+	var hd := HitData.new()
+	hd.damage = _dmg(4.0)
+	hd.unblockable = true
+	hd.knockback_force = 0.0
+	hd.stagger_duration = 2.0
+	hd.hitstop_duration = 0.05
+	(me.get_node("Hurtbox") as Hurtbox).take_hit(hd, self)
+
+
+func _event(what: String, args: Array) -> void:
+	if what == "gaze":
+		_gaze_local(args)
+	else:
+		super._event(what, args)

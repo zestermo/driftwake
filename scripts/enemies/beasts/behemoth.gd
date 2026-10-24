@@ -106,9 +106,6 @@ func _stomp_dmg() -> float:
 	return 24.0
 
 
-func _wake_move() -> String:
-	return "stomp"
-
 
 func _on_begin(m: String) -> void:
 	super._on_begin(m)
@@ -149,3 +146,30 @@ func _pose_for(delta: float) -> void:
 	super._pose_for(delta)
 	if state == S.SLEEP:
 		pose = {"head": -0.6 if _graze_t > 0.0 else -0.15}
+
+
+# 1.20's moves (docs/v1_20_beasts.md 5), as a table (alpha_boar.gd): its one knockdown the charge; after the wallow
+# it lies on its back a moment, its belly soft (hits there double).
+func _table() -> Dictionary:
+	return {
+		"wallow": {"phase": 2, "max": 4.5, "cd": [9.0, 12.0], "tell": 0.7, "shape": "ring", "r": 4.0, "dmg": 22.0, "kb": 10.0, "rec": 1.4, "fx": "quake",
+			"pose": [{"crouch": 0.8, "head": -0.3}, {"crouch": 1.0, "rear": -0.25}, {"crouch": 1.0, "head": -0.5}]},
+		"thorns": {"max": 5.0, "cd": [6.0, 8.0], "tell": 0.6, "shape": "ring", "r": 5.0, "dmg": 18.0, "kb": 9.0, "rec": 1.0, "fx": "sparkle",
+			"col": Color(0.9, 0.85, 0.6), "say": ["bellow", 1.1], "pose": [{"crouch": 0.35, "head": -0.2}, {"rear": 0.2, "head": 0.2}, {"crouch": 0.2}]},
+		"club": {"max": 5.0, "cd": [4.0, 6.0], "tell": 0.5, "shape": "behind", "r": 5.2, "deg": 120.0, "dmg": 18.0, "kb": 10.0, "rec": 0.8,
+			"pose": [{"tail": 1.0, "crouch": 0.2}, {"tail": 0.0, "rear": 0.1}, {}]},
+		"gore": {"max": 4.6, "cd": [1.8, 2.6], "tell": 0.5, "shape": "cone", "r": 4.4, "deg": 60.0, "dmg": 20.0, "kb": 8.0, "parry": true, "rec": 0.8,
+			"pose": [{"head": -0.5, "crouch": 0.2}, {"head": 0.55}, {"head": -0.2}]},
+		"charge": {"min": 6.0, "max": 20.0, "cd": [6.0, 8.0], "tell": 0.9, "shape": "charge", "len": 18.0, "w": 1.8, "speed": 14.0, "dmg": 30.0, "knock": true,
+			"rec": 1.6, "say": ["bellow", 0.9], "pose": [{"crouch": 0.3, "head": -0.35}, {"head": -0.3, "stretch": 0.5}, {"crouch": 0.4, "head": -0.4}]},
+	}
+
+
+func _wake_move() -> String:
+	return "thorns"
+
+
+func _on_hit(hit: HitData, attacker: Node) -> void:
+	if move == "" and mv_t < 0.0 and _last_move == "wallow" and not hit.dot:
+		hit.damage *= 2.0
+	super._on_hit(hit, attacker)

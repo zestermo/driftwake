@@ -84,9 +84,6 @@ func _speed() -> float:
 	return 6.2 if phase < 3 else 7.6
 
 
-func _wake_move() -> String:
-	return "stomp"
-
 
 func _ready() -> void:
 	super._ready()
@@ -97,3 +94,24 @@ func _ready() -> void:
 
 func trophy(t: int) -> ItemData:
 	return Gear.make("accessory", "cape", {"cape": true, "cape_color": spec["coat"]}, "Stag King's Mantle", t)
+
+
+# 1.20's moves (docs/v1_20_beasts.md 15), as a table: its one knockdown the antler charge.
+func _table() -> Dictionary:
+	var green := Color(0.5, 0.9, 0.4)
+	return {
+		"call": {"phase": 3, "max": 16.0, "cd": [12.0, 15.0], "tell": 1.0, "shape": "lanes", "n": 3, "len": 22.0, "w": 1.4, "dmg": 18.0, "kb": 10.0, "rec": 1.2,
+			"fx": "dust", "say": ["bellow", 1.0], "pose": [{"rear": 0.8, "head": 0.6}, {"head": 0.3}, {}]},
+		"bloom": {"phase": 2, "max": 6.0, "cd": [8.0, 10.0], "tell": 0.8, "shape": "ring", "r": 5.5, "dmg": 18.0, "kb": 8.0, "rec": 1.0, "fx": "leaves",
+			"col": green, "pose": [{"head": -0.6, "crouch": 0.4}, {"head": 0.3}, {}]},
+		"sweep": {"max": 4.8, "cd": [2.0, 3.0], "tell": 0.5, "shape": "cone", "r": 4.6, "deg": 140.0, "dmg": 18.0, "kb": 8.0, "parry": true, "rec": 0.8,
+			"pose": [{"head": -0.5, "crouch": 0.2}, {"head": 0.4}, {}]},
+		"kick": {"max": 4.0, "cd": [3.0, 4.0], "tell": 0.5, "shape": "ring", "at": 2.0, "r": 2.6, "dmg": 16.0, "kb": 7.0, "rec": 0.8,
+			"pose": [{"rear": 1.0, "head": 0.4}, {"rear": 0.0}, {}]},
+		"charge": {"min": 6.0, "max": 20.0, "cd": [6.0, 8.0], "tell": 0.9, "shape": "charge", "len": 18.0, "w": 1.6, "speed": 15.0, "dmg": 28.0, "knock": true,
+			"rec": 1.6, "say": ["bellow", 0.9], "pose": [{"crouch": 0.3, "head": -0.45}, {"head": -0.4, "stretch": 0.5}, {"crouch": 0.4, "head": -0.5}]},
+	}
+
+
+func _wake_move() -> String:
+	return "kick"

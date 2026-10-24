@@ -525,13 +525,14 @@ func reset_fight() -> void:
 ## dir, reach, half angle (deg)] / "lane" [from, to, half width]. Jumped over when
 ## the captain's feet are `jump` m over the shape's ground (INF: no jumping it).
 ## `parry`: a parry turns it (and calls parried()).
-func strike(shape: String, args: Array, base_dmg: float, knock: bool, parry: bool = false, jump: float = 1.1, kb: float = 9.0) -> void:
+## `stun`: how long a blow that lands staggers you (1.20: a gaze, a blinding spit hold you longer).
+func strike(shape: String, args: Array, base_dmg: float, knock: bool, parry: bool = false, jump: float = 1.1, kb: float = 9.0, stun: float = 0.4) -> void:
 	var d := _dmg(base_dmg)
-	_strike_local(shape, args, d, knock, parry, jump, kb)
-	Net.event(self, "strike", [shape, args, d, knock, parry, jump, kb])
+	_strike_local(shape, args, d, knock, parry, jump, kb, stun)
+	Net.event(self, "strike", [shape, args, d, knock, parry, jump, kb, stun])
 
 
-func _strike_local(shape: String, args: Array, dmg: float, knock: bool, parry: bool, jump: float, kb: float) -> void:
+func _strike_local(shape: String, args: Array, dmg: float, knock: bool, parry: bool, jump: float, kb: float, stun: float = 0.4) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me == null or not me.has_node("Hurtbox"):
 		return
@@ -545,7 +546,7 @@ func _strike_local(shape: String, args: Array, dmg: float, knock: bool, parry: b
 	hd.knockdown = knock
 	hd.unblockable = not parry
 	hd.knockback_force = kb
-	hd.stagger_duration = 0.4
+	hd.stagger_duration = stun
 	hd.hitstop_duration = 0.08
 	hd.camera_shake_intensity = 0.28
 	hb.take_hit(hd, self)
@@ -763,7 +764,7 @@ func net_event(what: String, args: Array) -> void:
 		"flash":
 			_flash_hit()
 		"strike":
-			_strike_local(str(args[0]), args[1], float(args[2]), bool(args[3]), bool(args[4]), float(args[5]), float(args[6]))
+			_strike_local(str(args[0]), args[1], float(args[2]), bool(args[3]), bool(args[4]), float(args[5]), float(args[6]), float(args[7]) if args.size() > 7 else 0.4)
 		"lane":
 			BeastFX.lane(args[0], args[1], float(args[2]), float(args[3]), args[4])
 		"say":

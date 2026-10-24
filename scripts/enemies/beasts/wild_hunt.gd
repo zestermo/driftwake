@@ -81,3 +81,54 @@ func _physics_process(delta: float) -> void:
 	if _gone and not net_puppet:
 		return
 	super._physics_process(delta)
+
+
+# 1.20's moves (docs/v1_20_beasts.md 17), as a table: its one knockdown the spectral charge. Vanish: gone in a
+# flicker, back behind you, and a lash. (Its hounds wait for a co-op spawn: its horn call sends spectral riders down
+# three lanes.) A spirit: immune to firearms (docs/v1_20_plan.md).
+const GHOST := Color(0.55, 0.95, 1.0)
+
+
+func _table() -> Dictionary:
+	return {
+		"horn": {"phase": 2, "max": 16.0, "cd": [11.0, 14.0], "tell": 1.0, "shape": "lanes", "n": 3, "len": 22.0, "w": 1.3, "dmg": 16.0, "kb": 9.0, "rec": 1.0,
+			"col": GHOST, "fx": "sparkle", "say": ["bellow", 1.3], "pose": [{"rear": 0.6, "head": 0.6}, {"head": 0.2}, {}]},
+		"lash": {"max": 5.0, "cd": [2.0, 3.0], "tell": 0.5, "shape": "cone", "r": 5.0, "deg": 100.0, "dmg": 18.0, "kb": 8.0, "parry": true, "rec": 0.8,
+			"fx": "sparkle", "col": GHOST, "pose": [{"head": -0.5}, {"head": 0.45}, {}]},
+		"vanish": {"min": 3.0, "max": 12.0, "cd": [7.0, 9.0], "tell": 0.9, "shape": "cone", "r": 4.5, "deg": 90.0, "dmg": 16.0, "kb": 8.0, "rec": 0.8,
+			"fx": "sparkle", "col": GHOST, "pose": [{"crouch": 0.3}, {"head": 0.4}, {}]},
+		"charge": {"min": 6.0, "max": 22.0, "cd": [6.0, 8.0], "tell": 0.8, "shape": "charge", "len": 22.0, "w": 1.8, "speed": 16.0, "dmg": 28.0, "knock": true,
+			"rec": 1.2, "col": GHOST, "say": ["bellow", 1.1], "pose": [{"crouch": 0.3, "head": -0.4}, {"head": -0.3, "stretch": 0.5}, {"crouch": 0.3}]},
+	}
+
+
+func _wake_move() -> String:
+	return "lash"
+
+
+var _blinked := false
+
+
+## Vanish: a flicker where it stood, back behind you, facing you (the lash comes from there).
+func _table_tick(m: String, _e: Dictionary, p: Node3D) -> Vector3:
+	if m != "vanish":
+		return Vector3.INF
+	if mv_t < 0.1:
+		_blinked = false
+	if p and not _blinked and mv_t > 0.35:
+		_blinked = true
+		Net.fx("sparkle", [global_position + Vector3.UP * 1.5, 30, GHOST])
+		var away := _flat(p.global_position - global_position).normalized()
+		global_position = ground_at(p.global_position + away * 3.5)
+		reset_physics_interpolation()
+		_face(-away)
+		Net.fx("sparkle", [global_position + Vector3.UP * 1.5, 30, GHOST])
+	return Vector3.INF
+
+
+## A spirit: shot and shell pass through it.
+func _on_hit(hit: HitData, attacker: Node) -> void:
+	if hit.ranged or hit.impact == "shot":
+		Net.fx("sparkle", [global_position + Vector3.UP * 2.0, 6, GHOST])
+		return
+	super._on_hit(hit, attacker)

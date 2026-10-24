@@ -45,3 +45,43 @@ func _coat_at(p: Vector3) -> Color:
 		var band := smoothstep(0.55, 0.75, sin(p.y * 9.0) * 0.5 + 0.5)
 		base = base.lerp(spec["mark"], band * 0.8)
 	return base
+
+
+# 1.20's moves (docs/v1_20_beasts.md 14), as a table: a kicker, its one knockdown the kick behind.
+func _table() -> Dictionary:
+	return {
+		"kick": {"max": 4.5, "cd": [3.0, 4.0], "tell": 0.6, "shape": "behind", "r": 4.5, "deg": 90.0, "dmg": 24.0, "knock": true, "rec": 1.2,
+			"pose": [{"crouch": 0.3, "head": -0.3}, {"rear": -0.4, "head": 0.2}, {"crouch": 0.2}]},
+		"stamp": {"max": 4.5, "cd": [2.0, 3.0], "tell": 0.6, "shape": "ring", "at": 2.0, "r": 2.8, "dmg": 18.0, "kb": 7.0, "parry": true, "rec": 0.8,
+			"pose": [{"rear": 1.0, "head": 0.4}, {"rear": 0.0, "head": -0.2}, {}]},
+		"spit": {"min": 5.0, "max": 14.0, "cd": [6.0, 8.0], "tell": 0.5, "shape": "lane", "len": 14.0, "w": 0.6, "dmg": 8.0, "kb": 2.0, "stun": 1.0, "rec": 0.6,
+			"fx": "sparkle", "col": Color(0.85, 0.8, 0.5), "pose": [{"head": 0.5, "jaw": 0.4}, {"head": -0.2, "jaw": 1.0}, {}]},
+		"sprint": {"min": 0.0, "max": 24.0, "cd": [7.0, 9.0], "tell": 1.7, "shape": "charge", "len": 22.0, "w": 1.4, "speed": 18.0, "dmg": 18.0, "kb": 11.0,
+			"rec": 1.2, "pose": [{"crouch": 0.3, "head": -0.2}, {"head": -0.2, "stretch": 0.6}, {"crouch": 0.3}]},
+	}
+
+
+func _wake_move() -> String:
+	return "stamp"
+
+
+## The sprint: it turns away and runs off (1 s), then wheels round and comes back at you down a fresh lane.
+func _table_tick(m: String, _e: Dictionary, p: Node3D) -> Vector3:
+	if m != "sprint" or p == null:
+		return Vector3.INF
+	if mv_t < 1.0:
+		var away := _flat(global_position - p.global_position).normalized()
+		if away.length() < 0.1:
+			away = -_fwd()
+		_face(away)
+		return away * 14.0
+	if _n == 0:
+		_n = -1
+		_from = global_position
+		var d := _flat(p.global_position - global_position).normalized()
+		_face(d)
+		_to = ground_at(global_position + d * 22.0)
+		warn_lane(_from, _to, 2.8, 0.7)
+	if _n == -1 and mv_t >= 1.7:
+		_n = 0
+	return Vector3.INF
