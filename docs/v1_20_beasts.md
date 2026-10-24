@@ -223,3 +223,21 @@ Spirit: immune to firearms (docs/v1_20_plan.md).
    5 behemoth), each shown on the beast sheet before its moves.
 3. Each beast's moves (this list), one theme at a time, landed as unstable 1.19.x builds.
 4. Then the arenas (canopy, ice cave, ruin, grove).
+
+## Built (2026-10-23), shipped as unstable 1.19.1
+- **Bodies:** the quadruped rig's new keys (front_h, hump, leg_k/front_k, foot, sprawl, tail_kind, gait, bend), jointed
+  three-segment legs bent at rest, every quadruped pitched to the slope under it; GiantBeast, a two-legged giant's rig.
+  Rebuilt: 5 Thornback, 7 Bear King, 8 Ice Golem (GiantBeast), 9 Rimeback (a mammoth), 12 Basilisk, 13 Sand Lion,
+  14 Dune Strider, 16 Elder Treant (GiantBeast). `tools/dev/beastsheet.gd` shows them (BS_SIDE=1 side on).
+- **Moves:** every kind by its list above, one knockdown each, pick() never repeats a move, hits in an opening count
+  double toward a stagger (JungleBeast). The boar-brained kinds run a move table (alpha_boar.gd). The Sand King dives
+  once per cycle; the Strangler's train crosses the whole floor (t/island/serpent_train).
+- **Tests:** t/island/beast_moves (every reworked JungleBeast kind: a blow, three moves or more, never twice running),
+  serpent_train; the Silverback (not a JungleBeast) by bosstest.
+
+### Not as listed (for review)
+- **Summons wait for a co-op spawn of their own:** the treant's saplings are rings of roots, the lion's pride a roar
+  that speeds it, the rimeback's herd call a stampede down two lanes, the Wild Hunt's hounds spectral riders down
+  three lanes, the mantis's brood young dropping on marked spots, the Sand King's twin a second eruption.
+- The Silverback's grab is a long stagger and a throw (no mash-to-break yet); the snow Strangler's spit poisons like
+  the others (no freeze yet); the White Shade's ledge leap is a long high leap (no ledges sought).

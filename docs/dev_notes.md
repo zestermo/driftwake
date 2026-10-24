@@ -6059,3 +6059,11 @@ Folded into v1.19 (the tag moved; the version stays 1.19) the same day, after Za
   else the first waiting, the crew's captain last. The lead's ordering compared `weapon_class()` (fist/sword/gun/claw:
   every blade is "sword"), so it never matched anything; both use `Player.style()` now (polearm, katana, dagger...).
   Test: t/combat/rival_pairing.
+
+## v1.20 piece 1: the beasts and bosses reworked (2026-10-23, unstable 1.19.1)
+docs/v1_20_beasts.md (the move lists, Zach's OK) and its "Built" section. Where: scripts/enemies/beasts/ - quad_beast.gd
+(the rig's new keys, jointed legs, _slope), giant_beast.gd (new), jungle_beast.gd (pick(), _last_move, the opening
+double-poise, strike()'s stun), alpha_boar.gd (the move-table runner: _table/_tbl/_run_table/_blow, hooks _table_tick and
+_on_table_hit), each kind's file. Gotchas: a table must not read `spec` (it's made before _build); kinds that hang things
+on feet use foot_part()/foot_y(); a two-legged kind's `_last_move` drives its recovery pose. Tests: t/island/beast_moves,
+serpent_train, beast_prebuild, forest_beasts, desert_beasts; tools/dev/beastsheet.gd for looks.
