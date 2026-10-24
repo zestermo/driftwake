@@ -631,6 +631,18 @@
 		},
 		{
 			"v": "1.21",
+			"name": "Cities",
+			"status": "building",
+			"headline": "The First Sea's first real cities: the royal capital and the canal city.",
+			"img": "capital",
+			"alt": "The royal capital's harbour and rooftops climbing to the palace (an early look, v1.18.1)",
+			"plan": [
+				["The royal capital", "A grand port with a palace on the heights, big markets and streets full of people."],
+				["The canal city", "A city on the water, crossed by canals and bridges, with a shipyard."]
+			]
+		},
+		{
+			"v": "1.22",
 			"name": "Combat and Gear",
 			"status": "planned",
 			"headline": "Every weapon polished, new weapon kinds, and armour and clothes with stats.",
@@ -643,7 +655,7 @@
 			]
 		},
 		{
-			"v": "1.22",
+			"v": "1.23",
 			"name": "Strongholds and Driftfruits",
 			"status": "planned",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
