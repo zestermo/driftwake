@@ -3,7 +3,7 @@ extends SceneTree
 ## claymore, sawtooth greatblade, greatcleaver, Sea King's Fang) with its model and icon; the Fang is the rarest roll;
 ## no island's pool lists them, but a chest that keeps a blade sometimes turns it into one (a boss's hoard about a
 ## third of the time, a plain chest far less often); Haldor's forge, the treasure merchants and the Shift+F10 rack
-## carry them; a blue one rolls a trait greatswords can have.
+## carry them; a purple one rolls a trait (1.22: loot traits from purple up) greatswords can have.
 const TK := preload("res://tools/dev/test_kit.gd")
 const DESIGNS := ["greatsword", "black_greatblade", "claymore", "sawtooth_greatblade", "greatcleaver", "sea_kings_fang"]
 var stage
@@ -71,6 +71,6 @@ func _process(_d: float) -> bool:
 	var forge: Array = load("res://scripts/game/shops.gd").SHOPS["haldor"]["pool"].map(func(e): return str(e[0]))
 	check("Haldor's forge can stock them %s" % str(forge.filter(func(x): return x.get_slice("@", 0) in DESIGNS)), "greatsword" in forge and "claymore@1" in forge)
 	check("the Shift+F10 rack has them", load("res://scenes/player/player.gd").DEBUG_RACK.has("greatsword"))
-	var blue = load("res://scripts/items/loot.gd").weapon("greatsword", 2, rng)
-	check("a blue greatsword rolls a greatsword trait (%s)" % blue.id, blue.weapon_model == "greatsword" and blue.weapon_trait in WeaponTraits.pool("greatsword"))
+	var blue = load("res://scripts/items/loot.gd").weapon("greatsword", 3, rng)
+	check("a purple greatsword rolls a greatsword trait (%s)" % blue.id, blue.weapon_model == "greatsword" and blue.weapon_trait in WeaponTraits.pool("greatsword"))
 	return TK.done(fails)

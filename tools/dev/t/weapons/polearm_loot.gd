@@ -1,7 +1,7 @@
 extends SceneTree
 ## Polearms are found and sold: every design is an item (spear, trident, naginata, bisento, halberd, pitchfork) with
 ## its model and icon; the loot pools, Haldor's forge and the treasure merchants' kinds carry them; a rolled one is
-## mostly common designs with the bisento rarer; a blue one rolls a trait polearms can have.
+## mostly common designs with the bisento rarer; a purple one rolls a trait (1.22: loot traits from purple up) polearms can have.
 const TK := preload("res://tools/dev/test_kit.gd")
 const DESIGNS := ["spear", "trident", "naginata", "bisento", "halberd", "pitchfork"]
 var stage
@@ -46,6 +46,6 @@ func _process(_d: float) -> bool:
 		and "polearm" in load("res://scripts/game/shops.gd").RARE_KINDS)
 	var forge: Array = load("res://scripts/game/shops.gd").SHOPS["haldor"]["pool"].map(func(e): return str(e[0]))
 	check("Haldor's forge can stock them %s" % str(forge.filter(func(x): return x.get_slice("@", 0) in DESIGNS)), "spear" in forge and "trident" in forge)
-	var blue = load("res://scripts/items/loot.gd").weapon("polearm", 2, rng)
-	check("a blue polearm rolls a polearm trait (%s)" % blue.id, blue.weapon_model == "polearm" and blue.weapon_trait in WeaponTraits.pool("polearm"))
+	var blue = load("res://scripts/items/loot.gd").weapon("polearm", 3, rng)
+	check("a purple polearm rolls a polearm trait (%s)" % blue.id, blue.weapon_model == "polearm" and blue.weapon_trait in WeaponTraits.pool("polearm"))
 	return TK.done(fails)

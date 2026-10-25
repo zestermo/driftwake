@@ -544,3 +544,4 @@ scripts/ui/crew_screen.gd               t/coop/crew_roster
 scenes/ui/player_hud.gd                 t/ui/party_where
 scripts/map/map_hold.gd                 t/map/map_pan
 scripts/ui/marker_layer.gd              t/map/map_marks
+scripts/items/loot.gd                   t/weapons faunatest t/economy

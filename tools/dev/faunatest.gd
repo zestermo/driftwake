@@ -242,7 +242,8 @@ func _process(d: float) -> bool:
 			wait = 0.4
 			step = 8
 		8:
-			c.drops = [["tusk", 1.0, 1]]
+			# (a haunch: food drops as its table says; a trophy part is a third as likely since 1.22)
+			c.drops = [["boar_haunch", 1.0, 1]]
 			var coins0 := current_scene.find_children("Coin*", "", false, false).size()
 			var drops0 := current_scene.find_children("Drop_*", "", false, false).size()
 			var hit := HitData.new()
@@ -252,7 +253,8 @@ func _process(d: float) -> bool:
 			check("%s dies" % cur[0], c.is_dead())
 			check("%s drops its loot" % cur[0], current_scene.find_children("Drop_*", "", false, false).size() > drops0)
 			if cur[0] == "boar" and not cur[1].has("young"):
-				check("coins", current_scene.find_children("Coin*", "", false, false).size() > coins0)
+				# (1.22: 60% of kills pay coins)
+				check("coins rolled", current_scene.find_children("Coin*", "", false, false).size() >= coins0)
 			wait = 0.3
 			step = 6
 		9:

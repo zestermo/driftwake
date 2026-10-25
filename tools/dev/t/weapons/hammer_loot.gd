@@ -1,7 +1,7 @@
 extends SceneTree
 ## Hammers are found and sold: every design is an item (warhammer, kanabo, shipwright's mallet, iron maul, anchor
 ## hammer) with its model and icon; the loot pools, Haldor's forge and the treasure merchants' kinds carry them; a
-## rolled one is mostly common designs with the anchor hammer rarer; a blue one rolls a trait hammers can have.
+## rolled one is mostly common designs with the anchor hammer rarer; a purple one rolls a trait (1.22: loot traits from purple up) hammers can have.
 const TK := preload("res://tools/dev/test_kit.gd")
 const DESIGNS := ["warhammer", "kanabo", "shipwrights_mallet", "maul", "anchor_hammer"]
 var stage
@@ -45,6 +45,6 @@ func _process(_d: float) -> bool:
 		and "hammer" in load("res://scripts/game/shops.gd").RARE_KINDS)
 	var forge: Array = load("res://scripts/game/shops.gd").SHOPS["haldor"]["pool"].map(func(e): return str(e[0]))
 	check("Haldor's forge can stock them %s" % str(forge.filter(func(x): return x.get_slice("@", 0) in DESIGNS)), "warhammer" in forge and "kanabo" in forge)
-	var blue = load("res://scripts/items/loot.gd").weapon("hammer", 2, rng)
-	check("a blue hammer rolls a hammer trait (%s)" % blue.id, blue.weapon_model == "hammer" and blue.weapon_trait in WeaponTraits.pool("hammer"))
+	var blue = load("res://scripts/items/loot.gd").weapon("hammer", 3, rng)
+	check("a purple hammer rolls a hammer trait (%s)" % blue.id, blue.weapon_model == "hammer" and blue.weapon_trait in WeaponTraits.pool("hammer"))
 	return TK.done(fails)
