@@ -6361,3 +6361,15 @@ fidelity report:
 - Leftover worktrees cleaned (21 landed, clean ones removed with unwork.ps1; kept: three with uncommitted changes,
   dw_main / dw_ref_* and the app sessions' own).
 - Checked: t/capital, t/canal (all), renders at eye height by day and dusk (canalshot, capitalshot).
+
+## 2026-10-25: v1.21 released (stable), and the perf pass's findings
+
+- Released stable v1.21 (Cities) after the unstable 1.20.1-1.20.5. prepush -Release: tests green, perf gate PASS at
+  both lights (ALL 12.33 ms at 21:00, -4% on the 1.20 baseline; the capital's stops +1..6%, the detail pass).
+- The planned Brinehollow perf pass came out a trim only (far birds past 300 m turn every 4th frame). The bench's
+  script table (plaza, 13:00): proc_scr ~5.5 ms of a ~15 ms frame, GPU ~3.6 ms: CPU-bound. The steady costs are
+  spread: humanoid rigs (NPCs 0.47, the player 0.26, the folk 0.20, the crowd 0.12 ms), sky_birds 0.28, sea_spray
+  0.15, fauna_spawner 0.14, actor_sleep 0.13, ambience 0.13, weather 0.10. No single fix wins back 22%: the real win is
+  moving rig animation and the flocks to the GPU (vertex-animated crowds and birds), its own task (gpu-first).
+- Co-op test hardening on the way: nettest board holds its boarders on deck from boarding (under load the late guest
+  found them over the side); nettest rival's blow is unblockable with up to three tries (an AI captain guards).
