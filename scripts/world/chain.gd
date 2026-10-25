@@ -37,6 +37,8 @@ const CITY_WORDS := ["Port", "Harbour", "Haven"]
 ## reaches it after exactly two islands (layers 1-2 are one after another or a fork that rejoins there). Its
 ## name is rolled from the chain seed apart from the chain's own stream, so the rest of the chain is unchanged.
 const CAPITAL_NAMES := ["Port Solenne", "Highcrown", "Meridian"]
+## The second city is the canal city (docs/v1_21_plan.md: CanalIsland, the same in every world), its name rolled too.
+const CANAL_NAMES := ["Saltmere", "Lantern Reach", "Brackwater"]
 
 var seed_value: int
 ## Index = node id: {id, sea, layer, branch, theme, role, level, seed, pos, name, next}
@@ -112,11 +114,14 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 			if layer == CITY_LAYERS[0]:
 				n["capital"] = true
 				n["name"] = capital_name(seed_value)
+			elif layer == CITY_LAYERS[1]:
+				n["canal"] = true
+				n["name"] = canal_name(seed_value)
 			nodes.append(n)
 			ids.append(n["id"])
 		at = _make_room(ids, prev, at, dir, side)
-		# (the capital's harbour faces the way the crew comes in: the islands before it)
-		if layer == CITY_LAYERS[0]:
+		# (the cities' harbours face the way the crew comes in: the islands before them)
+		if layer in CITY_LAYERS:
 			var from := Vector2.ZERO
 			for pid in prev:
 				from += nodes[pid]["pos"] / prev.size()
@@ -256,6 +261,10 @@ static func capital_name(chain_seed: int) -> String:
 	return CAPITAL_NAMES[posmod(hash([chain_seed, "capital"]), CAPITAL_NAMES.size())]
 
 
+static func canal_name(chain_seed: int) -> String:
+	return CANAL_NAMES[posmod(hash([chain_seed, "canal"]), CANAL_NAMES.size())]
+
+
 ## The royal capital's node id.
 func capital_id() -> int:
 	for n in nodes:
@@ -269,6 +278,8 @@ func capital_id() -> int:
 static func describe(n: Dictionary) -> String:
 	if n.get("capital", false):
 		return "The royal capital  Lv %d" % int(n["level"])
+	if n.get("canal", false):
+		return "The canal city  Lv %d" % int(n["level"])
 	var kind: String = IslandThemes.of(n["theme"]).display
 	match str(n["role"]):
 		"city":

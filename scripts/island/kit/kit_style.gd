@@ -129,6 +129,8 @@ static func of(style_name: String) -> Dictionary:
 	var over: Dictionary = BRINEHOLLOW
 	if style_name == "capital":
 		over = CapitalStyle.STYLE
+	elif style_name == "canal":
+		over = CanalStyle.STYLE
 	elif style_name != "brinehollow":
 		over = IslandThemes.of(style_name).style
 	var st: Dictionary = BRINEHOLLOW.merged(over, true)

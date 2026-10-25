@@ -149,6 +149,8 @@ func _start_chain_island(n: Dictionary) -> void:
 	var isl: GenIsland
 	if n.get("capital", false):
 		isl = CapitalIsland.new()
+	elif n.get("canal", false):
+		isl = CanalIsland.new()
 	else:
 		# (the theme's meshes are made here: prepare only reads them)
 		IslandTheme.meshes(str(n["theme"]))

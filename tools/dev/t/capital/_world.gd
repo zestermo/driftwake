@@ -1,5 +1,5 @@
 extends Node
-## t/capital's stand-in for WorldGenerator ("world_gen"): a real chain from a seed, and the royal capital built on
+## t/capital's (and t/canal's) stand-in for WorldGenerator ("world_gen"): a real chain from a seed, and the royal capital (or the canal city) built on
 ## the stage, far off, when a test asks (build_capital), registered as a standing chain island.
 
 var chain_islands := {}
@@ -44,3 +44,18 @@ static func take_over(stage: Node, chain_seed: int) -> Node:
 	w.c = load("res://scripts/world/chain.gd").make(chain_seed, Vector2(150, 150), Vector2(0, -1))
 	stage.add_child(w)
 	return w
+
+
+## The canal city (1.21), built the same way (t/canal uses this world too).
+func build_canal(at: Vector3) -> Node3D:
+	var n: Dictionary = {}
+	for x in c.nodes:
+		if x.get("canal", false):
+			n = x
+	var isl = load("res://scripts/island/canal_island.gd").new()
+	isl.name = "Isle%d" % int(n["id"])
+	isl.position = at
+	get_parent().add_child(isl)
+	isl.build(n)
+	chain_islands[int(n["id"])] = isl
+	return isl
