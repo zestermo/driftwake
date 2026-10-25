@@ -140,44 +140,8 @@ static func _front(mb: MeshBuilder, cols: Array, l: Dictionary, t: Transform3D, 
 			mb.add_blob(PSXMat.flat(Color(0.32, 0.52, 0.28)), dt * Transform3D(Basis(), Vector3(1.0, 0.65, 0.4)), Vector3(0.32, 0.3, 0.32), rng, 0.35, 2, 5)
 		else:
 			mb.add_box(PSXMat.lit("planks"), dt * Transform3D(Basis(), Vector3(-1.3, 0.25, 0.3)), Vector3(1.2, 0.08, 0.36), 1.0, Color(0.8, 0.7, 0.6))
-	_warmth(mb, l, t, w, h, hd, door_x, y0)
+	D.warmth(mb, int(l["seed"]), t, w, h, hd, door_x, y0)
 	return {"at": t * Vector3(door_x, P.QUAY_Y, hd + 0.9), "face": _fd(t), "kind": kind}
-
-
-## (1.21's detail pass, its own rng stream so the rest of the front is as it was) a lantern on its bracket by some
-## doors (glowing: lit windows and these warm the lanes at dusk), ivy climbing some fronts from a corner, a pot of
-## geraniums on some doorsteps.
-static func _warmth(mb: MeshBuilder, l: Dictionary, t: Transform3D, w: float, h: float, hd: float, door_x: float, y0: float) -> void:
-	var rng := _rng(int(l["seed"]) + 31)
-	var hw := w * 0.5
-	if rng.randf() < 0.4:
-		var lx := door_x + (1.0 if door_x < 0.0 else -1.0)
-		var lt := t * Transform3D(Basis(), Vector3(lx, y0 + 2.7, hd))
-		var iron := M.mat("iron")
-		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, 0.25, 0.18)), Vector3(0.05, 0.05, 0.36), 1.0, Color.WHITE, false)
-		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, 0.12, 0.34)), Vector3(0.24, 0.05, 0.24), 1.0, Color.WHITE, false)
-		mb.add_box(PSXMat.glow(Color(1.0, 0.78, 0.4), 2.2), lt * Transform3D(Basis(), Vector3(0, -0.06, 0.34)), Vector3(0.18, 0.28, 0.18), 1.0)
-		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, -0.23, 0.34)), Vector3(0.22, 0.05, 0.22), 1.0, Color.WHITE, false)
-	if rng.randf() < 0.22:
-		# ivy up from a corner: leafy clumps flat to the wall, thinning as it climbs
-		var side := -1.0 if rng.randf() < 0.5 else 1.0
-		var top := rng.randf_range(0.4, 0.8) * h
-		var leaf := PSXMat.flat(Color.WHITE)
-		var yy := 0.0
-		while yy < top:
-			var k := 1.0 - yy / top * 0.6
-			var x := side * (hw - 0.5 - rng.randf() * 1.6 * k)
-			mb.add_blob(leaf, t * Transform3D(Basis(), Vector3(x, y0 + 0.3 + yy, hd + 0.06)), Vector3(0.55 * k + 0.2, 0.42, 0.12), rng, 0.35, 2, 5, 1.0,
-				Color(0.22, 0.42, 0.2) * rng.randf_range(0.8, 1.15))
-			yy += rng.randf_range(0.35, 0.6)
-	if rng.randf() < 0.35:
-		var px := door_x + (-1.0 if door_x < 0.0 else 1.0) * rng.randf_range(0.95, 1.3)
-		var pt := t * Transform3D(Basis(), Vector3(px, y0, hd + 0.35))
-		mb.add_cylinder(PSXMat.lit("plaster", Color(0.78, 0.46, 0.32)), pt, 0.2, 0.25, 0.42, 6, 1.0)
-		mb.add_blob(PSXMat.flat(Color.WHITE), pt * Transform3D(Basis(), Vector3(0, 0.55, 0)), Vector3(0.28, 0.2, 0.28), rng, 0.35, 2, 5, 1.0, Color(0.3, 0.5, 0.26))
-		for j in range(3):
-			mb.add_blob(PSXMat.flat(Color.WHITE), pt * Transform3D(Basis(), Vector3(-0.12 + j * 0.12, 0.7, rng.randf_range(-0.08, 0.08))), Vector3(0.07, 0.06, 0.07), rng, 0.3, 2, 4, 1.0,
-				FLOWERS[rng.randi() % FLOWERS.size()])
 
 
 # --------------------------------------------------------------------------

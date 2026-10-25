@@ -229,7 +229,49 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 		_balcony(mb, t * Transform3D(Basis(), Vector3(0, sill + g1 + 0.1, hd)), minf(w - 1.2, 4.5))
 	if shabby and rng.randf() < 0.5:
 		mb.add_box(M.mat("dark"), t * Transform3D(Basis(Vector3.BACK, 0.4), Vector3(wx - 1.0, sill + g1 + 1.4, hd + 0.06)), Vector3(0.5, 1.4, 0.05), 1.0, Color(0.5, 0.42, 0.34), false)
+	warmth(mb, int(l["seed"]), t, w, eaves - sill, hd, door_x, sill)
 	return {"at": t * Vector3(door_x, top, hd + 0.9), "face": (Vector2((t.basis * Vector3.BACK).x, (t.basis * Vector3.BACK).z)).normalized(), "kind": kind}
+
+
+const WARM_FLOWERS := [Color(0.9, 0.24, 0.3), Color(0.98, 0.84, 0.3), Color(0.82, 0.5, 0.86), Color(0.96, 0.96, 0.92), Color(0.98, 0.5, 0.24)]
+
+
+## A house front's warmth (1.21's city detail pass, both cities; its own rng stream so the rest of the front is as it
+## was): a lantern on its bracket by some
+## doors (glowing: lit windows and these warm the lanes at dusk), ivy climbing some fronts from a corner, a pot of
+## geraniums on some doorsteps.
+static func warmth(mb: MeshBuilder, seed_value: int, t: Transform3D, w: float, h: float, hd: float, door_x: float, y0: float) -> void:
+	var rng := _rng(seed_value + 31)
+	var hw := w * 0.5
+	if rng.randf() < 0.4:
+		var lx := door_x + (1.0 if door_x < 0.0 else -1.0)
+		var lt := t * Transform3D(Basis(), Vector3(lx, y0 + 2.7, hd))
+		var iron := M.mat("iron")
+		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, 0.25, 0.18)), Vector3(0.05, 0.05, 0.36), 1.0, Color.WHITE, false)
+		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, 0.12, 0.34)), Vector3(0.24, 0.05, 0.24), 1.0, Color.WHITE, false)
+		mb.add_box(M.mat("glow"), lt * Transform3D(Basis(), Vector3(0, -0.06, 0.34)), Vector3(0.18, 0.28, 0.18), 1.0)
+		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, -0.23, 0.34)), Vector3(0.22, 0.05, 0.22), 1.0, Color.WHITE, false)
+	if rng.randf() < 0.22:
+		# ivy up from a corner: leafy clumps flat to the wall, thinning as it climbs
+		var side := -1.0 if rng.randf() < 0.5 else 1.0
+		var top := rng.randf_range(0.4, 0.8) * h
+		var leaf := PSXMat.flat(Color.WHITE)
+		var yy := 0.0
+		while yy < top:
+			var k := 1.0 - yy / top * 0.6
+			var x := side * (hw - 0.5 - rng.randf() * 1.6 * k)
+			mb.add_blob(leaf, t * Transform3D(Basis(), Vector3(x, y0 + 0.3 + yy, hd + 0.06)), Vector3(0.55 * k + 0.2, 0.42, 0.12), rng, 0.35, 2, 5, 1.0,
+				Color(0.22, 0.42, 0.2) * rng.randf_range(0.8, 1.15))
+			yy += rng.randf_range(0.35, 0.6)
+	if rng.randf() < 0.35:
+		var px := door_x + (-1.0 if door_x < 0.0 else 1.0) * rng.randf_range(0.95, 1.3)
+		var pt := t * Transform3D(Basis(), Vector3(px, y0, hd + 0.35))
+		mb.add_cylinder(M.mat("wash"), pt, 0.2, 0.25, 0.42, 6, 1.0, Color(0.78, 0.46, 0.32))
+		mb.add_blob(PSXMat.flat(Color.WHITE), pt * Transform3D(Basis(), Vector3(0, 0.55, 0)), Vector3(0.28, 0.2, 0.28), rng, 0.35, 2, 5, 1.0, Color(0.3, 0.5, 0.26))
+		for j in range(3):
+			mb.add_blob(PSXMat.flat(Color.WHITE), pt * Transform3D(Basis(), Vector3(-0.12 + j * 0.12, 0.7, rng.randf_range(-0.08, 0.08))), Vector3(0.07, 0.06, 0.07), rng, 0.3, 2, 4, 1.0,
+				WARM_FLOWERS[rng.randi() % WARM_FLOWERS.size()])
+
 
 
 ## A sloped cloth awning `w` wide, reaching `out`, on two iron rods (frame `t`: its top edge on the wall, +z out).
@@ -923,6 +965,8 @@ static func warehouse(mb: MeshBuilder, cols: Array, l: Dictionary) -> Dictionary
 	mb.add_tube(PSXMat.lit("rope"), PackedVector3Array([hook, hook + Vector3.DOWN * rng.randf_range(1.5, 3.0)]), 0.025, 0.025, 3, 1.0)
 	if rng.randf() < 0.5:
 		absorb(mb, cols, Props.crate(0.7), t * Transform3D(Basis(Vector3.UP, rng.randf()), Vector3(hw - 0.9, top, hd + 0.9)))
+	# (its lantern and pot beside the wide loading door: warmth hangs them a metre in from the point it's given)
+	warmth(mb, int(l["seed"]), t, w, eaves - sill, hd, minf(dw * 0.5 + 1.6, w * 0.5 - 1.0), sill)
 	return {"at": t * Vector3(0, top, hd + 0.9), "face": (Vector2((t.basis * Vector3.BACK).x, (t.basis * Vector3.BACK).z)).normalized(), "kind": "warehouse"}
 
 
