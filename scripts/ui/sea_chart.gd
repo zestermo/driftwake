@@ -307,16 +307,22 @@ func _draw() -> void:
 	# the crew: a dot each in their colour
 	for p in get_tree().get_nodes_in_group("players"):
 		if not p.is_local:
-			draw_circle(_to_chart(Vector2(p.global_position.x, p.global_position.z)), 2.5, Net.crew_color(p.net_id).darkened(0.35))
+			# (1.22: named, and a downed crewmate in red)
+			var pc := _to_chart(Vector2(p.global_position.x, p.global_position.z))
+			var down: bool = p.has_method("is_bleeding") and p.is_bleeding()
+			draw_circle(pc, 2.5, Color(0.85, 0.12, 0.08) if down else Net.crew_color(p.net_id).darkened(0.35))
+			draw_string(_font, pc + Vector2(4, 3), str(p.display_name()) + (" (down)" if down else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
 	_north(ink)
 	# the crew's marks: numbered flags in their colours
 	for id in Net.waypoints.keys():
 		var col: Color = Net.crew_color(id) if Net.active else Color(0.75, 0.1, 0.08)
 		var pts: Array = Net.waypoints[id]
+		# (the Captain's flags drawn bigger: the crew's course)
+		var big := 1.5 if (Net.active and int(id) == 1) else 1.0
 		for i in range(pts.size()):
 			var c := _to_chart(pts[i])
-			draw_line(c, c + Vector2(0, -10), ink, 1.0)
-			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10), c + Vector2(7, -7.5), c + Vector2(0, -5)]), col)
+			draw_line(c, c + Vector2(0, -10) * big, ink, 1.0)
+			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10) * big, c + Vector2(7, -7.5) * big, c + Vector2(0, -5) * big]), col)
 			draw_string(_font, c + Vector2(3, 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
 	MapMarks.draw_all(self, _to_chart, _font)
 	_hints()

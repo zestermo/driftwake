@@ -1807,7 +1807,7 @@ func others_standing() -> bool:
 # ==========================================================================
 ## net id -> Array of Vector2 (world x, z)
 var waypoints: Dictionary = {}
-const MAX_WAYPOINTS := 6
+const MAX_WAYPOINTS := 8
 
 
 func set_waypoints(pts: Array) -> void:

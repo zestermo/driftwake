@@ -6467,3 +6467,5 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   cutlass, dagger or axe, green or 15% blue (HOME_KINDS, HOME_BLUE): no two captains the same. t/economy/drop_rates.
 - The party panel (1.22): the HUD's crew rows get a fifth column, `PlayerHUD.party_where(p, down)`: "DOWN 40m NE",
   "helm" (a guest at the wheel), "guns", "swim", or the distance and bearing past 30 m. t/ui/party_where (new).
+- Crew on the chart (1.22): the crew's dots named (and red with "(down)" when bleeding), the Captain's flags 1.5x,
+  `Net.MAX_WAYPOINTS` 8 a captain (the oldest goes); marks were already the crew's (Net.waypoints, synced).
