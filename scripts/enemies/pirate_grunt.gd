@@ -2104,8 +2104,9 @@ func _on_died() -> void:
 
 ## Now and then the dead drop their sidearm: a pistol (or the rifleman's...
 ## nothing - those are too long to carry) or their blade. Each captain rolls their own.
-const DROP_PISTOL := 0.06
-const DROP_BLADE := 0.04
+## (1.22: rare: about 2% a kill for its own weapon, Zach's loot tables)
+const DROP_PISTOL := 0.012
+const DROP_BLADE := 0.008
 
 
 func _drop_weapon() -> void:

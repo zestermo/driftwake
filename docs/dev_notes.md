@@ -6458,3 +6458,12 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   newest first, 6 kept); Net notes the crew when a host's world arrives (`join_address`; never in a tool run), the
   title's co-op panel lists 4 as one-click rejoin buttons. Quest rewards go to the whole crew wherever they are
   (Journal: the REWARD_REACH check gone; t/quests/rewards_present updated).
+- 1.22 loot (Zach's approved tables, scripts/items/loot.gd): 60% of kills that carry coins pay (KILL_COIN_CHANCE);
+  trophy parts (is_loot: tusks, plumes, hides, chitin) at PART_K 0.3 of their table, hunting food as it was; a
+  grunt's own weapon ~2% (DROP_PISTOL 0.012, DROP_BLADE 0.008). Chests: their weapon stays by kind (ARMS_BY_KIND:
+  ordinary 25%, hidden (dive, buried, map, wreck, treasure in its id) 50%, hoard always), its rarity rolled round the
+  island's tier (`rarity_round`, RARITY_SPREAD [-1, 0, +1, +2]), nothing past blue under tier 3; loot traits only from
+  purple up (LOOT_TRAIT_TIER; vendors keep theirs). Brinehollow's hand-placed chests: always a weapon, a random pistol,
+  cutlass, dagger or axe, green or 15% blue (HOME_KINDS, HOME_BLUE): no two captains the same. t/economy/drop_rates.
+- The party panel (1.22): the HUD's crew rows get a fifth column, `PlayerHUD.party_where(p, down)`: "DOWN 40m NE",
+  "helm" (a guest at the wheel), "guns", "swim", or the distance and bearing past 30 m. t/ui/party_where (new).

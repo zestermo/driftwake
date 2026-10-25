@@ -904,6 +904,29 @@ func show_prompt(text: String, progress: float = -1.0) -> void:
 
 
 ## The rest of the crew: name, health, and whether they're down.
+## A crewmate's row's last column (1.22's party panel): "DOWN 40m NE" when they're down, "helm" at the wheel (a
+## guest), "guns" on a cannon, "swim" in the water, "120m SW" past 30 m, else nothing. Bearings are the compass's (north is -z).
+func party_where(p, down: bool) -> String:
+	var me := player as Node3D
+	var d: Vector3 = Vector3.ZERO if me == null else (p.global_position - me.global_position)
+	d.y = 0.0
+	var far := ""
+	if d.length() > 4.0:
+		var dirs := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+		var a := fposmod(atan2(d.x, -d.z), TAU)
+		far = "%dm %s" % [int(d.length()), dirs[int(round(a / (TAU / 8.0))) % 8]]
+	if down:
+		return ("DOWN " + far).strip_edges()
+	# (a guest at the wheel sails the ship: Net.ship_owner; the host owns her when no one's steering)
+	if Net.ship_owner == int(p.net_id) and int(p.net_id) != 1:
+		return "helm"
+	if Net.seats.values().has(int(p.net_id)):
+		return "guns"
+	if p.has_method("water_depth") and float(p.water_depth()) > 1.2:
+		return "swim"
+	return far if d.length() > 30.0 else ""
+
+
 func _update_party(delta: float) -> void:
 	_party_t -= delta
 	if _party_t > 0.0 or _party == null:
@@ -944,6 +967,10 @@ func _update_party(delta: float) -> void:
 		pg.custom_minimum_size = Vector2(34, 0)
 		pg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(pg)
+		# (1.22) where they are or what they're doing: DOWN with distance and bearing, the helm, swimming, far off
+		var wh := _tiny_label()
+		wh.custom_minimum_size = Vector2(64, 0)
+		row.add_child(wh)
 		_party.add_child(row)
 		rows += 1
 	for i in range(others.size()):
@@ -962,3 +989,6 @@ func _update_party(delta: float) -> void:
 		var ms := Net.ping_ms(int(p.net_id))
 		pg.text = "host" if int(p.net_id) == 1 else ("%dms" % ms if ms >= 0 else "...")
 		pg.add_theme_color_override("font_color", UIStyle.TEXT_DIM if int(p.net_id) == 1 else ping_color(ms))
+		var wh := row.get_child(4) as Label
+		wh.text = party_where(p, down)
+		wh.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35) if down else UIStyle.TEXT_DIM)
