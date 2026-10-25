@@ -31,11 +31,14 @@ const CLOSE := 2.5
 const RUN := 4.5
 const SIZE := {GULL: 1.0, DARK: 1.7, PARROT: 0.65, VULTURE: 2.9}
 const TOP_SPEED := {GULL: 11.0, DARK: 14.0, PARROT: 10.0, VULTURE: 8.0}
-const UNSEEN_EVERY := 3
+const UNSEEN_EVERY := 6
 const UNSEEN_BEHIND := 4.0
 ## Seen past this (m) a bird moves under a pixel a frame: flown every SEEN_FAR_EVERY frames.
 const SEEN_NEAR := 140.0
 const SEEN_FAR_EVERY := 2
+## Past this (m) a turn every SEEN_FARTHEST_EVERY frames still moves a bird a pixel or so (1.21 perf pass).
+const SEEN_FAR := 300.0
+const SEEN_FARTHEST_EVERY := 4
 
 enum { GULL, DARK, PARROT, VULTURE }
 enum { WHEEL, VEE, CIRCLE, TRAIL, PERCH, LAND, SCATTER, HOP, LEAVE }
@@ -143,7 +146,7 @@ func _process(delta: float) -> void:
 		# behind the camera or past DRAW: flown every UNSEEN_EVERY frames, a turn each; seen past SEEN_NEAR every SEEN_FAR_EVERY
 		var d2 := to.length_squared()
 		var seen := to.dot(fwd) > -UNSEEN_BEHIND and d2 < DRAW * DRAW
-		var every := (1 if d2 < SEEN_NEAR * SEEN_NEAR else SEEN_FAR_EVERY) if seen else UNSEEN_EVERY
+		var every := (1 if d2 < SEEN_NEAR * SEEN_NEAR else (SEEN_FAR_EVERY if d2 < SEEN_FAR * SEEN_FAR else SEEN_FARTHEST_EVERY)) if seen else UNSEEN_EVERY
 		if every == 1 or (i + _frame) % every == 0 or not b.has("row"):
 			_fly(b, float(b["acc"]), at, ship, ship_xf)
 			b["acc"] = 0.0
