@@ -1,6 +1,5 @@
 extends SceneTree
-## Sky + weather renders. Args: <out_prefix>. Env: WX_SHOTS (names, comma separated: only those), WX_LOOK (the sky
-## shader's cloud look, psx_sky.gdshader `look`).
+## Sky + weather renders. Args: <out_prefix>. Env: WX_SHOTS (names, comma separated: only those).
 var t := 0.0
 var p
 var w
@@ -29,8 +28,6 @@ func _process(d: float) -> bool:
 		get_first_node_in_group("hud").visible = false
 		p = get_first_node_in_group("player")
 		w = root.get_node("Weather")
-		if OS.get_environment("WX_LOOK") != "" and w._sky_mat:
-			w._sky_mat.set_shader_parameter("look", int(OS.get_environment("WX_LOOK")))
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 3000; root.add_child(cam); cam.current = true
 		t0 = t
 		return false
