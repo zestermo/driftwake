@@ -9,8 +9,9 @@ class_name SeaSpray
 ## thrown high off rocks and cliffs, a slap against a quay, each with its sound.
 ## The foam itself (whitecaps, surf rolling in, the swash) is the ocean shader's;
 ## Weather.whitecaps() drives both. Where the coast is: Ambience's CoastProbe.
-## The streaks fly and fade on the GPU (shaders/world/wind_streaks.gdshader, 2026-10-25): one is written into its
-## slot when it's born and nothing runs for it after.
+## The streaks fly and fade on the GPU (shaders/world/wind_streaks.gdshader, 2026-10-25), and the foam patches
+## drift, ride the swell and fade there too (shaders/world/sea_foam.gdshader, the ocean's own wave sums): each is
+## written into its slot when it's born and nothing runs for it after.
 
 const STREAKS := 48
 const STREAK_LEN := Vector2(2.5, 5.0)
@@ -41,14 +42,20 @@ var _surf_acc := 0.0
 ## Waves broken so far, by kind (tests).
 var breaks := {"beach": 0, "rock": 0, "wall": 0}
 var _foam_mm: MultiMesh
-var _foam: Array = []   # [x, z, age, life, size, yaw, normal, height, its rate, when sampled]
+var _foam_mat: ShaderMaterial
+## Each foam slot: [born, life, x, z, drift x, drift z] (life 0: free).
+var _foam: Array = []
 var _foam_acc := 0.0
-var _foam_i := 0
-## A foam patch's height is sampled every FOAM_EVERY frames (its tilt every other time).
-const FOAM_EVERY := 3
+var _foam_slot := 0
+var _foam_check := 0.0
+var _waves_t := 0.0
+## The ocean material's wave uniforms the foam's shader sums the same way (copied every WAVES_EVERY s; the clock
+## and the storm cells every frame).
+const WAVE_PARAMS := ["waves", "wave_amp_phase", "amp_mult", "crest", "env_dirs", "env_params", "crest_cap", "shore0",
+	"shore1", "shore2", "shore3", "shore_rect", "shore_waves", "shore_shape", "shore_fade", "shore_wob", "shore_none"]
+const WAVES_EVERY := 1.0
 const ROW := 16
-var _buf := PackedFloat32Array()
-## Each MultiMesh's last buffer sent (the headless renderer can't give it back).
+## Each MultiMesh's rows as last sent (the headless renderer can't give them back).
 var rows := {}
 var _drift: Array = []   # [emitter, time left]
 
@@ -79,15 +86,22 @@ func _ready() -> void:
 	_born.resize(STREAKS)
 	_born.fill(-INF)
 	_life.resize(STREAKS)
-	var foam := StandardMaterial3D.new()
-	foam.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	foam.alpha_scissor_threshold = 0.5
-	foam.cull_mode = BaseMaterial3D.CULL_DISABLED
-	foam.vertex_color_use_as_albedo = true
-	foam.albedo_texture = _foam_texture()
-	foam.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	foam.roughness = 1.0
-	_foam_mm = _multimesh(FOAM, foam, Vector2.ONE, "Foam")
+	_foam_mat = ShaderMaterial.new()
+	_foam_mat.shader = load("res://shaders/world/sea_foam.gdshader")
+	_foam_mat.set_shader_parameter("foam_tex", _foam_texture())
+	_foam_mm = _multimesh(FOAM, _foam_mat, Vector2.ONE, "Foam", true)
+	_foam_mm.visible_instance_count = FOAM
+	var none := PackedFloat32Array()
+	none.resize(FOAM * ROW)
+	for i in range(FOAM):
+		none[i * ROW] = 1.0
+		none[i * ROW + 5] = 1.0
+		none[i * ROW + 10] = 1.0
+		none[i * ROW + 12] = 0.0
+		none[i * ROW + 13] = 0.0
+		_foam.append([-INF, 0.0, 0.0, 0.0, 0.0, 0.0])
+	_foam_mm.buffer = none
+	rows[_foam_mm] = none
 	for i in range(DRIFTS):
 		var p := CPUParticles3D.new()
 		p.name = "Spindrift"
@@ -158,9 +172,8 @@ func _process(delta: float) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	_clock += delta
 	_streak_mat.set_shader_parameter("now", _clock)
+	_waves(delta)
 	if cam == null or me == null:
-		_foam.clear()
-		_draw_foam()
 		return
 	var wx := get_node_or_null("/root/Weather")
 	var wind: float = float(wx.get("wind")) if wx else 0.3
@@ -251,15 +264,6 @@ func alive() -> int:
 	return n
 
 
-## The rows written this frame into `mm`'s buffer in one call ([3x4 transform, colour] each).
-func _flush(mm: MultiMesh, count: int, n: int) -> void:
-	_buf.resize(count * ROW)
-	mm.buffer = _buf
-	rows[mm] = _buf
-	_buf = PackedFloat32Array()
-	mm.visible_instance_count = n
-
-
 # --------------------------------------------------------------------------
 # Spray off the crests, spindrift
 # --------------------------------------------------------------------------
@@ -313,12 +317,23 @@ func _spindrift(delta: float, cam: Camera3D, wdir: Vector3, caps: float, wind: f
 # --------------------------------------------------------------------------
 # Foam patches drifting on the swell
 # --------------------------------------------------------------------------
-func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: float, inland: float, ship: Node3D) -> void:
+func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: float, inland: float, _ship: Node3D) -> void:
+	var c := Vector2(cam.global_position.x, cam.global_position.z)
+	var any := false
+	# (ones drifted out of reach or behind a ship that's sailed on: let go, twice a second)
+	_foam_check -= delta
+	if _foam_check <= 0.0:
+		_foam_check = 0.5
+		for i in range(FOAM):
+			if _foam_alive(i) and c.distance_to(foam_at(i)) >= FOAM_NEAR.y + 10.0:
+				_foam[i][1] = 0.0
+				rows[_foam_mm][i * ROW + 13] = 0.0
+				any = true
 	var want := int(FOAM * (0.4 + 0.6 * caps) * (1.0 - inland))
 	_foam_acc += delta * 10.0
 	while _foam_acc >= 1.0:
 		_foam_acc -= 1.0
-		if _foam.size() >= want:
+		if foam_alive() >= want:
 			break
 		var a := _rng.randf() * TAU
 		var r := _rng.randf_range(FOAM_NEAR.x, FOAM_NEAR.y)
@@ -326,48 +341,65 @@ func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: 
 		# (not under a hull: the ship's own collider counts as ground here)
 		if float(Ocean.depth_at(p, [], true)) < 1.0:
 			continue
-		_foam.append([p.x, p.z, 0.0, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU, Vector3.UP, INF, 0.0, 0.0])
+		var v := wdir * (0.3 + wind * 0.8)
+		_foam_patch(p.x, p.z, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU, Vector2(v.x, v.z))
+		any = true
 	_foam_acc = minf(_foam_acc, 2.0)
-	var v := wdir * (0.3 + wind * 0.8) * delta
-	var c := Vector2(cam.global_position.x, cam.global_position.z)
-	var keep := 0
-	for f in _foam:
-		f[0] = float(f[0]) + v.x
-		f[1] = float(f[1]) + v.z
-		f[2] = float(f[2]) + delta
-		if float(f[2]) < float(f[3]) and c.distance_to(Vector2(f[0], f[1])) < FOAM_NEAR.y + 10.0:
-			_foam[keep] = f
-			keep += 1
-	_foam.resize(keep)
-	_draw_foam()
+	if any:
+		_foam_mm.buffer = rows[_foam_mm]
 
 
-func _draw_foam() -> void:
-	var n := mini(_foam.size(), FOAM)
-	_foam_i += 1
-	var now := Ocean.clock()
-	for i in range(n):
-		var f: Array = _foam[i]
-		var p := Vector3(f[0], 0.0, f[1])
-		# (the height a third of them a frame, carried on between at the rate it was rising; the tilt with every
-		# other height)
-		var first: bool = f[7] == INF
-		if (i + _foam_i) % FOAM_EVERY == 0 or first:
-			var h := float(Ocean.get_wave_height(p))
-			f[8] = (h - float(f[7])) / (now - float(f[9])) if not first and now > float(f[9]) and now - float(f[9]) < 0.5 else 0.0
-			f[7] = h
-			f[9] = now
-			if ((i + _foam_i) / FOAM_EVERY) % 2 == 0 or first:
-				var e := 0.1
-				f[6] = Vector3(h - float(Ocean.get_wave_height(p + Vector3(e, 0.0, 0.0))), e, h - float(Ocean.get_wave_height(p + Vector3(0.0, 0.0, e)))).normalized()
-		p.y = float(f[7]) + float(f[8]) * clampf(now - float(f[9]), 0.0, 0.2) + 0.05
-		var up: Vector3 = f[6]
-		var k := float(f[2]) / float(f[3])
-		var b := Basis(Vector3.UP, float(f[5]))
-		b = (Basis(Quaternion(Vector3.UP, up)) * b * Basis(Vector3.RIGHT, -PI * 0.5)).scaled(Vector3.ONE * float(f[4]))
-		_buf.append_array(PackedFloat32Array([b.x.x, b.y.x, b.z.x, p.x, b.x.y, b.y.y, b.z.y, p.y, b.x.z, b.y.z, b.z.z, p.z,
-			0.9, 0.94, 0.96, clampf(minf(k * 4.0, (1.0 - k) * 2.5), 0.0, 1.0)]))
-	_flush(_foam_mm, FOAM, n)
+## A foam patch born now at (x, z): its slot's row (sent with the frame's others).
+func _foam_patch(x: float, z: float, life: float, size: float, yaw: float, drift: Vector2) -> int:
+	var i := _foam_slot
+	for k in range(FOAM):
+		if not _foam_alive((_foam_slot + k) % FOAM):
+			i = (_foam_slot + k) % FOAM
+			break
+	_foam_slot = (i + 1) % FOAM
+	_foam[i] = [_clock, life, x, z, drift.x, drift.y]
+	var b := Basis(Vector3.UP, yaw).scaled(Vector3.ONE * size)
+	var r: PackedFloat32Array = rows[_foam_mm]
+	var row := [b.x.x, b.y.x, b.z.x, x, b.x.y, b.y.y, b.z.y, 0.0, b.x.z, b.y.z, b.z.z, z, _clock, life, drift.x, drift.y]
+	for k in range(ROW):
+		r[i * ROW + k] = row[k]
+	return i
+
+
+func _foam_alive(i: int) -> bool:
+	return _clock - float(_foam[i][0]) < float(_foam[i][1])
+
+
+## Foam patches on the water now.
+func foam_alive() -> int:
+	var n := 0
+	for i in range(FOAM):
+		if _foam_alive(i):
+			n += 1
+	return n
+
+
+## Where patch i has drifted to (x, z), as the shader has it.
+func foam_at(i: int) -> Vector2:
+	var f: Array = _foam[i]
+	var age := _clock - float(f[0])
+	return Vector2(float(f[2]) + float(f[4]) * age, float(f[3]) + float(f[5]) * age)
+
+
+## The ocean's wave uniforms into the foam's shader: its clock and storm cells every frame, the rest now and then.
+func _waves(delta: float) -> void:
+	var om: ShaderMaterial = Ocean.get("ocean_material")
+	_foam_mat.set_shader_parameter("now", _clock)
+	if om == null:
+		return
+	_foam_mat.set_shader_parameter("time_val", Ocean.clock())
+	_foam_mat.set_shader_parameter("storm_cells", om.get_shader_parameter("storm_cells"))
+	_waves_t -= delta
+	if _waves_t > 0.0:
+		return
+	_waves_t = WAVES_EVERY
+	for k in WAVE_PARAMS:
+		_foam_mat.set_shader_parameter(k, om.get_shader_parameter(k))
 
 
 # --------------------------------------------------------------------------

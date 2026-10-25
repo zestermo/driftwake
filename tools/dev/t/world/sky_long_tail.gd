@@ -1,8 +1,7 @@
 extends SceneTree
 ## The perf session's long tail kept their look: the sky's birds and the sea's foam write their MultiMeshes in one
 ## buffer a frame (each instance where it is, its wings or colour with it), a wind streak its row once when it's
-## born (the GPU flies it); the foam's height, sampled a third of the patches a frame and carried on between, stays
-## on the swell; DevCapture keeps its movement history with nothing running per tick.
+## born (the GPU flies it); a foam patch its row once when it's born (the GPU drifts it on the swell, summing the ocean's own waves); DevCapture keeps its movement history with nothing running per tick.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -10,9 +9,7 @@ var until := 0
 var fails := 0
 var birds
 var spray
-var worst := 0.0
-var was_worst := 0.0
-var frames := 0
+var fi := -1
 
 
 func _initialize() -> void:
@@ -70,7 +67,6 @@ func _process(_d: float) -> bool:
 				ok = ok and t.origin.is_equal_approx(b["pos"]) and t.basis.x.is_equal_approx(want.x) and t.basis.z.is_equal_approx(want.z) \
 					and is_equal_approx(c.r, b["wing"]) and is_equal_approx(c.g, b["fold"]) and is_equal_approx(c.b, b["paint"])
 			check("...each where it is, turned its way, its wings with it", ok)
-			spray.set_process(false)
 			var si: int = spray._streak(cam.global_position + Vector3(0, 0, -12), Vector3(1, 0, 0), 4.0, 0.5, 18.0, 0.06)
 			var sr: PackedFloat32Array = spray.rows[spray._mm]
 			var st := _xf(sr, si)
@@ -79,26 +75,31 @@ func _process(_d: float) -> bool:
 				and st.origin.is_equal_approx(cam.global_position + Vector3(0, 0, -12)) and st.basis.x.is_equal_approx(Vector3(4, 0, 0))
 				and is_equal_approx(st.basis.y.length(), 0.06) and is_equal_approx(sc.r, spray._clock) and is_equal_approx(sc.g, 0.5)
 				and is_equal_approx(sc.b, 18.0) and spray._alive(si))
-			spray._foam = []
-			for i in range(12):
-				spray._foam.append([cam.global_position.x + i * 4.0, cam.global_position.z - 20.0, 3.0, 99.0, 1.2, 0.0, Vector3.UP, INF, 0.0, 0.0])
-			root.get_node("/root/Ocean").amp_mult = 1.6
+			var cx: float = cam.global_position.x + 4.0
+			var cz: float = cam.global_position.z - 20.0
+			fi = spray._foam_patch(cx, cz, 10.0, 1.2, 0.5, Vector2(0.6, -0.2))
+			var fr: PackedFloat32Array = spray.rows[spray._foam_mm]
+			var ft := _xf(fr, fi)
+			var fc := _extra(fr, fi)
+			check("a foam patch born where it is, turned and sized, with its birth, life and drift for the GPU", ft.origin.is_equal_approx(Vector3(cx, 0, cz))
+				and is_equal_approx(ft.basis.x.length(), 1.2) and ft.basis.x.is_equal_approx(Basis(Vector3.UP, 0.5).x * 1.2) and is_equal_approx(fc.r, spray._clock)
+				and is_equal_approx(fc.g, 10.0) and is_equal_approx(fc.b, 0.6) and is_equal_approx(fc.a, -0.2) and spray._foam_alive(fi))
+			# (the light stage has no sea: the ocean's material, its waves sent, as a world has it)
+			var oc0 = root.get_node("/root/Ocean")
+			if oc0.ocean_material == null:
+				oc0.ocean_material = ShaderMaterial.new()
+				oc0.ocean_material.shader = load("res://scenes/ocean/ocean.gdshader")
+				oc0._send_waves()
+			until = TK.wait_secs(1.5)
 		2:
-			spray._draw_foam()
 			var oc = root.get_node("/root/Ocean")
-			for i in range(12):
-				var f: Array = spray._foam[i]
-				var y: float = _xf(spray.rows[spray._foam_mm], i).origin.y
-				var h: float = oc.get_wave_height(Vector3(f[0], 0, f[1]))
-				worst = maxf(worst, absf(y - (h + 0.05)))
-				# (what it was: each patch's height every other frame, as it stood a frame ago between)
-				was_worst = maxf(was_worst, absf(h - float(oc.get_wave_height(Vector3(f[0], 0, f[1]), oc.clock() - 1.0 / 60.0))))
-			frames += 1
-			if frames < 90:
-				until = TK.wait_ticks(1)
-				return false
-			check("the foam stays on the swell sampled a third a frame, as near as it was every other frame (worst %.3f m off, was %.3f, over %d frames)" % [worst, was_worst, frames],
-				worst <= was_worst and worst < 0.1)
+			var om: ShaderMaterial = oc.ocean_material
+			var fm: ShaderMaterial = spray._foam_mat
+			check("its shader sums the ocean's own waves (the ocean material's wave uniforms and clock copied)", om != null
+				and fm.get_shader_parameter("waves") == om.get_shader_parameter("waves") and fm.get_shader_parameter("amp_mult") == om.get_shader_parameter("amp_mult")
+				and fm.get_shader_parameter("shore_rect") == om.get_shader_parameter("shore_rect") and absf(float(fm.get_shader_parameter("time_val")) - float(oc.clock())) < 0.1)
+			var age: float = spray._clock - float(spray._foam[fi][0])
+			check("...drifting on downwind as it ages (%.1f s)" % age, age > 1.0 and spray.foam_at(fi).is_equal_approx(Vector2(spray._foam[fi][2], spray._foam[fi][3]) + Vector2(0.6, -0.2) * age))
 			check("DevCapture runs nothing per tick", not root.get_node("/root/DevCapture").is_physics_processing())
 			check("...and keeps its history (%d samples)" % root.get_node("/root/DevCapture")._hist.size(), root.get_node("/root/DevCapture")._hist.size() >= 5)
 			return TK.done(fails)
