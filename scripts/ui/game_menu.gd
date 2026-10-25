@@ -80,7 +80,7 @@ func _ready() -> void:
 			var next := _after_talk
 			_after_talk = []
 			if next[0] == "yard":
-				_yard.set_yard(str(next[1]), next[2] if next.size() > 2 else [])
+				_yard.set_yard(str(next[1]), next[2] if next.size() > 2 else [], next[3] if next.size() > 3 else true)
 			if next[0] == "shop":
 				open_shop.call_deferred(str(next[1]))
 			else:
@@ -185,7 +185,9 @@ func _input(event: InputEvent) -> void:
 func _on_dialogue_event(ev: String) -> void:
 	if ev == "shipwright" or ev.begins_with("shipwright:"):
 		var spec := ev.substr(11).split("|") if ev.begins_with("shipwright:") else PackedStringArray(["Tackett"])
-		_after_talk = ["yard", spec[0], Array(spec[1].split(",")) if spec.size() > 1 else []]
+		# (Tackett: the home lines only; a harbour vendor: their own, no paint; a city's yard: everything)
+		var lines: Array = Array(spec[1].split(",")) if spec.size() > 1 else (ShipLines.HOME_LINES if ev == "shipwright" else [])
+		_after_talk = ["yard", spec[0], lines, spec.size() < 2]
 	elif ev == "learn_black_leg":
 		var pl := _player()
 		if pl:

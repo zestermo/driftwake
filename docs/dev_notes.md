@@ -6446,3 +6446,11 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   (a LineEdit + Rename, and Flag opening the ship's paint: `GameMenu.open_flag`, the Captain's only), aboard now (colour,
   name, ping, the Captain's Kick), sailed with us (last seen in game days). Refreshes on `Net.roster_changed`.
   t/coop/crew_roster opens it.
+- The crew's emblem on the main sail (1.22): `Ship._sail_emblem(kit)` builds a patch on the sail's own two planes
+  (`_sail_corners`, 0.12-0.88 across, 0.27-1.73 down), a hair in front and mirrored behind, a child of the Sail node
+  so it fills, flaps and furls with it; `ShipKit.sail_emblem_image(kit)` (30 px, the mark colour, clear elsewhere) on
+  the cutout shader. Six more emblems (`EMBLEMS`): Kraken, Trident, Rose, Sun, Wave, Raven. yardshot `lines=emblems`.
+- Tackett's yard (Zach: "many of the upgrades should be only seen for the first time at a city"): `ShipLines.HOME_LINES`
+  (hull plating, gun deck, sails and rigging, rudder and helm, the ship's hold); plain "shipwright" opens those only
+  (with paint); the cities' "shipwright:<name>" everything; a vendor's "|lines" its own without paint
+  (`set_yard(who, lines, paint)`). Lines already bought stay on the ship. t/economy/harbour_vendor checks it.

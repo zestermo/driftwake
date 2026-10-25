@@ -12,7 +12,7 @@ const SAILS := [["Canvas", Color(0.95, 0.92, 0.82)], ["Black", Color(0.24, 0.24,
 	["Navy", Color(0.35, 0.45, 0.85)], ["Sand", Color(1.0, 0.86, 0.55)]]
 const FIELDS := [["Red", Color(0.7, 0.1, 0.08)], ["Black", Color(0.08, 0.08, 0.09)], ["Navy", Color(0.1, 0.16, 0.42)],
 	["Green", Color(0.1, 0.38, 0.2)], ["Gold", Color(0.85, 0.65, 0.15)], ["White", Color(0.92, 0.9, 0.84)]]
-const EMBLEMS := ["None", "Skull", "Crossed swords", "Anchor", "Star"]
+const EMBLEMS := ["None", "Skull", "Crossed swords", "Anchor", "Star", "Kraken", "Trident", "Rose", "Sun", "Wave", "Raven"]
 const MARKS := [["Bone", Color(0.95, 0.93, 0.86)], ["Black", Color(0.08, 0.08, 0.09)], ["Gold", Color(0.95, 0.75, 0.2)],
 	["Red", Color(0.75, 0.1, 0.08)]]
 const FIGURES := ["None", "Mermaid", "Lion", "Sea serpent", "Eagle"]
@@ -98,7 +98,70 @@ static func _emblem_at(emblem: int, p: Vector2) -> bool:
 			var a := atan2(q.y, q.x) + PI * 0.5
 			var k := fposmod(a, TAU / 5.0) / (TAU / 5.0)
 			return q.length() < lerpf(10.0, 4.2, 1.0 - absf(k - 0.5) * 2.0)
+		5:
+			# a kraken: a round head, four tentacles writhing down
+			if p.distance_to(c + Vector2(0, -5)) < 5.5:
+				return p.distance_to(c + Vector2(-2, -5)) > 1.2 and p.distance_to(c + Vector2(2, -5)) > 1.2
+			if p.y > c.y - 1.0 and p.y < c.y + 11.0:
+				for i in range(4):
+					var x0 := -6.0 + i * 4.0 + (p.y - c.y) * (-0.35 if i < 2 else 0.35)
+					if absf(p.x - (c.x + x0 + sin((p.y - c.y) * 0.7 + i) * 1.6)) < 1.1:
+						return true
+			return false
+		6:
+			# a trident: the shaft, the crossbar, three prongs
+			if _seg(p, c + Vector2(0, -11), c + Vector2(0, 11)) < 1.1 or _seg(p, c + Vector2(-6, -3), c + Vector2(6, -3)) < 1.0:
+				return true
+			for s in [-1.0, 1.0]:
+				if _seg(p, c + Vector2(6 * s, -3), c + Vector2(6 * s, -10)) < 1.0:
+					return true
+			return false
+		7:
+			# a rose: the bloom (its fold a ring inside), the stem, a leaf
+			var d := p.distance_to(c + Vector2(0, -3))
+			if d < 6.0:
+				return absf(d - 3.0) > 0.6
+			return _seg(p, c + Vector2(0, 3), c + Vector2(0, 11)) < 1.0 or _seg(p, c + Vector2(0, 7), c + Vector2(4, 5)) < 1.3
+		8:
+			# a sun: a disc and eight rays
+			var q := p - c
+			if q.length() < 5.0:
+				return true
+			for k in range(8):
+				var dir := Vector2.from_angle(k * TAU / 8.0)
+				if _seg(p, c + dir * 7.0, c + dir * 10.5) < 1.0:
+					return true
+			return false
+		9:
+			# a wave: a rolling crest curling over
+			if absf(p.x - c.x) < 12.0 and absf(p.y - (c.y + 4.0 + sin((p.x - c.x) * 0.35) * 2.5)) < 1.3:
+				return true
+			return absf(p.distance_to(c + Vector2(4, -2)) - 4.0) < 1.0 and p.y < c.y + 1.0
+		10:
+			# a raven in flight: body, head, beak, two wings, the tail
+			var q := p - c
+			if pow(q.x / 7.0, 2.0) + pow((q.y - 1.0) / 3.0, 2.0) < 1.0 or p.distance_to(c + Vector2(-7, -1)) < 2.5:
+				return true
+			return (_seg(p, c + Vector2(-9.5, -1), c + Vector2(-12, 0)) < 0.8 or _seg(p, c + Vector2(-2, -1), c + Vector2(3, -10)) < 1.6
+				or _seg(p, c + Vector2(1, -1), c + Vector2(9, -8)) < 1.6 or _seg(p, c + Vector2(6, 2), c + Vector2(11, 4)) < 1.2)
 	return false
+
+
+## The crew's emblem alone (for the main sail): its mark colour where the flag's emblem is, clear elsewhere; null with
+## no emblem. Square (EMBLEM_PX), the emblem centred as on the flag.
+const EMBLEM_PX := 30
+static func sail_emblem_image(kit: Dictionary) -> Image:
+	var emblem := int(kit.get("emblem", 0))
+	if emblem <= 0:
+		return null
+	var mark: Color = MARKS[int(kit["mark"])][1]
+	var img := Image.create(EMBLEM_PX, EMBLEM_PX, false, Image.FORMAT_RGBA8)
+	var off := Vector2(FLAG_W * 0.5 - EMBLEM_PX * 0.5, FLAG_H * 0.5 - EMBLEM_PX * 0.5)
+	for y in range(EMBLEM_PX):
+		for x in range(EMBLEM_PX):
+			var on := _emblem_at(emblem, Vector2(x + 0.5, y + 0.5) + off)
+			img.set_pixel(x, y, mark if on else Color(mark.r, mark.g, mark.b, 0.0))
+	return img
 
 
 ## The figurehead under the bowsprit (local -z forward, origin on the stem).

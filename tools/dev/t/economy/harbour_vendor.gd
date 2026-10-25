@@ -2,7 +2,7 @@ extends SceneTree
 ## Harbour vendors (1.21 piece 6): some generated islands have one by the pier (not all); the same island seed gives
 ## the same vendor in the same spot (co-op: every crewmate builds it alike), on dry, fairly flat ground near the pier;
 ## built, they stand at their pitch and either open a yard with only their lines (no paint) or trade the yard's
-## materials (the chandler).
+## materials (the chandler); Tackett at Brinehollow does the home lines only (the rest first at a city), with paint.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var fails := 0
@@ -102,7 +102,11 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		2:
 			var y = menu._yard
-			check("Tackett's yard: every line and the paint again", y._rows.values().all(func(r): return (r as Control).visible) and (y._tabs["paint"] as Control).visible)
+			var shown: Array = y._rows.keys().filter(func(id): return (y._rows[id] as Control).visible)
+			shown.sort()
+			var home: Array = load("res://scripts/ship/ship_lines.gd").HOME_LINES.duplicate()
+			home.sort()
+			check("Tackett's yard: the home lines only (%s), and the paint again" % [shown], shown == home and (y._tabs["paint"] as Control).visible)
 			menu.close()
 			return TK.done(fails)
 	step += 1

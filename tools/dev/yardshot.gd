@@ -3,7 +3,8 @@ extends SceneTree
 ## levels (that line alone, from where it shows), fully refitted in two colour
 ## schemes (side, bow, masthead), at night, Tackett at his timber, and the
 ## yard screen's two tabs.
-## Args: <out_prefix> [psx] [lines=armour,guns] (only those lines' shots; "screen" for the yard screen)
+## Args: <out_prefix> [psx] [lines=armour,guns] (only those lines' shots; "screen" for the yard screen, "emblems" the
+## crew's emblem on the main sail)
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -74,6 +75,12 @@ func _process(d: float) -> bool:
 			])
 			if tackett:
 				shots.append(["tackett", null, tackett.global_position + tackett.global_basis.z * 4.0 + Vector3(1.5, 1.6, 0), tackett.global_position + Vector3(0, 1.0, 0)])
+		if only.has("emblems"):
+			# (1.22) the crew's emblem on the main sail, each emblem, from abeam and from astern
+			for e in range(1, 11):
+				shots.append(["emblem_%d" % e, {"emblem": e, "mark": [0, 2, 3, 1][e % 4], "sail": e % 3}, Vector3(4, 7, 20), Vector3(0, 7.5, 0)])
+			shots.append(["emblem_abeam", {"emblem": 5, "mark": 2}, Vector3(22, 7, 6), Vector3(0, 7, 0)])
+			shots.append(["emblem_ahead", {"emblem": 10, "mark": 0}, Vector3(3, 8, -20), Vector3(0, 7.5, 0)])
 		if only.is_empty() or only.has("screen"):
 			shots.append(["screen", {"armour": 2, "guns": 1, "sails": 5, "grove": 1}, Vector3.ZERO, Vector3.ZERO])
 			shots.append(["screen_paint", null, Vector3.ZERO, Vector3.ZERO])

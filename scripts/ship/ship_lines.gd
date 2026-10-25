@@ -94,6 +94,9 @@ const LINES := {
 		["Cargo hatch", "A hatch to the hold and crates lashed by it", {"timber": 8, "iron": 4}, {"slots": 2}],
 	]},
 }
+## What Tackett's yard at Brinehollow does (1.22, Zach: "many of the upgrades should be only seen for the first time
+## at a city"): the basics; the rest are first offered by a city's shipwright (and the chain's harbour vendors).
+const HOME_LINES := ["armour", "guns", "sails", "rudder", "chest"]
 ## The lines in the yard's order (grouped as GROUPS).
 const ORDER := ["armour", "copper", "guns", "chaser", "sails", "nest", "ropes", "rudder", "lanterns", "rails", "grove", "galley", "chest"]
 

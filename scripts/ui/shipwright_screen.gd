@@ -348,8 +348,8 @@ func cycle(key: String, step: int = 1) -> void:
 
 
 ## Whose yard opens next (GameMenu, from the dialogue event "shipwright:<name>"; plain "shipwright" is Tackett's) and the
-## lines it does ("shipwright:<name>|<line>,<line>": a harbour vendor's, no paint; [] every line).
-func set_yard(shipwright: String, lines: Array = []) -> void:
+## lines it does ("shipwright:<name>|<line>,<line>": a harbour vendor's, no paint; [] every line), and whether it paints.
+func set_yard(shipwright: String, lines: Array = [], paint: bool = true) -> void:
 	who = shipwright
 	only = lines
 	for id in _rows:
@@ -357,8 +357,8 @@ func set_yard(shipwright: String, lines: Array = []) -> void:
 	for g in _heads:
 		(_heads[g] as Control).visible = only.is_empty() or ShipLines.ORDER.any(func(id): return only.has(id) and ShipLines.line(id)["group"] == g)
 	if _tabs.has("paint"):
-		(_tabs["paint"] as Control).visible = only.is_empty()
-		if not only.is_empty():
+		(_tabs["paint"] as Control).visible = paint
+		if not paint:
 			show_tab("refits")
 	if _title:
 		_title.text = "%s's Yard" % who

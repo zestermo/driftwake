@@ -67,6 +67,7 @@ var sail_shown: float = 0.0
 var _turn_in: float = 0.0
 var _back_in: bool = false
 var _sail_node: Node3D
+var _sail_corners: Array = []
 var _furl_node: Node3D
 var _rig: Node3D
 var _yard_node: Node3D
@@ -1398,6 +1399,7 @@ func apply_kit(k: Dictionary) -> void:
 	sails.set_shader_parameter("albedo_color", ShipKit.SAILS[int(kit["sail"])][1])
 	_sail_node.material_override = sails
 	_furl_node.material_override = sails
+	_sail_emblem(kit)
 	parts.apply(kit, sails)
 	_mizzen(ShipClasses.class_of(kit) == "caravel", sails)
 	var flag := ShaderMaterial.new()
@@ -1441,6 +1443,47 @@ func _mizzen(on: bool, sails: Material) -> void:
 	ship_model.add_child(mi)
 
 
+## The crew's emblem painted on the main sail (1.22): a patch on the sail's own two planes (so it fills, flaps and
+## furls with it), a hair in front of the canvas and a mirrored one behind, in the flag's mark colour; none without
+## an emblem.
+func _sail_emblem(kit: Dictionary) -> void:
+	var old := _sail_node.get_node_or_null("Emblem")
+	if old:
+		old.free()
+	var img := ShipKit.sail_emblem_image(kit)
+	if img == null:
+		return
+	var mat := ShaderMaterial.new()
+	mat.shader = PSXMat.CUTOUT_SHADER
+	mat.set_shader_parameter("albedo_tex", ImageTexture.create_from_image(img))
+	mat.set_shader_parameter("use_vertex_color", false)
+	var mb := MeshBuilder.new()
+	for side: float in [1.0, -1.0]:
+		# the sail's two planes (as _build_rig), the patch 0.12-0.88 across, 0.27-1.73 down (0-1 the upper, 1-2 the lower)
+		for half in range(2):
+			var q: Array = _sail_corners[half]
+			var t0 := 0.27 if half == 0 else 0.0
+			var t1 := 1.0 if half == 0 else 0.73
+			var v0 := (t0 - 0.27 + float(half)) / 1.46
+			var v1 := (t1 - 0.27 + float(half)) / 1.46
+			var pts: Array = []
+			for tv: float in [t0, t1]:
+				for su: float in [0.12, 0.88]:
+					var top_p: Vector3 = (q[0] as Vector3).lerp(q[1], su)
+					var bot_p: Vector3 = (q[3] as Vector3).lerp(q[2], su)
+					pts.append(top_p.lerp(bot_p, tv) + Vector3(0, 0, 0.04 * side))
+			var u0 := 0.0 if side > 0.0 else 1.0
+			var u1 := 1.0 - u0
+			var n := Vector3(0, 0, side)
+			if side > 0.0:
+				mb.add_quad(mat, pts[0], pts[1], pts[3], pts[2], Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1), Color.WHITE, n)
+			else:
+				mb.add_quad(mat, pts[0], pts[2], pts[3], pts[1], Vector2(u0, v0), Vector2(u0, v1), Vector2(u1, v1), Vector2(u1, v0), Color.WHITE, n)
+	var mi := mb.to_instance("Emblem")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_sail_node.add_child(mi)
+
+
 ## The rig: the yard on the mast (it swings round to trim to the wind), the
 ## sail hanging from it (its own node, origin on the yard, so it rolls up by
 ## scaling toward it and fills or flaps), and the furled canvas on the yard.
@@ -1463,6 +1506,8 @@ func _build_rig(canvas: Material, wood: Material) -> void:
 	var dim := Color(0.8, 0.8, 0.75)
 	var c := [Vector3(-4.2, top.y, sz) - top, Vector3(4.2, top.y, sz) - top, Vector3(3.9, mid_y, sz + 0.45) - top,
 		Vector3(-3.9, mid_y, sz + 0.45) - top, Vector3(3.6, bot_y, sz + 0.1) - top, Vector3(-3.6, bot_y, sz + 0.1) - top]
+	# (the upper and lower planes' corners, top-left, top-right, bottom-right, bottom-left: the emblem's patch)
+	_sail_corners = [[c[0], c[1], c[2], c[3]], [c[3], c[2], c[4], c[5]]]
 	smb.add_quad(canvas, c[0], c[1], c[2], c[3], Vector2(0, 0), Vector2(2.0, 0), Vector2(2.0, 1.0), Vector2(0, 1.0), Color.WHITE, n)
 	smb.add_quad(canvas, c[3], c[2], c[4], c[5], Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 2.0), Vector2(0, 2.0), Color.WHITE, n)
 	smb.add_quad(canvas, c[0], c[3], c[2], c[1], Vector2(0, 0), Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 0), dim, -n)
