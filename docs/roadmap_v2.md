@@ -99,3 +99,9 @@ to work toward.
 - **1.22: strongholds and Devil Fruits**: Marine strongholds and pirate hideouts as raids, Devil Fruits brought back
   properly, fruit-user enemies, the world fruit pool (docs/strongholds_plan.md).
 - Then on toward 2.0: the remaining roadmap phases (more sea encounters, enemies, the First Sea finale).
+
+## Decided (2026-10-24)
+- **1.21 is the cities** (docs/v1_21_plan.md "Decided"): the capital opened and filled (palace, arena quarter with a
+  one-on-one ladder, noble quarter, docks), the canal city as the chain's second city, its shipyard selling the caravel
+  (owning and switching ships), Brinehollow's services in the cities and at some chain harbours. Combat and gear is 1.22,
+  strongholds and Driftfruits 1.23.
