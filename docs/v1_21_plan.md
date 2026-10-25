@@ -64,9 +64,9 @@ upgrades at Tackett's yard, Seamanship). Driftfruits are out of the world (Devil
 ### Open / deferred (**assumed**: chosen for Zach, to review in play)
 - The order and pieces (each a 1.20.x pre-release): **1.20.1** the capital's services, docks and noble quarter;
   **1.20.2** the palace and its quest line; **1.20.3** the arena and its ladder; **1.20.4** the canal city (shell,
-  districts, people, water taxis, services); **1.20.5** the shipyard, owning ships and the caravel; **1.20.6** the
-  harbour vendors; **1.20.7** the city detail pass (both cities) and the small fixes; **1.20.8** the sky and clouds
-  (after Zach's look pick) and the Brinehollow perf pass. Then the stable 1.21. **assumed** (the extras added 2026-10-24)
+  districts, people, water taxis, services), the shipyard and the caravel, and the harbour vendors (three pieces in
+  one release, 2026-10-25); **1.20.5** the city detail pass (both cities) and the small fixes; **1.20.6** the sky
+  (look C, the volumetric deck) and the Brinehollow perf pass. Then the stable 1.21. **assumed** (the extras added 2026-10-24)
 - Harbour vendors: about half the chain's regular islands (seeded), each one line (sails, guns, hull, a ship
   service or a trainer). **assumed**
 - The palace quest line: three or four quests for the crown's people, ending in an audience. **assumed**

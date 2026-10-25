@@ -165,6 +165,16 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
+### v1.20.4: The Canal City (October 25, 2026), unstable
+The chain's second city, a lagoon city of shipbuilders. Its houses crowd the canals and campi, bridges cross the
+water and six boatmen row you between its landings. A grocer, a fishmonger, a glassworks, a chandlery and the Oar
+and Lantern inn, and three quests. At the arsenal Master Ottavio Grane builds the caravel: faster and quicker to turn
+than the sloop, a bow chaser and a bigger hold, a lighter hull and no quarterdeck guns (1,400 gold, 6 timber, 4
+canvas, 2 iron). Your sloop is laid up with her upgrades and paint, and you switch between them at a city shipwright.
+About half the chain's harbours now have a vendor by the pier: a caulker, gunsmith, sailmaker, joiner or carpenter
+doing their group of the yard's refits, or a chandler selling its materials. Arena bouts are fought with wooden
+practice blades.
+
 ### v1.20.3: The Arena (October 24, 2026), unstable
 The capital's Grand Arena opens. Its west gate leads through a cut in the stands onto the sand, under a full crowd.
 Arena Master Corvin Bale runs a one-on-one ladder: six named fighters (Pip Tanner the rookie up to Aurelio Quint, the
