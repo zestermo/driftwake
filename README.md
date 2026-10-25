@@ -165,6 +165,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
+### v1.20.5: Lived-in Cities and a New Sky (October 25, 2026), unstable
+Both cities warmer and busier. Smoke rises from their chimneys (the capital's houses have chimneys now), pigeons peck
+on the squares and scatter when you walk through them, lanterns hang by doors and glow at dusk, ivy climbs the
+fronts and geraniums sit on the doorsteps. The canal city has three times the walkers, now in its narrow lanes too,
+more regulars at the café tables and a fountain in the piazza. A new sky: rolling clouds that build, drift and glow
+at dawn and dusk. Shafts of sunlight under water when you dive by day. The fog isle's giant trees are lighter far
+off, and arena bouts are fought with wooden practice blades.
+
 ### v1.20.4: The Canal City (October 25, 2026), unstable
 The chain's second city, a lagoon city of shipbuilders. Its houses crowd the canals and campi, bridges cross the
 water and six boatmen row you between its landings. A grocer, a fishmonger, a glassworks, a chandlery and the Oar
