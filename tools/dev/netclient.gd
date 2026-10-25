@@ -450,7 +450,8 @@ func _process(d: float) -> bool:
 			var g = data["g"]
 			check("the grunt dies here too", is_instance_valid(g) and g.state == 14)
 			var coins: int = current_scene.find_children("Coin*", "", true, false).size() + p.inventory_component.count("gold")
-			check("its coins drop here (%d -> %d)" % [data["coins"], coins], coins > data["coins"])
+			# (1.22: 60% of kills pay coins, rolled on each captain's own machine: none is a fair roll)
+			check("its coins roll here (%d -> %d)" % [data["coins"], coins], coins >= data["coins"])
 			var xp: int = p.progression.xp + p.progression.level * 100000
 			check("we get the kill XP (%d -> %d)" % [data["xp"], xp], xp > data["xp"])
 			# --- knocked out, then revived by the host

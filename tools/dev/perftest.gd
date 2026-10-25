@@ -129,7 +129,8 @@ func _process(d: float) -> bool:
 			for f in frames:
 				if f[1] == f[0] - 1: far_posed += 1
 				if f[2] == f[0] - 1: me_posed += 1
-			check("a far villager poses only some frames (%d of 30)" % far_posed, far_h != null and far_posed < 20 and far_posed > 0)
+			# (1.22's GPU pass: far townsfolk move on the GPU, so a far one may not pose on the CPU at all)
+			check("a far villager poses only some frames (%d of 30)" % far_posed, far_h != null and far_posed < 20)
 			check("the player's own rig poses every frame (%d of 30)" % me_posed, me_posed >= 29)
 			# --- the 3D renders at the PSX grid's size
 			var psx = root.get_node("PSX")
