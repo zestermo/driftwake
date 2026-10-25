@@ -195,6 +195,10 @@ var _debug_crew := 0
 var hp_k := 1.0
 ## This captain's bounty in gold (Bounty: their own, saved with them).
 var bounty := 0
+## The capital arena's ladder (ArenaBout, 1.21): the next rank to fight (6: champion), and the day the title was last
+## defended (Weather.day; -1 never). Their own, saved with them.
+var arena_rank := 0
+var arena_defended_day := -1
 ## How far an AI captain's camera shake reaches (full at the camera, none past this).
 const AI_SHAKE_R := 14.0
 

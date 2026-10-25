@@ -124,6 +124,8 @@ func _setup(island) -> void:
 		["court", "the palace court", Vector2(0, -122), 3.0, Vector2(0, -165), 10.0],
 		["throne", "the throne hall", Vector2(0, -162.5), 3.0, Vector2(0, -180), 3.5],
 		["queen", "the Queen on her dais", Vector2(3, -172), 2.0, Vector2(0, -179.5), 2.4],
+		["sand", "on the arena's sand", Vector2(84, -4), 1.7, Vector2(120, 4), 6.0],
+		["stands", "the arena's crowd", Vector2(108, 6), 1.8, Vector2(108, -26), 12.0],
 		["yard", "Gallows Row's yard and its toughs", Vector2(-50.0, 45.0), 2.6, Vector2(-63, 53), 1.0],
 		["inn", "the Crown and Compass", Vector2(-12, 2), 2.4, Vector2(-30, 3), 3.5],
 		["crowd", "the market street at eye height", Vector2(-1.0, 62), 1.7, Vector2(0, 28), 2.0],

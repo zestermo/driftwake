@@ -911,6 +911,36 @@ func _all_rival_gone(key: String) -> void:
 		n.queue_free()
 
 
+
+## (1.21) A bout in the capital's arena for our own captain: the host runs it (ArenaBout); a guest asks the host,
+## sending its own ladder rank (the guest's captain keeps it). `bout_kind` "ladder" or "defend".
+func request_arena(bout_kind: String, at_rank: int) -> void:
+	if is_host() or not active:
+		_start_arena(bout_kind, at_rank, my_id() if active else 1)
+	else:
+		_ask_arena.rpc_id(1, bout_kind, at_rank)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _ask_arena(bout_kind: String, at_rank: int) -> void:
+	if not hosting:
+		return
+	_start_arena(bout_kind, at_rank, multiplayer.get_remote_sender_id())
+
+
+func _start_arena(bout_kind: String, at_rank: int, by: int) -> void:
+	var c: Player = players.get(by) if active else _me()
+	var cap := get_tree().get_first_node_in_group("capital") as Node3D
+	if c == null or cap == null or not cap.has_method("arena_sand"):
+		return
+	ArenaBout.start(c, bout_kind, at_rank, cap, cap.arena_sand())
+
+
+## A bout's end on every screen: the captain it was for is paid and moves up on their own machine.
+func _all_arena_result(key: String, bout_kind: String, at_rank: int, won: bool, roll: int) -> void:
+	ArenaBout.result(_me(), key, bout_kind, at_rank, won, roll)
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func _allr(t: float, method: String, args: Array) -> void:
 	if method.begins_with("_all_"):

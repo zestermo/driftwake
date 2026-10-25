@@ -51,8 +51,8 @@ static func cast() -> Array:
 		{"name": "Joss", "spot": "barrow0", "voice": 1.0, "barks": ["Apples! Pears! A melon you could row home in!", "Fruit for the voyage. Keeps the teeth in your head."]},
 		{"name": "Wynn", "spot": "barrow1", "voice": 1.1, "barks": ["Scarves and shawls, warm for the sea-winds!", "Feel that cloth. Go on. Softer than an Admiralty man's heart."]},
 		{"name": "Dace", "spot": "fish0", "voice": 0.9, "barks": ["Eels! Live eels! Don't touch the bucket.", "The harbour's full of ships and every one of them wants fish."]},
-		{"name": "Crier Maddox", "spot": "arena_crier", "voice": 1.0, "barks": ["Next season, the Grand Arena opens its gates! Champions from every sea!",
-			"Hear ye! The arena seeks fighters! Next season, mind. Today they're still sweeping out the lions.", "Glory, gold and a royal purse! Next season, at the Grand Arena!"]},
+		{"name": "Crier Maddox", "spot": "arena_crier", "voice": 1.0, "barks": ["The Grand Arena is open! Six on the ladder and a champion at the top!",
+			"Hear ye! A purse for every bout! See the Arena Master inside!", "Wooden blades, real bruises! Step onto the sand!"]},
 		{"name": "Doorman Fenwick", "spot": "bank", "voice": 0.85, "barks": ["The Royal Counting House is shut by decree until the new treasurer is sworn in.",
 			"No deposits, no withdrawals, no loitering. Come back when the Crown says so."]},
 		{"name": "Mags", "spot": "inn_patron0", "voice": 1.15, "barks": ["Odile's fish pie. Best thing in the city, and I've eaten at the palace. Once. In the kitchens.", "Don't go down Gallows Row with a full purse. Don't go down it at all."]},
@@ -99,6 +99,9 @@ static func cast() -> Array:
 			"trim_color": GOLD, "hat": "none"}, "barks": ["The King hasn't held court since the spring tides. One wonders. One doesn't say.", "A pirate in the throne hall. How thrilling. How unsanitary."]},
 		{"name": "Sir Tobias Wrexham", "spot": "courtier1", "voice": 0.8, "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.4, 0.3, 0.12), "trim_color": GOLD, "hat": "none"},
 			"barks": ["Her Majesty rules well. Better than some would like.", "Someone took the Queen's signet. In her own palace. Imagine the nerve."]},
+		# 1.21: the arena
+		{"name": "Arena Master Corvin Bale", "spot": "arena_master", "voice": 0.85, "dialogue": "arena", "look": {"body": "masc", "coat": "frock",
+			"coat_color": Color(0.5, 0.12, 0.1), "trim_color": GOLD, "hat": "bicorne", "hat_color": Color(0.1, 0.1, 0.12)}},
 	]
 
 
@@ -318,6 +321,7 @@ func _quests() -> void:
 	_talk(gallows, ledger, locket, invite, pal[0])
 	_talk_docks(manifest, invite)
 	_talk_palace(pal[0], pal[1], pal[2])
+	_talk_arena()
 
 
 ## The docks' and the terrace's talkers: Marta Coyle (her yard), the foreman (his manifest), Lady Halloway (her invitation).
@@ -346,13 +350,13 @@ func _talk_docks(manifest: Dictionary, invite: Dictionary) -> void:
 
 func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary, petition: Dictionary) -> void:
 	var board: Array = []
-	var bnodes := {"start": {"text": "Notices pinned three deep: a reward from the Watch, a lost goat answering to Bartholomew, the arena's season (next spring), a room to let above the bakery.", "choices": board}}
+	var bnodes := {"start": {"text": "Notices pinned three deep: a reward from the Watch, a lost goat answering to Bartholomew, the arena's ladder (fighters wanted), a room to let above the bakery.", "choices": board}}
 	quest_node.post(gallows, board, bnodes)
 	board.append({"text": "Leave it.", "next": "end"})
 	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": bnodes})
 	var smenu := {"text": "Something you need, Captain?", "choices": [{"text": "What's the city like?", "next": "city"}, {"text": "What's down Gallows Row?", "next": "row"}]}
 	var snodes := {"intro": {"text": ["Sergeant Brannoch, the Watch. Welcome to %s." % isl.island_name, "Sheathe that blade inside the walls and we'll get on fine."], "next": "menu"},
-		"menu": smenu, "city": {"text": ["Biggest port in the sea. Market's up the street, palace on the hill, arena east of the plaza. The palace grounds are open to petitioners again; the arena's still shut."], "next": "menu"},
+		"menu": smenu, "city": {"text": ["Biggest port in the sea. Market's up the street, palace on the hill, arena east of the plaza. The palace grounds are open to petitioners again; the arena's open at last."], "next": "menu"},
 		"row": {"text": ["The slums, west off the market street. There's a yard at the end the toughs have taken. I've a notice up on the board, if you've the stomach."], "next": "menu"}}
 	quest_node.report(gallows, smenu["choices"], snodes)
 	smenu["choices"].append({"text": "Goodbye.", "next": "end"})
@@ -378,7 +382,7 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	var inodes := {"intro": {"text": ["Welcome to the Crown and Compass! Best beds in the capital and the only honest wine."], "next": "menu"}, "menu": imenu,
 		"eat": {"text": ["Fish pie, stew, whatever's in the pot. Sit, sit."], "event": "shop:" + _key("inn"), "next": "end"},
 		"room": {"text": ["Rest at the door whenever you like. A bed, a bath, and I'll keep your things dry."], "next": "menu"},
-		"news": {"text": ["The arena opens next season, they say. Half the sea's coming to fight in it.", "And the palace has been shut a month. Nobody's seen the king since the spring tides. Don't repeat that."], "next": "menu"}}
+		"news": {"text": ["The arena's open at last. Half the sea's come to fight in it.", "And the palace has been shut a month. Nobody's seen the king since the spring tides. Don't repeat that."], "next": "menu"}}
 	quest_node.hand_over(invite, imenu["choices"], inodes)
 	imenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("inn"), {"speaker": "Odile Marchbank", "voice": 1.1, "start": "intro", "return": "menu", "nodes": inodes})
@@ -467,3 +471,39 @@ func _talk_palace(petition: Dictionary, signet: Dictionary, audience: Dictionary
 	quest_node.hand_over(audience, qmenu["choices"], qnodes)
 	qmenu["choices"].append({"text": "Your Majesty.", "next": "end"})
 	Dialogue.define(_key("queen"), {"speaker": "Queen Ilsabet", "voice": 1.0, "start": "intro", "return": "menu", "nodes": qnodes})
+
+
+## The arena master (1.21): your ladder's next fighter and their purse (by your own captain's rank: each captain's
+## own), the title's defence once a day after, and the bout asked for through Net (the host runs it).
+func _talk_arena() -> void:
+	var me := func() -> Player: return get_tree().get_first_node_in_group("player") as Player
+	var amenu := {"text": "Here to fight, or to watch?", "choices": []}
+	var anodes := {"intro": {"text": ["Corvin Bale, Master of the Grand Arena. Six fighters on the ladder, a champion at the top, and a purse for every bout.",
+		"Wooden blades, nobody dies, and the crowd decides who's a hero. Usually the one still standing."], "next": "menu"}, "menu": amenu}
+	for i in range(ArenaBout.FIGHTERS.size()):
+		var at := i
+		amenu["choices"].append({"text": "Fight %s (%d gold)" % [ArenaBout.fighter_name("ladder", i), ArenaBout.purse("ladder", i)], "next": "fight%d" % i,
+			"if": func(): return me.call() != null and int(me.call().arena_rank) == at})
+		anodes["fight%d" % i] = {"text": ["%s! On the sand!" % ArenaBout.fighter_name("ladder", i).get_slice(",", 0), "Out you go, Captain. They're waiting."],
+			"event": "arena:ladder:%d" % i, "next": "end"}
+	amenu["choices"].append({"text": "Defend my title (%d gold)" % ArenaBout.DEFEND_PURSE, "next": "defend",
+		"if": func(): return me.call() != null and int(me.call().arena_rank) >= ArenaBout.FIGHTERS.size() and int(me.call().arena_defended_day) != int(Weather.day())})
+	anodes["defend"] = {"text": ["A challenger, fresh off the boat, and they want your crown. On the sand, Champion!"], "event": "arena:defend:%d" % ArenaBout.FIGHTERS.size(), "next": "end"}
+	amenu["choices"].append({"text": "Any more challengers today?", "next": "rested",
+		"if": func(): return me.call() != null and int(me.call().arena_rank) >= ArenaBout.FIGHTERS.size() and int(me.call().arena_defended_day) == int(Weather.day())})
+	anodes["rested"] = {"text": ["Not today, Champion. You've had your bout. Come back tomorrow and someone will want your title."], "next": "menu"}
+	amenu["choices"].append({"text": "How does the ladder work?", "next": "how"})
+	anodes["how"] = {"text": ["Six fighters, weakest first. Beat one and the next will see you. Lose and you can try again whenever you like.",
+		"Beat the Champion and the title's yours: the purse, the Champion's Sabre, and a challenger a day after that."], "next": "menu"}
+	amenu["choices"].append({"text": "Just watching.", "next": "end"})
+	Dialogue.define(_key("arena"), {"speaker": "Arena Master Corvin Bale", "voice": 0.85, "start": "intro", "return": "menu", "nodes": anodes})
+	if not Dialogue.dialogue_event.is_connected(_on_arena_event):
+		Dialogue.dialogue_event.connect(_on_arena_event)
+
+
+## "arena:<kind>:<rank>" from the master's talk: the bout asked of the host.
+func _on_arena_event(ev: String) -> void:
+	if not ev.begins_with("arena:") or not is_inside_tree():
+		return
+	var parts := ev.split(":")
+	Net.request_arena(parts[1], int(parts[2]))
