@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.20",
+	"here": "1.21",
 	"versions": [
 		{
 			"v": "0.1",
@@ -708,17 +708,43 @@
 		{
 			"v": "1.21",
 			"name": "Cities",
-			"status": "building",
-			"headline": "The First Sea's first real cities: the royal capital and the canal city.",
-			"img": "capital",
-			"alt": "The royal capital's harbour and rooftops climbing to the palace (an early look, v1.18.1)",
-			"plan": [
-				["The royal capital", "A grand port with a palace on the heights, big markets and streets full of people."],
-				["The canal city", "A city on the water, crossed by canals and bridges, with a shipyard."]
+			"date": "2026-10-25",
+			"status": "shipped",
+			"headline": "The royal capital opened up, a canal city of shipbuilders, the caravel, the Grand Arena and a new sky.",
+			"img": "canal_piazza",
+			"alt": "The canal city's piazza: café tables under umbrellas, a bell tower and a domed church",
+			"shots": [
+				["canal_dusk", "A canal at dusk: lit windows along the houses, a gondola moored at the walkway"],
+				["capital-plaza", "The royal capital's plaza and market"],
+				["sky_sunset", "Sunset clouds glowing orange and violet over the sea"]
+			],
+			"news": "/news/v1-21-cities/",
+			"github": true,
+			"added": [
+				["The capital", "The docks, the noble quarter's terrace, the palace's court and throne hall, the Queen's errands."],
+				["The Grand Arena", "A one-on-one ladder of six fighters, the Champion's title and Sabre."],
+				["The canal city", "Canals, bridges, water taxis, a market, a glassworks and the arsenal."],
+				["The caravel", "A second ship to buy and sail; the sloop laid up with her upgrades."],
+				["Harbour vendors", "Ship services by the pier at about half the chain's ports."],
+				["Lived-in cities, a new sky", "Smoke, pigeons, lanterns and busier lanes; rolling clouds and light under water."]
 			]
 		},
 		{
 			"v": "1.22",
+			"name": "Crews and Parties",
+			"status": "building",
+			"headline": "Crews of up to five, a party you can see at a glance, quests the whole crew shares, and better maps.",
+			"img": "capital-plaza",
+			"alt": "The royal capital's plaza and market (current build)",
+			"plan": [
+				["Crews of five", "Up to five captains sailing together."],
+				["A party you can see", "Who's where, their health and what they're doing, at a glance."],
+				["Shared quests", "Quests the whole crew takes and turns in together."],
+				["Maps and markers", "Clearer maps and quest markers."]
+			]
+		},
+		{
+			"v": "1.23",
 			"name": "Combat and Gear",
 			"status": "planned",
 			"headline": "Every weapon polished, new weapon kinds, and armour and clothes with stats.",
@@ -731,7 +757,7 @@
 			]
 		},
 		{
-			"v": "1.23",
+			"v": "1.24",
 			"name": "Strongholds and Driftfruits",
 			"status": "planned",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",

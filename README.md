@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.20-e0b040" alt="Version 1.20">
+  <img src="https://img.shields.io/badge/version-1.21-e0b040" alt="Version 1.21">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,18 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.21); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.21: Cities (October 25, 2026)
+The royal capital opened up: a warehouse row down to the docks (Marta Coyle's shipwright's yard, a chandler, a
+fence), a garden terrace and an outfitter under the palace wall, and the palace itself, its court and throne hall,
+Queen Ilsabet and the Lord Chamberlain's errands. The Grand Arena's one-on-one ladder: six fighters, nonlethal bouts,
+a purse for every win, the Champion's title and Sabre. The canal city, a lagoon city of shipbuilders down the chain,
+with canals, bridges, water taxis, a market, a glassworks, an inn and the arsenal, where Master Grane builds the
+caravel (faster, quicker to turn, a bow chaser and a bigger hold; a lighter hull, no quarterdeck guns; the sloop laid
+up with her upgrades). Harbour vendors at about half the chain's ports. Both cities lived in (chimney smoke, pigeons,
+lanterns, ivy, busier lanes) and a new sky of rolling clouds, with light shafts under water. Everything from the
+v1.20.1-1.20.5 unstable builds.
 
 ### v1.20.5: Lived-in Cities and a New Sky (October 25, 2026), unstable
 Both cities warmer and busier. Smoke rises from their chimneys (the capital's houses have chimneys now), pigeons peck
