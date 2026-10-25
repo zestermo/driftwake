@@ -203,6 +203,8 @@ func host_game(port: int = DEFAULT_PORT) -> int:
 	ship_owner = 1
 	roster = {1: my_info.duplicate(true)}
 	world_ready = false
+	# the Captain: on the crew's roster first
+	crew_member(_player_info())
 	# hosting from inside a running game (pause menu)
 	var gm := get_node_or_null("/root/GameManager")
 	if gm and gm.player and is_instance_valid(gm.player) and gm.player.is_inside_tree():
@@ -444,6 +446,7 @@ func _in_world(info: Dictionary) -> void:
 		spot = lp.global_position + lp.global_basis.x * 1.5 + Vector3.UP * 0.3
 	_place.rpc_id(id, spot)
 	_rescale_enemies()
+	crew_member(info)
 	roster_changed.emit()
 	var nm := str(info.get("name", "A captain"))
 	get_tree().call_group("hud", "show_toast", "%s came aboard" % nm)
@@ -911,6 +914,67 @@ func _all_rival_gone(key: String) -> void:
 	if n and n.is_in_group("rivals"):
 		n.queue_free()
 
+
+
+# --------------------------------------------------------------------------
+# The crew (1.22): its name and everyone who's sailed in this world, the host's; the host decides, everyone applies
+# --------------------------------------------------------------------------
+## (host) A captain aboard (`info`: net_info, "char" its save's id): onto the roster, or seen again today.
+func crew_member(info: Dictionary) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	if gm == null or (active and not hosting):
+		return
+	var key := str(info.get("char", ""))
+	if key == "":
+		key = "name:" + str(info.get("name", "?"))
+	var wx := get_node_or_null("/root/Weather")
+	var members: Dictionary = gm.crew.get("members", {})
+	members[key] = {"name": str(info.get("name", "A captain")), "seen": int(wx.day()) if wx else 0}
+	gm.crew["members"] = members
+	if active:
+		everyone("_all_crew", [gm.crew.duplicate(true)])
+
+
+## The crew's name: the Captain's to change (a guest's ask goes nowhere).
+func crew_rename(new_name: String) -> void:
+	if active and not hosting:
+		return
+	var gm := get_node_or_null("/root/GameManager")
+	if gm == null:
+		return
+	gm.crew["name"] = new_name.strip_edges().left(28).strip_edges()
+	if active:
+		everyone("_all_crew", [gm.crew.duplicate(true)])
+	roster_changed.emit()
+
+
+## The crew's name to show: its own, or "<the Captain>'s Crew".
+func crew_name() -> String:
+	var gm := get_node_or_null("/root/GameManager")
+	var nm := str(gm.crew.get("name", "")) if gm else ""
+	if nm != "":
+		return nm
+	var cap := str(roster.get(1, {}).get("name", "")) if active else ""
+	if cap == "" and local_player and is_instance_valid(local_player) and local_player.has_method("display_name"):
+		cap = str(local_player.display_name())
+	return "%s's Crew" % (cap if cap != "" else "The Captain")
+
+
+## (host) The Captain sends a crewmate home.
+func kick(id: int) -> void:
+	if not hosting or id == 1 or not roster.has(id):
+		return
+	_rejected.rpc_id(id, "The Captain sent you ashore")
+	get_tree().create_timer(0.3).timeout.connect(func():
+		if _peer and roster.has(id):
+			_peer.disconnect_peer(id))
+
+
+func _all_crew(c: Dictionary) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	if gm:
+		gm.crew = c.duplicate(true)
+	roster_changed.emit()
 
 
 ## (1.21) A bout in the capital's arena for our own captain: the host runs it (ArenaBout); a guest asks the host,
@@ -2070,6 +2134,7 @@ func _world_state() -> Dictionary:
 		"chain": [gm.chain_seed, gm.chain_at, gm.chain_set, gm.chain_since] if gm else [],
 		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else [],
 		"journal": Journal.to_dict(),
+		"crew": gm.crew.duplicate(true) if gm else {},
 		"lash": [ship.lashed, ship.lash_heading] if ship else [false, 0.0]}
 
 
@@ -2122,6 +2187,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 		MapFog.take_spots(gm, state["fog"][1])
 		world_synced = true
 	Journal.from_dict(state["journal"])
+	if gm and state.has("crew"):
+		gm.crew = (state["crew"] as Dictionary).duplicate(true)
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():
 		var s := node_of(str(k))

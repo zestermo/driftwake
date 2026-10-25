@@ -81,6 +81,11 @@ static func migrate() -> void:
 		DirAccess.rename_absolute(ProjectSettings.globalize_path(LEGACY_PATH), ProjectSettings.globalize_path(slot_path(1)))
 
 
+## This save's character id ("" if it has none yet): what the crew's roster knows a captain by.
+static func char_id() -> String:
+	return str(_read(path()).get("char_id", ""))
+
+
 static func _read(file_path: String) -> Dictionary:
 	if not FileAccess.file_exists(file_path):
 		return {}
@@ -277,6 +282,7 @@ static func save(player: Player) -> bool:
 		"world_flags": gm.world_flags.keys() if gm else [],
 		"fruit_claims": gm.fruit_claims.duplicate() if gm else {},
 		"rivals": gm.rivals.duplicate(true) if gm else {},
+		"crew": gm.crew.duplicate(true) if gm else {},
 		"ship_kit": gm.ship_kit.duplicate() if gm else {},
 		"chain_seed": gm.chain_seed if gm else 0,
 		"chain_at": gm.chain_at if gm else -1,
@@ -293,7 +299,7 @@ static func save(player: Player) -> bool:
 	if _guest(player):
 		# keep our own world's state, not the host's
 		# (and our own ship's storage and our grave, in our own world)
-		for k in ["journal", "burned", "world_flags", "fruit_claims", "rivals", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave", "fog"]:
+		for k in ["journal", "burned", "world_flags", "fruit_claims", "rivals", "crew", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave", "fog"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -406,6 +412,7 @@ static func load_into(player: Player) -> bool:
 			MapFog.unpack(gm, data.get("fog", {}))
 			gm.fruit_claims = (data.get("fruit_claims", {}) as Dictionary).duplicate()
 			gm.rivals = (data.get("rivals", {}) as Dictionary).duplicate(true)
+			gm.crew = (data.get("crew", {"name": "", "members": {}}) as Dictionary).duplicate(true)
 			Journal.from_dict(data.get("journal", {}))
 			gm.ship_kit = ShipKit.merged(data.get("ship_kit", {}))
 			# (a save from before the chain keeps the seed this session rolled)

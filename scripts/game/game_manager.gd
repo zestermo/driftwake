@@ -20,6 +20,10 @@ var world_flags: Dictionary = {}
 var rivals: Dictionary = {}
 ## Where rival crews turn up (the host's; its plan is rivals["_plan"]).
 var rival_watch: RivalWatch
+## The crew (1.22, docs/v1_22_plan.md): {"name": the crew's name ("" = "<Captain>'s Crew"), "members": {char id ->
+## {"name", "seen": Weather.day()}}}: everyone who's sailed in this world, the host first. The host's world; the
+## host decides every change (Net: crew_member / crew_rename / kick) and everyone applies it (Net._all_crew).
+var crew: Dictionary = {"name": "", "members": {}}
 ## Treasure maps found in bottles (treasure index -> true) and places put on
 ## the sea chart ("island:<name>", "reef:<i>", ... -> true).
 var maps: Dictionary = {}

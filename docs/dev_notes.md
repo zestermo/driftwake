@@ -6436,3 +6436,9 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   way, from five worlds loading on one machine: watchers knock again when a join times out (like netclient), print a
   line every 20 s, wait longer; the host waits up to 3 min for the last guests; the client's grunt-toughness check
   accepts a scale a step behind the roster (a captain counts once their world's loaded).
+- The crew's data (1.22 piece 1b): `GameManager.crew` {"name", "members": {char id -> {"name", "seen": Weather.day()}}},
+  saved with the host's world (a guest's save keeps its own), sent in `Net._world_state`. The host decides:
+  `Net.crew_member(info)` (the host on hosting, a captain as they come aboard: `net_info` now carries "char",
+  `SaveGame.char_id()`), `Net.crew_rename(name)` (trimmed, 28 at most; the Captain's), `Net.kick(id)` (rejected
+  "The Captain sent you ashore", then disconnected); everyone applies `_all_crew`. `Net.crew_name()`: its name or
+  "<Captain>'s Crew". Test: t/coop/crew_roster (new).

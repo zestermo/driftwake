@@ -538,3 +538,4 @@ scripts/world/far_figures.gd            t/world/far_figures lifetest villagetest
 shaders/world/far_figure.gdshader       t/world/far_figures
 scripts/npc/humanoid.gd                 t/world/far_figures
 scripts/npc/npc.gd                      t/world/far_figures lifetest
+scripts/game/game_manager.gd            t/coop/crew_roster

@@ -2681,7 +2681,7 @@ func display_name() -> String:
 ## Who we are, for the other players (sent when joining).
 func net_info() -> Dictionary:
 	return {"name": display_name(), "look": body_model.look.duplicate(true) if body_model else appearance,
-		"level": progression.level if progression else 1}
+		"level": progression.level if progression else 1, "char": SaveGame.char_id()}
 
 
 ## On our feet (not knocked out, not dead).
