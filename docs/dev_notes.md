@@ -6373,3 +6373,49 @@ fidelity report:
   moving rig animation and the flocks to the GPU (vertex-animated crowds and birds), its own task (gpu-first).
 - Co-op test hardening on the way: nettest board holds its boarders on deck from boarding (under load the late guest
   found them over the side); nettest rival's blow is unblockable with up to three tries (an AI captain guards).
+
+## 2026-10-25: the GPU pass (birds, wind streaks, foam, far townsfolk)
+
+Frames are CPU-bound (1.21 bench: proc_scr ~5 ms, draw ~4.3 ms of main thread, GPU ~3 ms), so per-frame animation
+moved into vertex shaders; the CPU now writes a row only when something is born, joins or changes.
+- **High flocks** (SkyBirds WHEEL / VEE: the dark flocks and vultures): their paths were already sums of the clock
+  (`_target`), so a flock bird on its path (within ON_PATH) joins a second MultiMesh ("Flocks",
+  shaders/world/sky_flock.gdshader) with a 16-float row in a 4 x MAX RGBAF texture (centre, height, angle at clock 0,
+  angular speed, radius, seed; a V's rank offsets; size, wingbeat, glide rule). The shader places it, heads it along
+  the path, banks it by the turn rate and pitches it with the climb (the path a moment either side), and beats or
+  glides the wings by `_wings`' rule. The flock and circle angles are now `a + w * (t - t0)` (`_ang`, no per-frame
+  `_advance`). A GPU bird comes back to the CPU (`_off_gpu`, where its path has it, flying on) only to leave for the
+  night or a storm or when its island's let go; `where(b)` is a bird's live spot (a GPU bird's "pos" refreshes once a
+  second). The bird look moved to shaders/sky_bird.gdshaderinc (shared by both shaders).
+- **Wind streaks** (SeaSpray): shaders/world/wind_streaks.gdshader flies a streak along the wind, turns it edge-on to
+  the camera and fades it from its birth time; `_streak()` writes its slot's row once (origin, direction x length,
+  width; custom: born, life, speed) and the buffer goes up only on frames with a birth.
+- **Foam patches** (SeaSpray): shaders/world/sea_foam.gdshader drifts a patch downwind from its birth and rides it on
+  the swell with the ocean's own wave sums (`#include ocean_waves.gdshaderinc`; SeaSpray copies the ocean material's
+  wave uniforms every second, its clock and storm cells every frame), tilted to the slope, fading in and out. No more
+  CPU wave samples for foam; a patch out of reach is let go twice a second (`foam_at`).
+- **Far townsfolk** (FarFigures, scripts/world/far_figures.gd + shaders/world/far_figure.gdshader): a lod rig whose
+  owner allows it (`Humanoid.far_figure`: NPC.setup sets it, so villagers, Brinehollow's folk, the capital's and
+  canal's life, vendors, artisans) hides its body (pivot) past ON_R 40 m (back inside OFF_R 35) and is one instance
+  of a shared MultiMesh of a boxy figure (UV.x = the part) in its look's colours (top/coat, legs, skin, hair/hat:
+  packed 8 bits a channel into exact floats). The shader swings legs (knee bending) and arms in step with the ground
+  covered, bobs it, sits it (thighs forward onto `seat_y`), and slides it on along its heading at its speed between
+  rows (up to 1 s, so a sleeping owner's figure stands still). The rig writes its row only on the frames it would have
+  posed, and not at all while its transform and speed are unchanged (a far villager moves its body every 0.3 s: a
+  row from a stale spot would step it back). Rows go to the server once a frame on RenderingServer.frame_pre_draw,
+  so a swap never blinks. A body was ~19 draws (its shadows already off past 28 m); every figure together is one.
+  Freed on hide (NOTIFICATION_VISIBILITY_CHANGED), leaving the tree, a ragdoll or an action. Kneelers stay bodies.
+  Cosmetic and each screen's own: co-op sends nothing (the bodies' positions are already shared).
+- Tests: t/world/sky_flock_gpu (rows mirror `_target` at any time; hand back on leaving), t/world/far_figures (row,
+  colours, pace, heading, seat; no posing; swap back; freed on hide), t/world/sky_long_tail (a streak's and a foam
+  patch's rows at birth, the foam's uniforms copied from the ocean). Expected to touch skytest (it reads high flock
+  birds' "pos", refreshed once a second), lifetest and villagetest (NPC rigs far off are figures).
+- **Measured** (laptop bench = the 5600G + 3080, gate mode). Back to back on one machine state (a checkout of
+  d6621f0b vs this branch, one run each, bench_compare): ALL 13.66 -> 12.71 ms at 13:00 (-7%), 13.34 -> 12.34 at
+  21:00 (-7.5%); the town stops -9..-15% (proc_scr -10%, Jolt -25%: far bodies' StaticBody/skeleton work gone, GPU
+  -15%); scripts: NPC rigs 0.47 -> 0.36, sky_birds 0.26 -> 0.19 (by day; 0.12 at night), sea_spray 0.16 -> 0.08,
+  arm_body + lower_body 0.35 -> 0.27, folk rigs 0.21 -> 0.17. perf_gate.ps1 (best of 2 vs perf_baseline.txt): PASS,
+  ALL 12.89 -> 12.38 (13:00), 12.87 -> 12.41 (21:00), -4%, with this machine's calib ~3% slower than the baseline's.
+  Not yet the brief's "clearly under 12.3": the near rigs (< 30 m: NPCs, folk, the player, 0.9 ms in the plaza) and
+  `draw` (~4.5 ms, ~1250 draws) are what's left. Next levers: ON_R lower (30 m; a look call for Zach), the skinned
+  limbs' helper bones (ArmBody/LowerBody, 0.27 ms), fewer draws in town.
