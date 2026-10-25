@@ -1,8 +1,8 @@
 extends SceneTree
-## The perf session's long tail kept their look: the sky's birds and the sea's streaks and foam write their
-## MultiMeshes in one buffer a frame (each instance where it is, its wings or colour with it); the foam's height,
-## sampled a third of the patches a frame and carried on between, stays on the swell; DevCapture keeps its
-## movement history with nothing running per tick.
+## The perf session's long tail kept their look: the sky's birds and the sea's foam write their MultiMeshes in one
+## buffer a frame (each instance where it is, its wings or colour with it), a wind streak its row once when it's
+## born (the GPU flies it); the foam's height, sampled a third of the patches a frame and carried on between, stays
+## on the swell; DevCapture keeps its movement history with nothing running per tick.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -71,13 +71,14 @@ func _process(_d: float) -> bool:
 					and is_equal_approx(c.r, b["wing"]) and is_equal_approx(c.g, b["fold"]) and is_equal_approx(c.b, b["paint"])
 			check("...each where it is, turned its way, its wings with it", ok)
 			spray.set_process(false)
-			spray._streaks = [[cam.global_position + Vector3(0, 0, -12), Vector3(1, 0, 0), 4.0, 0.25, 0.5, 18.0, 0.06]]
-			spray._draw(cam)
+			var si: int = spray._streak(cam.global_position + Vector3(0, 0, -12), Vector3(1, 0, 0), 4.0, 0.5, 18.0, 0.06)
 			var sr: PackedFloat32Array = spray.rows[spray._mm]
-			var st := _xf(sr, 0)
-			check("a wind streak where it is, as long as it is, half through its life at its brightest", spray._mm.visible_instance_count == 1
-				and sr.size() == spray.STREAKS * 16 and st.origin.is_equal_approx(cam.global_position + Vector3(0, 0, -12))
-				and st.basis.x.is_equal_approx(Vector3(4, 0, 0)) and is_equal_approx(_extra(sr, 0).a, 0.4))
+			var st := _xf(sr, si)
+			var sc := _extra(sr, si)
+			check("a wind streak born where it is, as long as it is, with its birth, life and speed for the GPU", sr.size() == spray.STREAKS * 16
+				and st.origin.is_equal_approx(cam.global_position + Vector3(0, 0, -12)) and st.basis.x.is_equal_approx(Vector3(4, 0, 0))
+				and is_equal_approx(st.basis.y.length(), 0.06) and is_equal_approx(sc.r, spray._clock) and is_equal_approx(sc.g, 0.5)
+				and is_equal_approx(sc.b, 18.0) and spray._alive(si))
 			spray._foam = []
 			for i in range(12):
 				spray._foam.append([cam.global_position.x + i * 4.0, cam.global_position.z - 20.0, 3.0, 99.0, 1.2, 0.0, Vector3.UP, INF, 0.0, 0.0])

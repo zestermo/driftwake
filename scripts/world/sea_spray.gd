@@ -9,6 +9,8 @@ class_name SeaSpray
 ## thrown high off rocks and cliffs, a slap against a quay, each with its sound.
 ## The foam itself (whitecaps, surf rolling in, the swash) is the ocean shader's;
 ## Weather.whitecaps() drives both. Where the coast is: Ambience's CoastProbe.
+## The streaks fly and fade on the GPU (shaders/world/wind_streaks.gdshader, 2026-10-25): one is written into its
+## slot when it's born and nothing runs for it after.
 
 const STREAKS := 48
 const STREAK_LEN := Vector2(2.5, 5.0)
@@ -23,7 +25,12 @@ const DRIFTS := 5
 const SURF_EVERY := 0.06
 
 var _mm: MultiMesh
-var _streaks: Array = []   # [pos, dir, len, age, life, speed, width]
+var _streak_mat: ShaderMaterial
+## The streaks' clock (the shader's `now`), the next slot to write, and each slot's birth and life.
+var _clock := 0.0
+var _slot := 0
+var _born: PackedFloat32Array = PackedFloat32Array()
+var _life: PackedFloat32Array = PackedFloat32Array()
 var _spawn_acc := 0.0
 var _crest_t := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -56,14 +63,22 @@ func _ready() -> void:
 	tex.gradient = grad
 	tex.width = 32
 	tex.height = 1
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = tex
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	_mm = _multimesh(STREAKS, mat, Vector2.ONE, "WindStreaks")
+	_streak_mat = ShaderMaterial.new()
+	_streak_mat.shader = load("res://shaders/world/wind_streaks.gdshader")
+	_streak_mat.set_shader_parameter("streak", tex)
+	_mm = _multimesh(STREAKS, _streak_mat, Vector2.ONE, "WindStreaks", true)
+	_mm.visible_instance_count = STREAKS
+	var empty := PackedFloat32Array()
+	empty.resize(STREAKS * ROW)
+	for i in range(STREAKS):
+		empty[i * ROW] = 1.0
+		empty[i * ROW + 5] = 1.0
+		empty[i * ROW + 10] = 1.0
+	_mm.buffer = empty
+	rows[_mm] = empty
+	_born.resize(STREAKS)
+	_born.fill(-INF)
+	_life.resize(STREAKS)
 	var foam := StandardMaterial3D.new()
 	foam.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 	foam.alpha_scissor_threshold = 0.5
@@ -96,13 +111,14 @@ func _ready() -> void:
 		_drift.append([p, 0.0])
 
 
-func _multimesh(count: int, mat: Material, size: Vector2, node_name: String) -> MultiMesh:
+func _multimesh(count: int, mat: Material, size: Vector2, node_name: String, custom := false) -> MultiMesh:
 	var quad := QuadMesh.new()
 	quad.size = size
 	quad.material = mat
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
+	mm.use_colors = not custom
+	mm.use_custom_data = custom
 	mm.mesh = quad
 	mm.instance_count = count
 	mm.visible_instance_count = 0
@@ -140,9 +156,9 @@ func _foam_texture() -> ImageTexture:
 func _process(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	var me := get_tree().get_first_node_in_group("player") as Node3D
+	_clock += delta
+	_streak_mat.set_shader_parameter("now", _clock)
 	if cam == null or me == null:
-		_streaks.clear()
-		_draw(null)
 		_foam.clear()
 		_draw_foam()
 		return
@@ -166,8 +182,6 @@ func _process(delta: float) -> void:
 	var high := clampf((me.global_position.y - 2.0) / 14.0, 0.0, 1.0)
 	var strength := clampf(wind * 0.8 + storm * 0.6 + spd / 22.0 + high * 0.5 - 0.3 + gust * 0.35, 0.0, 1.0) * (1.0 - 0.7 * inland)
 	_spawn_streaks(delta, cam, strength, feel, wind + storm + gust * 0.3)
-	_update_streaks(delta)
-	_draw(cam)
 	_crest_t -= delta
 	if _crest_t <= 0.0:
 		_crest_t = 0.12
@@ -186,7 +200,8 @@ func _process(delta: float) -> void:
 # --------------------------------------------------------------------------
 func _spawn_streaks(delta: float, cam: Camera3D, strength: float, dir: Vector3, blow: float) -> void:
 	_spawn_acc += delta * strength * 45.0
-	while _spawn_acc >= 1.0 and _streaks.size() < STREAKS:
+	var any := false
+	while _spawn_acc >= 1.0 and alive() < STREAKS:
 		_spawn_acc -= 1.0
 		var a := _rng.randf() * TAU
 		# (closer than ~9 m a streak fills the view like a beam)
@@ -194,37 +209,46 @@ func _spawn_streaks(delta: float, cam: Camera3D, strength: float, dir: Vector3, 
 		var c := cam.global_position + Vector3(cos(a) * r, _rng.randf_range(-3.0, 4.0), sin(a) * r)
 		c.y = maxf(c.y, 0.6)
 		var d := (dir + Vector3(_rng.randf_range(-0.1, 0.1), _rng.randf_range(-0.04, 0.06), _rng.randf_range(-0.1, 0.1))).normalized()
-		_streaks.append([c, d, _rng.randf_range(STREAK_LEN.x, STREAK_LEN.y), 0.0,
-			_rng.randf_range(STREAK_LIFE.x, STREAK_LIFE.y), _rng.randf_range(14.0, 22.0) * (0.6 + 0.5 * clampf(blow, 0.0, 1.0)),
-			_rng.randf_range(0.045, 0.08)])
+		_streak(c, d, _rng.randf_range(STREAK_LEN.x, STREAK_LEN.y), _rng.randf_range(STREAK_LIFE.x, STREAK_LIFE.y),
+			_rng.randf_range(14.0, 22.0) * (0.6 + 0.5 * clampf(blow, 0.0, 1.0)), _rng.randf_range(0.045, 0.08))
+		any = true
 	_spawn_acc = minf(_spawn_acc, 3.0)
+	if any:
+		_mm.buffer = rows[_mm]
 
 
-func _update_streaks(delta: float) -> void:
-	var keep := 0
-	for s in _streaks:
-		s[3] = float(s[3]) + delta
-		s[0] = (s[0] as Vector3) + (s[1] as Vector3) * float(s[5]) * delta
-		if float(s[3]) < float(s[4]):
-			_streaks[keep] = s
-			keep += 1
-	_streaks.resize(keep)
+## A streak born now at c going d: written into the next free slot's row (sent with the frame's others).
+func _streak(c: Vector3, d: Vector3, length: float, life: float, speed: float, width: float) -> int:
+	var i := _slot
+	for k in range(STREAKS):
+		if not _alive((_slot + k) % STREAKS):
+			i = (_slot + k) % STREAKS
+			break
+	_slot = (i + 1) % STREAKS
+	_born[i] = _clock
+	_life[i] = life
+	var x := d * length
+	var y := (d.cross(Vector3.UP) if absf(d.y) < 0.95 else d.cross(Vector3.RIGHT)).normalized() * width
+	var z := x.cross(y).normalized()
+	var r: PackedFloat32Array = rows[_mm]
+	var o := i * ROW
+	var row := [x.x, y.x, z.x, c.x, x.y, y.y, z.y, c.y, x.z, y.z, z.z, c.z, _clock, life, speed, 0.0]
+	for k in range(ROW):
+		r[o + k] = row[k]
+	return i
 
 
-func _draw(cam: Camera3D) -> void:
-	var n := mini(_streaks.size(), STREAKS)
-	for i in range(n):
-		var s: Array = _streaks[i]
-		var p: Vector3 = s[0]
-		var d: Vector3 = s[1]
-		var to_cam := (cam.global_position - p).normalized() if cam else Vector3.UP
-		var side := d.cross(to_cam).normalized()
-		var k := float(s[3]) / float(s[4])
-		var x := d * float(s[2])
-		var y := side * float(s[6])
-		var z := d.cross(side)
-		_buf.append_array(PackedFloat32Array([x.x, y.x, z.x, p.x, x.y, y.y, z.y, p.y, x.z, y.z, z.z, p.z, 1.0, 1.0, 1.0, 0.4 * sin(PI * k)]))
-	_flush(_mm, STREAKS, n)
+func _alive(i: int) -> bool:
+	return _clock - _born[i] < _life[i]
+
+
+## Streaks in the air now.
+func alive() -> int:
+	var n := 0
+	for i in range(STREAKS):
+		if _alive(i):
+			n += 1
+	return n
 
 
 ## The rows written this frame into `mm`'s buffer in one call ([3x4 transform, colour] each).

@@ -13,7 +13,10 @@ extends Node3D
 ## Cheap: one MultiMesh (one draw call) of at most MAX birds, the wings flapped in
 ## its shader (shaders/sky_bird.gdshader); an island's birds are made when you come
 ## within AWAKE of its coast and freed past SLEEP; those beyond DRAW aren't drawn or
-## steered.
+## steered. The high flocks (wheeling or in a V) fly on the GPU (2026-10-25): their
+## paths are sums of the clock (`_target`), so once a flock bird is on its path it
+## goes into a second MultiMesh (shaders/world/sky_flock.gdshader) with its row of
+## numbers in a small texture, and nothing runs for it here until it has to leave.
 
 const Footsteps := preload("res://scripts/game/footsteps.gd")
 const MAX := 72
@@ -60,6 +63,19 @@ var _frame := 0
 var _buf := PackedFloat32Array()
 var rows := PackedFloat32Array()
 const ROW := 16
+## The flock birds flown on the GPU, in their rows' order; their rows (`flock_rows`, 16 floats each) go to the
+## shader's texture when the set changes.
+var gpu: Array = []
+var flock_rows := PackedFloat32Array()
+var _gpu_dirty := false
+var _flock_mm: MultiMesh
+var _flock_mat: ShaderMaterial
+var _flock_img: Image
+var _flock_tex: ImageTexture
+## A flock bird this near its path (m) is handed to the GPU.
+const ON_PATH := 1.5
+const GLIDE := {GULL: [0.1, 0.5], DARK: [0.4, 0.9], PARROT: [0.0, 0.0], VULTURE: [-0.8, 0.9]}
+const BEAT := {GULL: 17.0, DARK: 30.0, PARROT: 44.0, VULTURE: 9.0}
 
 
 func _ready() -> void:
@@ -82,6 +98,30 @@ func _ready() -> void:
 	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.custom_aabb = AABB(Vector3(-1e5, -1e5, -1e5), Vector3(2e5, 2e5, 2e5))
 	add_child(mmi)
+	# the high flocks: identity instances placed by the shader from their rows in _flock_tex
+	_flock_mat = ShaderMaterial.new()
+	_flock_mat.shader = load("res://shaders/world/sky_flock.gdshader")
+	_flock_mat.set_shader_parameter("draw_r", DRAW)
+	_flock_img = Image.create_empty(4, MAX, false, Image.FORMAT_RGBAF)
+	_flock_tex = ImageTexture.create_from_image(_flock_img)
+	_flock_mat.set_shader_parameter("birds", _flock_tex)
+	_flock_mm = MultiMesh.new()
+	_flock_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_flock_mm.mesh = _mm.mesh
+	_flock_mm.instance_count = MAX
+	var ident := PackedFloat32Array()
+	for i in range(MAX):
+		ident.append_array([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+	_flock_mm.buffer = ident
+	_flock_mm.visible_instance_count = 0
+	var fmi := MultiMeshInstance3D.new()
+	fmi.name = "Flocks"
+	fmi.multimesh = _flock_mm
+	fmi.material_override = _flock_mat
+	fmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	fmi.custom_aabb = mmi.custom_aabb
+	add_child(fmi)
 
 
 ## A gull, 1.3 m across, facing -Z: a body, a tail fan, wings hinged at the
@@ -131,7 +171,7 @@ func _process(delta: float) -> void:
 		_scan_t = 1.0
 		_scan(cam.global_position)
 	_watch_runners(delta)
-	_advance(delta)
+	_flock_mat.set_shader_parameter("now", _t)
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
 	var ship_xf: Transform3D = ship.get_global_transform_interpolated() if ship else Transform3D.IDENTITY
 	var at := cam.global_position
@@ -141,6 +181,11 @@ func _process(delta: float) -> void:
 	var any_dead := false
 	for i in range(birds.size()):
 		var b: Dictionary = birds[i]
+		if b["gpu"]:
+			# (on the GPU until it's to go home for the night or the storm, or its island is let go)
+			if not b["dead"] and float(b["keep"]) < day and b["owner"] != "gone":
+				continue
+			_off_gpu(b)
 		b["acc"] = float(b["acc"]) + delta
 		var to: Vector3 = (b["pos"] as Vector3) - at
 		# behind the camera or past DRAW: flown every UNSEEN_EVERY frames, a turn each; seen past SEEN_NEAR every SEEN_FAR_EVERY
@@ -151,6 +196,9 @@ func _process(delta: float) -> void:
 			_fly(b, float(b["acc"]), at, ship, ship_xf)
 			b["acc"] = 0.0
 			b["row"] = _row(b)
+			if _on_path(b):
+				_on_gpu(b)
+				continue
 		any_dead = any_dead or b["dead"]
 		if b["gone"] or (b["pos"] as Vector3).distance_squared_to(at) > DRAW * DRAW:
 			continue
@@ -163,6 +211,73 @@ func _process(delta: float) -> void:
 	_mm.visible_instance_count = n
 	if any_dead:
 		birds = birds.filter(func(b): return not b["dead"])
+	if _gpu_dirty:
+		_flock_upload()
+
+
+## A flock bird back on its path, in the air and out: it's flown on the GPU from now on.
+func _on_path(b: Dictionary) -> bool:
+	if b["dead"] or b["gone"] or not b["out"] or b["mode"] != b["home"] or not (b["mode"] in [WHEEL, VEE]):
+		return false
+	return (b["pos"] as Vector3).distance_squared_to(_target(b, null, Transform3D.IDENTITY)) < ON_PATH * ON_PATH
+
+
+func _on_gpu(b: Dictionary) -> void:
+	b["gpu"] = true
+	gpu.append(b)
+	_gpu_dirty = true
+
+
+## Back to the CPU where the GPU has it now, going its way (it's to leave, or it's been let go).
+func _off_gpu(b: Dictionary) -> void:
+	b["gpu"] = false
+	gpu.erase(b)
+	_gpu_dirty = true
+	b.erase("row")
+	var dt := 0.1
+	b["pos"] = _target(b, null, Transform3D.IDENTITY)
+	var v := (_target(b, null, Transform3D.IDENTITY, _t + dt) - _target(b, null, Transform3D.IDENTITY, _t - dt)) / (2.0 * dt)
+	b["vel"] = v
+	b["yaw"] = atan2(-v.x, -v.z)
+	b["pitch"] = clampf(v.y * 0.08, -0.5, 0.5)
+	b["bank"] = 0.0
+	b["acc"] = 0.0
+
+
+## The GPU flock birds' rows (sky_flock.gdshader's `birds`) sent in one texture update.
+func _flock_upload() -> void:
+	_gpu_dirty = false
+	flock_rows = PackedFloat32Array()
+	flock_rows.resize(MAX * 16)
+	for i in range(mini(gpu.size(), MAX)):
+		var r := flock_row(gpu[i])
+		for k in range(16):
+			flock_rows[i * 16 + k] = r[k]
+	_flock_img.set_data(4, MAX, false, Image.FORMAT_RGBAF, flock_rows.to_byte_array())
+	_flock_tex.update(_flock_img)
+	_flock_mm.visible_instance_count = mini(gpu.size(), MAX)
+
+
+## A flock bird's row for the shader: its path's numbers (as `_target` sums them), kind and wings.
+func flock_row(b: Dictionary) -> PackedFloat32Array:
+	var f: Dictionary = b["flock"]
+	var kind: int = b["kind"]
+	var c: Vector3 = f["c"]
+	var a0 := float(f["a"]) - float(f["w"]) * float(f["t0"])
+	var g: Array = GLIDE[kind]
+	var tail := [float(SIZE[kind]), float(BEAT[kind]), float(g[0]), float(g[1])]
+	if int(b["mode"]) == VEE:
+		var rank := int(b["rank"])
+		var row := ceili(rank / 2.0)
+		return PackedFloat32Array([c.x, c.y + float(f["h"]), c.z, 1.0, a0, f["w"], f["R"], b["seed"],
+			row * 1.9, row * 1.6 * (1.0 if rank % 2 == 0 else -1.0), b["off"], b["paint"]] + tail)
+	return PackedFloat32Array([c.x, c.y + float(f["h"]) + float(b["ho"]), c.z, 0.0, a0 + float(b["off"]), f["w"], float(f["r"]) + float(b["ro"]), b["seed"],
+		0.0, 0.0, 0.0, b["paint"]] + tail)
+
+
+## A path's angle at clock t (its "a" was taken at "t0", turning "w" a second).
+func _ang(d: Dictionary, t: float) -> float:
+	return float(d["a"]) + float(d["w"]) * (t - float(d["t0"]))
 
 
 ## Birds drawn now (of `kind`, -1 any).
@@ -170,9 +285,14 @@ func shown(kind := -1) -> int:
 	var n := 0
 	var cam := get_viewport().get_camera_3d()
 	for b in birds:
-		if not b["gone"] and (kind < 0 or b["kind"] == kind) and cam and (b["pos"] as Vector3).distance_to(cam.global_position) <= DRAW:
+		if not b["gone"] and (kind < 0 or b["kind"] == kind) and cam and where(b).distance_to(cam.global_position) <= DRAW:
 			n += 1
 	return n
+
+
+## Where bird b is now (a GPU flock bird's "pos" is only brought up to date once a second).
+func where(b: Dictionary) -> Vector3:
+	return _target(b, null, Transform3D.IDENTITY) if b["gpu"] else b["pos"]
 
 
 ## Its MultiMesh row (the buffer's layout: the transform's three rows, then the custom data), made when it flies.
@@ -187,6 +307,9 @@ func _row(b: Dictionary) -> PackedFloat32Array:
 # Who's near: islands, the ship
 # --------------------------------------------------------------------------
 func _scan(cam: Vector3) -> void:
+	# (where the GPU's flock birds are, for shown(), distances and the tests: once a second is plenty)
+	for b in gpu:
+		b["pos"] = _target(b, null, Transform3D.IDENTITY)
 	var wg := get_tree().get_first_node_in_group("world_gen")
 	if wg == null:
 		return
@@ -234,7 +357,7 @@ func _bird(kind: int, owner: String, mode: int, at: Vector3, rng: RandomNumberGe
 		"yaw": rng.randf() * TAU, "pitch": 0.0, "bank": 0.0, "wing": 0.0, "fold": 0.0, "flap": rng.randf() * TAU,
 		"seed": rng.randf() * 100.0, "keep": rng.randf() * 0.98, "out": true, "gone": false, "dead": false,
 		"paint": float(kind) if kind < PARROT else (6.0 if kind == VULTURE else float(rng.randi_range(2, 5))), "call": rng.randf_range(3.0, 15.0),
-		"t": 0.0, "rest": rng.randf_range(5.0, 25.0), "perch": Vector3.INF, "perch_ship": false, "spot": -1, "acc": 0.0}
+		"t": 0.0, "rest": rng.randf_range(5.0, 25.0), "perch": Vector3.INF, "perch_ship": false, "spot": -1, "acc": 0.0, "gpu": false}
 	birds.append(b)
 	return b
 
@@ -258,7 +381,7 @@ func _make_isle(key: String, e: Array) -> void:
 		var c := centre + Vector3(rng.randf_range(-0.4, 0.4) * radius, 0.0, rng.randf_range(-0.4, 0.4) * radius)
 		var ground := _ground(isl, c)
 		var flock := {"c": c, "a": rng.randf() * TAU, "w": rng.randf_range(0.06, 0.12) * (1.0 if rng.randf() < 0.5 else -1.0),
-			"h": ground + rng.randf_range(38.0, 62.0), "r": rng.randf_range(22.0, 40.0), "R": radius * rng.randf_range(0.45, 0.75)}
+			"h": ground + rng.randf_range(38.0, 62.0), "r": rng.randf_range(22.0, 40.0), "R": radius * rng.randf_range(0.45, 0.75), "t0": _t}
 		var vee := rng.randf() < 0.5 and kind == DARK
 		if vee:
 			flock["h"] = maxf(float(flock["h"]), _ground(isl, centre) + 45.0)
@@ -288,6 +411,7 @@ func _make_isle(key: String, e: Array) -> void:
 			b["h"] = rng.randf_range(7.0, 20.0)
 			b["a"] = rng.randf() * TAU
 			b["w"] = rng.randf_range(7.0, 10.0) / float(b["r"]) * (1.0 if rng.randf() < 0.6 else -1.0)
+			b["t0"] = _t
 			b["pos"] = _target(b, null, Transform3D.IDENTITY)
 			if i < 3 and i < spots.size():
 				_take_spot(b, e, i)
@@ -372,6 +496,7 @@ func _ship_gulls(ship: Node3D, land: float) -> void:
 		b["h"] = _rng.randf_range(10.0, 18.0)
 		b["a"] = _rng.randf() * TAU
 		b["w"] = 9.0 / float(b["r"]) * (1.0 if _rng.randf() < 0.5 else -1.0)
+		b["t0"] = _t
 		var away := Vector3(_rng.randf_range(-1, 1), 0.0, _rng.randf_range(-1, 1)).normalized()
 		b["pos"] = ship.global_position + away * 90.0 + Vector3.UP * 30.0
 
@@ -487,33 +612,35 @@ func _fly(b: Dictionary, delta: float, cam: Vector3, ship: Node3D, ship_xf: Tran
 		_cry(b, delta, cam)
 
 
-## Where a bird on a path wants to be now.
-func _target(b: Dictionary, ship: Node3D, ship_xf: Transform3D) -> Vector3:
+## Where a bird on a path wants to be now (or at clock `t`; the high flocks' sums are sky_flock.gdshader's too).
+func _target(b: Dictionary, ship: Node3D, ship_xf: Transform3D, t: float = INF) -> Vector3:
+	if t == INF:
+		t = _t
 	var s := float(b["seed"])
 	match int(b["mode"]):
 		WHEEL:
 			var f: Dictionary = b["flock"]
-			var a := float(f["a"]) + float(b["off"])
-			var r := float(f["r"]) + float(b["ro"]) + sin(_t * 0.37 + s) * 5.0
-			var c: Vector3 = f["c"] + Vector3(sin(_t * 0.05 + s * 0.01) * 18.0, 0.0, cos(_t * 0.043) * 18.0)
-			return c + Vector3(cos(a) * r, float(f["h"]) + float(b["ho"]) + sin(_t * 0.6 + s) * 2.5, sin(a) * r)
+			var a := _ang(f, t) + float(b["off"])
+			var r := float(f["r"]) + float(b["ro"]) + sin(t * 0.37 + s) * 5.0
+			var c: Vector3 = f["c"] + Vector3(sin(t * 0.05 + s * 0.01) * 18.0, 0.0, cos(t * 0.043) * 18.0)
+			return c + Vector3(cos(a) * r, float(f["h"]) + float(b["ho"]) + sin(t * 0.6 + s) * 2.5, sin(a) * r)
 		VEE:
 			var f: Dictionary = b["flock"]
-			var a := float(f["a"])
+			var a := _ang(f, t)
 			var lead: Vector3 = f["c"] + Vector3(cos(a) * float(f["R"]), float(f["h"]), sin(a) * float(f["R"]))
 			var dir := Vector3(-sin(a), 0.0, cos(a)) * signf(float(f["w"]))
 			var side := dir.cross(Vector3.UP)
 			var rank := int(b["rank"])
 			var row := ceili(rank / 2.0)
-			return lead - dir * row * 1.9 + side * row * 1.6 * (1.0 if rank % 2 == 0 else -1.0) + Vector3.UP * (sin(_t * 1.3 + s) * 0.3 + float(b["off"]))
+			return lead - dir * row * 1.9 + side * row * 1.6 * (1.0 if rank % 2 == 0 else -1.0) + Vector3.UP * (sin(t * 1.3 + s) * 0.3 + float(b["off"]))
 		CIRCLE:
 			var c: Vector3 = b["c"] if b["owner"] != "ship" else ship_xf * Vector3(0.0, HullBuilder.MAST_TOP, HullBuilder.MAST_Z)
-			var a := float(b["a"])
-			var r := float(b["r"]) + sin(_t * 0.31 + s) * 4.0
-			return c + Vector3(cos(a) * r, float(b["h"]) * (0.4 if b["owner"] == "ship" else 1.0) + sin(_t * 0.45 + s) * 3.0, sin(a) * r)
+			var a := _ang(b, t)
+			var r := float(b["r"]) + sin(t * 0.31 + s) * 4.0
+			return c + Vector3(cos(a) * r, float(b["h"]) * (0.4 if b["owner"] == "ship" else 1.0) + sin(t * 0.45 + s) * 3.0, sin(a) * r)
 		TRAIL:
 			# astern, weaving over her wake
-			return ship_xf * Vector3(sin(_t * 0.4 + s) * 6.0, 4.0 + sin(_t * 0.7 + s) * 1.5, HullBuilder.STERN_Z + 10.0 + sin(_t * 0.23 + s) * 5.0)
+			return ship_xf * Vector3(sin(t * 0.4 + s) * 6.0, 4.0 + sin(t * 0.7 + s) * 1.5, HullBuilder.STERN_Z + 10.0 + sin(t * 0.23 + s) * 5.0)
 	return b["pos"]
 
 
@@ -530,19 +657,6 @@ func _steer(b: Dictionary, delta: float, tgt: Vector3, top: float) -> void:
 		b["yaw"] = float(b["yaw"]) + turn * minf(6.0 * delta, 1.0)
 		b["bank"] = lerpf(float(b["bank"]), clampf(-turn * 6.0, -0.9, 0.9), minf(4.0 * delta, 1.0))
 	b["pitch"] = lerpf(float(b["pitch"]), clampf(v.y * 0.08, -0.5, 0.5), minf(4.0 * delta, 1.0))
-
-
-## Round its path: the flocks' and circles' angles move on.
-func _advance(delta: float) -> void:
-	var seen := {}
-	for b in birds:
-		if b.has("flock"):
-			var f: Dictionary = b["flock"]
-			if not seen.has(f):
-				seen[f] = true
-				f["a"] = float(f["a"]) + float(f["w"]) * delta
-		elif b.has("w"):
-			b["a"] = float(b["a"]) + float(b["w"]) * delta
 
 
 func _wings(b: Dictionary, delta: float) -> void:

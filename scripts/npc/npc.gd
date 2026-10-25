@@ -59,6 +59,8 @@ func setup(cfg: Dictionary) -> NPC:
 	humanoid = Humanoid.make(cfg.get("look", {}))
 	humanoid.name = "Model"
 	humanoid.lod = true
+	# (far off, one of FarFigures' instances instead of its body)
+	humanoid.far_figure = true
 	humanoid.seated = bool(cfg.get("seated", false))
 	add_child(humanoid)
 	humanoid.rotation.y = _facing

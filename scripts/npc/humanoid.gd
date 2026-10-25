@@ -580,6 +580,68 @@ func _lod_every() -> int:
 	return 3 if d2 < 80.0 * 80.0 else 6
 
 
+## Far off, drawn as a FarFigures instance instead of its body (owners that allow it: NPCs, villagers, folk). Past
+## FarFigures.ON_R from the camera (back inside OFF_R), standing, walking or sat, not mid-action or kneeling.
+var far_figure: bool = false
+var _fig: int = -1
+var _fig_dist: float = 0.0
+var _fig_speed: float = 0.0
+var _fig_at: float = 0.0
+var _fig_paint: Color
+var _fig_xf: Transform3D
+
+
+## Drawn as a figure now (its row written): nothing to pose.
+func _figure(dt: float) -> bool:
+	var cam := _camera()
+	if cam == null:
+		return false
+	var r := FarFigures.OFF_R if _fig >= 0 else FarFigures.ON_R
+	var want := cam.global_position.distance_squared_to(global_position) > r * r and _action.is_empty() and not kneeling \
+		and is_inside_tree()
+	if not want:
+		if _fig >= 0:
+			_figure_off()
+		return false
+	var ff := FarFigures.shared(self)
+	if _fig < 0:
+		_fig = ff.take()
+		if _fig < 0:
+			return false
+		pivot.visible = false
+		_fig_paint = FarFigures.paint_of(look)
+		_fig_dist = float(get_instance_id() % 97) / 97.0 * FarFigures.GAIT
+		_fig_at = ff.now
+		_fig_speed = -1.0
+	var speed := ground_speed if not seated else 0.0
+	# (not moved since the last row: the shader carries it on; an owner far off moves its body only now and then,
+	# and a row written from where it stood then would step it back)
+	if global_transform == _fig_xf and is_equal_approx(speed, _fig_speed):
+		return true
+	_fig_xf = global_transform
+	# (the stride's ground covered at the speed it had, as the shader counted it)
+	_fig_dist += maxf(_fig_speed, 0.0) * minf(ff.now - _fig_at, 1.0)
+	_fig_at = ff.now
+	_fig_speed = speed
+	ff.put(_fig, self, _fig_paint, speed, _fig_dist, seat_y if seated else -1.0)
+	return true
+
+
+func _figure_off() -> void:
+	if _fig < 0:
+		return
+	if FarFigures._it != null and is_instance_valid(FarFigures._it):
+		FarFigures._it.drop(_fig)
+	_fig = -1
+	if pivot != null:
+		pivot.visible = true
+
+
+func _notification(what: int) -> void:
+	if _fig >= 0 and (what == NOTIFICATION_EXIT_TREE or (what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree())):
+		_figure_off()
+
+
 ## A lod rig casts no shadow past this from the camera (m; back on inside SHADOW_R - 4): a body is ~19 parts, so
 ## ~19 shadow draws for a few pixels of shadow at the PS1 grid. Brinehollow's townsfolk were ~300 of the plaza's.
 const SHADOW_R := 28.0
@@ -2808,6 +2870,8 @@ func _process(delta: float) -> void:
 	if _freeze > 0.0:
 		_freeze -= delta
 		return
+	if _fig >= 0 and (ragdoll != null or not far_figure or not lod):
+		_figure_off()
 	if lod and ragdoll == null:
 		_shadow_lod(delta)
 		if _lod_phase < 0:
@@ -2818,6 +2882,8 @@ func _process(delta: float) -> void:
 			return
 		delta = _lod_acc
 		_lod_acc = 0.0
+		if far_figure and _figure(delta):
+			return
 	pose_frame = Engine.get_process_frames()
 	_t += delta
 	# bare-handed fighting: close the hands while the fist stance is up

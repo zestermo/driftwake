@@ -529,3 +529,12 @@ scripts/world/chain.gd                  t/island/fog_isle
 scripts/world/weather.gd                t/swim/dive_shafts
 shaders/world/dive_shafts.gdshader      t/swim/dive_shafts
 shaders/psx/psx_sky.gdshader            r10test t/world/theme_weather
+# --- the GPU pass (2026-10-25): high flocks, wind streaks, far townsfolk on the GPU ---
+scripts/world/sky_birds.gd              t/world/sky_flock_gpu
+shaders/sky_bird.gdshaderinc            skytest t/world/sky_flock_gpu
+shaders/world/sky_flock.gdshader        skytest t/world/sky_flock_gpu
+shaders/world/wind_streaks.gdshader     skytest t/world/sky_long_tail
+scripts/world/far_figures.gd            t/world/far_figures lifetest villagetest
+shaders/world/far_figure.gdshader       t/world/far_figures
+scripts/npc/humanoid.gd                 t/world/far_figures
+scripts/npc/npc.gd                      t/world/far_figures lifetest
