@@ -41,6 +41,8 @@ tools/dev/t/food/*                      t/food
 scripts/items/food.gd                   t/food t/economy
 scripts/ui/galley_screen.gd             t/food
 scripts/island/artisans.gd              t/economy
+scripts/island/harbour_vendor.gd        t/economy/harbour_vendor
+scripts/ui/shipwright_screen.gd         t/economy/harbour_vendor
 scripts/ui/shop_screen.gd               t/economy
 tools/dev/t/fx/*                        t/fx
 tools/dev/t/quests/*                    t/quests

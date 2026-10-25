@@ -20,6 +20,10 @@ var tab: String = "refits"
 ## Whose yard this is (its title and the lines the note says): Tackett's by default.
 var who := "Tackett"
 var _title: Label
+## The lines this yard does (a harbour vendor's few: HarbourVendor), or [] for all of them.
+var only: Array = []
+var _rows: Dictionary = {}
+var _heads: Dictionary = {}
 
 ## [kit key, row name, choices ([name, colour] or names)]
 const LOOKS := [
@@ -97,6 +101,7 @@ func _build_tree() -> void:
 		var ids: Array = ShipLines.ORDER.filter(func(id): return ShipLines.line(id)["group"] == g)
 		var head := UIStyle.label(str(g).to_upper(), 8, UIStyle.ACCENT)
 		head.add_theme_font_override("font", SILK)
+		_heads[g] = head
 		_refits.add_child(head)
 		for i in range(ids.size()):
 			var id: String = ids[i]
@@ -124,6 +129,7 @@ func _build_tree() -> void:
 			b.focus_entered.connect(func(): _describe(id))
 			row.add_child(b)
 			_buy[id] = b
+			_rows[id] = row
 			_refits.add_child(row)
 
 
@@ -341,8 +347,18 @@ func cycle(key: String, step: int = 1) -> void:
 	_refresh()
 
 
-## Whose yard opens next (GameMenu, from the dialogue event "shipwright:<name>"; plain "shipwright" is Tackett's).
-func set_yard(shipwright: String) -> void:
+## Whose yard opens next (GameMenu, from the dialogue event "shipwright:<name>"; plain "shipwright" is Tackett's) and the
+## lines it does ("shipwright:<name>|<line>,<line>": a harbour vendor's, no paint; [] every line).
+func set_yard(shipwright: String, lines: Array = []) -> void:
 	who = shipwright
+	only = lines
+	for id in _rows:
+		(_rows[id] as Control).visible = only.is_empty() or only.has(id)
+	for g in _heads:
+		(_heads[g] as Control).visible = only.is_empty() or ShipLines.ORDER.any(func(id): return only.has(id) and ShipLines.line(id)["group"] == g)
+	if _tabs.has("paint"):
+		(_tabs["paint"] as Control).visible = only.is_empty()
+		if not only.is_empty():
+			show_tab("refits")
 	if _title:
 		_title.text = "%s's Yard" % who

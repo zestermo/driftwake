@@ -75,7 +75,7 @@ func _ready() -> void:
 			var next := _after_talk
 			_after_talk = []
 			if next[0] == "yard":
-				_yard.set_yard(str(next[1]))
+				_yard.set_yard(str(next[1]), next[2] if next.size() > 2 else [])
 			if next[0] == "shop":
 				open_shop.call_deferred(str(next[1]))
 			else:
@@ -175,11 +175,12 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
-## Dialogue events: "shipwright" (Tackett's yard; "shipwright:<name>" another's) and "shop:<id>" open their screen when the
+## Dialogue events: "shipwright" (Tackett's yard; "shipwright:<name>" another's, "shipwright:<name>|<line>,<line>" only those lines) and "shop:<id>" open their screen when the
 ## talk ends; "rumour_king" puts the Sea King's waters on the chart; "learn_black_leg" (Gus) teaches the kicks.
 func _on_dialogue_event(ev: String) -> void:
 	if ev == "shipwright" or ev.begins_with("shipwright:"):
-		_after_talk = ["yard", ev.substr(11) if ev.begins_with("shipwright:") else "Tackett"]
+		var spec := ev.substr(11).split("|") if ev.begins_with("shipwright:") else PackedStringArray(["Tackett"])
+		_after_talk = ["yard", spec[0], Array(spec[1].split(",")) if spec.size() > 1 else []]
 	elif ev == "learn_black_leg":
 		var pl := _player()
 		if pl:

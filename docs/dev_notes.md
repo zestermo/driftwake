@@ -6268,3 +6268,18 @@ fidelity report:
 - **Not done (assumed decision):** wooden practice blades are visual only and not built yet (the small fixes batch).
 - Tests: t/capital/arena (new: the way in, the sand, the podium, the crowd, a ladder win, the champion's prize, a lost
   and a won defence), t/capital (all).
+
+## 2026-10-24: Harbour vendors (1.21 piece 6)
+
+- `HarbourVendor` (scripts/island/harbour_vendor.gd), on the Artisans pattern: about half the chain's generated
+  islands (CHANCE 0.5, the island's seed + SALT 7823: its own stream, nothing else draws differently) have someone by
+  the pier's root (`GenHarbour.at(s, d)`: 4-18 m along the shore, 2.5-9 m up from the water, dry, fairly flat, off
+  the paths; 2.6 m reserved before the plants). Planned in `GenIsland.prepare` after the artisan (body stocked with
+  the villagers'), built in its finish step "vendor" (a crate, a barrel, a glow-only lantern post, the NPC).
+- Kinds: the Caulker (armour, copper), the Gunsmith (guns, chaser), the Sailmaker (sails, nest, ropes), the Joiner
+  (rudder, lanterns, rails), the Carpenter (galley, chest, grove): Tackett's lines and prices, only theirs; and the
+  Chandler, a shop of timber/canvas/iron/copper.
+- The yard filter: dialogue event `shipwright:<name>|<line>,<line>` (GameMenu) -> `ShipwrightScreen.set_yard(who,
+  lines)`: the other rows and empty group heads hidden, no Paint tab. Plain `shipwright` / `shipwright:<name>` show
+  everything again. Refits go through the host like Tackett's (Net.request_upgrade); guests build the same vendor.
+- Tests: t/economy/harbour_vendor (new), t/economy/artisan_camp.
