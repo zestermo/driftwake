@@ -140,7 +140,44 @@ static func _front(mb: MeshBuilder, cols: Array, l: Dictionary, t: Transform3D, 
 			mb.add_blob(PSXMat.flat(Color(0.32, 0.52, 0.28)), dt * Transform3D(Basis(), Vector3(1.0, 0.65, 0.4)), Vector3(0.32, 0.3, 0.32), rng, 0.35, 2, 5)
 		else:
 			mb.add_box(PSXMat.lit("planks"), dt * Transform3D(Basis(), Vector3(-1.3, 0.25, 0.3)), Vector3(1.2, 0.08, 0.36), 1.0, Color(0.8, 0.7, 0.6))
+	_warmth(mb, l, t, w, h, hd, door_x, y0)
 	return {"at": t * Vector3(door_x, P.QUAY_Y, hd + 0.9), "face": _fd(t), "kind": kind}
+
+
+## (1.21's detail pass, its own rng stream so the rest of the front is as it was) a lantern on its bracket by some
+## doors (glowing: lit windows and these warm the lanes at dusk), ivy climbing some fronts from a corner, a pot of
+## geraniums on some doorsteps.
+static func _warmth(mb: MeshBuilder, l: Dictionary, t: Transform3D, w: float, h: float, hd: float, door_x: float, y0: float) -> void:
+	var rng := _rng(int(l["seed"]) + 31)
+	var hw := w * 0.5
+	if rng.randf() < 0.4:
+		var lx := door_x + (1.0 if door_x < 0.0 else -1.0)
+		var lt := t * Transform3D(Basis(), Vector3(lx, y0 + 2.7, hd))
+		var iron := M.mat("iron")
+		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, 0.25, 0.18)), Vector3(0.05, 0.05, 0.36), 1.0, Color.WHITE, false)
+		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, 0.12, 0.34)), Vector3(0.24, 0.05, 0.24), 1.0, Color.WHITE, false)
+		mb.add_box(PSXMat.glow(Color(1.0, 0.78, 0.4), 2.2), lt * Transform3D(Basis(), Vector3(0, -0.06, 0.34)), Vector3(0.18, 0.28, 0.18), 1.0)
+		mb.add_box(iron, lt * Transform3D(Basis(), Vector3(0, -0.23, 0.34)), Vector3(0.22, 0.05, 0.22), 1.0, Color.WHITE, false)
+	if rng.randf() < 0.22:
+		# ivy up from a corner: leafy clumps flat to the wall, thinning as it climbs
+		var side := -1.0 if rng.randf() < 0.5 else 1.0
+		var top := rng.randf_range(0.4, 0.8) * h
+		var leaf := PSXMat.flat(Color.WHITE)
+		var yy := 0.0
+		while yy < top:
+			var k := 1.0 - yy / top * 0.6
+			var x := side * (hw - 0.5 - rng.randf() * 1.6 * k)
+			mb.add_blob(leaf, t * Transform3D(Basis(), Vector3(x, y0 + 0.3 + yy, hd + 0.06)), Vector3(0.55 * k + 0.2, 0.42, 0.12), rng, 0.35, 2, 5, 1.0,
+				Color(0.22, 0.42, 0.2) * rng.randf_range(0.8, 1.15))
+			yy += rng.randf_range(0.35, 0.6)
+	if rng.randf() < 0.35:
+		var px := door_x + (-1.0 if door_x < 0.0 else 1.0) * rng.randf_range(0.95, 1.3)
+		var pt := t * Transform3D(Basis(), Vector3(px, y0, hd + 0.35))
+		mb.add_cylinder(PSXMat.lit("plaster", Color(0.78, 0.46, 0.32)), pt, 0.2, 0.25, 0.42, 6, 1.0)
+		mb.add_blob(PSXMat.flat(Color.WHITE), pt * Transform3D(Basis(), Vector3(0, 0.55, 0)), Vector3(0.28, 0.2, 0.28), rng, 0.35, 2, 5, 1.0, Color(0.3, 0.5, 0.26))
+		for j in range(3):
+			mb.add_blob(PSXMat.flat(Color.WHITE), pt * Transform3D(Basis(), Vector3(-0.12 + j * 0.12, 0.7, rng.randf_range(-0.08, 0.08))), Vector3(0.07, 0.06, 0.07), rng, 0.3, 2, 4, 1.0,
+				FLOWERS[rng.randi() % FLOWERS.size()])
 
 
 # --------------------------------------------------------------------------
@@ -339,6 +376,29 @@ static func _piazza(out: Dictionary) -> void:
 		var lq := Vector2(pz.position.x + 20.0 + i * 40.0, P.FRONT_Z - 2.5)
 		D.lamp_post(mb, cols, lq, y)
 		_light(out, M.v3(lq, y + 3.5), 1.6, 12.0)
+	# (1.21's detail pass) the piazza's middle: a two-tier fountain with benches round it, two flower barrows
+	var fc := pz.get_center()
+	mb.add_cylinder(lime, M.xf(M.v3(fc, y)), 3.2, 3.3, 0.6, 12, 0.6, Color(0.93, 0.91, 0.87), true, false)
+	mb.add_cylinder(PSXMat.flat(Color(0.2, 0.42, 0.44)), M.xf(M.v3(fc, y + 0.5)), 2.9, 2.9, 0.02, 12, 0.6)
+	mb.add_cylinder(lime, M.xf(M.v3(fc, y + 0.5)), 0.45, 0.35, 1.5, 8, 0.6, Color(0.95, 0.93, 0.9))
+	mb.add_cylinder(lime, M.xf(M.v3(fc, y + 1.9)), 0.5, 1.4, 0.35, 10, 0.6, Color(0.95, 0.93, 0.9), true, true)
+	mb.add_cylinder(PSXMat.flat(Color(0.24, 0.48, 0.5)), M.xf(M.v3(fc, y + 2.24)), 1.25, 1.25, 0.02, 10, 0.6)
+	mb.add_cylinder(lime, M.xf(M.v3(fc, y + 2.25)), 0.16, 0.06, 0.9, 6, 0.6, Color(0.95, 0.93, 0.9))
+	M.cyl(cols, M.v3(fc, y), 3.3, 1.0)
+	for k in range(4):
+		var a := PI * 0.25 + k * PI * 0.5
+		var bq := fc + Vector2(cos(a), sin(a)) * 6.2
+		D.absorb(mb, cols, Props.bench(), M.xf(M.v3(bq, y), atan2(fc.x - bq.x, fc.y - bq.y)))
+	for k in range(2):
+		var cq := fc + Vector2(-26.0 + k * 50.0, -12.0 + k * 22.0)
+		var ct := M.xf(M.v3(cq, y), rng.randf() * TAU)
+		mb.add_box(PSXMat.lit("planks", Color(0.7, 0.5, 0.34)), ct * Transform3D(Basis(), Vector3(0, 0.7, 0)), Vector3(1.6, 0.4, 0.9), 1.0)
+		for sx in [-0.9, 0.9]:
+			mb.add_cylinder(M.mat("dark"), ct * Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(sx, 0.35, 0)), 0.35, 0.35, 0.08, 8, 1.0, Color(0.6, 0.45, 0.32))
+		for j in range(10):
+			mb.add_blob(PSXMat.flat(Color.WHITE), ct * Transform3D(Basis(), Vector3(-0.6 + (j % 5) * 0.3, 1.0, -0.2 + (j / 5) * 0.4)), Vector3(0.16, 0.14, 0.16), rng, 0.3, 2, 4, 1.0,
+				FLOWERS[rng.randi() % FLOWERS.size()] if j % 3 != 0 else Color(0.3, 0.5, 0.26))
+		M.box(cols, ct * Transform3D(Basis(), Vector3(0, 0.6, 0)), Vector3(1.9, 1.2, 1.0))
 	for i in range(4):
 		_spot(out, "piazza%d" % i, pz.get_center() + Vector2(-20.0 + i * 12.0, rng.randf_range(-6.0, 6.0)), y, Vector2(0, 1) if i % 2 == 0 else Vector2(1, 0))
 	_piece(out, "Piazza", mb, cols, FAR)
