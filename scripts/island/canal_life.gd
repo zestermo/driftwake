@@ -26,6 +26,28 @@ const LANES := [
 	[[Vector2(134.0, -55.0), Vector2(166.0, -55.0), Vector2(166.0, 0.0)], 3, false],
 ]
 
+## The crowd's lanes (1.21's detail pass): LANES with twice their walkers, and a lane down every calle and quay walk
+## at least 20 m long (a walker per 28 m of it), so the narrow ways have people in them too.
+static func lanes() -> Array:
+	var out: Array = []
+	for l in LANES:
+		out.append([l[0], int(l[1]) * 2, l[2]])
+	for f in CanalPlan.floors():
+		var nm := str(f[0])
+		if nm.begins_with("riva") or nm.ends_with("_campo") or nm.begins_with("piazza"):
+			continue
+		var r: Rect2 = f[1]
+		var along_x := r.size.x >= r.size.y
+		var length := r.size.x if along_x else r.size.y
+		if length < 20.0 or minf(r.size.x, r.size.y) > 6.0:
+			continue
+		var c := r.get_center()
+		var a := Vector2(r.position.x + 1.0, c.y) if along_x else Vector2(c.x, r.position.y + 1.0)
+		var b := Vector2(r.end.x - 1.0, c.y) if along_x else Vector2(c.x, r.end.y - 1.0)
+		out.append([[a, b], maxi(1, int(length / 28.0)), false])
+	return out
+
+
 var isl
 var quest_node: KitQuests
 var people := {}
@@ -58,6 +80,10 @@ static func cast() -> Array:
 		{"name": "Signora Pell", "spot": "piazza2", "voice": 1.15, "barks": ["The bells ring every hour. I've lived here sixty years and they've never once been on time.", "Feed the pigeons and they'll follow you home. Ask me how I know."]},
 		{"name": "Dario", "spot": "piazza3", "voice": 0.95, "barks": ["Best coffee on the riva, and the worst prices. That's how you know it's good.", "Sit. Watch the boats. That's what the piazza's for."]},
 		{"name": "Old Mirto", "spot": "cafe0", "voice": 0.8, "barks": ["I've been sitting at this table since the old Master built his first ship.", "The trick with lagoon wine is to drink it before you taste it."]},
+		{"name": "Nonna Rosa", "spot": "cafe1", "voice": 0.9, "barks": ["Sit, sit. The waiter's slow but the view's free.", "In my day the canals were cleaner. And the boatmen handsomer."]},
+		{"name": "Marco and Ilde", "spot": "cafe2", "voice": 1.0, "barks": ["Our anniversary. Thirty years and he still can't order wine.", "Ask her about the time I fell in the Grand Canal. Go on."]},
+		{"name": "Brother Tadeo", "spot": "cafe4", "voice": 0.85, "barks": ["Father Anselm thinks I'm at prayer. The coffee here is a kind of prayer.", "Bless you, Captain. Now move, you're in my sun."]},
+		{"name": "Ottone the Clerk", "spot": "cafe5", "voice": 0.95, "barks": ["The arsenal's ledgers don't add up. They never have. Nobody minds.", "Ten minutes for lunch. I've been here an hour."]},
 		{"name": "Lena", "spot": "cafe3", "voice": 1.1, "barks": ["The glassworker on the bridge made my earrings. Don't let her charge you full price.", "My brother's a shipwright. Smells of pitch, every day."]},
 	]
 

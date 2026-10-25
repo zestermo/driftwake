@@ -4,7 +4,7 @@
 // air over it until they're left alone, then settle again. Per instance: INSTANCE_CUSTOM x a phase, y its pace.
 // The mesh's head is where z < -0.08 and its wings where |x| > 0.075 (CityPigeons.mesh).
 shader_type spatial;
-render_mode unshaded, cull_disabled, shadows_disabled;
+render_mode cull_disabled, shadows_disabled;
 
 uniform vec4 scare = vec4(0.0, -1000.0, 0.0, 3.5);
 
@@ -44,4 +44,5 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = col;
+	ROUGHNESS = 0.9;
 }

@@ -175,7 +175,7 @@ func _canal_arrays() -> void:
 
 
 func _crowd() -> void:
-	crowd = CapitalCrowd.new().setup(CanalLife.crowd_looks(), CanalLife.LANES, CanalPlan.ground)
+	crowd = CapitalCrowd.new().setup(CanalLife.crowd_looks(), CanalLife.lanes(), CanalPlan.ground)
 	crowd.centre = CapitalModels.v3(Vector2(0, 0), CanalPlan.QUAY_Y)
 	city.add_child(crowd)
 
