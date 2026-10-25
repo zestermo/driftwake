@@ -7,13 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["1.21.1: crews of five", "Up to five captains sail together now. Your crew has a name and a roster of everyone who's sailed with it, saved with the Captain's world: see it under Crew in the pause menu, where the Captain renames the crew, sets its flag and can send a crewmate ashore. The crew's emblem is painted on the main sail, and there are six new emblems: a kraken, a trident, a rose, a sun, a wave and a raven. Tackett's yard at Brinehollow does the basics; the finer refits are first seen at a city's yard. The opening at sea is set aside for now: a new game wakes on the beach."],
-	["The capital opened up", "A warehouse row to the docks with Marta Coyle's shipwright's yard, a chandler and a fence; a garden terrace under the palace wall; the palace open, its throne hall, Queen Ilsabet and her Chamberlain's errands."],
-	["The Grand Arena", "A one-on-one ladder of six fighters on the sand, nonlethal, a purse for every win. Beat the Champion for the title and the Champion's Sabre, then defend it once a day."],
-	["The canal city", "A lagoon city of shipbuilders down the chain: canals, bridges, boatmen to row you between landings, a market, a glassworks, an inn and the arsenal."],
-	["The caravel", "Master Grane builds her at the arsenal: faster and quicker to turn, a bow chaser and a bigger hold, a lighter hull. Your sloop is laid up with her upgrades; swap at a city shipwright."],
-	["Out on the chain", "About half the harbours have a vendor by the pier: a craftsman doing one group of refits, or a chandler."],
-	["Lived-in cities, a new sky", "Chimney smoke, pigeons, lanterns, ivy and busier lanes; rolling clouds that glow at dawn and dusk, and light shafts when you dive."],
+	["Crews of five", "Up to five captains sail together. Your crew has a name and a roster, saved with the Captain's world: the pause menu's Crew screen. Crews you've joined are on the title screen's co-op panel: one click to rejoin."],
+	["Sail as one", "Quest rewards go to the whole crew, wherever they are. The party panel shows where each crewmate is and what they're doing: down (and how far, which way), at the helm, on the guns, in the water."],
+	["Loot worth finding", "Enemies rarely drop things now; chests are rolled for each captain round their island's level, so no two crewmates find the same. Brinehollow's chests are random too. Purple and gold gear only on later islands and from traders."],
+	["Your emblem on the sail", "The crew's emblem on the main sail, and six more emblems. Tackett does the basics; the finer refits are first seen at a city's yard."],
+	["The map", "Pan it with middle mouse. Crewmates named on the chart, the Captain's marks bigger, a legend; on screen, the nearest four marks and the rest counted."],
 ]
 
 

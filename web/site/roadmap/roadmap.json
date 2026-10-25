@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.21",
+	"here": "1.22",
 	"versions": [
 		{
 			"v": "0.1",
@@ -747,21 +747,23 @@
 		{
 			"v": "1.22",
 			"name": "Crews and Parties",
-			"status": "building",
-			"headline": "Crews of up to five, a party you can see at a glance, quests the whole crew shares, and better maps.",
+			"date": "2026-10-25",
+			"status": "shipped",
+			"headline": "Crews of five, a named crew, rewards for everyone, reworked loot and the crew's emblem on the sail.",
 			"img": "capital-plaza",
 			"alt": "The royal capital's plaza and market (current build)",
-			"plan": [
-				["Crews of five", "Up to five captains sailing together."],
-				["A party you can see", "Who's where, their health and what they're doing, at a glance."],
-				["Shared quests", "Quests the whole crew takes and turns in together."],
-				["Maps and markers", "Clearer maps and quest markers."]
+			"github": true,
+			"added": [
+				["Crews of five", "A named crew and roster, the Crew screen, Rejoin crew."],
+				["Sail as one", "Rewards for the whole crew; a party panel that shows who's where."],
+				["Loot reworked", "Rare drops, chests rolled per captain round the island's level."],
+				["The map", "Middle-mouse pan, the crew named, a legend, cleaner markers."]
 			]
 		},
 		{
 			"v": "1.23",
 			"name": "Combat and Gear",
-			"status": "planned",
+			"status": "building",
 			"headline": "Every weapon polished, new weapon kinds, and armour and clothes with stats.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",

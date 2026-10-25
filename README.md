@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.21-e0b040" alt="Version 1.21">
+  <img src="https://img.shields.io/badge/version-1.22-e0b040" alt="Version 1.22">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,18 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.21); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.22); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.22: Crews and Parties (October 25, 2026)
+Crews of up to five captains. A named crew saved in the host's world with a roster of everyone who's sailed with it
+(the pause menu's Crew screen: its flag and name for the Captain to set, who's aboard with pings and a kick, who's
+sailed with you), and "Rejoin crew" on the title screen. Quest rewards go to the whole crew wherever they are. The
+party panel shows where each crewmate is and what they're doing (down, with distance and bearing; the helm; the guns;
+swimming). Loot reworked: enemies rarely drop things, chests are rolled per captain round their island's level,
+Brinehollow's chests are random, purple and gold gear only on later islands and from traders. The crew's emblem on
+the main sail, six more emblems; Tackett does the basics, the finer refits first at a city. The map pans with middle
+mouse, names the crew, draws the Captain's marks bigger and has a legend; on screen the nearest four marks show.
+Everything from v1.21.1.
 
 ### v1.21.1: Crews of Five (October 25, 2026), unstable
 The first piece of 1.22. Crews of up to five captains. A named crew, saved in the host's world with a roster of
