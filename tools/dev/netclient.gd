@@ -1233,6 +1233,14 @@ func _chain_step() -> void:
 			finish()
 
 
+## A blow on the host's rival through its puppet: unblockable (a captain-style AI guards and parries; what's checked
+## is that the hit reaches the host).
+func _rival_blow(r) -> void:
+	var hd := _hd(20.0)
+	hd.unblockable = true
+	r.hurtbox.take_hit(hd, p)
+
+
 func _hd(dmg: float) -> HitData:
 	var h := HitData.new()
 	h.damage = dmg
@@ -1485,7 +1493,8 @@ func _rival_step() -> void:
 			if not tn.got("rival_report"):
 				return
 			data["rhp"] = float(tn.replies["rival_report"]["hp"])
-			r.hurtbox.take_hit(_hd(20.0), p)
+			data["blows"] = 1
+			_rival_blow(r)
 			go(303)
 		303:
 			if st_t < 0.8:
@@ -1496,7 +1505,13 @@ func _rival_step() -> void:
 			if not tn.got("rival_report"):
 				return
 			var hp := float(tn.replies["rival_report"]["hp"])
-			check("our blow on its puppet reaches the host's rival (%.0f -> %.0f)" % [data["rhp"], hp], hp < float(data["rhp"]))
+			# (an AI captain dodges now and then: a blow mid-roll does nothing, so up to three)
+			if hp >= float(data["rhp"]) and int(data["blows"]) < 3 and is_instance_valid(r):
+				data["blows"] = int(data["blows"]) + 1
+				_rival_blow(r)
+				go(303)
+				return
+			check("our blow on its puppet reaches the host's rival (%.0f -> %.0f, %d blows)" % [data["rhp"], hp, int(data["blows"])], hp < float(data["rhp"]))
 			check("...and it takes us on (its foe: %s)" % tn.replies["rival_report"]["brain_foe"], str(tn.replies["rival_report"]["brain_foe"]) == net.key_of(p))
 			data["php"] = p.health_component.current_health
 			go(305)
