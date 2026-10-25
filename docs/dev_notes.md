@@ -6301,8 +6301,9 @@ fidelity report:
 - Services: the grocer, the fishmonger, Fiore Glass (treasure), Salt's Chandlery (the yard's materials), the inn,
   Master Ottavio Grane at the arsenal (the shipyard, below), Father Anselm, three quests.
 - About 828 lots (449 fronting) and ~765k triangles in all, with visibility ranges; people hide past 230 m (ActorSleep).
-- Tests: t/canal/plan (the plan's invariants), t/canal/city (built: services, people, taxis, walking the riva and a
-  bridge); tools/dev/canalshot.gd renders it.
+- Tests: t/canal/plan (floors apart, bridges land on floors over water, landings at the water, lots off the floors),
+  t/canal/city (built: standing on the riva, canal beds, bridge decks, doors on walkways, people, boatmen, shops,
+  the arsenal, three quests, a taxi ride, the light and surface budgets); tools/dev/canalshot.gd renders it.
 
 ## 2026-10-24: Ship classes and the caravel (1.21 piece 5)
 
