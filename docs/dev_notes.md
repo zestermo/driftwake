@@ -6183,3 +6183,13 @@ fidelity report:
 - **Tools:** `S.tree(parts)` and `S.grove(kinds, n, seed)` in model_samples.gd (modelshot: a big tree whole, a patch on the
   10 m giant grid). genshot seed 1 node 8 is a fog isle (Wraithholm Key).
 - Tests: t/island/fog_isle, t/island/theme_registry, smoketest.
+
+## 2026-10-24: v1.20 perf baseline (Zach: accept and release)
+- prepush -Release failed the gate at 13:00: mean frame 10.33 -> 12.65 ms (+22%; confirmed back to back with the
+  2026-10-15 baseline's commit). Grew most: Brinehollow's townsfolk (brinehollow_folk.gd and their rigs), harbour boats,
+  moored hulls; ship, player and weather a little. Much of it predates 1.20 (the baseline was older than the
+  Brinehollow life work). Zach accepted the numbers for 1.20; `perf_gate.ps1 -Update` rebenched: 12.89 ms (13:00),
+  12.87 ms (21:00), 0.78 ticks a frame.
+- **This baseline was taken on the min-spec PC itself** (Ryzen 5 5600G + RTX 3080), not the laptop: 12.9 ms there is
+  ~77 fps, inside 60 fps. The "<= ~10 ms" target line is the laptop's; compare like with like (calib differs).
+- Open: a perf pass on Brinehollow's folk and boats (lower rates far off, fewer rig updates) as its own task.

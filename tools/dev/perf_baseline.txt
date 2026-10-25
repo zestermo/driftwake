@@ -1,129 +1,176 @@
 # Driftwake performance baseline: tools/dev/perf_gate.ps1 compares a release with it, -Update rewrites it.
 # Brinehollow bench (bench_brinehollow.gd gate: base + probe), per stop the best of 2 runs; ms; ALL = the mean of the stops.
 # Target: ALL frame <= ~10 ms on this laptop keeps the min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow.
-commit 8e7fe774b3a3206ab78d66637df9eeb8c5062212
-taken 2026-10-15 16:10  runs 2
-machine Intel(R) Core(TM) i7-14700HX | NVIDIA GeForce RTX 4060 Laptop GPU | d3d12
-calib 23.65
+commit a077df940db0862a5b3cf9954f99899996c1c1f9
+taken 2026-10-24 20:04  runs 2
+machine AMD Ryzen 5 5600G with Radeon Graphics | NVIDIA GeForce RTX 3080 | d3d12
+calib 23.29
 
 == h13 clear
 stop        frame  frame1t    ticks    draws sh_draws
-beach        8.61     9.76     0.52      706      330
-plaza       10.26    11.15     0.61      765      651
-market      10.21    11.07     0.61      771      636
-quay         9.57    10.26     0.57      724      556
-dock         9.11    10.18     0.55      679      458
-den          8.78     9.90     0.53      649      354
-yard        10.50    11.55     0.63      756      534
-aboard       8.26     9.01     0.50      658      397
-ALL          9.41    10.36     0.57      714      490
+beach       12.57    13.05     0.75      765      284
+plaza       14.18    14.47     0.85      855      748
+market      14.98    15.15     0.90      907      691
+quay        13.26    13.60     0.80      753      553
+dock        12.46    12.94     0.75      747      447
+den         12.43    13.10     0.75      725      267
+yard        12.61    12.98     0.76      892      520
+aboard      12.36    12.80     0.74      728      386
+terrace     12.31    12.74     0.74      803      480
+farm        10.42    10.84     0.63      645      336
+bwalk       13.80    14.08     0.83      945      647
+fight       12.26    12.81     0.74      773      303
+brawl       13.49    13.91     0.81      556      319
+sea          9.74    10.33     0.59      406      112
+storm       10.18    10.76     0.61      408      120
+naval       13.84    14.28     0.83      500      163
+isles       16.60    16.61     1.00      624      668
+village     18.19    18.06     1.09      991      944
+cplaza      12.11    12.45     0.73      406      552
+cmarket     11.75    12.23     0.71      349      502
+cwalk       11.17    11.63     0.67      361      420
+ALL         12.89    13.28     0.78      673      451
 
 == h13 clear scripts (ms: proc per frame + phys per tick, mean of the stops)
-humanoid.gd<-npc.gd                                 0.517
-sky_birds.gd                                        0.255
-humanoid.gd<-player.gd                              0.207
-ship.gd                                             0.173
-pirate_grunt.gd                                     0.169
-ambience.gd                                         0.167
-scuttlebug.gd                                       0.166
-npc.gd                                              0.145
-arm_body.gd                                         0.138
-fauna_spawner.gd                                    0.112
-sea_spray.gd                                        0.105
-player.gd                                           0.102
-lower_body.gd                                       0.101
-actor_sleep.gd                                      0.099
-enemy_ship.gd                                       0.092
-state_machine.gd                                    0.079
-moored_hull.gd                                      0.074
-dev_capture.gd                                      0.069
-sea_features.gd                                     0.066
-player_hud.gd                                       0.066
-dungeon.gd                                          0.058
-scuttlebug_nest.gd                                  0.055
-weather.gd                                          0.054
-ocean_manager.gd                                    0.052
-humanoid.gd<-pirate_grunt.gd                        0.037
-camera_rig.gd                                       0.037
-night_light.gd                                      0.033
-ship_spray.gd                                       0.027
-cannon.gd                                           0.026
-cloud_spawner.gd                                    0.025
-alpha_boar.gd                                       0.025
-grunt_camp.gd                                       0.024
-jam.gd                                              0.021
-canopy_spitter.gd                                   0.020
-beast_arena.gd                                      0.020
-objective_hud.gd                                    0.018
-music.gd                                            0.018
-duel.gd                                             0.018
-brood_cave.gd                                       0.017
-enemy_fleet.gd                                      0.016
-redtide_fort.gd                                     0.015
-sea_legs.gd                                         0.014
-skill_bar.gd                                        0.014
-behemoth.gd                                         0.014
-flicker_light.gd                                    0.014
-rain_fx.gd                                          0.014
-interaction_component.gd                            0.011
+humanoid.gd<-npc.gd                                 0.554
+sky_birds.gd                                        0.302
+humanoid.gd<-player.gd                              0.259
+humanoid.gd<-brinehollow_folk.gd                    0.253
+ship.gd                                             0.242
+arm_body.gd                                         0.192
+brinehollow_folk.gd                                 0.176
+moored_hull.gd                                      0.171
+fauna_spawner.gd                                    0.166
+player.gd                                           0.161
+sea_spray.gd                                        0.155
+lower_body.gd                                       0.145
+actor_sleep.gd                                      0.134
+ambience.gd                                         0.123
+state_machine.gd                                    0.104
+npc.gd                                              0.099
+weather.gd                                          0.098
+scuttlebug.gd                                       0.092
+ocean_manager.gd                                    0.084
+sea_features.gd                                     0.078
+scuttlebug_nest.gd                                  0.078
+player_hud.gd                                       0.077
+pirate_grunt.gd                                     0.073
+enemy_ship.gd                                       0.068
+dungeon.gd                                          0.065
+camera_rig.gd                                       0.062
+night_light.gd                                      0.043
+grunt_camp.gd                                       0.041
+ship_spray.gd                                       0.041
+cloud_spawner.gd                                    0.040
+cannon.gd                                           0.029
+jam.gd                                              0.025
+sea_currents.gd                                     0.025
+beast_arena.gd                                      0.025
+music.gd                                            0.022
+frost_alpha.gd                                      0.022
+sea_legs.gd                                         0.021
+humanoid.gd<-harbour_boat.gd                        0.021
+enemy_fleet.gd                                      0.020
+duel.gd                                             0.020
+flicker_light.gd                                    0.018
+humanoid.gd<-pirate_grunt.gd                        0.018
+chain_swing.gd                                      0.018
+skill_bar.gd                                        0.018
+interaction_component.gd                            0.017
+redtide_fort.gd                                     0.017
+harbour_boat.gd                                     0.017
+brood_cave.gd                                       0.016
+canopy_spitter.gd                                   0.016
+rain_fx.gd                                          0.015
+precip_fx.gd                                        0.015
+perf_monitor.gd                                     0.012
+alpha_boar.gd                                       0.012
+sea_threats.gd                                      0.011
+power_component.gd                                  0.011
+rimeback.gd                                         0.011
+overhead_bar.gd                                     0.010
+game_manager.gd                                     0.010
 
 == h21 clear
 stop        frame  frame1t    ticks    draws sh_draws
-beach        9.39    10.52     0.56      704      422
-plaza        8.01     8.85     0.48      771      772
-market      10.52    11.43     0.63      759      710
-quay         9.88    10.62     0.59      733      702
-dock         9.29    10.13     0.56      691      525
-den          9.04    10.15     0.54      652      488
-yard         9.23    10.29     0.55      722      647
-aboard       8.83     9.64     0.53      672      441
-ALL          9.27    10.20     0.56      713      588
+beach       11.95    12.48     0.72      734      367
+plaza       14.91    15.13     0.89      812      791
+market      13.98    14.26     0.84      892      732
+quay        13.44    13.78     0.81      749      706
+dock        12.23    12.74     0.73      725      516
+den         12.59    13.24     0.75      715      411
+yard        12.75    13.14     0.76      903      672
+aboard      11.93    12.42     0.72      693      413
+terrace     11.82    12.32     0.71      799      487
+farm         8.67     9.14     0.52      603      287
+bwalk       13.09    13.46     0.79      905      592
+fight       12.11    12.69     0.73      752      305
+brawl       13.24    13.67     0.79      692      313
+sea          9.79    10.36     0.59      408      115
+storm       10.39    10.93     0.62      412        0
+naval       13.90    14.28     0.83      534      302
+isles       18.45    18.25     1.11      764      625
+village     18.52    18.36     1.11      982    1,087
+cplaza      13.00    13.28     0.78      406      616
+cmarket     12.26    12.70     0.74      349      534
+cwalk       11.22    11.67     0.67      362      444
+ALL         12.87    13.25     0.77      676      491
 
 == h21 clear scripts (ms: proc per frame + phys per tick, mean of the stops)
-humanoid.gd<-npc.gd                                 0.539
-humanoid.gd<-player.gd                              0.207
-ship.gd                                             0.170
-ambience.gd                                         0.167
-pirate_grunt.gd                                     0.160
-scuttlebug.gd                                       0.159
-arm_body.gd                                         0.143
-npc.gd                                              0.142
-enemy_ship.gd                                       0.128
-sea_spray.gd                                        0.108
-fauna_spawner.gd                                    0.108
-lower_body.gd                                       0.103
-player.gd                                           0.100
-actor_sleep.gd                                      0.099
-sky_birds.gd                                        0.090
-state_machine.gd                                    0.076
-moored_hull.gd                                      0.075
-dev_capture.gd                                      0.069
-sea_features.gd                                     0.066
-player_hud.gd                                       0.064
-dungeon.gd                                          0.058
-weather.gd                                          0.054
-scuttlebug_nest.gd                                  0.052
-ocean_manager.gd                                    0.051
-humanoid.gd<-pirate_grunt.gd                        0.037
-camera_rig.gd                                       0.036
-night_light.gd                                      0.034
-cannon.gd                                           0.028
-ship_spray.gd                                       0.028
-cloud_spawner.gd                                    0.025
-alpha_boar.gd                                       0.025
-grunt_camp.gd                                       0.024
-jam.gd                                              0.021
-beast_arena.gd                                      0.020
-duel.gd                                             0.018
-canopy_spitter.gd                                   0.018
-music.gd                                            0.017
-brood_cave.gd                                       0.017
-objective_hud.gd                                    0.017
-enemy_fleet.gd                                      0.016
-redtide_fort.gd                                     0.015
-sea_legs.gd                                         0.014
-skill_bar.gd                                        0.014
-behemoth.gd                                         0.014
-flicker_light.gd                                    0.013
-rain_fx.gd                                          0.013
-interaction_component.gd                            0.012
+humanoid.gd<-npc.gd                                 0.561
+humanoid.gd<-player.gd                              0.264
+ship.gd                                             0.243
+humanoid.gd<-brinehollow_folk.gd                    0.182
+arm_body.gd                                         0.178
+moored_hull.gd                                      0.169
+fauna_spawner.gd                                    0.165
+player.gd                                           0.162
+sea_spray.gd                                        0.156
+lower_body.gd                                       0.134
+brinehollow_folk.gd                                 0.134
+actor_sleep.gd                                      0.133
+sky_birds.gd                                        0.130
+ambience.gd                                         0.124
+state_machine.gd                                    0.102
+npc.gd                                              0.099
+scuttlebug.gd                                       0.098
+harbour_boat.gd                                     0.098
+weather.gd                                          0.098
+ocean_manager.gd                                    0.082
+scuttlebug_nest.gd                                  0.080
+sea_features.gd                                     0.077
+player_hud.gd                                       0.076
+pirate_grunt.gd                                     0.072
+enemy_ship.gd                                       0.069
+dungeon.gd                                          0.065
+camera_rig.gd                                       0.062
+night_light.gd                                      0.043
+ship_spray.gd                                       0.040
+grunt_camp.gd                                       0.039
+cloud_spawner.gd                                    0.039
+cannon.gd                                           0.029
+jam.gd                                              0.025
+sea_currents.gd                                     0.025
+beast_arena.gd                                      0.024
+alpha_boar.gd                                       0.022
+music.gd                                            0.022
+sea_legs.gd                                         0.021
+enemy_fleet.gd                                      0.020
+duel.gd                                             0.020
+humanoid.gd<-pirate_grunt.gd                        0.019
+chain_swing.gd                                      0.018
+flicker_light.gd                                    0.018
+skill_bar.gd                                        0.018
+precip_fx.gd                                        0.016
+brood_cave.gd                                       0.016
+canopy_spitter.gd                                   0.016
+redtide_fort.gd                                     0.016
+interaction_component.gd                            0.015
+rain_fx.gd                                          0.015
+frost_alpha.gd                                      0.013
+perf_monitor.gd                                     0.012
+power_component.gd                                  0.011
+overhead_bar.gd                                     0.011
+sea_threats.gd                                      0.011
+behemoth.gd                                         0.010
+game_manager.gd                                     0.010
