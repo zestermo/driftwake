@@ -6339,3 +6339,25 @@ fidelity report:
   radiance cubemap pass; one sample toward the sun per step for its shade); the 2D cloud layer and the other looks
   are gone. The 3D puffs (PuffClouds) stay blended and sorted (a dithered try aliased, 1.10's notes; the sort is
   ~600 keys 7 times a second).
+
+## 2026-10-25: The city detail pass (1.21, piece 1.20.5)
+
+- Chimney smoke: `CitySmoke.make(tops, seed)`, one GPUParticles3D per city with every other chimney top as its
+  emission points (an RGBF points texture), FX's dust billboard, 3 puffs a chimney, nothing on the CPU after it's
+  made. The tops are gathered while the builders run: `CanalShell.smoke_tops` (the funnel chimneys) and
+  `CapitalModels.smoke_tops` (new brick stacks, `CapitalModels.stack`, on two houses in three, from their own rng
+  stream), cleared and read in each island's prepare; the "smoke" finish step adds the emitter under the City node.
+- Pigeons: `CityPigeons` (one MultiMesh, scripts/island/city_pigeons.gd + shaders/world/city_pigeons.gdshader):
+  9 birds a flock on the squares (the capital's plaza, the canal city's campi and piazza: `pigeon_flocks()`),
+  pecking, hopping, and lifting off flapping over a captain who walks into them (the local captain's position as a
+  uniform, 7 times a second); lit by the scene (unshaded, they glowed white at dusk). Range 90 m.
+- House fronts' warmth (`CapitalDistrict.warmth`, both cities; own rng stream): a lantern on a bracket by 2 doors in
+  5 (the city's glow material), ivy climbing 1 front in 5 from a corner, a geranium pot on 1 doorstep in 3. On the
+  canal city's walkway houses, the capital's townhouses and warehouses (beside the loading door). Kept in the city's
+  own materials: the capital's district stays under its 420-surface budget (419).
+- The canal city's crowd: `CanalLife.lanes()`, LANES with twice their walkers plus a lane down every calle and quay
+  walk 20 m+ long (one walker per 28 m); four more café regulars (cafe1, 2, 4, 5). The piazza's middle: a two-tier
+  fountain, four benches round it, two flower barrows.
+- Leftover worktrees cleaned (21 landed, clean ones removed with unwork.ps1; kept: three with uncommitted changes,
+  dw_main / dw_ref_* and the app sessions' own).
+- Checked: t/capital, t/canal (all), renders at eye height by day and dusk (canalshot, capitalshot).
