@@ -750,8 +750,9 @@
 			"date": "2026-10-25",
 			"status": "shipped",
 			"headline": "Crews of five, a named crew, rewards for everyone, reworked loot and the crew's emblem on the sail.",
-			"img": "capital-plaza",
-			"alt": "The royal capital's plaza and market (current build)",
+			"img": "crew_sail",
+			"alt": "The crew's sloop under sail, a golden kraken painted on her mainsail",
+			"news": "/news/v1-22-crews-and-parties/",
 			"github": true,
 			"added": [
 				["Crews of five", "A named crew and roster, the Crew screen, Rejoin crew."],
