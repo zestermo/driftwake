@@ -31,7 +31,8 @@ const HEAD := 2.2
 
 ## {"id", "kind", "title", "giver", "giver_i", "isle", "pos", "src", "steps", "reward", "cost", the texts (ask,
 ## plea, accept, decline, taken, remind_choice, remind, done, thanks, favour_ask, favour_thanks, found), and by
-## kind: lost "at" "yaw" "search"; scout "point" "r"; deliver "recipient" "recipient_i" "hand" "got"; clear "clear" "poi"}
+## kind: lost "at" "yaw" "search"; scout "point" "r"; deliver "recipient" "recipient_i" "hand" "got"; clear "clear" "poi"}; and "after" (a
+## quest id: offered only once that one is done)
 var quests: Array = []
 var _marks := {}
 var _people := {}
@@ -99,7 +100,9 @@ func offer(q: Dictionary, menu: Array, nodes: Dictionary) -> void:
 	var id: String = q["id"]
 	var n := "q_" + id
 	var cost: Array = q.get("cost", [])
-	menu.append({"text": q["ask"], "next": n + "_offer", "if": func(): return not Journal.has(id)})
+	# ("after": a quest offered only once that one is done: a chain, the capital's palace line)
+	var after: String = str(q.get("after", ""))
+	menu.append({"text": q["ask"], "next": n + "_offer", "if": func(): return not Journal.has(id) and (after == "" or Journal.is_done(after))})
 	nodes[n + "_offer"] = {"text": q["plea"], "choices": [{"text": q["accept"], "next": n + "_take"}, {"text": q["decline"], "next": "menu"}]}
 	nodes[n + "_take"] = {"text": q["taken"], "event": "isle_q:%s:take" % id, "next": "menu"}
 	menu.append({"text": q["remind_choice"], "next": n + "_remind",

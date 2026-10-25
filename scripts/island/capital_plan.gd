@@ -39,6 +39,12 @@ const HILL_R1 := 112.0
 ## The palace grounds' wall (round the hill) and its gate at the avenue's end.
 const GROUNDS_R := 98.0
 const PALACE_GATE := Vector2(0.0, -67.0)
+## The throne hall (1.21: walked into): its middle, size, wall height and door's width.
+const HALL_C := Vector2(0.0, -171.0)
+const HALL_W := 38.0
+const HALL_D := 22.0
+const HALL_H := 15.0
+const HALL_DOOR := 4.0
 ## The arena (outer walls only in 1.18.1): centre and radii.
 const ARENA_C := Vector2(108.0, 0.0)
 const ARENA_R := Vector2(40.0, 32.0)
@@ -67,6 +73,8 @@ const FLOORS := [
 	["e_postern", Rect2(130.5, 76.0, 5.0, 5.0), "cobbles"],
 	["terrace", Rect2(9.2, -65.0, 92.8, 15.0), "capital_slabs"],
 	["terrace_step", Rect2(7.0, -60.0, 2.2, 10.0), "capital_slabs"],
+	# 1.21 piece 2: the palace court between the wings, from the ring wall's gate to the foot of the porch's steps
+	["palace_court", Rect2(-10.0, -151.8, 20.0, 33.8), "capital_slabs"],
 ]
 ## Ground round the plaza, the avenue and the arena street kept for the district's own buildings (the inn, the
 ## treasure merchant, the guild hall...: piece 2): its lots are marked "keep"; and the temple's, which has none.
@@ -95,6 +103,29 @@ const SPECIAL := {
 	"yardhall": [Rect2(148.0, 44.0, 16.0, 22.0), Vector2(-1, 0)],
 	"outfitter": [Rect2(46.0, -50.0, 16.0, 11.0), Vector2(0, -1)],
 }
+
+
+## The throne hall's floor (and the porch's), over the hilltop.
+static func hall_floor() -> float:
+	return HILL_TOP + 0.8
+
+
+## The floor of a raised building at frame point q (what its people stand on), or -INF: the throne hall's (its dais
+## 0.9 higher), the porch's, the shipwright's hall's plinth (1.21).
+static func raised(q: Vector2) -> float:
+	var hall := Rect2(HALL_C - Vector2(HALL_W, HALL_D) * 0.5, Vector2(HALL_W, HALL_D))
+	if hall.has_point(q):
+		var dais := Rect2(HALL_C.x - 6.0, hall.position.y + 0.8, 12.0, 2.4)
+		return hall_floor() + (0.9 if dais.has_point(q) else 0.0)
+	if Rect2(HILL_C.x - 9.0, HILL_C.y + 5.0, 18.0, 3.4).has_point(q):
+		return hall_floor()
+	var yh: Rect2 = SPECIAL["yardhall"][0]
+	if yh.has_point(q):
+		var top := -INF
+		for p in [yh.position, yh.end, Vector2(yh.position.x, yh.end.y), Vector2(yh.end.x, yh.position.y), yh.get_center()]:
+			top = maxf(top, ground(p))
+		return top
+	return -INF
 
 
 static func special_hit(r: Rect2) -> bool:
@@ -337,6 +368,9 @@ static func openings(all_lots: Array) -> Array:
 
 static func _open(o: Vector2, cells: Array) -> bool:
 	if in_floor(o):
+		return false
+	# (inside the palace grounds' wall it's open ground: no barriers round the palace's floors)
+	if o.distance_to(HILL_C) < GROUNDS_R - 4.0:
 		return false
 	if absf(o.y - WALL_Z) < WALL_T * 0.5 + 0.6 or absf(absf(o.x) - QUAY_END_X) < 1.8:
 		return false

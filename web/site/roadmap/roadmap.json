@@ -630,6 +630,21 @@
 			]
 		},
 		{
+			"v": "1.20.2",
+			"name": "The Palace",
+			"date": "2026-10-24",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The second piece of 1.21: the palace open, its court and throne hall, and the Crown's errands.",
+			"img": "capital",
+			"alt": "The royal capital's harbour and rooftops climbing to the palace (an early look, v1.18.1)",
+			"github": true,
+			"added": [
+				["The palace", "The grounds, the road up, a court between the wings and a throne hall you walk into."],
+				["The Crown's errands", "Three quests for the Lord Chamberlain, ending in an audience with Queen Ilsabet."]
+			]
+		},
+		{
 			"v": "1.20.1",
 			"name": "The Docks and the Terrace",
 			"date": "2026-10-24",

@@ -7,6 +7,7 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
+	["1.20.2: the palace", "The palace opens: up the road through the grounds, through the new gate in its ring wall, into the court between its wings and the throne hall, columns, banners and all. Lord Chamberlain Orme has three errands for a captain who wants an audience: a petition sealed, the Queen's stolen signet found, and the Queen herself. Unstable: tell us what breaks."],
 	["1.20.1: the docks and the terrace", "The capital opens up: a warehouse row to the docks and the wharf, where Marta Coyle runs a shipwright's yard (every refit Tackett does, far from Brinehollow), a chandler sells timber and canvas, and a fence on the wharf pays over the odds for plunder. Up by the palace wall, the noble quarter's garden terrace and Ashgrove & Daughters, outfitters to the court. Two new city quests. Unstable: tell us what breaks."],
 	["Beasts reborn", "Every beast boss and roamer reworked: eight rebuilt bodies with jointed legs that follow the slope, and each beast with its own moves. Big attacks have a readable wind-up and an opening after, and only one move each knocks you down."],
 	["Grounds of their own", "A boss ground for every island type: the jungle canopy, an ice grotto on the snow, a half-buried ruin in the desert, a grove of standing stones in the forest."],

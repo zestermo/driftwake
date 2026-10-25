@@ -100,9 +100,10 @@ func _setup(island) -> void:
 	var ship = get_first_node_in_group("ship")
 	var moor: Array = isl.mooring()
 	ship.place(moor[0], moor[1])
-	# (the captain in the district, out of sight: its people and the toughs wake for a captain nearby)
+	# (the captain in the plaza, unseen: its people and the toughs wake for a captain nearby, and people hide past 230 m
+	# from every captain: the plaza is within that of the throne hall, the docks and the slum alike)
 	var me = get_first_node_in_group("player")
-	me.global_position = isl.city_global(Vector2(-30, 52), CapitalPlan.ground(Vector2(-30, 52)) + 0.3)
+	me.global_position = isl.city_global(Vector2(0, 10), CapitalPlan.ground(Vector2(0, 10)) + 0.3)
 	me.reset_physics_interpolation()
 	me.visible = false
 	shots = [
@@ -120,6 +121,9 @@ func _setup(island) -> void:
 		["docks", "the docks' warehouse row", Vector2(10, 57), 4.0, Vector2(126, 58), 5.0],
 		["wharf", "the wharf and Coyle's yard", Vector2(128, 72), 4.5, Vector2(156, 50), 4.0],
 		["terrace", "the noble quarter's terrace", Vector2(12, -56), 4.0, Vector2(100, -58), 5.0],
+		["court", "the palace court", Vector2(0, -122), 3.0, Vector2(0, -165), 10.0],
+		["throne", "the throne hall", Vector2(0, -162.5), 3.0, Vector2(0, -180), 3.5],
+		["queen", "the Queen on her dais", Vector2(3, -172), 2.0, Vector2(0, -179.5), 2.4],
 		["yard", "Gallows Row's yard and its toughs", Vector2(-50.0, 45.0), 2.6, Vector2(-63, 53), 1.0],
 		["inn", "the Crown and Compass", Vector2(-12, 2), 2.4, Vector2(-30, 3), 3.5],
 		["crowd", "the market street at eye height", Vector2(-1.0, 62), 1.7, Vector2(0, 28), 2.0],

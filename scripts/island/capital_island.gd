@@ -102,6 +102,7 @@ func prepare(n: Dictionary) -> void:
 		{"kind": "landmark", "title": "The Crown and Compass", "at": from_city((CapitalPlan.SPECIAL["inn"][0] as Rect2).get_center() + Vector2(10, 0)), "r": 10.0},
 		{"kind": "landmark", "title": "Coyle's Yard", "at": from_city((CapitalPlan.FLOORS[10][1] as Rect2).get_center()), "r": 12.0},
 		{"kind": "landmark", "title": "The noble quarter", "at": from_city((CapitalPlan.FLOORS[12][1] as Rect2).get_center()), "r": 14.0},
+		{"kind": "landmark", "title": "The throne hall", "at": from_city(CapitalPlan.HALL_C + Vector2(0, CapitalPlan.HALL_D * 0.5 + 4.0)), "r": 12.0},
 	]
 
 
@@ -170,6 +171,10 @@ func city_global(q: Vector2, y: float) -> Vector3:
 ## The walking height: the city's floors where they're laid, else the terrain.
 func hv(p: Vector2) -> float:
 	var q := to_city(p)
+	# (inside a raised building: its floor, not the hill under it)
+	var up := CapitalPlan.raised(q)
+	if up > -INF:
+		return up
 	if CapitalPlan.in_floor(q):
 		return CapitalPlan.ground(q)
 	return height_at(p.x, p.y)

@@ -173,7 +173,8 @@ static func _grounds(out: Array) -> void:
 		var p := P.HILL_C + Vector2(cos(a), sin(a)) * P.GROUNDS_R
 		if P.land_t(p) < -P.SEA_WALL_IN - 1.0:
 			M.round_tower(mb, cols, p, P.ground(p), 3.6, 11.0, true, 6.0)
-	M.gatehouse(mb, cols, M.xf(M.v3(P.PALACE_GATE, P.ground(P.PALACE_GATE))), 18.0, 9.0, 12.0, 5.0, 4.0, 3.8, true)
+	# (open since 1.21: the grounds, the road up and the palace court are walked)
+	M.gatehouse(mb, cols, M.xf(M.v3(P.PALACE_GATE, P.ground(P.PALACE_GATE))), 18.0, 9.0, 12.0, 5.0, 4.0, 3.8, false)
 	var road := [Vector2(0, -72), Vector2(-36, -84), Vector2(30, -100), Vector2(-20, -113), Vector2(0, -120)]
 	var slab := M.mat("slabs")
 	var lime := M.mat("lime")
@@ -188,15 +189,22 @@ static func _grounds(out: Array) -> void:
 		for k in range(steps):
 			var p0 := a.lerp(b, float(k) / steps)
 			var p1 := a.lerp(b, float(k + 1) / steps)
-			var y0 := P.ground(p0) + 0.45
-			var y1 := P.ground(p1) + 0.45
+			# (its ends come down to the ground: no lip to step up at the gate or the top)
+			var y0 := P.ground(p0) + (0.0 if i == 0 and k == 0 else 0.45)
+			var y1 := P.ground(p1) + (0.0 if i == road.size() - 2 and k == steps - 1 else 0.45)
 			mb.add_quad(slab, M.v3(p0 - side * 2.6, y0), M.v3(p0 + side * 2.6, y0), M.v3(p1 + side * 2.6, y1), M.v3(p1 - side * 2.6, y1),
 				Vector2.ZERO, Vector2(2.6, 0), Vector2(2.6, 1.5), Vector2(0, 1.5), Color(0.92, 0.9, 0.86), Vector3.UP)
+			# (walked since 1.21: a slab under each step of the road, its top the road's)
+			var a3 := M.v3(p0, y0)
+			var b3 := M.v3(p1, y1)
+			M.box(cols, Transform3D(Basis.looking_at(b3 - a3, Vector3.UP), (a3 + b3) * 0.5) * Transform3D(Basis(), Vector3(0, -0.2, 0)), Vector3(5.2, 0.4, a3.distance_to(b3) + 0.3))
 			for s: float in [-1.0, 1.0]:
 				var e0: Vector2 = p0 + side * s * 2.85
 				var e1: Vector2 = p1 + side * s * 2.85
 				var mid: Vector2 = (e0 + e1) * 0.5
 				mb.add_box(lime, M.xf(M.v3(mid, (y0 + y1) * 0.5 + 0.1), M.yaw_of(dir)), Vector3(0.45, 1.6, e0.distance_to(e1) + 0.05), 0.6, Color(0.9, 0.88, 0.84))
+				# (the parapets keep the captain on the road: off its side is a drop they couldn't step back up)
+				M.box(cols, M.xf(M.v3(mid, (y0 + y1) * 0.5 + 0.1), M.yaw_of(dir)), Vector3(0.45, 1.6, e0.distance_to(e1) + 0.05))
 			if k % 3 == 1:
 				var cp := p0 + side * (4.4 if k % 2 == 0 else -4.4)
 				M.cypress(mb, M.v3(cp, P.terrain(cp)), rng.randf_range(6.0, 8.5), rng)

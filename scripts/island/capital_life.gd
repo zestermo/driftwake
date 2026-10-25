@@ -38,8 +38,8 @@ static func cast() -> Array:
 				"Everything on this counter came off a ship that didn't come home. Don't ask which."]},
 		{"name": "Sergeant Brannoch", "spot": "gate_guard0", "voice": 0.8, "dialogue": "sergeant", "look": GUARD.merged({"hat": "morion", "body": "masc"}, true)},
 		{"name": "Guard Osric", "spot": "gate_guard1", "voice": 0.9, "look": GUARD, "barks": ["Welcome to the capital. Keep your blade sheathed inside the walls.", "The market's straight up the street. Mind your purse past the alley."]},
-		{"name": "Guard Hale", "spot": "palace_guard0", "voice": 0.85, "look": GUARD, "barks": ["The palace is closed to visitors. By order of the Crown.", "No petitions today. Nor tomorrow, I shouldn't wonder."]},
-		{"name": "Guard Wren", "spot": "palace_guard1", "voice": 1.05, "look": GUARD.merged({"body": "fem"}, true), "barks": ["Halt. Nobody goes up the hill without a royal seal.", "The court sits behind these gates. Not for the likes of us, Captain."]},
+		{"name": "Guard Hale", "spot": "palace_guard0", "voice": 0.85, "look": GUARD, "barks": ["The grounds are open to petitioners. Keep to the road; it's steeper than it looks.", "Petitions to the Lord Chamberlain, in the court at the top."]},
+		{"name": "Guard Wren", "spot": "palace_guard1", "voice": 1.05, "look": GUARD.merged({"body": "fem"}, true), "barks": ["Up the hill, Captain, and mind the edges.", "The court sits at the top. Her Majesty hears petitions, when the Lord Chamberlain allows it."]},
 		{"name": "Ambrose Pell", "spot": "guild", "voice": 0.95, "dialogue": "clerk", "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.22, 0.2, 0.18), "hat": "none", "eyepatch": false}},
 		{"name": "Tobin Rook", "spot": "harbourmaster", "voice": 0.85, "dialogue": "harbour", "look": {"body": "masc", "coat": "longcoat", "coat_color": Color(0.14, 0.18, 0.32), "hat": "tricorn"}},
 		{"name": "Mirela", "spot": "flower", "voice": 1.25, "dialogue": "flower", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "hat": "straw"}},
@@ -86,6 +86,19 @@ static func cast() -> Array:
 		{"name": "Master Lucan Dray", "spot": "noble3", "voice": 0.95, "look": {"body": "masc", "coat": "longcoat", "coat_color": Color(0.36, 0.14, 0.12), "trim_color": GOLD, "hat": "none"},
 			"barks": ["I collect captains' stories. Tell me yours. No? Pity.", "Ashgrove's coats are the only thing in this city worth what they cost."]},
 		{"name": "Guard Ellery", "spot": "terrace_guard", "voice": 0.9, "look": GUARD, "barks": ["The terrace is open to all, Captain. Behave as though it weren't.", "Keep to the paths. The duchess counts her roses."]},
+		# 1.21: the palace
+		{"name": "Queen Ilsabet", "spot": "queen", "voice": 1.0, "dialogue": "queen", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
+			"coat_color": Color(0.32, 0.14, 0.4), "trim_color": GOLD, "hat": "none", "cloak": true, "cloak_color": Color(0.5, 0.1, 0.12)}},
+		{"name": "Lord Chamberlain Orme", "spot": "chamberlain", "voice": 0.85, "dialogue": "chamberlain", "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.12, 0.12, 0.16),
+			"trim_color": GOLD, "hat": "none"}},
+		{"name": "Guard Brisk", "spot": "hall_guard0", "voice": 0.9, "look": GUARD, "barks": ["The throne hall. Mind your manners and your boots.", "Her Majesty hears petitions. Briefly."]},
+		{"name": "Guard Talmadge", "spot": "hall_guard1", "voice": 0.8, "look": GUARD.merged({"hat": "morion"}, true), "barks": ["Hands where I can see them, Captain.", "Nobody draws steel in this hall. Nobody."]},
+		{"name": "Guard Pryce", "spot": "court_guard0", "voice": 0.95, "look": GUARD, "barks": ["The court's this way. The Lord Chamberlain will see you.", "Keep to the paving."]},
+		{"name": "Guard Oakes", "spot": "court_guard1", "voice": 1.0, "look": GUARD.merged({"body": "fem"}, true), "barks": ["Up the steps for the throne hall. Petitions to the Lord Chamberlain first.", "Fine view from up here, isn't it? Don't lean on the wall."]},
+		{"name": "Countess Mireille Dorne", "spot": "courtier0", "voice": 1.15, "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock", "coat_color": Color(0.16, 0.32, 0.36),
+			"trim_color": GOLD, "hat": "none"}, "barks": ["The King hasn't held court since the spring tides. One wonders. One doesn't say.", "A pirate in the throne hall. How thrilling. How unsanitary."]},
+		{"name": "Sir Tobias Wrexham", "spot": "courtier1", "voice": 0.8, "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.4, 0.3, 0.12), "trim_color": GOLD, "hat": "none"},
+			"barks": ["Her Majesty rules well. Better than some would like.", "Someone took the Queen's signet. In her own palace. Imagine the nerve."]},
 	]
 
 
@@ -301,8 +314,10 @@ func _quests() -> void:
 			{"do": "turnin", "goal": "Tell Lady Halloway on the terrace her invitation was taken"}]}
 	invite.merge(common)
 	quest_node.add(invite, isl)
-	_talk(gallows, ledger, locket, invite)
+	var pal := _palace_quests(common)
+	_talk(gallows, ledger, locket, invite, pal[0])
 	_talk_docks(manifest, invite)
+	_talk_palace(pal[0], pal[1], pal[2])
 
 
 ## The docks' and the terrace's talkers: Marta Coyle (her yard), the foreman (his manifest), Lady Halloway (her invitation).
@@ -329,7 +344,7 @@ func _talk_docks(manifest: Dictionary, invite: Dictionary) -> void:
 	Dialogue.define(_key("lady"), {"speaker": "Lady Corisande Halloway", "voice": 1.15, "start": "intro", "return": "menu", "nodes": lnodes})
 
 
-func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary) -> void:
+func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary, petition: Dictionary) -> void:
 	var board: Array = []
 	var bnodes := {"start": {"text": "Notices pinned three deep: a reward from the Watch, a lost goat answering to Bartholomew, the arena's season (next spring), a room to let above the bakery.", "choices": board}}
 	quest_node.post(gallows, board, bnodes)
@@ -337,7 +352,7 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": bnodes})
 	var smenu := {"text": "Something you need, Captain?", "choices": [{"text": "What's the city like?", "next": "city"}, {"text": "What's down Gallows Row?", "next": "row"}]}
 	var snodes := {"intro": {"text": ["Sergeant Brannoch, the Watch. Welcome to %s." % isl.island_name, "Sheathe that blade inside the walls and we'll get on fine."], "next": "menu"},
-		"menu": smenu, "city": {"text": ["Biggest port in the sea. Market's up the street, palace on the hill, arena east of the plaza. Palace and arena are shut to the likes of us, for now."], "next": "menu"},
+		"menu": smenu, "city": {"text": ["Biggest port in the sea. Market's up the street, palace on the hill, arena east of the plaza. The palace grounds are open to petitioners again; the arena's still shut."], "next": "menu"},
 		"row": {"text": ["The slums, west off the market street. There's a yard at the end the toughs have taken. I've a notice up on the board, if you've the stomach."], "next": "menu"}}
 	quest_node.report(gallows, smenu["choices"], snodes)
 	smenu["choices"].append({"text": "Goodbye.", "next": "end"})
@@ -345,6 +360,7 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	var cmenu := {"text": "The guild's business, Captain?", "choices": []}
 	var cnodes := {"intro": {"text": ["Ambrose Pell, clerk to the Merchants' Guild. If you've a cargo to register, the queue starts on the steps."], "next": "menu"}, "menu": cmenu}
 	quest_node.offer(ledger, cmenu["choices"], cnodes)
+	quest_node.hand_over(petition, cmenu["choices"], cnodes)
 	cmenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("clerk"), {"speaker": "Ambrose Pell", "voice": 0.95, "start": "intro", "return": "menu", "nodes": cnodes})
 	var hmenu := {"text": "Berth fees are paid, Captain. Something else?", "choices": [{"text": "Busy harbour.", "next": "busy"}]}
@@ -392,3 +408,62 @@ func _ruffians() -> void:
 	var baker: Node = isl.get_parent().get_node_or_null("NavBaker")
 	if baker:
 		baker.add_zone(camp, YARD_R, false, isl.nav_faces)
+
+
+## The palace's quest line (1.21): three errands for the Lord Chamberlain, each opening after the last ("after"): a
+## petition carried to the Guild for its seal, the Queen's stolen signet found on the wharf, and the audience.
+func _palace_quests(common: Dictionary) -> Array:
+	var petition := {"id": _key("petition"), "kind": "deliver", "giver": "Lord Chamberlain Orme", "src": "npc", "title": "A petition to the Crown",
+		"recipient": "Ambrose Pell", "reward": {"gold": 40},
+		"ask": "I'd like an audience with the Queen.", "plea": ["An audience. Of course you would. Everyone would. Her Majesty sees petitioners with the Merchants' Guild's seal on their petition.",
+			"Here is the form. Take it to the Guild's clerk on the plaza, Ambrose Pell, and have it sealed. Then we shall see."],
+		"accept": "I'll get it sealed.", "decline": "Another time.", "taken": "Pell, at the Guild's hall on the plaza. He will complain. Let him.",
+		"remind_choice": "About my petition...", "remind": ["The Guild's seal, from Ambrose Pell on the plaza. Then come back to me."],
+		"done": "My petition, sealed.", "thanks": ["Sealed, and in a clerk's hand that is almost legible. Very well. Her Majesty may yet see you.", "But first, a delicate matter."],
+		"hand": "A petition for the Guild's seal.", "got": ["A petition to the Crown? From a pirate? I've seen everything now. There. Sealed. Don't tell the Guild I didn't charge you."],
+		"steps": [{"do": "talk", "who": "Ambrose Pell", "goal": "Have Ambrose Pell at the Guild's hall seal your petition", "said": "Sealed. Take it back to the Lord Chamberlain."},
+			{"do": "turnin", "goal": "Bring the sealed petition to the Lord Chamberlain in the palace court"}]}
+	petition.merge(common)
+	var sv: Vector3 = isl.spots["signet"][0]
+	var signet := {"id": _key("signet"), "kind": "lost", "giver": "Lord Chamberlain Orme", "src": "npc", "title": "The Queen's signet", "after": petition["id"],
+		"at": isl.from_city(Vector2(sv.x, sv.z)), "yaw": 0.0, "search": "Open the cellar hatch", "reward": {"gold": 90},
+		"ask": "What delicate matter?", "plea": ["Her Majesty's signet ring was taken from her chamber a week ago. Without it, nothing she signs is law, and some at court like that very much.",
+			"A ring like that can't be sold in a shop. It went to the docks. To the kind of people who don't ask questions. Find it. Quietly."],
+		"accept": "I'll find it.", "decline": "Not my business.", "taken": "Quietly, Captain. If the court hears you're looking, the ring will be at the bottom of the harbour by nightfall.",
+		"remind_choice": "About the signet...", "remind": ["The docks. The wharf at the end of the warehouse row. Someone there buys what can't be sold."],
+		"done": "I found the Queen's signet.", "thanks": ["Under a hatch on the wharf? Of course it was. You have done the Crown a service it will not forget.",
+			"Her Majesty will see you now. Take the ring to her yourself."],
+		"found": "A heavy gold ring with the royal crest, wrapped in a rag under the hatch.",
+		"steps": [{"do": "pickup", "goal": "Find the Queen's signet on the docks' wharf", "said": "The signet, under the fence's hatch. Back to the Lord Chamberlain."},
+			{"do": "turnin", "goal": "Bring the signet back to the Lord Chamberlain"}]}
+	signet.merge(common)
+	var audience := {"id": _key("audience"), "kind": "deliver", "giver": "Lord Chamberlain Orme", "src": "npc", "title": "An audience with the Queen", "after": signet["id"],
+		"recipient": "Queen Ilsabet", "reward": {"gold": 250, "items": [["tonic", 3]]},
+		"ask": "I'm ready to see the Queen.", "plea": ["The throne hall is through the porch. Bow, speak when spoken to, and give Her Majesty her ring with your own hand.",
+			"She has asked to thank you herself. That is rarer than you know."],
+		"accept": "I'll go in.", "decline": "In a moment.", "taken": "Go on, then. And Captain: do try to look less like you came in on a tide.",
+		"remind_choice": "About the audience...", "remind": ["The throne hall, through the porch. The ring, to the Queen's own hand."],
+		"done": "I've seen the Queen.", "thanks": ["She's pleased. I can tell, because she said so, which she never does. The Crown's purse, as she asked. Spend it somewhere I needn't hear about."],
+		"hand": "Your Majesty. Your signet.", "got": ["My signet. Found by a pirate on my own wharf, while my court looked the other way. Thank you, Captain.",
+			"My husband the King is very ill. Some at court would rather he died and I did not rule. With this ring, I rule. Remember that this city owes you one."],
+		"steps": [{"do": "talk", "who": "Queen Ilsabet", "goal": "Give the Queen her signet in the throne hall", "said": "The Queen has her ring. Back to the Lord Chamberlain."},
+			{"do": "turnin", "goal": "Tell the Lord Chamberlain you've seen the Queen"}]}
+	audience.merge(common)
+	for q in [petition, signet, audience]:
+		quest_node.add(q, isl)
+	return [petition, signet, audience]
+
+
+func _talk_palace(petition: Dictionary, signet: Dictionary, audience: Dictionary) -> void:
+	var cmenu := {"text": "The Crown's business. Briefly, please.", "choices": []}
+	var cnodes := {"intro": {"text": ["Aldous Orme, Lord Chamberlain. Every door in this palace opens because I allow it, and most of them don't."], "next": "menu"}, "menu": cmenu}
+	for q in [petition, signet, audience]:
+		quest_node.offer(q, cmenu["choices"], cnodes)
+	cmenu["choices"].append({"text": "Good day, my lord.", "next": "end"})
+	Dialogue.define(_key("chamberlain"), {"speaker": "Lord Chamberlain Orme", "voice": 0.85, "start": "intro", "return": "menu", "nodes": cnodes})
+	var qmenu := {"text": "You may speak, Captain.", "choices": [{"text": "How fares the King?", "next": "king"}]}
+	var qnodes := {"intro": {"text": ["Ilsabet, Queen of this city. You've a petitioner's look, and a sailor's. One of them is honest."], "next": "menu"}, "menu": qmenu,
+		"king": {"text": ["Ill. Since the spring tides. The physicians shake their heads in Latin.", "Until he wakes, I hold the city. Not everyone at court likes that."], "next": "menu"}}
+	quest_node.hand_over(audience, qmenu["choices"], qnodes)
+	qmenu["choices"].append({"text": "Your Majesty.", "next": "end"})
+	Dialogue.define(_key("queen"), {"speaker": "Queen Ilsabet", "voice": 1.0, "start": "intro", "return": "menu", "nodes": qnodes})

@@ -441,25 +441,21 @@ static func palace(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, ground: 
 	var lime := mat("lime")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7741
+	# the ring wall round the hilltop, its points even about the front so its gate (1.21) sits in the gap at the front
 	var ring: Array = []
 	var n := 14
 	for k in range(n + 1):
-		var a := TAU * k / n + 0.11
+		var a := TAU * k / n
 		ring.append(c + Vector2(cos(a), sin(a)) * (CapitalPlan.HILL_R0 - 3.0))
-	wall_run(mb, cols, ring, 7.0, 2.6, ground, low, 7.0)
+	wall_run(mb, cols, ring.slice(0, 4), 7.0, 2.6, ground, low, 7.0)
+	wall_run(mb, cols, ring.slice(4), 7.0, 2.6, ground, low, 7.0)
 	for k in range(n):
+		if k == 3 or k == 4:
+			continue
 		var p: Vector2 = ring[k]
 		round_tower(mb, cols, p, ground.call(p), 3.0, 10.0 + 2.0 * float(k % 2), true, 6.0, k % 2 == 0)
-	var fwd := Vector2(0, 1)
-	var hall := c + Vector2(0, -6)
-	var t := xf(v3(hall, 0.0))
-	facade_box(mb, mat("facade_b"), t, 38.0, 22.0, y0 + 0.8, 15.0, Color(1.0, 0.98, 0.94))
-	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y0 - 1.0 + 0.9, 0)), Vector3(38.6, 3.6, 22.6), 0.5, Color(0.9, 0.88, 0.84), true, true)
-	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y0 + 16.0, 0)), Vector3(39.0, 0.5, 23.0), 0.6, Color(0.92, 0.9, 0.86), false)
-	_hip(mb, t * Transform3D(Basis(), Vector3(0, y0 + 16.2, 0)), 38.0, 22.0, 6.5, 0.4, Color(0.95, 0.88, 0.84))
-	dome(mb, v3(hall, y0 + 19.0), 7.5, 4.0, Color(0.55, 0.62, 0.78))
-	box(cols, t * Transform3D(Basis(), Vector3(0, y0 + 8.0, 0)), Vector3(38.0, 16.0, 22.0))
-	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + 8.3, 0)), Vector3(38.0, 15.0, 22.0))
+	gatehouse(mb, cols, xf(v3(c + Vector2(0, CapitalPlan.HILL_R0 - 3.0), y0)), 14.0, 6.0, 9.0, 4.4, 3.8, 2.4)
+	_throne_hall(mb, cols, y0)
 	for s in [-1.0, 1.0]:
 		var wc := c + Vector2(s * 16.0, 16.0)
 		var wt := xf(v3(wc, 0.0))
@@ -470,21 +466,99 @@ static func palace(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, ground: 
 		box(cols, wt * Transform3D(Basis(), Vector3(0, y0 + 6.0, 0)), Vector3(12.0, 12.0, 26.0))
 		Occluders.box(cols, wt * Transform3D(Basis(), Vector3(0, y0 + 6.3, 0)), Vector3(12.0, 11.0, 26.0))
 		round_tower(mb, cols, c + Vector2(s * 21.5, 30.5), y0, 3.4, 30.0, true, 2.0, true)
-		round_tower(mb, cols, c + Vector2(s * 20.5, -18.5), y0, 3.0, 26.0, true, 2.0, true)
-	var keep := c + Vector2(0, -20.0)
+		round_tower(mb, cols, c + Vector2(s * 20.5, -21.5), y0, 3.0, 26.0, true, 2.0, true)
+	# (behind the throne hall, clear of its back wall: the hall is walked inside since 1.21)
+	var keep := c + Vector2(0, -23.5)
 	square_tower(mb, cols, keep, y0, 10.0, 42.0, 0.0, true, 2.0)
 	for s in [-1.0, 1.0]:
 		mb.add_box(mat("dark"), xf(v3(keep + Vector2(s * 2.2, 5.04), y0 + 35.0)), Vector3(1.4, 3.0, 0.06), 1.0, Color(0.25, 0.22, 0.2), false)
 		flag(mb, v3(keep + Vector2(s * 5.4, 0), y0 + 43.2), BLUE)
+	# the porch: its floor at the hall's, columns (now solid), the steps down to the court on a ramp
+	var fy := CapitalPlan.hall_floor()
 	var porch := c + Vector2(0, 5.6)
+	mb.add_box(lime, xf(v3(c + Vector2(0, 6.7), (fy + y0 - 1.0) * 0.5)), Vector3(18.0, fy - y0 + 1.0, 3.4), 0.5, Color(0.92, 0.9, 0.86), true, false)
+	box(cols, xf(v3(c + Vector2(0, 6.7), (fy + y0 - 1.0) * 0.5)), Vector3(18.0, fy - y0 + 1.0, 3.4))
 	for k in range(6):
 		var x := -7.5 + k * 3.0
-		mb.add_cylinder(lime, xf(v3(porch + Vector2(x, 0), y0 + 0.8)), 0.55, 0.48, 9.0, 8, 0.6, Color(0.97, 0.95, 0.92))
+		if absf(x) < 2.0:
+			continue
+		mb.add_cylinder(lime, xf(v3(porch + Vector2(x, 0), fy)), 0.55, 0.48, 9.0, 8, 0.6, Color(0.97, 0.95, 0.92))
+		cyl(cols, v3(porch + Vector2(x, 0), fy), 0.55, 9.0)
 	mb.add_box(lime, xf(v3(porch, y0 + 10.2)), Vector3(18.0, 1.4, 3.0), 0.5, Color(0.95, 0.93, 0.89), false)
 	mb.add_gable_roof(lime, xf(v3(porch, y0 + 10.9), PI * 0.5), 3.0, 18.0, 2.4, 0.2, 0.5, Color(0.93, 0.91, 0.87), lime)
 	for k in range(4):
 		mb.add_box(lime, xf(v3(c + Vector2(0, 9.0 + k * 1.2), y0 + 0.4 - k * 0.2)), Vector3(18.0, 0.4, 1.2), 0.5, Color(0.9, 0.88, 0.84))
+	# (no step-up for the captain: a ramp under the steps, from the court up to the porch)
+	var r0 := v3(c + Vector2(0, 13.2), y0)
+	var r1 := v3(c + Vector2(0, 8.4), fy)
+	var rt := Transform3D(Basis.looking_at(r1 - r0, Vector3.UP), (r0 + r1) * 0.5) * Transform3D(Basis(), Vector3(0, -0.15, 0))
+	box(cols, rt, Vector3(18.0, 0.3, r0.distance_to(r1) + 0.2))
 	for k in range(10):
 		var p := c + Vector2(rng.randf_range(-24.0, 24.0), rng.randf_range(24.0, 40.0)) * Vector2(1.0, 1.0)
-		if absf(p.x) > 6.0:
+		if absf(p.x) > 12.0:
 			cypress(mb, v3(p, ground.call(p)), rng.randf_range(6.0, 9.0), rng)
+
+
+## The throne hall (1.21): its walls with their facade outside and plaster inside, a door through the front under an
+## arch, a coffered ceiling, the floor; colliders for the floor and each wall (the door left open). The furnishings are
+## CapitalDistrict's (_throne).
+static func _throne_hall(mb: MeshBuilder, cols: Array, y0: float) -> void:
+	var lime := mat("lime")
+	var wash := mat("wash")
+	var hc: Vector2 = CapitalPlan.HALL_C
+	var w := CapitalPlan.HALL_W
+	var d := CapitalPlan.HALL_D
+	var h := CapitalPlan.HALL_H
+	var fy := CapitalPlan.hall_floor()
+	var dw := CapitalPlan.HALL_DOOR
+	var wt := 0.8
+	var t := xf(v3(hc, 0.0))
+	var hw := w * 0.5
+	var hd := d * 0.5
+	var fac := mat("facade_b")
+	var col := Color(1.0, 0.98, 0.94)
+	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, (fy + y0 - 3.0) * 0.5, 0)), Vector3(w + 0.6, fy - y0 + 3.0, d + 0.6), 0.5, Color(0.9, 0.88, 0.84), true, true)
+	box(cols, t * Transform3D(Basis(), Vector3(0, (fy + y0 - 3.0) * 0.5, 0)), Vector3(w, fy - y0 + 3.0, d))
+	# outside: the back and sides whole, the front either side of the door and over it
+	facade_quad(mb, fac, t * Vector3(hw, fy, -hd), t * Vector3(-hw, fy, -hd), h, (t.basis * Vector3.FORWARD).normalized(), col)
+	facade_quad(mb, fac, t * Vector3(-hw, fy, -hd), t * Vector3(-hw, fy, hd), h, (t.basis * Vector3.LEFT).normalized(), col)
+	facade_quad(mb, fac, t * Vector3(hw, fy, hd), t * Vector3(hw, fy, -hd), h, (t.basis * Vector3.RIGHT).normalized(), col)
+	facade_quad(mb, fac, t * Vector3(-hw, fy, hd), t * Vector3(-dw * 0.5 - 1.0, fy, hd), h, (t.basis * Vector3.BACK).normalized(), col)
+	facade_quad(mb, fac, t * Vector3(dw * 0.5 + 1.0, fy, hd), t * Vector3(hw, fy, hd), h, (t.basis * Vector3.BACK).normalized(), col)
+	facade_quad(mb, fac, t * Vector3(-dw * 0.5 - 1.0, fy + 8.0, hd), t * Vector3(dw * 0.5 + 1.0, fy + 8.0, hd), h - 8.0, (t.basis * Vector3.BACK).normalized(), col)
+	arch_wall(mb, lime, t * Transform3D(Basis(), Vector3(0, fy, hd - wt + 0.05)), dw + 2.0, 8.0, wt + 0.1, dw, 5.4, Color(0.96, 0.94, 0.9))
+	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, fy + h + 1.0, 0)), Vector3(w + 1.0, 0.5, d + 1.0), 0.6, Color(0.92, 0.9, 0.86), false)
+	_hip(mb, t * Transform3D(Basis(), Vector3(0, fy + h + 1.2, 0)), w, d, 6.5, 0.4, Color(0.95, 0.88, 0.84))
+	dome(mb, v3(hc, fy + h + 3.4), 7.5, 4.0, Color(0.55, 0.62, 0.78))
+	# inside: plaster walls, the floor, a dark coffered ceiling
+	var iw := hw - wt
+	var idd := hd - wt
+	var inner := Color(0.98, 0.92, 0.82)
+	var ih := h - 0.4
+	for e in [[Vector3(-iw, fy, -idd), Vector3(iw, fy, -idd), Vector3.BACK], [Vector3(iw, fy, -idd), Vector3(iw, fy, idd), Vector3.LEFT],
+			[Vector3(-iw, fy, idd), Vector3(-iw, fy, -idd), Vector3.RIGHT], [Vector3(iw, fy, idd), Vector3(dw * 0.5, fy, idd), Vector3.FORWARD],
+			[Vector3(-dw * 0.5, fy, idd), Vector3(-iw, fy, idd), Vector3.FORWARD]]:
+		var a: Vector3 = e[0]
+		var b: Vector3 = e[1]
+		mb.add_quad(wash, t * a, t * b, t * (b + Vector3(0, ih, 0)), t * (a + Vector3(0, ih, 0)), Vector2(0, ih * 0.4), Vector2(a.distance_to(b) * 0.4, ih * 0.4),
+			Vector2(a.distance_to(b) * 0.4, 0), Vector2(0, 0), inner, (t.basis * (e[2] as Vector3)).normalized())
+	mb.add_quad(wash, t * (Vector3(dw * 0.5, fy, idd) + Vector3(0, 7.2, 0)), t * (Vector3(-dw * 0.5, fy, idd) + Vector3(0, 7.2, 0)), t * Vector3(-dw * 0.5, fy + ih, idd),
+		t * Vector3(dw * 0.5, fy + ih, idd), Vector2.ZERO, Vector2(1.6, 0), Vector2(1.6, 3.0), Vector2(0, 3.0), inner, (t.basis * Vector3.FORWARD).normalized())
+	for s in [-1.0, 1.0]:
+		mb.add_box(lime, t * Transform3D(Basis(), Vector3(s * (dw * 0.5 + 0.1), fy + 3.6, hd - wt * 0.5)), Vector3(0.2, 7.2, wt), 0.6, Color(0.9, 0.88, 0.84))
+	mb.add_quad(mat("slabs"), t * Vector3(-iw, fy + 0.01, idd), t * Vector3(iw, fy + 0.01, idd), t * Vector3(iw, fy + 0.01, -idd), t * Vector3(-iw, fy + 0.01, -idd),
+		Vector2(0, 0), Vector2(iw, 0), Vector2(iw, idd), Vector2(0, idd), Color(0.82, 0.78, 0.74), Vector3.UP)
+	mb.add_quad(mat("dark"), t * Vector3(-iw, fy + ih, -idd), t * Vector3(iw, fy + ih, -idd), t * Vector3(iw, fy + ih, idd), t * Vector3(-iw, fy + ih, idd),
+		Vector2(0, 0), Vector2(iw, 0), Vector2(iw, idd), Vector2(0, idd), Color(0.55, 0.42, 0.32), Vector3.DOWN)
+	for k in range(7):
+		mb.add_box(mat("dark"), t * Transform3D(Basis(), Vector3(-iw + (k + 0.5) * iw * 2.0 / 7.0, fy + ih - 0.35, 0)), Vector3(0.4, 0.7, idd * 2.0), 1.0, Color(0.5, 0.38, 0.28), false)
+	# the walls' colliders (the front's either side of the door) and occluders
+	box(cols, t * Transform3D(Basis(), Vector3(0, fy + h * 0.5, -hd + wt * 0.5)), Vector3(w, h, wt))
+	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, fy + h * 0.5, -hd + wt * 0.5)), Vector3(w, h, wt))
+	for s in [-1.0, 1.0]:
+		box(cols, t * Transform3D(Basis(), Vector3(s * (hw - wt * 0.5), fy + h * 0.5, 0)), Vector3(wt, h, d))
+		Occluders.box(cols, t * Transform3D(Basis(), Vector3(s * (hw - wt * 0.5), fy + h * 0.5, 0)), Vector3(wt, h, d))
+		var fw := hw - dw * 0.5
+		box(cols, t * Transform3D(Basis(), Vector3(s * (dw * 0.5 + fw * 0.5), fy + h * 0.5, hd - wt * 0.5)), Vector3(fw, h, wt))
+		Occluders.box(cols, t * Transform3D(Basis(), Vector3(s * (dw * 0.5 + fw * 0.5), fy + h * 0.5, hd - wt * 0.5)), Vector3(fw, h, wt))
+	box(cols, t * Transform3D(Basis(), Vector3(0, fy + 7.2 + (h - 7.2) * 0.5, hd - wt * 0.5)), Vector3(dw, h - 7.2, wt))

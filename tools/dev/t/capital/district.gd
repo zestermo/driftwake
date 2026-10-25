@@ -7,7 +7,8 @@ const TK := preload("res://tools/dev/test_kit.gd")
 const AT := Vector3(0, 0, 4000)
 const SPOTS := ["innkeeper", "inn_door", "curio", "guild", "bank", "board", "gate_guard0", "gate_guard1", "palace_guard0", "palace_guard1",
 	"harbourmaster", "flower", "fire", "ruffian0", "ruffian3", "arena_crier", "stall0", "stall2", "barrow0", "fish0", "bench0",
-	"shipwright", "chandler", "fence", "foreman", "manifest", "docker0", "outfitter", "noble0", "terrace_guard"]
+	"shipwright", "chandler", "fence", "foreman", "manifest", "docker0", "outfitter", "noble0", "terrace_guard",
+	"queen", "chamberlain", "hall_guard0", "courtier0", "court_guard0", "signet"]
 var stage
 var step := 0
 var until := 0
@@ -70,8 +71,8 @@ func _process(_d: float) -> bool:
 					floating.append(s)
 			check("every spot on the ground (%s)" % [floating], floating.is_empty())
 			var lights: Array = isl.find_children("*", "NightLight", true, false)
-			check("the lights inside the budget (%d)" % lights.size(), lights.size() > 8 and lights.size() <= 16)
-			check("only the lighthouse lit all day", lights.filter(func(l): return l.always).size() == 1)
+			check("the lights inside the budget (%d)" % lights.size(), lights.size() > 8 and lights.size() <= 18)
+			check("only the lighthouse and the throne hall lit all day", lights.filter(func(l): return l.always).size() == 2)
 			var draws := 0
 			var by := {}
 			for mi in isl.city.find_children("*", "MeshInstance3D", true, false):

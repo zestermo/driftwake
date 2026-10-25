@@ -6218,3 +6218,30 @@ fidelity report:
 - Crowd lanes on the docks' row and the terrace; map marks (Coyle's Yard, the noble quarter). capitalshot: docks,
   wharf, terrace.
 - Tests: t/capital (district: the new spots; life: five quests, the three shops, Coyle's yard by name), t/ship/yard_*.
+
+## 2026-10-24: 1.21 piece 2 (v1.20.2): the palace (docs/v1_21_plan.md)
+- **Open:** the grounds' gatehouse built open (`closed` false); the hill road walked: a collider slab under each 3 m step
+  (its top the road's), its first and last steps down to the ground (no lip: the captain has no step-up), colliders on
+  its parapets (off the side was a drop you couldn't step back up). The hilltop ring wall's points now even about the
+  front (offset 0.11 -> 0) so a gatehouse (14 m) sits in the gap between points 3 and 4 (their towers dropped).
+- **CapitalPlan:** floor 14 `palace_court` (-10, -151.8, 20x33.8: the gate to the porch steps' foot); HALL_C (0, -171),
+  HALL_W 38, HALL_D 22, HALL_H 15, HALL_DOOR 4, `hall_floor()` (HILL_TOP + 0.8); `_open`: no barriers inside the grounds
+  wall (open ground); `raised(q)`: the throne hall's floor (its dais +0.9), the porch's, the yard hall's plinth.
+  **`CapitalIsland.hv` reads `raised` first**: people inside raised rooms stood at the hill/ground under the floor (the
+  Queen was inside her dais).
+- **CapitalModels.palace / _throne_hall:** the hall hollow: facade outside with the front split round an arched door,
+  plaster walls inside, slab floor, dark coffered ceiling; colliders per wall (the door open), the floor, the porch
+  floor and columns, a ramp under the porch steps. The keep moved back 3.5 m and the back towers 3 m (both had stood
+  2 m inside the hall's back corners).
+- **CapitalDistrict `_throne` / `_court`:** carpet, ten columns, a three-step dais over a ramp collider, the throne,
+  banners, side windows, two chandeliers, one light lit all day (lights 17); the court's statues and potted cypresses;
+  spots queen, hall_guard*, courtier*, court_guard*, chamberlain, signet (under the fence's hatch on the wharf).
+- **CapitalLife:** Queen Ilsabet, Lord Chamberlain Orme, four guards, two courtiers; the gate guards' and the sergeant's
+  lines now say the grounds are open. **KitQuests `"after"`:** a quest offered only once another is done. The palace
+  line: "A petition to the Crown" (deliver: sealed by Ambrose Pell), "The Queen's signet" (lost, on the wharf, after),
+  "An audience with the Queen" (deliver: to the Queen, after; 250 gold).
+- **capitalshot:** court, throne, queen shots; its stand-in captain moved to the plaza (people hide past 230 m from
+  every captain: the slum was 233 m from the throne).
+- Tests: t/capital/palace (new: the gate, the road's slabs, the ring gate, the court, the porch ramp, the door, the
+  walls, the hall floor, the dais), district (spots, 18 lights, two lit all day), life (8 quests, the chain waits),
+  shell (floors may open into the grounds).

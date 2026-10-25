@@ -2,7 +2,8 @@ extends SceneTree
 ## The capital's life (CapitalLife, CapitalCrowd, piece 3): its named people at their places with their shops and
 ## talk; the curio dealer a treasure merchant a tier above the islands' whose stock is the same for a day and turns
 ## over with it; the inn's rest heals and saves; the notice board posts the Watch's notice and taking it puts it in
-## the journal; five city quests registered (1.21: the docks' manifest, the terrace's invitation); the docks' chandler, fence and
+## the journal; eight city quests registered (1.21: the docks' manifest, the terrace's invitation, the palace's line of three, each
+## offered only after the last); the docks' chandler, fence and
 ## Marta Coyle's yard (the yard screen under her name), the terrace's outfitter; the toughs of Gallows Row muster host-side (single player is the host)
 ## round their fire; the crowd walks where the shared clock says, the same at the same time, and swaps real bodies in
 ## only near the camera.
@@ -72,7 +73,13 @@ func _process(_d: float) -> bool:
 			p.health_component.current_health = p.health_component.max_health * 0.3
 			rest.interacted.emit(p)
 			check("resting at the inn heals", p.health_component.current_health >= p.health_component.max_health - 0.5)
-			check("five city quests in the journal's sources", life.quest_node.quests.size() == 5)
+			check("eight city quests in the journal's sources", life.quest_node.quests.size() == 8)
+			var cham: Dictionary = root.get_node("Dialogue")._cache.get(isl.save_key("capital_chamberlain"), {})
+			var offered := {}
+			for c in (cham.get("nodes", {}).get("menu", {}).get("choices", []) as Array):
+				offered[str(c["text"])] = not c.has("if") or (c["if"] as Callable).call()
+			check("the palace line starts with the petition (%s)" % offered, offered.get("I'd like an audience with the Queen.", false))
+			check("...and the signet waits for it", not offered.get("What delicate matter?", true) and not offered.get("I'm ready to see the Queen.", true))
 			var gid: String = isl.save_key("capital_gallows")
 			root.get_node("Dialogue").emit_signal("dialogue_event", "isle_q:%s:take" % gid)
 			check("taking the Watch's notice puts it in the journal", root.get_node("Journal").has(gid))

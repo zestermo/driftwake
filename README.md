@@ -165,6 +165,13 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
+### v1.20.2: The Palace (October 24, 2026), unstable
+The palace opens. The grounds' gate stands open and the road up the hill is a road you walk (its ends ramped, its
+parapets keeping you on it), up to a new gate in the hilltop's ring wall, the court between the palace's wings, and
+the throne hall: columns, a carpet to the dais, banners, chandeliers, Queen Ilsabet on her throne. Lord Chamberlain
+Orme's three errands, each after the last: a petition sealed by the Guild, the Queen's stolen signet found on the
+docks, and an audience with the Queen. People in raised rooms now stand on their floors.
+
 ### v1.20.1: The Docks and the Terrace (October 24, 2026), unstable
 The first piece of 1.21, the cities. The royal capital opens beyond its core: a warehouse row east of the market
 street leads to the docks' wharf and a postern onto the quay, with Marta Coyle's shipwright's yard (every refit

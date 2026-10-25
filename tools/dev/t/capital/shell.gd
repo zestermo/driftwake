@@ -1,7 +1,7 @@
 extends SceneTree
 ## The royal capital built (CapitalIsland, piece 1): a dock to board from, the ship's berth in deep water alongside
 ## the quay with nothing solid in it, the quay a floor you stand on, the palace up on its hill, the arena and the
-## walls standing; every walkable floor closed at its edges (a wall, a house or another floor: no way out into the
+## walls standing; every walkable floor closed at its edges but where it opens into the palace grounds (1.21) (a wall, a house or another floor: no way out into the
 ## houses behind); its style ashore; the same city from the same node.
 const TK := preload("res://tools/dev/test_kit.gd")
 const AT := Vector3(0, 0, 4000)
@@ -98,6 +98,9 @@ func _process(_d: float) -> bool:
 						var p: Vector2 = a.lerp(b, (i + 0.5) / k)
 						# (another floor, or the plaza's own buildings: the guild's portico opens off the plaza)
 						if P.in_floor(p + n * 1.0, 0.6) or P.special_hit(Rect2(p + n * 1.0, Vector2.ZERO).grow(0.1)):
+							continue
+						# (1.21: the palace grounds are walked: the avenue's top opens through the gate, the court onto the grounds)
+						if (p + n * 1.5).distance_to(P.HILL_C) < P.GROUNDS_R + 4.0:
 							continue
 						var y: float = P.ground(p) + 1.2
 						var from: Vector3 = isl.city_global(p - n * 1.5, y)

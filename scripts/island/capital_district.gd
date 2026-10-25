@@ -22,7 +22,7 @@ const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36,
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": [], "cells": P.lots().map(func(l): return l["cell"])}
 	for step in [["houses", _houses], ["specials", _specials], ["plaza", _plaza], ["street", _street], ["quay", _quay],
-			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace]]:
+			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -1084,6 +1084,8 @@ static func _fence(out: Dictionary, mb: MeshBuilder, cols: Array, rng: RandomNum
 		mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(s * 1.6, 1.25, -0.6)), Vector3(0.12, 2.5, 0.12), 1.0)
 	_lantern(mb, t * Transform3D(Basis(), Vector3(1.6, 2.0, -0.55)))
 	mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(-2.6, 0.04, -0.4)), Vector3(1.2, 0.08, 1.2), 1.0, Color(0.5, 0.42, 0.34), false)
+	# (where the Queen's signet lies hidden: the palace's quest line)
+	_spot(out, "signet", _q(t * Vector3(-2.6, 0, -0.4)), y, _fd(t))
 	_spot(out, "fence", _q(t * Vector3(0, 0, -0.1)), y, _fd(t))
 	for i in range(2):
 		_spot(out, "smuggler%d" % i, _q(t * Vector3(-2.4 + i * 4.6, 0, 1.9 + i * 0.6)), y, -_fd(t))
@@ -1176,3 +1178,107 @@ static func _outfitter(out: Dictionary, mb: MeshBuilder, cols: Array) -> void:
 	M.box(cols, counter * Transform3D(Basis(), Vector3(0, 0.5, 0)), Vector3(2.2, 1.0, 0.7))
 	_spot(out, "outfitter", _q(counter * Vector3(0, 0, -0.8)), top, _fd(t))
 	out["spots"]["outfitter_door"] = [dd["at"], M.yaw_of(dd["face"])]
+
+
+# --------------------------------------------------------------------------
+# The palace (1.21): the throne hall's furnishings and the court before it
+# --------------------------------------------------------------------------
+static func _throne(out: Dictionary) -> void:
+	var mb := MeshBuilder.new()
+	var cols: Array = []
+	var rng := _rng(9301)
+	var lime := M.mat("lime")
+	var t := M.xf(M.v3(P.HALL_C, 0.0))
+	var fy := P.hall_floor()
+	var iw := P.HALL_W * 0.5 - 0.8
+	var idd := P.HALL_D * 0.5 - 0.8
+	var ih := P.HALL_H - 0.4
+	var red := PSXMat.lit("fabric", Color(0.56, 0.12, 0.12))
+	# the carpet from the door to the dais
+	mb.add_quad(red, t * Vector3(-1.5, fy + 0.03, idd), t * Vector3(1.5, fy + 0.03, idd), t * Vector3(1.5, fy + 0.03, -idd + 4.0), t * Vector3(-1.5, fy + 0.03, -idd + 4.0),
+		Vector2(0, 0), Vector2(1, 0), Vector2(1, 6), Vector2(0, 6), Color.WHITE, Vector3.UP)
+	for s in [-1.0, 1.0]:
+		mb.add_box(M.mat("gold"), t * Transform3D(Basis(), Vector3(s * 1.55, fy + 0.03, (idd + (-idd + 4.0)) * 0.5)), Vector3(0.1, 0.02, idd * 2.0 - 4.0), 1.0, Color.WHITE, false)
+	# two rows of columns down the hall
+	for s in [-1.0, 1.0]:
+		for k in range(5):
+			var z := -6.4 + k * 3.4
+			var cp := t * Vector3(s * 6.0, fy, z)
+			mb.add_cylinder(lime, M.xf(cp), 0.6, 0.52, ih, 10, 0.6, Color(0.98, 0.96, 0.93))
+			mb.add_box(lime, M.xf(cp + Vector3(0, 0.2, 0)), Vector3(1.5, 0.4, 1.5), 0.6, Color(0.9, 0.88, 0.84))
+			mb.add_box(lime, M.xf(cp + Vector3(0, ih - 0.3, 0)), Vector3(1.4, 0.5, 1.4), 0.6, Color(0.92, 0.9, 0.86), false)
+			M.cyl(cols, cp, 0.6, ih)
+	# the dais (three steps over a ramp) and the throne
+	for k in range(3):
+		var dw := 12.0 - k * 2.0
+		# (step k's top at 0.3 (k + 1): the throne's floor at 0.9, the collider's)
+		mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, fy + 0.15 * (k + 1), -idd + 2.1 - k * 0.6)), Vector3(dw, 0.3 * (k + 1), 4.2 - k * 1.2), 0.6,
+			Color(0.9 - k * 0.03, 0.88 - k * 0.03, 0.84 - k * 0.03))
+	mb.add_quad(red, t * Vector3(-1.5, fy + 0.31, -idd + 4.2), t * Vector3(1.5, fy + 0.31, -idd + 4.2), t * Vector3(1.5, fy + 0.91, -idd + 1.8), t * Vector3(-1.5, fy + 0.91, -idd + 1.8),
+		Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, (t.basis * Vector3(0, 2.4, 0.6)).normalized())
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, fy + 0.45, -idd + 1.2)), Vector3(12.0, 0.9, 2.4))
+	var r0 := t * Vector3(0, fy, -idd + 4.4)
+	var r1 := t * Vector3(0, fy + 0.9, -idd + 2.4)
+	M.box(cols, Transform3D(Basis.looking_at(r1 - r0, Vector3.UP), (r0 + r1) * 0.5) * Transform3D(Basis(), Vector3(0, -0.15, 0)), Vector3(8.0, 0.3, r0.distance_to(r1) + 0.2))
+	var th := t * Transform3D(Basis(), Vector3(0, fy + 0.9, -idd + 0.9))
+	var gold := M.mat("gold")
+	mb.add_box(gold, th * Transform3D(Basis(), Vector3(0, 0.45, 0)), Vector3(1.6, 0.9, 1.2), 1.0)
+	mb.add_box(red, th * Transform3D(Basis(), Vector3(0, 0.93, 0.05)), Vector3(1.3, 0.1, 1.0), 1.0)
+	var back := PackedVector2Array([Vector2(-0.8, 0), Vector2(0.8, 0), Vector2(0.8, 2.4), Vector2(0.45, 2.9), Vector2(0.0, 3.4), Vector2(-0.45, 2.9), Vector2(-0.8, 2.4)])
+	mb.add_extrude(gold, th * Transform3D(Basis(), Vector3(0, 0.9, -0.55)), back, 0.25, 1.0, Color.WHITE)
+	mb.add_box(red, th * Transform3D(Basis(), Vector3(0, 2.2, -0.41)), Vector3(1.1, 2.2, 0.04), 1.0)
+	for s in [-1.0, 1.0]:
+		mb.add_box(gold, th * Transform3D(Basis(), Vector3(s * 0.75, 1.25, 0.1)), Vector3(0.14, 0.14, 1.1), 1.0, Color.WHITE, false)
+	M.box(cols, th * Transform3D(Basis(), Vector3(0, 1.0, -0.2)), Vector3(1.6, 2.0, 1.4))
+	# banners behind the throne and down the side walls, windows high on the walls
+	for s in [-1.0, 1.0]:
+		_banner(mb, t * Transform3D(Basis(), Vector3(s * 3.2, fy + ih - 1.0, -idd + 0.05)), 2.0, 7.5, M.BLUE)
+		for k in range(4):
+			var z := -6.0 + k * 4.4
+			var wtx := t * Transform3D(Basis(Vector3.UP, -s * PI * 0.5), Vector3(s * (iw - 0.02), fy + 7.0, z))
+			mb.add_box_unit_uv(M.mat("window"), wtx, Vector3(1.6, 3.6, 0.04))
+			if k % 2 == 0:
+				_banner(mb, t * Transform3D(Basis(Vector3.UP, -s * PI * 0.5), Vector3(s * (iw - 0.05), fy + 4.2, z + 2.2)), 1.2, 3.6, Color(0.62, 0.16, 0.14))
+	# two chandeliers: a ring of candles on chains
+	var glow := M.mat("glow")
+	for z in [-3.0, 4.0]:
+		var cc := t * Vector3(0, fy + ih - 4.0, z)
+		mb.add_tube(M.mat("iron"), MeshBuilder.curve_points(cc + Vector3(-1.4, 0, 0), cc + Vector3(0, 0, 1.6), cc + Vector3(1.4, 0, 0), 6), 0.05, 0.05, 4, 1.0)
+		mb.add_tube(M.mat("iron"), MeshBuilder.curve_points(cc + Vector3(1.4, 0, 0), cc + Vector3(0, 0, -1.6), cc + Vector3(-1.4, 0, 0), 6), 0.05, 0.05, 4, 1.0)
+		mb.add_tube(M.mat("iron"), PackedVector3Array([cc, cc + Vector3(0, 4.0, 0)]), 0.04, 0.04, 3, 1.0)
+		for k in range(8):
+			var a := TAU * k / 8.0
+			mb.add_blob(glow, M.xf(cc + Vector3(cos(a) * 1.4, 0.25, sin(a) * 1.4)), Vector3(0.09, 0.16, 0.09), rng, 0.0, 2, 4)
+	_light(out, t * Vector3(0, fy + 8.0, -2.0), 2.4, 26.0, true)
+	# where the court stands
+	_spot(out, "queen", _q(t * Vector3(0, 0, -idd + 2.2)), fy + 0.9, _fd(t))
+	for s in [-1.0, 1.0]:
+		_spot(out, "hall_guard%d" % int(s > 0.0), _q(t * Vector3(s * 3.4, 0, idd - 1.2)), fy, _fd(t))
+		_spot(out, "courtier%d" % int(s > 0.0), _q(t * Vector3(s * 9.0, 0, -1.0)), fy, Vector2(-s, 0))
+	_piece(out, "ThroneHall", mb, cols)
+	_court(out)
+
+
+## The court between the palace's wings: statues on plinths, planters, its guards at the ring wall's gate.
+static func _court(out: Dictionary) -> void:
+	var mb := MeshBuilder.new()
+	var cols: Array = []
+	var rng := _rng(9302)
+	var lime := M.mat("lime")
+	var court: Rect2 = P.FLOORS[14][1]
+	for s in [-1.0, 1.0]:
+		var q := Vector2(s * 7.0, court.position.y + 14.0)
+		var y := P.ground(q)
+		mb.add_box(lime, M.xf(M.v3(q, y + 0.8)), Vector3(1.8, 1.6, 1.8), 0.6, Color(0.92, 0.9, 0.86))
+		_figure(mb, M.xf(M.v3(q, y + 1.6), PI), 3.0, true)
+		M.box(cols, M.xf(M.v3(q, y + 1.6)), Vector3(1.8, 3.2, 1.8))
+		for k in range(3):
+			var pq := Vector2(s * 8.2, court.position.y + 24.0 + k * 3.0)
+			var py := P.ground(pq)
+			mb.add_cylinder(M.mat("lime"), M.xf(M.v3(pq, py)), 0.6, 0.5, 0.7, 8, 0.6, Color(0.88, 0.62, 0.5), true, false)
+			M.cypress(mb, M.v3(pq, py + 0.6), rng.randf_range(2.4, 3.2), rng)
+			M.cyl(cols, M.v3(pq, py), 0.6, 1.4)
+		_spot(out, "court_guard%d" % int(s > 0.0), Vector2(s * 3.6, court.end.y - 3.0), P.ground(Vector2(s * 3.6, court.end.y - 3.0)), Vector2(0, 1))
+	var cq := Vector2(3.0, court.position.y + 6.0)
+	_spot(out, "chamberlain", cq, P.ground(cq), Vector2(0, 1))
+	_piece(out, "Court", mb, cols)
