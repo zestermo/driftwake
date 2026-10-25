@@ -203,6 +203,19 @@ func _build_coop() -> void:
 		_open_slots("load" if SaveGame.latest_slot() > 0 else "new")
 		_slot_purpose = "host")
 	vb.add_child(host)
+	# (1.22) the crews sailed with before: one click to rejoin
+	var book := CrewBook.all()
+	if not book.is_empty():
+		vb.add_child(UIStyle.label("Rejoin crew", 12, UIStyle.ACCENT))
+		for e in book.slice(0, 4):
+			var addr := str(e.get("address", ""))
+			var rb := UIStyle.button("%s  (%s)" % [str(e.get("name", "A crew")), addr], 260)
+			rb.pressed.connect(func():
+				_ip_edit.text = addr
+				_slot_purpose = "join"
+				_open_slots("load" if SaveGame.latest_slot() > 0 else "new")
+				_slot_purpose = "join")
+			vb.add_child(rb)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	vb.add_child(row)

@@ -6454,3 +6454,7 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   (hull plating, gun deck, sails and rigging, rudder and helm, the ship's hold); plain "shipwright" opens those only
   (with paint); the cities' "shipwright:<name>" everything; a vendor's "|lines" its own without paint
   (`set_yard(who, lines, paint)`). Lines already bought stay on the ship. t/economy/harbour_vendor checks it.
+- Rejoin crew (1.22): `CrewBook` (scripts/net/crew_book.gd), a guest's own list in user://crews.json ({name, address},
+  newest first, 6 kept); Net notes the crew when a host's world arrives (`join_address`; never in a tool run), the
+  title's co-op panel lists 4 as one-click rejoin buttons. Quest rewards go to the whole crew wherever they are
+  (Journal: the REWARD_REACH check gone; t/quests/rewards_present updated).

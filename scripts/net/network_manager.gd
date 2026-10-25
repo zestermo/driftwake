@@ -64,6 +64,8 @@ var _pings_t: float = 0.0
 ## Client: the save slot we joined with.
 var join_slot: int = 0
 var last_error: String = ""
+## The address we joined (a guest's: CrewBook remembers the crew there).
+var join_address: String = ""
 
 var _peer: ENetMultiplayerPeer
 var _offset: float = 0.0
@@ -220,6 +222,7 @@ func join_game(address: String, port: int = DEFAULT_PORT) -> int:
 		return ERR_UNAVAILABLE
 	leave()
 	_peer = ENetMultiplayerPeer.new()
+	join_address = address
 	var err := _peer.create_client(address, port)
 	if err != OK:
 		last_error = "Couldn't connect (%s)" % error_string(err)
@@ -2189,6 +2192,9 @@ func _apply_world_sync(state: Dictionary) -> void:
 	Journal.from_dict(state["journal"])
 	if gm and state.has("crew"):
 		gm.crew = (state["crew"] as Dictionary).duplicate(true)
+		# (never from a test or tool: they'd fill a player's list with localhost)
+		if not Settings.tool_run():
+			CrewBook.remember(crew_name(), join_address)
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():
 		var s := node_of(str(k))

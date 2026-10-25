@@ -56,4 +56,14 @@ func _process(_d: float) -> bool:
 	check("the Crew screen: its name, editable by the Captain (%s)" % cs._name.text, cs.visible and cs._name.text == "The Salt Hounds" and cs._name.editable)
 	check("...the other captain under sailed with us (%s)" % [texts], texts.has("Nessa the Bold") or texts.has("Zilk"))
 	menu.close()
+	# the crews sailed with (a guest's list, its own file here): newest first, one line a host, the title lists them
+	var CB = load("res://scripts/net/crew_book.gd")
+	CB.file = "user://t_crews.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(CB.file))
+	CB.remember("The Salt Hounds", "10.0.0.5")
+	CB.remember("Red Tide", "10.0.0.9")
+	CB.remember("The Salt Hounds", "10.0.0.5")
+	var book: Array = CB.all()
+	check("the crews sailed with: newest first, one a host (%s)" % [book], book.size() == 2 and book[0]["name"] == "The Salt Hounds" and book[1]["address"] == "10.0.0.9")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(CB.file))
 	return TK.done(fails)
