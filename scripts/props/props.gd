@@ -862,6 +862,26 @@ static func weapon_mesh(kind: String) -> ArrayMesh:
 	return _weapons[kind]
 
 
+## A weapon's mesh in plain wood (the arena's practice blades, 1.21): every surface one pale wood material, the same
+## "model" meta (what the weapon is, for gameplay and co-op, is unchanged). Cached by model.
+static var _practice: Dictionary = {}
+static func practice_mesh(mesh: Mesh) -> Mesh:
+	if mesh == null or not mesh is ArrayMesh:
+		return mesh
+	var key := str(mesh.get_meta("model", mesh.resource_path))
+	if not _practice.has(key):
+		var wood := PSXMat.lit("planks", Color(0.92, 0.76, 0.54))
+		var out := ArrayMesh.new()
+		var src := mesh as ArrayMesh
+		for i in range(src.get_surface_count()):
+			out.add_surface_from_arrays(src.surface_get_primitive_type(i), src.surface_get_arrays(i))
+			out.surface_set_material(out.get_surface_count() - 1, wood)
+		for m in mesh.get_meta_list():
+			out.set_meta(m, mesh.get_meta(m))
+		_practice[key] = out
+	return _practice[key]
+
+
 static func _build_weapon(kind: String) -> ArrayMesh:
 	# cutlasses, katanas, axes and pistols in all their designs and tiers
 	if kind.get_slice(":", 0) in WeaponDesigns.BASE_ITEM:

@@ -79,6 +79,9 @@ func _process(_d: float) -> bool:
 			p.arena_rank = 0
 			_bout("ladder", 0)
 			check("a rookie steps out against the captain", bout != null and is_instance_valid(bout.rival) and bout.rival.is_in_group("rivals"))
+			var wm = bout.rival.body_model.weapon.mesh if bout.rival.body_model.weapon else null
+			var real = load("res://scripts/props/props.gd").weapon_mesh(str(wm.get_meta("model", ""))) if wm else null
+			check("...both with practice blades: the rival's in plain wood, still its own weapon", p.body_model.practice and wm != null and wm != real and wm.get_meta("model") == real.get_meta("model"))
 			until = TK.wait_ticks(10)
 		3:
 			bout.rival.health_component.current_health = bout.rival.health_component.max_health * 0.05
@@ -86,6 +89,7 @@ func _process(_d: float) -> bool:
 		4:
 			check("beaten: the captain moves up the ladder (%d)" % p.arena_rank, p.arena_rank == 1)
 			check("...and is paid the purse (%d)" % (_gold() - gold0), _gold() - gold0 == AB().PURSES[0])
+			check("...and has their own steel back", not p.body_model.practice)
 			until = TK.wait_secs(4.0)
 		5:
 			check("the rival leaves the sand", get_nodes_in_group("arena_bouts").is_empty())

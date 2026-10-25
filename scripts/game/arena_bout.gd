@@ -102,6 +102,7 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 		phase = "done"
 		queue_free()
 		return
+	net.everyone("_all_practice", [[captain_key, net.key_of(rival)], true])
 	var brain = rival.get_node("Brain")
 	brain.order = "fight"
 	brain.target = captain
@@ -139,6 +140,7 @@ func _finish(won: bool) -> void:
 	var net := _net()
 	if not won:
 		net.everyone("_all_rival_stand", [])
+	net.everyone("_all_practice", [[captain_key], false])
 	net.everyone("_all_arena_result", [captain_key, kind, rank, won, randi()])
 	ended.emit(won)
 

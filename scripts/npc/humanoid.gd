@@ -669,7 +669,19 @@ func _update_physics(delta: float) -> void:
 # ==========================================================================
 ## Give the character a weapon mesh (grip at origin, blade along -Z).
 ## It starts sheathed on the hip.
+## Practice blades (the capital's arena, 1.21): while on, whatever's held shows in plain wood (Props.practice_mesh).
+var practice := false
+var _held_mesh: Mesh
+
+
+func set_practice(on: bool) -> void:
+	practice = on
+	if weapon and _held_mesh:
+		weapon.mesh = Props.practice_mesh(_held_mesh) if practice else _held_mesh
+
+
 func set_weapon(mesh: Mesh) -> void:
+	_held_mesh = mesh
 	if weapon:
 		weapon.queue_free()
 		weapon = null
@@ -678,7 +690,7 @@ func set_weapon(mesh: Mesh) -> void:
 		return
 	weapon = MeshInstance3D.new()
 	weapon.name = "Weapon"
-	weapon.mesh = mesh
+	weapon.mesh = Props.practice_mesh(mesh) if practice else mesh
 	_build_sockets()
 	_attach_weapon(weapon_in_hand)
 

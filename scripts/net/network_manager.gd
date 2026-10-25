@@ -936,6 +936,17 @@ func _start_arena(bout_kind: String, at_rank: int, by: int) -> void:
 	ArenaBout.start(c, bout_kind, at_rank, cap, cap.arena_sand())
 
 
+## Practice blades on every screen for these fighters (ArenaBout: on at the bell, off at the end).
+func _all_practice(keys: Array, on: bool) -> void:
+	for k in keys:
+		var n := node_of(str(k))
+		var h = n.get("body_model") if n else null
+		if h == null and n:
+			h = n.get("humanoid")
+		if h is Humanoid:
+			h.set_practice(on)
+
+
 ## A bout's end on every screen: the captain it was for is paid and moves up on their own machine.
 func _all_arena_result(key: String, bout_kind: String, at_rank: int, won: bool, roll: int) -> void:
 	ArenaBout.result(_me(), key, bout_kind, at_rank, won, roll)
