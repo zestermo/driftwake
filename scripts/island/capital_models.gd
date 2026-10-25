@@ -385,6 +385,8 @@ static func arena(mb: MeshBuilder, cols: Array, c: Vector2, r: Vector2, y0: floa
 		var a := TAU * (k - 0.5) / n
 		pts.append(c + Vector2(cos(a) * r.x, sin(a) * r.y))
 	var tier := 7.0
+	# (1.21: walked in: the west gate open, a cut through the stands to the sand, the sand at the ground, its podium wall)
+	var gate_k := n / 2
 	for k in range(n):
 		var a: Vector2 = pts[k]
 		var b: Vector2 = pts[(k + 1) % n]
@@ -395,7 +397,7 @@ static func arena(mb: MeshBuilder, cols: Array, c: Vector2, r: Vector2, y0: floa
 			out = -out
 		var L := a.distance_to(b) + 0.15
 		var t := xf(v3(mid, y0), yaw_of(out))
-		var west := k == n / 2
+		var west := k == gate_k
 		mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, -1.5, -0.6)), Vector3(L, 3.0, 3.0), 0.5, Color(0.86, 0.84, 0.8))
 		arch_wall(mb, lime, t, L, tier, 1.6, L * 0.56, 3.6, Color(0.95, 0.93, 0.89))
 		arch_wall(mb, lime, t * Transform3D(Basis(), Vector3(0, tier, -0.15)), L, tier, 1.4, L * 0.5, 3.8, Color(0.97, 0.95, 0.91))
@@ -404,13 +406,19 @@ static func arena(mb: MeshBuilder, cols: Array, c: Vector2, r: Vector2, y0: floa
 			mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y, 0.25)), Vector3(L, 0.4, 0.5), 0.6, Color(0.82, 0.8, 0.76), false)
 		mb.add_box(mat("dark"), t * Transform3D(Basis(), Vector3(0, tier + 1.6, -0.9)), Vector3(L, 3.2, 0.1), 0.5, Color(0.2, 0.18, 0.17), false)
 		if west:
-			portcullis(mb, cols, t * Transform3D(Basis(), Vector3(0, 0, 0.3)), L * 0.56, 3.6 + L * 0.28)
+			# the gate: the arch open, its piers and everything over it solid
+			var aw := L * 0.56
+			var top := 3.6 + aw * 0.5
+			for s in [-1.0, 1.0]:
+				box(cols, t * Transform3D(Basis(), Vector3(s * (aw * 0.5 + (L - aw) * 0.25), tier, -0.4)), Vector3((L - aw) * 0.5, tier * 2.0 + 4.0, 2.0))
+			box(cols, t * Transform3D(Basis(), Vector3(0, (top + tier * 2.0 + 2.0) * 0.5, -0.4)), Vector3(aw, tier * 2.0 + 2.0 - top, 2.0))
 		else:
 			mb.add_box(mat("dark"), t * Transform3D(Basis(), Vector3(0, 1.6, -0.9)), Vector3(L, 3.2, 0.1), 0.5, Color(0.2, 0.18, 0.17), false)
-		box(cols, t * Transform3D(Basis(), Vector3(0, tier, -0.4)), Vector3(L, tier * 2.0 + 4.0, 2.0))
+			box(cols, t * Transform3D(Basis(), Vector3(0, tier, -0.4)), Vector3(L, tier * 2.0 + 4.0, 2.0))
 		if k % 5 == 0:
 			flag(mb, t * Vector3(0, tier * 2.0 + 3.2, -0.2), BLUE if k % 10 == 0 else GOLD)
-	var seats := 9
+	var seats := CapitalPlan.ARENA_SEATS
+	var cut := CapitalPlan.ARENA_CUT
 	for i in range(seats):
 		var k0 := 0.97 - 0.05 * i
 		var rings: Array = []
@@ -421,18 +429,35 @@ static func arena(mb: MeshBuilder, cols: Array, c: Vector2, r: Vector2, y0: floa
 		for k in range(n):
 			var p0: Vector2 = rings[k]
 			var p1: Vector2 = rings[k + 1]
+			# (the cut to the gate: no seats over the way in)
+			if minf(absf(p0.y - c.y), absf(p1.y - c.y)) < cut and (p0 + p1).x * 0.5 < c.x:
+				continue
 			var q0 := c + (p0 - c) * (k0 - 0.05) / k0
 			var q1 := c + (p1 - c) * (k0 - 0.05) / k0
 			mb.add_quad(lime, v3(p0, y), v3(p1, y), v3(q1, y), v3(q0, y), Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color(0.84, 0.82, 0.78), Vector3.UP)
 			mb.add_quad(lime, v3(q0, y), v3(q1, y), v3(q1, y - 1.6), v3(q0, y - 1.6), Vector2.ZERO, Vector2(1, 0), Vector2(1, 0.8), Vector2(0, 0.8), Color(0.72, 0.7, 0.66), Vector3((c - q0).x, 0, (c - q0).y).normalized())
-	var inner := 0.97 - 0.05 * seats
+	# the cut's walls (the stands' faces either side of the way in), the sand, and the podium wall round it
+	var inner := CapitalPlan.arena_inner()
+	var x0 := c.x - r.x * 0.97
+	var x1 := c.x - r.x * inner
+	for s in [-1.0, 1.0]:
+		var wt := xf(v3(Vector2((x0 + x1) * 0.5, c.y + s * (cut + 0.3)), y0))
+		mb.add_box(lime, wt * Transform3D(Basis(), Vector3(0, tier, 0)), Vector3(x1 - x0, tier * 2.0, 0.6), 0.5, Color(0.9, 0.88, 0.84))
+		box(cols, wt * Transform3D(Basis(), Vector3(0, tier, 0)), Vector3(x1 - x0, tier * 2.0, 0.6))
 	var sand := PSXMat.lit("sand")
 	var fl: Array = []
 	for k in range(n + 1):
 		var a := TAU * k / n
 		fl.append(c + Vector2(cos(a) * r.x * inner, sin(a) * r.y * inner))
 	for k in range(n):
-		mb.add_tri(sand, v3(c, y0 + 0.4), v3(fl[k], y0 + 0.4), v3(fl[k + 1], y0 + 0.4), Vector3.UP, Vector3.UP, Vector3.UP, Vector2.ZERO, (fl[k] - c) * 0.3, (fl[k + 1] - c) * 0.3, Color.WHITE, Vector3.UP)
+		mb.add_tri(sand, v3(c, y0 + 0.03), v3(fl[k], y0 + 0.03), v3(fl[k + 1], y0 + 0.03), Vector3.UP, Vector3.UP, Vector3.UP, Vector2.ZERO, (fl[k] - c) * 0.3, (fl[k + 1] - c) * 0.3, Color.WHITE, Vector3.UP)
+		var p0: Vector2 = fl[k]
+		var p1: Vector2 = fl[k + 1]
+		var mid := (p0 + p1) * 0.5
+		if absf(mid.y - c.y) < cut and mid.x < c.x:
+			continue
+		var along := p1 - p0
+		box(cols, xf(v3(mid, y0 + 1.1), yaw_of(Vector2(along.y, -along.x))), Vector3(along.length() + 0.2, 2.2, 0.5))
 
 
 ## The palace on its hill: a curtain wall round the plateau with round towers, the great hall with its dome, two

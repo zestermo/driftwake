@@ -105,3 +105,7 @@ to work toward.
   one-on-one ladder, noble quarter, docks), the canal city as the chain's second city, its shipyard selling the caravel
   (owning and switching ships), Brinehollow's services in the cities and at some chain harbours. Combat and gear is 1.22,
   strongholds and Driftfruits 1.23.
+- **1.22 is crews and parties** (Zach, 2026-10-24): crews of up to **5** captains (today 4: Net.MAX_CLIENTS 3), a real
+  crew/party system and UI, quests and markers that play well with a full party (the journal is already the crew's
+  own, synced by the host), and polish on the maps and quest markers. Its own grill and a UI mock for Zach's OK first.
+  Combat and gear moves to 1.23, strongholds and Driftfruits to 1.24. (The site's roadmap is renumbered with 1.21.)

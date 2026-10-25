@@ -99,8 +99,9 @@ func _process(_d: float) -> bool:
 						# (another floor, or the plaza's own buildings: the guild's portico opens off the plaza)
 						if P.in_floor(p + n * 1.0, 0.6) or P.special_hit(Rect2(p + n * 1.0, Vector2.ZERO).grow(0.1)):
 							continue
-						# (1.21: the palace grounds are walked: the avenue's top opens through the gate, the court onto the grounds)
-						if (p + n * 1.5).distance_to(P.HILL_C) < P.GROUNDS_R + 4.0:
+						# (1.21: the palace grounds and the arena are walked: the avenue's top opens through the gate, the court onto the
+						# grounds, the arena's gate onto its sand)
+						if (p + n * 1.5).distance_to(P.HILL_C) < P.GROUNDS_R + 4.0 or P.ellipse(p + n * 1.5, P.ARENA_C, P.ARENA_R) < 1.0:
 							continue
 						var y: float = P.ground(p) + 1.2
 						var from: Vector3 = isl.city_global(p - n * 1.5, y)

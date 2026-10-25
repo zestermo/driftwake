@@ -48,6 +48,10 @@ const HALL_DOOR := 4.0
 ## The arena (outer walls only in 1.18.1): centre and radii.
 const ARENA_C := Vector2(108.0, 0.0)
 const ARENA_R := Vector2(40.0, 32.0)
+## (1.21: walked in) its rings of seats, the cut through them to the west gate (half its width, m), and the sand's
+## podium wall as a share of ARENA_R (the sand inside it).
+const ARENA_SEATS := 9
+const ARENA_CUT := 2.6
 const PLAZA := Rect2(-26.0, -22.0, 52.0, 44.0)
 const PLAZA_Y := 5.0
 const FLOOR_DROP := 0.6
@@ -75,6 +79,8 @@ const FLOORS := [
 	["terrace_step", Rect2(7.0, -60.0, 2.2, 10.0), "capital_slabs"],
 	# 1.21 piece 2: the palace court between the wings, from the ring wall's gate to the foot of the porch's steps
 	["palace_court", Rect2(-10.0, -151.8, 20.0, 33.8), "capital_slabs"],
+	# 1.21 piece 3: the arena's gate, paved through the arch (no barrier across the arena street's end)
+	["arena_gate", Rect2(67.5, -2.0, 4.0, 4.0), "cobbles"],
 ]
 ## Ground round the plaza, the avenue and the arena street kept for the district's own buildings (the inn, the
 ## treasure merchant, the guild hall...: piece 2): its lots are marked "keep"; and the temple's, which has none.
@@ -106,6 +112,10 @@ const SPECIAL := {
 
 
 ## The throne hall's floor (and the porch's), over the hilltop.
+static func arena_inner() -> float:
+	return 0.97 - 0.05 * ARENA_SEATS
+
+
 static func hall_floor() -> float:
 	return HILL_TOP + 0.8
 

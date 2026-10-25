@@ -6245,3 +6245,26 @@ fidelity report:
 - Tests: t/capital/palace (new: the gate, the road's slabs, the ring gate, the court, the porch ramp, the door, the
   walls, the hall floor, the dais), district (spots, 18 lights, two lit all day), life (8 quests, the chain waits),
   shell (floors may open into the grounds).
+
+## 2026-10-24: 1.21 piece 3 (v1.20.3): the arena and its ladder (docs/v1_21_plan.md)
+- **Walked in** (CapitalModels.arena): the west gate's arch open (its piers and the wall over it still collide), a cut
+  through the stands to the sand (seat segments touching the west point dropped, walls either side, `ARENA_CUT` 2.6),
+  the sand at the ground (y0 + 0.03, was 0.4 over the ground you stood on), a podium wall collider round the sand
+  (`arena_inner()`), the gap at the cut. Floor 15 `arena_gate` (67.5, -2, 4x4: on the barrier code's 1 m samples, or a
+  barrier stood across the gate). Shell test: floors may open into the arena.
+- **ArenaBout** (scripts/game/arena_bout.gd, host-run): a RivalDuel AI on every screen (`_all_spawn_rival`) opposite the
+  captain across the sand's middle; the first under END_AT (0.1) of their health or down loses; the rival held then
+  gone after 3 s (`_all_rival_gone`), the captain stood up if beaten (`_all_rival_stand`); the result on every screen
+  (`Net._all_arena_result` -> `ArenaBout.result`): the captain's own machine pays the purse (40/60/90/130/180/300,
+  defence 80) and moves `Player.arena_rank` up (saved; `arena_defended_day` too); rank 6 = champion: the Champion's
+  Sabre (resources/items/champion_sabre.tres, katana, rarity 4, rushing) and, only once DevilFruits.IN_WORLD, a 25% roll
+  at a Driftfruit (the 1.23 hook). Fighters: Pip Tanner (cutlass 0.25), Big Garran (warhammer 0.4), Selene Vasquez
+  (katana 0.55), Old Corran (spear 0.7), Ines Ravel (greatsword 0.82), Aurelio Quint (katana 0.95); challengers 0.85.
+- **Net:** `request_arena(kind, rank)` (host: `_start_arena`; guest: `_ask_arena` RPC with its own rank); the host
+  finds the capital by group `capital` and its `arena_sand()`.
+- **CapitalLife:** Arena Master Corvin Bale on the sand by the cut (his choices by your own rank; "arena:<kind>:<rank>"
+  events to Net.request_arena); the crier, the board, the sergeant and Odile say the arena's open. District `_arena`:
+  the crowd in the stands (one mesh, ~250 figures, none over the cut), the master's spot.
+- **Not done (assumed decision):** wooden practice blades are visual only and not built yet (the small fixes batch).
+- Tests: t/capital/arena (new: the way in, the sand, the podium, the crowd, a ladder win, the champion's prize, a lost
+  and a won defence), t/capital (all).

@@ -48,6 +48,7 @@ func start_beasts() -> void:
 func prepare(n: Dictionary) -> void:
 	node = n
 	theme = "capital"
+	add_to_group("capital")
 	radius = RADIUS
 	extent = ceilf((radius + MARGIN) * 2.0 / CELL) * CELL
 	half = extent * 0.5
@@ -422,3 +423,8 @@ func _in_stone(at: Vector3, ship: bool) -> bool:
 	if ship:
 		return CapitalPlan.land_t(q) < 3.0 or CapitalPlan.mole_dist(q) < CapitalPlan.MOLE_HW + 3.0
 	return CapitalPlan.land_t(q) < -1.0 and not CapitalPlan.in_floor(q) and l.y < CapitalPlan.ground(q) + 30.0
+
+
+## The arena sand's middle (global): where a bout's fighters face off (ArenaBout, 1.21).
+func arena_sand() -> Vector3:
+	return city_global(CapitalPlan.ARENA_C, CapitalPlan.PLAZA_Y + 0.05)

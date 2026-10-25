@@ -30,6 +30,10 @@ upgrades at Tackett's yard, Seamanship). Driftfruits are out of the world (Devil
 | Perf | **Ship anyway if the gate fails at the end**, like 1.20, and note it; the cities still get crowd and draw budgets planned up front (the capital's crowd pattern: far people as MultiMesh, rates by distance, districts culled and asleep when far). | Zach. | The perf pass |
 | Co-op | Standard: the host simulates the cities' people, the arena's bouts and the taxis; shops' stock seeded; a ship bought is the crew's (the buyer pays). | CLAUDE.md. | - |
 
+| Extras (2026-10-24, later) | **Three more for 1.21**: a **sky and clouds rework** (high cloud bands and wisps drifting at their own pace, richer dawn and dusk light on the clouds, clouds that build into storm cells before a storm and break up after, a haloed moon: 2-3 looks rendered side by side for Zach's pick first), the **Brinehollow perf pass** (win back the ~22% accepted for 1.20: townsfolk, harbour boats, moored hulls), and a **small fixes batch** (light shafts when diving, a cheaper far version of the fog giants, wooden practice blades in the arena, the leftover agent worktrees cleaned up). The fog isle's ground from Zach's photo: not now. | Zach. | Each look pick |
+
+| City detail pass (2026-10-24) | **Both cities made interesting and lived in, not large, empty and cold** (Zach): its own piece after the canal city lands, and the canal city built dense from the start. What it covers: warmth and colour in the streets (flower boxes, ivy and climbing vines, shutters in colours, potted trees, awnings, washing lines across the narrow ways, chimneys smoking), street life that does things (vendors calling, musicians, children playing, cats and pigeons, guards walking rounds, people sitting at café tables, carts moving), clutter and story in every corner (crates, barrels, stacked goods, notices, broken things, a shrine), warm light at dusk (lit windows, lanterns, glow on the walls), and close-up detail where you walk (doorsteps, signs, steps, wells, statues). Rendered at eye height day and dusk for Zach's look. | Zach. | After play |
+
 ### Number tables (for Zach's OK before those pieces are built)
 
 **The caravel against the sloop** (the sloop's numbers from ship.gd; upgrades stack on both the same way):
@@ -60,7 +64,8 @@ upgrades at Tackett's yard, Seamanship). Driftfruits are out of the world (Devil
 - The order and pieces (each a 1.20.x pre-release): **1.20.1** the capital's services, docks and noble quarter;
   **1.20.2** the palace and its quest line; **1.20.3** the arena and its ladder; **1.20.4** the canal city (shell,
   districts, people, water taxis, services); **1.20.5** the shipyard, owning ships and the caravel; **1.20.6** the
-  harbour vendors. Then the stable 1.21. **assumed**
+  harbour vendors; **1.20.7** the city detail pass (both cities) and the small fixes; **1.20.8** the sky and clouds
+  (after Zach's look pick) and the Brinehollow perf pass. Then the stable 1.21. **assumed** (the extras added 2026-10-24)
 - Harbour vendors: about half the chain's regular islands (seeded), each one line (sails, guns, hull, a ship
   service or a trainer). **assumed**
 - The palace quest line: three or four quests for the crown's people, ending in an audience. **assumed**

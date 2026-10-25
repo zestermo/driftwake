@@ -22,7 +22,7 @@ const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36,
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": [], "cells": P.lots().map(func(l): return l["cell"])}
 	for step in [["houses", _houses], ["specials", _specials], ["plaza", _plaza], ["street", _street], ["quay", _quay],
-			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne]]:
+			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -1282,3 +1282,46 @@ static func _court(out: Dictionary) -> void:
 	var cq := Vector2(3.0, court.position.y + 6.0)
 	_spot(out, "chamberlain", cq, P.ground(cq), Vector2(0, 1))
 	_piece(out, "Court", mb, cols)
+
+
+# --------------------------------------------------------------------------
+# The arena (1.21 piece 3): its crowd in the stands, the arena master's place on the sand
+# --------------------------------------------------------------------------
+const CROWD_SHIRTS := [Color(0.62, 0.16, 0.14), Color(0.18, 0.26, 0.58), Color(0.86, 0.68, 0.26), Color(0.3, 0.46, 0.3), Color(0.9, 0.88, 0.82),
+	Color(0.42, 0.3, 0.22), Color(0.5, 0.2, 0.4), Color(0.25, 0.25, 0.28)]
+const CROWD_SKIN := [Color(0.96, 0.8, 0.66), Color(0.82, 0.62, 0.46), Color(0.6, 0.42, 0.3), Color(0.42, 0.3, 0.22)]
+
+
+## Spectators on the arena's seats: a figure (legs, a shirt, a head) on most places along each ring, each facing the
+## sand, none over the cut to the gate. One mesh, two materials (shirts and skin in vertex colour).
+static func _arena(out: Dictionary) -> void:
+	var mb := MeshBuilder.new()
+	var rng := _rng(7331)
+	var cloth := PSXMat.lit("fabric")
+	var skin := PSXMat.flat(Color.WHITE)
+	var c: Vector2 = P.ARENA_C
+	var r: Vector2 = P.ARENA_R
+	var y0: float = P.PLAZA_Y
+	for i in range(P.ARENA_SEATS):
+		var k0 := 0.97 - 0.05 * i - 0.025
+		var y := y0 + 15.0 - i * 1.6
+		var per := TAU * sqrt((r.x * r.x + r.y * r.y) * 0.5) * k0
+		var n := int(per / 1.3)
+		for k in range(n):
+			if rng.randf() > 0.62:
+				continue
+			var a := TAU * (k + rng.randf_range(-0.2, 0.2)) / n
+			var q := c + Vector2(cos(a) * r.x * k0, sin(a) * r.y * k0)
+			if absf(q.y - c.y) < P.ARENA_CUT + 3.0 and q.x < c.x:
+				continue
+			var t := M.xf(M.v3(q, y), M.yaw_of(c - q))
+			var shirt: Color = CROWD_SHIRTS[rng.randi() % CROWD_SHIRTS.size()]
+			var h := rng.randf_range(0.9, 1.05)
+			mb.add_box(cloth, t * Transform3D(Basis(), Vector3(0, 0.25 * h, 0)), Vector3(0.42, 0.5 * h, 0.3), 1.0, shirt * 0.6)
+			mb.add_box(cloth, t * Transform3D(Basis(Vector3.RIGHT, rng.randf_range(-0.15, 0.1)), Vector3(0, 0.78 * h, 0)), Vector3(0.5, 0.62 * h, 0.3), 1.0, shirt)
+			mb.add_blob(skin, t * Transform3D(Basis(), Vector3(0, 1.22 * h, 0)), Vector3.ONE * 0.15, rng, 0.1, 2, 5, 1.0, CROWD_SKIN[rng.randi() % CROWD_SKIN.size()])
+			if rng.randf() < 0.18:
+				mb.add_box(cloth, t * Transform3D(Basis(Vector3.BACK, rng.randf_range(-0.3, 0.3)), Vector3(0.32, 1.25 * h, 0.05)), Vector3(0.1, 0.55, 0.1), 1.0, shirt)
+	_piece(out, "ArenaCrowd", mb, [], RANGE, false)
+	var mq := Vector2(c.x - r.x * P.arena_inner() + 2.6, c.y - 3.2)
+	_spot(out, "arena_master", mq, P.ground(mq), Vector2(-1, 0))
