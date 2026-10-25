@@ -186,6 +186,8 @@ func _on_dialogue_event(ev: String) -> void:
 			pl.learn_black_leg()
 	elif ev.begins_with("shop:"):
 		_after_talk = ["shop", ev.substr(5)]
+	elif ev.begins_with("ship:"):
+		_ship_event(ev.get_slice(":", 1), ev.get_slice(":", 2))
 	elif ev == "rumour_king":
 		var gm := get_node("/root/GameManager")
 		if not gm.charted.has("king"):
@@ -593,3 +595,22 @@ func _build_controls() -> Control:
 # ==========================================================================
 func _player() -> Player:
 	return get_tree().get_first_node_in_group("player") as Player
+
+
+## "ship:buy:<class>" / "ship:switch:<class>" from a shipwright's talk (ShipClasses, 1.21): the buyer pays from their
+## own bag first (or hears what they're short of), then the host changes the crew's ship.
+func _ship_event(action: String, cls: String) -> void:
+	var pl := _player()
+	if pl == null or not ShipClasses.CLASSES.has(cls):
+		return
+	var name_: String = ShipClasses.CLASSES[cls]["name"]
+	if action == "buy":
+		var short := ShipClasses.short_of(pl.inventory_component, cls)
+		if short != "":
+			get_tree().call_group("hud", "show_toast", "The %s costs %s: you're short %s." % [name_.to_lower(), ShipClasses.price_text(cls), short])
+			return
+		ShipClasses.pay(pl.inventory_component, cls)
+		get_tree().call_group("hud", "show_banner", "A %s of your own!" % name_.to_lower(), "She's at the berth. Your sloop's laid up at the yard, upgrades and all.", true)
+	else:
+		get_tree().call_group("hud", "show_toast", "You'll sail the %s. The other's laid up at the yard." % name_.to_lower())
+	get_node("/root/Net").request_ship(action, cls)

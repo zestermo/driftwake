@@ -229,7 +229,9 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 		{"text": "Do you build ships to sell?", "next": "ships"}]}
 	var mnodes := {"intro": {"text": ["Ottavio Grane, Master of the Arsenal. Every hull on this lagoon has passed under my eye, and most of them under my hand."], "next": "menu"},
 		"menu": mmenu, "yard": {"text": ["Let's see her, then. Whatever Brinehollow's yard does, mine does better."], "event": "shipwright:Grane", "next": "end"},
-		"ships": {"text": ["We do. A caravel on the slips now, fast and light. Come back when she's ready and bring your purse."], "next": "menu"}}
+		"ships": {"text": ["We do. Caravels: light, quick, a bow chaser and a bigger hold, though she'll take a broadside worse than your sloop.", "Yours for %s, the materials my yard eats." % ShipClasses.price_text("caravel")], "next": "menu"},
+		"buy": {"text": ["Done! I'll have her at your berth by the time you're down the steps. Your sloop stays here, looked after."], "event": "ship:buy:caravel", "next": "end"}}
+	_ship_choices(mmenu["choices"], mnodes, true)
 	quest_node.hand_over(blessing, mmenu["choices"], mnodes)
 	mmenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("master"), {"speaker": "Master Ottavio Grane", "voice": 0.8, "start": "intro", "return": "menu", "nodes": mnodes})
@@ -316,3 +318,17 @@ func ride(to: int) -> void:
 		get_tree().call_group("hud", "show_toast", "The boatman rows you to %s." % str(P.LANDINGS[to][0]).to_lower()))
 	tw.tween_interval(0.35)
 	tw.tween_property(_fader, "color:a", 0.0, 0.5)
+
+
+## A shipwright's ship choices (ShipClasses): buy the caravel (the arsenal's master only) while she isn't the crew's,
+## and take out whichever ship is laid up. Shown only when they apply (read off the crew's kit as you talk).
+static func _ship_choices(choices: Array, nodes: Dictionary, sells: bool) -> void:
+	var kit := func() -> Dictionary: return ShipKit.merged((Engine.get_main_loop() as SceneTree).root.get_node("GameManager").ship_kit)
+	if sells:
+		choices.insert(0, {"text": "I'll buy the caravel (%s)." % ShipClasses.price_text("caravel"), "next": "buy",
+			"if": func(): return not ShipClasses.owns(kit.call(), "caravel")})
+	for cls in ShipClasses.CLASSES:
+		var c: String = cls
+		choices.insert(0, {"text": "I'll sail the %s." % str(ShipClasses.CLASSES[c]["name"]).to_lower(), "next": "sail_" + c,
+			"if": func(): return ShipClasses.owns(kit.call(), c) and ShipClasses.class_of(kit.call()) != c})
+		nodes["sail_" + c] = {"text": ["Right you are. I'll have her brought round."], "event": "ship:switch:" + c, "next": "end"}

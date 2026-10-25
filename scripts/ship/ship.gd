@@ -99,6 +99,8 @@ var crippled: bool = false
 var kit: Dictionary = {}
 var _top_k: float = 1.0
 var _turn_k: float = 1.0
+## Her class's acceleration (ShipClasses: the caravel's quicker off the mark).
+var _accel_k := 1.0
 ## The lines' other effects (ShipLines): speed in the dark, what's left of a reef's damage, how much less a
 ## ram throws the crew (1 = not at all), how far the lookout puts ships and salvage on the compass (m).
 var _night_k: float = 0.0
@@ -247,7 +249,7 @@ func _physics_process(delta: float) -> void:
 	elif _back_in:
 		speed = move_toward(speed, -MAX_REVERSE, BRAKE * delta)
 	elif speed < want:
-		speed = move_toward(speed, want, ACCEL * delta)
+		speed = move_toward(speed, want, ACCEL * _accel_k * delta)
 	else:
 		speed = move_toward(speed, want, (0.35 + 0.012 * speed * speed) * delta)
 	rudder = move_toward(rudder, _turn_in, 2.2 * _turn_k * delta)
@@ -1344,21 +1346,26 @@ func _ring_at(rings: Array, z: float) -> Array:
 ## Put the shipwright's work on her (every screen: the host's kit in co-op).
 func apply_kit(k: Dictionary) -> void:
 	kit = ShipKit.merged(k)
+	# (her class over her upgrades: ShipClasses, 1.21)
+	var sc := ShipClasses.of(kit)
 	var was := max_hull
-	max_hull = MAX_HULL * (1.0 + ShipLines.total(kit, "hull"))
+	max_hull = MAX_HULL * (1.0 + ShipLines.total(kit, "hull") + float(sc["hull"]))
 	hull = clampf(hull + maxf(max_hull - was, 0.0), 0.0, max_hull)
-	_top_k = 1.0 + ShipLines.total(kit, "speed")
-	_turn_k = 1.0 + ShipLines.total(kit, "turn")
+	_top_k = 1.0 + ShipLines.total(kit, "speed") + float(sc["speed"])
+	_turn_k = 1.0 + ShipLines.total(kit, "turn") + float(sc["turn"])
+	_accel_k = 1.0 + float(sc["accel"])
 	var aft := get_node_or_null("ShipModel/CannonS2") != null
-	if ShipLines.total(kit, "guns") >= 1.0 and not aft:
+	var aft_ok: bool = ShipLines.total(kit, "guns") >= 1.0 and bool(sc["aft_guns"])
+	if aft_ok and not aft:
 		_add_gun_pair(2)
-	elif ShipLines.total(kit, "guns") < 1.0 and aft:
+	elif not aft_ok and aft:
 		for n in ["CannonS2", "CannonP2"]:
 			var c := ship_model.get_node(n)
 			cannons.erase(c)
 			c.free()
 	var bow := get_node_or_null("ShipModel/CannonBow") as ShipCannon
-	if ShipLines.total(kit, "chaser") >= 1.0 and bow == null:
+	var chaser_ok: bool = ShipLines.total(kit, "chaser") >= 1.0 or bool(sc["chaser"])
+	if chaser_ok and bow == null:
 		bow = ShipCannon.new()
 		bow.name = "CannonBow"
 		bow.ship = self
@@ -1366,7 +1373,7 @@ func apply_kit(k: Dictionary) -> void:
 		bow.position = ShipParts.CHASER_AT
 		ship_model.add_child(bow)
 		cannons.append(bow)
-	elif ShipLines.total(kit, "chaser") < 1.0 and bow:
+	elif not chaser_ok and bow:
 		cannons.erase(bow)
 		bow.free()
 	for c in cannons:
@@ -1381,7 +1388,7 @@ func apply_kit(k: Dictionary) -> void:
 	_reef_k = 1.0 - ShipLines.total(kit, "reef")
 	steady = ShipLines.total(kit, "steady")
 	lookout = ShipLines.total(kit, "spot")
-	InventoryComponent.bonus_slots = int(ShipLines.total(kit, "slots"))
+	InventoryComponent.bonus_slots = int(ShipLines.total(kit, "slots")) + int(sc["slots"])
 	var paint := (_hull_mat as ShaderMaterial).duplicate() as ShaderMaterial
 	paint.set_shader_parameter("albedo_color", ShipKit.HULL_PAINT[int(kit["hull"])][1])
 	for i in range(_psx_model.mesh.get_surface_count()):
@@ -1392,6 +1399,7 @@ func apply_kit(k: Dictionary) -> void:
 	_sail_node.material_override = sails
 	_furl_node.material_override = sails
 	parts.apply(kit, sails)
+	_mizzen(ShipClasses.class_of(kit) == "caravel", sails)
 	var flag := ShaderMaterial.new()
 	flag.shader = PSXMat.LIT_SHADER
 	flag.set_shader_parameter("albedo_tex", ImageTexture.create_from_image(ShipKit.flag_image(kit)))
@@ -1404,6 +1412,33 @@ func apply_kit(k: Dictionary) -> void:
 	var fig := ShipKit.figurehead(int(kit["figure"]))
 	if fig:
 		_figure_node.add_child(fig)
+
+
+## The caravel's lateen mizzen (ShipClasses): a mast at the stern, a long yard slanting up aft over the helm (well
+## above head height) and a triangular sail under it in her sails' colour; made or removed with her class.
+func _mizzen(on: bool, sails: Material) -> void:
+	var old := ship_model.get_node_or_null("Mizzen")
+	if old and not on:
+		old.free()
+		return
+	if old or not on:
+		return
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_dark")
+	var qd := HullBuilder.QD_Y
+	var mz := 9.2
+	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, qd, mz)), 0.14, 0.1, 8.6, 6, 0.8)
+	var a := Vector3(0.22, qd + 3.4, 5.6)
+	var b := Vector3(0.22, qd + 10.2, 11.0)
+	mb.add_tube(wood, PackedVector3Array([a, b]), 0.07, 0.05, 5, 0.8)
+	var c := Vector3(0.24, qd + 2.9, mz + 0.2)
+	var n := Vector3.RIGHT
+	mb.add_tri(sails, a, b, c, n, n, n, Vector2(0, 0), Vector2(1, 1), Vector2(0.6, 0), Color.WHITE, n)
+	mb.add_tri(sails, a, c, b, -n, -n, -n, Vector2(0, 0), Vector2(0.6, 0), Vector2(1, 1), Color(0.8, 0.8, 0.8), -n)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, qd + 8.7, mz)), Vector3(0.5, 0.12, 0.5), 1.0)
+	var mi := mb.to_instance("Mizzen")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ship_model.add_child(mi)
 
 
 ## The rig: the yard on the mast (it swings round to trim to the wind), the

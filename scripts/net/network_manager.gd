@@ -1305,6 +1305,30 @@ func set_ship_kit(kit: Dictionary) -> void:
 	everyone("_all_ship_kit", [kit])
 
 
+## (1.21) A ship bought or taken out at a shipwright (ShipClasses): the buyer has paid from their own bag; the host
+## puts it on the crew's kit ("buy" a class not yet owned, "switch" to one that is) and everyone gets the new kit.
+func request_ship(action: String, cls: String) -> void:
+	if is_host() or not active:
+		_grant_ship(action, cls)
+	else:
+		_ask_ship.rpc_id(1, action, cls)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _ask_ship(action: String, cls: String) -> void:
+	if not hosting:
+		return
+	_grant_ship(action, cls)
+
+
+func _grant_ship(action: String, cls: String) -> void:
+	var gm := get_node("/root/GameManager")
+	var kit := ShipKit.merged(gm.ship_kit)
+	var owned := ShipClasses.owns(kit, cls)
+	if (action == "buy" and owned) or (action == "switch" and not owned) or ShipClasses.class_of(kit) == cls:
+		return
+	set_ship_kit(ShipClasses.switch_to(kit, cls))
+
 ## Any captain at Tackett's yard pays for the next level of one of her lines (from their own bag) and
 ## asks the host, who puts it on her unless someone already bought that level (the price then goes
 ## back). `lv` is the level she had as they paid. The answer goes to their yard (upgrade_done).

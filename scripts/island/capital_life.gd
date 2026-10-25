@@ -333,6 +333,7 @@ func _talk_docks(manifest: Dictionary, invite: Dictionary) -> void:
 		"yard": {"text": ["Let's have a look at her, then."], "event": "shipwright:Coyle", "next": "end"},
 		"hull": {"text": ["A merchant's caravel, for the Guild. Pretty thing when she's done. If you want a ship of your own like her, the canal city's yards build them by the dozen."],
 			"next": "menu"}}
+	CanalLife._ship_choices(ymenu["choices"], ynodes, false)
 	ymenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("shipwright"), {"speaker": "Marta Coyle", "voice": 1.0, "start": "intro", "return": "menu", "nodes": ynodes})
 	var gmenu := {"text": "Make it quick, Captain, there's a hold to empty.", "choices": []}
