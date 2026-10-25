@@ -6283,3 +6283,35 @@ fidelity report:
   lines)`: the other rows and empty group heads hidden, no Paint tab. Plain `shipwright` / `shipwright:<name>` show
   everything again. Refits go through the host like Tackett's (Net.request_upgrade); guests build the same vendor.
 - Tests: t/economy/harbour_vendor (new), t/economy/artisan_camp.
+
+## 2026-10-24: The canal city (1.21 piece 4)
+
+- The chain's second city (Chain.CITY_LAYERS[1], names rolled from CANAL_NAMES: Saltmere, Lantern Reach, Brackwater):
+  `CanalIsland` (scripts/island/canal_island.gd) extends CapitalIsland and reuses its whole pattern: a fixed plan in
+  the city frame (`CanalPlan`: x along the harbour, +z to sea; QUAY_Y 1.6, FRONT_Z 110, land a disc LAND_R 215 round
+  LAND_C), pieces built on a worker (`CanalShell`: quays, sea wall, coast, 11 bridges, campanile and dome, the massing;
+  `CanalDistrict`: the dressed houses on every lot that fronts a calle or campo, washing lines, moored boats, the
+  campi, the piazza, the market, the inn, the arsenal with a hull on the slip), people and services in `CanalLife`.
+- The plan: CANALS (the grand canal, two side canals, the basin), BLOCKS with their quays, the RIVA along the front,
+  the PIAZZA, the ARSENAL Rect2(128, -62, 42, 68). `lots()` cuts each block into bands between its thin E-W floors,
+  rows no deeper than 12 m, spans cut round every lane, filled edge to edge, so houses line every walk (no barrier
+  walls along the lanes). `openings()` closes the gaps that are left with barriers.
+- Getting round: bridges, and water taxis (6 boatmen, LANDINGS: 6 stops; `CanalLife.ride(to)` fades and sets you
+  down at the other landing). The crowd is CapitalCrowd on CanalLife.LANES with CanalPlan.ground.
+- Services: the grocer, the fishmonger, Fiore Glass (treasure), Salt's Chandlery (the yard's materials), the inn,
+  Master Ottavio Grane at the arsenal (the shipyard, below), Father Anselm, three quests.
+- About 828 lots (449 fronting) and ~765k triangles in all, with visibility ranges; people hide past 230 m (ActorSleep).
+- Tests: t/canal/plan (the plan's invariants), t/canal/city (built: services, people, taxis, walking the riva and a
+  bridge); tools/dev/canalshot.gd renders it.
+
+## 2026-10-24: Ship classes and the caravel (1.21 piece 5)
+
+- `ShipClasses` (scripts/ship/ship_classes.gd): the sloop and the caravel. A class changes handling and carrying,
+  not the deck (every class shares HullBuilder's layout, so every job aboard works the same); the caravel shows a
+  lateen mizzen aft. Zach's numbers: 13 m/s, turn 0.68, accel 3.1, hull 340, no quarterdeck pair, a bow chaser
+  fitted, +4 bag slots; 1,400 gold, 6 timber, 4 canvas, 2 iron.
+- The kit carries "class" and "fleet" (laid-up ships with their own upgrades and paint), synced with Net.set_ship_kit.
+  `Ship.apply_kit` applies the class (hull, `_top_k`, `_turn_k`, `_accel_k`, aft guns, chaser, slots, the mizzen).
+- Bought from Master Grane at the canal city's arsenal (dialogue event `ship:buy:caravel`), switched at any city
+  shipwright (`ship:switch:<class>`: Grane, Coyle): `GameMenu._ship_event`, through the host (Net.request_ship).
+- Tests: t/ship/caravel (short of the price, bought, her numbers, laid-up sloop kept, switching back).
