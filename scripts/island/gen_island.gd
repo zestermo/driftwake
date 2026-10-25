@@ -25,6 +25,8 @@ const SITE_GAP := 90.0
 ## Ground kept clear at each site's middle (m, reserve_area).
 const SITE_CLEAR := {"village": 30.0, "boss": 24.0, "camp": 18.0, "lair": 14.0, "ruins": 11.0, "summit": 8.0}
 const VEG_CELL := 70.0
+## A giant with a far version (the fog isle's) shows its full mesh out to here, the light one beyond.
+const GIANT_NEAR := 180.0
 
 var node: Dictionary
 var theme: String
@@ -1126,6 +1128,12 @@ func _vegetation_meshes(part: int, parts: int, sub: int = 0, subs: int = 1) -> v
 			"giant", "tree":
 				# (past this the fog has swallowed them)
 				mmi.visibility_range_end = 1100.0
+			"giant_near":
+				mmi.visibility_range_end = GIANT_NEAR
+			"giant_far":
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mmi.visibility_range_begin = GIANT_NEAR
+				mmi.visibility_range_end = 1100.0
 		veg.add_child(mmi)
 
 
@@ -1167,7 +1175,7 @@ func _tree_shape(s: Array) -> CollisionShape3D:
 
 func _bucket(buckets: Dictionary, mesh: Mesh, kind: String, xf: Transform3D) -> void:
 	# (the big trees are seen from afar: bigger squares, fewer draw calls)
-	var cell := VEG_CELL * (2.0 if kind == "giant" or kind == "tree" else 1.0)
+	var cell := VEG_CELL * (2.0 if kind in ["giant", "tree", "giant_near", "giant_far"] else 1.0)
 	var key := [mesh, kind, floori(xf.origin.x / cell), floori(xf.origin.z / cell)]
 	if not buckets.has(key):
 		buckets[key] = []
@@ -1196,7 +1204,12 @@ func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: floa
 	if lean_to != Vector2.ZERO:
 		yaw = atan2(lean_to.x, lean_to.y) - atan2(lean.x, lean.z)
 	var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), Vector3(p.x, h - 0.3, p.y))
-	_bucket(buckets, pick[0], "giant", xf)
+	if pick.size() > 4:
+		# (a giant with a far version, [body, detail, lean, r, far]: the full one close, the light one far off)
+		_bucket(buckets, pick[0], "giant_near", xf)
+		_bucket(buckets, pick[4], "giant_far", xf)
+	else:
+		_bucket(buckets, pick[0], "giant", xf)
 	_bucket(buckets, pick[1], "giant_detail", xf)
 	_crowns.append(xf * GrapplePoints.crown_of(pick[0]))
 	# a tree that gives its trunk radius (the fog isle's giants: [body, detail, lean, r]) gets a trunk that thick

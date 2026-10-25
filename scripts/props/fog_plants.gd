@@ -33,7 +33,7 @@ static func _limb(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator, from
 	var kink := Vector3(rng.randf_range(-0.35, 0.35), rng.randf_range(-0.15, 0.2), rng.randf_range(-0.35, 0.35)) * length
 	var mid := from + dir * length * 0.5 + kink * 0.5
 	var end := from + dir * length + kink + Vector3.DOWN * droop * length
-	mb.add_tube(b, PackedVector3Array([from, mid, end]), r, r * 0.45, 5 if r > 0.15 else 4, 0.8)
+	mb.add_tube(b, PackedVector3Array([from, mid, end]), r, r * 0.45, _s(5 if r > 0.15 else 4), 0.8)
 	if depth <= 0:
 		ends.append(end)
 		return
@@ -229,6 +229,31 @@ static func fallen_log(seed_value: int) -> ArrayMesh:
 # gnarled wood): the spiral giant, the forest's main tree, and the gnarled giant mixed in. Dark grey-violet bark,
 # limbs ending in tightening curls or sprays of twigs, moss in pale curtains.
 # --------------------------------------------------------------------------
+## (building a giant's far version: tubes with half their sides, the moss and twigs drawn into a throwaway builder so
+## the rng runs the same and the far tree is the same tree)
+static var _far := false
+
+
+static func _s(n: int) -> int:
+	return maxi(3, n / 2) if _far else n
+
+
+## `mb`, or a throwaway builder while building a far version (for the small stuff only seen up close).
+static func _near(mb: MeshBuilder) -> MeshBuilder:
+	return MeshBuilder.new() if _far else mb
+
+
+## [the near version's arrays..., its far version]: the giant built twice from the same seed (GenIsland shows the
+## full one inside ~180 m and the light one out to the fog's end).
+static func _with_far(build: Callable, seed_value: int) -> Array:
+	var near: Array = build.call(seed_value)
+	_far = true
+	var far: Array = build.call(seed_value)
+	_far = false
+	near.append(far[0])
+	return near
+
+
 static func _gbark() -> Material:
 	return PSXMat.lit("bark", Color(0.42, 0.38, 0.44))
 
@@ -259,7 +284,7 @@ static func _curl(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator, from
 		p += h * length / n * lerpf(1.3, 0.45, t)
 		pts.append(p)
 		h = h.rotated(axis, lerpf(0.04, 0.55, t * t) + rng.randf_range(-0.03, 0.03))
-	mb.add_tube(b, pts, r, 0.02, 5 if r > 0.2 else 4, 0.7)
+	mb.add_tube(b, pts, r, 0.02, _s(5 if r > 0.2 else 4), 0.7)
 	return p
 
 
@@ -273,7 +298,7 @@ static func _curl_crown(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator
 		var L := reach * rng.randf_range(0.7, 1.0)
 		var mid := top + out * L * 0.45 + Vector3.UP * L * rng.randf_range(0.35, 0.7)
 		var elbow := top + out * L * 0.7 + Vector3.UP * L * rng.randf_range(0.3, 0.8)
-		mb.add_tube(b, MeshBuilder.curve_points(top, mid, elbow, 6), r, r * 0.45, 6, 0.6)
+		mb.add_tube(b, MeshBuilder.curve_points(top, mid, elbow, 6), r, r * 0.45, _s(6), 0.6)
 		var d := (elbow - mid).normalized()
 		ends.append(_curl(mb, b, rng, elbow, d, L * rng.randf_range(0.5, 0.75), r * 0.45, rng.randf() < 0.5))
 		for j in range(rng.randi_range(1, 2)):
@@ -293,6 +318,10 @@ static func _haunt(mb: MeshBuilder, rng: RandomNumberGenerator, ends: Array, odd
 ## The spiral giant (24-32 m): a massive trunk twisting up like a wrung rope, a crown of six or seven long limbs
 ## each ending in a curl, moss hanging in long curtains.
 static func spiral_giant(seed_value: int) -> Array:
+	return _with_far(_spiral_giant, seed_value)
+
+
+static func _spiral_giant(seed_value: int) -> Array:
 	var rng := _rng(seed_value)
 	var body := MeshBuilder.new()
 	var b := _gbark()
@@ -306,7 +335,7 @@ static func spiral_giant(seed_value: int) -> Array:
 	for i in range(8):
 		var t := float(i) / 7.0
 		pts.append(Vector3(cos(spin + t * 4.0), 0, sin(spin + t * 4.0)) * tw * sin(t * PI) + lean * t + Vector3.UP * (fy * t - 0.3 * (1.0 - t)))
-	body.add_tube(b, pts, r, r * 0.55, 9, 0.5)
+	body.add_tube(b, pts, r, r * 0.55, _s(9), 0.5)
 	# two strands wound round the trunk, the twist made visible
 	for k in range(2):
 		var sp := PackedVector3Array()
@@ -315,7 +344,7 @@ static func spiral_giant(seed_value: int) -> Array:
 			var base: Vector3 = pts[0].lerp(pts[pts.size() - 1], t)
 			var rr := lerpf(r, r * 0.6, t) * 0.92
 			sp.append(base + Vector3(cos(spin + t * 7.0 + PI * k), 0, sin(spin + t * 7.0 + PI * k)) * rr)
-		body.add_tube(b, sp, r * 0.28, r * 0.12, 5, 0.6)
+		_near(body).add_tube(b, sp, r * 0.28, r * 0.12, 5, 0.6)
 	var ends: Array = []
 	_curl_crown(body, b, rng, pts[pts.size() - 1], rng.randi_range(6, 7), h - fy + 4.0, r * 0.42, ends)
 	_haunt(body, rng, ends, 0.4, Vector2(3.0, 6.0))
@@ -351,6 +380,10 @@ static func _twigs(mb: MeshBuilder, b: Material, rng: RandomNumberGenerator, at:
 ## from one mossy foot, long limbs snaking out sideways, some sagging to the ground and rising again, sprays of fine
 ## bare twigs along them and at their ends, green moss up the trunks and along the tops of the limbs.
 static func gnarl_giant(seed_value: int) -> Array:
+	return _with_far(_gnarl_giant, seed_value)
+
+
+static func _gnarl_giant(seed_value: int) -> Array:
 	var rng := _rng(seed_value)
 	var body := MeshBuilder.new()
 	var b := _gbark()
@@ -366,10 +399,10 @@ static func gnarl_giant(seed_value: int) -> Array:
 		var top := out * rng.randf_range(3.0, 6.0) + Vector3.UP * h * rng.randf_range(0.75, 0.95)
 		var tr := r * (0.75 if k == 0 else 0.55)
 		var pts := _snake(rng, Vector3.DOWN * 0.3 + out * 0.3, top, 0.0, rng.randf_range(0.8, 1.6))
-		body.add_tube(b, pts, tr, tr * 0.55, 8, 0.5)
+		body.add_tube(b, pts, tr, tr * 0.55, _s(8), 0.5)
 		for i in range(1, 6):
 			var q: Vector3 = pts[i]
-			body.add_blob(moss, Transform3D(Basis(Vector3.UP, a), q + out * tr * 0.4 + Vector3.UP * 0.2), Vector3(tr * 0.85, 0.4, tr * 0.7), rng, 0.3, 2, 5, 0.6)
+			_near(body).add_blob(moss, Transform3D(Basis(Vector3.UP, a), q + out * tr * 0.4 + Vector3.UP * 0.2), Vector3(tr * 0.85, 0.4, tr * 0.7), rng, 0.3, 2, 5, 0.6)
 		tops.append([pts, out, tr])
 	var ends: Array = []
 	for t in tops:
@@ -384,13 +417,13 @@ static func gnarl_giant(seed_value: int) -> Array:
 			var to := from + dir * L + Vector3.UP * (rng.randf_range(-from.y + 1.0, -from.y + 3.0) if sag else rng.randf_range(-3.0, 3.0))
 			var lp := _snake(rng, from, to, -from.y * 0.6 if sag else rng.randf_range(0.5, 2.5), rng.randf_range(0.6, 1.4))
 			var lr := tr * rng.randf_range(0.55, 0.65)
-			body.add_tube(b, lp, lr, lr * 0.3, 6, 0.6)
+			body.add_tube(b, lp, lr, lr * 0.3, _s(6), 0.6)
 			for i in range(2, 9, 2):
 				if rng.randf() < 0.45:
 					var q: Vector3 = lp[i]
-					body.add_blob(moss, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), q + Vector3.UP * lr * 0.6), Vector3(lr * 1.4, lr * 0.5, lr * 1.0), rng, 0.3, 2, 5, 0.6)
+					_near(body).add_blob(moss, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), q + Vector3.UP * lr * 0.6), Vector3(lr * 1.4, lr * 0.5, lr * 1.0), rng, 0.3, 2, 5, 0.6)
 				if rng.randf() < 0.3:
-					_twigs(body, b, rng, lp[i], (Vector3.UP + dir * 0.5).normalized(), rng.randf_range(3.0, 4.5))
+					_twigs(_near(body), b, rng, lp[i], (Vector3.UP + dir * 0.5).normalized(), rng.randf_range(3.0, 4.5))
 			_twigs(body, b, rng, lp[lp.size() - 1], dir, rng.randf_range(2.0, 3.5))
 			ends.append(lp[lp.size() - 1])
 		_twigs(body, b, rng, pts[pts.size() - 1], (Vector3.UP + out).normalized(), rng.randf_range(2.5, 4.0))

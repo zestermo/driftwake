@@ -6316,3 +6316,16 @@ fidelity report:
 - Bought from Master Grane at the canal city's arsenal (dialogue event `ship:buy:caravel`), switched at any city
   shipwright (`ship:switch:<class>`: Grane, Coyle): `GameMenu._ship_event`, through the host (Net.request_ship).
 - Tests: t/ship/caravel (short of the price, bought, her numbers, laid-up sloop kept, switching back).
+
+## 2026-10-25: 1.21 small fixes: practice blades, the fog giants' far versions
+
+- Arena practice blades: `Humanoid.practice` / `set_practice(on)` shows whatever's held as `Props.practice_mesh(mesh)`
+  (every surface one pale wood material, the same "model" meta, cached by model). `ArenaBout` turns it on for both
+  fighters at the bell and off for the captain at the end, on every screen (`Net._all_practice(keys, on)`, which finds
+  a player's rig as `body_model`, others' as `humanoid`). t/capital/arena checks it.
+- The fog giants' far versions: `FogPlants.spiral_giant` / `gnarl_giant` build the tree twice from the same seed
+  (`_with_far`): the far one with tubes at half their sides (`_s`) and the strands, moss and mid-limb twigs drawn into
+  a throwaway builder (`_near`) so the rng runs the same and it's the same tree (the end sprays stay: they make its
+  outline). A big-tree entry [body, detail, lean, r, far]: GenIsland buckets the body as "giant_near" (to GIANT_NEAR
+  180 m) and the far one as "giant_far" (180-1100 m, no shadow). ~3.4k -> 1.8k and ~5.3k -> 1.9k triangles a tree.
+  t/island/fog_giants_far (new).
