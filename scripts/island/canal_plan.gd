@@ -46,7 +46,7 @@ const BLOCKS := [
 const RIVA := [Rect2(-185.0, 96.0, 173.0, 14.0), Rect2(12.0, 96.0, 173.0, 14.0)]
 ## The piazza on the harbour front (the se block), the arsenal's open yard.
 const PIAZZA := Rect2(24.0, 56.0, 80.0, 40.0)
-const ARSENAL := Rect2(132.0, -62.0, 38.0, 68.0)
+const ARSENAL := Rect2(128.0, -62.0, 42.0, 68.0)
 ## Buildings of their own: [rect, the way their front faces].
 const SPECIAL := {
 	"church": [Rect2(44.0, 36.0, 40.0, 20.0), Vector2(0, 1)],
@@ -158,9 +158,6 @@ static func floors() -> Array:
 	# the piazza reaches the walkway along the Grand Canal by a lane past the campanile
 	out.append(["piazza_cw", Rect2(16.0, 66.0, 8.0, 30.0), "capital_slabs"])
 	out.append(["arsenal", ARSENAL, "capital_slabs"])
-	# the yard's way in: the me block's east lane carried on to the arsenal
-	var me_c := _campo_of(BLOCKS[3][1])
-	out.append(["arsenal_way", Rect2(128.0, me_c.y - CALLE * 0.5, ARSENAL.position.x - 128.0, CALLE), "cobbles"])
 	_floors = _clip(out)
 	return _floors
 
@@ -209,8 +206,10 @@ static func terrain(q: Vector2) -> float:
 # --------------------------------------------------------------------------
 # Houses
 # --------------------------------------------------------------------------
-## Every house lot: a block's ground inside its walkways filled with houses in rows facing out (to the walkways, the
-## lanes, the campo), narrow and tall. {"r", "cell", "c", "floors", "roof", "face", "seed", "front", "keep": false}.
+## Every house lot: a block's ground inside its walkways cut into bands between its east-west floors (its lanes, its
+## campo), each band into rows at most 12 m deep, each row into spans between its north-south floors, each span
+## filled edge to edge with narrow lots, so every lane and campo is lined with houses (no gaps to wall off).
+## {"r", "cell", "c", "floors", "roof", "face", "seed", "front", "keep": false}.
 static func lots() -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 61021
@@ -222,44 +221,68 @@ static func lots() -> Array:
 		var inner := Rect2(r.position + Vector2(WALK if sides.contains("w") else 0.0, WALK if sides.contains("n") else 0.0),
 			r.size - Vector2((WALK if sides.contains("w") else 0.0) + (WALK if sides.contains("e") else 0.0),
 				(WALK if sides.contains("n") else 0.0) + (WALK if sides.contains("s") else 0.0)))
-		# rows of lots 12 m deep from each long side, the middle massing
-		var depth := 12.0
-		var y := inner.position.y
-		while y < inner.end.y - 4.0:
-			var h := minf(depth, inner.end.y - y)
-			var x := inner.position.x
-			while x < inner.end.x - 3.0:
-				var w := minf(rng.randf_range(5.0, 8.5), inner.end.x - x)
-				if inner.end.x - (x + w) < 3.5:
-					w = inner.end.x - x
-				var cell := Rect2(x, y, w, h)
-				var lr := cell.grow(-rng.randf_range(0.0, 0.25))
-				var floors_n := rng.randi_range(3, 5)
-				var roof_roll := rng.randf()
-				var sd := rng.randi()
-				x += w
-				if not _lot_ok(lr, fl):
-					continue
-				var face := Vector2(0, -1)
-				var front := false
-				for f in fl:
-					var fr: Rect2 = f[1]
-					if not fr.grow(1.5).intersects(lr):
-						continue
-					front = true
-					if lr.end.x <= fr.position.x + 1.5:
-						face = Vector2(1, 0)
-					elif lr.position.x >= fr.end.x - 1.5:
-						face = Vector2(-1, 0)
-					elif lr.end.y <= fr.position.y + 1.5:
-						face = Vector2(0, 1)
-					else:
-						face = Vector2(0, -1)
-					break
-				out.append({"r": lr, "cell": cell, "c": lr.get_center(), "floors": floors_n, "roof": "flat" if roof_roll < 0.15 else ("gable" if roof_roll < 0.65 else "hip"),
-					"face": face, "seed": sd, "front": front, "keep": false})
-			y += h
+		var inside: Array = fl.filter(func(f): return (f[1] as Rect2).intersects(inner))
+		for band in _cut(inner.position.y, inner.end.y, inside.filter(func(f): return (f[1] as Rect2).size.x > (f[1] as Rect2).size.y and (f[1] as Rect2).size.y < 8.0).map(
+				func(f): return Vector2((f[1] as Rect2).position.y, (f[1] as Rect2).end.y))):
+			var bh: float = band.y - band.x
+			var n_rows := maxi(ceili(bh / 12.0), 1)
+			for ri in range(n_rows):
+				var y0: float = band.x + bh * ri / n_rows
+				var y1: float = band.x + bh * (ri + 1) / n_rows
+				var row := Rect2(inner.position.x, y0, inner.size.x, y1 - y0)
+				var cross: Array = inside.filter(func(f): return (f[1] as Rect2).intersects(row)).map(func(f): return Vector2((f[1] as Rect2).position.x, (f[1] as Rect2).end.x))
+				for span in _cut(inner.position.x, inner.end.x, cross):
+					var x: float = span.x
+					while x < span.y - 0.5:
+						var w := minf(rng.randf_range(5.0, 8.5), span.y - x)
+						if span.y - (x + w) < 3.5:
+							w = span.y - x
+						var cell := Rect2(x, y0, w, y1 - y0)
+						x += w
+						var lr := cell.grow(-rng.randf_range(0.0, 0.2))
+						var floors_n := rng.randi_range(3, 5)
+						var roof_roll := rng.randf()
+						var sd := rng.randi()
+						if w < 2.5 or not _lot_ok(lr, fl):
+							continue
+						var face := Vector2(0, -1)
+						var front := false
+						for f in fl:
+							var fr: Rect2 = f[1]
+							if not fr.grow(1.5).intersects(lr):
+								continue
+							front = true
+							if lr.end.x <= fr.position.x + 1.5:
+								face = Vector2(1, 0)
+							elif lr.position.x >= fr.end.x - 1.5:
+								face = Vector2(-1, 0)
+							elif lr.end.y <= fr.position.y + 1.5:
+								face = Vector2(0, 1)
+							else:
+								face = Vector2(0, -1)
+							break
+						out.append({"r": lr, "cell": cell, "c": lr.get_center(), "floors": floors_n, "roof": "flat" if roof_roll < 0.15 else ("gable" if roof_roll < 0.65 else "hip"),
+							"face": face, "seed": sd, "front": front, "keep": false})
 	return out
+
+
+## The parts of [a, b] outside every [lo, hi] in `holes` (each Vector2(lo, hi)), as Vector2(start, end) spans.
+static func _cut(a: float, b: float, holes: Array) -> Array:
+	var hs := holes.duplicate()
+	hs.sort_custom(func(p, q): return p.x < q.x)
+	var out: Array = []
+	var at := a
+	for h in hs:
+		if h.y <= at:
+			continue
+		if h.x > at:
+			out.append(Vector2(at, minf(h.x, b)))
+		at = maxf(at, h.y)
+		if at >= b:
+			break
+	if at < b:
+		out.append(Vector2(at, b))
+	return out.filter(func(s): return s.y - s.x >= 3.0)
 
 
 static func _lot_ok(r: Rect2, fl: Array) -> bool:
