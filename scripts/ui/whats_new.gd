@@ -7,6 +7,7 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
+	["1.20.1: the docks and the terrace", "The capital opens up: a warehouse row to the docks and the wharf, where Marta Coyle runs a shipwright's yard (every refit Tackett does, far from Brinehollow), a chandler sells timber and canvas, and a fence on the wharf pays over the odds for plunder. Up by the palace wall, the noble quarter's garden terrace and Ashgrove & Daughters, outfitters to the court. Two new city quests. Unstable: tell us what breaks."],
 	["Beasts reborn", "Every beast boss and roamer reworked: eight rebuilt bodies with jointed legs that follow the slope, and each beast with its own moves. Big attacks have a readable wind-up and an opening after, and only one move each knocks you down."],
 	["Grounds of their own", "A boss ground for every island type: the jungle canopy, an ice grotto on the snow, a half-buried ruin in the desert, a grove of standing stones in the forest."],
 	["The fog isle", "A fifth island type: deep woods of giant twisted trees under endless fog, a cursed fishing village, the drowned who get back up and ghosts that bullets pass through. Light the old lanterns to push the fog and the dead back, then face the Drowned Captain on his wreck."],

@@ -6193,3 +6193,28 @@ fidelity report:
 - **This baseline was taken on the min-spec PC itself** (Ryzen 5 5600G + RTX 3080), not the laptop: 12.9 ms there is
   ~77 fps, inside 60 fps. The "<= ~10 ms" target line is the laptop's; compare like with like (calib differs).
 - Open: a perf pass on Brinehollow's folk and boats (lower rates far off, fewer rig updates) as its own task.
+
+## 2026-10-24: 1.21 piece 1 (v1.20.1): the capital's docks and the noble quarter (docs/v1_21_plan.md)
+- **Plan** (CapitalPlan.FLOORS 9-13): `docks` (6, 50, 120x15: a half-block row east off the market street, so the
+  house rows either side front it), `wharf` (126, 38, 22x38), `e_postern` (130.5, 76: the harbour wall split at
+  129.9/136.1 with an arch like the west postern), `terrace` (9.2, -65, 92.8x15: under the palace wall, ~1 m clear of
+  it) and `terrace_step` (7, -60: round the palace gatehouse's corner to the avenue). SPECIAL `yardhall` (148, 44) and
+  `outfitter` (46, -50); `_specials` skips them (built by the new steps). The quay stack at (132, 88) moved to (144, 88)
+  out of the postern's way.
+- **CapitalDistrict** `_docks`: lots fronting the docks are `warehouse()`s (plaster over a timber band, gable, cart
+  doors, a loading door, a hoist beam and rope); cargo off the doors (`_door_near`), handcarts, timber stacks, the
+  shipwright's hall (`_yard_hall`: an open boathouse, a hull's keel and ribs on stocks; its floor has a collider), the
+  chandler's counter, the fence's corner (red tarp, crates, a lantern). `_terrace`: cypress pairs and flower planters,
+  clipped hedges along both edges (gaps at doors and the outfitter's porch), a garden fountain with a figure, two lamps
+  (one lit), the outfitter (a tailor's town house with a columned porch and counter). Lights 16 (the budget), surfaces
+  394 (< 420).
+- **CapitalLife**: 19 more people (Marta Coyle and her hand, Bram Haskett, Vesper Lark and two smugglers, three dockers,
+  the foreman Gully Bracewell, Ysolde Ashgrove, four nobles, a guard). Shops: the chandler (grocer: timber, canvas,
+  iron, rum; copper and more in the pool), the fence (treasure trade: rare blades with traits, buys loot at 1.15), the
+  outfitter (treasure trade, tier +1: court gear). Quests 3 -> 5: "The lost manifest" (lost, on the wharf),
+  "An invitation, by hand" (deliver: Lady Halloway to Odile at the inn).
+- **The yard screen takes a shipwright's name**: dialogue event `shipwright:<name>` opens it as "<name>'s Yard"
+  (`ShipwrightScreen.set_yard`; plain `shipwright` stays Tackett's); Coyle's yard does every line Tackett's does.
+- Crowd lanes on the docks' row and the terrace; map marks (Coyle's Yard, the noble quarter). capitalshot: docks,
+  wharf, terrace.
+- Tests: t/capital (district: the new spots; life: five quests, the three shops, Coyle's yard by name), t/ship/yard_*.

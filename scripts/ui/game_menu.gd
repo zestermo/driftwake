@@ -28,7 +28,7 @@ var _galley: Control
 # suggest an idea (a QR for the companion app)
 const IDEA := preload("res://scripts/ui/idea_screen.gd")
 var _idea: Control
-## A screen to open once the talking's done: [] or ["yard"] / ["shop", id].
+## A screen to open once the talking's done: [] or ["yard", shipwright] / ["shop", id].
 var _after_talk: Array = []
 
 # options widgets that need refreshing
@@ -74,6 +74,8 @@ func _ready() -> void:
 		if not _after_talk.is_empty():
 			var next := _after_talk
 			_after_talk = []
+			if next[0] == "yard":
+				_yard.set_yard(str(next[1]))
 			if next[0] == "shop":
 				open_shop.call_deferred(str(next[1]))
 			else:
@@ -173,11 +175,11 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
-## Dialogue events: "shipwright" and "shop:<id>" open their screen when the
+## Dialogue events: "shipwright" (Tackett's yard; "shipwright:<name>" another's) and "shop:<id>" open their screen when the
 ## talk ends; "rumour_king" puts the Sea King's waters on the chart; "learn_black_leg" (Gus) teaches the kicks.
 func _on_dialogue_event(ev: String) -> void:
-	if ev == "shipwright":
-		_after_talk = ["yard"]
+	if ev == "shipwright" or ev.begins_with("shipwright:"):
+		_after_talk = ["yard", ev.substr(11) if ev.begins_with("shipwright:") else "Tackett"]
 	elif ev == "learn_black_leg":
 		var pl := _player()
 		if pl:

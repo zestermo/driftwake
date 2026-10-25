@@ -2,7 +2,8 @@ extends SceneTree
 ## The capital's life (CapitalLife, CapitalCrowd, piece 3): its named people at their places with their shops and
 ## talk; the curio dealer a treasure merchant a tier above the islands' whose stock is the same for a day and turns
 ## over with it; the inn's rest heals and saves; the notice board posts the Watch's notice and taking it puts it in
-## the journal; three city quests registered; the toughs of Gallows Row muster host-side (single player is the host)
+## the journal; five city quests registered (1.21: the docks' manifest, the terrace's invitation); the docks' chandler, fence and
+## Marta Coyle's yard (the yard screen under her name), the terrace's outfitter; the toughs of Gallows Row muster host-side (single player is the host)
 ## round their fire; the crowd walks where the shared clock says, the same at the same time, and swaps real bodies in
 ## only near the camera.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -52,6 +53,18 @@ func _process(_d: float) -> bool:
 			check("his stock is the same for a day and turns over", str(SHOPS.stock_on(curio, 12)) == str(SHOPS.stock_on(curio, 12)) and str(SHOPS.stock_on(curio, 12)) != str(SHOPS.stock_on(curio, 13)))
 			for id in ["capital_grocer", "capital_fish", "capital_tailor", "capital_inn"]:
 				check("the %s shop is open" % id, SHOPS.extra.has(isl.save_key(id)))
+			# 1.21: the docks and the noble quarter
+			var fence: Dictionary = SHOPS.extra.get(isl.save_key("capital_fence"), {})
+			var outfit: Dictionary = SHOPS.extra.get(isl.save_key("capital_outfitter"), {})
+			check("the chandler sells the shipwright's materials", str(SHOPS.extra.get(isl.save_key("capital_chandler"), {}).get("stock", [])).contains("timber"))
+			check("the fence pays more than full price for plunder", fence.get("trade", "") == "treasure" and float((fence.get("buys", {}) as Dictionary).get("loot", 0.0)) > 1.0)
+			check("the outfitter's gear a tier above the curio dealer's floor (tier %s)" % outfit.get("tier"), outfit.get("trade", "") == "treasure" and int(outfit.get("tier", 0)) >= 3)
+			var yard: Dictionary = root.get_node("Dialogue")._cache.get(isl.save_key("capital_shipwright"), {})
+			check("Marta Coyle's yard opens under her name", str(yard).contains("shipwright:Coyle"))
+			var menu = root.get_node("GameMenu")
+			menu._yard.set_yard("Coyle")
+			check("...and the yard screen says so", menu._yard.who == "Coyle" and menu._yard._title.text == "Coyle's Yard")
+			menu._yard.set_yard("Tackett")
 			var rest = life.get_node_or_null("Rest")
 			var odile: Node3D = names.get("Odile Marchbank")
 			check("the inn's rest at its door, by the innkeeper", rest != null and odile != null and (rest as Node3D).global_position.distance_to(odile.global_position) < 5.0)
@@ -59,7 +72,7 @@ func _process(_d: float) -> bool:
 			p.health_component.current_health = p.health_component.max_health * 0.3
 			rest.interacted.emit(p)
 			check("resting at the inn heals", p.health_component.current_health >= p.health_component.max_health - 0.5)
-			check("three city quests in the journal's sources", life.quest_node.quests.size() == 3)
+			check("five city quests in the journal's sources", life.quest_node.quests.size() == 5)
 			var gid: String = isl.save_key("capital_gallows")
 			root.get_node("Dialogue").emit_signal("dialogue_event", "isle_q:%s:take" % gid)
 			check("taking the Watch's notice puts it in the journal", root.get_node("Journal").has(gid))

@@ -6,8 +6,9 @@ extends RefCounted
 ##
 ## From the sea in: the harbour basin between two moles (a lighthouse and a fort on their heads), the quay, the
 ## harbour wall with its sea gate, the market street climbing to the plaza, the avenue on to the palace gate at the
-## foot of the hill, the palace on top; the arena east of the plaza; the slum alley west of the street. The rest of
-## the city is houses as massing behind the streets' own fronts, walled off until 1.20.
+## foot of the hill, the palace on top; the arena east of the plaza; the slum alley west of the street; the docks east
+## of the street (warehouses, the wharf and the capital's shipwright) and the noble quarter's terrace under the palace
+## wall (1.21). The rest of the city is houses as massing behind the streets' own fronts, walled off.
 
 const QUAY_Y := 2.0
 ## The quay's face (the harbour's edge), and the harbour wall's line behind the quay.
@@ -59,6 +60,13 @@ const FLOORS := [
 	["alley", Rect2(-48.0, 50.0, 42.0, 4.0), "cobbles"],
 	["yard", Rect2(-78.0, 36.0, 30.0, 34.0), "dirt"],
 	["postern", Rect2(-70.0, 70.0, 5.0, 11.0), "cobbles"],
+	# 1.21 (docs/v1_21_plan.md): the docks east off the market street to the wharf and its postern to the quay; the
+	# noble quarter's terrace east off the avenue's top under the palace wall (its step round the palace gatehouse)
+	["docks", Rect2(6.0, 50.0, 120.0, 15.0), "cobbles"],
+	["wharf", Rect2(126.0, 38.0, 22.0, 38.0), "capital_slabs"],
+	["e_postern", Rect2(130.5, 76.0, 5.0, 5.0), "cobbles"],
+	["terrace", Rect2(9.2, -65.0, 92.8, 15.0), "capital_slabs"],
+	["terrace_step", Rect2(7.0, -60.0, 2.2, 10.0), "capital_slabs"],
 ]
 ## Ground round the plaza, the avenue and the arena street kept for the district's own buildings (the inn, the
 ## treasure merchant, the guild hall...: piece 2): its lots are marked "keep"; and the temple's, which has none.
@@ -83,6 +91,9 @@ const SPECIAL := {
 	"guild": [Rect2(-26.0, -44.0, 19.0, 22.0), Vector2(0, 1)],
 	"bank": [Rect2(7.0, -44.0, 19.0, 22.0), Vector2(0, 1)],
 	"bell": [Rect2(34.0, -35.0, 8.0, 8.0), Vector2(-1, 0)],
+	# 1.21: the capital shipwright's hall on the wharf, the outfitter on the terrace
+	"yardhall": [Rect2(148.0, 44.0, 16.0, 22.0), Vector2(-1, 0)],
+	"outfitter": [Rect2(46.0, -50.0, 16.0, 11.0), Vector2(0, -1)],
 }
 
 

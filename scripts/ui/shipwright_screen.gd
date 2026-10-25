@@ -1,6 +1,6 @@
 extends PanelContainer
-## Tackett's yard (GameMenu screen "yard", opened by talking to the shipwright
-## at Brinehollow). Refits: the ship's upgrade lines (ShipLines) as a tree,
+## A shipwright's yard (GameMenu screen "yard", opened by talking to a shipwright: Tackett
+## at Brinehollow, or the cities' own: set_yard names it). Refits: the ship's upgrade lines (ShipLines) as a tree,
 ## grouped, each line's levels as pips and the next level's price on its
 ## button (hover or focus it for what it does). Paint: her paint, sails, flag
 ## and figurehead (free: change them as often as you like). In co-op it's the
@@ -17,6 +17,9 @@ var _refits: VBoxContainer
 var _paint: VBoxContainer
 var _tabs: Dictionary = {}
 var tab: String = "refits"
+## Whose yard this is (its title and the lines the note says): Tackett's by default.
+var who := "Tackett"
+var _title: Label
 
 ## [kit key, row name, choices ([name, colour] or names)]
 const LOOKS := [
@@ -39,7 +42,8 @@ func _init(menu: Node) -> void:
 	vb.add_theme_constant_override("separation", 2)
 	add_child(vb)
 	var top := HBoxContainer.new()
-	top.add_child(UIStyle.title("Tackett's Yard"))
+	_title = UIStyle.title("%s's Yard" % who)
+	top.add_child(_title)
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(gap)
@@ -304,7 +308,7 @@ func order(id: String, lv: int) -> void:
 		UIStyle.sfx("deny")
 		return
 	ShipLines.pay(_inv(), entry)
-	_note.text = "Tackett gets to work..."
+	_note.text = "%s gets to work..." % who
 	Net.request_upgrade(id, lv)
 
 
@@ -335,3 +339,10 @@ func cycle(key: String, step: int = 1) -> void:
 	Net.set_ship_kit(kit)
 	_menu.call("_play")
 	_refresh()
+
+
+## Whose yard opens next (GameMenu, from the dialogue event "shipwright:<name>"; plain "shipwright" is Tackett's).
+func set_yard(shipwright: String) -> void:
+	who = shipwright
+	if _title:
+		_title.text = "%s's Yard" % who

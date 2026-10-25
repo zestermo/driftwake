@@ -22,7 +22,7 @@ const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36,
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": [], "cells": P.lots().map(func(l): return l["cell"])}
 	for step in [["houses", _houses], ["specials", _specials], ["plaza", _plaza], ["street", _street], ["quay", _quay],
-			["avenue", _avenue], ["slum", _slum]]:
+			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -96,7 +96,7 @@ static func _houses(out: Dictionary) -> void:
 			var kind := ""
 			if key in ["street", "plaza", "arena_st", "avenue"] and l["front"]:
 				kind = SHOP_KINDS[(int(l["seed"]) >> 3) % SHOP_KINDS.size()] if i % 3 != 2 else ""
-			var d := townhouse(mb, cols, l, kind, key == "slum")
+			var d := warehouse(mb, cols, l) if key == "docks" else townhouse(mb, cols, l, kind, key == "slum")
 			var at: Vector3 = d["at"]
 			if l["front"] and P.in_floor(Vector2(at.x, at.z)):
 				(out["doors"] as Array).append(d)
@@ -117,6 +117,10 @@ static func _area(l: Dictionary) -> String:
 			best = str(f[0])
 	if best in ["alley", "yard", "postern"]:
 		return "slum"
+	if best in ["wharf", "e_postern"]:
+		return "docks"
+	if best == "terrace_step":
+		return "terrace"
 	if best == "gate":
 		return "street"
 	return best
@@ -321,7 +325,7 @@ static func _specials(out: Dictionary) -> void:
 		var sp: Array = P.SPECIAL[key]
 		var r: Rect2 = sp[0]
 		var face: Vector2 = sp[1]
-		if key == "bell":
+		if key in ["bell", "yardhall", "outfitter"]:
 			continue
 		var l := {"r": r, "cell": r, "c": r.get_center(), "face": face, "seed": hash(key), "floors": 3, "roof": "hip"}
 		var fr := lot_frame(l)
@@ -679,7 +683,7 @@ static func _quay(out: Dictionary) -> void:
 	var rng := _rng(4201)
 	var y := P.QUAY_Y
 	# cargo in stacks along the harbour wall and by the cranes
-	var stacks := [Vector2(-128, 86), Vector2(-96, 88), Vector2(-40, 86), Vector2(30, 86), Vector2(62, 87), Vector2(104, 86), Vector2(132, 88),
+	var stacks := [Vector2(-128, 86), Vector2(-96, 88), Vector2(-40, 86), Vector2(30, 86), Vector2(62, 87), Vector2(104, 86), Vector2(144, 88),
 		Vector2(-70, 112), Vector2(84, 113), Vector2(-112, 114)]
 	for sp in stacks:
 		var n := rng.randi_range(4, 8)
@@ -869,3 +873,306 @@ static func _shack(mb: MeshBuilder, cols: Array, q: Vector2, face: Vector2, rng:
 	mb.add_quad(tarp, t * Vector3(-w * 0.32, 2.0, d * 0.5 + 0.02), t * Vector3(w * 0.12, 2.0, d * 0.5 + 0.02), t * Vector3(w * 0.15, 0.05, d * 0.5 + 0.3), t * Vector3(-w * 0.3, 0.05, d * 0.5 + 0.1),
 		Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, (t.basis * Vector3.BACK).normalized())
 	M.box(cols, t * Transform3D(Basis(), Vector3(0, 1.2, 0)), Vector3(w, 2.4, d))
+
+
+# --------------------------------------------------------------------------
+# The docks (1.21, docs/v1_21_plan.md): the warehouse row, the wharf, the shipwright's hall, the chandler, the fence
+# --------------------------------------------------------------------------
+const WAREHOUSE := [Color(0.86, 0.72, 0.56), Color(0.78, 0.62, 0.48), Color(0.9, 0.8, 0.66), Color(0.74, 0.66, 0.58)]
+
+
+## A warehouse on a docks lot: plastered brick under a timber band, a tall gable, big double doors at the street, a
+## loading door upstairs with a hoist beam and its hook. Returns its door like townhouse().
+static func warehouse(mb: MeshBuilder, cols: Array, l: Dictionary) -> Dictionary:
+	var fr := lot_frame(l)
+	var t: Transform3D = fr[0]
+	var w: float = fr[1]
+	var d: float = fr[2]
+	var gs := _ground_span(l["r"])
+	var low := gs.x - 0.5
+	var top := gs.y
+	var rng := _rng(int(l["seed"]))
+	var col: Color = WAREHOUSE[rng.randi() % WAREHOUSE.size()]
+	var wash := M.mat("wash")
+	var lime := M.mat("lime")
+	var dark := PSXMat.lit("planks_dark")
+	var floors := clampi(int(l["floors"]), 2, 3)
+	var sill := top + 0.2
+	var eaves := sill + 4.4 + float(floors - 1) * 3.2
+	var hw := w * 0.5
+	var hd := d * 0.5
+	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, (low + sill) * 0.5, 0)), Vector3(w + 0.1, sill - low, d + 0.1), 0.5, Color(0.86, 0.84, 0.8), true, true)
+	mb.add_box(wash, t * Transform3D(Basis(), Vector3(0, (sill + eaves) * 0.5, 0)), Vector3(w, eaves - sill, d), 0.5, col, true, true)
+	for y in [sill + 4.4, eaves - 0.15]:
+		mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, y, 0)), Vector3(w + 0.12, 0.3, d + 0.12), 0.8, Color(0.8, 0.72, 0.62), false)
+	for s in [-1.0, 1.0]:
+		mb.add_box(dark, t * Transform3D(Basis(), Vector3(s * (hw - 0.12), (sill + eaves) * 0.5, hd + 0.04)), Vector3(0.28, eaves - sill, 0.12), 0.8, Color(0.8, 0.72, 0.62))
+	M.roof(mb, "gable", t, w, d, eaves, M.ROOFS[rng.randi() % M.ROOFS.size()], rng)
+	var cell: Rect2 = l["cell"]
+	M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
+	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -0.2)), Vector3(w, eaves - low, d - 0.4))
+	# the cart doors, the loading door over them, the hoist
+	var dw := minf(3.0, w - 1.6)
+	Buildings.panel_door(mb, t * Transform3D(Basis(), Vector3(0, sill, hd + 0.03)), dw, 3.4, Buildings.door_leaf(DOORS[(int(l["seed"]) >> 5) % DOORS.size()]), lime)
+	var ly := sill + 4.4 + 0.5
+	mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, ly + 1.1, hd + 0.04)), Vector3(1.5, 2.2, 0.08), 1.0, Color(0.55, 0.45, 0.36))
+	var beam_y := eaves - 0.6
+	mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, beam_y, hd + 0.7)), Vector3(0.24, 0.24, 1.6), 1.0, Color(0.7, 0.62, 0.52), false)
+	var hook := t * Vector3(0, beam_y - 0.1, hd + 1.35)
+	mb.add_tube(PSXMat.lit("rope"), PackedVector3Array([hook, hook + Vector3.DOWN * rng.randf_range(1.5, 3.0)]), 0.025, 0.025, 3, 1.0)
+	if rng.randf() < 0.5:
+		absorb(mb, cols, Props.crate(0.7), t * Transform3D(Basis(Vector3.UP, rng.randf()), Vector3(hw - 0.9, top, hd + 0.9)))
+	return {"at": t * Vector3(0, top, hd + 0.9), "face": (Vector2((t.basis * Vector3.BACK).x, (t.basis * Vector3.BACK).z)).normalized(), "kind": "warehouse"}
+
+
+static func _docks(out: Dictionary) -> void:
+	var mb := MeshBuilder.new()
+	var cols: Array = []
+	var rng := _rng(7713)
+	var lane: Rect2 = P.FLOORS[9][1]
+	var wharf: Rect2 = P.FLOORS[10][1]
+	# cargo along the lane's edges, kept off the doors, and the handcarts
+	for i in range(9):
+		var q := Vector2(lane.position.x + 10.0 + i * 12.5, lane.position.y + (1.4 if i % 2 == 0 else lane.size.y - 1.4))
+		if _door_near(out, q, 2.6):
+			continue
+		var y := P.ground(q)
+		for k in range(rng.randi_range(2, 4)):
+			var item := Props.crate(rng.randf_range(0.65, 0.9)) if rng.randf() < 0.6 else Props.barrel()
+			absorb(mb, cols, item, M.xf(M.v3(q + Vector2(rng.randf_range(-1.4, 1.4), rng.randf_range(-0.5, 0.5)), y), rng.randf() * TAU))
+	for q in [Vector2(40.0, 57.0), Vector2(92.0, 58.5)]:
+		_handcart(mb, cols, M.xf(M.v3(q, P.ground(q)), rng.randf_range(-0.4, 0.4)), rng)
+	# the wharf: timber stacks, rope, a capstan, the shipwright's hall with a hull on its stocks, the chandler, the fence
+	for j in range(3):
+		var tq := Vector2(wharf.position.x + 3.5, wharf.position.y + 6.0 + j * 4.0)
+		for k in range(5 - j):
+			var lt := M.xf(M.v3(tq + Vector2(0, (k - 2) * 0.42), P.ground(tq) + 0.22 + float(j % 2) * 0.0), 0.0) * Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3.ZERO)
+			mb.add_cylinder(PSXMat.lit("bark"), lt * Transform3D(Basis(), Vector3(0, -2.6, 0)), 0.2, 0.19, 5.2, 6, 0.6)
+		M.box(cols, M.xf(M.v3(tq, P.ground(tq) + 0.45)), Vector3(5.2, 0.9, 2.2))
+	for i in range(3):
+		var rq := wharf.position + Vector2(9.0 + i * 2.2, 33.0)
+		absorb(mb, cols, Props.rope_coil(), M.xf(M.v3(rq, P.ground(rq)), rng.randf() * TAU))
+	_yard_hall(out, mb, cols)
+	_chandler(out, mb, cols, rng)
+	_fence(out, mb, cols, rng)
+	var lq := Vector2(wharf.position.x + 11.0, wharf.position.y + 20.0)
+	lamp_post(mb, cols, lq, P.ground(lq))
+	_light(out, M.v3(lq, P.ground(lq) + 3.5), 1.6, 12.0)
+	lamp_post(mb, cols, Vector2(64.0, lane.position.y + 1.0), P.ground(Vector2(64.0, lane.position.y + 1.0)))
+	# the people's places
+	for i in range(3):
+		var q := Vector2(24.0 + i * 36.0, lane.get_center().y + (1.5 if i % 2 == 0 else -1.5))
+		_spot(out, "docker%d" % i, q, P.ground(q), Vector2(1, 0) if i % 2 == 0 else Vector2(-1, 0))
+	var fq := Vector2(wharf.position.x + 8.0, wharf.end.y - 4.0)
+	_spot(out, "foreman", fq, P.ground(fq), Vector2(-1, 0))
+	var mq := Vector2(wharf.position.x + 2.6, wharf.position.y + 2.4)
+	_spot(out, "manifest", mq, P.ground(mq), Vector2(1, 0))
+	_piece(out, "Docks", mb, cols)
+
+
+## Is a town house's or warehouse's doorstep within r of q?
+static func _door_near(out: Dictionary, q: Vector2, r: float) -> bool:
+	for d in out["doors"]:
+		if _q(d["at"]).distance_to(q) < r:
+			return true
+	return false
+
+
+## A two-wheeled handcart with a sack or two (frame `t` at its middle, +z its handles).
+static func _handcart(mb: MeshBuilder, cols: Array, t: Transform3D, rng: RandomNumberGenerator) -> void:
+	var wood := PSXMat.lit("planks")
+	var dark := PSXMat.lit("planks_dark")
+	mb.add_box(wood, t * Transform3D(Basis(), Vector3(0, 0.7, 0)), Vector3(1.2, 0.08, 1.6), 1.0, Color.WHITE, false)
+	for s in [-1.0, 1.0]:
+		mb.add_box(wood, t * Transform3D(Basis(), Vector3(s * 0.6, 0.9, 0)), Vector3(0.06, 0.35, 1.6), 1.0)
+		mb.add_cylinder(dark, t * Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(s * 0.68, 0.45, -0.1)), 0.45, 0.45, 0.08, 10, 1.0, Color.WHITE, true, true)
+		mb.add_box(dark, t * Transform3D(Basis(Vector3.RIGHT, -0.35), Vector3(s * 0.42, 0.55, 1.35)), Vector3(0.06, 0.06, 1.2), 1.0)
+	for k in range(rng.randi_range(1, 3)):
+		var sk := MeshInstance3D.new()
+		sk.mesh = Props.sack_mesh()
+		var holder := Node3D.new()
+		holder.add_child(sk)
+		absorb(mb, [], holder, t * Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(rng.randf_range(-0.3, 0.3), 0.74, -0.4 + k * 0.45)))
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, 0.6, 0)), Vector3(1.4, 1.2, 1.8))
+
+
+## The capital shipwright's hall: a long open-fronted boathouse of timber on a stone footing, a hull's ribs on the
+## stocks inside, the shipwright's place at its mouth (spot "shipwright").
+static func _yard_hall(out: Dictionary, mb: MeshBuilder, cols: Array) -> void:
+	var sp: Array = P.SPECIAL["yardhall"]
+	var r: Rect2 = sp[0]
+	var l := {"r": r, "cell": r, "c": r.get_center(), "face": sp[1], "seed": 4417, "floors": 2, "roof": "gable"}
+	var fr := lot_frame(l)
+	var t: Transform3D = fr[0]
+	var w: float = fr[1]
+	var d: float = fr[2]
+	var gs := _ground_span(r)
+	var top := gs.y
+	var low := gs.x - 0.5
+	var dark := PSXMat.lit("planks_dark")
+	var planks := PSXMat.lit("planks_weathered")
+	var lime := M.mat("lime")
+	var h := 8.5
+	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, (low + top) * 0.5, 0)), Vector3(w + 0.1, top - low + 0.05, d + 0.1), 0.5, Color(0.86, 0.84, 0.8), true, true)
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, (low + top) * 0.5, 0)), Vector3(w, top - low + 0.05, d))
+	# back and side walls of boards, the front open between posts
+	mb.add_box(planks, t * Transform3D(Basis(), Vector3(0, top + h * 0.5, -d * 0.5 + 0.15)), Vector3(w, h, 0.3), 0.5, Color(0.9, 0.85, 0.78))
+	for s in [-1.0, 1.0]:
+		mb.add_box(planks, t * Transform3D(Basis(), Vector3(s * (w * 0.5 - 0.15), top + h * 0.5, 0)), Vector3(0.3, h, d), 0.5, Color(0.86, 0.8, 0.72))
+		M.box(cols, t * Transform3D(Basis(), Vector3(s * (w * 0.5 - 0.15), top + h * 0.5, 0)), Vector3(0.3, h, d))
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, top + h * 0.5, -d * 0.5 + 0.15)), Vector3(w, h, 0.3))
+	for k in range(4):
+		var x := -w * 0.5 + 0.3 + (w - 0.6) * k / 3.0
+		mb.add_box(dark, t * Transform3D(Basis(), Vector3(x, top + h * 0.5, d * 0.5 - 0.2)), Vector3(0.4, h, 0.4), 0.8)
+		M.box(cols, t * Transform3D(Basis(), Vector3(x, top + h * 0.5, d * 0.5 - 0.2)), Vector3(0.4, h, 0.4))
+	mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, top + h - 0.2, d * 0.5 - 0.2)), Vector3(w, 0.4, 0.45), 0.8, Color.WHITE, false)
+	M.roof(mb, "gable", t, w, d, top + h, Color(0.86, 0.8, 0.76), _rng(4418))
+	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, top + h * 0.5, -d * 0.5 + 0.15)), Vector3(w, h, 0.3))
+	# the hull on its stocks: a keel along the hall's depth, ribs curving up from it, a stem post
+	var keel_y := top + 1.1
+	var kl := d - 5.0
+	mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, keel_y, -0.6)), Vector3(0.35, 0.35, kl), 0.8)
+	for k in range(4):
+		mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, top + 0.45, -0.6 - kl * 0.4 + kl * 0.8 * k / 3.0)), Vector3(1.2, 0.9, 0.6), 0.6, Color(0.8, 0.78, 0.74))
+	var ribs := 9
+	for k in range(ribs):
+		var z := -0.6 - kl * 0.42 + kl * 0.84 * k / float(ribs - 1)
+		var beam := 2.4 * sin(PI * (0.15 + 0.7 * k / float(ribs - 1)))
+		for s in [-1.0, 1.0]:
+			var a := t * Vector3(0, keel_y, z)
+			var b := t * Vector3(s * beam, keel_y + 3.6, z)
+			mb.add_tube(dark, MeshBuilder.curve_points(a, t * Vector3(s * beam * 1.15, keel_y + 0.8, z), b, 5), 0.11, 0.09, 4, 1.0)
+	mb.add_tube(dark, MeshBuilder.curve_points(t * Vector3(0, keel_y, -0.6 + kl * 0.5), t * Vector3(0, keel_y + 1.0, -0.6 + kl * 0.5 + 1.4), t * Vector3(0, keel_y + 4.4, -0.6 + kl * 0.5 + 1.6), 5),
+		0.16, 0.12, 4, 1.0)
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, keel_y + 1.6, -0.6)), Vector3(5.2, 3.2, kl))
+	_lantern(mb, t * Transform3D(Basis(), Vector3(-w * 0.5 + 0.8, top + 3.0, d * 0.5 + 0.02)))
+	var sign := t * Transform3D(Basis(), Vector3(w * 0.5 - 1.2, top + 4.0, d * 0.5 + 0.02))
+	_sign(mb, sign, "chart", _rng(4419))
+	_spot(out, "shipwright", _q(t * Vector3(-2.2, 0, d * 0.5 + 1.6)), top, _fd(t))
+	_spot(out, "shipwright_hand", _q(t * Vector3(4.2, 0, 1.0)), top, Vector2((t.basis * Vector3.RIGHT).x, (t.basis * Vector3.RIGHT).z))
+
+
+## The chandler's counter by the wharf's west edge: rope, tar and lanterns under a canvas awning (spot "chandler").
+static func _chandler(out: Dictionary, mb: MeshBuilder, cols: Array, rng: RandomNumberGenerator) -> void:
+	var wharf: Rect2 = P.FLOORS[10][1]
+	var q := Vector2(wharf.position.x + 1.6, wharf.position.y + 26.0)
+	var y := P.ground(q)
+	var t := M.xf(M.v3(q, y), M.yaw_of(Vector2(1, 0)))
+	mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(0, 0.5, 0.6)), Vector3(3.0, 1.0, 0.8), 1.0, Color(0.75, 0.65, 0.55))
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, 0.5, 0.6)), Vector3(3.0, 1.0, 0.8))
+	for k in range(3):
+		absorb(mb, cols, Props.rope_coil(), t * Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(-1.0 + k * 1.0, 1.0, 0.6)))
+	absorb(mb, cols, Props.barrel(), t * Transform3D(Basis(), Vector3(-1.9, 0, -0.2)))
+	_awning(mb, t * Transform3D(Basis(), Vector3(0, 2.6, -0.4)), 3.6, 1.8, "awning_blue")
+	for s in [-1.0, 1.0]:
+		mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(s * 1.7, 1.3, -0.4)), Vector3(0.12, 2.6, 0.12), 1.0)
+	_spot(out, "chandler", _q(t * Vector3(0, 0, -0.3)), y, Vector2(1, 0))
+
+
+## The fence's corner at the wharf's back: a stack of crates for a counter under a patched tarp, a lantern, a cellar
+## hatch (spot "fence", the smugglers about it).
+static func _fence(out: Dictionary, mb: MeshBuilder, cols: Array, rng: RandomNumberGenerator) -> void:
+	var wharf: Rect2 = P.FLOORS[10][1]
+	var q := Vector2(wharf.end.x - 2.0, wharf.position.y + 4.0)
+	var y := P.ground(q)
+	var t := M.xf(M.v3(q, y), M.yaw_of(Vector2(-1, 0)))
+	for k in range(3):
+		absorb(mb, cols, Props.crate(0.85), t * Transform3D(Basis(Vector3.UP, rng.randf_range(-0.2, 0.2)), Vector3(-1.0 + k * 0.95, 0, 0.9)))
+	mb.add_box(PSXMat.lit("fabric", Color(0.3, 0.12, 0.1)), t * Transform3D(Basis(), Vector3(0, 0.88, 0.9)), Vector3(2.8, 0.03, 0.9), 1.0)
+	_awning(mb, t * Transform3D(Basis(), Vector3(0, 2.5, -0.6)), 3.4, 2.0, "awning_red")
+	for s in [-1.0, 1.0]:
+		mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(s * 1.6, 1.25, -0.6)), Vector3(0.12, 2.5, 0.12), 1.0)
+	_lantern(mb, t * Transform3D(Basis(), Vector3(1.6, 2.0, -0.55)))
+	mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(-2.6, 0.04, -0.4)), Vector3(1.2, 0.08, 1.2), 1.0, Color(0.5, 0.42, 0.34), false)
+	_spot(out, "fence", _q(t * Vector3(0, 0, -0.1)), y, _fd(t))
+	for i in range(2):
+		_spot(out, "smuggler%d" % i, _q(t * Vector3(-2.4 + i * 4.6, 0, 1.9 + i * 0.6)), y, -_fd(t))
+
+
+# --------------------------------------------------------------------------
+# The noble quarter's terrace (1.21): grand houses, the outfitter, cypresses and a garden fountain, lamps
+# --------------------------------------------------------------------------
+static func _terrace(out: Dictionary) -> void:
+	var mb := MeshBuilder.new()
+	var cols: Array = []
+	var rng := _rng(8821)
+	var ter: Rect2 = P.FLOORS[12][1]
+	var cy := ter.get_center().y
+	var lime := M.mat("lime")
+	# cypresses in pairs down the middle, and stone planters between them
+	for i in range(6):
+		var x := ter.position.x + 10.0 + i * 15.0
+		for s in [-1.0, 1.0]:
+			var q := Vector2(x, cy + s * 3.4)
+			M.cypress(mb, M.v3(q, P.ground(q)), rng.randf_range(6.5, 8.0), rng)
+			M.cyl(cols, M.v3(q, P.ground(q)), 0.5, 3.0)
+		if i % 2 == 1:
+			var pq := Vector2(x + 7.5, cy)
+			var py := P.ground(pq)
+			mb.add_box(lime, M.xf(M.v3(pq, py + 0.35)), Vector3(3.2, 0.7, 1.2), 0.6, Color(0.92, 0.9, 0.86))
+			for k in range(6):
+				mb.add_blob(PSXMat.flat(Color.WHITE), M.xf(M.v3(pq + Vector2(-1.25 + k * 0.5, rng.randf_range(-0.3, 0.3)), py + 0.85)), Vector3(0.28, 0.22, 0.28), rng, 0.3, 2, 5, 1.0,
+					[Color(0.86, 0.3, 0.38), Color(0.95, 0.85, 0.4), Color(0.75, 0.55, 0.85), Color(0.4, 0.6, 0.3)][k % 4])
+			M.box(cols, M.xf(M.v3(pq, py + 0.35)), Vector3(3.2, 0.7, 1.2))
+	# clipped hedges along both edges, the gardens' fronts (gaps at every door, the outfitter's porch and the step)
+	var hedge := PSXMat.lit("leaves", Color(0.42, 0.6, 0.38))
+	var porch: Rect2 = (P.SPECIAL["outfitter"][0] as Rect2).grow_individual(0.0, 4.0, 0.0, 0.0)
+	for s in [-1.0, 1.0]:
+		var x := ter.position.x + 1.2
+		while x < ter.end.x - 1.0:
+			var q := Vector2(x, ter.get_center().y + s * (ter.size.y * 0.5 - 0.55))
+			x += 2.0
+			if _door_near(out, q, 2.4) or porch.has_point(q) or (s > 0.0 and q.x < ter.position.x + 3.0):
+				continue
+			var hy := P.ground(q)
+			mb.add_box(hedge, M.xf(M.v3(q, hy + 0.55)), Vector3(2.0, 1.1, 1.0), 0.8, Color(0.9, 0.95, 0.9) * rng.randf_range(0.88, 1.0))
+			M.box(cols, M.xf(M.v3(q, hy + 0.55)), Vector3(2.0, 1.1, 1.0))
+	# the garden fountain at the terrace's middle: a round basin and a figure
+	var fq := Vector2(ter.position.x + ter.size.x * 0.5 + 0.5, cy)
+	var fy := P.ground(fq)
+	mb.add_cylinder(lime, M.xf(M.v3(fq, fy)), 2.6, 2.6, 0.7, 14, 0.5, Color(0.94, 0.92, 0.88), true, false)
+	mb.add_cylinder(PSXMat.flat(Color(0.3, 0.5, 0.6)), M.xf(M.v3(fq, fy + 0.6)), 2.3, 2.3, 0.02, 14, 0.5)
+	mb.add_cylinder(lime, M.xf(M.v3(fq, fy + 0.6)), 0.35, 0.3, 1.2, 8, 0.5, Color(0.92, 0.9, 0.86))
+	_figure(mb, M.xf(M.v3(fq, fy + 1.8), PI), 2.0, false)
+	M.cyl(cols, M.v3(fq, fy), 2.6, 0.9)
+	# lamps, one lit
+	for i in range(2):
+		var lq := Vector2(ter.position.x + 22.0 + i * 46.0, ter.position.y + 2.4)
+		lamp_post(mb, cols, lq, P.ground(lq), PI * 0.5)
+		if i == 0:
+			_light(out, M.v3(lq, P.ground(lq) + 3.5), 1.5, 11.0)
+	_outfitter(out, mb, cols)
+	# the people's places: nobles strolling the terrace, a footman, a guard at the step
+	for i in range(4):
+		var q := Vector2(ter.position.x + 16.0 + i * 19.0, cy + (5.6 if i % 2 == 0 else -5.6))
+		_spot(out, "noble%d" % i, q, P.ground(q), Vector2(1, 0) if i % 2 == 0 else Vector2(-1, 0))
+	var gq := Vector2(ter.position.x + 2.2, ter.end.y - 2.0)
+	_spot(out, "terrace_guard", gq, P.ground(gq), Vector2(-1, 0))
+	_spot(out, "invitation", fq + Vector2(0, 3.4), fy, Vector2(0, -1))
+	_piece(out, "Terrace", mb, cols)
+
+
+## The outfitter's on the terrace: a three-storey town house with a tailor's front and a columned porch, its counter
+## under the porch (spot "outfitter"): the rare-gear merchant.
+static func _outfitter(out: Dictionary, mb: MeshBuilder, cols: Array) -> void:
+	var sp: Array = P.SPECIAL["outfitter"]
+	var r: Rect2 = sp[0]
+	var l := {"r": r, "cell": r, "c": r.get_center(), "face": sp[1], "seed": 66121, "floors": 3, "roof": "hip"}
+	var fr := lot_frame(l)
+	var t: Transform3D = fr[0]
+	var w: float = fr[1]
+	var d: float = fr[2]
+	var top := _ground_span(r).y
+	var dd := townhouse(mb, cols, l, "tailor")
+	var lime := M.mat("lime")
+	for s in [-1.0, 1.0]:
+		var c := t * Vector3(s * (w * 0.5 - 1.2), top, d * 0.5 + 2.2)
+		mb.add_cylinder(lime, M.xf(c), 0.3, 0.26, 3.8, 8, 0.6, Color(0.98, 0.96, 0.93))
+		M.cyl(cols, c, 0.3, 3.8)
+	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, top + 3.95, d * 0.5 + 1.15)), Vector3(w - 1.4, 0.3, 2.6), 0.6, Color(0.95, 0.93, 0.9), false)
+	var counter := t * Transform3D(Basis(), Vector3(w * 0.18, top, d * 0.5 + 1.0))
+	mb.add_box(PSXMat.lit("planks_dark"), counter * Transform3D(Basis(), Vector3(0, 0.5, 0)), Vector3(2.2, 1.0, 0.7), 1.0, Color(0.6, 0.5, 0.42))
+	mb.add_box(PSXMat.lit("fabric", Color(0.22, 0.2, 0.42)), counter * Transform3D(Basis(), Vector3(0, 1.01, 0)), Vector3(2.3, 0.03, 0.8), 1.0)
+	M.box(cols, counter * Transform3D(Basis(), Vector3(0, 0.5, 0)), Vector3(2.2, 1.0, 0.7))
+	_spot(out, "outfitter", _q(counter * Vector3(0, 0, -0.8)), top, _fd(t))
+	out["spots"]["outfitter_door"] = [dd["at"], M.yaw_of(dd["face"])]

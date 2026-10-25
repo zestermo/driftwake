@@ -6,7 +6,8 @@ extends SceneTree
 const TK := preload("res://tools/dev/test_kit.gd")
 const AT := Vector3(0, 0, 4000)
 const SPOTS := ["innkeeper", "inn_door", "curio", "guild", "bank", "board", "gate_guard0", "gate_guard1", "palace_guard0", "palace_guard1",
-	"harbourmaster", "flower", "fire", "ruffian0", "ruffian3", "arena_crier", "stall0", "stall2", "barrow0", "fish0", "bench0"]
+	"harbourmaster", "flower", "fire", "ruffian0", "ruffian3", "arena_crier", "stall0", "stall2", "barrow0", "fish0", "bench0",
+	"shipwright", "chandler", "fence", "foreman", "manifest", "docker0", "outfitter", "noble0", "terrace_guard"]
 var stage
 var step := 0
 var until := 0

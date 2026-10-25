@@ -112,7 +112,7 @@ static func _harbour_wall(out: Array) -> void:
 	var cols: Array = []
 	var lime := M.mat("lime")
 	var ends := sqrt(pow(P.LAND_R - P.SEA_WALL_IN, 2.0) - pow(P.WALL_Z - P.LAND_C.y, 2.0))
-	for run in [[Vector2(-ends, P.WALL_Z), Vector2(-70.6, P.WALL_Z)], [Vector2(-64.4, P.WALL_Z), Vector2(-9.0, P.WALL_Z)], [Vector2(9.0, P.WALL_Z), Vector2(ends, P.WALL_Z)]]:
+	for run in [[Vector2(-ends, P.WALL_Z), Vector2(-70.6, P.WALL_Z)], [Vector2(-64.4, P.WALL_Z), Vector2(-9.0, P.WALL_Z)], [Vector2(9.0, P.WALL_Z), Vector2(129.9, P.WALL_Z)], [Vector2(136.1, P.WALL_Z), Vector2(ends, P.WALL_Z)]]:
 		M.wall_run(mb, cols, run, 9.0, P.WALL_T, _ground, _low)
 	for sx in [-1.0, 1.0]:
 		M.wall_run(mb, cols, [Vector2(sx * P.QUAY_END_X, P.WALL_Z + 1.5), Vector2(sx * P.QUAY_END_X, P.FRONT_Z + 2.0)], 6.0, 2.4, _ground, _low)
@@ -125,6 +125,11 @@ static func _harbour_wall(out: Array) -> void:
 	M.arch_wall(mb, lime, pt, 6.2, 9.0, P.WALL_T, 2.6, 2.1, Color(0.93, 0.91, 0.87))
 	for s in [-1.0, 1.0]:
 		M.box(cols, pt * Transform3D(Basis(), Vector3(s * 2.25, 4.5, 0)), Vector3(1.7, 9.0, P.WALL_T))
+	# (1.21) the docks' postern, east
+	var pe := M.xf(M.v3(Vector2(133.0, P.WALL_Z), P.base(P.WALL_Z)))
+	M.arch_wall(mb, lime, pe, 6.2, 9.0, P.WALL_T, 2.6, 2.1, Color(0.93, 0.91, 0.87))
+	for s in [-1.0, 1.0]:
+		M.box(cols, pe * Transform3D(Basis(), Vector3(s * 2.25, 4.5, 0)), Vector3(1.7, 9.0, P.WALL_T))
 	_piece(out, "HarbourWall", mb, cols, FAR, true)
 
 

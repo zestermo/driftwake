@@ -165,6 +165,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
+### v1.20.1: The Docks and the Terrace (October 24, 2026), unstable
+The first piece of 1.21, the cities. The royal capital opens beyond its core: a warehouse row east of the market
+street leads to the docks' wharf and a postern onto the quay, with Marta Coyle's shipwright's yard (every refit
+Tackett's yard does), Haskett's Chandlery (timber, canvas, iron) and Vesper's Corner, a fence who pays over the odds
+for plunder. Under the palace wall, the noble quarter's garden terrace of cypresses and hedges, with Ashgrove &
+Daughters, outfitters to the court (rare gear a tier above). Two new city quests: a foreman's lost manifest and a
+lady's invitation carried to the Crown and Compass.
+
 ### v1.20: The World (October 24, 2026)
 Every beast boss and roamer reworked: eight rebuilt bodies on a rig with jointed legs and bodies that follow the
 slope, each beast with its own move list, readable wind-ups and an opening after each big move, and only one move

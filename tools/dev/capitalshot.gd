@@ -1,6 +1,6 @@
 extends SceneTree
 ## The royal capital (CapitalIsland): sailing in from the sea, the harbour mouth, from high above, on the quay, up
-## the market street, the plaza, the palace on its hill, the arena, the slum alley; each captioned, then a contact
+## the market street, the plaza, the palace on its hill, the arena, the slum alley, the docks, the wharf, the terrace; each captioned, then a contact
 ## sheet (<out>_sheet.png). Prints its build times.
 ## Args: <out_prefix> [chain seed | -]
 ## (CSHOT_HOUR=18.4 renders at that hour, 11 by default; CSHOT_ONLY=approach,plaza renders just those shots)
@@ -117,6 +117,9 @@ func _setup(island) -> void:
 		["palace", "the palace on its hill", Vector2(0, -20), 6.8, Vector2(0, -165), 40.0],
 		["arena", "the arena's walls", Vector2(30, 0), 6.8, Vector2(108, 0), 12.0],
 		["slum", "the slum alley", Vector2(-8, 52), 4.0, Vector2(-62, 50), 4.0],
+		["docks", "the docks' warehouse row", Vector2(10, 57), 4.0, Vector2(126, 58), 5.0],
+		["wharf", "the wharf and Coyle's yard", Vector2(128, 72), 4.5, Vector2(156, 50), 4.0],
+		["terrace", "the noble quarter's terrace", Vector2(12, -56), 4.0, Vector2(100, -58), 5.0],
 		["yard", "Gallows Row's yard and its toughs", Vector2(-50.0, 45.0), 2.6, Vector2(-63, 53), 1.0],
 		["inn", "the Crown and Compass", Vector2(-12, 2), 2.4, Vector2(-30, 3), 3.5],
 		["crowd", "the market street at eye height", Vector2(-1.0, 62), 1.7, Vector2(0, 28), 2.0],

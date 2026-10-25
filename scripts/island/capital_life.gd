@@ -58,6 +58,34 @@ static func cast() -> Array:
 		{"name": "Mags", "spot": "inn_patron0", "voice": 1.15, "barks": ["Odile's fish pie. Best thing in the city, and I've eaten at the palace. Once. In the kitchens.", "Don't go down Gallows Row with a full purse. Don't go down it at all."]},
 		{"name": "Old Corwin", "spot": "inn_patron2", "voice": 0.75, "barks": ["When I was a boy you could walk right up to the palace door. Now look at it.", "They say the arena's built on the old king's dungeons. Lions down there still, they say."]},
 		{"name": "Docker Huw", "spot": "porter1", "voice": 0.9, "barks": ["Mind your back, Captain! Crates coming through!", "Forty ships in a morning, some days. Never seen a port like it."]},
+		# 1.21: the docks
+		{"name": "Marta Coyle", "spot": "shipwright", "voice": 1.0, "dialogue": "shipwright", "look": {"body": "fem", "top": "shirt", "vest": "jerkin", "vest_color": Color(0.32, 0.24, 0.16),
+			"legs": "slops", "hat": "none", "gloves": true, "gloves_color": Color(0.42, 0.3, 0.2)}},
+		{"name": "Ned Hollin", "spot": "shipwright_hand", "voice": 0.95, "barks": ["Forty ribs to a hull this size. I've counted them twice. Marta's counted them nine times.",
+			"Mind the adze, Captain. It's sharper than it looks, and it looks very sharp."]},
+		{"name": "Bram Haskett", "spot": "chandler", "voice": 0.85, "shop": "chandler", "barks": ["Rope, canvas, copper sheet, good oak. Everything a ship eats.",
+			"Your shipwright will want timber. Marta always wants timber."]},
+		{"name": "Vesper Lark", "spot": "fence", "voice": 1.05, "shop": "fence", "look": {"body": "fem", "coat": "longcoat", "coat_color": Color(0.16, 0.14, 0.16), "hat": "tricorn",
+			"hat_color": Color(0.1, 0.1, 0.1)}, "barks": ["Whatever it is, I don't want to know where it came from. I want to know what it's worth.",
+			"The Watch doesn't come down this end of the wharf. Neither does the Admiralty, if they know what's good for them."]},
+		{"name": "Sal Dunnock", "spot": "smuggler0", "voice": 0.8, "look": TOUGH, "barks": ["Keep walking, friend. Nothing to see but crates.", "Vesper's busy. Vesper's always busy."]},
+		{"name": "Fitch", "spot": "smuggler1", "voice": 1.15, "look": TOUGH, "barks": ["You didn't see me. I didn't see you. Lovely.", "Ask no questions, buy no lies."]},
+		{"name": "Rowe", "spot": "docker0", "voice": 0.9, "barks": ["Up the row, down the row, all day. My back's older than I am.", "Wool for the canal city, wine for the palace. Same crates."]},
+		{"name": "Tamsin", "spot": "docker1", "voice": 1.1, "barks": ["Heave! Ho! Don't drop it, it's the duke's!", "They say the canal city builds a ship a week. Show-offs."]},
+		{"name": "Big Ollie", "spot": "docker2", "voice": 0.75, "barks": ["Hup.", "Crate. Crate. Barrel. Crate."]},
+		{"name": "Gully Bracewell", "spot": "foreman", "voice": 0.9, "dialogue": "foreman", "look": {"body": "masc", "coat": "longcoat", "coat_color": Color(0.36, 0.3, 0.22), "hat": "tricorn"}},
+		# 1.21: the noble quarter
+		{"name": "Ysolde Ashgrove", "spot": "outfitter", "voice": 1.0, "shop": "outfitter", "look": {"body": "fem", "coat": "frock", "coat_color": Color(0.2, 0.18, 0.4), "trim_color": GOLD,
+			"hat": "none"}, "barks": ["Ashgrove & Daughters: outfitters to the court. We don't do 'serviceable'.", "That coat has seen a storm or two. Let me show you one that has seen a ballroom."]},
+		{"name": "Lady Corisande Halloway", "spot": "noble0", "voice": 1.15, "dialogue": "lady", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
+			"coat_color": Color(0.5, 0.18, 0.28), "trim_color": GOLD, "hat": "none"}},
+		{"name": "Lord Peregrine Stroud", "spot": "noble1", "voice": 0.85, "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.14, 0.26, 0.2), "trim_color": GOLD, "hat": "bicorne",
+			"hat_color": Color(0.1, 0.1, 0.12)}, "barks": ["A pirate? On the terrace? Whatever next.", "The palace has been shut a month. One hears things. One repeats very few of them."]},
+		{"name": "Dame Ottilie Fane", "spot": "noble2", "voice": 1.2, "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock", "coat_color": Color(0.3, 0.3, 0.46),
+			"trim_color": GOLD, "hat": "none"}, "barks": ["Have you seen the arena? Vulgar. Marvellous, but vulgar.", "My nephew went to sea. He came back with a parrot and no manners."]},
+		{"name": "Master Lucan Dray", "spot": "noble3", "voice": 0.95, "look": {"body": "masc", "coat": "longcoat", "coat_color": Color(0.36, 0.14, 0.12), "trim_color": GOLD, "hat": "none"},
+			"barks": ["I collect captains' stories. Tell me yours. No? Pity.", "Ashgrove's coats are the only thing in this city worth what they cost."]},
+		{"name": "Guard Ellery", "spot": "terrace_guard", "voice": 0.9, "look": GUARD, "barks": ["The terrace is open to all, Captain. Behave as though it weren't.", "Keep to the paths. The duchess counts her roses."]},
 	]
 
 
@@ -121,6 +149,24 @@ func _shops() -> void:
 			["vest", "corset", {"vest": "corset", "vest_color": Color(0.24, 0.17, 0.12)}, 1, 70], ["legs", "breeches", {"legs": "breeches", "legs_color": Color(0.92, 0.9, 0.84)}, 0, 30],
 			["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.24, 0.12, 0.08)}, 1, 110], ["coat", "greatcoat", {"coat": "greatcoat", "coat_color": Color(0.2, 0.2, 0.22)}, 1, 160]],
 		"buys": {"gear": 0.5}}
+	# 1.21: the docks' chandler (the shipwright's materials), the fence (rare blades with their traits; full price for
+	# plunder, no questions), the terrace's outfitter (the rare-gear merchant: gear a tier above, a rare piece every day)
+	SHOPS.extra[_key("chandler")] = {"name": "Haskett's Chandlery", "line": "Rope, canvas, copper sheet and good oak. Everything a ship eats.", "trade": "grocer",
+		"stock": [["timber", 4], ["canvas", 4], ["iron", 4], ["rum", 9]], "pool": [["copper"], ["biscuit"], ["tonic"], ["pearl"]], "size": 2,
+		"buys": {"ingredient": 0.4, "loot": 0.6}}
+	SHOPS.extra[_key("fence")] = {"name": "Vesper's Corner", "line": "No names, no questions, no receipts. Fair prices, mostly.", "trade": "treasure",
+		"tier": maxi(t, 3), "stock": SHOPS.with_traits([["rum", 9], ["tonic", 30], ["dagger@%d" % maxi(t, 3)], ["pistol@%d" % maxi(t, 3)], ["spear@%d" % maxi(t - 1, 2)]], _key("fence")),
+		"buys": {"loot": 1.15, "gear": 0.5, "weapon": 0.7}}
+	SHOPS.extra[_key("outfitter")] = {"name": "Ashgrove & Daughters", "line": "Outfitters to the court. Cut for a duke, priced for one.", "trade": "treasure", "tier": mini(t + 1, 4),
+		"stock": [["coat", "frock", {"coat": "frock", "coat_color": Color(0.2, 0.18, 0.4), "trim_color": GOLD}, mini(t + 1, 4)],
+			["head", "bicorne", {"hat": "bicorne", "hat_color": Color(0.1, 0.1, 0.12)}, mini(t + 1, 4)],
+			["accessory", "cloak", {"cloak": true, "cloak_color": Color(0.36, 0.12, 0.14)}, mini(t + 1, 4)],
+			["accessory", "earring", {"earring": true}, mini(t + 1, 4)]],
+		"pool": [["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.14, 0.1, 0.08)}, mini(t + 1, 4)],
+			["hands", "gloves", {"gloves": true, "gloves_color": Color(0.1, 0.1, 0.12)}, mini(t + 1, 4)],
+			["coat", "greatcoat", {"coat": "greatcoat", "coat_color": Color(0.16, 0.2, 0.3)}, mini(t + 1, 4)],
+			["vest", "corset", {"vest": "corset", "vest_color": Color(0.3, 0.12, 0.16)}, mini(t + 1, 4)]], "size": 2,
+		"buys": {"gear": 0.6, "loot": 1.0}}
 	SHOPS.extra[_key("inn")] = {"name": "The Crown and Compass", "line": "Fish pie, stew and a decent wine. Rooms upstairs.", "trade": "cook",
 		"stock": [["stew", 16], ["rum", 8], ["fish_stew"]], "pool": [["porridge"], ["peppered_boar"], ["island_skewers"]], "size": 1, "buys": {"consumable": 0.4}}
 
@@ -229,10 +275,61 @@ func _quests() -> void:
 			{"do": "turnin", "goal": "Bring the locket back to Mirela by the fountain"}]}
 	locket.merge(common)
 	quest_node.add(locket, isl)
-	_talk(gallows, ledger, locket)
+	# 1.21: the foreman's manifest, lost on the wharf; Lady Halloway's invitation, carried to the inn
+	var mv: Vector3 = isl.spots["manifest"][0]
+	var manifest := {"id": _key("manifest"), "kind": "lost", "giver": "Gully Bracewell", "src": "npc", "title": "The lost manifest",
+		"at": isl.from_city(Vector2(mv.x, mv.z)), "yaw": 0.3, "search": "Search behind the timber", "reward": {"gold": 40, "items": [["timber", 2]]},
+		"ask": "Trouble, foreman?", "plea": ["Trouble? I've a ship's worth of cargo and no manifest. Blew off my board this morning, somewhere on the wharf.",
+			"Without it, the Guild says it's all contraband and takes a third. Vesper's lot would love that. Help me look?"],
+		"accept": "I'll look for it.", "decline": "Not my cargo.", "taken": "Try the timber stacks by the hall. The wind always ends up there.",
+		"remind_choice": "About your manifest...", "remind": ["The wharf, by the timber stacks. A sheet of paper with the Guild's seal. Hurry, before the clerks come round."],
+		"done": "Found your manifest.", "thanks": ["That's the one! Seal and all. You've saved me a third of a hold. Here, take a cut, and some of Marta's good oak."],
+		"found": "A sheet of paper with the Merchants' Guild's seal, pinned under a log.",
+		"steps": [{"do": "pickup", "goal": "Find the foreman's manifest on the wharf", "said": "The manifest, under the timber. Bring it to Gully Bracewell."},
+			{"do": "turnin", "goal": "Bring the manifest back to Gully Bracewell on the wharf"}]}
+	manifest.merge(common)
+	quest_node.add(manifest, isl)
+	var invite := {"id": _key("invite"), "kind": "deliver", "giver": "Lady Corisande Halloway", "src": "npc", "title": "An invitation, by hand",
+		"recipient": "Odile Marchbank", "reward": {"gold": 60},
+		"ask": "Can I help, my lady?", "plea": ["Help? How novel. I need an invitation carried to Odile Marchbank at the Crown and Compass.",
+			"My footman has gone to the arena. Again. Take it down, would you? The seal is the house's. Do not open it."],
+		"accept": "I'll carry it.", "decline": "I'm no footman.", "taken": "Splendid. Down the avenue, across the plaza, the inn with the arcade.",
+		"remind_choice": "About your invitation...", "remind": ["To Odile Marchbank, at the Crown and Compass. By hand, Captain."],
+		"done": "Odile has your invitation.", "thanks": ["She's accepted? Of course she has. Nobody refuses a Halloway supper. Here, for your trouble."],
+		"hand": "An invitation from Lady Halloway.", "got": ["From Lady Halloway? To me? Well! I've cooked for her table but never sat at it. Tell her yes. Tell her YES."],
+		"steps": [{"do": "talk", "who": "Odile Marchbank", "goal": "Carry Lady Halloway's invitation to Odile Marchbank at the Crown and Compass", "said": "Odile has it. Tell Lady Halloway."},
+			{"do": "turnin", "goal": "Tell Lady Halloway on the terrace her invitation was taken"}]}
+	invite.merge(common)
+	quest_node.add(invite, isl)
+	_talk(gallows, ledger, locket, invite)
+	_talk_docks(manifest, invite)
 
 
-func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary) -> void:
+## The docks' and the terrace's talkers: Marta Coyle (her yard), the foreman (his manifest), Lady Halloway (her invitation).
+func _talk_docks(manifest: Dictionary, invite: Dictionary) -> void:
+	var ymenu := {"text": "What'll it be, Captain? Refit, paint or just admiring?", "choices": [{"text": "Show me what you can do to my ship.", "next": "yard"},
+		{"text": "Whose hull is that?", "next": "hull"}]}
+	var ynodes := {"intro": {"text": ["Marta Coyle, shipwright. Tackett at Brinehollow taught me to drive a peg, and I taught him to drive a bargain.",
+		"Anything his yard does, mine does, and closer to the deep water."], "next": "menu"}, "menu": ymenu,
+		"yard": {"text": ["Let's have a look at her, then."], "event": "shipwright:Coyle", "next": "end"},
+		"hull": {"text": ["A merchant's caravel, for the Guild. Pretty thing when she's done. If you want a ship of your own like her, the canal city's yards build them by the dozen."],
+			"next": "menu"}}
+	ymenu["choices"].append({"text": "Goodbye.", "next": "end"})
+	Dialogue.define(_key("shipwright"), {"speaker": "Marta Coyle", "voice": 1.0, "start": "intro", "return": "menu", "nodes": ynodes})
+	var gmenu := {"text": "Make it quick, Captain, there's a hold to empty.", "choices": []}
+	var gnodes := {"intro": {"text": ["Gully Bracewell, foreman. Everything that comes off a ship on this wharf goes past me."], "next": "menu"}, "menu": gmenu}
+	quest_node.offer(manifest, gmenu["choices"], gnodes)
+	gmenu["choices"].append({"text": "Goodbye.", "next": "end"})
+	Dialogue.define(_key("foreman"), {"speaker": "Gully Bracewell", "voice": 0.9, "start": "intro", "return": "menu", "nodes": gnodes})
+	var lmenu := {"text": "You may speak.", "choices": [{"text": "What's the noble quarter like?", "next": "quarter"}]}
+	var lnodes := {"intro": {"text": ["Lady Corisande Halloway. You'll have heard of us. No? Well. You will."], "next": "menu"}, "menu": lmenu,
+		"quarter": {"text": ["Quiet, mostly. Gardens, suppers, gossip about the palace.", "Ashgrove's on the corner, if you'd like to look less... seaworthy."], "next": "menu"}}
+	quest_node.offer(invite, lmenu["choices"], lnodes)
+	lmenu["choices"].append({"text": "Good day, my lady.", "next": "end"})
+	Dialogue.define(_key("lady"), {"speaker": "Lady Corisande Halloway", "voice": 1.15, "start": "intro", "return": "menu", "nodes": lnodes})
+
+
+func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary) -> void:
 	var board: Array = []
 	var bnodes := {"start": {"text": "Notices pinned three deep: a reward from the Watch, a lost goat answering to Bartholomew, the arena's season (next spring), a room to let above the bakery.", "choices": board}}
 	quest_node.post(gallows, board, bnodes)
@@ -266,6 +363,7 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary) -> void:
 		"eat": {"text": ["Fish pie, stew, whatever's in the pot. Sit, sit."], "event": "shop:" + _key("inn"), "next": "end"},
 		"room": {"text": ["Rest at the door whenever you like. A bed, a bath, and I'll keep your things dry."], "next": "menu"},
 		"news": {"text": ["The arena opens next season, they say. Half the sea's coming to fight in it.", "And the palace has been shut a month. Nobody's seen the king since the spring tides. Don't repeat that."], "next": "menu"}}
+	quest_node.hand_over(invite, imenu["choices"], inodes)
 	imenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("inn"), {"speaker": "Odile Marchbank", "voice": 1.1, "start": "intro", "return": "menu", "nodes": inodes})
 

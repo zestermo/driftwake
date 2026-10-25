@@ -23,6 +23,11 @@ const LANES := [
 	[[Vector2(-23.0, 19.5), Vector2(23.0, 19.5)], 4, false],
 	[[Vector2(23.0, -19.5), Vector2(-23.0, -19.5)], 4, false],
 	[[Vector2(-22.0, 6.0), Vector2(-22.0, -14.0)], 2, false],
+	# 1.21: the docks' row and the terrace
+	[[Vector2(8.0, 54.5), Vector2(124.0, 54.5)], 4, false],
+	[[Vector2(124.0, 61.0), Vector2(8.0, 61.0)], 3, false],
+	[[Vector2(10.0, -52.6), Vector2(100.0, -52.6)], 2, false],
+	[[Vector2(100.0, -62.4), Vector2(10.0, -62.4)], 2, false],
 	[[], 10, true],
 ]
 const RING_R := 8.6

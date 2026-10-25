@@ -630,6 +630,21 @@
 			]
 		},
 		{
+			"v": "1.20.1",
+			"name": "The Docks and the Terrace",
+			"date": "2026-10-24",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The first piece of 1.21: the capital's docks with its own shipwright, and the noble quarter's terrace.",
+			"img": "capital",
+			"alt": "The royal capital's harbour and rooftops climbing to the palace (an early look, v1.18.1)",
+			"github": true,
+			"added": [
+				["The docks", "A warehouse row to the wharf, Coyle's Yard (every refit, far from Brinehollow), a chandler and a fence."],
+				["The noble quarter", "A garden terrace under the palace wall and an outfitter to the court."]
+			]
+		},
+		{
 			"v": "1.21",
 			"name": "Cities",
 			"status": "building",

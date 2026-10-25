@@ -100,6 +100,8 @@ func prepare(n: Dictionary) -> void:
 		{"kind": "lighthouse", "title": "The lighthouse", "at": from_city(CapitalPlan.MOLE_E[2]), "r": 10.0},
 		{"kind": "camp", "title": "Gallows Row", "at": from_city(yard.get_center()), "r": 14.0},
 		{"kind": "landmark", "title": "The Crown and Compass", "at": from_city((CapitalPlan.SPECIAL["inn"][0] as Rect2).get_center() + Vector2(10, 0)), "r": 10.0},
+		{"kind": "landmark", "title": "Coyle's Yard", "at": from_city((CapitalPlan.FLOORS[10][1] as Rect2).get_center()), "r": 12.0},
+		{"kind": "landmark", "title": "The noble quarter", "at": from_city((CapitalPlan.FLOORS[12][1] as Rect2).get_center()), "r": 14.0},
 	]
 
 
