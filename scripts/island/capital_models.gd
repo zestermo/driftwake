@@ -17,6 +17,30 @@ const BLUE := Color(0.18, 0.26, 0.58)
 const GOLD := Color(0.86, 0.68, 0.26)
 
 
+## The chimney tops built since the island's prepare cleared it (CitySmoke: the capital's chimney smoke), city frame.
+## (one capital prepares at a time; the canal city keeps its own, CanalShell.smoke_tops)
+static var smoke_tops: Array = []
+
+
+## A brick chimney stack on a house's roof (1.21's detail pass), from its own rng stream so nothing else about the
+## house changes: on about two houses in three, through the roof from `base_y` (the roof's foot) to over its ridge.
+static func stack(mb: MeshBuilder, t: Transform3D, w: float, d: float, base_y: float, roof_kind: String, seed_value: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 9133
+	if rng.randf() > 0.65 or w < 3.0 or d < 3.0:
+		return
+	var rise := 0.0 if not roof_kind in ["hip", "gable"] else minf(w, d) * ROOF_PITCH
+	var x := rng.randf_range(-w * 0.28, w * 0.28)
+	var z := rng.randf_range(-d * 0.22, d * 0.22)
+	var h := rise + rng.randf_range(0.9, 1.5)
+	var brick := Color(0.66, 0.4, 0.32) * rng.randf_range(0.9, 1.05)
+	mb.add_box(mat("wash"), t * Transform3D(Basis(), Vector3(x, base_y + h * 0.5, z)), Vector3(0.7, h, 0.55), 0.8, brick)
+	mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(x, base_y + h + 0.08, z)), Vector3(0.86, 0.16, 0.7), 0.8, Color(0.86, 0.84, 0.8), false)
+	for k in range(rng.randi_range(1, 2)):
+		mb.add_cylinder(mat("wash"), t * Transform3D(Basis(), Vector3(x + (k - 0.5) * 0.26, base_y + h + 0.16, z)), 0.1, 0.09, 0.32, 5, 1.0, Color(0.6, 0.36, 0.28))
+	smoke_tops.append(t * Vector3(x, base_y + h + 0.55, z))
+
+
 static func mat(kind: String) -> Material:
 	match kind:
 		"lime":
@@ -105,6 +129,7 @@ static func house(mb: MeshBuilder, cols: Array, lot: Dictionary, low: float, top
 	Occluders.box(cols, xf(v3(c, (low + eaves) * 0.5)), Vector3(w, eaves - low, d))
 	mb.add_box(mat("lime"), xf(v3(c, eaves + 0.12)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
 	roof(mb, str(lot["roof"]), t, w, d, eaves + 0.24, rcol, rng)
+	stack(mb, t, w, d, eaves + 0.24, str(lot["roof"]), int(lot["seed"]))
 	return eaves
 
 

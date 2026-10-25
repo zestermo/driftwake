@@ -44,6 +44,7 @@ func prepare(n: Dictionary) -> void:
 	_shore_map()
 	build_ms["shore"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
+	CanalShell.smoke_tops.clear()
 	pieces = CanalShell.build(build_ms)
 	build_ms["shell"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
@@ -52,6 +53,8 @@ func prepare(n: Dictionary) -> void:
 	spots = d["spots"]
 	doors = d["doors"]
 	lights = d["lights"]
+	smoke_tops = CanalShell.smoke_tops.duplicate()
+	CanalShell.smoke_tops.clear()
 	build_ms["district"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
 	_stocked = CanalLife.looks() + CanalLife.crowd_looks()
@@ -81,12 +84,26 @@ func finish_steps() -> Array:
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
 	steps.append(["lamps", _lamps])
+	steps.append(["smoke", _smoke])
+	steps.append(["pigeons", _pigeons])
 	canal_life = CanalLife.new().setup(self)
 	steps.append(["life", add_child.bind(canal_life)])
 	steps.append_array(canal_life.steps())
 	steps.append(["crowd", _crowd])
 	steps.append(["arrival", _arrival])
 	return steps
+
+
+## The campi's and the piazza's pigeons (off each campo's wellhead, tree and lamp).
+func pigeon_flocks() -> Array:
+	var out: Array = []
+	for f in CanalPlan.floors():
+		if str(f[0]).ends_with("_campo"):
+			out.append(CapitalModels.v3((f[1] as Rect2).get_center() + Vector2(3.5, 3.5), CanalPlan.QUAY_Y))
+	var c := CanalPlan.PIAZZA.get_center()
+	for o in [Vector2(-14.0, 4.0), Vector2(12.0, -6.0)]:
+		out.append(CapitalModels.v3(c + o, CanalPlan.QUAY_Y))
+	return out
 
 
 func hv(p: Vector2) -> float:

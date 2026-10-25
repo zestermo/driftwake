@@ -242,12 +242,17 @@ static func house(mb: MeshBuilder, cols: Array, l: Dictionary, solid: bool) -> A
 	return [t, w, d, h]
 
 
+## The chimney tops built since the island's prepare cleared it (CitySmoke), city frame.
+static var smoke_tops: Array = []
+
+
 ## The lagoon's funnel chimney: a plastered stack flaring to a wide cone at the top.
 static func chimney(mb: MeshBuilder, at: Vector3, rng: RandomNumberGenerator) -> void:
 	var wash := M.mat("wash")
 	var ht := rng.randf_range(2.2, 3.2)
 	mb.add_cylinder(wash, M.xf(at), 0.28, 0.24, ht, 6, 0.6, Color(0.92, 0.86, 0.78))
 	mb.add_cylinder(wash, M.xf(at + Vector3(0, ht, 0)), 0.26, 0.6, 0.8, 6, 0.6, Color(0.86, 0.6, 0.48), true, false)
+	smoke_tops.append(at + Vector3(0, ht + 1.0, 0))
 
 
 ## A wall across a gap a floor opens onto: plastered brick, a door shut in it (a lane further into the block).

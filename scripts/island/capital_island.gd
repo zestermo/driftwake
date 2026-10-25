@@ -27,6 +27,8 @@ var city: Node3D
 var spots := {}
 var doors: Array = []
 var lights: Array = []
+## The chimney tops that may smoke (city frame), gathered from the builders in prepare.
+var smoke_tops: Array = []
 var life_node: CapitalLife
 var crowd: CapitalCrowd
 ## The city's solid boxes ([frame Transform3D, size]) for the toughs' nav zone (nav_faces).
@@ -78,6 +80,7 @@ func prepare(n: Dictionary) -> void:
 	_shore_map()
 	build_ms["shore"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
+	CapitalModels.smoke_tops.clear()
 	pieces = CapitalShell.build(build_ms)
 	build_ms["shell"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
@@ -86,6 +89,8 @@ func prepare(n: Dictionary) -> void:
 	spots = d["spots"]
 	doors = d["doors"]
 	lights = d["lights"]
+	smoke_tops = CapitalModels.smoke_tops.duplicate()
+	CapitalModels.smoke_tops.clear()
 	build_ms["district"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
 	_stocked = CapitalLife.looks() + CapitalCrowd.make_looks()
@@ -118,6 +123,8 @@ func finish_steps() -> Array:
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
 	steps.append(["lamps", _lamps])
+	steps.append(["smoke", _smoke])
+	steps.append(["pigeons", _pigeons])
 	life_node = CapitalLife.new().setup(self)
 	steps.append(["life", add_child.bind(life_node)])
 	steps.append_array(life_node.steps())
@@ -328,6 +335,23 @@ func _piece(i: int) -> void:
 
 
 ## The district's real lights (its budget: CapitalDistrict's list), lit from dusk to dawn (the lighthouse always).
+## The chimneys' smoke: one GPU emitter over every smoking chimney (CitySmoke).
+func _smoke() -> void:
+	var p := CitySmoke.make(smoke_tops, int(node["seed"]) + 77)
+	if p:
+		city.add_child(p)
+
+
+## Pigeons on the squares (CityPigeons).
+func _pigeons() -> void:
+	city.add_child(CityPigeons.new().setup(pigeon_flocks(), int(node["seed"]) + 78))
+
+
+func pigeon_flocks() -> Array:
+	var c := CapitalPlan.PLAZA.get_center()
+	return [Vector2(9.0, -9.0), Vector2(-11.0, 10.0), Vector2(14.0, 12.0)].map(func(o): return CapitalModels.v3(c + o, CapitalPlan.PLAZA_Y))
+
+
 func _lamps() -> void:
 	for i in range(lights.size()):
 		var l: Array = lights[i]

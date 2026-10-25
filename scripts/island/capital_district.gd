@@ -180,6 +180,7 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, sill + g1, 0)), Vector3(w + 0.16, 0.22, d + 0.16), 0.6, Color(0.9, 0.88, 0.84), false)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, eaves + 0.12, 0)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
 	M.roof(mb, str(l["roof"]), t, w, d, eaves + 0.24, rcol, rng)
+	M.stack(mb, t, w, d, eaves + 0.24, str(l["roof"]), int(l["seed"]))
 	var cell: Rect2 = l["cell"]
 	M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
 	# (behind the door's niche)
