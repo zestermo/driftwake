@@ -173,7 +173,7 @@ func _view(w: Node, gm: Node) -> void:
 	var sc: Vector2 = w.get("starter_center")
 	var half := SIZE * 0.5
 	if gm.chain_at < 0:
-		_centre = sc
+		_centre = sc + pan_off
 		_pin = true
 		var reach := REACH
 		for p in _crew():
@@ -187,7 +187,7 @@ func _view(w: Node, gm: Node) -> void:
 		box = box.merge(Rect2(n["pos"], Vector2.ZERO).grow(ISLE_R + 70.0))
 	for p in _crew():
 		box = box.expand(p)
-	_centre = box.get_center()
+	_centre = box.get_center() + pan_off
 	_k = minf(minf((half.x - 70.0) / (box.size.x * 0.5), (half.y - 40.0) / (box.size.y * 0.5)), minf(half.x, half.y) / REACH)
 
 
@@ -206,6 +206,22 @@ func _inside(p: Vector2) -> bool:
 ## Draw something at `p`? (Off the chart on the chain, it's left off.)
 func _shown(p: Vector2) -> bool:
 	return _pin or _inside(p)
+
+
+## The chart's key (1.22's map polish): you, the crew, the ship, a mark.
+func _legend(ink: Color) -> void:
+	var o := Vector2(8, SIZE.y - 58)
+	draw_rect(Rect2(o - Vector2(3, 9), Vector2(62, 46)), Color(0.93, 0.87, 0.72, 0.85))
+	draw_rect(Rect2(o - Vector2(3, 9), Vector2(62, 46)), ink, false, 1.0)
+	draw_circle(o + Vector2(3, -3), 2.5, Color(0.85, 0.15, 0.1))
+	draw_string(_font, o + Vector2(10, 0), "you", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	draw_circle(o + Vector2(3, 7), 2.5, Color(0.25, 0.5, 0.65))
+	draw_string(_font, o + Vector2(10, 10), "crew", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(6, 17), o + Vector2(0, 14), o + Vector2(0, 20)]), Color(0.15, 0.3, 0.55))
+	draw_string(_font, o + Vector2(10, 20), "ship", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	draw_line(o + Vector2(1, 31), o + Vector2(1, 23), ink, 1.0)
+	draw_colored_polygon(PackedVector2Array([o + Vector2(1, 23), o + Vector2(6, 25), o + Vector2(1, 27)]), Color(0.75, 0.1, 0.08))
+	draw_string(_font, o + Vector2(10, 30), "mark", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
 
 
 func _draw() -> void:
@@ -313,6 +329,7 @@ func _draw() -> void:
 			draw_circle(pc, 2.5, Color(0.85, 0.12, 0.08) if down else Net.crew_color(p.net_id).darkened(0.35))
 			draw_string(_font, pc + Vector2(4, 3), str(p.display_name()) + (" (down)" if down else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
 	_north(ink)
+	_legend(ink)
 	# the crew's marks: numbered flags in their colours
 	for id in Net.waypoints.keys():
 		var col: Color = Net.crew_color(id) if Net.active else Color(0.75, 0.1, 0.08)
@@ -339,6 +356,7 @@ func _hints() -> void:
 	var pairs: Array = [["LMB", "MARK"], ["RMB", "UNMARK"], ["C", "CLEAR"]]
 	if not isle.d.is_empty():
 		pairs.append(["WHEEL", "ZOOM"])
+		pairs.append(["MIDDLE", "PAN"])
 	pairs.append(["M", "PUT AWAY"])
 	UIStyle.draw_hints(self, Vector2(14, SIZE.y - 10), pairs, _font, true)
 
@@ -429,9 +447,23 @@ func _chain_island(n: Dictionary, radius: float, col: Color, here: bool) -> void
 	draw_string(_font, at + Vector2(10 + lw, 9), dz[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, (dz[1] as Color).darkened(0.45))
 
 
+## (1.22) Middle-mouse panning (MapHold): how far the view's moved off where it would be (world m); a zoom puts it back.
+var pan_off := Vector2.ZERO
+func pan_by(page_px: Vector2) -> void:
+	if on_isle and isle:
+		isle.pan_by(page_px)
+	elif _k > 0.0:
+		pan_off -= page_px / _k
+		queue_redraw()
+
+
 ## A mouse button with the pen at `at` (page px): the wheel goes between the island and the chart; a
 ## click sets a mark there (up to Net.MAX_WAYPOINTS of ours); a right-click near one of ours takes it off.
 func press(button: int, at: Vector2) -> void:
+	if button in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		pan_off = Vector2.ZERO
+		if isle:
+			isle.pan_off = Vector2.ZERO
 	if button == MOUSE_BUTTON_WHEEL_UP:
 		if not on_isle:
 			show_isle(true)

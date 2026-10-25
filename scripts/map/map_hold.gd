@@ -123,6 +123,9 @@ func facing() -> Vector3:
 	return Vector3(-sin(yaw), 0.0, -cos(yaw))
 
 
+var _panning := false
+
+
 func _input(event: InputEvent) -> void:
 	if not player.is_local or player.input_locked or get_tree().paused or GameMenu.is_open():
 		return
@@ -131,6 +134,15 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if not _up:
+		return
+	# (1.22) middle mouse held: the mouse pans the map instead of moving the pen
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
+		_panning = event.pressed
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseMotion and _panning:
+		page.pan_by(event.screen_relative * PEN * float(Settings.get_value("controls", "mouse_sensitivity")))
+		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion:
 		var to: Vector2 = cursor + event.screen_relative * PEN * float(Settings.get_value("controls", "mouse_sensitivity"))

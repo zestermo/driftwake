@@ -67,23 +67,37 @@ func _place(cam: Camera3D, pos: Vector3, vs: Vector2) -> Array:
 	return [c, inside, sp]
 
 
-## The crew's chart marks (Net.waypoints): a small flag over each, numbered.
+## The crew's chart marks (Net.waypoints): a small flag over each, numbered. (1.22: with five captains' marks only
+## the SHOWN nearest are drawn, the rest a "+N more" at the screen's foot; a mark you're standing on fades.)
+const SHOWN := 4
 func _draw_waypoints(cam: Camera3D, vs: Vector2, me: Node3D) -> void:
+	var all: Array = []
+	var here := Vector2(me.global_position.x, me.global_position.z) if me else Vector2.ZERO
 	for id in Net.waypoints.keys():
-		var col: Color = Net.crew_color(id) if Net.active else Color(1.0, 0.85, 0.3)
 		var pts: Array = Net.waypoints[id]
 		for i in range(pts.size()):
-			var p: Vector2 = pts[i]
-			var pos := Vector3(p.x, 3.0, p.y)
-			var pl := _place(cam, pos, vs)
-			var c: Vector2 = pl[0]
-			draw_line(c + Vector2(0, 6), c + Vector2(0, -8), Color(0, 0, 0, 0.8), 3.0)
-			draw_line(c + Vector2(0, 6), c + Vector2(0, -8), col, 1.0)
-			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -8), c + Vector2(8, -5), c + Vector2(0, -2)]), col)
-			var txt := "%d  %dm" % [i + 1, int(Vector2(me.global_position.x, me.global_position.z).distance_to(p))] if me else str(i + 1)
-			var tp := Vector2(clampf(c.x - 10.0, 2.0, vs.x - 40.0), c.y + 16.0)
-			draw_string_outline(_font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
-			draw_string(_font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
+			all.append([here.distance_to(pts[i]), id, i, pts[i]])
+	all.sort_custom(func(a, b): return float(a[0]) < float(b[0]))
+	for e in all.slice(0, SHOWN):
+		var id: int = e[1]
+		var col: Color = Net.crew_color(id) if Net.active else Color(1.0, 0.85, 0.3)
+		col.a = clampf((float(e[0]) - 4.0) / 8.0, 0.25, 1.0)
+		var p: Vector2 = e[3]
+		var pl := _place(cam, Vector3(p.x, 3.0, p.y), vs)
+		var c: Vector2 = pl[0]
+		draw_line(c + Vector2(0, 6), c + Vector2(0, -8), Color(0, 0, 0, 0.8 * col.a), 3.0)
+		draw_line(c + Vector2(0, 6), c + Vector2(0, -8), col, 1.0)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0, -8), c + Vector2(8, -5), c + Vector2(0, -2)]), col)
+		var txt := "%d  %dm" % [int(e[2]) + 1, int(e[0])] if me else str(int(e[2]) + 1)
+		var tp := Vector2(clampf(c.x - 10.0, 2.0, vs.x - 40.0), c.y + 16.0)
+		draw_string_outline(_font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0, 0, 0, col.a))
+		draw_string(_font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
+	if all.size() > SHOWN:
+		var more := "+%d more marks (M)" % (all.size() - SHOWN)
+		var w := _font.get_string_size(more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		var tp := Vector2(vs.x - w - 8.0, vs.y - 30.0)
+		draw_string_outline(_font, tp, more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
+		draw_string(_font, tp, more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.9, 0.85, 0.7))
 
 
 func _draw() -> void:

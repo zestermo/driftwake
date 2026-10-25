@@ -103,6 +103,14 @@ func refresh() -> void:
 
 
 ## One zoom in (+1) or out (-1); false when there's no further that way.
+## (1.22) Middle-mouse panning: the view's centre moved off its aim (island m), back with a zoom.
+var pan_off := Vector2.ZERO
+func pan_by(page_px: Vector2) -> void:
+	var kk: float = _fit_k * ZOOMS[zoom]
+	if kk > 0.0:
+		pan_off -= page_px / kk
+
+
 func step_zoom(by: int) -> bool:
 	var z := zoom + by
 	if z < 0 or z >= ZOOMS.size():
@@ -115,12 +123,12 @@ func step_zoom(by: int) -> bool:
 func _aim() -> Array:
 	var kk: float = _fit_k * ZOOMS[zoom]
 	if zoom == 0:
-		return [_fit_c, kk]
+		return [_fit_c + pan_off, kk]
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	var c := Vector2(me.global_position.x, me.global_position.z) - (d["o"] as Vector2)
 	var half := frame.size * 0.5 / kk
 	var r: Rect2 = d["rect"]
-	return [c.clamp(r.position + half, r.end - half), kk]
+	return [(c + pan_off).clamp(r.position + half, r.end - half), kk]
 
 
 func _process(delta: float) -> void:

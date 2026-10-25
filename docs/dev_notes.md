@@ -6469,3 +6469,7 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   "helm" (a guest at the wheel), "guns", "swim", or the distance and bearing past 30 m. t/ui/party_where (new).
 - Crew on the chart (1.22): the crew's dots named (and red with "(down)" when bleeding), the Captain's flags 1.5x,
   `Net.MAX_WAYPOINTS` 8 a captain (the oldest goes); marks were already the crew's (Net.waypoints, synced).
+- Map polish (1.22): middle mouse held pans the held map (MapHold `_panning`: the mouse moves the view, not the pen;
+  `SeaChart.pan_off` / `MapIsleView.pan_off`, a zoom puts it back), "MIDDLE PAN" in its hints; the chart's legend (you,
+  crew, ship, mark). On-screen marks: the 4 nearest (MarkerLayer.SHOWN), the rest "+N more marks (M)", one you stand on
+  fades. t/map/map_pan (new).
