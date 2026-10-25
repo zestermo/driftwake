@@ -7,6 +7,7 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
+	["1.21.1: crews of five", "Up to five captains sail together now. Your crew has a name and a roster of everyone who's sailed with it, saved with the Captain's world: see it under Crew in the pause menu, where the Captain renames the crew, sets its flag and can send a crewmate ashore. The crew's emblem is painted on the main sail, and there are six new emblems: a kraken, a trident, a rose, a sun, a wave and a raven. Tackett's yard at Brinehollow does the basics; the finer refits are first seen at a city's yard. The opening at sea is set aside for now: a new game wakes on the beach."],
 	["The capital opened up", "A warehouse row to the docks with Marta Coyle's shipwright's yard, a chandler and a fence; a garden terrace under the palace wall; the palace open, its throne hall, Queen Ilsabet and her Chamberlain's errands."],
 	["The Grand Arena", "A one-on-one ladder of six fighters on the sand, nonlethal, a purse for every win. Beat the Champion for the title and the Champion's Sabre, then defend it once a day."],
 	["The canal city", "A lagoon city of shipbuilders down the chain: canals, bridges, boatmen to row you between landings, a market, a glassworks, an inn and the arsenal."],

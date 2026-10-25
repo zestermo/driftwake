@@ -165,6 +165,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.21); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
+### v1.21.1: Crews of Five (October 25, 2026), unstable
+The first piece of 1.22. Crews of up to five captains. A named crew, saved in the host's world with a roster of
+everyone who's sailed with it: the pause menu's Crew screen shows its flag and name (the Captain renames it), who's
+aboard (pings, and a kick for the Captain) and who's sailed with you. The crew's emblem painted on the main sail, and
+six more emblems: a kraken, a trident, a rose, a sun, a wave and a raven. Tackett's yard does the basics now (hull
+plating, gun deck, sails, rudder, the hold); the copper bottom, the bow chaser, the crow's nest and the other refits
+are first seen at a city's yard. The opening at sea is set aside for now: a new game wakes on Brinehollow's beach.
+
 ### v1.21: Cities (October 25, 2026)
 The royal capital opened up: a warehouse row down to the docks (Marta Coyle's shipwright's yard, a chandler, a
 fence), a garden terrace and an outfitter under the palace wall, and the palace itself, its court and throne hall,

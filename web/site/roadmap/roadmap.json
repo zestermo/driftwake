@@ -730,6 +730,21 @@
 			]
 		},
 		{
+			"v": "1.21.1",
+			"name": "Crews of Five",
+			"date": "2026-10-25",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The first piece of 1.22: crews of five, a named crew, and its emblem on the sail.",
+			"img": "capital-plaza",
+			"alt": "The royal capital's plaza and market (current build)",
+			"github": true,
+			"added": [
+				["Crews of five", "Up to five captains, a named crew and its roster, the Crew screen."],
+				["Your emblem on the sail", "The crew's emblem on the main sail, six more emblems."]
+			]
+		},
+		{
 			"v": "1.22",
 			"name": "Crews and Parties",
 			"status": "building",
