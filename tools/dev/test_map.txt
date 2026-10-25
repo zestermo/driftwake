@@ -526,3 +526,6 @@ scripts/enemies/drowned.gd              t/combat/undead t/island/fog_isle
 scripts/enemies/ghost.gd                t/combat/undead t/island/fog_isle
 scripts/enemies/ghost_captain.gd        t/island/fog_isle
 scripts/world/chain.gd                  t/island/fog_isle
+scripts/world/weather.gd                t/swim/dive_shafts
+shaders/world/dive_shafts.gdshader      t/swim/dive_shafts
+shaders/psx/psx_sky.gdshader            r10test t/world/theme_weather

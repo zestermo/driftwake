@@ -80,6 +80,9 @@ var _scene: Node
 var _rain: GPUParticles3D
 var _rays: MultiMeshInstance3D
 var _ray_mat: ShaderMaterial
+## Light shafts under water (shaders/world/dive_shafts.gdshader: placed on the GPU, round the camera).
+var _shafts: MultiMeshInstance3D
+var _shaft_mat: ShaderMaterial
 var _rain_snd: AudioStreamPlayer
 var _sand_snd: AudioStreamPlayer
 var _blizzard_snd: AudioStreamPlayer
@@ -318,6 +321,7 @@ func _attach(scene: Node) -> void:
 		_ocean_mat = (om.material_override if om.material_override else om.mesh.surface_get_material(0)) as ShaderMaterial
 	_build_rain()
 	_build_rays()
+	_build_shafts()
 	_build_overlay()
 	_build_audio()
 	_last_strike = -1
@@ -334,6 +338,7 @@ func _detach() -> void:
 	_rain = null
 	_precip = null
 	_rays = null
+	_shafts = null
 	_bolt = null
 	var oc := get_node_or_null("/root/Ocean")
 	if oc:
@@ -390,6 +395,7 @@ func _process(delta: float) -> void:
 	_drift_sky(delta)
 	_update_rain(delta)
 	_update_rays()
+	_update_shafts()
 	_update_audio(delta)
 
 
@@ -820,6 +826,55 @@ func _update_rays() -> void:
 		mm.set_instance_transform(i, Transform3D(b, foot))
 		var flick := 0.6 + 0.4 * sin(_sky_t * (0.2 + fmod(h, 0.3)) + h * 7.0)
 		mm.set_instance_color(i, Color(1, 1, 1, flick))
+
+
+const SHAFTS := 26
+const SHAFT_TILE := 48.0
+
+
+## The dive shafts: built once, every beam's offset fixed in the tile (the shader wraps them round the camera).
+func _build_shafts() -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	var q := QuadMesh.new()
+	q.size = Vector2(1, 1)
+	q.center_offset = Vector3(0, 0.5, 0)
+	mm.mesh = q
+	mm.instance_count = SHAFTS
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 6611
+	for i in range(SHAFTS):
+		var off := Vector3(rng.randf_range(0.0, SHAFT_TILE), 0.0, rng.randf_range(0.0, SHAFT_TILE))
+		mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(rng.randf_range(0.6, 2.2), rng.randf_range(12.0, 24.0), 1.0)), off))
+		mm.set_instance_color(i, Color(1, 1, 1, rng.randf()))
+	mm.custom_aabb = AABB(Vector3(-4000, -200, -4000), Vector3(8000, 400, 8000))
+	_shaft_mat = ShaderMaterial.new()
+	_shaft_mat.shader = load("res://shaders/world/dive_shafts.gdshader")
+	_shaft_mat.set_shader_parameter("tile", SHAFT_TILE)
+	_shafts = MultiMeshInstance3D.new()
+	_shafts.name = "DiveShafts"
+	_shafts.multimesh = mm
+	_shafts.material_override = _shaft_mat
+	_shafts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_shafts.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_shafts.visible = false
+	_scene.add_child(_shafts)
+
+
+## Under water by day: the shafts on, brightest with a high sun and clear sky, dimmer the deeper you go.
+func _update_shafts() -> void:
+	if _shafts == null or not is_instance_valid(_shafts):
+		return
+	var k := 0.0
+	if under_water:
+		k = smoothstep(0.03, 0.3, sun_dir.y) * (1.0 - storm * 0.8) * (1.0 - coverage * 0.45) * lerpf(1.0, 0.35, clampf(_under_depth / UNDER_DARK, 0.0, 1.0))
+	_shafts.visible = k > 0.01
+	if _shafts.visible:
+		_shaft_mat.set_shader_parameter("intensity", k * 0.5)
+		_shaft_mat.set_shader_parameter("sun_dir", sun_dir)
+		_shaft_mat.set_shader_parameter("surface_y", float(Ocean.surface_at(get_viewport().get_camera_3d().global_position)) if get_viewport().get_camera_3d() else 0.0)
+		_shaft_mat.set_shader_parameter("fade", Vector2(UNDER_SEE.y * 0.6, lerpf(UNDER_SEE.x, UNDER_SEE.y, clampf(_under_depth / UNDER_DARK, 0.0, 1.0)) * 0.9))
 
 
 # --------------------------------------------------------------------------

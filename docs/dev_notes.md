@@ -6329,3 +6329,13 @@ fidelity report:
   outline). A big-tree entry [body, detail, lean, r, far]: GenIsland buckets the body as "giant_near" (to GIANT_NEAR
   180 m) and the far one as "giant_far" (180-1100 m, no shadow). ~3.4k -> 1.8k and ~5.3k -> 1.9k triangles a tree.
   t/island/fog_giants_far (new).
+- Dive light shafts: Weather's "DiveShafts" (shaders/world/dive_shafts.gdshader), 26 long additive quads in one
+  MultiMesh built once: each beam's offset sits in a 48 m tile (SHAFT_TILE) that the vertex shader wraps round the
+  camera, hung from the surface down along the sun bent steeper by the water, turned to face the camera round its own
+  axis, swaying and shimmering on TIME (visual only). The CPU only sets uniforms while you're under: on by day
+  (`_update_shafts`: the sun's height, less in storms and heavy cover, dimmer the deeper), fading with the water's own
+  fog distance. t/swim/dive_shafts (new).
+- The sky: Zach picked look C (2026-10-24), the raymarched cloud deck in psx_sky.gdshader (14 steps, 5 in the
+  radiance cubemap pass; one sample toward the sun per step for its shade); the 2D cloud layer and the other looks
+  are gone. The 3D puffs (PuffClouds) stay blended and sorted (a dithered try aliased, 1.10's notes; the sort is
+  ~600 keys 7 times a second).
