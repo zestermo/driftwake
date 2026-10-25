@@ -3,6 +3,20 @@ extends Node
 ## client. The client sends commands, the host runs them and replies.
 
 var replies: Dictionary = {}
+## (host, board mode) the boarders held on spots on our deck, [grunt, ship, deck-local spot], from the moment they
+## board until the guest's "attack": calmed they still leap and walk, and on a busy machine (the host building islands
+## in long frames) the late guest found some or all of them gone over the side.
+var _pins: Array = []
+
+
+func _physics_process(_d: float) -> void:
+	for pin in _pins:
+		var g = pin[0]
+		var ship = pin[1]
+		if not is_instance_valid(g) or not is_instance_valid(ship) or g.is_dead():
+			continue
+		g.global_position = ship.to_global(pin[2])
+		g.velocity = Vector3.ZERO
 
 
 func net() -> Node:
@@ -216,10 +230,12 @@ func _run(name_: String, args: Array, from: int):
 			var before: Array = es.boarders.duplicate()
 			es._board(n._ship())
 			var keys: Array = []
+			var ship: Node3D = n._ship()
 			for g in es.boarders:
 				if g not in before:
 					_calm(g)
 					keys.append(n.key_of(g))
+					_pins.append([g, ship, Vector3((_pins.size() - 1) * 1.3, HullBuilder.DECK_Y + 0.05, 1.5)])
 			set_meta("boarded_t", n.time())
 			return keys
 		"deck_fight":
@@ -243,6 +259,7 @@ func _run(name_: String, args: Array, from: int):
 			return {"men": men, "shown": shown, "es": n.key_of(es), "ship": n.key_of(n._ship()),
 				"boarded_t": float(get_meta("boarded_t", INF)), "crew_gone": es._crew_gone}
 		"attack":
+			_pins.clear()
 			var g = n.node_of(str(args[0]))
 			var at: Vector3 = args[1]
 			var dir: Vector3 = args[2]
