@@ -4,7 +4,7 @@ extends RefCounted
 ## {"gold": n, "items": [[item id, n]], "reveal": true (a treasure map: an X on the sea chart),
 ##  "chart": true (a place on the island the crew hasn't found, put on the held map: Journal picks it),
 ##  "recipe": meal id (Food.teach), "discount": [shop id, fraction, shop name], "favour": {"who": name, "gift": [[item id, n]]}}.
-## Gold, items, the treasure map and the recipe go to every captain present at the turn-in (each on their
+## Gold, items, the treasure map and the recipe go to every captain in the crew, wherever they are (1.22; each on their
 ## own machine); the charted place, a discount and a favour are the crew's (Journal.perks, MapFog).
 
 ## Gold instead of a map once every treasure's map is in hand (or a recipe already known).

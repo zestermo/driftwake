@@ -17,6 +17,7 @@ extends Node
 signal changed
 
 ## Captains this close to a turn-in get its reward.
+## (before 1.22 a reward went only to captains this close to the turn-in; kept for old tests' and tools' sake)
 const REWARD_REACH := 40.0
 const RUMOURS := 40
 ## A charted place: the fog lifted this far round it (m).
@@ -149,7 +150,7 @@ func advance(id: String, n: int) -> void:
 		_ask("step", [id, n])
 
 
-## Told the giver: the reward to every captain within REWARD_REACH of `at`; the one turning in hands over the cost.
+## Told the giver: the reward to every captain in the crew, wherever they are (1.22); the one turning in hands over the cost.
 func turn_in(id: String, at: Vector3) -> void:
 	if at_turnin(id):
 		_ask("done", [id, at, Net.my_id()])
@@ -276,7 +277,8 @@ func _finish(id: String, at: Vector3, by: int, chart: Array) -> void:
 	if me:
 		if by == Net.my_id():
 			QuestRewards.pay(e["cost"], me)
-		if me.global_position.distance_to(at) <= REWARD_REACH:
+		# (1.22: the whole crew's, wherever they are; `at` is only where the giver stood)
+		if true:
 			var got := QuestRewards.give(r, me)
 			if r.get("chart", false) and chart.is_empty():
 				me.inventory_component.add_item(ItemDB.get_item("gold"), QuestRewards.MAP_GOLD)
