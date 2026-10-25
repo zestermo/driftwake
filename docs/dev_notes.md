@@ -6419,3 +6419,9 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   Not yet the brief's "clearly under 12.3": the near rigs (< 30 m: NPCs, folk, the player, 0.9 ms in the plaza) and
   `draw` (~4.5 ms, ~1250 draws) are what's left. Next levers: ON_R lower (30 m; a look call for Zach), the skinned
   limbs' helper bones (ArmBody/LowerBody, 0.27 ms), fewer draws in town.
+
+## 2026-10-25: The intro switched off
+
+- Zach: the opening at sea is "too unpolished"; a new game wakes on Brinehollow's beach again (as before 1.19).
+  `Intro.ENABLED := false` gates it in Player's first-time creator path; the code, t/ui/intro and its render stay
+  (they call `Intro.play` directly), ready to switch back on once it's polished.

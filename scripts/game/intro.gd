@@ -7,6 +7,9 @@ extends Node3D
 ## captain wakes on Brinehollow's beach (Player.wake_on_beach, the story as before). Staged far out on open sea and
 ## gone after (weather and time put back). Names are Driftwake's own, for Zach's review.
 
+## Off for now (Zach, 2026-10-25: "too unpolished"): a new game wakes on the beach as before 1.19. The intro's own
+## test and render still play it (Intro.play); set true once it's polished.
+const ENABLED := false
 const HOLT := "Captain Maren Holt"
 const NARRATION := [
 	"They say the First Sea ends in a wall of storm. No ship has sailed through it and come back.",
