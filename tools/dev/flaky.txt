@@ -12,3 +12,4 @@ net | host accepted us
 net | clock synced
 airtest | one heavy shot knocks them flat
 r8test | ...and fires a broadside
+net-board | the men still aboard her are the host's
