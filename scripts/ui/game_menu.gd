@@ -17,6 +17,9 @@ var _skills: SkillMapScreen
 var _load: SaveSlotList
 # the shipwright's yard (talk to Tackett)
 const YARD := preload("res://scripts/ui/shipwright_screen.gd")
+# the crew (1.22: the pause menu's Crew)
+const CREW := preload("res://scripts/ui/crew_screen.gd")
+var _crew: Control
 var _yard: Control
 # traders' stalls (talk to a vendor)
 const SHOP := preload("res://scripts/ui/shop_screen.gd")
@@ -68,6 +71,8 @@ func _ready() -> void:
 	_galley.register_wheel()
 	_idea = IDEA.new(_back)
 	_screens["idea"] = _idea
+	_crew = CREW.new(self)
+	_screens["crew"] = _crew
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -265,6 +270,9 @@ func open(screen: String) -> void:
 		_shop.on_open()
 	elif screen == "galley":
 		_galley.on_open()
+	elif screen == "crew":
+		_crew.on_open()
+		_focus_first(_crew)
 	elif screen == "load":
 		_load.open("load", true)
 	else:
@@ -344,6 +352,7 @@ func _build_pause() -> Control:
 		["Resume", func(): close()],
 		["Inventory", func(): open("inventory")],
 		["Skill Map", func(): open("skills")],
+		["Crew", func(): open("crew")],
 		["Appearance", func(): _open_appearance()],
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
@@ -375,6 +384,13 @@ func _build_pause() -> Control:
 		b.pressed.connect(it[1])
 		vb.add_child(b)
 	return p
+
+
+## The crew's flag (the Crew screen's Flag): the ship's paint, from anywhere (paint's free; the Captain's to change).
+func open_flag() -> void:
+	_yard.set_yard("Tackett")
+	_yard.show_tab("paint")
+	open("yard")
 
 
 ## Open this running game to friends (they join from the title screen).

@@ -48,4 +48,12 @@ func _process(_d: float) -> bool:
 	check("saved with the world and back (%s, %d)" % [gm.crew.get("name", ""), (gm.crew.get("members", {}) as Dictionary).size()],
 		gm.crew.get("name", "") == "The Salt Hounds" and (gm.crew["members"] as Dictionary).size() == 2)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE))
+	# the Crew screen (pause menu): the name, us aboard as Captain, the other on "sailed with us"
+	var menu = root.get_node("GameMenu")
+	menu.open("crew")
+	var cs = menu._crew
+	var texts: Array = cs.find_children("*", "Label", true, false).map(func(l): return l.text)
+	check("the Crew screen: its name, editable by the Captain (%s)" % cs._name.text, cs.visible and cs._name.text == "The Salt Hounds" and cs._name.editable)
+	check("...the other captain under sailed with us (%s)" % [texts], texts.has("Nessa the Bold") or texts.has("Zilk"))
+	menu.close()
 	return TK.done(fails)

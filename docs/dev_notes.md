@@ -6442,3 +6442,7 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   `SaveGame.char_id()`), `Net.crew_rename(name)` (trimmed, 28 at most; the Captain's), `Net.kick(id)` (rejected
   "The Captain sent you ashore", then disconnected); everyone applies `_all_crew`. `Net.crew_name()`: its name or
   "<Captain>'s Crew". Test: t/coop/crew_roster (new).
+- The Crew screen (1.22 piece 1c): `scripts/ui/crew_screen.gd`, the pause menu's Crew: the flag (ShipKit.flag_image), the name
+  (a LineEdit + Rename, and Flag opening the ship's paint: `GameMenu.open_flag`, the Captain's only), aboard now (colour,
+  name, ping, the Captain's Kick), sailed with us (last seen in game days). Refreshes on `Net.roster_changed`.
+  t/coop/crew_roster opens it.
