@@ -39,6 +39,7 @@ func check(name: String, cond: bool) -> void:
 var _said := 0
 var join_failed := false
 var most := 0
+var stay_t := -1.0
 
 
 func _process(d: float) -> bool:
@@ -97,8 +98,13 @@ func _process(d: float) -> bool:
 					print("  ", id, " valid ", is_instance_valid(p), " vis ", p.visible if is_instance_valid(p) else false, " age ", net.snapshot_age(p) if is_instance_valid(p) else -1)
 				_done()
 		3:
-			# (five: the client may be gone already; the relay is three's check)
+			# (five: the client may be gone already; the relay is three's check. Stay a minute after passing, so a
+			# watcher still loading sees us all too)
 			if crew > 3:
+				if stay_t < 0.0:
+					stay_t = t
+				if t < stay_t + 60.0:
+					return false
 				step = 4
 				return false
 			# the other client moves around during its test: we see it

@@ -770,11 +770,11 @@ func _process(d: float) -> bool:
 			go(990)
 		990:
 			# ("five": stay until the whole crew of five is in, so the late watchers see all of us)
-			# (and then 40 s more aboard, so a watcher whose world is still loading sees all five too)
+			# (and then 90 s more aboard, so a watcher whose world is still loading sees all five too)
 			if mode == "five" and most_roster < 5 and st_t < 200.0:
 				five_t = st_t
 				return false
-			if mode == "five" and st_t < five_t + 40.0:
+			if mode == "five" and st_t < five_t + 90.0:
 				return false
 			if mode == "five":
 				check("a crew of five aboard at once (%d)" % most_roster, most_roster >= 5)
