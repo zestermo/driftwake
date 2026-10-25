@@ -51,6 +51,9 @@ var _tick := 0.0
 var _sleep_t := 0.0
 var awake := true
 var centre := Vector3.ZERO
+## The city it walks (1.21: the capital's or the canal city's): its lanes ([points, walkers, ring]) and its ground at a frame point.
+var lanes: Array = LANES
+var ground_of: Callable = P.ground
 
 
 ## The townsfolk's looks (the capital's style, a fixed seed): CapitalIsland prebuilds a body for each.
@@ -66,14 +69,16 @@ static func make_looks() -> Array:
 	return out
 
 
-func setup(look_list: Array) -> CapitalCrowd:
+func setup(look_list: Array, lane_list: Array = LANES, ground: Callable = P.ground) -> CapitalCrowd:
 	name = "Crowd"
 	looks = look_list
+	lanes = lane_list
+	ground_of = ground
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7311
-	for li in range(LANES.size()):
-		var pts: Array = LANES[li][0]
-		if LANES[li][2]:
+	for li in range(lanes.size()):
+		var pts: Array = lanes[li][0]
+		if lanes[li][2]:
 			pts = []
 			for k in range(17):
 				var a := TAU * k / 16.0
@@ -81,9 +86,9 @@ func setup(look_list: Array) -> CapitalCrowd:
 		var lens := [0.0]
 		for k in range(1, pts.size()):
 			lens.append(float(lens[-1]) + (pts[k] as Vector2).distance_to(pts[k - 1]))
-		_lanes.append({"pts": pts, "lens": lens, "loop": LANES[li][2]})
-		for k in range(int(LANES[li][1])):
-			walkers.append({"lane": li, "s0": rng.randf() * float(lens[-1]) * 2.0, "v": rng.randf_range(SPEED[0], SPEED[1]) * (1.0 if rng.randf() < 0.5 or LANES[li][2] else -1.0),
+		_lanes.append({"pts": pts, "lens": lens, "loop": lanes[li][2]})
+		for k in range(int(lanes[li][1])):
+			walkers.append({"lane": li, "s0": rng.randf() * float(lens[-1]) * 2.0, "v": rng.randf_range(SPEED[0], SPEED[1]) * (1.0 if rng.randf() < 0.5 or lanes[li][2] else -1.0),
 				"look": walkers.size() % LOOKS})
 	for stride in range(2):
 		var mm := MultiMesh.new()
@@ -139,7 +144,7 @@ func place_of(i: int, t: float) -> Array:
 	var dir := (b - a).normalized()
 	if back != (float(w["v"]) < 0.0):
 		dir = -dir
-	return [Vector3(q.x, P.ground(q), q.y), dir]
+	return [Vector3(q.x, ground_of.call(q), q.y), dir]
 
 
 func _process(delta: float) -> void:
