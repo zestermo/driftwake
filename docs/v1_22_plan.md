@@ -25,6 +25,8 @@ A UI mock of the party panel, the Crew tab and the map's markers goes to Zach fo
 | Waypoints | **Anyone** sets one shared course or meeting point (one per captain, in their colour); the Captain's drawn bigger | Zach | - |
 | UI mock | **Approved** (2026-10-25): the party panel top left (a line and an HP bar each, where or what on the right, a downed row red with distance and arrow), the compass strip with crew, waypoints and quest, small labelled markers collapsing into "+N more", the Crew tab (name and flag, aboard now with pings and the Captain's kick, sailed with us), "Rejoin crew" on the title screen, the held map (crew in their colours, the ship, waypoints with the Captain's bigger, pins labelled with who set them, quests, a legend; drag to pan, scroll to zoom, right click a pin, F a waypoint) | Zach | - |
 | Map pins | **Always shared**: every pin a captain sets is the crew's | Zach (over the recommended private + shared) | If five captains clutter it |
+| Loot (Zach, 2026-10-25) | **Approved tables.** Kills: grunts/rival crewmen 60% coins, their own weapon **2%** at the island's tier; beasts/fauna no coins, their own material ~15%; mini-bosses always coins, weapon 25% (+1 tier 10%); bosses: a hoard chest. Chests rolled per captain around the island's tier: ordinary gold + 0-2 local supplies + weapon/gear **25%** (tier -1 35%, tier 50%, +1 13%, +2 2%); hidden/dive/map gold + treasure + 1-2 supplies + **50%** (tier 60%, +1 35%, +2 5%); boss hoard gold + treasure + 1-2 supplies + **always 1** (tier 70%, +1 27%, +2 3%), clamped 1-4. Brinehollow: the den strongbox a random pistol/cutlass/dagger/hatchet, green 85% blue 15% (no fixed blue pistol); its other hand-placed chests rolled like ordinary ones plus their story item. Purple/gold, traits and uniques only on tier 3+ islands (level 17+) and from vendors; every source rolls from its own themed pool (pirates, Admiralty, desert, snow, jungle, fog isle, artisans) | Zach | In play |
+| The crew's emblem (Zach, 2026-10-25) | **On the centre of the main sail** (the flag's emblem in its mark colour, moving with the canvas as it billows and furls) and **more emblem choices** for the flag and sail | Zach | - |
 
 ### Open / deferred
 
@@ -32,6 +34,10 @@ A UI mock of the party panel, the Crew tab and the map's markers goes to Zach fo
 - Scaling for a fifth captain: today's formula carried on (hp_scale 1 + 0.6 per extra captain, extra attackers,
   boarders per captain), tuned in play. **assumed**
 - Every ship carries the whole crew of five (deck jobs, bunks as respawn spots shared). **assumed**
+- Piece 1 built (2026-10-25): crews of five (nettest five), the named crew's data, the Crew tab. Left of it: "Rejoin crew"
+  on the title screen. Then the loot rework, the sail emblem and new emblems, the party panel and the rest.
+- More emblems: about six new ones (a kraken, a trident, a rose, a sun, a wave, a raven), drawn like today's on the
+  48x30 flag. **assumed**
 - Building starts after the weekly usage reset (Zach, 2026-10-25), a piece at a time.
 - Releases: unstable 1.21.x pieces, then the stable 1.22, like 1.21. Order: the mock first; then 5 captains and the
   named crew (save, roster, quick-join, the Crew tab); the party panel; whole-crew rewards; crew on the map and
