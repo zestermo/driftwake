@@ -50,7 +50,7 @@ func _process(_d: float) -> bool:
 		2:
 			var l: Array = ls.lines()
 			check("a pad press shows it, dim (%.2f)" % ls.modulate.a, ls.visible and ls.modulate.a < 0.8 and ls.modulate.a > 0.4)
-			check("one line, X SORU, the empty slots left out (%s)" % str(l), l.size() == 1 and l[0][0] == "X" and l[0][1] == "SORU")
+			check("one line, X SQUALL STEP, the empty slots left out (%s)" % str(l), l.size() == 1 and l[0][0] == "X" and l[0][1] == "SQUALL STEP")
 			button(JOY_BUTTON_LEFT_SHOULDER, true)
 			until = TK.wait_ticks(3)
 		3:

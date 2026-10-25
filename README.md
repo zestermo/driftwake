@@ -165,6 +165,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.20); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
+### v1.20.3: The Arena (October 24, 2026), unstable
+The capital's Grand Arena opens. Its west gate leads through a cut in the stands onto the sand, under a full crowd.
+Arena Master Corvin Bale runs a one-on-one ladder: six named fighters (Pip Tanner the rookie up to Aurelio Quint, the
+Champion), each a captain-style fighter with their own weapon and skills; nobody dies, the first under a tenth of
+their health loses, and every win pays a purse (40 to 300 gold). Beat the Champion for the title and the Champion's
+Sabre, then defend the title against a challenger once a day. Each captain climbs their own ladder, saved with them;
+in co-op the host runs the bouts.
+
 ### v1.20.2: The Palace (October 24, 2026), unstable
 The palace opens. The grounds' gate stands open and the road up the hill is a road you walk (its ends ramped, its
 parapets keeping you on it), up to a new gate in the hilltop's ring wall, the court between the palace's wings, and

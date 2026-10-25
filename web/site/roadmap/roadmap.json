@@ -630,6 +630,21 @@
 			]
 		},
 		{
+			"v": "1.20.3",
+			"name": "The Arena",
+			"date": "2026-10-24",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The third piece of 1.21: the capital's Grand Arena and its one-on-one ladder.",
+			"img": "capital",
+			"alt": "The royal capital's harbour and rooftops climbing to the palace (an early look, v1.18.1)",
+			"github": true,
+			"added": [
+				["The Grand Arena", "Onto the sand under a full crowd; six fighters on the ladder, a purse for every win."],
+				["The Champion", "The title and the Champion's Sabre, and a challenger a day to defend it against."]
+			]
+		},
+		{
 			"v": "1.20.2",
 			"name": "The Palace",
 			"date": "2026-10-24",
