@@ -58,9 +58,15 @@ func flat(v: Vector3) -> Vector3:
 	return Vector3(v.x, 0, v.z)
 
 
+## The most captains in the roster at once ("five": the watchers leave once they've seen us all).
+var most_roster := 0
+
+
 func _process(d: float) -> bool:
 	t += d
 	st_t += d
+	if net and net.active:
+		most_roster = maxi(most_roster, net.roster.size())
 	if int(t / 30.0) > beat:
 		beat = int(t / 30.0)
 		print("CLIENT up %d s, step %d for %.0f s" % [int(t), step, st_t])
@@ -189,7 +195,10 @@ func _process(d: float) -> bool:
 					g_hp_scale = float(r["enemies"][k][3]) / 110.0
 					break
 			var want_k := 1.0 + 0.6 * float(int(r["roster"]) - 1)
-			check("grunts get tougher with more captains (x%.2f for %d)" % [g_hp_scale, int(r["roster"])], absf(g_hp_scale - want_k) < 0.01)
+			# (a captain in the roster counts once their world's loaded: with late joiners still loading, a step behind)
+			var steps := (g_hp_scale - 1.0) / 0.6
+			check("grunts get tougher with more captains (x%.2f for %d)" % [g_hp_scale, int(r["roster"])],
+				g_hp_scale > 1.59 and g_hp_scale < want_k + 0.01 and absf(steps - roundf(steps)) < 0.02)
 			if mode == "water":
 				var ship = net._ship()
 				p.global_position = ship.global_transform * Vector3(7.0, 2.0, 0.6)
@@ -756,6 +765,13 @@ func _process(d: float) -> bool:
 			SG.delete_slot(1)
 			SG._test_dir = ""
 			# --- leave (the host quits too)
+			go(990)
+		990:
+			# ("five": stay until the whole crew of five is in, so the late watchers see all of us)
+			if mode == "five" and most_roster < 5 and st_t < 200.0:
+				return false
+			if mode == "five":
+				check("a crew of five aboard at once (%d)" % most_roster, most_roster >= 5)
 			tn.ask("expect_leave")
 			go(30)
 		30:

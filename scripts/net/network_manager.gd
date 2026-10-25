@@ -26,7 +26,8 @@ signal failed(reason: String)
 signal roster_changed
 
 const DEFAULT_PORT := 24680
-const MAX_CLIENTS := 3
+## Guests a host takes: a crew of up to five captains (1.22).
+const MAX_CLIENTS := 4
 const PROTOCOL := 5
 const SNAP_RATE := 20.0
 ## Puppets are shown this far in the past (seconds), between two snapshots.
@@ -164,10 +165,10 @@ func crew_size() -> int:
 	return maxi(roster.size(), 1) if active else 1
 
 
-## How many extra attackers an enemy group lets swing at once (3-4 captains
-## keep more of the crew busy).
+## How many extra attackers an enemy group lets swing at once (3-5 captains
+## keep more of the crew busy: +1, +2, +3).
 func extra_attackers() -> int:
-	return clampi(crew_size() - 2, 0, 2)
+	return clampi(crew_size() - 2, 0, 3)
 
 
 ## Round trip to the host in ms for a captain (the host itself: 0).
@@ -1805,7 +1806,7 @@ func _all_mark(id: int, pos: Vector3, tk: String) -> void:
 
 ## The crew colour of a captain (markers, name tags).
 func crew_color(id: int) -> Color:
-	var cols := [Color(1.0, 0.85, 0.3), Color(0.45, 0.85, 1.0), Color(0.6, 1.0, 0.45), Color(1.0, 0.55, 0.85)]
+	var cols := [Color(1.0, 0.85, 0.3), Color(0.45, 0.85, 1.0), Color(0.6, 1.0, 0.45), Color(1.0, 0.55, 0.85), Color(1.0, 0.6, 0.3)]
 	var ids: Array = roster.keys()
 	ids.sort()
 	var i := ids.find(id)

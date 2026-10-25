@@ -6425,3 +6425,14 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
 - Zach: the opening at sea is "too unpolished"; a new game wakes on Brinehollow's beach again (as before 1.19).
   `Intro.ENABLED := false` gates it in Player's first-time creator path; the code, t/ui/intro and its render stay
   (they call `Intro.play` directly), ready to switch back on once it's polished.
+
+## 2026-10-25: 1.22 piece 1a: a crew of five
+
+- `Net.MAX_CLIENTS` 4 (five captains); a fifth crew colour (orange); `extra_attackers` up to +3 (3-5 captains:
+  +1, +2, +3), hp_scale carries on (1 + 0.6 per extra captain); the title's co-op hint says five.
+- Co-op test mode **five** (`nettest.ps1 five`, by hand like three: five Godots): three watchers (netwatch.gd's third
+  arg is the crew size) and the client; the client stays until it has seen all five in the roster at once
+  (`most_roster`), then leaves; watchers check they see the host and that the roster reached five. Test fixes on the
+  way, from five worlds loading on one machine: watchers knock again when a join times out (like netclient), print a
+  line every 20 s, wait longer; the host waits up to 3 min for the last guests; the client's grunt-toughness check
+  accepts a scale a step behind the roster (a captain counts once their world's loaded).

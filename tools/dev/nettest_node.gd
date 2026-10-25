@@ -445,7 +445,8 @@ func _run(name_: String, args: Array, from: int):
 				var ok: bool = not n.players.has(gone_id) and not n.roster.has(gone_id) and get_tree().current_scene.get_node_or_null("P%d" % gone_id) == null
 				print(("PASS " if ok else "FAIL ") + "host: the client's captain left (players %d)" % n.players.size())
 				print("HOST RESULT ", "OK" if ok else "FAILED")
-				_quit_when_alone(60.0))
+				# (up to 3 min: a crew of five's late watchers may still be loading)
+				_quit_when_alone(180.0))
 			return true
 	return null
 

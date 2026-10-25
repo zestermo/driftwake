@@ -194,7 +194,7 @@ func _build_coop() -> void:
 	vb.add_theme_constant_override("separation", 6)
 	_coop.add_child(vb)
 	vb.add_child(UIStyle.title("Co-op"))
-	var hint := UIStyle.label("Sail together: up to 4 captains in the host's world.", 12, UIStyle.TEXT_DIM)
+	var hint := UIStyle.label("Sail together: up to 5 captains in the host's world.", 12, UIStyle.TEXT_DIM)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(hint)
 	var host := UIStyle.button("Host a game (pick your save)", 260)

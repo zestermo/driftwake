@@ -1,5 +1,5 @@
 # Co-op test: a headless host and client (and a third watcher for "three") on
-# localhost. Modes: "" (default), late, three, hostquit, water, board, chain (the
+# localhost. Modes: "" (default), late, three, five (three watchers: a crew of five), hostquit, water, board, chain (the
 # island chain: the host lands on the first island, then the guest joins late).
 #
 #   .\tools\dev\nettest.ps1            # default
@@ -31,7 +31,7 @@ New-Item -ItemType Directory -Force -Path $logs | Out-Null
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
 . (Join-Path $PSScriptRoot "ci_lib.ps1")
 $key = if ($Mode) { "net-$Mode" } else { "net" }
-$names = @("host", "client") + $(if ($Mode -eq "three") { @("watch") } else { @() })
+$names = @("host", "client") + $(if ($Mode -eq "three") { @("watch") } elseif ($Mode -eq "five") { @("watch", "watch2", "watch3") } else { @() })
 $ciRows = [ordered]@{}
 $slots = @()
 if ($CI) {
@@ -76,6 +76,7 @@ if ($Mode -eq "late") { $port = 24680; $delay = "7" }
 # (the host is boarded before we join)
 if ($Mode -eq "board") { $delay = "10" }
 if ($Mode -eq "chain") { $delay = "6"; $Timeout = [Math]::Max($Timeout, 500) }
+if ($Mode -eq "five") { $Timeout = [Math]::Max($Timeout, 600) }
 $modeArg = if ($Mode) { $Mode } else { "" }
 
 ## One go: host, client (and watcher) until the client and host are done. True if it passed.
@@ -83,6 +84,7 @@ function Invoke-Once() {
 	$jobs = [ordered]@{}
 	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "$key.host.log") "" (Get-DepsOut "host") $true
 	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "$key.watch.log") "" (Get-DepsOut "watch") $true }
+	if ($Mode -eq "five") { foreach ($w in @("watch", "watch2", "watch3")) { $jobs[$w] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10 5" (Join-Path $logs "$key.$w.log") "" (Get-DepsOut $w) $true } }
 	Start-Sleep -Milliseconds 300
 	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "$key.client.log") "" (Get-DepsOut "client") $true
 	foreach ($n in $jobs.Keys) { Set-LiveSuite $run $n @{ state = "running"; log = $jobs[$n].Log; pid = $jobs[$n].Proc.Id; why = "" } }
