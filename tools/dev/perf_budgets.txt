@@ -1,0 +1,14 @@
+# Per-system frame budgets (1.23 perf track): tools/dev/perf_budgets.ps1 sums a bench result's scripts table
+# (== scripts_old when the run has it, else == scripts: ms per frame + per physics tick, mean of the stops) by system
+# and prints each against its budget; perf_gate.ps1 prints the same for every light it benches. Over budget is a
+# warning, not a fail: creep shows the day it lands. The budgets add up to the ~10 ms frame target with the engine's
+# own share (Jolt, transform notifications, present) left over.
+# One line a system: name | budget ms | regexes (;-separated) on the scripts table's names. A script goes to the first
+# system that matches; "draw" is the summary's draw column (RenderingServer.draw on the main thread), not scripts.
+anim  | 2.0 | ^humanoid\.gd ; ^arm_body\.gd ; ^lower_body\.gd ; ^spring_chains\.gd ; ^far_figures\.gd
+ai    | 0.8 | ^pirate_grunt\.gd ; ^pirate_boss\.gd ; ^scuttlebug ; ^captain_brain\.gd ; ^creature\.gd ; ^grunt_camp\.gd ; ^actor_sleep\.gd ; ^jungle_ ; ^alpha_ ; ^rimeback ; ^frost_ ; ^enemy_ ; ^npc\.gd ; ^villager\.gd ; _folk\.gd ; ^capital_crowd\.gd ; ^fauna_spawner\.gd
+world | 1.2 | ^ship\.gd ; ^ocean ; ^sea_ ; ^sky_ ; ^weather ; ^cloud ; ^rain_ ; ^precip ; ^ambience ; ^world_generator ; ^moored_hull ; ^night_light ; ^flicker_light ; ^dungeon ; ^beast_arena ; ^harbour_boat ; ^cannon ; ^chain_swing ; ^redtide ; ^brood_cave ; ^music
+ui    | 0.4 | ^player_hud ; _hud\.gd ; ^skill_bar ; ^map_ ; ^overhead_bar ; ^game_menu
+player| 0.5 | ^player\.gd ; ^state_machine\.gd ; ^camera_rig ; ^jam\.gd ; ^interaction_component ; ^power_component ; _state\.gd
+other | 0.6 | .
+draw  | 3.5 |
