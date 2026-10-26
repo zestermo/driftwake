@@ -156,7 +156,7 @@ static func plan(gi: GenIsland) -> Dictionary:
 ## What the roll reads off an island.
 static func facts(gi: GenIsland, outpost: bool) -> Dictionary:
 	return {"id": int(gi.node["id"]), "theme": gi.theme, "outpost": outpost, "cave": not gi.interiors.is_empty(),
-		"village": not gi.village_plan.is_empty() and not (gi is CapitalIsland), "chain": int((Engine.get_main_loop() as SceneTree).root.get_node("GameManager").chain_seed)}
+		"village": not gi.village_plan.is_empty() and not (gi is CapitalIsland), "chain": int(gi.node.get("chain", 0))}
 
 
 static func fits(f: Dictionary, id: String) -> bool:
@@ -324,8 +324,8 @@ func _contact(i: int, lk: Dictionary) -> void:
 	var p: Vector2 = spots[c["at"]]
 	var face: Vector2 = (spots["village"] - p).normalized()
 	var npc := NPC.new()
-	npc.name = "Contact%d" % i
 	npc.setup({"name": lk["name"], "look": lk, "dialogue": "%s_c%d" % [key, i], "voice": 0.95, "yaw": atan2(-face.x, -face.y)})
+	npc.name = "Contact%d" % i
 	npc.ground_func = isl.walk_height
 	add_child(npc)
 	npc.position = _v3(p)

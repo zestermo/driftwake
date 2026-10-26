@@ -111,6 +111,8 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 				"pos": at + side * off, "next": [],
 			}
 			n["name"] = _name(rng, n)
+			# (the chain's own seed: what an island's arc roll is keyed by, IslandArcs.pick)
+			n["chain"] = seed_value
 			if layer == CITY_LAYERS[0]:
 				n["capital"] = true
 				n["name"] = capital_name(seed_value)

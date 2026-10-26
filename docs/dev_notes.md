@@ -6695,4 +6695,11 @@ Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md ro
   the crowd. Fights at the village's edge stay `EDGE` 38 m past the plaza (out of an outpost's town: no alarm).
 - Per tick: one 0.5 s timer per standing chain island with a taken arc (a few dictionary reads; the host's nearest
   captain check in the showdown). Squads come warm-started (bodies on a worker).
-- Tests: t/quests/arc_roll, arc_beats, arc_reply. Expected to touch: lifetest, villagetest, isletest, nettest (net).
+- **Hidden finishes** (host, watched from the showdown's first tick: `_watch`, judged at the fall by `_hidden_met`):
+  spare_men (every man of the camp alive that was alive when the showdown began: they surrender), parts (the beast's
+  `parts_broken()` >= 2 once the beast pass adds it; until then felled within `QUICK_KILL` 120 s of waking). Met: flag
+  "hidden", the banner names it, and the cache `arc_cache` (gold, pearls, a trait weapon two tiers up).
+- The roll is keyed by the chain's seed, which chain nodes now carry (`node["chain"]`): GameManager can't be read
+  from IslandLife.plan's worker (smoketest caught it: the tests build islands on the main thread).
+- Tests: t/quests/arc_roll, arc_beats, arc_reply, arc_hidden. Expected to touch: lifetest, villagetest, isletest,
+  nettest (net), chaintest (the chain nodes' new key).
