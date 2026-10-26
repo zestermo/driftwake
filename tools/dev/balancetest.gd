@@ -197,12 +197,15 @@ func _process(d: float) -> bool:
 			x._set_state(CIRCLE)
 			x._shot_flinch_t = 0.0
 			var h0: float = x.health.current_health
-			var shot = hit(8.0)
+			# (1.23 poise: a grunt only flinches from 10+ damage, so the bullets are 10; the kata drained this one's poise,
+			# and an empty poise would floor it, so it starts fresh)
+			x.poise = Poise.make(x._poise_class())
+			var shot = hit(10.0)
 			shot.ranged = true
 			x.hurtbox.take_hit(shot, p)
 			check("a bullet flinches a grunt (state %d)" % x.state, x.state == HITSTUN)
 			x._set_state(CIRCLE)
-			var shot2 = hit(8.0)
+			var shot2 = hit(10.0)
 			shot2.ranged = true
 			x.hurtbox.take_hit(shot2, p)
 			check("...but the next one straight after only hurts (state %d, %.0f -> %.0f)" % [x.state, h0, x.health.current_health], x.state == CIRCLE and x.health.current_health <= h0 - 15.0)

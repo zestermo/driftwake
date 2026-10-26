@@ -226,6 +226,8 @@ func _process(d: float) -> bool:
 					clear_others(g)
 					var at: Vector3 = ground(p.global_position + Vector3(0, 0, -float(c[2])))
 					park(g, at)
+					# (1.23 poise: the grunt reused from the last case may be drained or immune; a knockdown needs a fresh one)
+					g.poise = Poise.make(g._poise_class())
 					g._stagger_len = 30.0
 					g._set_state(STAGGER)
 					g.health.current_health = 400.0
@@ -248,14 +250,15 @@ func _process(d: float) -> bool:
 					pc.cooldowns.clear()
 					check("cast %s" % c[0], pc.try_cast(slot))
 					phase = 2
-					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "broadside", "red_eclipse", "hundred_fangs"] else 1.8
+					# (kraken_wake: one cut per foe within 12 m, the downed ones from earlier cases too, so it runs longer)
+					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "broadside", "red_eclipse", "hundred_fangs", "kraken_wake"] else 1.8
 				2:
 					var hurt: bool = not is_instance_valid(g) or g.health.current_health < v0
 					check("%s lands (%.0f -> %.0f)" % [c[0], v0, g.health.current_health if is_instance_valid(g) else 0.0], hurt)
 					match str(c[3]):
 						"down":
 							# (thrown far enough, they land in the sea and swim)
-							check("%s knocks them down" % c[0], went_down)
+							check("%s knocks them down (state %d, poise %.1f/%.1f, immune %s, player %s)" % [c[0], g.state, g.poise.value, g.poise.full, str(g.poise.immune()), p.current_state_name()], went_down)
 						"blink":
 							check("Phantom Step blinks you behind them (moved %.1f m)" % p.global_position.distance_to(pos0), p.global_position.distance_to(pos0) > 4.0)
 						"axe_back":

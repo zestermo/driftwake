@@ -362,6 +362,7 @@ static func _fangs(s, delta: float) -> void:
 		for e in s._pc.enemies_in(c + Vector3(0, 0.9, 0), 3.0):
 			var hd: HitData = s._hd(7.0, 1.5, false)
 			hd.stagger_duration = 0.5
+			hd.poise = 2.0
 			s._strike_toward(e, hd, c - (e as Node3D).global_position)
 		Net.fx("sfx", ["whoosh", p.global_position, -6.0, 0.1, 1.3 + 0.06 * i])
 	elif i >= FANGS_BLINKS:

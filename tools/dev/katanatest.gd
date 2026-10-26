@@ -46,6 +46,8 @@ func target_grunt(dist: float) -> void:
 			i += 1
 			park(x, ground(p.global_position + Vector3(40 + i * 3, 0, 40)))
 	park(g, ground(p.global_position - p.player_model.global_basis.z * dist))
+	# (1.23 poise: only a blow that empties a fresh poise crumples it, and a broken one is immune for 4 s)
+	g.poise = Poise.make(g._poise_class())
 	g._stagger_len = 30.0
 	g._set_state(STAGGER)
 	g.health.current_health = 400.0
