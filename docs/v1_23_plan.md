@@ -185,3 +185,6 @@ No controls or menus are explained today. 1.23 adds:
 | The reference | **The cape's motion** (SpringChains + mode "a"'s safety net: a soft cushion that eases a segment off the body before it touches, swing limits, never in front of the back) is how all cloth, hair and accessories should move: smooth, never buggy, readable | Zach likes the capes a lot | His look at hair and coats |
 | Everything else | Hair, coat tails, skirts, scarves, sashes and accessories get the cape's safety net and limits (each its own cushion caps and swing range) | One feel across the wardrobe | 1.24's clothing pass |
 | Native code | **GDExtension (C++)**: scons + godot-cpp pinned to Godot 4.7, a `native/` folder, SpringChains' solver (with the net) as `SpringChainsNative`; the GDScript one stays as the fallback when the library isn't there. The release workflow builds the DLL and the export preset ships it | The profile: spring chains are ~60% of the captain's rig | Bench after the port |
+- **Moved (Zach, 2026-10-26): the full native port ships with 1.24** (combat & gear: the weapons and items update),
+  with the cape's net on all cloth, hair and accessories. 1.23 keeps only the parked scaffold (native/ with a .gdignore:
+  godot-cpp, the SConstruct, a first ChainSolver), which the game doesn't load.
