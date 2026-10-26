@@ -11,8 +11,8 @@ const KICK_DUR := 0.9
 const KICK_AT := 0.42
 const KICK_SPEED := 22.0
 ## The kick's elevation (deg): the lead's camera pitch moves it between these.
-const KICK_PITCH := Vector2(45.0, 80.0)
-const KICK_PITCH_DEF := 65.0
+const KICK_PITCH := Vector2(42.0, 80.0)
+const KICK_PITCH_DEF := 60.0
 ## Where the partner stands on the raised foot (m ahead of the lead, up).
 const PERCH := Vector2(0.75, 0.62)
 ## How long a partner waits on the lead before giving up (s).
@@ -217,7 +217,8 @@ func _kick_mate() -> void:
 	var cam := player.get_viewport().get_camera_3d()
 	if cam and not player.is_ai:
 		var look := -cam.global_basis.z
-		pitch = clampf(KICK_PITCH_DEF + rad_to_deg(asin(clampf(look.y, -1.0, 1.0))) * 0.9 + 12.0, KICK_PITCH.x, KICK_PITCH.y)
+		# (the game camera looks ~10 deg down at rest: that's the default arc; up steepens it, down flattens it)
+		pitch = clampf(KICK_PITCH_DEF + rad_to_deg(asin(clampf(look.y, -1.0, 1.0))) + 10.0, KICK_PITCH.x, KICK_PITCH.y)
 	var e := deg_to_rad(pitch)
 	var v := _dir * cos(e) * KICK_SPEED + Vector3.UP * sin(e) * KICK_SPEED
 	if mate and is_instance_valid(mate):

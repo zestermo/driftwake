@@ -11,6 +11,8 @@ extends SceneTree
 ## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
 ## with no weapon element awakened / on skills only / on every blow (default 2); AB_HOLD=s holds a held
 ## technique's key that long; AB_STRIKE=s lands the nearest grunt's blow on you at that time.
+## skill_id "crew:<id>" films a crew technique (CrewTechniques) with a captain-style crewmate (an AI, its side run here)
+## joining from your right; AB_SOLO=1 films the self version instead; AB_STRIKE then lands the blow on the crewmate.
 const STAGGER := 9
 var t := 0.0
 var step := 0
@@ -32,6 +34,7 @@ var images: Array = []
 var basis_at := Basis()
 var origin_at := Vector3.ZERO
 var busy := false
+var mate
 
 
 func _initialize():
@@ -190,6 +193,10 @@ func _process(d: float) -> bool:
 				else:
 					g.global_position = ground(land + Vector3(40 + k * 3, 0, 40))
 				k += 1
+			if skill.begins_with("crew:") and OS.get_environment("AB_SOLO") == "":
+				var rng := RandomNumberGenerator.new()
+				rng.seed = 7
+				mate = load("res://scenes/player/player.gd").spawn_ai(root.get_tree().current_scene, load("res://scripts/npc/character_look.gd").random_look(rng),land + Vector3(1.6, 0.3, 0.6), 0.0, Node.new(), "CrewMate")
 			var rig: Node3D = root.get_viewport().get_camera_3d().get_parent().get_parent()
 			rig.rotation.y = 0.0
 			p.player_model.rotation.y = 0.0
@@ -216,6 +223,15 @@ func _process(d: float) -> bool:
 				p.fist_armed = 1.0
 				p.state_machine.force_state("Technique", {"id": "sea_king_unleash"})
 				print("cast sea_king_unleash: true")
+			elif skill.begins_with("crew:"):
+				var cid := skill.trim_prefix("crew:")
+				var net = root.get_node("Net")
+				if mate == null:
+					p.state_machine.force_state("CrewTechnique", {"id": cid, "role": "solo"})
+				else:
+					net.everyone("_all_crew_offer", [net.key_of(p), cid, 6.0])
+					net.crew_join(p, mate)
+				print("cast %s: %s" % [skill, p.current_state_name()])
 			elif skill == "riposte_counter":
 				p.state_machine.force_state("Technique", {"id": "riposte_counter", "target": camp.grunts[0]})
 				print("cast riposte_counter: true")
@@ -242,7 +258,7 @@ func _process(d: float) -> bool:
 			# AB_STRIKE=s: the nearest grunt's blow lands on you then (Anvil Counter)
 			var strike_at := float(OS.get_environment("AB_STRIKE")) if OS.get_environment("AB_STRIKE") != "" else -1.0
 			if strike_at >= 0.0 and since >= strike_at and since - d < strike_at:
-				p._on_hit_received(camp.grunts[0]._hit_light, camp.grunts[0])
+				(mate if mate else p)._on_hit_received(camp.grunts[0]._hit_light, camp.grunts[0])
 			if not busy and shot_i < frames and since >= start + span * float(shot_i) / maxf(frames - 1, 1):
 				busy = true
 				_grab()
@@ -309,6 +325,6 @@ func _sheet() -> void:
 			var img: Image = images[i][j]
 			img.convert(Image.FORMAT_RGBA8)
 			sheet.blit_rect(img, Rect2i(0, 0, w, h), Vector2i(i * w, j * h))
-	var path := "%s_%s.png" % [args[0], skill if not skill in ["heavy", "combo", "air"] else style + "_" + skill]
+	var path := "%s_%s.png" % [args[0], (skill if not skill in ["heavy", "combo", "air"] else style + "_" + skill).replace(":", "_")]
 	sheet.save_png(path)
 	print("SAVED ", path)
