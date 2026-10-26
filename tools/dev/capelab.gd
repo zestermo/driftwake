@@ -289,8 +289,9 @@ func _sample() -> void:
 	rec["swing"] = maxf(rec["swing"], sw)
 	if sim.net:
 		# the same frame without the net: the simulation's own shape (the net only touches what's drawn)
-		var lp: PackedVector3Array = c["lp"]
-		var lc: PackedVector3Array = c["lc"]
+		var st: Array = sim.steps_of(sim.chain_count() - cape_chains.size())
+		var lp: PackedVector3Array = st[0]
+		var lc: PackedVector3Array = st[1]
 		var k: float = sim._acc / SpringChains.STEP
 		var n := lc.size()
 		var raw_top := lp[0].lerp(lc[0], k)
