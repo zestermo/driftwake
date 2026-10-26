@@ -4,13 +4,21 @@ extends RefCounted
 ## toward `toward` (the plaza), a planter in the middle, wares laid out on rugs
 ## between the stalls (one merged mesh), sacks heaped by them, crates and barrels
 ## round the outside. Rugs and goods from the style.
+## shape (1.23, more variety per district): "horseshoe" (Brinehollow's, the default), "rows" (two rows facing
+## across a lane running to the plaza), "line" (one row with its back to the far side, facing the plaza), "cluster"
+## (stalls dotted loosely about, each its own way). The other shapes lay the wares in front of each stall.
+const SHAPES := ["horseshoe", "rows", "line", "cluster"]
+## Tools: every generated market this shape ("" rolls).
+static var force_shape := ""
 
 
 ## Returns the stalls in `kinds` order (each has a "Vendor" marker). Radii: the
 ## stalls, the wares, the sacks, the crates and barrels [from, to]; `clear` is
 ## what's reserved round the middle.
 static func build(ctx: KitContext, c: Vector2, toward: Vector2, kinds: Array, rng: RandomNumberGenerator,
-		ring := 6.2, wares_r := 5.4, sacks_r := 8.2, cargo_r := [8.0, 9.5], clear := 9.0) -> Array:
+		ring := 6.2, wares_r := 5.4, sacks_r := 8.2, cargo_r := [8.0, 9.5], clear := 9.0, shape := "horseshoe") -> Array:
+	if shape != "horseshoe":
+		return _build_shaped(ctx, c, toward, kinds, rng, shape, cargo_r, clear)
 	var to_plaza := (toward - c).normalized()
 	var base := atan2(to_plaza.y, to_plaza.x)
 	var n := kinds.size()
@@ -51,6 +59,74 @@ static func build(ctx: KitContext, c: Vector2, toward: Vector2, kinds: Array, rn
 	for i in range(6):
 		var a := rng.randf() * TAU
 		var q := c + Vector2(cos(a), sin(a)) * rng.randf_range(cargo_r[0], cargo_r[1])
+		if ctx.path_dist(q) < 2.5:
+			continue
+		ctx.place(Props.crate(rng.randf_range(0.55, 0.8)) if i % 2 == 0 else Props.barrel(), q, rng.randf() * TAU, 0.6)
+	ctx.reserve(c, clear)
+	return stalls
+
+
+## The other shapes: each stall placed and turned, its wares on a rug in front, sacks beside, cargo round about.
+static func _build_shaped(ctx: KitContext, c: Vector2, toward: Vector2, kinds: Array, rng: RandomNumberGenerator, shape: String,
+		cargo_r: Array, clear: float) -> Array:
+	var f := (toward - c).normalized()
+	var s := Vector2(-f.y, f.x)
+	var n := kinds.size()
+	var spots: Array = []   # [position, the point it faces]
+	match shape:
+		"rows":
+			for i in range(n):
+				var side := 1.0 if i % 2 == 0 else -1.0
+				var along := -4.5 + float(i / 2) * 3.6
+				var sp := c + f * along + s * side * 3.4
+				spots.append([sp, sp - s * side])
+		"line":
+			for i in range(n):
+				var sp := c - f * 3.0 + s * (float(i) - (n - 1) * 0.5) * 3.2
+				spots.append([sp, sp + f])
+		_:
+			for i in range(n):
+				var a := rng.randf() * TAU
+				var sp := c + Vector2(cos(a), sin(a)) * rng.randf_range(2.5, 6.5)
+				for k in range(6):
+					if not spots.any(func(o): return (o[0] as Vector2).distance_to(sp) < 3.0):
+						break
+					a = rng.randf() * TAU
+					sp = c + Vector2(cos(a), sin(a)) * rng.randf_range(2.5, 6.5)
+				spots.append([sp, sp + Vector2.from_angle(rng.randf() * TAU)])
+	var stalls: Array = []
+	for i in range(n):
+		var sp: Vector2 = spots[i][0]
+		stalls.append(ctx.place(Buildings.stall(kinds[i]), sp, KitContext.face_yaw(spots[i][1] - sp), 2.2))
+	var gmb := MeshBuilder.new()
+	var rugs: Array = []
+	for rg in ctx.style["rugs"]:
+		rugs.append(PSXMat.lit(rg[0], rg[1], {"affine": 0.6}))
+	var basket := PSXMat.lit("straw")
+	var sack := PSXMat.lit("canvas", Color(0.82, 0.74, 0.56))
+	var goods: Array = ctx.style["goods"]
+	for i in range(n):
+		var sp: Vector2 = spots[i][0]
+		var fw: Vector2 = ((spots[i][1] as Vector2) - sp).normalized()
+		var gp := sp + fw * 1.9
+		var gy := ctx.hv(gp) + 0.06
+		var e1 := fw * 0.7
+		var e2 := Vector2(-fw.y, fw.x) * 1.0
+		var v := func(q: Vector2) -> Vector3: return Vector3(q.x, gy, q.y)
+		gmb.add_quad(rugs[i % rugs.size()], v.call(gp - e1 - e2), v.call(gp + e1 - e2), v.call(gp + e1 + e2), v.call(gp - e1 + e2), Vector2.ZERO, Vector2(1, 0), Vector2(1, 1.4), Vector2(0, 1.4), Color.WHITE, Vector3.UP)
+		for k in range(3):
+			var bp := gp + e2 * (k - 1) * 0.6
+			gmb.add_cylinder(basket, Transform3D(Basis(), Vector3(bp.x, gy, bp.y)), 0.2, 0.24, 0.2, 7, 1.0)
+			var fm := PSXMat.flat(goods[(i + k) % goods.size()])
+			for g in range(4):
+				gmb.add_blob(fm, Transform3D(Basis(), Vector3(bp.x + rng.randf_range(-0.1, 0.1), gy + 0.24 + (g / 2) * 0.06, bp.y + rng.randf_range(-0.1, 0.1))), Vector3.ONE * 0.07, rng, 0.15, 2, 4, 1.0)
+		var kp := sp - fw * 1.4 + e2 * 1.3
+		for k in range(2):
+			gmb.add_blob(sack, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(kp.x + k * 0.5, ctx.hv(kp) + 0.28, kp.y + (k % 2) * 0.3)), Vector3(0.3, 0.32, 0.26), rng, 0.2, 3, 6)
+	ctx.add(gmb.to_instance("Wares"))
+	for i in range(5):
+		var a := rng.randf() * TAU
+		var q := c + Vector2(cos(a), sin(a)) * rng.randf_range(float(cargo_r[0]), float(cargo_r[1]))
 		if ctx.path_dist(q) < 2.5:
 			continue
 		ctx.place(Props.crate(rng.randf_range(0.55, 0.8)) if i % 2 == 0 else Props.barrel(), q, rng.randf() * TAU, 0.6)

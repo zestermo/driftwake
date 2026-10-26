@@ -183,6 +183,11 @@ func _ready() -> void:
 	ActorSleep.add(self)
 
 
+## ActorSleep: far from every captain it sleeps (its guards and cell with it), never while its squad is out.
+func sleep_ok() -> bool:
+	return not alarmed or raided
+
+
 ## (every machine) raided: the armoury and the cell open, the guards are gone.
 func _apply_raided(on: bool) -> void:
 	raided = on

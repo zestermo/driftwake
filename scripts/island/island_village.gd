@@ -470,7 +470,9 @@ static func _market_steps(gi: GenIsland) -> Array:
 
 
 func _stalls(m: Dictionary) -> void:
-	var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])))
+	# (the shape on a stream of its own: the market's other draws stay as they were for the horseshoe)
+	var shape: String = KitMarket.force_shape if KitMarket.force_shape != "" else KitMarket.SHAPES[KitVillage._seeded(int(m["seed"]) + 7).randi() % KitMarket.SHAPES.size()]
+	var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])), 6.2, 5.4, 8.2, [8.0, 9.5], 9.0, shape)
 	market = {"c": m["c"], "stalls": stalls}
 	for s in stalls:
 		work_spots.append({"kind": "market", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})

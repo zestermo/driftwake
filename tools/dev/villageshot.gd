@@ -27,6 +27,9 @@ func _initialize():
 		want = int(a[2])
 	if a.size() > 3:
 		load("res://scripts/island/village_layouts.gd").force = a[3]
+	# (env VSHOT_MARKET=rows: every market that shape, KitMarket.SHAPES)
+	if OS.get_environment("VSHOT_MARKET") != "":
+		load("res://scripts/island/kit/kit_market.gd").force_shape = OS.get_environment("VSHOT_MARKET")
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
