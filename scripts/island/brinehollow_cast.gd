@@ -406,7 +406,8 @@ static func outskirts() -> Array:
 			"Ring the bell before you sail and the sea remembers your name. Forget, and it remembers that too.",
 			{"text": "You came back from Grell's den. Whatever you prayed to, keep it up.", "after": "grell"}]},
 		"plan": [[5.8, "mark:shrine:Priest"], [12.0, "mark:teahouse:Seat1"], [13.0, "mark:shrine:Priest"], [19.6, "door:shrine"]]})
-	out.append({"cfg": {"name": "Hana Teal", "voice": 1.2, "look": KitLife.look_for("Hana Teal"), "barks": [
+	# (1.23: the teahouse keeper is the black-leg master: her dialogue sets Tomo's test; the barks stay for scenery)
+	out.append({"cfg": {"name": "Hana Teal", "voice": 1.2, "look": KitLife.look_for("Hana Teal"), "dialogue": "hana", "barks": [
 			"Tea from the far east, by way of Ysolde's junk and a great deal of arguing.",
 			"Climb the stair, drink the tea, look at the sea. That's the whole teahouse. People pay for it.",
 			"The keeper takes her lunch here every day and pays every other day. It evens out at the shrine."]},

@@ -196,6 +196,9 @@ func _on_dialogue_event(ev: String) -> void:
 		var pl := _player()
 		if pl:
 			pl.learn_black_leg()
+	elif ev.begins_with("master:"):
+		# a master's test (ArenaBout "master:<tree>"): once the talk's over
+		Net.request_arena.call_deferred(ev, 0)
 	elif ev.begins_with("shop:"):
 		_after_talk = ["shop", ev.substr(5)]
 	elif ev.begins_with("ship:"):

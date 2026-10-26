@@ -1085,6 +1085,13 @@ func _ask_arena(bout_kind: String, at_rank: int) -> void:
 
 func _start_arena(bout_kind: String, at_rank: int, by: int) -> void:
 	var c: Player = players.get(by) if active else _me()
+	# a master's test ("master:<tree>"): their pupil steps up in front of you, wherever you are
+	if bout_kind.begins_with("master:") and c != null:
+		var fwd := -c.player_model.global_basis.z
+		fwd.y = 0.0
+		fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+		ArenaBout.start(c, bout_kind, 0, get_tree().current_scene, c.global_position + fwd * 2.0)
+		return
 	var cap := get_tree().get_first_node_in_group("capital") as Node3D
 	if c == null or cap == null or not cap.has_method("arena_sand"):
 		return

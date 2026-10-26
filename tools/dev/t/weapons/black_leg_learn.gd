@@ -1,6 +1,6 @@
 extends SceneTree
 ## Black-leg is learned, not found: before it's taught empty hands are fists and nothing switches them; Gus at the
-## Salted Gull teaches it (his dialogue's "learn_black_leg"); taught, the
+## Salted Gull sends you to Hana Teal at the teahouse (1.23), whose pupil's test ("master:black_leg") teaches it; taught, the
 ## Black Leg tree shows and empty hands kick; a weapon in hand puts the kicks away, and a loadout keeps them (X swaps
 ## straight to them; its techniques fit the bar); the bag's empty hand slot switches fists and kicks; the choice
 ## survives a save; with Nonchalance the guard is hands in the pockets (and puppets are told).
@@ -38,8 +38,10 @@ func _process(_d: float) -> bool:
 			var offer := false
 			for c in gus["nodes"]["menu"]["choices"]:
 				offer = offer or (c.get("next", "") == "legs" and c.get("hide_if", "") == "gus_black_leg" and c.get("after", "") == "vey_skills")
-			check("Gus (the Salted Gull's cook) offers to teach it, once (after Vey's training)",
-				offer and gus["nodes"]["legs_taught"].get("event", "") == "learn_black_leg")
+			var hana: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue/hana.json"))
+			check("Gus (the Salted Gull's cook) tells you about it, once (after Vey's training), and sends you to Hana's teahouse",
+				offer and str(gus["nodes"]["legs_taught"]["text"]).contains("Hana"))
+			check("...where Hana's pupil tests you ('master:black_leg')", hana["nodes"]["legs_test"].get("event", "") == "master:black_leg")
 			root.get_node("/root/Dialogue").dialogue_event.emit("learn_black_leg")
 			check("taught by him: the Black Leg tree shows in Combat", p.progression.visible_trees("combat").has("black_leg"))
 			check("empty hands kick (%s), and the loadout in use keeps it (%s)" % [p.style(), str(p.loadouts[p.loadout_at])],

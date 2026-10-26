@@ -20,6 +20,11 @@ const FIGHTERS := [
 	["Aurelio Quint, Champion of the Arena", "katana", 0.95, {"coat": "frock", "coat_color": Color(0.7, 0.55, 0.2), "hat": "none"}],
 ]
 const PURSES := [40, 60, 90, 130, 180, 300]
+## A master's test (1.23, "masters teach trees"; kind "master:<tree>"): their pupil steps up wherever you stand;
+## beat them and the master teaches you the tree. [name, weapon ("": bare hands), skill, look, the style they fight in].
+const MASTERS := {
+	"black_leg": ["Tomo, Hana's pupil", "", 0.45, {"coat": "none", "hat": "headband", "top": "kimono", "sleeves": "long"}, "black_leg"],
+}
 const DEFEND_PURSE := 80
 const DEFEND_SKILL := 0.85
 const DEFEND_WEAPONS := ["cutlass", "katana", "spear", "greatsword", "boarding_axe", "dagger", "warhammer"]
@@ -60,6 +65,8 @@ static func start(c: Player, bout_kind: String, at_rank: int, isl: Node3D, sand:
 
 
 static func purse(bout_kind: String, at_rank: int) -> int:
+	if bout_kind.begins_with("master:"):
+		return 0
 	return DEFEND_PURSE if bout_kind == "defend" else int(PURSES[clampi(at_rank, 0, PURSES.size() - 1)])
 
 
@@ -80,7 +87,15 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 	var lk: Dictionary = CharacterLook.random_look(rng)
 	var weapon: String
 	var skill: float
-	if kind == "defend":
+	var kicks := false
+	if kind.begins_with("master:"):
+		var m: Array = MASTERS[kind.substr(7)]
+		lk.merge(m[3], true)
+		lk["name"] = str(m[0]).get_slice(",", 0)
+		weapon = m[1]
+		skill = m[2]
+		kicks = str(m[4]) == "black_leg"
+	elif kind == "defend":
 		lk["name"] = "Challenger"
 		weapon = str(DEFEND_WEAPONS[rng.randi() % DEFEND_WEAPONS.size()])
 		skill = DEFEND_SKILL
@@ -102,6 +117,9 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 		phase = "done"
 		queue_free()
 		return
+	if kicks:
+		rival.learn_black_leg()
+		rival.set_kicks(true)
 	net.everyone("_all_practice", [[captain_key, net.key_of(rival)], true])
 	var brain = rival.get_node("Brain")
 	brain.order = "fight"
@@ -150,6 +168,9 @@ func _finish(won: bool) -> void:
 static func result(me: Player, key: String, bout_kind: String, at_rank: int, won: bool, roll: int) -> void:
 	if me == null or me.get_node("/root/Net").key_of(me) != key:
 		return
+	if bout_kind.begins_with("master:"):
+		_master_result(me, bout_kind.substr(7), won)
+		return
 	if not won:
 		me.get_tree().call_group("hud", "show_toast", "Beaten on the sand. The crowd groans. Try again when you're ready.")
 		return
@@ -172,6 +193,18 @@ static func result(me: Player, key: String, bout_kind: String, at_rank: int, won
 				me.inventory_component.add_item(fruit, 1)
 	else:
 		me.get_tree().call_group("hud", "show_banner", "Victory on the sand!", "%d gold. Next: %s." % [purse(bout_kind, at_rank), fighter_name("ladder", at_rank + 1)], true)
+
+
+## A master's test passed or failed: passed, they teach the tree (black leg: the kicks, Player.learn_black_leg).
+static func _master_result(me: Player, tree: String, won: bool) -> void:
+	if not won:
+		me.get_tree().call_group("hud", "show_toast", "Not yet. Come back when your legs remember.")
+		return
+	match tree:
+		"black_leg":
+			me.learn_black_leg()
+	me.get_node("/root/Dialogue").set_flag("master_" + tree)
+	me.get_tree().call_group("hud", "show_banner", "Black Leg learned!", "Empty your hands to kick: click the empty hand in your bag (I) for feet or fists.", true)
 
 
 static func _day(n: Node) -> int:

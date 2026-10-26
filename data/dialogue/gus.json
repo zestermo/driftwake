@@ -100,24 +100,23 @@
 			"text": [
 				"Ha! Noticed the way I stand, did you? Twenty years cooking in a navy galley. A cook's hands are for the pot, {captain}. Never for a fight.",
 				"So I learned to fight with my legs. A kick low, a kick high, and when they crowd you, down on your hands and sweep the lot of them off their feet.",
-				"I could show you. Costs nothing but bruises."
+				"I could show you a kick or two. But the real teaching is up the hill."
 			],
 			"next": "legs_ask"
 		},
 		"legs_ask": {
 			"text": "Well?",
 			"choices": [
-				{ "text": "Teach me.", "next": "legs_taught" },
+				{ "text": "Who taught you?", "next": "legs_taught" },
 				{ "text": "Another time.", "next": "menu" }
 			]
 		},
 		"legs_taught": {
 			"text": [
-				"Right. Feet closer. Lighter. You're not a hammer, you're a whip. Turn the hip over and the leg comes with it.",
-				"...There. Black leg. Empty your hands and it's yours: click your empty hand in your bag to pick feet or fists. Master it and you'll keep your hands in your pockets like a gentleman.",
-				"And don't kick my barrels."
+				"Feet closer. Lighter. You're not a hammer, you're a whip. That much I can tell you.",
+				"The rest, I learned from Hana Teal, up the shrine stair at the teahouse. She taught my legs when my hands were busy with the pot.",
+				"Tell her Gus sent you. And don't kick my barrels."
 			],
-			"event": "learn_black_leg",
 			"set_flag": "gus_black_leg",
 			"next": "menu"
 		},
