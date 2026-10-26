@@ -29,6 +29,7 @@ scripts/world/ground_net.gd             t/swim/under_island
 scripts/ship/galley_table.gd            t/food/galley_table
 scripts/island/village_vendors.gd        t/quests/markers
 scripts/npc/npc.gd                      t/quests/markers
+scripts/island/marine_outpost.gd        t/island/outpost
 scripts/quests/journal.gd               t/quests
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene t/ui/intro

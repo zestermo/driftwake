@@ -894,6 +894,19 @@ func _all_cutscene_waiting_next(kind: String, shot: int, n: int) -> void:
 		Cutscene.active.set_waiting_next(shot, n)
 
 
+## An Admiralty outpost by a village (MarineOutpost): a guard's warning, and the alarm (its squad on every screen).
+func _all_outpost_say(key: String, line: String) -> void:
+	var o := node_of(key) as MarineOutpost
+	if o:
+		o.say(line)
+
+
+func _all_outpost_alarm(key: String, n: int, level: int, who_key: String) -> void:
+	var o := node_of(key) as MarineOutpost
+	if o:
+		o.alarm(n, level, node_of(who_key) as Node3D)
+
+
 ## The galley table (GalleyTable): a cook's pot served (every screen shows it).
 func table_serve(meal: String, n: int, cook: String, k: float, secs: float) -> void:
 	everyone("_all_table", [meal, n, cook, k, secs])
