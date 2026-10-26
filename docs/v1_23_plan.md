@@ -108,13 +108,30 @@ bosses together, so at level 15 Zach and his friend had half the same hotbar.
 
 | Decision | Choice | Why | Revisit when |
 |---|---|---|---|
-| Will unlocks | **Will paths + Will points**: bosses give Will points, not abilities. Each captain chooses a path: **Iron Will** (armament: coat, harden, push), **Sense** (observation: flash, foresight, counters) or the rare late **Captain's Will** (needs both). Each path is a branch bought with Will points; Will masters (with the tree masters) teach a path's top abilities | Captains who beat the same boss grow differently | Point curve preview |
+| Will points (Zach, revised same day) | **Any big fight + training**: every boss, arc villain, rival captain, named hunter and Marine outpost commander gives Will points, whatever the island's theme, plus slow Will training as a sailing-downtime activity (meditation on deck). No Will is tied to a specific boss or theme (a chain with no jungle island locked Will away) | Nobody locked out by the chain's roll | Point curve preview |
+| Will unlocks | **Will paths + Will points**: big fights give Will points, not abilities. Each captain chooses a path: **Iron Will** (armament: coat, harden, push), **Sense** (observation: flash, foresight, counters) or the rare late **Captain's Will** (needs both). Each path is a branch bought with Will points; Will masters (with the tree masters) teach a path's top abilities | Captains who beat the same boss grow differently | Point curve preview |
 | Squall Step, Ballast | **Move to the life trees**: Squall Step into Acrobatics, Ballast into Defense, learned by doing. The Captain tree's milestones become non-hotbar perks (loadout slot, passive slots) | No identical hotbars | - |
 | Passive slots | **Grow with level**: 2 at the start, +1 at Captain levels 10, 20 and 30 (5 at most). Passives come from every tree; Will passives are bought and slotted like the rest, no longer free | A real choice that grows | Point curve preview |
 | Will variety | **All four**: versions per ability (2-3 each, switched at the bunk like weapon variants: Coat for heavier hits, faster combos or blocking through); **tiers that awaken** (Iron Will: coat, then emission at range, then the inner strike through armour and guards; Sense: flash, then foresight, then reading a whole crowd); **a Will colour per captain** (colour and aura style, seen in co-op); **Will clashes** (two big Will attacks meeting, vs a boss, rival or a crewmate in a duel, start a short clash to win by timed presses) | Will should feel personal and shonen | After play |
 
 Order: with the combat core (step 2), alongside points per tree; previewed in the same node/point table. Saves: a
 migration refunds Will and the moved milestones (Settings VERSION / Progression save format 7).
+
+### The ship's life: rest spots, storage, galley (2026-10-26)
+Found: the cabin chest is `GameManager.storage`, the crew's "bank" (the only thing that survives a death; the bag goes
+on your grave), the host's shared in co-op. Variants, talents and passives switch only at the ship's bunk
+(`Progression.BUNK_REACH`). In play the bunk/loadout system wasn't working or obvious, and banking felt one-way.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Switching builds | **At any rest spot**: the bunk, an inn, or a camp you make (the action wheel), with a clear prompt there; variants, talents and passive slots switch at any of them | Still a place, but many more, and obvious | After play |
+| Banking | **Gone**: no "bank" wording or one-way deposit; storage is a normal two-way chest | Couldn't unbank; didn't apply | - |
+| Death | **Grave run stays**: your bag drops where you fell (a marker); get back to it to recover it | Stakes without banking | After play |
+| Storage | **Bigger, with a Personal tab and a Shared tab**: each captain's own (saved per captain, follows them in any crew) and the crew's (the host's world). **assumed** 40 personal / 60 shared slots, tuned in play | One crew chest didn't fit five captains | After play |
+| Galley meals | A meal cooked with several portions goes **on the galley table**, where any crewmate takes a portion (E). **Cooking skills buff the eaters**: the cook's Cooking tree adds a buff (by the cook's level and nodes) to everyone who eats their food, named on the meal ("Zach's Sea Stew: +10% stamina regen, 10 min") | The One Piece galley; a support role for the cook | After play |
+
+Order: with the combat core's progression work (step 2: rest spots, storage tabs, banking out) and the cooking buffs
+there too; the save migration moves today's storage into the Shared tab.
 
 ### Open / deferred
 - Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
