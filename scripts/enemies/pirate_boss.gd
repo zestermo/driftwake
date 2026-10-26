@@ -283,6 +283,7 @@ func _begin_special(what: String) -> void:
 	_sp_hit = false
 	_set_state(S.WIND)
 	_attack = what
+	_sense(_target(), "big")
 	match what:
 		"roar":
 			humanoid.play("parry", ROAR_LEN)

@@ -564,6 +564,8 @@ func _hit(knockdown: bool, base: float = -1.0) -> HitData:
 	if player.progression.has_flag("armament"):
 		hit.unblockable = true
 		hit.haki = true
+	if player.progression.has_flag("inner_strike"):
+		hit.breaker = true
 	hit.predictable = read_chance()
 	hit.hitstop_duration = float(cfg["hitstop"])
 	hit.camera_shake_intensity = float(cfg["shake"])
