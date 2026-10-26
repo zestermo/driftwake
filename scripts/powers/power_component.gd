@@ -649,7 +649,7 @@ func enemies_in(center: Vector3, radius: float) -> Array:
 		var hb := r["collider"] as Hurtbox
 		if hb == null or hb.owner == null or not (hb.owner is Node3D):
 			continue
-		if hb.owner in out or not BurnStatus.alive(hb.owner):
+		if hb.owner in out or hb.owner.get("hurtbox") == null or not BurnStatus.alive(hb.owner):
 			continue
 		out.append(hb.owner)
 	return out

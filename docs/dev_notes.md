@@ -6854,3 +6854,11 @@ Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md ro
   180 turns: every chain bone within 4 mm; worst seen 0.5 mm cloak, 2.2 mm skirt), t/player/chains_fallback
   (native_ok off: all GDScript, swinging, finite). Also checked by hand with bin/ renamed away (rigprobe: the three
   load errors, then the GDScript numbers).
+## 2026-10-26: tests after the 1.23 combat core (poise)
+- katanatest, techtest, balancetest were stale: grunts reused between checks arrive drained or immune (a break gives 4 s
+  immunity), so they start from a fresh `Poise.make(_poise_class())`; a bullet flinches a grunt at 10+ damage;
+  kraken_wake runs longer (a cut per foe within 12 m, downed ones included). powertest and t/combat/black_leg_launch
+  pass on current main.
+- Real bugs: `PowerComponent.enemies_in` returned a Breakable's owner (no `hurtbox`), crashing the reticle and
+  Corsair body_center lookups near a crate; Hundred Fangs' eight blinks (6 poise each) broke a grunt's poise before the
+  burst, whose floor then hit an immune foe: the blinks now cost 2 poise.
