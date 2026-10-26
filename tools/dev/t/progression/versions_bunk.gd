@@ -37,12 +37,12 @@ func _process(_d: float) -> bool:
 			while pr.mastery_level("katana") < 12:
 				var m: Dictionary = pr.mastery_of("katana")
 				pr.add_mastery("katana", pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
-			check("Captain 6: 10 Combat points", pr.pool("combat") == 10)
+			check("katana 12: 26 katana points", pr.pool("katana") == 26)
 			check("the iai upgrade bought: both versions, the first active", pr.buy("k_iai") and pr.version_of("k_iai") == 0 and pr.owns("k_through"))
 			check("...its iai can't be blocked, no faster charge", pr.style_stat("unblock", "katana") > 0.0 and pr.stat("iai_speed") == 0.0)
 			check("away from the bunk the version stays", not pr.can_respec() and not pr.set_version("k_iai", 1) and pr.version_of("k_iai") == 0)
-			check("Deep Draw (off the upgrade) bought", pr.buy("k_deep") and pr.pool("combat") == 4)
-			check("away from the bunk no refund (%s)" % pr.respec_why("katana"), not pr.respec_tree("katana") and pr.respec_why("katana") == "Only at the ship's bunk")
+			check("Deep Draw (off the upgrade) bought", pr.buy("k_deep") and pr.pool("katana") == 20)
+			check("away from the bunk no refund (%s)" % pr.respec_why("katana"), not pr.respec_tree("katana") and pr.respec_why("katana") == "Only at a rest spot")
 			var ship = stage.ship
 			p.global_position = ship.global_transform * (load("res://scripts/ship/ship.gd").BED_AT + Vector3(0.95, 0.1, 0.0))
 			p.reset_physics_interpolation()
@@ -64,7 +64,7 @@ func _process(_d: float) -> bool:
 			inv.remove_item(ItemDB.get_item("gold"), inv.count("gold"))
 			check("a katana respec costs 340 gold at Captain 6: refused without it (%s)" % pr.respec_why("katana"), pr.respec_price() == 340 and not pr.respec_tree("katana") and pr.respec_why("katana") == "Needs 340 gold" and pr.owns("k_iai"))
 			inv.add_item(ItemDB.get_item("gold"), 400)
-			check("...with 400 gold: the katana's purchases back whole, 60 gold left", pr.respec_tree("katana") and not pr.owns("k_iai") and not pr.owns("k_eye") and pr.steps_of("k_deep") == 0 and pr.pool("combat") == 10 and inv.count("gold") == 60)
+			check("...with 400 gold: the katana's purchases back whole, 60 gold left", pr.respec_tree("katana") and not pr.owns("k_iai") and not pr.owns("k_eye") and pr.steps_of("k_deep") == 0 and pr.pool("katana") == 26 and inv.count("gold") == 60)
 			check("...nothing left to refund", pr.respec_why("katana") == "Nothing bought")
 			return TK.done(fails)
 	step += 1

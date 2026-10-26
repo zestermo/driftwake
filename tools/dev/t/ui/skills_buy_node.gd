@@ -1,5 +1,5 @@
 extends SceneTree
-## The skills menu buys big nodes too: at katana mastery 3 with a new captain's 2 Combat points, Quick Draw can be bought,
+## The skills menu buys big nodes too: at katana mastery 3 with 2 of its own points left, Quick Draw can be bought,
 ## a click picks it, a second buys it (its move unlocked, the pool on the beam at 0); Cut the Shot is refused with the
 ## reason; hovering a node draws its one-line tip; a weapon not found yet (the pistol) isn't on the rail or the chart.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -43,6 +43,8 @@ func _process(_d: float) -> bool:
 			pr = stage.player.progression
 			pr.mastery_of("katana")["lv"] = 2
 			pr.add_mastery("katana", pr.mastery_to_next(2))
+			# (mastery 3 earns the katana 6 points: 2 of them left to spend)
+			pr.gift("katana", -4)
 			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
 			root.size = Vector2i(1280, 720)
 			root.get_node("Story").step = "done"
@@ -52,14 +54,14 @@ func _process(_d: float) -> bool:
 			sm.set_tab("combat", "katana")
 			until = TK.wait_ticks(4)
 		1:
-			check("mastery 3, 2 Combat points: Quick Draw can be bought", pr.tree_level("katana") == 3 and pr.pool("combat") == 2 and pr.buy_why("k_draw") == "")
+			check("mastery 3, 2 katana points: Quick Draw can be bought", pr.tree_level("katana") == 3 and pr.pool("katana") == 2 and pr.buy_why("k_draw") == "")
 			click("n:k_draw")
 			check("a click picks it", sm.sel == "n:k_draw" and not pr.owns("k_draw"))
 			click("n:k_draw")
-			check("a second click buys it: its move unlocked, the pool spent", pr.owns("k_draw") and pr.has_move("quick_draw") and pr.pool("combat") == 0)
+			check("a second click buys it: its move unlocked, the pool spent", pr.owns("k_draw") and pr.has_move("quick_draw") and pr.pool("katana") == 0)
 			click("n:k_deflect")
 			click("n:k_deflect")
-			check("Cut the Shot refused with the reason", not pr.owns("k_deflect") and sm._msg == "Needs 2 Combat points")
+			check("Cut the Shot refused with the reason", not pr.owns("k_deflect") and sm._msg == "Needs 2 Katana points")
 			var ev := InputEventMouseMotion.new()
 			ev.position = sm._rect_of("n:k_wind").get_center()
 			sm._gui_input(ev)

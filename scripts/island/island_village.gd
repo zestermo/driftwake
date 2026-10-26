@@ -32,6 +32,9 @@ var ctx: KitContext
 var jobs := {}
 var elder_name := ""
 var _board_line := ""
+## Callable(choices, nodes) each, adding to the elder's menu and the board's (the island's arc, IslandArcs).
+var elder_hooks: Array = []
+var board_hooks: Array = []
 
 # For villagers' routines (island space; filled as the village is built):
 ## Which of VillageLayouts.POOL this is.
@@ -534,6 +537,8 @@ func define_talk(notices: Array, qn: KitQuests) -> void:
 	var nodes := {"start": {"text": _board_line, "choices": board}}
 	for q in notices:
 		qn.post(q, board, nodes)
+	for f in board_hooks:
+		f.call(board, nodes)
 	board.append({"text": "Leave it.", "next": "end"})
 	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": nodes})
 	_define_elder(notices.filter(func(q): return q["giver"] == elder_name), qn)
@@ -556,5 +561,7 @@ func _define_elder(notices: Array, qn: KitQuests) -> void:
 	}
 	for q in notices:
 		qn.report(q, menu["choices"], nodes)
+	for f in elder_hooks:
+		f.call(menu["choices"], nodes)
 	menu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("elder"), {"speaker": elder_name, "voice": 0.8, "start": "intro", "return": "menu", "nodes": nodes})

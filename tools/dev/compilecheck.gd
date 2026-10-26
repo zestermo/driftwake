@@ -69,6 +69,9 @@ func _walk(dir: String) -> void:
 	for d in DirAccess.get_directories_at(dir):
 		if d.begins_with(".") or d == "addons" or (dir == "res://tools/dev/" and d == "out"):
 			continue
+		# (a folder Godot itself ignores: native/'s godot-cpp and its test project)
+		if FileAccess.file_exists(dir.path_join(d).path_join(".gdignore")):
+			continue
 		_walk(dir.path_join(d) + "/")
 	for f in DirAccess.get_files_at(dir):
 		if f.ends_with(".gd"):

@@ -1405,7 +1405,7 @@ func award_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 
 
 ## A deed that raises bounties (Bounty.TABLE[kind] x k): every captain within `reach` of `at` gets it, on their own
-## machine (each captain's bounty is their own).
+## machine (each captain's bounty is their own), with the big fights' Will points (Progression.will_deed).
 func bounty(kind: String, at: Vector3, reach: float = XP_RANGE, k: float = 1.0) -> void:
 	# (an island boss beaten, not a miniboss's share: the Admiralty answers, Admiralty.deed)
 	if kind == "boss" and k >= 1.0 and is_host():
@@ -1421,6 +1421,7 @@ func _all_bounty(kind: String, at: Vector3, reach: float, k: float) -> void:
 	if p == null or (at != Vector3.INF and p.global_position.distance_to(at) > reach):
 		return
 	Bounty.add(p, roundi(float(Bounty.TABLE.get(kind, 0)) * k), kind)
+	p.progression.will_deed(kind, k)
 
 
 func _all_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
@@ -2420,6 +2421,29 @@ func _journal_req(op: String, args: Array) -> void:
 
 func _all_journal(op: String, args: Array) -> void:
 	Journal.apply(op, args)
+
+
+# An island's arc (IslandArcs, 1.23): a captain asks, the host decides, everyone applies.
+func arc_ask(key: String, op: String, args: Array) -> void:
+	if is_host():
+		var a := node_of(key)
+		if a:
+			a.decide(op, args, my_id())
+		return
+	_arc_req.rpc_id(1, key, op, args)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _arc_req(key: String, op: String, args: Array) -> void:
+	var a := node_of(key) if hosting else null
+	if a:
+		a.decide(op, args, multiplayer.get_remote_sender_id())
+
+
+func _all_arc(key: String, op: String, args: Array) -> void:
+	var a := node_of(key)
+	if a:
+		a.apply(op, args)
 
 
 # ==========================================================================

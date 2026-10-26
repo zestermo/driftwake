@@ -72,7 +72,11 @@ func _process(_d: float) -> bool:
 			for s in [["wind_sever", 0], ["tiger_rush", 1], ["iai_counter", 2]]:
 				p.power.equip(s[0], s[1])
 			pr.equip_passive("k_clean", 0)
-			pr.grant_will("h_arm")
+			pr.gift("will", 8)
+			for k in ["w_coat_quick", "w_coat_heavy", "h_harden"]:
+				pr.buy(k)
+			pr.set_will_color("red")
+			pr.buy("w_coat_heavy")
 			pr.pick_talent(5, 0)
 			pr.pick_talent(10, 1)
 			# (closing the creator began a new game's story, which locks the menu until Vey)
@@ -145,7 +149,9 @@ func _process(_d: float) -> bool:
 			pr.level = 1
 			pr.xp = 0
 			pr.versions.clear()
-			pr.will.clear()
+			for k in pr.bought.keys():
+				if SkillTrees.node_pool(k) == "will":
+					pr.bought.erase(k)
 			for k in SkillTrees.nodes_of("captain"):
 				pr.owned.erase(k)
 			sm.set_tab("captain")

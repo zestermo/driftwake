@@ -6615,6 +6615,64 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   draw 3.5 ms; scripts mapped to systems by regex), perf_budgets.ps1 <bench result>, and perf_gate.ps1 prints them
   per light (a warning, never a fail). The 1.23 "before" bench: anim 2.26, ai 1.10, world 1.69, draw 4.95 over.
 
+## 2026-10-26: 1.23 progression, piece 1: points per weapon tree
+- **What (docs/v1_23_previews.md section 1, option A).** Each weapon tree and the eaten fruit earn their own points by
+  mastery: `Progression.tree_earned(lv) = 2 lv + lv / 5` (2 when found, 11 at 5, 39 at 18, 66 at 30) and spend them only
+  on themselves. `SkillTrees.pool_of(tree)` returns the tree's own id for combat/fruit trees ("adventure" and "" as
+  before). Captain levels give stats and the Captain tree only (`combat_earned` is gone; the level-up banner names no
+  points). `pool("combat")` / `can_spend("combat")` are the found weapons' and fruit's points together (the skill
+  bar's pulse); a weapon's mastery toast adds its own "N Katana points (K)". `gift(pool, n)` takes a tree id.
+- **Save format 7.** An older save's weapon and fruit purchases (nodes and steps) are refunded once into their trees'
+  own points, nothing bought again; Adventure's are bought back as before; ids that no longer exist (the black-leg
+  nodes the combat agent replaces) just go. The banner: "Every weapon has its own points now".
+- **Skill map.** The header plate shows the open tree's own points beside Adventure's (the chart: every weapon's
+  together); the card's price line names the tree's points.
+- **Tests.** t/progression/pools, gate_and_buy, prompts, versions_bunk, refund_migration, fist_rename (now a format-7
+  save), weapon_refund (was buy_back: the format-6 refund), t/ui/skills_buy_node, skills_buy_step, skills_respec;
+  progtest, powertest and balancetest's lines (prepush).
+
+## 2026-10-26: 1.23 progression, piece 2: passive slots and the moved milestones
+- **Passive slots** (docs/v1_23_plan.md "Will, the Captain tree and passives"): `PASSIVE_SLOTS` 2, and the Captain
+  milestones `c_slot3` / `c_slot4` / `c_slot5` at 10 / 20 / 30 (effect `passive_slots`: `passive_slots()` = 2 + the
+  stat; 5 at most). A save with more slotted than it has slots keeps the first ones (`_fit_passives`).
+- **Squall Step and Ballast** left the Captain tree: `m_soru` is an Acrobatics tech (Dodge branch, at 8, 2 Adventure
+  points) and `v_tekkai` a Defense tech (Grit branch, at 10, 3 points), same ids and skills. The Captain's milestones
+  are non-hotbar perks now (Quartermaster's third loadout at 10, the slots). An older save loses them until bought
+  again (the bar slot clears on load; uses and so tiers are kept).
+- **Tests.** t/progression/passive_slots, captain_growth, refund_migration, pools, moved_skills (new); progtest's lines.
+
+## 2026-10-26: 1.23 progression, piece 3: Will paths, points and meditation
+- **What (docs/v1_23_previews.md section 2, docs/v1_23_plan.md "Will, the Captain tree and passives").** Will no
+  longer comes from set bosses. `scripts/progression/will_paths.gd` (WillPaths) holds the data and the gates; the nodes
+  are SkillTrees' (the Captain tree's Will branch, `_build_will`), each version and passive with `"pool": "will"` and a
+  `"cost"` (`SkillTrees.node_pool`). Paths: Iron Will (Coat T1: Heavy / Quick / Breaking; Emission T2: Line / Ring;
+  Inner Strike T3; Hardening), Sense (Flash T1: Long Warning / Gunsight / Big Moves; Foresight T2: Second Sight / Slow
+  Sight; Crowd Read T3; Instinct), Captain's Will (Roar T2: King's / Far; Clash T3; King's Will). A version costs its
+  tier (1/2/3), a passive 2 (needs the path's first ability). Tiers open at 0/4/8 Will spent in the path; the second
+  path at 8 spent; Captain's Will at 4 in each of the others. The first version bought is carried; other bought ones
+  switch in at a rest spot (`set_version`, kind "will", `has_version`). 33 points buys everything.
+- **Points.** `Progression.will_earned` (saved "will_pts"), `will_deed(kind, k)` from `Net._all_bounty` on each
+  captain's own machine (boss/villain/hunter/Leviathan 2, rival/officer/sergeant/miniboss 1; a "boss" at k < 1 is a
+  miniboss), `will_point(n, why)` (a toast), `meditate(secs)`: Downtime's new "meditate" (aboard or at camp, every
+  10 s, a point per `MEDITATE_SECS` = 3 game days meditated; pose `dt_meditate`, cross-legged, DowntimePoses).
+- **What the abilities do now** (in my files): Heavy Coat's `coat_dmg` (Progression.on_hit's extra share while coated),
+  Quick Coat's `cdr_armament_coat` (PowerComponent.skill_cooldown reads `cdr_<skill>`), Breaking Coat's `coat_burst`
+  (the Outflow burst without tier 3), Emission (`PowerComponent._tick_emission`/`emission`: 0.22 s into a coated heavy,
+  a 6 m line or a 4 m ring, 18 damage, unblockable, only while coated), Second Sight (an extra Foresight dodge),
+  Slow Sight (CombatManager.apply_slowmo on a foreseen blow), Inner Strike (`armament`: heavies unblockable, +8%),
+  Flash (`observation`). **Hooks for the combat side** (flags set, nothing reads them yet): `flash_early`,
+  `flash_shots`, `flash_boss`, `crowd_read`, `inner_strike` (stagger on hit), `roar_reach`, `will_clash`.
+- **Colour.** `will_color` (saved), picked on the Will page once a Will is yours (black lightning, red crackle, blue
+  haze, gold); `will_tint()` colours the Will buffs' aura (PowerComponent.add_buff for coat/foresight) and Emission
+  through Net.fx, so crewmates see it.
+- **Save format 8.** An older save's Wills come back as 2 Will points each (`WillPaths.OLD`), nothing bought; the
+  moved Squall Step / Ballast are dropped from the bar. One banner says what changed.
+- **Skill map.** The Will page is three path columns (abilities by tier, versions as chips, the passive under the
+  first ability, the path's lock in coral) and a card (points and sources, the node's versions with what Enter does or
+  why not, the colour swatches). The skill bar's pulse counts Will too.
+- **Per frame:** PowerComponent checks the player's state each frame only while coated (Emission).
+- **Tests.** t/progression/will_paths (was will_bosses), will_points (new), t/ui/skills_captain_forks; progtest and
+  powertest lines (prepush).
 ## 2026-10-26: 1.23 combat core, pieces 1-3: poise, juggling, black-leg's juggle set
 - **Why:** Zach's playtest: every captain had 2-3 knockdowns at will and they were all that mattered. Spec:
   docs/v1_23_previews.md sections 3-4 and docs/v1_23_plan.md "Preview answers" (approved starting numbers).
@@ -6660,6 +6718,75 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   t/weapons black_leg_tree / black_leg_cleaver_flambe / black_leg_learn updated, black_leg_wheel_hands removed.
   Renders: tools/dev/out/bl23_00_*.png (bl_rise, bl_sky, bl_sky_spike), tools/dev/out/jug_00_*.png.
   Expect at prepush: grunttest, r10test, ragtest, balancetest, techtest, airtest, progtest, nettest.
+## 2026-10-26: 1.23 island arcs, pieces 1-2: the arc frame, two templates, replies
+
+Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md rows "Islands" and "Replies".
+- **IslandArcs** (scripts/island/island_arcs.gd, node "Arc" under the GenIsland): `TEMPLATES` (data: villain, place,
+  the elder's telling, rumours, poster, contacts, beat-2 steps, showdown, `meet` and `moment` replies with their
+  outcomes, the hidden finish, thanks), `pick(facts)` (the fog isle the Cursed Festival once it's in; else the chain's
+  own shuffled order from `(id * 3) % n`, skipping templates whose `needs` the island lacks: outpost, cave, fog),
+  `plan` (IslandLife.plan, worker: the likely roll with `MarineOutpost.rolls`, its contacts' bodies stocked), `make`
+  (the life step, after the outpost: rolled again on what's built, contacts, the Journal quest, the elder's and the
+  board's hooks). `force` for tests and tools.
+- **State** = the crew's Journal entry (the step) + world flags `<isle key>_arc_*` (moment/meet picks, raid, settled,
+  fell, hidden): saved, sent to joiners. Every machine builds what the state asks for each 0.5 s tick (squads
+  "S<n>" as warm-start GruntCamps, a night wave "W<n>" as a ScuttlebugNest, the strongbox "Item<n>", the raid, the
+  "More" men); the host decides the rest (Net.arc_ask -> `decide`, Net._all_arc -> `apply`). Squads are cleared once
+  all have mustered and all are down (a squad killed between ticks once never counted).
+- **Steps** (beat 2): squad, pickup, talk (a contact's moment), wave (only at night: Weather.hour() 20-5; the goal says
+  "it comes at nightfall"). The showdown is the villain: the camp's captain (`camp`) or the island's beast (`beast`);
+  a villain already dead when the showdown begins counts at once (no reply, no hidden finish). Its fall (host): flag
+  "fell", `_all_arc fell` (banner, the arc chest `arc_chest`: gold, treasure, a trait weapon a tier up; the hidden
+  cache `arc_cache`), `Net.bounty("arc")` (Bounty "arc" 8000, a poster deed), `Admiralty.deed(.., "arc")`, and a
+  TODO for the Will points (2) until the progression agent's API lands. The elder's thanks (Journal turn-in) pay gold.
+- **Replies** (scripts/dialogue/replies.gd, reusable: the rivals can use it): `nodes` (a reply moment inside any
+  conversation), `open` (a conversation of its own; walking away emits -1), `shown` (every screen: the pick and the
+  answer as toasts, a bark over the speaker). The villain's meeting: the host asks the nearest standing captain within
+  `MEET_R` 30 m on the showdown (re-asks after 45 s or if they were busy); the moment: a contact's talk while its step
+  is on. Outcomes: fight, settle (Journal.settle: done without reward), pay:N (the picker's gold), hated (the island's
+  traders' prices x1.2 via a negative Journal discount), raid (a night raid at the village's edge before he can be
+  faced), more (two more men at the showdown), wounded:K (the villain starts K down once in combat), step, now
+  (Journal.jump to the showdown). Journal gained `jump`, `settle` and a source's `goal_of` (the showdown told as it
+  stands).
+- Hooks: IslandVillage.elder_hooks / board_hooks (the elder's "Something's wrong..." telling, the turn-in; the board's
+  WANTED poster), IslandLife deals one arc rumour to each named person's island news and one to every third face in
+  the crowd. Fights at the village's edge stay `EDGE` 38 m past the plaza (out of an outpost's town: no alarm).
+- Per tick: one 0.5 s timer per standing chain island with a taken arc (a few dictionary reads; the host's nearest
+  captain check in the showdown). Squads come warm-started (bodies on a worker).
+- **Hidden finishes** (host, watched from the showdown's first tick: `_watch`, judged at the fall by `_hidden_met`):
+  spare_men (every man of the camp alive that was alive when the showdown began: they surrender), parts (the beast's
+  `parts_broken()` >= 2 once the beast pass adds it; until then felled within `QUICK_KILL` 120 s of waking). Met: flag
+  "hidden", the banner names it, and the cache `arc_cache` (gold, pearls, a trait weapon two tiers up).
+- The roll is keyed by the chain's seed, which chain nodes now carry (`node["chain"]`): GameManager can't be read
+  from IslandLife.plan's worker (smoketest caught it: the tests build islands on the main thread).
+- Tests: t/quests/arc_roll, arc_beats, arc_reply, arc_hidden. Expected to touch: lifetest, villagetest, isletest,
+  nettest (net), chaintest (the chain nodes' new key).
+
+## 2026-10-26: 1.23 island arcs, piece 4: the other eight templates
+
+- Iron Boot (outpost: the corrupt captain and his marines at the outpost's yard; the dock clerk's moment, the ledger
+  behind the outpost; hidden: met with the ledger in hand, his marines leave him), The Stolen Heirloom (cave: three
+  witnesses' "talks", the thieves' hideout reached, the Fox and his men in the cave's second chamber at its floor's
+  height; meet_r 14 and no meeting once he's hurt; hidden: hit before he saw anyone), The Cursed Festival (fog only:
+  the drowned at the village's edge, four festival lanterns round the place; villain the fog isle's ghost captain, or
+  the drowned crew's camp captain when the beast is another; hidden: the ghost snuffs a lantern every 20 s in the
+  fight, all lit at his fall), The Rebellion (outpost: the muskets at the old stones, the rebel's moment: "allies"
+  brings three militia NPCs who close on him; one with a foe beside it for 4 s falls; hidden: none fell), The
+  Castaway Noble (the castaway at the lookout, "escort": follows the nearest captain to the village; the ransomers at
+  the dock; "gain:200" hands them over; hidden: the noble within 3 m of him in the fight lands a blow, 8%), The
+  Poisoned Well (herbs, the healer's moment; a BroodQueen (cave = the arc: its Brood nest) at the burrows, woken at
+  20 m, reset after 8 s alone; hidden: dead within 150 s of waking, a toast countdown on every screen), The
+  Champion's Challenge (three students one at a time: max_attackers 1; the swordmaster alone; "fair" at the meeting;
+  hidden: no captain's Technique or Skill state near him after that, each machine reports its own), The Treasure Race
+  (three map pieces anywhere, a reach step with a 150 s race (+60 for the digger's tip); the rival crew at the cave
+  mouth; hidden: reached in time).
+- A crew villain whose captain's body is already gone counts as fallen (no reply, no hidden finish).
+- The arc's own villains are a GruntCamp "Villain" (captain cfg + men) built at the showdown on every machine.
+- Hidden rewards are the cache (a trait weapon two tiers up); the spec's named weapon / technique variant / flag emblem
+  need item and progression support (open). Will points: 2 ("villain", Progression.will_deed) to each captain within
+  400 m on their own machine, except a beast or the queen (their own Net.bounty "boss" already pays 2).
+- Test: t/quests/arc_templates (all ten made on one island with an outpost added: text filled, places and contacts
+  on the island, each step done as a captain would, the villain falls, chest, the elder waits).
 
 ## 2026-10-26: 1.23 combat core, piece 4: smarter enemies (and the brains at ~10 Hz)
 - **Defend** (PirateGrunt._on_hit): a sword grunt blocks `_block_chance()` (0.25; PirateBoss 0.4) of the blows from

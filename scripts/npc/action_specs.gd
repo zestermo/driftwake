@@ -448,6 +448,7 @@ const SPECS := {
 	"clip_read": {"len": 0.4, "stance": "sword", "weapon": ""},
 	"dt_tinker": {"len": 0.4, "stance": "sword", "weapon": ""},
 	"dt_sleep": {"len": 0.4, "stance": "sword", "weapon": ""},
+	"dt_meditate": {"len": 0.6, "stance": "sword", "weapon": ""},
 	"dt_startle": {"len": 0.5, "stance": "sword", "weapon": ""},
 	# --- fishing (FishPoses, the rod and both hands on it FishRod's; Fishing's lengths) ---
 	"rod_cast": {"len": 1.1, "stance": "sword", "weapon": ""},

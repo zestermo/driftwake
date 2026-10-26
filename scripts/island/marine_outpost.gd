@@ -39,6 +39,13 @@ var _chest: LootBag
 var _camp: GruntCamp
 
 
+## Whether island `gi` rolls an outpost (data: its spot is found as it's built, so it may still have none).
+static func rolls(gi: GenIsland) -> bool:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(gi.node["seed"]), 5109])
+	return not (gi is CapitalIsland or gi.village_plan.is_empty()) and rng.randf() < CHANCE
+
+
 ## The build step (IslandContent): an outpost by the village, if this island rolls one and a spot fits.
 static func build(gi: GenIsland) -> void:
 	if gi is CapitalIsland or gi.village_plan.is_empty():
@@ -218,6 +225,8 @@ func _physics_process(delta: float) -> void:
 		# the squad beaten: raided, for everyone (saved)
 		if _camp and is_instance_valid(_camp) and _camp.alive_count() == 0 and not _camp.grunts.is_empty():
 			net.world_flag(key)
+			# the sergeant's fall: an Admiralty officer beaten (bounty, and a Will point, for every captain near)
+			net.bounty("officer", global_position)
 			_apply_raided(true)
 			get_tree().call_group("hud", "show_banner", "Outpost raided", "The armoury's open and the cell's unguarded.", true)
 		return

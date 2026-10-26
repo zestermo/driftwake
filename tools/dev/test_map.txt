@@ -263,6 +263,9 @@ scripts/island/kit/kit_style.gd         isletest ambiencetest netchain
 scripts/props/jungle_props.gd           isletest
 data/dialogue/*                         qoltest
 scripts/island/island_life.gd           lifetest isletest netchain
+scripts/island/island_arcs.gd           t/quests lifetest villagetest net
+scripts/dialogue/replies.gd             t/quests
+scripts/island/island_life.gd           t/quests
 scripts/island/kit/kit_life.gd          lifetest storytest qoltest
 scripts/island/kit/villager.gd          lifetest netchain
 scripts/island/kit/kit_quests.gd        lifetest

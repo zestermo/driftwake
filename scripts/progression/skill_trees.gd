@@ -6,7 +6,7 @@ extends RefCounted
 ##   adventure  Acrobatics (1-30), Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
 ##   fruit      the Driftfruit you ate (levels 1-20)
 ## A tree grows up from its root in three branches. Every node past the root is bought (1.18.4, docs/v1_18_4_plan.md):
-## weapon and fruit trees from the Combat pool (Captain levels), Adventure trees from the Adventure pool (their levels);
+## weapon and fruit trees each from their own points (their mastery, 1.23), Adventure trees from the Adventure pool (their levels);
 ## the tree's level only gates it (price: PRICE by kind, or a node's own "cost"). Small stat "steps" (x/3, x/5) are
 ## bought a step at a time. A variant is two versions of one node: both owned once bought, one active (switched at the
 ## ship's bunk). The Captain's nodes and a fruit's level-1 powers still come by themselves. Progression reads the
@@ -77,9 +77,6 @@ const ELEMENTS := {
 
 ## What every Captain level past the first adds by itself (the old Captain tree's stat nodes, folded in).
 const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_energy": 0.6, "defense": 0.5}
-## Will milestones: id -> [the boss that teaches it (Progression.boss_kind), the Wills it needs first].
-const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": ["queen", ["h_arm"]], "h_fore": ["arena", ["h_arm"]],
-	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
 
 ## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
 ## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
@@ -135,14 +132,20 @@ static func max_level(tree: String) -> int:
 	return int(HEADERS[tree][3])
 
 
-## The points a tree's nodes are bought with: "combat" (weapons and the fruit), "adventure", "" (the Captain).
+## The points a tree's nodes are bought with: a weapon's or the fruit's own (its id, 1.23), "adventure", "" (the Captain).
 static func pool_of(tree: String) -> String:
 	match section_of(tree):
 		"combat", "fruit":
-			return "combat"
+			return tree
 		"adventure":
 			return "adventure"
 	return ""
+
+
+## The points a node is bought with: its own "pool" (the Will's: "will"), else its tree's.
+static func node_pool(id: String) -> String:
+	var n := node_def(id)
+	return str(n.get("pool", pool_of(str(n["tree"]))))
 
 
 ## A node's price in its pool's points (a step's is per step); 0 for one that isn't bought.
@@ -288,11 +291,11 @@ static func _step(id: String, name_: String, on: String, max_steps: int, effects
 static func _build_captain() -> void:
 	_tree("captain", ["Milestones", "Talents", "Will"])
 	_root("c_root", "Captain", {},
-		"Every level makes you a little stronger by itself: +5.5 health, +2% damage, +0.6 stamina and energy, +0.5 defense. Milestones come at their level; every 5 levels you pick one of two talents; Will comes from the bosses you beat.")
-	_big("m_soru", "Squall Step", "auto", 0, 8, {}, "", "soru")
+		"Every level makes you a little stronger by itself: +5.5 health, +2% damage, +0.6 stamina and energy, +0.5 defense. Milestones come at their level (a third loadout, passive slots); every 5 levels you pick one of two talents; Will comes from the bosses you beat.")
 	_big("c_quarter", "Quartermaster", "auto", 0, 10, {"loadout_slots": 1}, "A third weapon loadout on the loadout wheel (X): three setups to swap between mid-fight.")
-	_big("v_tekkai", "Ballast", "auto", 0, 14, {}, "", "tekkai")
-	_big("c_slot4", "Fourth Slot", "auto", 0, 25, {}, "A fourth passive slot.")
+	_big("c_slot3", "Third Slot", "auto", 0, 10, {"passive_slots": 1}, "A third passive slot.")
+	_big("c_slot4", "Fourth Slot", "auto", 0, 20, {"passive_slots": 1}, "A fourth passive slot.")
+	_big("c_slot5", "Fifth Slot", "auto", 0, 30, {"passive_slots": 1}, "A fifth passive slot.")
 	_talent(5, ["v_mend", "Mend", {"regen_hp": 2.5}, "Out of combat (no damage for 5 s) you heal 2.5 health a second."],
 		["v_stomach", "Iron Stomach", {"potion_pct": 0.4}, "Food and drink heal you 40% more."])
 	_talent(10, ["t_hands", "Quick Hands", {"use_speed_pct": 0.35}, "You eat and drink 35% faster."],
@@ -309,16 +312,7 @@ static func _build_captain() -> void:
 		["t_hide", "Thick Hide", {"defense": 10.0, "max_hp": 30.0}, "+10 defense and +30 max health."])
 	_talent(40, ["t_warlord", "Warlord", {"damage_pct": 0.12, "crit_all": 0.06}, "+12% damage with everything, and 6% of your hits land 50% harder."],
 		["t_legend", "Living Legend", {"max_hp": 60.0, "defense": 8.0, "stamina_regen_pct": 0.2}, "+60 max health, +8 defense, and stamina refills 20% faster."])
-	_will("h_arm", "Iron Will", {"armament": 1, "damage_pct": 0.08}, "", "Beat Captain Morrow. Will made armor: +8% damage, and your heavy attacks can't be blocked.",
-		["h_harden", "Hardening", {"defense": 8.0, "energy_regen_pct": 0.2}, "Passive (a slot). Will under the skin: +8 defense, and energy refills 20% faster."])
-	_will("h_coat", "Iron Will: Coat", {}, "armament_coat", "Beat a great ape. Coat your weapon or fists in Will.",
-		["h_black", "Black Fists", {"dmg_unarmed": 0.15}, "Passive (a slot). Your bare fists are iron: +15% unarmed damage."])
-	_will("h_obs", "Sense", {"observation": 1}, "", "Beat the Brood Queen. Sense intent: enemies flash red the moment they start an attack, and your parry window is a little wider.",
-		["h_instinct", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider still."])
-	_will("h_fore", "Foresight", {}, "foresight", "Beat a great beast in its arena. Sense what's coming before it comes.",
-		["h_weak", "Weak Points", {"crit_all": 0.06}, "Passive (a slot). You see where to strike: 6% more of your hits land 50% harder."])
-	_will("h_conq", "Captain's Will", {}, "conquerors_haki", "Beat a Leviathan, with every other Will yours. A will that bends others.",
-		["h_will", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."])
+	_build_will()
 
 
 ## A talent: one of two versions at `lv`, picked (not given); each [id, name, effects, desc].
@@ -331,14 +325,33 @@ static func _talent(lv: int, a: Array, b: Array) -> void:
 		n["versions"].append({"id": v[0], "name": v[1], "desc": v[3], "level": lv, "effects": v[2], "skill": ""})
 
 
-## A Will milestone (its boss beaten, not a level) and the Will passive that comes with it ([id, name, effects, desc]).
-static func _will(id: String, name_: String, effects: Dictionary, skill: String, desc: String, passive: Array) -> void:
-	var n := _big(id, name_, "will", 2, 1, effects, desc, skill)
-	n["boss"] = WILL[id][0]
-	n["needs"] = WILL[id][1]
-	var p := _node(passive[0], passive[1], "passive", 2, 1, passive[2], passive[3], "", [id], n["pos"] + Vector2(84, -28))
-	p["will"] = id
-	_trees[_t]["branches"][2]["nodes"].append(passive[0])
+## The Will branch (WillPaths): each path's abilities up a column, tier by tier, with their versions (bought with
+## Will points, pool "will", the tier's price each) and the path's passive beside its first ability.
+static func _build_will() -> void:
+	var list: Array = _trees[_t]["branches"][2]["nodes"]
+	for path in WillPaths.PATHS:
+		var x := 120.0 * (WillPaths.PATHS.find(path) - 1)
+		var prev := ""
+		for id in WillPaths.abilities_of(path):
+			var a: Array = WillPaths.ABILITIES[id]
+			var at := Vector2(x, -90.0 * int(a[1]))
+			var n := _node(id, a[2], "will", 2, 1, {}, a[3], "", [prev] if prev != "" else [], at)
+			n["path"] = path
+			n["tier"] = int(a[1])
+			list.append(id)
+			for v in a[4]:
+				var vid: String = v[0]
+				var vn := _node(vid, v[1], "version", 2, 1, v[2], v[3], v[4], [id], at)
+				vn.merge({"parent": id, "pool": "will", "path": path, "tier": int(a[1]), "cost": int(a[1])})
+				n["versions"].append({"id": vid, "name": v[1], "desc": vn["desc"], "level": 1, "effects": v[2], "skill": v[4], "tag": v[5]})
+			prev = id
+		for pid in WillPaths.PASSIVES:
+			var pd: Array = WillPaths.PASSIVES[pid]
+			if pd[0] == path:
+				var first: String = WillPaths.abilities_of(path)[0]
+				var p := _node(pid, pd[1], "passive", 2, 1, pd[2], pd[3], "", [first], _nodes[first]["pos"] + Vector2(48, -30))
+				p.merge({"will": path, "pool": "will", "path": path, "cost": WillPaths.PASSIVE_COST})
+				list.append(pid)
 
 
 # --------------------------------------------------------------------------
@@ -375,6 +388,7 @@ static func _build_acrobatics() -> void:
 		["ac_sidestep", "Sidestep", 7, {"dodge_sidestep": 1},
 			"Your dodge is a short, sharp slip aside: cheaper and quicker to strike out of, and slipping a blow as it lands makes your next hit land 50% harder."]],
 		"Two ways to get out of the way. Both are yours; pick the one you carry at the ship's bunk.")
+	_big("m_soru", "Squall Step", "tech", 1, 8, {}, "", "soru")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
 	_big("ac_afterimage", "Afterimage", "move", 1, 18, {"afterimage": 1},
 		"Your dodge leaves a copy of you standing where you were, and the foes coming for you swing at it instead (once every 6 s).")
@@ -419,6 +433,7 @@ static func _build_defense() -> void:
 	_big("df_wall", "Iron Wall", "mech", 1, 20, {"block_cost_pct": 0.3}, "Blocking costs another 30% less stamina.")
 	_big("v_steadfast", "Steadfast", "mech", 2, 4, {"steadfast": 1}, "Light hits no longer make you flinch.")
 	_big("df_unshaken", "Unshaken", "mech", 2, 9, {"max_hp": 25.0}, "+25 max health.")
+	_big("v_tekkai", "Ballast", "tech", 2, 10, {}, "", "tekkai")
 	_big("df_skin", "Second Skin", "mech", 2, 14, {"defense": 6.0}, "+6 defense.")
 	_big("df_unbreak", "Unbreakable", "mech", 2, 18, {"max_hp": 40.0, "defense": 4.0}, "+40 max health and +4 defense.")
 	_step("df_timing", "Timing", "df_root", 5, {"parry_all": 0.008}, "A slightly wider parry window a step.")

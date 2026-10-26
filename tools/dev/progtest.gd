@@ -126,7 +126,7 @@ func _process(d: float) -> bool:
 			check("level up to 2: stronger by itself, no points to spend", pr.level == 2 and pr.skill_points == 0 and is_equal_approx(pr.stat("max_hp"), 5.5) and is_equal_approx(pr.stat("damage_pct"), 0.02))
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			check("Will isn't a level (Iron Will comes from Morrow)", pr.can_learn("h_arm") != "" and not pr.has_flag("armament"))
+			check("Will isn't a level: no Will points from levels", pr.pool("will") == 0 and pr.can_learn("w_coat_heavy") == "Needs 1 Will point" and not pr.has_flag("armament"))
 			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
 			pr.add_life("acrobatics", pr.mastery_to_next(1))
 			check("Acrobatics 2: Geppo bought with its Adventure point, an air jump", pr.buy("m_geppo") and p.max_jumps == 2)
@@ -135,18 +135,19 @@ func _process(d: float) -> bool:
 			check("Fleetfoot (Acrobatics 12) bought speeds you up", pr.buy("ac_fleet") and p.move_speed > 6.0)
 			pr.level = 14
 			pr._on_level_up()
-			check("Soru and Tekkai come at Captain 8 and 14, onto the bar", pc.loadout[0] == "soru" and pc.loadout[1] == "tekkai")
+			check("Captain 14 hands out no skills; Squall Step bought at Acrobatics 8+, onto the bar", not pr.knows("tekkai") and pr.buy("m_soru") and pc.loadout[0] == "soru")
 			check("a weapon's nodes are bought once its mastery gates them (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Needs Cutlass 4")
 			# (a pistol in loadout 2, so its skills can go on the bar)
 			p.inventory_component.add_item(item("pistol"), 1)
 			p.loadouts[1] = ["pistol", ""]
-			while pr.mastery_level("defense") < 4:
+			while pr.mastery_level("defense") < 10:
 				pr.add_life("defense", pr.mastery_to_next(pr.mastery_level("defense")))
+			check("Ballast bought at Defense 10, onto the bar", pr.buy("v_tekkai") and pc.loadout[1] == "tekkai")
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
 				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
 					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))
-			check("one Combat pool for every weapon: Captain 14's 24 points", pr.pool("combat") == 24 and pr.points_free("sword") == 24 and pr.points_free("pistol") == 24)
-			check("...spent on the cutlass and the pistol alike", ["s_flying", "g_kata", "g_rain", "g_storm"].all(func(k): return pr.buy(k)) and pr.pool("combat") == 24 - 3 - 2 - 2 - 3)
+			check("each weapon its own points: cutlass 5 has 11, pistol 9 has 19", pr.points_free("sword") == 11 and pr.points_free("pistol") == 19)
+			check("...each spent on its own tree", ["s_flying", "g_kata", "g_rain", "g_storm"].all(func(k): return pr.buy(k)) and pr.pool("sword") == 11 - 3 and pr.pool("pistol") == 19 - 2 - 2 - 3)
 			check("Steadfast bought at Defense 4", pr.buy("v_steadfast"))
 			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")

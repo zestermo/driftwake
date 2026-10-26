@@ -1,7 +1,7 @@
 extends SceneTree
 ## 1.23: a save from before black-leg's juggle set: its Mule Kick and Cartwheel Crescent nodes (bl_mule, bl_wheel) are
 ## bought back as Rising Heel and Sky Chase (same gates and prices), Heavy Heel's steps hang on Sky Chase now, and the
-## bar slots holding the old skills hold the new ones.
+## bar slots holding the old skills hold the new ones. (A format-7 save: older ones have every weapon purchase refunded.)
 const TK := preload("res://tools/dev/test_kit.gd")
 const SAVE := "user://t_black_leg_rename.dat"
 var SG
@@ -37,7 +37,7 @@ func _process(_d: float) -> bool:
 			var f := FileAccess.open(SAVE, FileAccess.READ)
 			var data: Dictionary = f.get_var()
 			f.close()
-			data["progression"] = {"format": 6, "level": 30, "xp": 0,
+			data["progression"] = {"format": 7, "level": 30, "xp": 0,
 				"bought": ["bl_hail", "bl_mule", "bl_wheel"],
 				"mastery": {"black_leg": {"lv": 20, "xp": 0}}, "steps": {"bl_heel": 2}, "versions": {}, "found": ["black_leg"],
 				"tiers": {}, "uses": {}, "passives": ["", "", ""]}

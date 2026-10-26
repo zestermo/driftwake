@@ -3,7 +3,7 @@ extends SceneTree
 ## be done, the rest greyed with why (and an entry another feature registers joins in). Picking Make camp lays a campfire in front of you and sits you by it; sitting there a
 ## moment rests you (health back, the game saved) and the entry reads "Rest by the fire". The fire burns out.
 const TK := preload("res://tools/dev/test_kit.gd")
-const ALL := ["camp", "train", "cook", "read", "tinker", "fish", "cut_bait", "sleep"]
+const ALL := ["camp", "train", "cook", "read", "meditate", "tinker", "fish", "cut_bait", "sleep"]
 var stage
 var p
 var w
