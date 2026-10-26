@@ -6718,3 +6718,42 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   t/weapons black_leg_tree / black_leg_cleaver_flambe / black_leg_learn updated, black_leg_wheel_hands removed.
   Renders: tools/dev/out/bl23_00_*.png (bl_rise, bl_sky, bl_sky_spike), tools/dev/out/jug_00_*.png.
   Expect at prepush: grunttest, r10test, ragtest, balancetest, techtest, airtest, progtest, nettest.
+
+## 2026-10-26: 1.23 combat core, piece 4: smarter enemies (and the brains at ~10 Hz)
+- **Defend** (PirateGrunt._on_hit): a sword grunt blocks `_block_chance()` (0.25; PirateBoss 0.4) of the blows from
+  the front, never two in a row (`_blocked_last`), always answering with the riposte; else SIDESTEP_CHANCE 0.15 (Quick
+  x2) a sidestep (the elites' dash, on its cooldown). Replaces the old "block until GUARD_BLOCKS, then the guard
+  breaks" (GUARD_BLOCKS, _guard_hits, _guard_max gone). Blows of Poise.KICK 30+ go through it.
+- **Shield grunt** (`shield`; 1 in 6 sword grunts on tier 2+, seeded; cfg "shield"): ShieldMesh on the off hand
+  (scripts/props/shield_mesh.gd); from the front everything (shots too) stops on it until a heavy (poise 25+), a kick
+  or a breaker knocks it aside (reels 1.2 s, guard down SHIELD_DOWN 4 s); flanks land.
+- **Group tactics:** GruntCamp.attackers_for() = max_attackers +1 on tier 3+ (Levels.tier); riflemen keep 10-15 m
+  (RIFLE_FAR 15); a horn-blower (GruntCamp._horn_index: tier 2+, a crew of 4+, its first plain swordsman; cfg "horn")
+  alive 8 s into a fight blows the horn (sfx "horn", a ring) and GruntCamp.call_help sends the nearest other camp
+  within 120 m (group "grunt_camps") to him (answer_horn: post moved there, alerted); men within 10 m of their camp
+  captain in a fight hit x1.15 (_set_rally, checked once a second; puppets via net_event "rally").
+- **Elites** (scripts/combat/elite_traits.gd, EliteTraits.roll: 1 in 6 on tier 2, 1 in 4 on tier 3+, seeded by the
+  grunt's seed and level; cfg "trait"): elite_rank (poise 55, dodges), a wisp aura of the trait's colour while
+  fighting (CPUParticles3D, 14, visibility 45 m), Armoured x1.5 poise, Berserk x1.25 run and 0.85 tells and no flinch
+  under 30% health, Quick 0.7 tells and dodge 0.95 / sidestep x2, Burning blows set you alight (BurnStatus on
+  hitbox.hit_landed, on whichever machine it landed). `_poise_class()` is "elite" only for elite_rank now (a level-12+
+  grunt still dodges like one but stands like a grunt).
+- **Punish:** a heavy started within 4.5 m with the captain facing it that ends without touching it gives 1 s
+  (PUNISH_WINDOW) in which it attacks at once, no turn needed (a lunge from further than its reach). A brute (hammer,
+  greatsword) blocked GRAB_AFTER 3 times (Player._on_hit_received -> `blocked_by`, a host call) reaches (BRUTE_WIND
+  0.45 s, an orange glint) and grabs: HitData.grab -> the captain's GrabbedState (new state "Grabbed",
+  scripts/player_states/grabbed_state.gd, pose jug_held): pinned at his chest, MASH 7 presses of attack / heavy /
+  dodge / block / jump break free (he reels: `grab_ended(true)`), HOLD 2.2 s and he throws you down (16 damage, a
+  knockdown). `grab` rides Net.hit_pack; blocked_by and grab_ended are HOST_CALLS.
+- **Brains (the 1.23 perf track's hook):** PirateGrunt thinks every THINK_EVERY 6 ticks (~10 Hz, staggered by
+  instance id) in THINK_STATES (was every other tick), moving on its last decision between; CaptainBrain plans (skills,
+  footwork, combos) at ~10 Hz the same way, holding the last stick, while seeing attacks and defending stay every tick.
+  Both time their thinking into the spike log (Perf.add_us(Perf.AI, ...); wallclock_allow lines).
+- **Juggling fix:** a juggled grunt passes through captains (collision bit 2 off up there) and lands if something
+  holds it up mid-fall.
+- **Per frame / tick added:** grunts think ~10 Hz instead of 30 (less); `_tactics` on think ticks only (a few
+  comparisons, the rally check once a second over the camp's list); an elite's aura emitter only while it fights.
+- Tests: t/combat/grunt_defend, shield_grunt, elite_traits, grunt_punish, grunt_tactics; grunt_pressed updated (a
+  light blow no longer stuns it, so it answers while they're landing). Render: tools/dev/eliteshot.gd ->
+  tools/dev/out/elite_line.png / elite_shield.png / elite_juggle.png. Expect at prepush: grunttest, guntest,
+  balancetest, r10test, bosstest, leveltest, the rival suites, nettest.

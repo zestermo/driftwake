@@ -59,6 +59,10 @@ const FOE_ATTACKS := ["LightAttack", "HeavyAttack", "Technique", "Skill", "Plung
 ## The ultimate waits for one of these (or a missed swing); combos only for a missed swing, never a stagger (no stunlocks).
 const OPENINGS := ["Stagger"]
 const SPRINT_FROM := 8.0
+## Its plan is made every THINK_EVERY ticks (~10 Hz); the stick it last chose is held in between.
+const THINK_EVERY := 6
+var _last_move := Vector2.ZERO
+var _last_sprint := false
 
 
 func _ready() -> void:
@@ -131,9 +135,18 @@ func _physics_process(_d: float) -> void:
 	_watch_foe(dist)
 	if _defend(bi, dist):
 		return
-	if _cast(dist):
+	# (the plan, skills and footwork at ~10 Hz, staggered by instance, holding the last stick in between; seeing an
+	# attack and defending stay every tick: 1.23 perf track)
+	if (_now() + get_instance_id()) % THINK_EVERY != 0:
+		bi.move = _last_move
+		bi.hold("sprint", _last_sprint)
 		return
-	_move_and_swing(bi, dist)
+	var t0 := Time.get_ticks_usec()
+	if not _cast(dist):
+		_move_and_swing(bi, dist)
+	_last_move = bi.move
+	_last_sprint = bi.held.get("sprint", false)
+	Perf.add_us(Perf.AI, Time.get_ticks_usec() - t0)
 
 
 func _standing(c: Node3D) -> bool:

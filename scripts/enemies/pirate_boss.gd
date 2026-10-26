@@ -189,8 +189,8 @@ func _combo_hits() -> int:
 	return 3
 
 
-func _guard_max() -> int:
-	return 5
+func _block_chance() -> float:
+	return 0.4
 
 
 func _wind_len() -> float:

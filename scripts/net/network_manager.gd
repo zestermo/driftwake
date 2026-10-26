@@ -38,7 +38,7 @@ const XP_RANGE := 40.0
 const CONNECT_TIMEOUT := 10.0
 const WEB_NO_COOP := "Co-op needs the desktop build"
 ## What clients may ask the host to do to an enemy (see ask_host).
-const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole", "perfect_parried", "launched"]
+const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole", "perfect_parried", "launched", "blocked_by", "grab_ended"]
 
 var active: bool = false
 var hosting: bool = false
@@ -1235,7 +1235,7 @@ func applying() -> bool:
 # ==========================================================================
 func hit_pack(h: HitData) -> Array:
 	return [h.damage, h.knockback_force, h.hitstop_duration, h.camera_shake_intensity, h.stagger_duration,
-		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege, h.crumple, h.breaker, h.sever, h.predictable, h.impact, h.poise, h.launch]
+		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege, h.crumple, h.breaker, h.sever, h.predictable, h.impact, h.poise, h.launch, h.grab]
 
 
 func hit_unpack(a: Array) -> HitData:
@@ -1260,6 +1260,7 @@ func hit_unpack(a: Array) -> HitData:
 	h.impact = str(a[15]) if a.size() > 15 else ""
 	h.poise = float(a[16]) if a.size() > 16 else -1.0
 	h.launch = float(a[17]) if a.size() > 17 else 0.0
+	h.grab = a.size() > 18 and bool(a[18])
 	return h
 
 
