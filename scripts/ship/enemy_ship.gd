@@ -43,7 +43,17 @@ const KINDS := {
 	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
 		"boards": false, "rams": true, "double": false, "yields": false, "chain": true,
 		"look": {"hull_tex": "planks_grey", "hull": Color(0.95, 0.97, 1.0), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
+	# a pirate hunter: light and quick (quicker still before the wind: "downwind"), chain shot to bring you to her
+	"hunter": {"speed": 13.0, "hull": 190.0, "guns": [-4.2, 0.6], "crew": 5, "range": [30.0, 50.0], "scatter": 0.9,
+		"boards": true, "rams": true, "double": false, "yields": true, "chain": true, "downwind": 0.2,
+		"look": {"hull": Color(0.3, 0.32, 0.38), "deck": Color(0.7, 0.64, 0.56), "trim": Color(0.85, 0.68, 0.22), "sail": Color(0.42, 0.12, 0.1), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
+	# the Admiralty's heavy ship: slow, a double broadside, a crack gun crew
+	"frigate": {"speed": 11.0, "hull": 480.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [36.0, 60.0], "scatter": 0.6,
+		"boards": false, "rams": true, "double": true, "yields": false, "chain": true,
+		"look": {"hull_tex": "planks_grey", "hull": Color(0.8, 0.83, 0.88), "deck": Color(0.78, 0.8, 0.85), "trim": Color(0.3, 0.34, 0.42), "sail": Color(0.85, 0.86, 0.9), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 }
+## The Admiralty's kinds (group "admiralty", grey crews, an Admiralty ship's bounty).
+const ADMIRALTY_KINDS := ["marine", "frigate"]
 
 const ACCEL := 2.6
 const MAX_TURN := 0.5
@@ -209,14 +219,22 @@ func setup(center: Vector3, radius: float, start_angle: float, seed_value: int, 
 
 
 func _max_speed() -> float:
-	return float(spec["speed"]) * Ship.wind_boost(_heading, get_node_or_null("/root/Weather"))
+	var wx := get_node_or_null("/root/Weather")
+	var k := Ship.wind_boost(_heading, wx)
+	# (a hunter's rig loves the wind from astern: up to "downwind" more, fading out by a beam reach)
+	var dw: float = spec.get("downwind", 0.0)
+	if dw > 0.0:
+		var wd: Vector2 = wx.wind_dir()
+		var a := rad_to_deg(absf(Vector2(-sin(_heading), -cos(_heading)).angle_to(wd)))
+		k += dw * (1.0 - smoothstep(45.0, 100.0, a)) * lerpf(0.5, 1.0, clampf(float(wx.get("wind")), 0.0, 1.0))
+	return float(spec["speed"]) * k
 
 
 func _ready() -> void:
 	add_to_group("enemy_ships")
 	add_to_group("net_sync")
 	add_to_group("decks")
-	if kind == "marine":
+	if kind in ADMIRALTY_KINDS:
 		add_to_group("admiralty")
 	net_puppet = Net.is_client()
 	_rng.seed = look_seed
@@ -291,7 +309,7 @@ func _ready() -> void:
 	_bark.visible = false
 	add_child(_bark)
 	# her name and hull over the masthead, up for the whole fight
-	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter"}.get(kind, "Pirate Ship")
+	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter", "hunter": "Pirate Hunter", "frigate": "Admiralty Frigate"}.get(kind, "Pirate Ship")
 	_bar = OverheadBar.new().setup(title, HullBuilder.MAST_TOP + 2.6, 5.5, 320.0)
 	_bar.visible = false
 	add_child(_bar)
@@ -409,20 +427,24 @@ func _physics_process(delta: float) -> void:
 			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS and _wants_crew():
 				_set_state(S.HUNT)
 				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
-				bark("That's the wanted ship! Come about!" if kind == "marine" else "A ship! Run out the guns!", 2.5)
+				bark("That's the wanted ship! Come about!" if kind in ADMIRALTY_KINDS else "A ship! Run out the guns!", 2.5)
 				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.HUNT, S.BROADSIDE:
 			var near_r: float = spec["range"][0]
 			var far_r: float = spec["range"][1]
 			if tgt == null or dist > LOSE or not _huntable(tgt):
 				_set_state(S.PATROL)
-				bark("Bah, let 'em go." if kind != "marine" else "They've slipped us. Back to patrol.")
+				bark("Bah, let 'em go." if kind not in ADMIRALTY_KINDS else "They've slipped us. Back to patrol.")
 			elif hull < max_hull * FLEE_AT and not _fled:
 				_fled = true
 				_set_state(S.FLEE)
-				bark(["Fall back! Fall back!", "She's holed! Run for it!"][_rng.randi() % 2] if kind != "marine" else "Disengage! Make for open water!", 2.5)
+				bark(["Fall back! Fall back!", "She's holed! Run for it!"][_rng.randi() % 2] if kind not in ADMIRALTY_KINDS else "Disengage! Make for open water!", 2.5)
 			elif state == S.HUNT:
-				var lead := tgt.global_position + _vel_of(tgt) * 2.5 - _pos
+				_tactic_t -= delta
+				if _tactic_t <= 0.0:
+					_tactic_t = 0.25
+					_tactic(tgt, dist)
+				var lead := tactic_at - _pos
 				want_heading = atan2(-lead.x, -lead.z)
 				want_speed = _max_speed()
 				# (a beam coming to bear on the way in is a chance not to waste)
@@ -550,6 +572,61 @@ func _set_state(s: S) -> void:
 	_hook_t = -1.0
 	if s in [S.BOARD, S.PATROL]:
 		_fight_t = 0.0
+
+
+## Fleet tactics (docs/v1_23_plan.md, sea pursuit), closing in: with others on the crew each takes a part by its
+## place among them (by name: the same every time): the first runs her down on her wake, the second cuts across her
+## course ahead of her, the third takes the weather gauge (upwind of her). Near land or a reef the second and later
+## steer for her open-water side instead, pinning her against it. Sets tactic_role and tactic_at (world).
+const PIN_REACH := 170.0
+const PIN_OFF := 45.0
+var tactic_role := "chase"
+var tactic_at := Vector3.ZERO
+var _tactic_t: float = 0.0
+
+
+func _tactic(tgt: Node3D, dist: float) -> void:
+	var mates: Array = []
+	for s in get_tree().get_nodes_in_group("enemy_ships"):
+		if (s as EnemyShip).state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]:
+			mates.append(String(s.name))
+	mates.sort()
+	var i := mates.find(String(name))
+	var tp := tgt.global_position
+	var vel := _vel_of(tgt)
+	tactic_role = "chase"
+	tactic_at = tp + vel * 2.5
+	if i <= 0:
+		return
+	var land := _land_near(tp)
+	if land != Vector3.INF:
+		tactic_role = "pin"
+		tactic_at = tp + vel * 3.0 + Vector3(tp.x - land.x, 0.0, tp.z - land.z).normalized() * PIN_OFF
+	elif i == 1:
+		tactic_role = "cut"
+		var t := clampf(dist / maxf(_max_speed(), 1.0), 4.0, 18.0)
+		tactic_at = tp + vel * t + (vel.normalized() * 25.0 if vel.length() > 1.0 else Vector3.ZERO)
+	else:
+		tactic_role = "gauge"
+		var wd: Vector2 = get_node("/root/Weather").wind_dir()
+		tactic_at = tp + vel * 4.0 - Vector3(wd.x, 0.0, wd.y) * float(spec["range"][1])
+
+
+## The nearest island or reef within PIN_REACH of `p` (its centre), or INF.
+func _land_near(p: Vector3) -> Vector3:
+	var circles: Array = no_go.duplicate()
+	var sf := get_tree().get_first_node_in_group("sea_features")
+	if sf:
+		circles.append_array(sf.reefs + sf.legs.reefs)
+	var best := Vector3.INF
+	var bd := PIN_REACH
+	for z in circles:
+		var c: Vector2 = z[0]
+		var d := Vector2(p.x, p.z).distance_to(c) - float(z[1])
+		if d < bd:
+			bd = d
+			best = Vector3(c.x, 0.0, c.y)
+	return best
 
 
 ## How many other ships are fighting the crew right now.
@@ -855,7 +932,7 @@ static func crew_plan(seed_value: int, kind_name: String) -> Array:
 	for i in range(mini(int(KINDS[kind_name]["crew"]), CREW_SPOTS.size())):
 		var look := PirateGrunt.crew_look(rng)
 		look["name"] = "Pirate"
-		if kind_name == "marine":
+		if kind_name in ADMIRALTY_KINDS:
 			EnemyShip.marine_look(look, rng, i == 0)
 		out.append([look, WeaponDesigns.random_design("cutlass", rng)])
 	return out
@@ -1287,7 +1364,7 @@ func _strike() -> void:
 ## Does she come after the crew's ship? Pirates always; the Admiralty once the crew's bounties together are
 ## Notorious (Bounty: "patrols come about for you"). Fired on, either comes for you (_on_hit).
 func _wants_crew() -> bool:
-	if kind != "marine":
+	if kind not in ADMIRALTY_KINDS:
 		return true
 	return Bounty.tier_of(crew_bounty(get_tree())) >= ADMIRALTY_FROM
 

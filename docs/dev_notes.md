@@ -6494,4 +6494,14 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   CUT_TIME 1.1 s. Lines let go when the holder sinks or is gone, part after 1 s strained past LINE_SNAP 26 m, and go
   when nobody's left aboard the crew's ship (`unlash`). Hook and rope drawn on every screen (`_ropes`, world-space
   rope to the holder's interpolated transform). A banner "Grappled!" / toast "Cut free!" on every screen.
-- Tests: t/ship/chain_shot, t/ship/grapple_cut.
+- **Hunters and the frigate** (piece 2): KINDS "hunter" (pirate: 13 m/s, hull 190, two guns a side, chain shot,
+  `"downwind": 0.2` more speed running before the wind, fading out by a beam reach: ~16 m/s downwind, 13 into it)
+  and "frigate" (Admiralty: 11 m/s, hull 480, four guns, double broadside, chain). `ADMIRALTY_KINDS` replaces the
+  old `kind == "marine"` checks (group, crew looks, barks, the bounty gate). Sea legs: hunters from level 10, a
+  frigate zone at 18 (`SeaLegs.FLEETS`). Salvage/Seamanship tables have both.
+- **Fleet tactics** (piece 2): closing in (HUNT), `_tactic` (4 Hz) gives each ship on the crew a part by its place
+  among them sorted by name: "chase" (her wake, as before), "cut" (where she'll be in dist/speed s, 4-18, plus 25 m),
+  "gauge" (upwind of her by its far range); near land or a reef (`_land_near`: no_go circles and SeaFeatures reefs
+  within PIN_REACH 170 m) the second and later "pin" her from the open-water side (PIN_OFF 45 m). `tactic_role`,
+  `tactic_at`. MAX_ATTACKERS stays 2 for pirates.
+- Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics.
