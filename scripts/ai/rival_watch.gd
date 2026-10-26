@@ -127,17 +127,28 @@ func _physics_process(delta: float) -> void:
 	var officer_here := int(plan().get("officer", -1)) >= 0 and int(plan().get("officer", -1)) == int(gm.chain_at)
 	if not crew_here and not hunters_here and not officer_here:
 		return
-	var p: Player = gm.player
-	if p == null or not is_instance_valid(p) or not p.is_inside_tree():
-		return
 	var isl = _island(int(gm.chain_at))
 	if isl == null:
 		return
 	var dock: Vector3 = isl.to_global(Vector3(isl.sites["dock_end"].x, 0.0, isl.sites["dock_end"].y))
-	var ashore: bool = p.context == Player.Context.ON_FOOT and p.is_on_floor() and not p.is_swimming() \
-		and not _aboard(p)
-	_ashore = _ashore + dt if ashore else 0.0
-	var flat := Vector2(p.global_position.x - dock.x, p.global_position.z - dock.z).length()
+	# the captain they come for: whoever's furthest inland, on foot (any captain in co-op, not only the host's).
+	# Jumps, dodges and swings don't count as leaving the island; only boarding the ship or swimming does.
+	var p: Player = null
+	var flat := -1.0
+	for c in Net.all_players():
+		if not (c is Player) or not is_instance_valid(c) or not c.is_inside_tree():
+			continue
+		var cp := c as Player
+		if cp.context != Player.Context.ON_FOOT or cp.is_swimming() or _aboard(cp) \
+				or (cp.has_method("is_standing") and not cp.is_standing()):
+			continue
+		var d := Vector2(cp.global_position.x - dock.x, cp.global_position.z - dock.z).length()
+		if d > flat:
+			flat = d
+			p = cp
+	_ashore = _ashore + dt if p != null else 0.0
+	if p == null:
+		return
 	if Cutscene.active or _hostile_near(p):
 		return
 	if officer_here:

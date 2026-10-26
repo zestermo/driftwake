@@ -1132,6 +1132,9 @@ func _physics_process(delta: float) -> void:
 		_revive_target = null
 		body_model.kneeling = false
 	_ride_ship()
+	# slipped through the ground into the sea under an island: back on top (GroundNet)
+	if Engine.get_physics_frames() % GroundNet.EVERY == 0 and GroundNet.rescue(self):
+		state_machine.force_state("Idle", {})
 	# swimming in a whirlpool: dragged round and in with the water
 	if current_state_name() == "Swim":
 		var sf := get_tree().get_first_node_in_group("sea_features")

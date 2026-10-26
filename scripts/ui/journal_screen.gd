@@ -2,7 +2,7 @@ extends Control
 ## The crew journal (J, Journal.screen): tabs Active / Done / Rumours. Active and Done list the quests on
 ## the left (the story first while it's on) and the picked one on the right: who gave it and where, its steps
 ## (done, now, still to come), the reward, and Track (the objective HUD follows it). Rumours lists what the
-## crew has heard. Keys: A/D tabs, W/S pick, T track, J or Esc close; the mouse works too.
+## crew has heard. Keys: A/D tabs, W/S pick, T track, X drop (twice: it asks first), J or Esc close; the mouse works too.
 
 const TABS := ["active", "done", "rumours"]
 const NAMES := {"active": "ACTIVE", "done": "DONE", "rumours": "RUMOURS"}
@@ -24,6 +24,9 @@ var _scroll: ScrollContainer
 var _info: VBoxContainer
 var _info_box: Control
 var _track: Button
+var _drop: Button
+## The quest Drop was pressed for once (a second press drops it).
+var _drop_armed := ""
 
 
 func _init(journal: Node) -> void:
@@ -89,11 +92,16 @@ func _init(journal: Node) -> void:
 	_track.focus_mode = Control.FOCUS_NONE
 	_track.pressed.connect(_toggle_track)
 	_info_box.add_child(_track)
+	_drop = UIStyle.button("Drop", 90)
+	_drop.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_drop.focus_mode = Control.FOCUS_NONE
+	_drop.pressed.connect(_drop_quest)
+	_info_box.add_child(_drop)
 	vb.add_child(InventoryScreen._rule())
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 10)
 	vb.add_child(foot)
-	for h in [["J", "CLOSE"], ["A D", "TAB"], ["W S", "PICK"], ["T", "TRACK"]]:
+	for h in [["J", "CLOSE"], ["A D", "TAB"], ["W S", "PICK"], ["T", "TRACK"], ["X", "DROP"]]:
 		foot.add_child(UIStyle.key_hint(h[0], h[1]))
 	journal.changed.connect(func():
 		if is_visible_in_tree():
@@ -127,6 +135,8 @@ func key(ev: InputEventKey) -> void:
 			pick(sel + 1)
 		KEY_T, KEY_ENTER, KEY_SPACE, KEY_F:
 			_toggle_track()
+		KEY_X, KEY_DELETE:
+			_drop_quest()
 
 
 func pick(i: int) -> void:
@@ -135,6 +145,7 @@ func pick(i: int) -> void:
 	var n := clampi(i, 0, rows.size() - 1)
 	if n != sel:
 		UIStyle.sfx("move")
+		_drop_armed = ""
 	sel = n
 	refresh()
 
@@ -171,6 +182,7 @@ func refresh() -> void:
 		l.custom_minimum_size = Vector2(_scroll.custom_minimum_size.x - 8, 0)
 		_list.add_child(l)
 		_track.visible = false
+		_drop.visible = false
 		return
 	for i in range(rows.size()):
 		_list.add_child(_row(i))
@@ -195,7 +207,8 @@ func _row(i: int) -> Control:
 	pc.mouse_filter = Control.MOUSE_FILTER_STOP
 	pc.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			pick(i))
+			# (deferred: picking rebuilds the list, and this row mustn't be freed inside its own click)
+			pick.call_deferred(i))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", -2)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -231,6 +244,8 @@ func _fill_info(r: Dictionary) -> void:
 	var id: String = r["id"]
 	_track.visible = tab == "active"
 	_track.text = "Tracking" if _journal.tracked == id else "Track"
+	_drop.visible = tab == "active" and id != "story"
+	_drop.text = "Sure?" if _drop_armed == id else "Drop"
 	if id == "story":
 		_line(_title("Your story"))
 		_line(_wrap("The tale that began on Brinehollow's beach.", UIStyle.TEXT_DIM))
@@ -291,4 +306,21 @@ func _toggle_track() -> void:
 		return
 	var id: String = rows[sel]["id"]
 	_journal.track("" if _journal.tracked == id else id)
+	UIStyle.sfx("confirm")
+
+
+## Drop the picked quest: the first press asks, the second drops it (the story can't be dropped).
+func _drop_quest() -> void:
+	if tab != "active" or rows.is_empty():
+		return
+	var id: String = rows[sel]["id"]
+	if id == "story":
+		return
+	if _drop_armed != id:
+		_drop_armed = id
+		UIStyle.sfx("select")
+		refresh()
+		return
+	_drop_armed = ""
+	_journal.abandon(id)
 	UIStyle.sfx("confirm")

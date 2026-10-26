@@ -180,6 +180,10 @@ var _threat_skip: bool = false
 var _iframe_on: bool = false
 var _guard_hits: int = 0
 var _guard_t: float = 0.0
+## Seconds left of being pressed in melee (a captain hitting it up close): it may answer without the camp's attack
+## token, so a grunt you're fighting hits back instead of circling and blocking until its turn comes.
+var _pressed_t: float = 0.0
+const PRESSED_FOR := 2.5
 ## A bullet flinches it at most once this often (rapid fire can't hold it in hitstun).
 const SHOT_FLINCH_EVERY := 1.0
 var _shot_flinch_t: float = 0.0
@@ -682,6 +686,7 @@ func _physics_process(delta: float) -> void:
 	_cooldown -= delta
 	_peril_cd -= delta
 	_guard_t -= delta
+	_pressed_t -= delta
 	_shot_flinch_t -= delta
 	if _guard_t <= 0.0:
 		_guard_hits = 0
@@ -795,7 +800,7 @@ func _physics_process(delta: float) -> void:
 					_start_aim("pistol")
 				elif dist > CIRCLE_RANGE + 3.0:
 					_set_state(S.CHASE)
-				elif _cooldown <= 0.0 and _player_ok(p) and (lured or _get_token()):
+				elif _cooldown <= 0.0 and _player_ok(p) and (lured or _pressed(dist) or _get_token()):
 					_attack = _choose_attack(dist)
 					_swing_i = 0
 					_begin_attack(dist)
@@ -1145,12 +1150,17 @@ func _feed_body(hv: Vector3, running: bool) -> void:
 	humanoid.lod = not in_combat()
 
 
+## How far from its post it follows a fight before going home (bosses: further, so a knockback can't send them home).
+func _leash() -> float:
+	return LEASH
+
+
 func _lost(p: Node3D, dist: float) -> bool:
 	if p == null:
 		return true
 	if boarder:
 		return dist > 60.0
-	if dist > GIVE_UP_RANGE or _flat(global_position - post).length() > LEASH:
+	if dist > GIVE_UP_RANGE or _flat(global_position - post).length() > _leash():
 		return true
 	# the player swam off / is on the ship: give up after a while
 	if not _player_ok(p) and str(p.call("current_state_name")) != "Downed" and st_t > 4.0:
@@ -1176,6 +1186,11 @@ func leap(to: Vector3, t: float = 1.0) -> void:
 	humanoid.play("flip", minf(t, 0.9))
 	bark(["Boarders away!", "Take the ship!", "Yaaargh!", "Over the side, lads!"], 0.8)
 	_set_state(S.LEAP)
+
+
+## Being fought up close: answer back, token or not.
+func _pressed(dist: float) -> bool:
+	return _pressed_t > 0.0 and dist < maxf(_reach() + 1.5, CIRCLE_RANGE + 2.0)
 
 
 func _get_token() -> bool:
@@ -1760,6 +1775,8 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DASH and st_t < DASH_IFRAMES and not hit.dot:
 		return
 	_hit_by = attacker
+	if not hit.ranged and attacker is Node3D and (attacker as Node3D).is_in_group("players"):
+		_pressed_t = PRESSED_FOR
 	var dir := Vector3.ZERO
 	if attacker is Node3D:
 		dir = _flat(global_position - (attacker as Node3D).global_position)
@@ -2417,7 +2434,7 @@ func _leave_water() -> void:
 	_swim_vy = 0.0
 	var p := _target()
 	var dist := _flat(p.global_position - global_position).length() if p else INF
-	if p and _player_ok(p) and dist < GIVE_UP_RANGE and _flat(global_position - post).length() < LEASH:
+	if p and _player_ok(p) and dist < GIVE_UP_RANGE and _flat(global_position - post).length() < _leash():
 		_cooldown = 0.8
 		_set_state(S.KEEP if role == "rifle" else S.CHASE)
 	else:
@@ -2580,7 +2597,7 @@ func _start_reposition(p: Node3D) -> void:
 		var a := _rng.randf() * TAU
 		var r := _rng.randf_range(11.0, 15.0)
 		var c := p.global_position + Vector3(cos(a), 0, sin(a)) * r
-		if _flat(c - post).length() > LEASH - 2.0:
+		if _flat(c - post).length() > _leash() - 2.0:
 			continue
 		# stand on the ground there
 		var down := PhysicsRayQueryParameters3D.create(c + Vector3(0, 12, 0), c + Vector3(0, -12, 0), 1)

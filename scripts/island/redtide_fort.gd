@@ -710,7 +710,9 @@ func _process(delta: float) -> void:
 		var near := false
 		for p in Net.all_players():
 			var pp := p as Node3D
-			if pp.global_position.distance_to(center) < RESET_RANGE and p.has_method("is_standing") and p.is_standing():
+			# near the fort, or near Morrow himself wherever the fight took him
+			if (pp.global_position.distance_to(center) < RESET_RANGE or pp.global_position.distance_to(boss.global_position) < 35.0) \
+					and p.has_method("is_standing") and p.is_standing():
 				near = true
 		_empty_t = 0.0 if near else _empty_t + delta
 		if _empty_t > 5.0:

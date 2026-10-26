@@ -141,7 +141,14 @@ func register(q: Dictionary, source: Node) -> void:
 func take(id: String) -> void:
 	var q: Dictionary = _defs[id]
 	_ask("take", [{"id": id, "title": q["title"], "giver": q["giver"], "isle": q["isle"], "pos": q["pos"], "src": q["src"],
-		"goals": q["steps"].map(func(s): return str(s["goal"])), "step": 0, "done": false, "reward": q["reward"], "cost": q.get("cost", [])}])
+		"goals": q["steps"].map(func(s): return str(s["goal"])), "step": 0, "done": false, "reward": q["reward"], "cost": q.get("cost", []),
+		"by": Net.my_id()}])
+
+
+## Drop a quest the crew doesn't want any more (it leaves the journal and the map; it can be taken again).
+func abandon(id: String) -> void:
+	if _live(id):
+		_ask("drop", [id])
 
 
 ## Step `n` of quest `id` is done (by any captain: the host takes the first word of it).
@@ -199,6 +206,9 @@ func decide(op: String, args: Array) -> void:
 		"favour":
 			if not favour_owed(args[0]):
 				return
+		"drop":
+			if not _live(args[0]):
+				return
 		"rumour":
 			if rumours.any(func(r): return r["text"] == args[0]["text"]):
 				return
@@ -231,7 +241,8 @@ func apply(op: String, args: Array) -> void:
 			_order += 1
 			e["order"] = _order
 			entries[e["id"]] = e
-			if not tracking():
+			# the captain who took it follows it at once (a crewmate's new quest only if you follow nothing)
+			if int(e.get("by", -1)) == Net.my_id() or not tracking():
 				tracked = e["id"]
 			_toast("New quest: %s" % e["title"])
 			UIStyle.sfx("quest_accept")
@@ -251,6 +262,13 @@ func apply(op: String, args: Array) -> void:
 			var me := _me()
 			if int(args[1]) == Net.my_id() and me:
 				_toast("%s's favour: %s" % [f["who"], QuestRewards.give({"items": f["gift"]}, me)])
+		"drop":
+			var title := str(entries[args[0]]["title"]) if entries.has(args[0]) else ""
+			entries.erase(args[0])
+			if tracked == args[0]:
+				var left := active()
+				tracked = left[0]["id"] if not left.is_empty() else "story"
+			_toast("Quest dropped: %s" % title)
 		"rumour":
 			rumours.append(args[0])
 			if rumours.size() > RUMOURS:

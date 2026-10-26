@@ -25,6 +25,9 @@ var _seen_attack := -1      # the tick it saw the foe's attack start
 var _react_at := -1         # the tick it answers it
 var _foe_state := ""
 var _holding_block_until := 0
+## After a dodge, parry or block it can't answer again until this tick (1.23: it turtled behind back-to-back
+## defences; now a pressed captain gets hits in between).
+var _no_defend_until := 0
 var _skill_at := 0
 var _last_defence := ""
 ## How it answered the attacks it saw (dodge, parry, block, none): a count each.
@@ -301,6 +304,9 @@ func _defend(bi: CaptainInput.BrainInput, dist: float) -> bool:
 	_react_at = -1
 	if not (_foe_state_name() in FOE_ATTACKS) or dist > 4.5 or not p.is_free() and p.current_state_name() not in ["LightAttack"]:
 		return false
+	if _now() < _no_defend_until:
+		answers["none"] = int(answers.get("none", 0)) + 1
+		return false
 	var r := rng.randf()
 	var dodge := lerpf(0.12, 0.45, skill)
 	var parry := lerpf(0.04, 0.25, skill)
@@ -324,6 +330,8 @@ func _defend(bi: CaptainInput.BrainInput, dist: float) -> bool:
 	else:
 		_last_defence = "none"
 		answers[_last_defence] = int(answers.get(_last_defence, 0)) + 1
+	if _last_defence != "none":
+		_no_defend_until = _now() + _ticks(lerpf(1.8, 1.0, skill))
 	return true
 
 
