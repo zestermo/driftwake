@@ -63,6 +63,17 @@ weapons and armour stats move back a step (strongholds and Driftfruits likewise)
 | Wandering beasts | **Fewer, with behaviour**: herds graze and flee, predators stalk and ambush from cover, territorial ones warn first (posture, roar) before charging; the roamer becomes a rare event you hear coming, with the bosses' motion pass | Zach | After play |
 | Order | **1** bug pass (terrain falls, arena resets, guard spam, missing rivals, quests and journal); **2** combat core: poise, smarter enemies, points per tree (previews first); **3** the beast motion pass (2-3 bosses first); **4** sea pursuit and the Marines; **5** island arcs (arc list previewed first); **6** bounty UI and rivals; then the capital arena polish and the roamers. Unstable builds as pieces land | Zach | - |
 
+### Cutscenes and dialogue (2026-10-26)
+Found: `Cutscene` (scripts/dialogue/cutscene.gd) types lines at `CHARS_PER_S` 38, holds `LINE_HOLD` 1.1 s, then moves on
+by itself; nothing waits for input. That's why lines were "too fast to read" and "kept going without pressing anything".
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Advancing | **Press to advance**: each line waits for a key press (the first finishes the typing, the second goes on); the text types slower. Co-op: a line moves on once every captain has pressed, or after a ~10 s timeout so one AFK crewmate can't stall the crew. Skip-all stays as it is (everyone presses skip) | Readable, your own pace | After play |
+| Replies | **Choices that matter a bit**: 2-3 replies at key moments (rival standoffs, arc villains, quest givers), cocky / cool / diplomatic. A reply changes their next line and sometimes the outcome (fight now or later, a bribe, a better price, a rival's grudge). Co-op: the captain who was spoken to picks, and every screen shows the choice | Agency without writing full dialogue trees | Arc list preview |
+
+Order: advancing is a bug-pass fix (step 1); replies come with the island arcs (step 5) and the rivals (step 6).
+
 ### Open / deferred
 - Rival presence beyond the bug fix (Zach: no preference): **assumed** more often on islands (a gap of 2, and a crew
   can turn up mid-arc as a third party) and rivalry made visible (their posters and bounties beside yours, news of them
