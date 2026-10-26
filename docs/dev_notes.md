@@ -6703,3 +6703,28 @@ Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md ro
   from IslandLife.plan's worker (smoketest caught it: the tests build islands on the main thread).
 - Tests: t/quests/arc_roll, arc_beats, arc_reply, arc_hidden. Expected to touch: lifetest, villagetest, isletest,
   nettest (net), chaintest (the chain nodes' new key).
+
+## 2026-10-26: 1.23 island arcs, piece 4: the other eight templates
+
+- Iron Boot (outpost: the corrupt captain and his marines at the outpost's yard; the dock clerk's moment, the ledger
+  behind the outpost; hidden: met with the ledger in hand, his marines leave him), The Stolen Heirloom (cave: three
+  witnesses' "talks", the thieves' hideout reached, the Fox and his men in the cave's second chamber at its floor's
+  height; meet_r 14 and no meeting once he's hurt; hidden: hit before he saw anyone), The Cursed Festival (fog only:
+  the drowned at the village's edge, four festival lanterns round the place; villain the fog isle's ghost captain, or
+  the drowned crew's camp captain when the beast is another; hidden: the ghost snuffs a lantern every 20 s in the
+  fight, all lit at his fall), The Rebellion (outpost: the muskets at the old stones, the rebel's moment: "allies"
+  brings three militia NPCs who close on him; one with a foe beside it for 4 s falls; hidden: none fell), The
+  Castaway Noble (the castaway at the lookout, "escort": follows the nearest captain to the village; the ransomers at
+  the dock; "gain:200" hands them over; hidden: the noble within 3 m of him in the fight lands a blow, 8%), The
+  Poisoned Well (herbs, the healer's moment; a BroodQueen (cave = the arc: its Brood nest) at the burrows, woken at
+  20 m, reset after 8 s alone; hidden: dead within 150 s of waking, a toast countdown on every screen), The
+  Champion's Challenge (three students one at a time: max_attackers 1; the swordmaster alone; "fair" at the meeting;
+  hidden: no captain's Technique or Skill state near him after that, each machine reports its own), The Treasure Race
+  (three map pieces anywhere, a reach step with a 150 s race (+60 for the digger's tip); the rival crew at the cave
+  mouth; hidden: reached in time).
+- A crew villain whose captain's body is already gone counts as fallen (no reply, no hidden finish).
+- The arc's own villains are a GruntCamp "Villain" (captain cfg + men) built at the showdown on every machine.
+- Hidden rewards are the cache (a trait weapon two tiers up); the spec's named weapon / technique variant / flag emblem
+  need item and progression support (open). Will points: TODO in `_fall` (the progression agent's API).
+- Test: t/quests/arc_templates (all ten made on one island with an outpost added: text filled, places and contacts
+  on the island, each step done as a captain would, the villain falls, chest, the elder waits).

@@ -66,6 +66,15 @@ func _rolls() -> void:
 	check("every roll fits its island's facts", ok_fit)
 	check("the same facts roll the same template", same)
 	check("no village: no arc", none_ok)
+	var fog := true
+	for id in range(1, 13):
+		var f := {"id": id, "theme": "fog", "outpost": id % 2 == 0, "cave": true, "village": true, "chain": 11}
+		fog = fog and A.pick(f) == "festival"
+		var nf := f.duplicate()
+		nf["theme"] = "jungle"
+		fog = fog and A.pick(nf) != "festival"
+	seen["festival"] = fog
+	check("the fog isle rolls the Cursed Festival, and only the fog isle", fog)
 	check("neighbouring islands mostly roll different templates (%d of 33)" % differ, differ >= 22)
 	check("every template turns up (%s)" % [seen.keys()], seen.size() == A.TEMPLATES.size())
 
