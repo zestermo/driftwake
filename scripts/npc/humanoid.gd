@@ -42,6 +42,9 @@ var _lod_acc: float = 0.0
 var _lod_phase: int = -1
 static var _cam: Camera3D
 static var _cam_frame: int = -1
+## Posing time (us) and rigs posed since Perf last took them (the spike log's "anim").
+static var anim_us := 0
+static var anim_n := 0
 
 var pivot: Node3D
 var hips: Node3D
@@ -2886,7 +2889,8 @@ func _process(delta: float) -> void:
 			return
 	var t0 := Time.get_ticks_usec()
 	_pose(delta)
-	Perf.add_us(Perf.ANIM, Time.get_ticks_usec() - t0)
+	anim_us += Time.get_ticks_usec() - t0
+	anim_n += 1
 
 
 func _pose(delta: float) -> void:

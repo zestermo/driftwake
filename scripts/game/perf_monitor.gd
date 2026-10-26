@@ -125,6 +125,10 @@ func _process(delta: float) -> void:
 	var pipes := _pipe_counts()
 	var nodes := int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var ticks := Engine.get_physics_frames()
+	_cat_us[ANIM] += Humanoid.anim_us
+	_cat_n[ANIM] += Humanoid.anim_n
+	Humanoid.anim_us = 0
+	Humanoid.anim_n = 0
 	if ms > HITCH_MS:
 		_hitches += 1
 	if ms > SPIKE_MS:
