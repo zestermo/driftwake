@@ -29,3 +29,8 @@ pieces decided while 1.23 was building: new Will paths and crew techniques.
 | Pistol / corsair | **Covering Fire**: you suppress an area | crewmates inside take less damage and reload faster |
 | Fists | **Human Cannonball**: cup your hands | they launch from your grip (shorter, faster than the kick) |
 | Driftfruit | the fruit's own (a vine bridge, a flame dash a crewmate rides) | per fruit |
+
+## Previews approved (Zach, 2026-10-26)
+docs/v1_24_previews.md approved as written: armour/clothing weight + up to two stats a piece, rarity scaling, 3-piece
+sets; the four Will paths (Tide, Tempo, Fury, Bond) and the upgrades to Iron, Sense and Captain's Will; crew techniques
+on C, 90 s (60 s quick ones), a 6 s join zone (F), solo self-versions.
