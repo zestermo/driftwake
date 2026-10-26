@@ -25,7 +25,7 @@ class_name EnemyShip
 
 signal sunk(ship: EnemyShip)
 
-enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE }
+enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE, TRACK, BLOCK }
 
 ## What sails: speed, hull, guns a side (deck z), crew, broadside range
 ## [near, far], aim scatter, and how it fights (boards / rams / a second
@@ -87,6 +87,8 @@ const HOOK_TIME := 1.2
 const HOOK_LOSE := 18.0
 ## Lashed alongside with her boarders beaten: this long before the next party goes over.
 const PARTY_AGAIN := 8.0
+## A patrol on the crew's wake gives up past this many times her sight (LOSE, in fog and storm less).
+const TRACK_LOSE := 2.2
 ## Chain shot is aimed this high (world): through the crew's mainsail.
 const CHAIN_AIM_Y := 10.5
 ## No more than this many ships fight the crew at once (the rest keep patrolling).
@@ -184,6 +186,9 @@ var _party_t: float = 0.0
 var _chain_volley: bool = false
 var _boat_cd: float = 10.0
 var _boats: int = 0
+## Sent after the crew by the Admiralty (Admiralty.gd): no limit on attackers, no bounty gate, lost in fog and storm.
+var pursuer: bool = false
+var role: String = ""
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -334,14 +339,43 @@ func is_dead() -> bool:
 	return state == S.SINK
 
 
-## ActorSleep: on patrol with nobody aboard (her guns and crew sleep with her).
+## ActorSleep: on patrol or holding a blockade station, with nobody aboard (her guns and crew sleep with her).
 func sleep_ok() -> bool:
-	return state == S.PATROL and not _anyone_aboard()
+	return state in [S.PATROL, S.BLOCK] and not _anyone_aboard()
 
 
 ## After the crew's ship (closing, fighting, lashed to her): not patrolling, struck, sunk or fleeing.
 func pursuing() -> bool:
-	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]
+	return state in [S.TRACK, S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]
+
+
+## (Admiralty) Sent after the crew: a "ring" closing in, a "patrol" on her wake, a "block" holding station at an
+## island's mouth.
+func start_role() -> void:
+	match role:
+		"ring":
+			_set_state(S.HUNT)
+			_volley_cd = FIRST_VOLLEY
+		"patrol":
+			_set_state(S.TRACK)
+		"block":
+			_set_state(S.BLOCK)
+
+
+## How far she keeps the crew in sight: a pursuer loses her sooner in fog and storm (Admiralty.sight_k).
+func _lose_r(tgt: Node3D) -> float:
+	return LOSE * (Admiralty.sight_k(get_tree(), tgt.global_position) if pursuer else 1.0)
+
+
+## (pursuer) She's lost them: back to patrolling, away from where they were (the Admiralty clears her once she's
+## out of every captain's sight).
+func _lost(away_from: Vector3) -> void:
+	_set_state(S.PATROL)
+	var d := _pos - away_from
+	d.y = 0.0
+	patrol_center = _pos + (d.normalized() if d.length() > 1.0 else _fwd()) * 300.0
+	patrol_radius = 60.0
+	bark("We've lost her. Mark the chart and come about.", 2.5)
 
 
 func in_combat() -> bool:
@@ -439,7 +473,8 @@ func _physics_process(delta: float) -> void:
 			# patched up at sea after a beating (enough to fight again)
 			if hull < max_hull * 0.6:
 				hull = minf(hull + 1.5 * delta, max_hull * 0.6)
-			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS and _wants_crew():
+			# (a pursuer that's lost them is done: she heads off and the Admiralty clears her)
+			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS and _wants_crew() and not pursuer:
 				_set_state(S.HUNT)
 				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
 				bark("That's the wanted ship! Come about!" if kind in ADMIRALTY_KINDS else "A ship! Run out the guns!", 2.5)
@@ -447,9 +482,12 @@ func _physics_process(delta: float) -> void:
 		S.HUNT, S.BROADSIDE:
 			var near_r: float = spec["range"][0]
 			var far_r: float = spec["range"][1]
-			if tgt == null or dist > LOSE or not _huntable(tgt):
-				_set_state(S.PATROL)
-				bark("Bah, let 'em go." if kind not in ADMIRALTY_KINDS else "They've slipped us. Back to patrol.")
+			if tgt == null or dist > _lose_r(tgt) or not _huntable(tgt):
+				if pursuer:
+					_lost(tgt.global_position if tgt else _pos - _fwd())
+				else:
+					_set_state(S.PATROL)
+					bark("Bah, let 'em go." if kind not in ADMIRALTY_KINDS else "They've slipped us. Back to patrol.")
 			elif hull < max_hull * FLEE_AT and not _fled:
 				_fled = true
 				_set_state(S.FLEE)
@@ -515,6 +553,31 @@ func _physics_process(delta: float) -> void:
 				want_heading = atan2(-aim.x, -aim.z)
 				want_speed = _max_speed() * 1.15
 				# (the hit itself: _sail, when the bow meets their hull)
+		S.TRACK:
+			# (an Admiralty patrol on the crew's wake: wake point to wake point until she's in sight)
+			var adm := Admiralty.of(get_tree())
+			var trail: Vector3 = adm.trail_from(_pos) if adm else Vector3.INF
+			# (her quarry, captains aboard or not: too far off and the wake's no use)
+			var quarry := get_tree().get_first_node_in_group("ship") as Node3D
+			if tgt and dist < NOTICE * Admiralty.sight_k(get_tree(), tgt.global_position) * 1.4 and _huntable(tgt):
+				_set_state(S.HUNT)
+				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
+				bark(["There she is! All sail!", "Sail ho! That's our quarry!"][_rng.randi() % 2], 2.5)
+				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
+			elif trail == Vector3.INF or quarry == null or _pos.distance_to(quarry.global_position) > _lose_r(quarry) * TRACK_LOSE:
+				_lost(quarry.global_position if quarry else _pos - _fwd())
+			else:
+				var to_w := trail - _pos
+				want_heading = atan2(-to_w.x, -to_w.z)
+				want_speed = _max_speed()
+		S.BLOCK:
+			# holding station across an island's mouth, broadside to the way out, until the crew comes by
+			want_heading = _heading
+			if tgt and dist < NOTICE and _huntable(tgt):
+				_set_state(S.HUNT)
+				_volley_cd = maxf(_volley_cd, 1.5)
+				bark("Close the harbour! Fire as she bears!", 2.5)
+				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.FLEE:
 			if tgt == null or dist > LOSE:
 				_set_state(S.PATROL)

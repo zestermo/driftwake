@@ -29,6 +29,8 @@ func _ready() -> void:
 
 
 func _spawn_all() -> void:
+	# (the Admiralty at sea: one for the world, on every screen; Admiralty.gd)
+	Admiralty.ensure(get_tree())
 	for i in range(zones.size()):
 		if warm:
 			zones[i]["warming"] = true

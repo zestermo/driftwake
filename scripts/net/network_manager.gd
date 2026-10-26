@@ -1404,6 +1404,9 @@ func award_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 ## A deed that raises bounties (Bounty.TABLE[kind] x k): every captain within `reach` of `at` gets it, on their own
 ## machine (each captain's bounty is their own).
 func bounty(kind: String, at: Vector3, reach: float = XP_RANGE, k: float = 1.0) -> void:
+	# (an island boss beaten, not a miniboss's share: the Admiralty answers, Admiralty.deed)
+	if kind == "boss" and k >= 1.0 and is_host():
+		Admiralty.deed(get_tree(), at, "boss")
 	if not active:
 		_all_bounty(kind, at, reach, k)
 		return
