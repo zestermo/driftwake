@@ -152,6 +152,15 @@ be slow there too. "Heavy sometimes" points at spikes, not the mean (Brinehollow
 Order: the spike logger lands with the bug pass (step 1), so Zach's next session produces a log; 2-5 follow in the
 order the log says, alongside the other steps. GPU-first (shaders, MultiMesh motion, GPU particles) stays the rule.
 
+### Tutorial and UI walkthrough (Zach, 2026-10-26)
+No controls or menus are explained today. 1.23 adds:
+- **Vey's practice yard**: Vey walks the captain through every combat button (light combo, heavy, dodge, parry/block,
+  techniques 1-5, the ultimate, drawing and sheathing, the loadout swap X), each tried on the dummies with a
+  prompt and a tick, then sends them to try it all on the bandit camp.
+- **A menu walkthrough**: short tooltip steps the first time each screen opens: the skill map (trees, points,
+  buying, versions at rest spots), the loadout wheel and how loadouts work, the bag, the journal, the Wanted
+  screen, and the interact/action menu (N). Each can be skipped and replayed from Options.
+
 ### Open / deferred
 - Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
   while building and listed for Zach's review with the per-tree point curve.
