@@ -44,6 +44,15 @@ const STANCE_EVERY := 3.0
 const STANCE_DRAIN := 2.0
 const REFLEX_COOLDOWN := 15.0
 const SHADOW_STEP_COST := 8.0
+## Buffs that are Will (an aura in the captain's Will colour when they start).
+const WILL_BUFFS := ["coat", "foresight"]
+## Emission (Iron Will tier 2): a coated heavy attack strikes EMIT_RANGE m ahead (a line EMIT_WIDE m across) or a
+## ring EMIT_RING m round, EMIT_AFTER s into the swing, for EMIT_DAMAGE.
+const EMIT_RANGE := 6.0
+const EMIT_WIDE := 1.6
+const EMIT_RING := 4.0
+const EMIT_AFTER := 0.22
+const EMIT_DAMAGE := 18.0
 
 var player: Player
 var fruit: String = ""
@@ -60,6 +69,10 @@ var foresight_stance: bool = false
 var _stance_ready: float = 0.0
 var _reflex_cd: float = 0.0
 var _ryuo_cd: float = 0.0
+## Will (WillPaths): Second Sight's extra Foresight dodges left; Emission's heavy attack already struck (and its delay).
+var _fore_extra: int = 0
+var _emit_t: float = -1.0
+var _emit_done := false
 ## skill id -> seconds left to cast it again for free (Soru's Double Step)
 var _free_recast: Dictionary = {}
 var _ult_lock: float = 0.0
@@ -244,6 +257,12 @@ func buff(name_: String) -> bool:
 
 func add_buff(name_: String, secs: float) -> void:
 	buffs[name_] = maxf(float(buffs.get(name_, 0.0)), secs)
+	if name_ in WILL_BUFFS and player and player.is_local:
+		if name_ == "foresight":
+			_fore_extra = int(player.progression.stat("foresight_charges"))
+		var tint := player.progression.will_tint()
+		Net.fx("sparkle", [player.global_position + Vector3(0, 1.1, 0), 22, tint])
+		Net.fx("dust_ring", [player.global_position, 10, 0.7])
 
 
 ## Why a slot can't be used right now ("" = it can).
@@ -330,6 +349,7 @@ func skill_cooldown(id: String, tier: int) -> float:
 		cd = float(Skills.tier_def(id, t).get("cooldown", cd))
 	if player:
 		cd *= 1.0 - player.progression.stat("cdr_" + str(sd.get("tree", "")))
+		cd *= 1.0 - player.progression.stat("cdr_" + id)
 	return cd
 
 
@@ -344,6 +364,8 @@ func _process(delta: float) -> void:
 	_reflex_cd = maxf(_reflex_cd - delta, 0.0)
 	_ryuo_cd = maxf(_ryuo_cd - delta, 0.0)
 	_regen_wait = maxf(_regen_wait - delta, 0.0)
+	if buff("coat") and player and player.is_local:
+		_tick_emission(delta)
 	if foresight_stance:
 		_update_stance(delta)
 	elif not suppressed() and player and _regen_wait <= 0.0:
@@ -380,8 +402,14 @@ func use_foresight() -> bool:
 		return true
 	if buff("foresight") and foresight_charges > 0:
 		foresight_charges -= 1
+		if foresight_charges <= 0 and _fore_extra > 0:
+			_fore_extra -= 1
+			foresight_charges = 1
 		if foresight_charges <= 0:
 			buffs["foresight"] = 0.0
+		var slow := player.progression.stat("foresight_slow") if player else 0.0
+		if slow > 0.0:
+			CombatManager.apply_slowmo(0.35, slow)
 		return true
 	return false
 
@@ -422,6 +450,61 @@ func _ryuo(target: Node3D) -> void:
 	Net.fx("sparkle", [at + Vector3(0, 1.0, 0), 16, Player.HAKI_SPARK])
 	Net.fx("dust_ring", [at, 12, 1.2])
 	player.cam_shake(0.16)
+
+
+## Emission (Iron Will tier 2, while coated): EMIT_AFTER s into each heavy attack, the Will leaves the blade once.
+func _tick_emission(delta: float) -> void:
+	if player.current_state_name() != "HeavyAttack":
+		_emit_t = 0.0
+		_emit_done = false
+		return
+	var kind := int(player.progression.stat("emission"))
+	if _emit_done or kind == 0:
+		return
+	_emit_t += delta
+	if _emit_t < EMIT_AFTER:
+		return
+	_emit_done = true
+	emission(kind)
+
+
+## Emission's strike: 1 a line EMIT_RANGE m straight ahead, 2 a ring EMIT_RING m round you. Unblockable Will; the
+## effect in the captain's Will colour on every screen. Returns the foes struck.
+func emission(kind: int) -> Array:
+	var hd := HitData.new()
+	hd.damage = EMIT_DAMAGE
+	hd.knockback_force = 7.0
+	hd.stagger_duration = 0.35
+	hd.unblockable = true
+	hd.haki = true
+	var tint := player.progression.will_tint()
+	var at := player.global_position
+	if kind == 2:
+		Net.fx("dust_ring", [at, 16, EMIT_RING / 3.0])
+		Net.fx("sparkle", [at + Vector3(0, 0.8, 0), 26, tint])
+		player.cam_shake(0.12)
+		return blast(at, EMIT_RING, hd)
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var struck: Array = []
+	for e in enemies_in(at + fwd * EMIT_RANGE * 0.5, EMIT_RANGE * 0.5 + EMIT_WIDE):
+		var to: Vector3 = (e as Node3D).global_position - at
+		to.y = 0.0
+		var along := to.dot(fwd)
+		if along < 0.0 or along > EMIT_RANGE + 0.6 or (to - fwd * along).length() > EMIT_WIDE:
+			continue
+		var hb := e.get("hurtbox") as Hurtbox
+		var h2 := hd.duplicate() as HitData
+		h2.damage = roundf(hd.damage * power_multiplier())
+		hb.take_hit(h2, player)
+		add_ult(hd.damage)
+		struck.append(e)
+	for i in range(1, 4):
+		Net.fx("sparkle", [at + fwd * (EMIT_RANGE * i / 3.0) + Vector3(0, 1.0, 0), 10, tint])
+	Net.fx("punch_wind", [at + fwd * 0.6 + Vector3.UP, fwd, EMIT_RANGE, tint, true])
+	player.cam_shake(0.1)
+	return struck
 
 
 ## A fruit power just finished: its colors linger on you for a moment.
@@ -471,7 +554,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 				fin.damage = roundf(hit.damage * ex)
 				hb.take_hit(fin, player)
 	if hit.haki and buff("coat") and _ryuo_cd <= 0.0 and target is Node3D and player.is_local \
-			and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"] and player.progression.skill_tier("armament_coat") >= 3:
+			and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"] and (player.progression.skill_tier("armament_coat") >= 3 or player.progression.has_flag("coat_burst")):
 		_ryuo(target as Node3D)
 	# the element on every blow (the tree's second mastery passive): combo and heavy hits throw it
 	var tree := SkillTree.style_tree(st)

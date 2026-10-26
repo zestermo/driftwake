@@ -25,10 +25,6 @@ const HEAD_H := 32.0
 const WILL := Color("c9a8ff")
 const WILL_DIM := Color("4b3d78")
 const WILL_DARK := Color("120f22")
-## The Will chart's stars, as fractions of the star field, and the dashed links between them.
-const WILL_AT := {"h_arm": Vector2(0.22, 0.78), "h_coat": Vector2(0.17, 0.44), "h_obs": Vector2(0.66, 0.78), "h_fore": Vector2(0.7, 0.44),
-	"h_conq": Vector2(0.45, 0.15)}
-const WILL_LINKS := [["h_arm", "h_coat"], ["h_obs", "h_fore"], ["h_coat", "h_conq"], ["h_fore", "h_conq"], ["h_arm", "h_obs"]]
 ## Chips for an effects dict's common keys: [format, scale] (scale 0: the text as it is).
 const CHIPS := {"damage_pct": ["+%d%% DMG", 100], "defense": ["+%d DEF", 1], "max_hp": ["+%d HP", 1],
 	"energy_regen_pct": ["+%d%% ENERGY", 100], "stamina_regen_pct": ["+%d%% STAMINA", 100], "crit_all": ["+%d%% CRIT", 100],
@@ -140,13 +136,12 @@ func _captain_kind(kind: String) -> Array:
 
 
 ## The Captain page's pick: the lowest fork not picked yet (else the top one), scrolled into view; the Will page's: the
-## first Will won (else the first).
+## first Will ability you have (else Coat).
 func _captain_home() -> void:
 	var p := _pr()
 	if will_page:
-		var wills := _captain_kind("will")
-		var won := wills.filter(func(k): return p.has_will(k))
-		sel = "n:" + str(won[0] if not won.is_empty() else wills[0])
+		var won := WillPaths.ABILITIES.keys().filter(func(k): return p.has_will(k))
+		sel = "n:" + str(won[0] if not won.is_empty() else "w_coat")
 		return
 	var f := _forks()
 	var k := f.size() - 1
@@ -296,7 +291,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:") or id == "respec" or id.begins_with("page:"):
+			elif id.begins_with("w:") or id == "respec" or id.begins_with("page:") or id.begins_with("col:"):
 				_act(id)
 			elif id != "":
 				sel = id
@@ -417,10 +412,8 @@ func _act(id: String) -> void:
 	if id.begins_with("n:"):
 		var nid := id.substr(2)
 		var n := SkillTrees.node_def(nid)
-		if n["kind"] == "will":
-			_slot_will(_will_passive(nid))
-		elif n["kind"] == "passive" and n.has("will"):
-			_slot_will(nid)
+		if n["kind"] == "will" or n.get("pool", "") == "will":
+			_act_will(nid)
 		elif n["kind"] == "talent" or (n["kind"] == "variant" and p.owns(nid)):
 			_act_split(nid, (maxi(p.version_of(nid), 0) + (1 if p.version_of(nid) >= 0 else 0)) % n["versions"].size())
 		elif n["kind"] == "step" or not p.owns(nid):
@@ -431,6 +424,10 @@ func _act(id: String) -> void:
 		_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 	elif id.begins_with("page:"):
 		_set_page(id == "page:w")
+	elif id.begins_with("col:"):
+		if p.set_will_color(id.substr(4)):
+			menu._play("equip")
+			_say("Your Will: %s" % WillPaths.COLORS[id.substr(4)][0])
 	elif id.begins_with("w:"):
 		var t := id.substr(2)
 		if tab == "combat":
@@ -501,26 +498,50 @@ func _act_split(nid: String, i: int) -> void:
 		_deny("Switch versions at a rest spot: the bunk, an inn or your camp")
 
 
-func _will_passive(wid: String) -> String:
-	for k in SkillTrees.nodes_of("captain"):
-		if SkillTrees.node_def(k).get("will", "") == wid:
-			return k
-	return ""
-
-
-## Enter on a Will or its passive: the passive into the first free slot.
-func _slot_will(pid: String) -> void:
+## Enter on the Will page: a version not yours is bought, one bought made the active one (at a rest spot), an ability
+## its first version you don't have; a passive bought, or once yours put in a free slot.
+func _act_will(nid: String) -> void:
 	var p := _pr()
-	var pn := SkillTrees.node_def(pid)
-	if not p.owns_node(pid):
-		_deny("%s comes with %s" % [pn["name"], SkillTrees.node_def(str(pn["will"]))["name"]])
-	elif pid in p.passives:
-		_say("%s is in passive slot %d" % [pn["name"], p.passives.find(pid) + 1])
+	var n := SkillTrees.node_def(nid)
+	if n["kind"] == "will":
+		var vs: Array = n["versions"].map(func(v): return v["id"])
+		var next: Array = vs.filter(func(v): return not p.has_version(v))
+		_act_will(str(vs[p.version_of(nid)] if p.owns(nid) and next.is_empty() else next[0]))
+		return
+	sel = "n:" + nid
+	if n["kind"] == "passive":
+		if not p.has_version(nid):
+			_buy_will(nid)
+		elif nid in p.passives:
+			_say("%s is in passive slot %d" % [n["name"], p.passives.find(nid) + 1])
+		else:
+			var at := maxi(p.passives.find(""), 0)
+			if p.equip_passive(nid, at):
+				menu._play("equip")
+				_say("%s in passive slot %d" % [n["name"], at + 1])
+		return
+	if not p.has_version(nid):
+		_buy_will(nid)
+		return
+	var par := str(n["parent"])
+	var i: int = SkillTrees.node_def(par)["versions"].map(func(v): return v["id"]).find(nid)
+	if p.version_of(par) == i:
+		_say("%s is the one you carry" % n["name"])
+	elif p.set_version(par, i):
+		menu._play("equip")
+		_say("%s: %s" % [SkillTrees.node_def(par)["name"], n["name"]])
 	else:
-		var at := maxi(p.passives.find(""), 0)
-		if p.equip_passive(pid, at):
-			menu._play("equip")
-			_say("%s in passive slot %d" % [pn["name"], at + 1])
+		_deny("Switch versions at a rest spot: the bunk, an inn or your camp")
+
+
+func _buy_will(nid: String) -> void:
+	var p := _pr()
+	var why := p.buy_why(nid)
+	if not p.buy(nid):
+		_deny(why)
+		return
+	menu._play("coin")
+	_say("%s is yours" % SkillTrees.node_def(nid)["name"] + ("  ·  pick your Will's colour" if p.will_color == "" else ""))
 
 
 func _deny(m: String) -> void:
@@ -583,7 +604,7 @@ func _hints() -> Array:
 			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
 		"captain":
 			if will_page:
-				return [["Q/E", "TAB"], ["C/W", "PAGE"], ["ARROWS", "INSPECT"], ["ENTER", "SLOT PASSIVE"], ["K", "CLOSE"]]
+				return [["Q/E", "TAB"], ["C/W", "PAGE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY / CARRY"], ["K", "CLOSE"]]
 			return [["Q/E", "TAB"], ["C/W", "PAGE"], ["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["K", "CLOSE"]]
 		"loadout":
 			return [["Q/E", "TAB"], ["ENTER", "PUT ON BAR"], ["1-5/R", "SLOT"], ["RMB", "CLEAR"], ["K", "CLOSE"]]
@@ -1149,112 +1170,164 @@ func _fork_card(r: Rect2, nid: String, i: int, v: Dictionary, reached: bool, pic
 		draw_rect(r.grow(2.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
 
 
-## The Will chart: a star per Will linked up to Captain's Will, each one's passive a moon off it; the parchment card.
+## The Will page: the three paths as columns climbing tier by tier (each ability a box with its versions as chips under
+## it, the path's passive beside its first ability, the path's lock said over it), and the parchment card: your Will
+## points and where they come from, the inspected ability or passive in full, and your Will's colour.
 func _draw_will(r: Rect2) -> void:
 	var p := _pr()
-	var pw := 286.0 if r.size.x > 700.0 else 232.0
+	var pw := 236.0 if r.size.x > 700.0 else 200.0
 	var panel := Rect2(r.end.x - pw, r.position.y - 4.0, pw, r.size.y + 4.0)
 	var field := Rect2(r.position, Vector2(panel.position.x - r.position.x - 8.0, r.size.y))
-	for i in range(150):
-		draw_rect(Rect2(field.position + Vector2((i * 97) % int(field.size.x), (i * 53) % int(field.size.y)), Vector2.ONE), Color("3f6874"))
-	var wills := SkillTrees.nodes_of("captain").filter(func(k): return SkillTrees.node_def(k)["kind"] == "will")
-	var at := {}
-	for wid in WILL_AT:
-		at[wid] = (field.position + field.size * WILL_AT[wid]).round()
-	var tw := 200.0 if r.size.x > 700.0 else 130.0
-	for l in WILL_LINKS:
-		if p.has_will(l[0]) and p.has_will(l[1]):
-			draw_line(at[l[0]], at[l[1]], WILL, 1.0)
-		else:
-			draw_dashed_line(at[l[0]], at[l[1]], WILL_DIM, 1.0, 3.0)
-	for wid: String in wills:
-		var c: Vector2 = at[wid]
-		var n := SkillTrees.node_def(wid)
-		var won := p.has_will(wid)
-		var h := 21.0 if n["needs"].size() > 1 else 15.0
-		var pid := _will_passive(wid)
-		var moon := c + Vector2(38, -12)
-		var ms := inspected() == "n:" + pid
-		draw_line(c, moon, WILL if won else Color("33295a"), 1.0)
-		draw_circle(moon, 7.0 if ms else 5.0, Color.WHITE if ms else (WILL if won else WILL_DIM))
-		draw_circle(moon, 4.0, WILL if p.owns_node(pid) else WILL_DARK)
-		hit(Rect2(moon - Vector2(7, 7), Vector2(14, 14)), "n:" + pid)
-		_out(moon + Vector2(10, 3), str(SkillTrees.node_def(pid)["name"]).to_upper(), WILL if won else Color("6b5ca0"))
-		if won:
-			_diamond(c, h + 8.0, Color(WILL, 0.1 + 0.05 * sin(_t * 2.0)))
-			_diamond(c, h + 4.0, Color(WILL, 0.25))
-		var on := inspected() == "n:" + wid
-		_diamond(c, h + (1.0 if on else 0.0), Color.WHITE if on else (WILL if won else WILL_DIM))
-		_diamond(c, h - (2.0 if on else 1.5), WILL_DIM if won else WILL_DARK)
-		hit(Rect2(c - Vector2(h, h), Vector2(h, h) * 2.0), "n:" + wid)
-		var y := c.y + h + 11.0
-		_out(Vector2(c.x - 110.0, y), str(n["name"]).to_upper(), WILL if won else Color("8b80b0"), HORIZONTAL_ALIGNMENT_CENTER, 220.0)
-		for l in _wrap("WON" if won else str(n["desc"]).get_slice(". ", 0).to_upper(), tw, SILK, 8):
-			y += 9.0
-			draw_string(SILK, Vector2(c.x - 110.0, y), l, HORIZONTAL_ALIGNMENT_CENTER, 220.0, 8, Color("6b6890"))
-	_draw_will_card(panel, _will_shown(wills))
+	var tint := p.will_tint()
+	var cw := floorf(field.size.x / 3.0)
+	for c in range(3):
+		var path: String = WillPaths.PATHS[c]
+		var col := Rect2(field.position.x + c * cw, field.position.y, cw - 6.0, field.size.y)
+		var why := WillPaths.path_why(p, path)
+		var spent := WillPaths.spent_in(p, path)
+		_box(col, Color(WILL_DARK, 0.75), WILL if spent > 0 else WILL_DIM)
+		_out(Vector2(col.position.x, col.position.y + 12.0), WillPaths.PATH_NAMES[path].to_upper(), WILL if why == "" else Color("8b80b0"), HORIZONTAL_ALIGNMENT_CENTER, col.size.x)
+		var ls := _wrap(("%d WILL IN IT" % spent) if why == "" else why.to_upper(), col.size.x - 8.0, SILK, 8)
+		for i in range(mini(ls.size(), 2)):
+			draw_string(SILK, Vector2(col.position.x, col.position.y + 22.0 + 9.0 * i), ls[i], HORIZONTAL_ALIGNMENT_CENTER, col.size.x, 8,
+				Color("6b6890") if why == "" else UIStyle.CORAL)
+		var row_h := (col.size.y - 44.0) / 3.0
+		var prev := Vector2.INF
+		for id in WillPaths.abilities_of(path):
+			var tier := int(WillPaths.ABILITIES[id][1])
+			var box := Rect2(col.position.x + 6.0, col.end.y - 12.0 - row_h * tier, col.size.x - 12.0, 16)
+			if prev != Vector2.INF:
+				if p.has_will(id):
+					draw_line(prev, Vector2(box.get_center().x, box.end.y), WILL, 1.0)
+				else:
+					draw_dashed_line(prev, Vector2(box.get_center().x, box.end.y), WILL_DIM, 1.0, 3.0)
+			prev = Vector2(box.get_center().x, box.position.y)
+			_will_box(box, id, tint)
+			var vy := box.end.y + 3.0
+			var vs: Array = SkillTrees.node_def(id)["versions"]
+			var vw := floorf((box.size.x - 3.0 * (vs.size() - 1)) / vs.size())
+			for i in range(vs.size()):
+				_will_chip(Rect2(box.position.x + i * (vw + 3.0), vy, vw, 12), id, i, tint)
+			if tier == WillPaths.first_tier(path):
+				for pid in WillPaths.PASSIVES:
+					if WillPaths.PASSIVES[pid][0] == path:
+						_will_passive_chip(Rect2(box.position.x, vy + 15.0, box.size.x, 12), pid, tint)
+		draw_string(SILK, Vector2(col.position.x, col.end.y - 3.0), "TIERS AT 0 / 4 / 8 IN IT" if path != "conq" else "4 IN EACH OTHER PATH", HORIZONTAL_ALIGNMENT_CENTER, col.size.x, 8, WILL_DIM)
+	_draw_will_card(panel, _will_shown())
 
 
-## The Will the card shows: the inspected star or moon's, else the first.
-func _will_shown(wills: Array) -> String:
+## An ability's box: lit once one of its versions is yours, with its tier.
+func _will_box(box: Rect2, id: String, tint: Color) -> void:
+	var p := _pr()
+	var n := SkillTrees.node_def(id)
+	var own := p.has_will(id)
+	var on := inspected() == "n:" + id
+	_box(box, tint.darkened(0.55) if own else WILL_DARK, Color.WHITE if on else (tint if own else WILL_DIM))
+	draw_string(SILK, Vector2(box.position.x + 4.0, box.position.y + 11.0), str(n["name"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 26.0, 8, UIStyle.CREAM if own else Color("b7aedc"))
+	draw_string(SILK, Vector2(box.position.x, box.position.y + 11.0), "T%d" % int(n["tier"]), HORIZONTAL_ALIGNMENT_RIGHT, box.size.x - 4.0, 8, WILL if own else WILL_DIM)
+	hit(box, "n:" + id)
+
+
+## A version under its ability: carried (filled), yours (rimmed), buyable now (a coral rim), or not yet (dim).
+func _will_chip(r: Rect2, aid: String, i: int, tint: Color) -> void:
+	var p := _pr()
+	var an := SkillTrees.node_def(aid)
+	var v: Dictionary = an["versions"][i]
+	var vid := str(v["id"])
+	var mine := p.has_version(vid)
+	var active := mine and p.version_of(aid) == i
+	var can := not mine and p.buy_why(vid) == ""
+	var on := inspected() == "n:" + vid
+	_box(r, tint if active else (tint.darkened(0.6) if mine else WILL_DARK), Color.WHITE if on else (tint if mine else (UIStyle.CORAL if can else WILL_DIM)))
+	var label := str(v["name"]).trim_prefix(str(an["name"]) + ": ").to_upper()
+	draw_string(SILK, Vector2(r.position.x, r.position.y + 9.0), label, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 8,
+		UIStyle.INK if active else (UIStyle.CREAM if mine or can else Color("6b6890")))
+	hit(r, "n:" + vid)
+
+
+func _will_passive_chip(r: Rect2, pid: String, tint: Color) -> void:
+	var p := _pr()
+	var mine := p.has_version(pid)
+	var can := not mine and p.buy_why(pid) == ""
+	var on := inspected() == "n:" + pid
+	_box(r, tint.darkened(0.6) if mine else WILL_DARK, Color.WHITE if on else (SkillTreeDraw.PASSIVE if mine else (UIStyle.CORAL if can else WILL_DIM)))
+	_diamond(r.position + Vector2(7, 6), 4.0, SkillTreeDraw.PASSIVE if mine else WILL_DIM)
+	var slot := p.passives.find(pid)
+	draw_string(SILK, Vector2(r.position.x + 13.0, r.position.y + 9.0), str(SkillTrees.node_def(pid)["name"]).to_upper() + ("  · SLOT %d" % (slot + 1) if slot >= 0 else ""),
+		HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 15.0, 8, UIStyle.CREAM if mine or can else Color("6b6890"))
+	hit(r, "n:" + pid)
+
+
+## The Will node the card shows: the inspected one, else the pick, else Coat.
+func _will_shown() -> String:
 	for id in [inspected(), sel]:
 		var n: Dictionary = SkillTrees.node_def(str(id).substr(2)) if str(id).begins_with("n:") else {}
-		if n.get("kind", "") == "will":
+		if n.get("kind", "") == "will" or n.get("pool", "") == "will":
 			return n["id"]
-		if n.has("will"):
-			return n["will"]
-	return wills[0]
+	return "w_coat"
 
 
-## The Will's parchment card: where it was won, what it does, its passive, and what wins the ones still to come.
-func _draw_will_card(panel: Rect2, wid: String) -> void:
+## The Will card: points to spend and where they come from; the shown node (its path and tier, what it does, each
+## version with what Enter does or why not); the colour swatches once you have a Will.
+func _draw_will_card(panel: Rect2, nid: String) -> void:
 	var p := _pr()
-	var n := SkillTrees.node_def(wid)
-	var won := p.has_will(wid)
 	draw_style_box(UIStyle.parchment(), panel)
 	var x := panel.position.x + 12.0
 	var w := panel.size.x - 24.0
-	var desc := str(n["desc"])
-	var how := desc.get_slice(". ", 0)
-	var y := _lines(Vector2(x, panel.position.y + 20.0), ("Will · won from " + how.get_slice(",", 0).substr(5)) if won else ("Will · " + how), w, WILL.darkened(0.55))
-	UIStyle.draw_title(self, Vector2(x, y + 9.0), str(n["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
-	y = _lines(Vector2(x, y + 24.0), desc.substr(how.length() + 2), w, UIStyle.PARCH_INK, 10.0)
-	y = _chips(Vector2(x, y - 4.0), w, _chips_of(n), UIStyle.PARCH.lerp(UIStyle.GOOD, 0.35), UIStyle.GOOD.darkened(0.3)) + 2.0
+	var y := panel.position.y + 22.0
+	var pts := p.pool("will")
+	UIStyle.draw_title(self, Vector2(x, y), "%d Will" % pts, 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
+	draw_string(SILK, Vector2(x + UIStyle.TITLE_FONT.get_string_size("%d Will" % pts, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 6.0, y), "TO SPEND", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
+	y = _lines(Vector2(x, y + 11.0), "Big fights: a boss or villain 2, a rival captain or sergeant 1. Meditating at sea: %d%% to the next." %
+		roundi(100.0 * float(p.downtime.get("meditate_s", 0.0)) / WillPaths.MEDITATE_SECS), w, UIStyle.PARCH_DIM) + 2.0
 	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
-	y += 20.0
-	draw_string(SILK, Vector2(x, y), "ITS PASSIVE (A SLOT)", HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
-	y += 6.0
-	var pid := _will_passive(wid)
-	var pn := SkillTrees.node_def(pid)
-	var owned := p.owns_node(pid)
-	var pdesc := str(pn["desc"]).trim_prefix("Passive (a slot). ")
-	var pchips := _chips_of(pn)
-	var chip_fill := UIStyle.PARCH.lerp(UIStyle.BORDER_DIM, 0.3)
-	var bh := 38.0 + _wrap(pdesc.to_upper(), w - 20.0, SILK, 8).size() * 9.0 + _chips(Vector2.ZERO, w - 20.0, pchips, chip_fill, UIStyle.BORDER_DIM, false)
-	var box := Rect2(x, y, w, bh)
-	draw_rect(box, UIStyle.BORDER_DIM if owned else Color(UIStyle.PARCH_DIM, 0.5))
-	draw_rect(box.grow(-2.0), UIStyle.CREAM)
-	draw_string(_font, Vector2(x + 10.0, y + 16.0), str(pn["name"]), HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, 12, UIStyle.PARCH_INK)
-	var by := _chips(Vector2(x + 10.0, _lines(Vector2(x + 10.0, y + 28.0), pdesc, w - 20.0, UIStyle.PARCH_INK) - 4.0), w - 20.0, pchips, chip_fill, UIStyle.BORDER_DIM)
-	var slot := p.passives.find(pid)
-	var status := ("IN PASSIVE SLOT %d" % (slot + 1)) if slot >= 0 else ("ENTER: PUT IT IN A SLOT" if owned else "COMES WITH THE WILL")
-	draw_string(SILK, Vector2(x + 10.0, by + 8.0), status, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, 8, Color("2f7a3a") if owned else UIStyle.CORAL.darkened(0.35))
-	y += bh + 10.0
-	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
-	y += 20.0
-	draw_string(SILK, Vector2(x, y), "NEXT", HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
-	y += 11.0
-	var unwon := SkillTrees.nodes_of("captain").filter(func(k): return SkillTrees.node_def(k)["kind"] == "will" and not p.has_will(k))
-	if unwon.is_empty():
-		_lines(Vector2(x, y), "Every Will is yours.", w, UIStyle.PARCH_INK)
-	for k in unwon:
-		if y > panel.end.y - 14.0:
-			break
-		var kn := SkillTrees.node_def(k)
-		var needs: Array = kn["needs"]
-		var line := ("%s needs every other Will." % kn["name"]) if needs.size() > 1 and not needs.all(func(q): return p.has_will(q)) \
-			else ("%s · %s." % [kn["name"], str(kn["desc"]).get_slice(". ", 0)])
-		y = _lines(Vector2(x, y), line, w, UIStyle.PARCH_INK, 10.0) + 2.0
+	y += 18.0
+	var n := SkillTrees.node_def(nid)
+	var aid := str(n.get("parent", nid))
+	var an := SkillTrees.node_def(aid)
+	var path := str(an["path"])
+	var head := "%s · %s" % [WillPaths.PATH_NAMES[path], ("tier %d" % int(an["tier"])) if an["kind"] == "will" else "passive, %d Will" % WillPaths.PASSIVE_COST]
+	draw_string(SILK, Vector2(x, y), head.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, w, 8, WILL.darkened(0.55))
+	UIStyle.draw_title(self, Vector2(x, y + 17.0), str(an["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
+	var mine_any := p.bought.keys().any(func(k): return SkillTrees.node_pool(k) == "will")
+	var limit := panel.end.y - (40.0 if mine_any else 12.0)
+	y = _para(Vector2(x, y + 30.0), str(an["desc"]).trim_prefix("Passive (a slot). "), w, UIStyle.PARCH_INK, limit) + 2.0
+	if an["kind"] == "will":
+		for i in range(an["versions"].size()):
+			if y > limit:
+				break
+			var v: Dictionary = an["versions"][i]
+			var vid := str(v["id"])
+			var mine := p.has_version(vid)
+			var why := p.buy_why(vid)
+			var state := "CARRIED" if mine and p.version_of(aid) == i else ("YOURS · ENTER AT A REST SPOT" if mine else ("ENTER: %d WILL" % SkillTrees.price(vid) if why == "" else why.to_upper()))
+			draw_string(_font, Vector2(x, y + 9.0), ("> " if vid == nid else "") + str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK if vid == nid or mine else UIStyle.PARCH_DIM)
+			y = _lines(Vector2(x, y + 19.0), str(v["desc"]), w, UIStyle.PARCH_DIM, 9.0, 2)
+			for l in _wrap(state, w, SILK, 8):
+				draw_string(SILK, Vector2(x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if mine or why == "" else UIStyle.CORAL.darkened(0.35))
+				y += 9.0
+			y += 3.0
+	else:
+		var why := p.buy_why(nid)
+		var slot := p.passives.find(nid)
+		var own := p.has_version(nid)
+		var state := ("IN PASSIVE SLOT %d" % (slot + 1)) if slot >= 0 else ("YOURS · ENTER: INTO A SLOT" if own else ("ENTER: %d WILL" % SkillTrees.price(nid) if why == "" else why.to_upper()))
+		for l in _wrap(state, w, SILK, 8):
+			draw_string(SILK, Vector2(x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if own or why == "" else UIStyle.CORAL.darkened(0.35))
+			y += 9.0
+	if mine_any:
+		var cy := panel.end.y - 30.0
+		draw_string(SILK, Vector2(x, cy), "YOUR WILL'S COLOUR" if p.will_color != "" else "PICK YOUR WILL'S COLOUR", HORIZONTAL_ALIGNMENT_LEFT, w, 8,
+			UIStyle.PARCH_INK if p.will_color != "" else UIStyle.CORAL.darkened(0.35))
+		var sw := floorf((w - 12.0) / 4.0)
+		var i := 0
+		for cid in WillPaths.COLORS:
+			var sr := Rect2(x + i * (sw + 4.0), cy + 4.0, sw, 12)
+			_box(sr, WillPaths.COLORS[cid][1], UIStyle.BORDER_DIM)
+			if cid == p.will_color or inspected() == "col:" + cid:
+				draw_rect(sr.grow(2.0), UIStyle.INK, false, 1.0)
+			hit(sr, "col:" + cid)
+			i += 1
 
 
 ## A node's numbers as chip texts (its effects' common keys, and the skill it gives).

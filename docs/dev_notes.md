@@ -6569,3 +6569,36 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   are non-hotbar perks now (Quartermaster's third loadout at 10, the slots). An older save loses them until bought
   again (the bar slot clears on load; uses and so tiers are kept).
 - **Tests.** t/progression/passive_slots, captain_growth, refund_migration, pools, moved_skills (new); progtest's lines.
+
+## 2026-10-26: 1.23 progression, piece 3: Will paths, points and meditation
+- **What (docs/v1_23_previews.md section 2, docs/v1_23_plan.md "Will, the Captain tree and passives").** Will no
+  longer comes from set bosses. `scripts/progression/will_paths.gd` (WillPaths) holds the data and the gates; the nodes
+  are SkillTrees' (the Captain tree's Will branch, `_build_will`), each version and passive with `"pool": "will"` and a
+  `"cost"` (`SkillTrees.node_pool`). Paths: Iron Will (Coat T1: Heavy / Quick / Breaking; Emission T2: Line / Ring;
+  Inner Strike T3; Hardening), Sense (Flash T1: Long Warning / Gunsight / Big Moves; Foresight T2: Second Sight / Slow
+  Sight; Crowd Read T3; Instinct), Captain's Will (Roar T2: King's / Far; Clash T3; King's Will). A version costs its
+  tier (1/2/3), a passive 2 (needs the path's first ability). Tiers open at 0/4/8 Will spent in the path; the second
+  path at 8 spent; Captain's Will at 4 in each of the others. The first version bought is carried; other bought ones
+  switch in at a rest spot (`set_version`, kind "will", `has_version`). 33 points buys everything.
+- **Points.** `Progression.will_earned` (saved "will_pts"), `will_deed(kind, k)` from `Net._all_bounty` on each
+  captain's own machine (boss/villain/hunter/Leviathan 2, rival/officer/sergeant/miniboss 1; a "boss" at k < 1 is a
+  miniboss), `will_point(n, why)` (a toast), `meditate(secs)`: Downtime's new "meditate" (aboard or at camp, every
+  10 s, a point per `MEDITATE_SECS` = 3 game days meditated; pose `dt_meditate`, cross-legged, DowntimePoses).
+- **What the abilities do now** (in my files): Heavy Coat's `coat_dmg` (Progression.on_hit's extra share while coated),
+  Quick Coat's `cdr_armament_coat` (PowerComponent.skill_cooldown reads `cdr_<skill>`), Breaking Coat's `coat_burst`
+  (the Outflow burst without tier 3), Emission (`PowerComponent._tick_emission`/`emission`: 0.22 s into a coated heavy,
+  a 6 m line or a 4 m ring, 18 damage, unblockable, only while coated), Second Sight (an extra Foresight dodge),
+  Slow Sight (CombatManager.apply_slowmo on a foreseen blow), Inner Strike (`armament`: heavies unblockable, +8%),
+  Flash (`observation`). **Hooks for the combat side** (flags set, nothing reads them yet): `flash_early`,
+  `flash_shots`, `flash_boss`, `crowd_read`, `inner_strike` (stagger on hit), `roar_reach`, `will_clash`.
+- **Colour.** `will_color` (saved), picked on the Will page once a Will is yours (black lightning, red crackle, blue
+  haze, gold); `will_tint()` colours the Will buffs' aura (PowerComponent.add_buff for coat/foresight) and Emission
+  through Net.fx, so crewmates see it.
+- **Save format 8.** An older save's Wills come back as 2 Will points each (`WillPaths.OLD`), nothing bought; the
+  moved Squall Step / Ballast are dropped from the bar. One banner says what changed.
+- **Skill map.** The Will page is three path columns (abilities by tier, versions as chips, the passive under the
+  first ability, the path's lock in coral) and a card (points and sources, the node's versions with what Enter does or
+  why not, the colour swatches). The skill bar's pulse counts Will too.
+- **Per frame:** PowerComponent checks the player's state each frame only while coated (Emission).
+- **Tests.** t/progression/will_paths (was will_bosses), will_points (new), t/ui/skills_captain_forks; progtest and
+  powertest lines (prepush).

@@ -442,7 +442,7 @@ func _draw_xp() -> void:
 	draw_circle(badge, 8.0, UIStyle.BG_DARK)
 	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
 	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
-	var spend: Array = ["combat", "adventure"].filter(func(p): return pr.can_spend(p))
+	var spend: Array = ["combat", "adventure", "will"].filter(func(p): return pr.can_spend(p))
 	if not spend.is_empty():
 		var a := 0.6 + 0.4 * sin(_t * 5.0)
 		var line: String = " ".join(spend.map(func(p): return "+%d %s" % [pr.pool(p), Progression.pool_name(p).to_upper()]))

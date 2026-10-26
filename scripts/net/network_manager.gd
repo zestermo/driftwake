@@ -1402,7 +1402,7 @@ func award_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 
 
 ## A deed that raises bounties (Bounty.TABLE[kind] x k): every captain within `reach` of `at` gets it, on their own
-## machine (each captain's bounty is their own).
+## machine (each captain's bounty is their own), with the big fights' Will points (Progression.will_deed).
 func bounty(kind: String, at: Vector3, reach: float = XP_RANGE, k: float = 1.0) -> void:
 	if not active:
 		_all_bounty(kind, at, reach, k)
@@ -1415,6 +1415,7 @@ func _all_bounty(kind: String, at: Vector3, reach: float, k: float) -> void:
 	if p == null or (at != Vector3.INF and p.global_position.distance_to(at) > reach):
 		return
 	Bounty.add(p, roundi(float(Bounty.TABLE.get(kind, 0)) * k), kind)
+	p.progression.will_deed(kind, k)
 
 
 func _all_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:

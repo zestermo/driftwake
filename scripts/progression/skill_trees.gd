@@ -77,9 +77,6 @@ const ELEMENTS := {
 
 ## What every Captain level past the first adds by itself (the old Captain tree's stat nodes, folded in).
 const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_energy": 0.6, "defense": 0.5}
-## Will milestones: id -> [the boss that teaches it (Progression.boss_kind), the Wills it needs first].
-const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": ["queen", ["h_arm"]], "h_fore": ["arena", ["h_arm"]],
-	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
 
 ## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
 ## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
@@ -143,6 +140,12 @@ static func pool_of(tree: String) -> String:
 		"adventure":
 			return "adventure"
 	return ""
+
+
+## The points a node is bought with: its own "pool" (the Will's: "will"), else its tree's.
+static func node_pool(id: String) -> String:
+	var n := node_def(id)
+	return str(n.get("pool", pool_of(str(n["tree"]))))
 
 
 ## A node's price in its pool's points (a step's is per step); 0 for one that isn't bought.
@@ -309,16 +312,7 @@ static func _build_captain() -> void:
 		["t_hide", "Thick Hide", {"defense": 10.0, "max_hp": 30.0}, "+10 defense and +30 max health."])
 	_talent(40, ["t_warlord", "Warlord", {"damage_pct": 0.12, "crit_all": 0.06}, "+12% damage with everything, and 6% of your hits land 50% harder."],
 		["t_legend", "Living Legend", {"max_hp": 60.0, "defense": 8.0, "stamina_regen_pct": 0.2}, "+60 max health, +8 defense, and stamina refills 20% faster."])
-	_will("h_arm", "Iron Will", {"armament": 1, "damage_pct": 0.08}, "", "Beat Captain Morrow. Will made armor: +8% damage, and your heavy attacks can't be blocked.",
-		["h_harden", "Hardening", {"defense": 8.0, "energy_regen_pct": 0.2}, "Passive (a slot). Will under the skin: +8 defense, and energy refills 20% faster."])
-	_will("h_coat", "Iron Will: Coat", {}, "armament_coat", "Beat a great ape. Coat your weapon or fists in Will.",
-		["h_black", "Black Fists", {"dmg_unarmed": 0.15}, "Passive (a slot). Your bare fists are iron: +15% unarmed damage."])
-	_will("h_obs", "Sense", {"observation": 1}, "", "Beat the Brood Queen. Sense intent: enemies flash red the moment they start an attack, and your parry window is a little wider.",
-		["h_instinct", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider still."])
-	_will("h_fore", "Foresight", {}, "foresight", "Beat a great beast in its arena. Sense what's coming before it comes.",
-		["h_weak", "Weak Points", {"crit_all": 0.06}, "Passive (a slot). You see where to strike: 6% more of your hits land 50% harder."])
-	_will("h_conq", "Captain's Will", {}, "conquerors_haki", "Beat a Leviathan, with every other Will yours. A will that bends others.",
-		["h_will", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."])
+	_build_will()
 
 
 ## A talent: one of two versions at `lv`, picked (not given); each [id, name, effects, desc].
@@ -331,14 +325,33 @@ static func _talent(lv: int, a: Array, b: Array) -> void:
 		n["versions"].append({"id": v[0], "name": v[1], "desc": v[3], "level": lv, "effects": v[2], "skill": ""})
 
 
-## A Will milestone (its boss beaten, not a level) and the Will passive that comes with it ([id, name, effects, desc]).
-static func _will(id: String, name_: String, effects: Dictionary, skill: String, desc: String, passive: Array) -> void:
-	var n := _big(id, name_, "will", 2, 1, effects, desc, skill)
-	n["boss"] = WILL[id][0]
-	n["needs"] = WILL[id][1]
-	var p := _node(passive[0], passive[1], "passive", 2, 1, passive[2], passive[3], "", [id], n["pos"] + Vector2(84, -28))
-	p["will"] = id
-	_trees[_t]["branches"][2]["nodes"].append(passive[0])
+## The Will branch (WillPaths): each path's abilities up a column, tier by tier, with their versions (bought with
+## Will points, pool "will", the tier's price each) and the path's passive beside its first ability.
+static func _build_will() -> void:
+	var list: Array = _trees[_t]["branches"][2]["nodes"]
+	for path in WillPaths.PATHS:
+		var x := 120.0 * (WillPaths.PATHS.find(path) - 1)
+		var prev := ""
+		for id in WillPaths.abilities_of(path):
+			var a: Array = WillPaths.ABILITIES[id]
+			var at := Vector2(x, -90.0 * int(a[1]))
+			var n := _node(id, a[2], "will", 2, 1, {}, a[3], "", [prev] if prev != "" else [], at)
+			n["path"] = path
+			n["tier"] = int(a[1])
+			list.append(id)
+			for v in a[4]:
+				var vid: String = v[0]
+				var vn := _node(vid, v[1], "version", 2, 1, v[2], v[3], v[4], [id], at)
+				vn.merge({"parent": id, "pool": "will", "path": path, "tier": int(a[1]), "cost": int(a[1])})
+				n["versions"].append({"id": vid, "name": v[1], "desc": vn["desc"], "level": 1, "effects": v[2], "skill": v[4]})
+			prev = id
+		for pid in WillPaths.PASSIVES:
+			var pd: Array = WillPaths.PASSIVES[pid]
+			if pd[0] == path:
+				var first: String = WillPaths.abilities_of(path)[0]
+				var p := _node(pid, pd[1], "passive", 2, 1, pd[2], pd[3], "", [first], _nodes[first]["pos"] + Vector2(48, -30))
+				p.merge({"will": path, "pool": "will", "path": path, "cost": WillPaths.PASSIVE_COST})
+				list.append(pid)
 
 
 # --------------------------------------------------------------------------

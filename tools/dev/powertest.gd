@@ -287,9 +287,9 @@ func _process(d: float) -> bool:
 			check("1 reaches the skill bar after closing the menu", int(saw["casts"]) > 0)
 			# --- Armament: Coat
 			p.state_machine.force_state("Idle", {})
-			p.progression.grant_will("h_arm")
-			p.progression.grant_will("h_coat")
-			check("learned Armament: Coat (Will: Coat)", p.progression.knows("armament_coat"))
+			p.progression.gift("will", 1)
+			p.progression.buy("w_coat_heavy")
+			check("Coat bought with a Will point (Heavy Coat)", p.progression.knows("armament_coat"))
 			pc.equip("armament_coat", 3)
 			pc.energy = pc.max_energy()
 			pc.cooldowns.clear()
