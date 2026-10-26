@@ -204,6 +204,8 @@ func _splash(at: Vector3) -> void:
 	FX.cannon_splash(at)
 	FX.sfx("splash_big", at, -2.0, 0.08)
 	_shake(at, 0.08)
+	if team == "crew" and authority:
+		BoardingBoat.near_splash(get_tree(), at, hull_damage, shooter)
 	_finish(func(): _check_crew(at, BURST * 0.7, splash_damage * 0.6))
 
 

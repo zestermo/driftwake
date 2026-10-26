@@ -67,6 +67,8 @@ func _process(_d: float) -> bool:
 			es._volleys = 1
 			es._volley_cd = 1000.0
 			es._board_cd = 0.0
+			# (alongside with grapples, not a boat rowed over: t/ship/boarding_boat)
+			es._boat_cd = 1000.0
 			check("the crew sails too fast for the pirates to catch plainly (%.1f m/s, her top %.1f m/s)" % [ship.speed, es._max_speed()], ship.speed > es._max_speed() - 0.5)
 			until = TK.wait_secs(BOARD_WITHIN)
 		2:

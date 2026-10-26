@@ -98,6 +98,14 @@ const BALL_SPLASH := 14.0
 ## before it tries again.
 const RAM_DAMAGE := 30.0
 const RAM_EVERY := 25.0
+## Holes a ram stoves in the crew's hull (kinds not listed: one).
+const RAM_HOLES := {"brig": 2, "frigate": 2}
+## Boarding boats: lowered when she can't catch the crew (within BOAT_RANGE, not closer than BOAT_MIN), this
+## often at most, with up to BOAT_MEN of her men at the oars (two at least, the helmsman stays).
+const BOAT_RANGE := 110.0
+const BOAT_MIN := 28.0
+const BOAT_EVERY := 35.0
+const BOAT_MEN := 3
 ## Fleeing at this share of hull; striking its colours at this share (if it
 ## would), once you've caught it.
 const FLEE_AT := 0.25
@@ -174,6 +182,8 @@ var _hook_t: float = -1.0
 ## Seconds since her last boarding party went over (lashed alongside).
 var _party_t: float = 0.0
 var _chain_volley: bool = false
+var _boat_cd: float = 10.0
+var _boats: int = 0
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -329,6 +339,11 @@ func sleep_ok() -> bool:
 	return state == S.PATROL and not _anyone_aboard()
 
 
+## After the crew's ship (closing, fighting, lashed to her): not patrolling, struck, sunk or fleeing.
+func pursuing() -> bool:
+	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]
+
+
 func in_combat() -> bool:
 	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.DECK, S.RAM, S.FLEE]
 
@@ -470,6 +485,7 @@ func _physics_process(delta: float) -> void:
 				_try_volley(tgt, to_t, dist)
 				_ram_cd -= delta
 				_board_cd -= delta
+				_boat_cd -= delta
 				if _volleys >= 1:
 					_fight_t += delta
 				# up close the guns won't bear: they ram you or board you
@@ -482,6 +498,10 @@ func _physics_process(delta: float) -> void:
 					_set_state(S.RAM)
 					bark(["Ramming speed!", "Brace! We're going in!", "Run 'em down!"][_rng.randi() % 3], 2.0)
 					Net.fx("sfx", ["horn", global_position, 4.0, 0.03, 0.8])
+				# they're getting away from her: a boatload of boarders rows over while she keeps her guns on them
+				elif spec["boards"] and _boat_cd <= 0.0 and not catchable and _volleys >= 1 and dist > BOAT_MIN and dist < BOAT_RANGE \
+						and _crew.size() - 1 - _crew_gone >= 2:
+					_lower_boat(tgt)
 				# board them: close, or after a volley if they can catch you
 				elif spec["boards"] and _can_board() and _warn_t < 0.0 and (close or (_volleys >= 1 and (catchable or _fight_t > BOARD_AFTER))):
 					_set_state(S.BOARD)
@@ -779,7 +799,14 @@ func _ram(tgt: Node3D) -> void:
 	Net.fx("dust", [at, 16, 1.4])
 	Net.fx("splash", [Vector3(at.x, 0.3, at.z), 14, 1.4])
 	if tgt is Ship:
-		(tgt as Ship).hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0) * Levels.hull_k(level), at)
+		var crew_ship := tgt as Ship
+		crew_ship.hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0) * Levels.hull_k(level), at)
+		# the bow stove in her planking where it struck: holes at the waterline (a heavy ship's two)
+		var l := crew_ship.global_transform.affine_inverse() * at
+		var side := 1.0 if l.x >= 0.0 else -1.0
+		for i in range(RAM_HOLES.get(kind, 1)):
+			if crew_ship.breaches.size() < Ship.MAX_BREACHES:
+				crew_ship.add_breach(side, clampf(l.z + i * 2.2, Ship.DECK_Z_MIN, Ship.DECK_Z_MAX))
 	hull = maxf(hull - max_hull * 0.06, 1.0)
 	Net.everyone("_all_rammed", [Net.key_of(tgt), at, _fwd() * k])
 	speed = -3.0
@@ -841,6 +868,39 @@ func _board(tgt: Node3D) -> void:
 	var seed_value := _rng.randi()
 	_spawn_boarders(n, seed_value, tgt)
 	Net.fx("sfx", ["rope", global_position, 2.0, 0.05])
+
+
+## (host) A longboat lowered on the side toward the crew, the next men still aboard at its oars.
+func _lower_boat(tgt: Node3D) -> void:
+	_boat_cd = BOAT_EVERY
+	var n := mini(BOAT_MEN, _crew.size() - 1 - _crew_gone)
+	var men: Array = range(_crew_gone + 1, _crew_gone + 1 + n)
+	var side := 1.0 if _right().dot(tgt.global_position - _pos) > 0.0 else -1.0
+	_boats += 1
+	_launch_boat(men, side, _boats)
+	Net.event(self, "boat", [men, side, _boats])
+	bark(["Lower the boat! Row, you dogs!", "Away the boat! Get aboard her!"][_rng.randi() % 2], 2.5)
+	Net.fx("sfx", ["splash_big", global_transform * Vector3(side * 6.0, 0.0, 1.5), 0.0, 0.05])
+
+
+## (every screen) The boat goes over the side with those men in it.
+func _launch_boat(men: Array, side: float, n: int) -> void:
+	_crew_gone = maxi(_crew_gone, int(men.max()))
+	BoardingBoat.launch(self, men, side, n)
+
+
+## (host) The boat reached the crew's side: its men leap aboard as boarders.
+func boat_landed(boat: BoardingBoat, tgt: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(boat.name)
+	var s := 1.0 if (tgt.global_transform.affine_inverse() * boat.global_position).x > 0.0 else -1.0
+	for i in range(boat.men.size()):
+		var g := _turn_grunt(int(boat.men[i]), "BD", rng.randi())
+		g.camp = self
+		var land_local := Vector3(s * rng.randf_range(0.6, 2.4), Ship.DECK_Y + 0.2, rng.randf_range(-6.0, 1.5))
+		var t := 0.8 + 0.15 * i
+		g.leap(tgt.global_transform * land_local + _vel_of(tgt) * t, t)
+	Net.fx("sfx", ["rope", boat.global_position, 2.0, 0.05])
 
 
 ## (host) The boarders are the crew who were on deck: the next men still
@@ -1217,6 +1277,13 @@ func _wake(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_crew_update(delta)
+	# (the HUD's heat marker counts group "pursuing": every screen, from the state the host's snapshots carry)
+	var chasing := pursuing()
+	if chasing != is_in_group("pursuing"):
+		if chasing:
+			add_to_group("pursuing")
+		else:
+			remove_from_group("pursuing")
 	# (puppets read hull and state from the host's snapshots, so this shows on every screen)
 	_bar.visible = state != S.SINK and state != S.PRIZE and (in_combat() or hull < max_hull - 0.5)
 	_bar.always = in_combat()
@@ -1324,6 +1391,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"prize":
 			_prize()
+		"boat":
+			_launch_boat(args[0], float(args[1]), int(args[2]))
 		"sink":
 			if state != S.SINK:
 				state = S.SINK

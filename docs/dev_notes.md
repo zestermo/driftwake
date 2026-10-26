@@ -6504,4 +6504,18 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   "gauge" (upwind of her by its far range); near land or a reef (`_land_near`: no_go circles and SeaFeatures reefs
   within PIN_REACH 170 m) the second and later "pin" her from the open-water side (PIN_OFF 45 m). `tactic_role`,
   `tactic_at`. MAX_ATTACKERS stays 2 for pirates.
-- Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics.
+- **Rams hole the hull** (piece 3): `_ram` adds a breach at the struck spot (side and z from the contact point),
+  RAM_HOLES 2 for a brig or frigate, on top of the hull damage (hull_hit may add its own random one).
+- **Boarding boats** (piece 3, `scripts/ship/boarding_boat.gd`, BoardingBoat): in BROADSIDE, a boarding kind that
+  can't catch the crew (not `catchable`), after a volley, 28-110 m off, BOAT_EVERY 35 s, lowers a longboat on her
+  side toward the crew with up to BOAT_MEN 3 of her next men (their own Humanoid bodies reparented into it, `seated`
+  on the thwarts). It rows at 14 m/s on an intercept for a spot 2.2 m off the crew's side; there
+  `EnemyShip.boat_landed` turns the men into boarders ("BD" grunts, `_turn_grunt`) who leap aboard. A crew ball
+  splashing within 4.5 m (`Cannonball._splash` -> `BoardingBoat.near_splash`) or 40 HP of fire (siege x3) sinks it
+  with the men (25 XP). Gives up after 50 s. Co-op: `Net.event(ship, "boat", [men, side, n])` builds it on every
+  screen (Boat_<ship>_<n> beside her), net_sync snapshot [pos, yaw, state]; a captain joining mid-row won't see that
+  boat (it's gone in a minute).
+- **Group "pursuing"** (for the lead's HUD heat marker): an EnemyShip is in it while `pursuing()` (HUNT, BROADSIDE,
+  BOARD, HOLD, RAM; TRACK from piece 4), on every screen from the state its snapshots carry.
+- Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics, t/ship/ram_hole, t/ship/boarding_boat;
+  t/ship/enemy_boarding holds her boat (it tests grapples).
