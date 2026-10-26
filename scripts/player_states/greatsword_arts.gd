@@ -397,7 +397,11 @@ static func _updraft(s, delta: float) -> void:
 			var center: Vector3 = s._body_center(s._target)
 			Net.fx("impact", [center, s._col(FX.CORE)])
 			Net.fx("speed_lines", [center, Vector3.UP, s._col(FX.CORE), 8, 2.0, 0.25, randi() % 1000])
-			if FistArts.throwable(s._target) and s._target.has_method("launched"):
+			# (a launcher: a grunt goes up juggled, Juggle; other light foes are thrown)
+			hd.launch = UP_THROW.y
+			if s._target.has_method("juggle"):
+				s._strike(s._target, hd)
+			elif FistArts.throwable(s._target) and s._target.has_method("launched"):
 				hd.stagger_duration = 0.2
 				hd.hitstop_duration = 0.0
 				s._strike(s._target, hd)
@@ -419,6 +423,7 @@ static func _updraft(s, delta: float) -> void:
 		var hd: HitData = s._hd(UP_DAMAGE[1], 4.0, true)
 		hd.unblockable = true
 		hd.breaker = true
+		hd.launch = -12.0
 		shape_hit(p, hd)
 		s._strike(s._target, hd)
 		var at: Vector3 = s._body_center(s._target)

@@ -6614,3 +6614,49 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
 - **Piece 5 (budgets).** tools/dev/perf_budgets.txt (anim 2.0, ai 0.8, world 1.2, ui 0.4, player 0.5, other 0.6,
   draw 3.5 ms; scripts mapped to systems by regex), perf_budgets.ps1 <bench result>, and perf_gate.ps1 prints them
   per light (a warning, never a fail). The 1.23 "before" bench: anim 2.26, ai 1.10, world 1.69, draw 4.95 over.
+
+## 2026-10-26: 1.23 combat core, pieces 1-3: poise, juggling, black-leg's juggle set
+- **Why:** Zach's playtest: every captain had 2-3 knockdowns at will and they were all that mattered. Spec:
+  docs/v1_23_previews.md sections 3-4 and docs/v1_23_plan.md "Preview answers" (approved starting numbers).
+- **Poise** (`scripts/combat/poise.gd`, class Poise; hidden, the stagger shows it). `Poise.make(class)`: grunt 30/12 a
+  second (flinches at damage 10+ or poise 14+), elite / a rival's crewman 55/15 (only heavies flinch it), captain
+  (camp boss, outpost sergeant) 90/18 (never on lights), rival captain / hunter 80/20 (always flinches: the captain
+  AI dodges too), miniboss 160/25 (PirateBoss: Morrow, the bandit chief, the huntsman). Refill starts 2 s after the
+  last hit; empty = BREAK, then full and immune 4 s. Worked out on the hit from physics ticks (nothing per frame).
+  `take(hit)` -> NONE (shrugged off: no flinch, it keeps coming), FLINCH, BREAK. `Poise.of(hit)`: `HitData.poise`
+  (new; Player.melee_hit sets light 6, finisher 14, heavy 25, a technique's hit base x1.2 clamped 6-60, `_hd` with a
+  knockdown 35-60, an ultimate's knockdown 120, a pistol shot 4 / 12 inside 3 m), and anything with the old
+  `knockdown` flag drains at least Poise.KICK 30 (the kick moves, Arrow Kick, Handstand Spin, Cyclone Heel's ring,
+  heavies that floored). A break by a finisher's weight or more knocks down (a crumpling blow crumples, a launcher
+  launches), lighter ones reel hard (1.3 s). Every knockdown (`_knock_down`, `_crumple`) sets the 4 s immunity, and a
+  grunt down or getting up takes the damage only (no re-knockdown loop). Grunt guard: a blow of 30+ poise goes
+  through it (was: any knockdown flag). PirateBoss lost its own "no knockdown unless staggered" and wind-up armour
+  rules (the miniboss class covers both); a break mid-special ends the special. AI captains: `Player.poise` (made in
+  `_setup_ai`, "rival"; RivalEncounter makes the crewmen "elite"); humans have none. Drowned shots drain x SHOT_K.
+  Beasts keep their own (JungleBeast._poise) until the beast pass, which can use `Poise.make("miniboss")` /
+  `take(hit)` or a new class line. Other enemies (scuttlebugs, fauna, the sea king) still go by the knockdown flag.
+- **Juggling** (`scripts/combat/juggle.gd`, class Juggle; `HitData.launch`, m/s up, < 0 a spike). A grunt or elite
+  goes up on any launcher (`PirateGrunt.juggle`, state S.AIR, group "juggled", pose "jug_air", JugglePoses); a camp
+  captain / miniboss only when the launcher breaks its poise; beasts never. Up there: gravity 15, each hit lifts
+  `LIFT 4.5 x 0.75^hits` (x the hit's own launch / LIFT), none after AIR_MAX 3 s (then it falls 1.8x harder); a spike
+  drives it down. Landing = a knockdown (immune 4 s). Launchers: the fists' uppercut (LightAttackState LAUNCH_UP 9),
+  Updraft (grunts juggled instead of ragdoll-thrown; its apex cleave spikes), Rising Heel, Sky Chase. The air step
+  toward a juggled foe chases it (JumpState._chase: 0.3 s to arm's length, the stick ignored meanwhile: player meta
+  "chase_until", FallState too). An air attack within 3.4 m of one is an air combo (PlungeState "air_combo": the
+  style's light blows, one a press, hanging beside it, up to 4 a jump, the 4th spikes). Co-op: the host runs the
+  grunt; puppets join/leave the juggled group from the snapshot's state so a guest's air step chases too; `poise`
+  and `launch` ride `Net.hit_pack`.
+- **Black leg:** Rising Heel (`rising_heel`, node bl_rise, Mule Kick's slot; pose bl_rise: sunk over the left knee,
+  the heel swung up the front to vertical at RISE_AT 0.24, 20 dmg, launch 10, breaker), Sky Chase (`sky_chase`, node
+  bl_sky, Cartwheel Crescent's slot; up to a juggled foe within 10 m (refunded if none): a scissor kick up, launch 9,
+  or with the stick held forward the spike: heel down, launch -18, you dive after it and land in a 2.6 m ring that
+  floors the rest). Flambe Dash 9 m -> 4.5 m and it stops on landing (the 36 m/s it landed with bled off at 30 m/s²
+  carried it ~10 m further: that was most of "far too far"). Mule Kick, Cartwheel Crescent, their poses, plants and
+  icons are gone; SkillTrees.RENAMED / Skills.RENAMED give old saves the new nodes and bar slots (Heavy Heel's steps
+  hang on Sky Chase). New icons (gen_psx_textures.py techniques).
+- **Per frame / tick added:** none while nothing is juggled; a juggled grunt runs `_air_update` (gravity, a
+  move_and_slide) instead of its brain for ~2-3 s. Poise is lazy (on hits only).
+- Tests: t/combat/poise_knockdown, juggle_hold, juggle_chase, black_leg_launch; t/progression/black_leg_rename;
+  t/weapons black_leg_tree / black_leg_cleaver_flambe / black_leg_learn updated, black_leg_wheel_hands removed.
+  Renders: tools/dev/out/bl23_00_*.png (bl_rise, bl_sky, bl_sky_spike), tools/dev/out/jug_00_*.png.
+  Expect at prepush: grunttest, r10test, ragtest, balancetest, techtest, airtest, progtest, nettest.

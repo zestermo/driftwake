@@ -64,6 +64,7 @@ func _launch(double: bool) -> void:
 	elif double:
 		_stamp_at = now_s() + MovePoses.STAMP_S
 		Net.fx("sfx", ["whoosh", at, -12.0, 0.08, 1.3])
+		_chase()
 	elif kind == "jump_sprint":
 		Net.fx("dust", [at + Vector3(0, 0.05, 0), 9, 0.7])
 		Net.fx("sfx", ["jump", at, -7.0, 0.06, 0.92])
@@ -82,6 +83,30 @@ func take_off(double: bool) -> String:
 		return "jump_stand"
 	# (Move's exit has already cleared `sprinting`: go by the speed)
 	return "jump_sprint" if h > (player.move_speed + player.sprint_speed) * 0.5 else "jump_run"
+
+
+## The air step toward a juggled foe (Juggle) carries you up to it: CHASE_S s to arm's length beside its chest.
+const CHASE_S := 0.3
+const CHASE_MAX := 26.0
+
+
+func _chase() -> void:
+	var foe := Juggle.near(player.get_tree(), player.global_position, Juggle.CHASE_REACH, get_camera_forward())
+	if foe == null:
+		return
+	var to := foe.global_position - player.global_position
+	var flat := Vector3(to.x, 0.0, to.z)
+	var side := flat.normalized() if flat.length() > 0.05 else get_camera_forward()
+	var goal := foe.global_position - side * 1.0 - player.global_position
+	var v := goal / CHASE_S
+	v.y += 0.5 * player.gravity * CHASE_S
+	player.velocity = v.limit_length(CHASE_MAX)
+	player.air_speed = Vector2(player.velocity.x, player.velocity.z).length()
+	player.variable_jump_active = false
+	player.player_model.rotation.y = atan2(-side.x, -side.z)
+	player.set_meta("chase_until", now_s() + CHASE_S)
+	Net.fx("afterimage", [player.body_model, Color(1.0, 0.97, 0.88), 0.25])
+	Net.fx("streak", [player.global_position + Vector3(0, 0.9, 0), foe.global_position + Vector3(0, 1.0, 0), Color(1.0, 0.98, 0.9), 0.1, 0.2])
 
 
 ## The air step's foot meets the air: a flat ring of wind and a puff under it, and the thump.
@@ -131,7 +156,8 @@ func physics_update(delta: float) -> void:
 	apply_gravity(delta)
 
 	var input := get_movement_input()
-	if input.length() > 0.1:
+	# (chasing a juggled foe: the step carries you, the stick doesn't steer)
+	if input.length() > 0.1 and now_s() >= float(player.get_meta("chase_until", 0.0)):
 		var direction := get_camera_relative_direction(input)
 		var spd := air_speed()
 		player.velocity.x = direction.x * spd

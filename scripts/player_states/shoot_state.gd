@@ -106,6 +106,7 @@ func _fire(dual: bool) -> void:
 		hd.hitstop_duration = 0.0 if dual else 0.03   # (rapid dual fire: a freeze per hit reads as stutter)
 		hd.camera_shake_intensity = 0.0 if dual else 0.05
 		hd.ranged = true
+		hd.poise = Poise.SHOT_CLOSE if far < Poise.CLOSE_M else Poise.SHOT
 		TraitMoves.shape_shot(player, hd, player.ammo[_hand] <= 0)
 		hb.take_hit(hd, player)
 		player.power.on_sword_hit(hb.owner, hd)

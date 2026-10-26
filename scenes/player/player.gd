@@ -190,6 +190,8 @@ var inp: CaptainInput = CaptainInput.new()
 ## A captain-style AI (a rival, an Admiralty officer): the full brain and states, fed by a brain instead of the
 ## keyboard; none of the local captain's camera, HUD or saves (docs/v1_19_plan.md "Build notes").
 var is_ai: bool = false
+## An AI captain's poise (Poise "rival"; a rival's crewmen "elite"); null for the players.
+var poise: Poise
 var _debug_crew := 0
 ## Max health scale (an AI captain's: a rival crew's captain and their returns are tougher).
 var hp_k := 1.0
@@ -652,7 +654,15 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	# Unstoppable (axe tree): swinging the axe, blows don't stop you
 	if progression.style_stat("armor", style()) > 0.0 and current_state_name() in ["LightAttack", "HeavyAttack", "Plunge", "Technique"]:
 		return
-	if hit.knockdown:
+	# (an AI captain has poise: down only when it runs out, and some blows it shrugs off)
+	if poise:
+		var took := poise.take(hit)
+		if took == Poise.BREAK:
+			knock_down(_last_hit_velocity)
+			return
+		if took == Poise.NONE:
+			return
+	elif hit.knockdown:
 		knock_down(_last_hit_velocity)
 		return
 	# a hit while you're charging the iai breaks the charge, steadfast or not
@@ -2286,6 +2296,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 	h.impact = IMPACT[st]
 	if kind in ["heavy", "finisher"]:
 		h.impact = CombatManager.HEAVY_IMPACT.get(h.impact, h.impact)
+	h.poise = {"": Poise.LIGHT, "finisher": Poise.FINISHER, "heavy": Poise.HEAVY}.get(kind, clampf(base * 1.2, Poise.LIGHT, Poise.TECH_MAX))
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
 	h.damage = base * damage_multiplier() * k
 	# (Sidestep: a blow slipped makes the next one a sure crit)
@@ -2567,6 +2578,7 @@ func _setup_ai() -> void:
 	remove_from_group("players")
 	add_to_group("enemies")
 	add_to_group("rivals")
+	poise = Poise.make("rival")
 	# (co-op: its snapshot goes out like an enemy's; the guests show a captain puppet of it, Net._all_spawn_rival)
 	add_to_group("net_sync")
 	for n in [input_buffer, state_machine]:

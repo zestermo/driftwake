@@ -2,14 +2,13 @@ extends SceneTree
 ## The Black Leg tree (SkillTrees "black_leg"): its root and three branches, every node on it, its moves and skills
 ## real (each a black-leg Technique), its steps 30, one ultimate at 30, heat as its element (its own palette, apart
 ## from the axe's embers), Nonchalance at 10, the style mapped to it; and with it mastered each technique and the
-## ultimate lands on the dummy, the hands going down on the ground in Mule Kick with both heels driven up (a handstand,
-## not lying face-down).
+## ultimate lands on the dummy (Sky Chase needs a foe in the air: t/combat/black_leg_launch), Rising Heel's heel
+## going up high over the hips.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["last_course", "mule_kick", "hailstorm_heels", "cartwheel_crescent", "cleaver_kick", "flambe_dash"]
+const TECHS := ["last_course", "rising_heel", "hailstorm_heels", "sky_chase", "cleaver_kick", "flambe_dash"]
 var stage
 var p
 var taken := 0.0
-var low := 9.0
 var heels := -9.0
 var ti := 0
 var step := 0
@@ -29,10 +28,9 @@ func check(what: String, cond: bool) -> void:
 
 
 func _process(_d: float) -> bool:
-	if step == 2 and p.body_model.current_action() == "bl_mule":
-		low = minf(low, minf(p.body_model.hand_l.global_position.y, p.body_model.hand_r.global_position.y) - p.global_position.y)
+	if step == 2 and p.body_model.current_action() == "bl_rise":
 		var BLA = load("res://scripts/player_states/black_leg_arts.gd")
-		heels = maxf(heels, minf(BLA.foot(p, true).y, BLA.foot(p, false).y) - p.global_position.y)
+		heels = maxf(heels, BLA.foot(p, true).y - p.global_position.y)
 	if not stage.up or TK.ticking(until):
 		return false
 	match step:
@@ -101,10 +99,12 @@ func _process(_d: float) -> bool:
 			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] == "last_course" else 0})
 			until = TK.wait_secs(2.9 if TECHS[ti] == "last_course" else 1.7)
 		2:
-			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
-			if TECHS[ti] == "mule_kick":
-				check("Mule Kick goes down on both hands (%.2f m)" % low, low < 0.15)
-				check("Mule Kick drives both heels up, over the hips (%.2f m)" % heels, heels > 1.05)
+			if TECHS[ti] == "sky_chase":
+				check("Sky Chase with nothing in the air does nothing and is given back", taken == 0.0 and float(p.power.cooldowns.get("sky_chase", 0.0)) <= 0.0)
+			else:
+				check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
+			if TECHS[ti] == "rising_heel":
+				check("Rising Heel swings the heel up high, over the head (%.2f m)" % heels, heels > 1.8)
 			ti += 1
 			if ti < TECHS.size():
 				step = 1

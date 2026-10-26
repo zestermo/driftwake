@@ -164,6 +164,10 @@ func enter(_data: Dictionary) -> void:
 	_struck = []
 	_target = null
 	_mode = "rain" if player.style() == "dual_pistol" else air_move()
+	var jf := juggled_in_reach()
+	if jf:
+		_air_combo_enter(jf)
+		return
 	if _mode in ONCE_PER_JUMP or _mode == "meteor_kick":
 		player.air_uses[_mode] = int(player.air_uses.get(_mode, 0)) + 1
 	match _mode:
@@ -279,6 +283,9 @@ func enter(_data: Dictionary) -> void:
 func physics_update(delta: float) -> void:
 	timer += delta
 	match _mode:
+		"air_combo":
+			_air_combo_update(delta)
+			return
 		"rain":
 			_rain_update(delta)
 			return
@@ -1196,6 +1203,76 @@ func _drop_land() -> void:
 	wave.sever = true
 	# (whoever the dive drove through goes down with the rest)
 	_burst(at, DROP_LAND_R, wave, [])
+
+
+## The air combo (Juggle): an air attack next to a juggled foe is the weapon's own light blows, one a press, hanging
+## in the air beside it (each hit keeps it up a little less); the AIR_COMBO_MAX-th drives it down (a spike).
+const LIGHT := preload("res://scripts/player_states/light_attack_state.gd")
+const AIR_COMBO_LEN := 0.36
+const AIR_COMBO_HIT := 0.13
+const AIR_COMBO_SPIKE := -14.0
+const AIR_COMBO_KEEP := 1.1
+
+
+func _air_combo_enter(foe: Node3D) -> void:
+	_mode = "air_combo"
+	_target = foe
+	var n := int(player.air_uses.get("air_combo", 0))
+	player.air_uses["air_combo"] = n + 1
+	player.variable_jump_active = false
+	var to := Juggle.chest(foe) - player.global_position
+	to.y = 0.0
+	if to.length() > 0.05:
+		_dir = to.normalized()
+		player.player_model.rotation.y = atan2(-to.x, -to.z)
+	var cfg: Dictionary = LIGHT.STYLES.get(player.style(), LIGHT.STYLES["sword"])
+	var anims: Array = cfg["anims"]
+	var anim := str(anims[n % mini(anims.size(), 3)])
+	set_meta("anim", anim)
+	set_meta("dmg", float(cfg["damages"][n % mini(anims.size(), 3)]))
+	player.body_model.play(anim, AIR_COMBO_LEN)
+	player.velocity = Vector3(player.velocity.x * 0.3, maxf(player.velocity.y, 1.5), player.velocity.z * 0.3)
+	player.squash(1.5)
+	Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.06, 1.1 + 0.08 * n])
+
+
+func _air_combo_update(delta: float) -> void:
+	var alive := _target != null and is_instance_valid(_target)
+	# hang beside it: drift to arm's length on this side, falling slowly
+	if alive:
+		var spot := _target.global_position - _dir * AIR_COMBO_KEEP
+		var h := Vector3(spot.x - player.global_position.x, 0.0, spot.z - player.global_position.z)
+		player.velocity.x = h.x * 8.0
+		player.velocity.z = h.z * 8.0
+		player.velocity.y = clampf((_target.global_position.y - player.global_position.y) * 4.0, -3.0, 4.0)
+	else:
+		apply_gravity(delta)
+	player.move_and_slide()
+	if timer >= AIR_COMBO_HIT and not _fired:
+		_fired = true
+		var spike := int(player.air_uses.get("air_combo", 0)) >= AIR_COMBO_MAX
+		var anim := str(get_meta("anim"))
+		var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else FX.tree_col("plain", FX.EDGE)
+		if player.style() == "black_leg":
+			BlackLegArts.swoosh(player, anim, 0.16, col)
+		else:
+			Net.fx("blade_swoosh", [player.body_model, 0.16, col, col])
+		if alive and Juggle.chest(_target).distance_to(player.global_position + Vector3(0, 1.0, 0)) < Juggle.COMBO_REACH:
+			var hb := _target.get("hurtbox") as Hurtbox
+			var hd := player.melee_hit(float(get_meta("dmg")) * (1.4 if spike else 1.0), "finisher" if spike else "")
+			hd.knockback_force = 3.0
+			hd.hitstop_duration = 0.09 if spike else 0.05
+			hd.camera_shake_intensity = 0.15 if spike else 0.06
+			hd.launch = AIR_COMBO_SPIKE if spike else 0.0
+			_hit_one(hb, hd)
+			var at := Juggle.chest(_target)
+			Net.fx("impact", [at, col])
+			if spike:
+				Net.fx("ring", [at, Vector3.DOWN, 1.4, col, 0.25, 0.12])
+				Net.fx("streak", [at, at + Vector3(0, -2.5, 0), col, 0.12, 0.2])
+				player.cam_kick(0.15, 0.25)
+	if timer >= AIR_COMBO_LEN:
+		transitioned.emit(self, "Fall", {})
 
 
 func exit() -> void:

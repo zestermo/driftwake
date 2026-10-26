@@ -24,7 +24,8 @@ func physics_update(delta: float) -> void:
 	apply_gravity(delta)
 
 	var input := get_movement_input()
-	if input.length() > 0.1:
+	# (an air step chasing a juggled foe carries you: JumpState._chase)
+	if input.length() > 0.1 and now_s() >= float(player.get_meta("chase_until", 0.0)):
 		var direction := get_camera_relative_direction(input)
 		var spd := air_speed()
 		player.velocity.x = direction.x * spd

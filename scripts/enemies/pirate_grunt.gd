@@ -26,7 +26,7 @@ extends CharacterBody3D
 
 signal died(grunt: PirateGrunt)
 
-enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH }
+enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR }
 
 const GRAVITY := 20.0
 const RUN_SPEED := 4.4
@@ -116,6 +116,7 @@ var facing: Node3D
 var hurtbox: Hurtbox
 var hitbox: Hitbox
 var health: HealthComponent
+var poise: Poise
 
 var _col: CollisionShape3D
 var _bark: Label3D
@@ -436,6 +437,7 @@ func _ready() -> void:
 	health.max_health = _max_hp()
 	add_child(health)
 	health.died.connect(_on_died)
+	poise = Poise.make(_poise_class())
 
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -562,6 +564,8 @@ func _set_state(s: S) -> void:
 		humanoid.swimming = false
 	if s != S.DOWN:
 		set_collision_mask_value(2, true)   # (off while crumpled)
+	if state == S.AIR and s != S.AIR:
+		remove_from_group(Juggle.GROUP)
 	state = s
 	st_t = 0.0
 
@@ -705,6 +709,9 @@ func _physics_process(delta: float) -> void:
 		return
 	if boarder and state == S.IDLE and _left_behind(delta):
 		vanish(false)
+		return
+	if state == S.AIR:
+		_air_update(delta)
 		return
 	if state == S.DOWN or (humanoid.ragdoll != null and state != S.DEAD):
 		if state != S.DOWN:
@@ -1638,6 +1645,15 @@ func elite() -> bool:
 	return captain or elite_rank or level >= ELITE_LEVEL
 
 
+## Its poise (Poise.CLASSES): a camp's captain or an outpost's sergeant, an elite, or a grunt (bosses: "miniboss").
+func _poise_class() -> String:
+	if is_in_group("bosses"):
+		return "miniboss"
+	if captain:
+		return "captain"
+	return "elite" if elite() else "grunt"
+
+
 ## Something coming that a quick dash beats: [what, dash direction].
 func _threat_of(p: Node3D, dist: float, dir_p: Vector3) -> Array:
 	if p == null or not p.has_method("current_state_name"):
@@ -1794,24 +1810,29 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	# on the ground (ragdoll) or getting up: it takes the hit, nothing else.
 	# (Flinching from here used to drop it back into the fight while its body
 	# was still a ragdoll - riflemen would keep shooting from the ground.)
+	# (down, it's immune to poise until it's been up a while: Poise.IMMUNE)
 	if state == S.DOWN or state == S.GETUP:
 		_take_damage(hit, dir)
 		if state == S.DEAD:
 			return
 		if state == S.DOWN and humanoid.ragdoll:
 			humanoid.ragdoll.push(dir * minf(hit.knockback_force, 8.0) * 0.5 + Vector3.UP * 1.5)
-		elif hit.knockdown:
-			if hit.crumple:
-				_crumple()
-			else:
-				_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
+		return
+	if state == S.AIR:
+		_air_hit(hit, dir)
+		return
+	# a launcher throws a light foe up every time (heavier ones only when it breaks their poise: _poise_broken)
+	if hit.launch > 0.0 and _juggles() and state != S.SWIM:
+		_take_damage(hit, dir)
+		if state != S.DEAD:
+			juggle(hit.launch, dir)
 		return
 	if state == S.SWIM:
 		_take_damage(hit, dir)
 		if state == S.DEAD:
 			return
 		bark(BARK_HURT, 0.3)
-		if hit.knockdown:
+		if poise.take(hit) == Poise.BREAK:
 			_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 2.0)
 		else:
 			velocity += dir * minf(hit.knockback_force * 0.4, 3.0)
@@ -1822,7 +1843,10 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_take_damage(hit, dir)
 		if state == S.DEAD:
 			return
-		if hit.haki or hit.breaker:
+		if poise.take(hit) == Poise.BREAK:
+			_set_peril(false)
+			_poise_broken(hit, dir)
+		elif hit.haki or hit.breaker:
 			_set_peril(false)
 			hitbox.deactivate()
 			_release_token()
@@ -1853,7 +1877,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 
 	# blocked: sparks, no damage (until the guard breaks)
 	# (a cutlass can't stop a bullet)
-	if guarding and from_front and not hit.knockdown and not hit.unblockable and not hit.ranged and not hit.breaker:
+	if guarding and from_front and Poise.of(hit) < Poise.KICK and not hit.unblockable and not hit.ranged and not hit.breaker:
 		if _guard_hits < _guard_max():
 			_guard_hits += 1
 			_guard_t = 3.5
@@ -1885,18 +1909,18 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	_take_damage(hit, dir)
 	if state == S.DEAD:
 		return
+	var took := poise.take(hit)
+	if took == Poise.BREAK:
+		_poise_broken(hit, dir)
+		return
+	if took == Poise.NONE:
+		return  # it shrugs it off and keeps coming
 	bark(BARK_HURT, 0.3)
-	if hit.ranged and not hit.breaker and not hit.knockdown and state != S.STAGGER:
+	if hit.ranged and not hit.breaker and state != S.STAGGER:
 		if _shot_flinch_t > 0.0:
 			return  # it takes the ball and keeps coming
 		_shot_flinch_t = SHOT_FLINCH_EVERY
 	_release_token()
-	if hit.knockdown and hit.crumple:
-		_crumple()
-		return
-	if hit.knockdown:
-		_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
-		return
 	if state == S.STAGGER:
 		return  # already reeling: keep the punish window
 	if hit.breaker:
@@ -1949,7 +1973,12 @@ func parried(by: Node) -> void:
 func launched(v: Vector3) -> void:
 	if Net.forward(self, "launched", [v]):
 		return
-	if state in [S.DEAD, S.DOWN]:
+	if state == S.DEAD:
+		return
+	# (the blow that launches it may have broken its poise and floored it a moment ago: thrown on from there)
+	if state == S.DOWN and humanoid.ragdoll:
+		var rb := humanoid.ragdoll.root_body()
+		humanoid.ragdoll.push(v - (rb.linear_velocity if rb else Vector3.ZERO))
 		return
 	_knock_down(v)
 
@@ -2008,7 +2037,83 @@ func _disarm_tick(delta: float) -> void:
 		Net.event(self, "disarm", [false, Vector3.ZERO])
 
 
+## Its poise ran out: cut down where it stands (a crumpling blow), thrown off its feet (a blow of a finisher's weight
+## or more), else it reels hard.
+func _poise_broken(hit: HitData, dir: Vector3) -> void:
+	_release_token()
+	bark(BARK_HURT, 0.6)
+	Net.fx("sparkle", [global_position + Vector3(0, 1.5, 0), 10, Color(1.0, 0.85, 0.5)])
+	if hit.launch > 0.0 and state != S.SWIM:
+		juggle(hit.launch, dir)
+	elif hit.crumple:
+		_crumple()
+	elif Poise.of(hit) >= Poise.FINISHER:
+		_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
+	else:
+		hitbox.deactivate()
+		velocity = dir * 3.5
+		_stagger_len = HARD_STAGGER
+		humanoid.react("stagger", HARD_STAGGER, dir)
+		_set_state(S.STAGGER)
+
+
+const HARD_STAGGER := 1.3
+var _air_hits := 0
+var _spiked := false
+
+
+## Light enough to go up on any launcher (Juggle): grunts and elites; a camp's captain and the bosses only when the
+## launcher breaks their poise.
+func _juggles() -> bool:
+	return _poise_class() in ["grunt", "elite"]
+
+
+## Thrown up by a launcher at `up` m/s: off its feet, tumbling, in the juggled group until it lands.
+func juggle(up: float, dir: Vector3) -> void:
+	hitbox.deactivate()
+	_drop_aim()
+	_release_token()
+	_air_hits = 0
+	_spiked = false
+	velocity = dir * Juggle.CARRY + Vector3.UP * up
+	_set_state(S.AIR)
+	add_to_group(Juggle.GROUP)
+	humanoid.play("jug_air", Juggle.AIR_MAX + 1.0)
+	bark(BARK_HURT, 0.5)
+	Net.fx("dust_ring", [global_position, 10, 0.7])
+	Net.fx("sfx", ["whoosh", global_position, -6.0, 0.05, 0.8])
+
+
+## Hit up there: it stays up, each hit lifting it less (none after Juggle.AIR_MAX s); a spike drives it down.
+func _air_hit(hit: HitData, dir: Vector3) -> void:
+	_take_damage(hit, dir)
+	if state == S.DEAD:
+		return
+	if hit.launch < 0.0:
+		_spiked = true
+		velocity = dir * Juggle.CARRY + Vector3.UP * hit.launch
+	else:
+		velocity.y = maxf(velocity.y, Juggle.lift(_air_hits, st_t) * maxf(hit.launch, Juggle.LIFT) / Juggle.LIFT)
+		velocity += dir * minf(hit.knockback_force * 0.15, Juggle.CARRY)
+	_air_hits += 1
+	humanoid.play("jug_hit", maxf(Juggle.AIR_MAX + 1.0 - st_t, 0.6))
+
+
+func _air_update(delta: float) -> void:
+	velocity.y -= Juggle.GRAVITY * (Juggle.DROP_K if st_t > Juggle.AIR_MAX else 1.0) * delta
+	var h := _flat(velocity).move_toward(Vector3.ZERO, 3.0 * delta)
+	velocity.x = h.x
+	velocity.z = h.z
+	move_and_slide()
+	var down := st_t > 0.15 and velocity.y <= 0.0 and (is_on_floor() or _surface_depth() > SWIM_ENTER_DEPTH)
+	if down or st_t > Juggle.AIR_MAX + 2.0:
+		Net.fx("dust_ring", [global_position, 14 if _spiked else 9, 1.0 if _spiked else 0.7])
+		Net.fx("sfx", ["thud", global_position, -2.0 if _spiked else -6.0, 0.05, 0.8])
+		_knock_down(_flat(velocity) * 0.4 + Vector3.UP * (2.5 if _spiked else 1.0))
+
+
 func _knock_down(v: Vector3) -> void:
+	poise.broke()
 	hitbox.deactivate()
 	_drop_aim()
 	_release_token()
@@ -2021,6 +2126,7 @@ func _knock_down(v: Vector3) -> void:
 ## Cut down in place: the body goes limp and folds where it stood (no throw,
 ## no spin), and is back up after half a second or so.
 func _crumple() -> void:
+	poise.broke()
 	hitbox.deactivate()
 	_drop_aim()
 	_release_token()
@@ -2818,6 +2924,11 @@ func _net_update(delta: float) -> void:
 	if st != state:
 		state = st as S
 		st_t = 0.0
+		# (a guest's air step chases it too)
+		if state == S.AIR:
+			add_to_group(Juggle.GROUP)
+		else:
+			remove_from_group(Juggle.GROUP)
 	health.max_health = float(b[5])
 	health.current_health = float(b[4])
 	HumanoidSync.apply(humanoid, a[6], b[6], f)

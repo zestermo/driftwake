@@ -60,12 +60,13 @@ func _process(_d: float) -> bool:
 		3:
 			if not p.is_free():
 				return false
-			cast("flambe_dash", 4.0)
+			cast("flambe_dash", 3.0)
 			until = TK.wait_secs(1.1)
 		4:
 			var past: float = (start - p.global_position).dot(Vector3(0, 0, 1))
 			check("Flambe Dash kicks the dummy (%.0f damage)" % taken, taken > 0.0)
-			check("...streaks through it, landing past it (%.1f m on, the dummy at 4)" % past, past > 6.0)
+			check("...streaks through it, landing past it (%.1f m on, the dummy at 3)" % past, past > 3.5)
+			check("...and no further than ~5 m (1.23: it went far too far; %.1f m)" % past, past < 5.5)
 			check("...and leaves it burning", stage.dummy.get_node_or_null("Burn") != null)
 			check("enemies stop you again after it", p.get_collision_mask_value(12))
 			return TK.done(fails)

@@ -83,8 +83,8 @@ const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": [
 
 ## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
 ## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
-## wrestling moves went in 1.18.4.
-const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist"}
+## wrestling moves went in 1.18.4; black-leg's Mule Kick and Cartwheel Crescent in 1.23.
+const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist", "bl_mule": "bl_rise", "bl_wheel": "bl_sky"}
 const PRICE := {"move": 2, "mech": 2, "tech": 3, "passive": 3, "variant": 4, "elem": 5, "ult": 8}
 const PRICE_ADVENTURE := {"move": 1, "mech": 1, "tech": 2, "passive": 2, "variant": 2, "elem": 3, "ult": 4}
 
@@ -1050,13 +1050,13 @@ static func _build_black_leg() -> void:
 		"Kicks only, the hands kept free: a low kick, a mid kick and a high kick flowing into each other, and on right-click the heel brought down from over your head through a guard. Taught, not found; choose it by clicking your empty hand in the bag (I). Fight with your kicks to build its mastery.")
 	_big("bl_deflect", "Shin Guard", "mech", 0, 3, {"parryshot_black_leg": 1, "parry_black_leg": 0.06},
 		"Parry with a raised shin and you kick gunshots aside too (without it, a parry only stops blades), and your parry window is wider.")
-	_big("bl_mule", "Mule Kick", "tech", 0, 8, {}, "", "mule_kick")
+	_big("bl_rise", "Rising Heel", "tech", 0, 8, {}, "", "rising_heel")
 	_big("bl_pockets", "Nonchalance", "mech", 0, 10, {"pockets_black_leg": 1},
 		"A master's ease: your hands stay in your pockets on guard. They come out the moment you kick and go back in as you settle; nothing waits on them.")
 	_big("bl_return", "Kick Back", "mech", 0, 20, {"deflect_black_leg": 1, "return_black_leg": 1, "deflect_cd_black_leg": 1.0},
 		"Kicking, a shot from the front is kicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("bl_hail", "Hailstorm Heels", "tech", 1, 5, {}, "", "hailstorm_heels")
-	_big("bl_wheel", "Cartwheel Crescent", "tech", 1, 10, {}, "", "cartwheel_crescent")
+	_big("bl_sky", "Sky Chase", "tech", 1, 10, {}, "", "sky_chase")
 	_big("bl_flambe", "Flambe Dash", "tech", 1, 14, {}, "", "flambe_dash")
 	_elem(1)
 	_elem(2)
@@ -1077,7 +1077,7 @@ static func _build_black_leg() -> void:
 	_step("bl_shins", "Iron Shins", "bl_root", 5, {"dmg_black_leg": 0.05}, "+5% kick damage a step.")
 	_step("bl_nerves", "Light Check", "bl_deflect", 3, {"parry_black_leg": 0.02}, "A shin parry's window a little wider a step.")
 	_step("bl_sear", "Searing", "bl_elem", 5, {"crit_black_leg": 0.03}, "3% more of your kicks land 50% harder, a step.")
-	_step("bl_heel", "Heavy Heel", "bl_wheel", 5, {"finisher_black_leg": 0.06}, "The last kick of your combo lands 6% harder a step.")
+	_step("bl_heel", "Heavy Heel", "bl_sky", 5, {"finisher_black_leg": 0.06}, "The last kick of your combo lands 6% harder a step.")
 	_step("bl_feet", "Light Feet", "bl_spin", 3, {"stam_black_leg": 0.05}, "Kicks cost 5% less stamina a step.")
 	_step("bl_drop", "Guillotine", "bl_arrow", 3, {"heavy_black_leg": 0.08}, "Your Guillotine Heel (right-click) hits 8% harder a step.")
 	_step("bl_flow", "Flow", "bl_hail", 3, {"flow_black_leg": 0.15}, "Kicks give 15% more energy a step.")

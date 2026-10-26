@@ -51,7 +51,7 @@ func _process(_d: float) -> bool:
 			p.loadouts[1] = ["black_leg", ""]
 			check("a loadout of kicks counts as black-leg (%s)" % p.loadout_style(1), p.loadout_style(1) == "black_leg" and p.loadout_carried(1))
 			var PC = load("res://scripts/powers/power_component.gd")
-			var mule: Dictionary = load("res://scripts/progression/skills.gd").get_skill("mule_kick")
+			var mule: Dictionary = load("res://scripts/progression/skills.gd").get_skill("rising_heel")
 			check("its techniques fit that loadout (the bar takes them)", PC.fits(mule, "black_leg") and PC.loadout_for(mule, p.power.loadout_styles(), 0) == 1)
 			TK.act("loadout")
 			until = TK.wait_secs(0.4)

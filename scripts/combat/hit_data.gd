@@ -34,3 +34,7 @@ class_name HitData
 ## A heavy the player keeps repeating (0..1): the chance a grunt who saw it
 ## coming reads it and steps out of it or guards (PlayerState.heavy_used).
 @export var predictable: float = 0.0
+## Poise damage (Poise.of: < 0 = by what the blow is; a knockdown blow drains at least Poise.KICK).
+@export var poise: float = -1.0
+## A launcher: throws a light foe up at this speed (m/s; Juggle). 0: it doesn't.
+@export var launch: float = 0.0

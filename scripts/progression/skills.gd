@@ -14,7 +14,7 @@ extends RefCounted
 
 const ICON_DIR := "res://assets/textures/icons/"
 ## Skills that became others (an old save's bar keeps the slot): the fists' wrestling moves went in 1.18.4.
-const RENAMED := {"suplex": "cannonball_fist", "giant_swing": "meteor_fist"}
+const RENAMED := {"suplex": "cannonball_fist", "giant_swing": "meteor_fist", "mule_kick": "rising_heel", "cartwheel_crescent": "sky_chase"}
 
 const ALL := {
 	# --- Mobility / Survival (Rokushiki-style body techniques) ---
@@ -196,16 +196,16 @@ const ALL := {
 	"skysplitter": {"name": "Skysplitter", "tree": "greatsword", "cost": 0.0, "cooldown": 3.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap high with the blade heaved overhead and come down in one cleave: the ground splits in a line twelve paces long, everyone on it is thrown down, and three crescents of air tear on down the line."},
 	# --- Black Leg ---
-	"mule_kick": {"name": "Mule Kick", "tree": "black_leg", "cost": 16.0, "cooldown": 6.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
-		"desc": "Spin your back to the enemy you're facing, drop onto both hands and drive both heels into them: it can't be blocked, breaks their wind-up and throws them clear."},
+	"rising_heel": {"name": "Rising Heel", "tree": "black_leg", "cost": 16.0, "cooldown": 6.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "Sink low and swing your heel straight up under their chin: a light foe is launched into the air (a heavy one only once its guard is spent). Air-step after them to keep the combo going."},
 	"hailstorm_heels": {"name": "Hailstorm Heels", "tree": "black_leg", "cost": 20.0, "cooldown": 7.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
 		"desc": "Up on one foot, a hail of snapping kicks at every height into whoever's in front, walking in, and a last big one that knocks them flat."},
-	"cartwheel_crescent": {"name": "Cartwheel Crescent", "tree": "black_leg", "cost": 22.0, "cooldown": 8.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
-		"desc": "Two cartwheels forward, hand over hand, the legs wheeling over in wide arcs that kick everyone along the way, and a heel brought down at the end that knocks them flat."},
+	"sky_chase": {"name": "Sky Chase", "tree": "black_leg", "cost": 18.0, "cooldown": 6.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "Stamp on the air up to a foe you've launched and kick it higher still, or hold forward to bring your heel down through it: it's spiked into the ground and you land after it in a ring that knocks everyone round you flat."},
 	"cleaver_kick": {"name": "Cleaver Kick", "tree": "black_leg", "cost": 18.0, "cooldown": 7.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
 		"desc": "A high crescent kick so fast it cuts the air: a blade of it shoots off your foot twelve paces down the line, cutting everyone it passes. With the heat awakened it flies red-hot and sets them burning."},
 	"flambe_dash": {"name": "Flambe Dash", "tree": "black_leg", "cost": 22.0, "cooldown": 8.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
-		"desc": "A hop as the leg heats, then a flying side kick that streaks nine paces through the line, kicking everyone on it aside and off their feet. With the heat awakened it leaves a trail of crimson fire and them burning."},
+		"desc": "A hop as the leg heats, then a flying side kick that streaks five paces through the line, kicking everyone on it aside and off their feet. With the heat awakened it leaves a trail of crimson fire and them burning."},
 	"last_course": {"name": "Last Course", "tree": "black_leg", "cost": 0.0, "cooldown": 3.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Spin on one foot until your leg glows red-hot, then a storm of burning kicks through everyone in front, a leap, and the heel brought down: the ground bursts into a ring of crimson fire that throws them all down."},
 	# --- Pistol ---

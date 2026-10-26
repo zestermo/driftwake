@@ -128,6 +128,8 @@ func _arrive(near: Player, from: Vector3) -> void:
 		brain.order = "hold"
 		var k := (1.0 + 0.15 * tier) * (1.8 if m["captain"] else 1.0)
 		r.hp_k = k
+		if not m["captain"]:
+			r.poise = Poise.make("elite")
 		r._recalc_stats()
 		r.health_component.current_health = r.health_component.max_health
 		r.defeated.connect(_on_defeated.bind(r))

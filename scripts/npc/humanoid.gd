@@ -2344,6 +2344,8 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]
 	if n.begins_with("ape_"):
 		return ApePoses.pose(self, n, u)
+	if n.begins_with("jug_"):
+		return JugglePoses.pose(self, n, u)
 	# emotes (the wheel) and talk / interact gestures
 	if n.begins_with("emote_") or n.begins_with("gesture_"):
 		return EmotePoses.pose(self, n, u)
