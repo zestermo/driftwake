@@ -6473,3 +6473,25 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   `SeaChart.pan_off` / `MapIsleView.pan_off`, a zoom puts it back), "MIDDLE PAN" in its hints; the chart's legend (you,
   crew, ship, mark). On-screen marks: the 4 nearest (MarkerLayer.SHOWN), the rest "+N more marks (M)", one you stand on
   fades. t/map/map_pan (new).
+
+## 2026-10-26: 1.23 sea pursuit (docs/v1_23_plan.md, "Sea pursuit" and "Marines")
+
+Ships at sea can catch and trap the crew's ship. All host-simulated; the crew's side rides the ship's damage
+packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see it and do the jobs through
+`Net.ship_work` like patching holes.
+
+- **Chain shot** (piece 1): `ShipCannon.chain` (sent with the fire event), `Cannonball.chain` (two half-balls on a
+  bar, spinning; half a ball's hull damage). Kinds with `"chain": true` (brig, marine, later hunter, frigate) load it
+  for a volley when the crew is getting away or on the opening volley (`EnemyShip._wants_chain`), aimed at the
+  mainsail (`CHAIN_AIM_Y`, half the scatter). The host's copy of a ball passing through the canvas box round the mast
+  calls `Ship.tear_sail`: `torn` [id, mend slot, patch], up to MAX_TORN 3, each TORN_SLOW 0.18 off top speed
+  (`sail_k()`); a ragged dark patch hangs on the sail node. Mend: hold F at `MEND_AT[slot]` (foot of the mast),
+  MEND_TIME 3 s (Seamanship "repair" shortens it).
+- **Grapples** (piece 1): when the boarders leap (`_board`), the hooks bite: `Ship.lash(by, side)` adds three
+  `lines` [id, rail spot, holder key, holder-local end]. Lashed, the crew's top speed is LASHED_SPEED 2.2; the holder
+  in HOLD is hauled to her alongside spot and kept to the crew's pace, sends another party PARTY_AGAIN 8 s after one's
+  beaten (while men are left), and breaks off once `lines_of(self)` is 0. Cut: hold F at the rail by a line,
+  CUT_TIME 1.1 s. Lines let go when the holder sinks or is gone, part after 1 s strained past LINE_SNAP 26 m, and go
+  when nobody's left aboard the crew's ship (`unlash`). Hook and rope drawn on every screen (`_ropes`, world-space
+  rope to the holder's interpolated transform). A banner "Grappled!" / toast "Cut free!" on every screen.
+- Tests: t/ship/chain_shot, t/ship/grapple_cut.

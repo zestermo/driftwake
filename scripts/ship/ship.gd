@@ -239,7 +239,9 @@ func _physics_process(delta: float) -> void:
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
 	# (water in her: low and sluggish; a fair wind: a little faster)
-	var top := MAX_SPEED * _top_k * _helm_k.x * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood * _helm_k.z) * wind_effect()
+	var top := MAX_SPEED * _top_k * _helm_k.x * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood * _helm_k.z) * wind_effect() * sail_k()
+	if not lines.is_empty():
+		top = minf(top, LASHED_SPEED)
 	var want := top * sail_shown
 	_fair_wind_note()
 	if summoning():
@@ -628,15 +630,19 @@ func add_fire(at: Vector3) -> void:
 func _send_damage() -> void:
 	_flood_sent = flood
 	_rebuild_holes()
-	Net.ship_damage([breaches, fires, flood])
+	_rebuild_tears()
+	Net.ship_damage([breaches, fires, flood, torn, lines])
 
 
-## Not the host: what the host says is holed, burning and flooded.
+## Not the host: what the host says is holed, burning, flooded, torn and lashed.
 func net_damage(data: Array) -> void:
 	breaches = data[0]
 	fires = data[1]
 	flood = float(data[2])
+	torn = data[3]
+	lines = data[4]
 	_rebuild_holes()
+	_rebuild_tears()
 
 
 ## Host: a captain did a job (on any screen).
@@ -646,6 +652,13 @@ func do_work(kind: String, id: int, amount: float) -> void:
 			breaches = breaches.filter(func(b): return int(b[0]) != id)
 		"douse":
 			fires = fires.filter(func(f): return int(f[0]) != id)
+		"mend":
+			torn = torn.filter(func(t): return int(t[0]) != id)
+		"cut":
+			var was := lines.size()
+			lines = lines.filter(func(l): return int(l[0]) != id)
+			if lines.size() < was:
+				Net.fx("sfx", ["rope", global_position, 0.0, 0.05, 1.4])
 		"bail":
 			flood = maxf(flood - amount, 0.0)
 			if absf(flood - _flood_sent) < 0.02 and flood > 0.0:
@@ -654,8 +667,10 @@ func do_work(kind: String, id: int, amount: float) -> void:
 
 
 ## Host, every tick: water coming in, fires burning and spreading, a reef
-## under her keel, a whirlpool's eye grinding her.
+## under her keel, a whirlpool's eye grinding her, grapple lines holding.
 func _damage_tick(delta: float) -> void:
+	if not lines.is_empty():
+		_lines_tick(delta)
 	var sf := get_tree().get_first_node_in_group("sea_features")
 	if sf:
 		var on_reef: bool = sf.reef_at(global_position) and absf(speed) > 1.5
@@ -740,6 +755,8 @@ func _damage_view(delta: float) -> void:
 			var side := signf(spot.x)
 			var at := global_transform * Vector3(side * (_side_at(spot.z, WATERLINE_Y) + 0.2), WATERLINE_Y + 0.1, spot.z)
 			FX.splash(at, 3, 0.5)
+	if not _ropes.is_empty():
+		_show_ropes()
 	var me := get_tree().get_first_node_in_group("player") as Player
 	if me == null or me.context != Player.Context.ON_FOOT or not aboard(me.global_position):
 		local_job = ""
@@ -767,6 +784,15 @@ func _damage_view(delta: float) -> void:
 		var d := Vector2(local.x - f[1].x, local.z - f[1].z).length()
 		if d < best:
 			best = d; job = "douse"; id = int(f[0])
+	for t in torn:
+		var spot: Vector3 = MEND_AT[int(t[1])]
+		var d := Vector2(local.x - spot.x, local.z - spot.z).length()
+		if d < best:
+			best = d; job = "mend"; id = int(t[0])
+	for l in lines:
+		var d := Vector2(local.x - l[1].x, local.z - l[1].z).length()
+		if d < best:
+			best = d; job = "cut"; id = int(l[0])
 	if flood > 0.0 and Vector2(local.x - PUMP_AT.x, local.z - PUMP_AT.z).length() < best:
 		job = "bail"; id = 0
 	elif job == "" and Vector2(local.x - CAPSTAN_AT.x, local.z - CAPSTAN_AT.z).length() < WORK_REACH:
@@ -809,15 +835,17 @@ func _damage_view(delta: float) -> void:
 				me.body_model.kneeling = false
 				Net.ship_work(job, id, 0.0)
 				Seamanship.xp(get_tree(), Seamanship.PATCH)
-				FX.sfx("wood_crack" if job == "patch" else "splash", me.global_position, -6.0, 0.05, 1.3)
-			_set_work(("Hold %s: patch the hole" if job == "patch" else "Hold %s: beat out the fire") % Glyphs.of("interact"), _work_t / need)
+				FX.sfx({"patch": "wood_crack", "douse": "splash", "mend": "whoosh", "cut": "parry"}[job], me.global_position, -6.0, 0.05, 1.3)
+			var verbs := {"patch": "patch the hole", "douse": "beat out the fire", "mend": "mend the torn sail", "cut": "cut the grapple line"}
+			_set_work("Hold %s: %s" % [Glyphs.of("interact"), verbs[job]], _work_t / need)
 
 
-## How long our captain takes over a deck job ("patch", "douse", "anchor"), with their Seamanship.
+## How long our captain takes over a deck job ("patch", "douse", "mend", "cut", "anchor"), with their Seamanship.
 func job_time(job: String) -> float:
 	if job == "anchor":
 		return ANCHOR_TIME / (1.0 + Seamanship.station(get_tree(), "capstan", self))
-	return (PATCH_TIME if job == "patch" else DOUSE_TIME) / (1.0 + Seamanship.station(get_tree(), "repair", self))
+	var base: float = {"patch": PATCH_TIME, "douse": DOUSE_TIME, "mend": MEND_TIME, "cut": CUT_TIME}[job]
+	return base / (1.0 + Seamanship.station(get_tree(), "repair", self))
 
 
 var _prompting: bool = false
@@ -837,6 +865,185 @@ func _set_work(text: String, progress: float) -> void:
 		return
 	_prompting = true
 	get_tree().call_group("hud", "show_prompt", text, progress)
+
+
+# --------------------------------------------------------------------------
+# Torn sails and grapple lines (docs/v1_23_plan.md, sea pursuit)
+# --------------------------------------------------------------------------
+## Chain shot through the canvas: each tear takes TORN_SLOW off her top speed until it's mended at the foot of the
+## mast (hold F). Grapples from a ship alongside lash her to it: LASHED_SPEED at most until every line is cut at the
+## rail. The host keeps both (net_damage); every screen draws them and its own captain does the work.
+const MAX_TORN := 3
+const TORN_SLOW := 0.18
+const MEND_TIME := 3.0
+const MEND_AT := [Vector3(-1.2, DECK_Y, -2.9), Vector3(1.2, DECK_Y, -2.9), Vector3(-1.1, DECK_Y, -0.7)]
+const LASHED_SPEED := 2.2
+const CUT_TIME := 1.1
+## A line parts when the ships it holds drift this far apart.
+const LINE_SNAP := 26.0
+## [id, mend slot (MEND_AT), the tear on the sail (sail-local)]
+var torn: Array = []
+## [id, rail spot (ship-local), the ship holding it (Net key), its end on her (her local)]
+var lines: Array = []
+var _tears: Dictionary = {}
+var _ropes: Dictionary = {}
+var _snap_t: float = 0.0
+static var _rope_mesh: Mesh
+
+
+func sail_k() -> float:
+	return 1.0 - TORN_SLOW * torn.size()
+
+
+## Host: chain shot tore through the canvas at `local` (ship-local).
+func tear_sail(local: Vector3) -> void:
+	if torn.size() >= MAX_TORN:
+		return
+	var used := torn.map(func(t): return int(t[1]))
+	var slot := 0
+	while slot in used:
+		slot += 1
+	_dmg_id += 1
+	var patch := Vector3(clampf(local.x, -3.4, 3.4), clampf(local.y - (HullBuilder.YARD_Y - 0.15), -7.6, -0.9), 0.3)
+	torn.append([_dmg_id, slot, patch])
+	Net.fx("sfx", ["whoosh_big", global_transform * local, 2.0, 0.05, 0.7])
+	Net.fx("dust", [global_transform * local, 14, 1.2])
+	_send_damage()
+
+
+## Host: grapples from `by` (on our `side`: 1 starboard) bite into the rail.
+func lash(by: Node3D, side: float) -> void:
+	for z in [-5.0, -1.0, 3.0]:
+		_dmg_id += 1
+		lines.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.5), DECK_Y, z), Net.key_of(by), Vector3(-side * 3.9, 1.6, z)])
+	_send_damage()
+
+
+## Host: `by` lets go of her (nobody left aboard to hold).
+func unlash(by: Node) -> void:
+	var k := Net.key_of(by)
+	if lines.any(func(l): return l[2] == k):
+		lines = lines.filter(func(l): return l[2] != k)
+		_send_damage()
+
+
+## How many of the lines on her `by` holds.
+func lines_of(by: Node) -> int:
+	var k := Net.key_of(by)
+	return lines.filter(func(l): return l[2] == k).size()
+
+
+## Host: a line whose ship is gone or going down lets go; one strained past LINE_SNAP for a second parts.
+func _lines_tick(delta: float) -> void:
+	var keep: Array = []
+	var far := false
+	for l in lines:
+		var by := Net.node_of(str(l[2])) as Node3D
+		if by == null or by.call("is_dead"):
+			continue
+		if by.global_position.distance_to(global_position) > LINE_SNAP:
+			far = true
+			if _snap_t > 1.0:
+				continue
+		keep.append(l)
+	_snap_t = _snap_t + delta if far else 0.0
+	if keep.size() != lines.size():
+		lines = keep
+		_send_damage()
+
+
+## Every screen: the tears on the sail, the lines' ropes, and the word when she's lashed or free.
+func _rebuild_tears() -> void:
+	var keep := {}
+	for t in torn:
+		var id := int(t[0])
+		keep[id] = true
+		if not _tears.has(id):
+			_tears[id] = _tear_mesh(t[2], id)
+	for id in _tears.keys():
+		if not keep.has(id):
+			(_tears[id] as Node).queue_free()
+			_tears.erase(id)
+	var was := not _ropes.is_empty()
+	keep = {}
+	for l in lines:
+		var id := int(l[0])
+		keep[id] = true
+		if not _ropes.has(id):
+			_ropes[id] = _rope_node(l[1])
+	for id in _ropes.keys():
+		if not keep.has(id):
+			(_ropes[id] as Node).queue_free()
+			_ropes.erase(id)
+	if was and _ropes.is_empty():
+		_toast("Cut free!")
+	elif not was and not _ropes.is_empty():
+		get_tree().call_group("hud", "show_banner", "Grappled!", "Cut the lines at the rail (hold %s) to break free" % Glyphs.of("interact"), false)
+
+
+## A ragged hole through the canvas (both faces; it hangs on the sail, so it furls and braces with it).
+func _tear_mesh(at: Vector3, id: int) -> Node3D:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = id
+	var mb := MeshBuilder.new()
+	var mat := PSXMat.lit("planks_dark", Color(0.06, 0.05, 0.05))
+	var pts: Array = []
+	for k in range(7):
+		var a := TAU * k / 7.0
+		var r := rng.randf_range(0.35, 0.8)
+		pts.append(Vector3(cos(a) * r * 1.3, sin(a) * r, 0.0))
+	for k in range(7):
+		var a: Vector3 = pts[k]
+		var b: Vector3 = pts[(k + 1) % 7]
+		mb.add_tri(mat, Vector3.ZERO, a, b, Vector3.BACK, Vector3.BACK, Vector3.BACK, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.BACK)
+		mb.add_tri(mat, Vector3.ZERO, b, a, Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.FORWARD)
+	var mi := mb.to_instance("Tear%d" % id)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = at
+	_sail_node.add_child(mi)
+	return mi
+
+
+## A hook on the rail and its rope (drawn in world space each frame, to the ship holding it).
+func _rope_node(rail: Vector3) -> Node3D:
+	if _rope_mesh == null:
+		var mb := MeshBuilder.new()
+		mb.add_cylinder(PSXMat.lit("planks", Color(0.75, 0.62, 0.42)), Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO), 0.05, 0.05, 1.0, 4, 1.0)
+		_rope_mesh = mb.commit()
+	var hook := MeshBuilder.new()
+	var iron := PSXMat.lit("metal", Color(0.25, 0.24, 0.23))
+	hook.add_box(iron, Transform3D(Basis(), Vector3(0, 0.25, 0)), Vector3(0.08, 0.5, 0.08), 1.0)
+	hook.add_box(iron, Transform3D(Basis(Vector3.BACK, 0.6), Vector3(0.12, 0.05, 0)), Vector3(0.32, 0.07, 0.07), 1.0)
+	var n := hook.to_instance("Grapple")
+	n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.position = rail + Vector3(signf(rail.x) * 0.45, 0.75, 0.0)
+	ship_model.add_child(n)
+	var rope := MeshInstance3D.new()
+	rope.name = "Rope"
+	rope.mesh = _rope_mesh
+	rope.top_level = true
+	rope.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rope.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	n.add_child(rope)
+	return n
+
+
+func _show_ropes() -> void:
+	for l in lines:
+		var n = _ropes.get(int(l[0]))
+		if n == null:
+			continue
+		var rope := (n as Node3D).get_node("Rope") as MeshInstance3D
+		var by := Net.node_of(str(l[2])) as Node3D
+		rope.visible = by != null
+		if by == null:
+			continue
+		var a := (n as Node3D).global_position + Vector3(0, 0.45, 0)
+		var b := by.get_global_transform_interpolated() * (l[3] as Vector3)
+		var d := b - a
+		if d.length() < 0.1:
+			continue
+		rope.global_transform = Transform3D(Basis.looking_at(d, Vector3.UP) * Basis.from_scale(Vector3(1, 1, d.length())), a)
 
 
 ## The foam wake (every machine lays its own from the ship's speed; her spray is ShipSpray's).

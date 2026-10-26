@@ -34,6 +34,8 @@ var cool: float = 0.0
 var hull_damage: float = 30.0
 var splash_damage: float = 22.0
 var muzzle_speed: float = MUZZLE_SPEED
+## Loaded with chain shot (an enemy gun aimed at the crew's sails sets it before firing).
+var chain: bool = false
 var interactable: Interactable
 ## The yard's work on a crew gun (fit): the level it shows, the longer barrel's extra length.
 var fitted: int = 0
@@ -234,16 +236,16 @@ func fire(by: Node = null) -> bool:
 	var from := muzzle()
 	var vel := shot_velocity()
 	_shots += 1
-	_shoot(from, vel, true, by, _shots)
-	Net.event(self, "fire", [from, vel, _shots])
+	_shoot(from, vel, true, by, _shots, chain)
+	Net.event(self, "fire", [from, vel, _shots, chain])
 	fired.emit()
 	return true
 
 
-func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node, n: int) -> void:
+func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node, n: int, chain_shot: bool = false) -> void:
 	_recoil = 1.0
-	var b := Cannonball.launch(get_tree(), from, vel, team, auth, by if by else ship, ship, "%s#%d" % [Net.key_of(self), n])
-	b.hull_damage = hull_damage
+	var b := Cannonball.launch(get_tree(), from, vel, team, auth, by if by else ship, ship, "%s#%d" % [Net.key_of(self), n], chain_shot)
+	b.hull_damage = hull_damage * (0.5 if chain_shot else 1.0)
 	b.splash_damage = splash_damage
 	# (our captain's Seamanship on the balls they fire)
 	if auth and by and by == Seamanship.me(get_tree()):
@@ -262,7 +264,7 @@ func net_event(what: String, args: Array) -> void:
 	if what == "fire" and args.size() >= 3:
 		cool = reload_time
 		_shots = int(args[2])
-		_shoot(args[0], args[1], false, null, _shots)
+		_shoot(args[0], args[1], false, null, _shots, args.size() > 3 and bool(args[3]))
 
 
 ## Point the barrel so the ball comes down at `target` (low arc). Returns

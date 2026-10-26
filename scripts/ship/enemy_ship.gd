@@ -38,10 +38,10 @@ const KINDS := {
 		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.6, 0.4, 0.3), "deck": Color(0.8, 0.7, 0.55), "trim": Color(0.75, 0.55, 0.2), "sail": Color(0.62, 0.16, 0.12), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
 	"brig": {"speed": 10.5, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [32.0, 54.0], "scatter": 1.0,
-		"boards": true, "rams": true, "double": true, "yields": true,
+		"boards": true, "rams": true, "double": true, "yields": true, "chain": true,
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
 	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
-		"boards": false, "rams": true, "double": false, "yields": false,
+		"boards": false, "rams": true, "double": false, "yields": false, "chain": true,
 		"look": {"hull_tex": "planks_grey", "hull": Color(0.95, 0.97, 1.0), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 }
 
@@ -75,6 +75,10 @@ const BOARD_GIVE_UP := 40.0
 ## The grapples fly this long before the men leap; lost if she pulls this far off.
 const HOOK_TIME := 1.2
 const HOOK_LOSE := 18.0
+## Lashed alongside with her boarders beaten: this long before the next party goes over.
+const PARTY_AGAIN := 8.0
+## Chain shot is aimed this high (world): through the crew's mainsail.
+const CHAIN_AIM_Y := 10.5
 ## No more than this many ships fight the crew at once (the rest keep patrolling).
 const MAX_ATTACKERS := 2
 ## What a ball does to the crew's hull and to men near where it lands.
@@ -157,6 +161,9 @@ var _board_cd: float = 0.0
 var _fight_t: float = 0.0
 ## Seconds since her grapples flew (-1: not thrown).
 var _hook_t: float = -1.0
+## Seconds since her last boarding party went over (lashed alongside).
+var _party_t: float = 0.0
+var _chain_volley: bool = false
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -509,11 +516,27 @@ func _physics_process(delta: float) -> void:
 				to_s.y = 0.0
 				want_heading = lerp_angle(tgt.global_rotation.y, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 6.0, 0.0, 0.7))
 				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.5, 0.0, _max_speed())
+				# (the lines hold her there: hauled in toward her spot, kept to the crew's pace)
+				if tgt is Ship and (tgt as Ship).lines_of(self) > 0:
+					_pos += to_s * clampf(0.6 * delta, 0.0, 1.0)
+					want_speed = minf(want_speed, _speed_of(tgt) + 1.5)
 			boarders = boarders.filter(func(g): return is_instance_valid(g) and not g.is_dead())
-			if boarders.is_empty() or st_t > 30.0 or tgt == null:
+			_party_t += delta
+			var lashed: int = (tgt as Ship).lines_of(self) if tgt is Ship else 0
+			if tgt == null or lashed == 0:
+				if tgt == null:
+					var crew_ship := get_tree().get_first_node_in_group("ship") as Ship
+					if crew_ship:
+						crew_ship.unlash(self)
+				else:
+					bark(["They've cut us loose!", "The lines are cut! Bring her about!"][_rng.randi() % 2], 2.0)
 				_set_state(S.BROADSIDE if tgt and _huntable(tgt) else S.PATROL)
 				_volley_cd = 4.0
 				_board_cd = BOARD_AGAIN
+			elif boarders.is_empty() and _party_t > PARTY_AGAIN and _crew.size() - 1 - _crew_gone >= 1:
+				# still lashed: the next party goes over
+				bark("Over the rail, the rest of you!", 2.0)
+				_board(tgt)
 		S.SINK:
 			_sink_update(delta)
 			return
@@ -615,7 +638,11 @@ func _try_volley(tgt: Node3D, to_t: Vector3, dist: float) -> void:
 	# the warning: sparks at the muzzles, the bosun's shout
 	_volley_side = side
 	_warn_t = 0.0
-	bark(["Fire!", "Give 'em a broadside!", "Fire as she bears!"][_rng.randi() % 3], 1.4)
+	_chain_volley = _wants_chain(tgt)
+	if _chain_volley:
+		bark(["Chain shot! Take her sails!", "Load chain! Cripple her rigging!"][_rng.randi() % 2], 1.4)
+	else:
+		bark(["Fire!", "Give 'em a broadside!", "Fire as she bears!"][_rng.randi() % 3], 1.4)
 	for c in _side_guns(side):
 		Net.fx("sparkle", [(c as ShipCannon).muzzle(), 6, Color(1.0, 0.5, 0.2)])
 	Net.fx("sfx", ["blip_low", global_position, -2.0, 0.02, 0.7])
@@ -637,13 +664,16 @@ func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 		if prev < at and _warn_t >= at:
 			var c := guns[i] as ShipCannon
 			if tgt:
-				# lead the target, with some scatter (worse at range)
+				# lead the target, with some scatter (worse at range); chain shot goes high, at her sail
 				var fly := dist / ShipCannon.MUZZLE_SPEED
 				var spot := tgt.global_position + _vel_of(tgt) * fly
-				var spread := (1.5 + dist * 0.06) * float(spec["scatter"])
+				var spread := (1.5 + dist * 0.06) * float(spec["scatter"]) * (0.5 if _chain_volley else 1.0)
+				if _chain_volley:
+					spot = tgt.global_transform * Vector3(0, 0, HullBuilder.MAST_Z) + _vel_of(tgt) * fly
 				spot += Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
-				spot.y = 1.0
+				spot.y = CHAIN_AIM_Y if _chain_volley else 1.0
 				c.aim_at(spot)
+			c.chain = _chain_volley
 			c.fire(self)
 	if _warn_t >= WARN + 0.24 * guns.size() + 0.1:
 		# a brig's second broadside, hard on the heels of the first
@@ -694,6 +724,17 @@ func _surrender() -> void:
 # --------------------------------------------------------------------------
 # Boarding
 # --------------------------------------------------------------------------
+## Chain shot this volley: a ship that carries it, at a crew whose canvas is still whole and set, when she's getting
+## away from us (or it's the opening volley).
+func _wants_chain(tgt: Node3D) -> bool:
+	if not spec.get("chain", false) or not (tgt is Ship):
+		return false
+	var s := tgt as Ship
+	if s.torn.size() >= Ship.MAX_TORN or s.sail_shown < 0.3:
+		return false
+	return _speed_of(tgt) > _max_speed() - 1.0 or _volleys == 0
+
+
 ## Another boarding party: off cooldown, and two men to spare besides the helmsman.
 func _can_board() -> bool:
 	return _board_cd <= 0.0 and _crew.size() - 1 - _crew_gone >= 2
@@ -710,7 +751,12 @@ func _throw_grapples(tgt: Node3D) -> void:
 
 
 func _board(tgt: Node3D) -> void:
-	_set_state(S.HOLD)
+	if state != S.HOLD:
+		_set_state(S.HOLD)
+		# the hooks bite: she's lashed to us until the crew cut the lines
+		if tgt is Ship:
+			(tgt as Ship).lash(self, 1.0 if (tgt.global_basis.x).dot(_pos - tgt.global_position) > 0.0 else -1.0)
+	_party_t = 0.0
 	var n := 3 + clampi(Net.crew_size() - 2, 0, 2)
 	# (boarding nets on our rails keep one off)
 	if tgt is Ship:

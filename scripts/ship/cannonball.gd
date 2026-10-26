@@ -40,6 +40,10 @@ var hull_damage: float = 30.0
 var splash_damage: float = 22.0
 ## The same on every screen: "<cannon key>#<shot>".
 var id: String = ""
+## Chain shot (two half-balls on a chain, spinning): fired high at the crew's sails, it tears them on the way through
+## (the host decides: Ship.tear_sail) and does half a ball's harm to a hull it meets.
+var chain: bool = false
+var _tore: bool = false
 var hurtbox: Hurtbox
 var _t: float = 0.0
 var _exclude: Array[RID] = []
@@ -50,6 +54,7 @@ var _mi: MeshInstance3D
 
 static var _mesh: Mesh
 static var _half_mesh: Mesh
+static var _chain_mesh: Mesh
 ## Balls in flight by id (and recently burst ones, while their damage waits).
 static var live: Dictionary = {}
 
@@ -57,8 +62,9 @@ static var live: Dictionary = {}
 ## Fire one. `ship` (the firing ship) is ignored by the flight for the first
 ## moment so the ball doesn't burst on its own bulwark.
 static func launch(tree: SceneTree, from: Vector3, vel: Vector3, team_name: String, auth: bool, by: Node,
-		ship: CollisionObject3D = null, shot_id: String = "") -> Cannonball:
+		ship: CollisionObject3D = null, shot_id: String = "", chain_shot: bool = false) -> Cannonball:
 	var b := Cannonball.new()
+	b.chain = chain_shot
 	b.velocity = vel
 	b.team = team_name
 	b.authority = auth
@@ -84,7 +90,7 @@ func _ready() -> void:
 		sm.material = PSXMat.lit("metal", Color(0.18, 0.17, 0.17))
 		_mesh = sm
 	_mi = MeshInstance3D.new()
-	_mi.mesh = _mesh
+	_mi.mesh = _chain() if chain else _mesh
 	_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_mi)
 	if id != "":
@@ -142,10 +148,37 @@ func _physics_process(delta: float) -> void:
 		_splash(from.lerp(to, t))
 		return
 	global_position = to
+	if chain:
+		_mi.rotate_y(18.0 * delta)
+		if not _tore and team == "enemy" and not Net.is_client():
+			_through_sails(to)
 	_trail_t -= delta
 	if _trail_t <= 0.0:
 		_trail_t = 0.05
 		FX.smoke(from, 1, 0.35, 0.6)
+
+
+## (host) Chain shot passing through the crew's canvas (set, mainsail, round the mast) tears it.
+func _through_sails(at: Vector3) -> void:
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship == null or ship.sail_shown < 0.1:
+		return
+	var l := ship.global_transform.affine_inverse() * at
+	if absf(l.x) < 5.0 and l.y > 4.5 and l.y < 14.5 and absf(l.z - HullBuilder.MAST_Z) < 2.5:
+		_tore = true
+		ship.tear_sail(l)
+
+
+static func _chain() -> Mesh:
+	if _chain_mesh:
+		return _chain_mesh
+	var mb := MeshBuilder.new()
+	var iron := PSXMat.lit("metal", Color(0.18, 0.17, 0.17))
+	for s in [-1.0, 1.0]:
+		mb.add_box(iron, Transform3D(Basis(), Vector3(s * 0.42, 0, 0)), Vector3(0.24, 0.24, 0.24), 1.0, Color.WHITE, false)
+	mb.add_box(iron, Transform3D(), Vector3(0.62, 0.05, 0.05), 1.0, Color(0.7, 0.7, 0.7), false)
+	_chain_mesh = mb.commit()
+	return _chain_mesh
 
 
 func _sea(at: Vector3) -> float:
