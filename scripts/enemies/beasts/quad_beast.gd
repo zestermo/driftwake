@@ -316,9 +316,46 @@ func _animate(delta: float) -> void:
 		var tl: Node3D = _tail[i]
 		tl.rotation.y = sin(_tw * 2.1 - i * 0.7) * (0.18 + _pose("tail") * 0.5)
 		tl.rotation.x = (-0.25 + _pose("tail") * 0.2) if i == 0 else 0.15
+	if bp and state != S.SLEEP:
+		_motion(delta)
 
 
 var _tw: float = 0.0
+var _tail_c: BeastMotion.SwingChain
+
+
+## (1.23 beast pass) BeastMotion on the rig: the head tracks the nearest captain (fixed on them in a wind-up: the
+## kind's _look_lock), a blow shoves the body, it breathes, reels on its feet when staggered, the tail swings.
+func _motion(delta: float) -> void:
+	var m := bp.motion
+	var body: Node3D = rig["Body"]
+	var neck: Node3D = rig["Neck"]
+	var head: Node3D = rig["Head"]
+	var tgt := Net.nearest_player(global_position) as Node3D
+	var w := _look_lock() if tgt and in_combat() else 0.0
+	m.track(delta, neck.global_basis, head.global_position, tgt.global_position + Vector3.UP * 1.2 if tgt else Vector3.ZERO, w * (1.0 - m.reel), 9.0 if w >= 1.0 else 4.0, 1.0, 0.5)
+	var r := m.react
+	var t := _tw
+	neck.rotation.y += m.look.x * 0.6 + sin(t * 1.3) * 0.35 * m.reel
+	head.rotation.y += m.look.x * 0.4
+	head.rotation.x += m.look.y + r.x * 0.35 - m.reel * (0.35 + sin(t * 2.1) * 0.15)
+	head.rotation.z += sin(t * 1.7) * 0.25 * m.reel
+	body.rotation.x += r.x * 0.12 + m.breath * 0.02
+	body.rotation.z += r.y * 0.15 + sin(t * 1.9) * 0.12 * m.reel
+	body.position.y += m.breath * 0.025 - m.reel * 0.12
+	if _tail.is_empty():
+		return
+	if _tail_c == null:
+		_tail_c = BeastMotion.SwingChain.new(_tail.size(), 60.0, 6.0, 30.0)
+	var sw: Array = BeastMotion.swing(_tail_c, delta, (rig["Hips"] as Node3D).global_transform, 1.0)
+	for i in range(_tail.size()):
+		var a: Vector2 = sw[i]
+		(_tail[i] as Node3D).rotation += Vector3(clampf(a.x, -0.6, 0.6), clampf(a.y, -0.8, 0.8), 0.0)
+
+
+## (beast pass) How hard its head fixes on you now (1 in a wind-up; the kind's moves say).
+func _look_lock() -> float:
+	return 0.8
 ## The ground's pitch under it, looked at this often (two rays: under the shoulders and under the hips).
 const SLOPE_EVERY := 0.12
 const SLOPE_MAX := 0.6

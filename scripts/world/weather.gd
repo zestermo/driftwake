@@ -58,6 +58,8 @@ var state: int = W.CLEAR
 var snow: float = 0.0
 var sand: float = 0.0
 var murk: float = 0.0
+## A beast's sandstorm round this screen's camera (BeastFX.sandstorm, the Sand King): blowing sand at least this thick.
+var sand_boost: float = 0.0
 const SNOW_LIGHT := 0.22
 var sun_dir := Vector3(0, 1, 0)
 var in_cloud: float = 0.0
@@ -436,8 +438,8 @@ func _update_slow(t: float) -> void:
 	waves = p[4]
 	fog = p[5]
 	snow = p[6]
-	sand = p[7]
-	murk = maxf(smoothstep(0.35, 1.0, snow), smoothstep(0.2, 0.9, sand))
+	sand = maxf(p[7], sand_boost)
+	murk =maxf(smoothstep(0.35, 1.0, snow), smoothstep(0.2, 0.9, sand))
 	# out at sea: inside a storm cell or a fog bank (SeaFeatures)
 	var sf := get_tree().get_first_node_in_group("sea_features")
 	if sf and cam:

@@ -73,6 +73,9 @@ var _watch_t: float = 0.0
 var _empty_t: float = 0.0
 ## Its name and health over its head (minibosses and the roamer).
 var _overhead: OverheadBar
+## The 1.23 beast pass (BeastPass: phases that add moves, chains, beast poise, parts, motion), for kinds that list
+## their moves by phase (_pass_moves); null for the rest.
+var bp: BeastPass
 
 
 func setup(cfg: Dictionary) -> JungleBeast:
@@ -191,6 +194,40 @@ func _speed() -> float:
 	return 5.0
 
 
+## (1.23 beast pass) its moves by phase: [phase 1's, what phase 2 adds, what phase 3 adds]; empty: not on the pass.
+func _pass_moves() -> Array:
+	return []
+
+
+## (beast pass) part -> the moves its breaking takes away.
+func _part_takes() -> Dictionary:
+	return {}
+
+
+## (beast pass) moves a chain still waits on the cooldown for (the big ones).
+func _chain_waits() -> Array:
+	return []
+
+
+## (beast pass) its look for its phase and broken parts, on every screen.
+func _on_look() -> void:
+	pass
+
+
+## (beast pass) the phase change's ring went out: the kind's own touch (icicles, the sand bending).
+func _on_moment() -> void:
+	pass
+
+
+func _moment_color() -> Color:
+	return Color(1.0, 0.62, 0.3)
+
+
+## (beast pass) a part broke (host): the kind's own reaction on top (BeastPass does the rest).
+func _on_part(_n: String) -> void:
+	pass
+
+
 # ==========================================================================
 # Setting up
 # ==========================================================================
@@ -222,6 +259,9 @@ func _ready() -> void:
 	add_child(hurtbox)
 	hurtbox.owner = self
 	hurtbox.hit_received.connect(_on_hit)
+	if not _pass_moves().is_empty():
+		bp = BeastPass.new(self)
+		phase_changed.connect(func(_n: int): _on_look())
 	_build()
 	if spirit:
 		Humanoid.spirit_glow(model)
@@ -390,14 +430,28 @@ func begin(m: String) -> void:
 	mv_t = 0.0
 	_hit = false
 	_fly = false
+	if bp:
+		bp.began(m)
+		if m == "moment":
+			say("bellow", _hit_point(), 8.0, 0.55, 140.0)
 	_on_begin(m)
 
 
 ## A move it didn't just do: the first of `wants` whose cooldown is up and isn't the last one begun, else "".
+## (beast pass: only its phase's moves; a chain's next goes whatever its cooldown, but for the big ones)
 func pick(wants: Array) -> String:
 	for m in wants:
-		if str(m) != _last_move and float(_cd.get(m, 0.0)) <= 0.0:
+		if bp and not bp.allows(str(m)):
+			continue
+		var ready := float(_cd.get(m, 0.0)) <= 0.0 or (bp != null and bp.in_chain and not str(m) in _chain_waits())
+		if str(m) != _last_move and ready:
+			if bp:
+				bp.picked = true
 			return str(m)
+	if bp and bp.in_chain:
+		# (nothing in reach to carry the chain on with: it's over, and the opening comes now)
+		bp.chain_over()
+		mv_t = -0.8
 	return ""
 
 
@@ -407,6 +461,8 @@ func film(m: String) -> void:
 
 
 func end_move(recover: float = 0.0) -> void:
+	if bp and move != "" and state == S.FIGHT:
+		recover = bp.opening(move, recover)
 	move = ""
 	mv_t = -recover
 	_fly = false
@@ -445,7 +501,7 @@ func _physics_process(delta: float) -> void:
 		S.FIGHT:
 			if move != "":
 				mv_t += delta
-				want = _move_tick(delta, p)
+				want = _moment_tick() if move == "moment" else _move_tick(delta, p)
 			else:
 				# (mv_t < 0: getting over the last move, an opening)
 				mv_t += delta
@@ -513,10 +569,30 @@ func overhead(title: String, height: float) -> void:
 func _phase_check() -> void:
 	var at := _phase_at()
 	var f := health_frac()
+	var was := phase
 	while phase - 1 < at.size() and f < float(at[phase - 1]):
 		phase += 1
 		phase_changed.emit(phase)
 		_on_phase(phase)
+	if bp and phase != was and state != S.DEAD:
+		bp.phase_up(phase)
+		end_move()
+		_set_state(S.FIGHT)
+		begin("moment")
+
+
+## (beast pass) The phase change's moment: it reels, rears up roaring (the kind poses move "moment"), and at
+## MOMENT_RING a ring of its roar pushes everyone back (BeastFX.moment on every screen: the camera punches in).
+func _moment_tick() -> Vector3:
+	if mv_t > BeastPass.MOMENT_RING and not _hit:
+		_hit = true
+		strike("ring", [global_position, BeastPass.MOMENT_R], 6.0, false, false, 1.1, 12.0, 0.6)
+		BeastFX.moment(global_position, 1.0, _moment_color())
+		Net.event(self, "moment", [global_position])
+		_on_moment()
+	if mv_t > BeastPass.MOMENT_S:
+		end_move(0.3)
+	return Vector3.ZERO
 
 
 ## Everyone left (or fell): back to its post, healed, asleep, from the top.
@@ -528,6 +604,9 @@ func reset_fight() -> void:
 	_poise = 0.0
 	health.current_health = health.max_health
 	_set_state(S.RETURN)
+	if bp:
+		bp.reset()
+		_on_look()
 
 
 # ==========================================================================
@@ -611,9 +690,13 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_phase_check()
 		return
 	var dir := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
+	var dmg := hit.damage * _taken_k(attacker) * (BeastPass.VULN_K if bp and bp.vulnerable() else 1.0)
+	var shove := clampf(dmg / 30.0, 0.25, 1.5)
 	_flash_hit()
-	Net.event(self, "flash", [])
-	Net.damage_number(hit.damage, _hit_point())
+	if bp:
+		bp.motion.hit(model.global_basis.inverse() * dir, shove)
+	Net.event(self, "flash", [dir, shove])
+	Net.damage_number(dmg, _hit_point())
 	Net.fx("impact", [_hit_point() - dir * 0.5, Color(1.0, 0.6, 0.45)])
 	if spirit:
 		Net.fx("sparkle", [_hit_point(), clampi(int(hit.damage * 0.4), 6, 16), Humanoid.SPIRIT])
@@ -622,23 +705,72 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	CombatManager.impact(hit, global_position, -1.0, 0.1, 0.8 if hit.damage > 20.0 else 0.95)
 	if not Net.active or attacker == Net.local_player:
 		get_node("/root/CombatManager").apply_hit_effects(hit, [attacker])
-	health.take_damage(hit.damage)
+	health.take_damage(dmg)
 	if state == S.DEAD:
 		return
 	if state == S.SLEEP or state == S.RETURN:
 		alert()
 		return
+	if bp and attacker is Node3D and not hit.ranged:
+		part_hit(bp.parts.near(BeastParts.blow_at(attacker, global_position)), dmg)
 	_phase_check()
-	if state == S.STAGGER:
+	if state == S.STAGGER or move == "moment":
 		return
 	if (hit.haki or hit.breaker) and _armoured() and mv_t < 0.6:
 		stagger(1.6)
 		return
 	# (hits while it's getting over a move - an opening - count double toward a stagger)
 	var opening := move == "" and mv_t < 0.0
+	if bp:
+		# (1.23: beast poise; it reels, never off its feet or up in the air)
+		if _armoured():
+			return
+		var ph := hit.duplicate() as HitData
+		if opening:
+			ph.poise = Poise.of(hit) * 2.0
+		if bp.poise.take(ph) == Poise.BREAK:
+			poise_break()
+		return
 	_poise += hit.damage * (1.6 if hit.knockdown else 1.0) * (2.0 if opening else 1.0)
 	if _poise >= _poise_max() and not _armoured():
 		stagger(2.0)
+
+
+## (beast pass) What a blow from `attacker` is worth on it (a broken plate, a bare patch of hide: more).
+func _taken_k(_attacker: Node) -> float:
+	return 1.0
+
+
+## (beast pass) Its poise ran out: the stagger pose, double damage for VULN_S.
+func poise_break() -> void:
+	bp.broke()
+	Net.fx("float_text", [_hit_point() + Vector3(0, 2.0, 0), "Staggered!", Color(1.0, 0.9, 0.4), 32])
+	stagger(BeastPass.REEL_S)
+
+
+## (beast pass) `dmg` lands on part `n` ("" none): broken, it drops its material for every captain, changes the look,
+## takes its moves away (_part_takes) and drains a lot of poise.
+func part_hit(n: String, dmg: float) -> void:
+	if not bp.parts.hurt(n, dmg):
+		return
+	var at := bp.parts.where(n)
+	BeastFX.part_break(at, bp.parts.color(n))
+	Net.event(self, "part", [n, at])
+	Net.fx("float_text", [at + Vector3.UP * 1.5, "%s broken!" % _part_name(n), Color(1.0, 0.85, 0.4), 28])
+	Net.kill_loot([[bp.parts.item(n), 1.0 / Loot.PART_K, 1]], ground_at(at) + Vector3.UP * 0.3)
+	_on_look()
+	_on_part(n)
+	var ph := HitData.new()
+	ph.damage = 0.0
+	ph.poise = BeastPass.PART_POISE
+	if bp.poise.take(ph) == Poise.BREAK and state == S.FIGHT and move != "moment":
+		poise_break()
+	elif move == "" and state == S.FIGHT:
+		stagger(0.9)
+
+
+func _part_name(n: String) -> String:
+	return n.capitalize()
 
 
 ## Where hits show (numbers, sparks): the middle of the body.
@@ -649,6 +781,8 @@ func _hit_point() -> Vector3:
 func stagger(secs: float) -> void:
 	_poise = 0.0
 	end_move()
+	if bp:
+		bp.chain_over()
 	_stagger_len = secs
 	velocity = Vector3.ZERO
 	_set_state(S.STAGGER)
@@ -737,6 +871,8 @@ func _process(delta: float) -> void:
 		_overhead.track(health.current_health, health.max_health)
 	if _dormant and state == S.SLEEP:
 		return
+	if bp:
+		bp.motion.tick(delta, state == S.STAGGER, clampf([0.25, 0.55, 0.85][phase - 1] + (0.3 if move == "" and mv_t < 0.0 else 0.0), 0.0, 1.0))
 	_animate(delta)
 
 
@@ -745,7 +881,7 @@ func _process(delta: float) -> void:
 # ==========================================================================
 func net_pack() -> Array:
 	return [global_position, model.rotation.y, int(state), move, mv_t, health.current_health, health.max_health, phase,
-		model.visible, _pack_extra()]
+		model.visible, _pack_extra(), bp.parts.mask() if bp else 0]
 
 
 func _net_update(_delta: float) -> void:
@@ -775,12 +911,21 @@ func _net_update(_delta: float) -> void:
 		phase_changed.emit(phase)
 	model.visible = bool(a[8])
 	_unpack_extra(a[9], b[9], f)
+	if bp and b.size() > 10 and not bp.parts.set_mask(int(b[10])).is_empty():
+		_on_look()
 
 
 func net_event(what: String, args: Array) -> void:
 	match what:
 		"flash":
 			_flash_hit()
+			if bp and args.size() > 1:
+				bp.motion.hit(model.global_basis.inverse() * (args[0] as Vector3), float(args[1]))
+		"moment":
+			BeastFX.moment(args[0], 1.0, _moment_color())
+		"part":
+			if bp:
+				BeastFX.part_break(args[1], bp.parts.color(str(args[0])))
 		"strike":
 			_strike_local(str(args[0]), args[1], float(args[2]), bool(args[3]), bool(args[4]), float(args[5]), float(args[6]), float(args[7]) if args.size() > 7 else 0.4)
 		"lane":
