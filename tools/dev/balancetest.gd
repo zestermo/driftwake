@@ -216,7 +216,6 @@ func _process(d: float) -> bool:
 			pr.owned.erase("s_elem2")
 			check("no element at first", not pr.elemental("sword") and not pr.elemental("sword", 2))
 			check("tier 1 needs cutlass mastery 16, tier 2 25 (%s)" % pr.can_learn("s_elem"), pr.can_learn("s_elem") == "Needs Cutlass 16" and pr.can_learn("s_elem2") == "Needs Cutlass 25")
-			pr.gift("combat", 20)
 			while pr.mastery_level("sword") < 16:
 				pr.add_mastery("sword", pr.mastery_to_next(pr.mastery_level("sword")))
 			check("tier 1 bought at 16", pr.buy("s_elem") and pr.elemental("sword") and not pr.elemental("sword", 2))

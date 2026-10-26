@@ -24,12 +24,12 @@ func check(what: String, cond: bool) -> void:
 
 ## Skills a captain with a cutlass can cast on dry land, with their tree nodes.
 func plain_skills() -> Array:
-	var tree = load("res://scripts/progression/skill_tree.gd")
+	var tree = load("res://scripts/progression/skill_trees.gd")
 	var skills = load("res://scripts/progression/skills.gd")
 	var out: Array = []
 	for k in tree.nodes().keys():
-		var id := str(tree.get_node_def(k).get("skill", ""))
-		if id == "" or skills.is_ult(id):
+		var id := str(tree.node_def(k).get("skill", ""))
+		if id == "" or skills.is_ult(id) or out.any(func(o): return o[0] == id):
 			continue
 		var d: Dictionary = skills.get_skill(id)
 		var styles: Array = d.get("styles", [])

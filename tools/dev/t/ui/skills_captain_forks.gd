@@ -1,8 +1,8 @@
 extends SceneTree
 ## The skills menu's Captain tab: C / W switch the fork page and the Will chart (a click on the strip too); it opens on
 ## the lowest fork not picked; up / down walk the forks (scrolling the top one into view), left / right the option;
-## Enter picks a reached fork, refuses one not reached yet and a change away from the bunk; Enter on a won Will slots
-## its passive.
+## Enter picks a reached fork, refuses one not reached yet and a change away from the bunk; on the Will page Enter
+## buys Coat's first version and the Hardening passive (slotted), every path draws, a swatch picks the colour.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var gm
@@ -62,7 +62,7 @@ func _process(_d: float) -> bool:
 			sm.set_tab("captain")
 			check("level 12: the Captain tab opens on the lowest fork not picked (10)", sm.sel == "f:talent_10:0" and not sm.will_page)
 			key(KEY_W)
-			check("W: the Will page, on a Will", sm.will_page and sm.sel.begins_with("n:h_"))
+			check("W: the Will page, on Coat (no Will yet)", sm.will_page and sm.sel == "n:w_coat")
 			key(KEY_C)
 			check("C: back to the forks", not sm.will_page and sm.sel == "f:talent_10:0")
 			act("ui_up")
@@ -86,7 +86,7 @@ func _process(_d: float) -> bool:
 		3:
 			check("the top fork scrolled into view and drawn", sm._first + sm._rows >= 8 and sm._drawn.any(func(h): return h[1] == "f:talent_40:1"))
 			check("the fork at 5 scrolled out", not sm._drawn.any(func(h): return h[1] == "f:talent_5:0"))
-			pr.grant_will("h_arm")
+			pr.gift("will", 3)
 			for i in range(pr.passives.size()):
 				pr.equip_passive("", i)
 			var strip = sm._drawn.filter(func(h): return h[1] == "page:w")
@@ -95,12 +95,24 @@ func _process(_d: float) -> bool:
 			ev.pressed = true
 			ev.position = (strip[0][0] as Rect2).get_center()
 			sm._gui_input(ev)
-			check("a click on W · WILL opens the Will page on the won Will", sm.will_page and sm.sel == "n:h_arm")
+			check("a click on W · WILL opens the Will page on Coat", sm.will_page and sm.sel == "n:w_coat")
 			act("ui_accept")
-			check("Enter on a won Will puts its passive in a slot", pr.passives.has("h_harden"))
+			check("Enter on Coat buys its first version for 1 Will", pr.has_version("w_coat_heavy") and pr.knows("armament_coat") and pr.pool("will") == 2)
+			sm.sel = "n:h_harden"
+			act("ui_accept")
+			check("Enter on Hardening buys it for 2 and slots it", pr.has_version("h_harden") and pr.passives.has("h_harden") and pr.pool("will") == 0)
 			until = TK.wait_ticks(3)
 		4:
-			check("the Will chart draws a star per Will and their moons", sm._drawn.any(func(h): return h[1] == "n:h_conq") and sm._drawn.any(func(h): return h[1] == "n:h_harden"))
+			check("the Will page draws every path's abilities, versions and passives", ["n:w_coat", "n:w_clash", "n:w_fore_slow", "n:h_harden", "n:h_will"].all(func(id): return sm._drawn.any(func(h): return h[1] == id)))
+			var sw = sm._drawn.filter(func(h): return h[1] == "col:red")
+			check("...and the colour swatches once a Will is yours", not sw.is_empty())
+			if not sw.is_empty():
+				var ev := InputEventMouseButton.new()
+				ev.button_index = MOUSE_BUTTON_LEFT
+				ev.pressed = true
+				ev.position = (sw[0][0] as Rect2).get_center()
+				sm._gui_input(ev)
+			check("a click on red: your Will is red", pr.will_color == "red")
 			TK.act("skill_map")
 			until = TK.wait_ticks(6)
 		5:

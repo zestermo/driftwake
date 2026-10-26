@@ -12,6 +12,7 @@ var arc
 var j
 var dlg
 var bounty0 := 0
+var will0 := 0
 var gold0 := 0
 var step := 0
 var until := 0
@@ -67,6 +68,7 @@ func _process(_d: float) -> bool:
 			stage.player.global_position = v.global_position + Vector3(0, 2.0, 20.0)
 			stage.player.reset_physics_interpolation()
 			bounty0 = int(stage.player.bounty)
+			will0 = int(stage.player.progression.will_earned)
 			until = TK.wait_secs(1.5)
 		4:
 			check("his first meeting: the nearest captain is asked for a reply", dlg.active)
@@ -81,6 +83,7 @@ func _process(_d: float) -> bool:
 		6:
 			check("he falls: the arc's chest by the camp", arc.flag("fell") and arc.has_node("ArcChest"))
 			check("the bounty rises for it (%d -> %d)" % [bounty0, int(stage.player.bounty)], int(stage.player.bounty) > bounty0)
+			check("...and two Will points (%d -> %d)" % [will0, int(stage.player.progression.will_earned)], int(stage.player.progression.will_earned) == will0 + 2)
 			check("the elder waits to hear it's over", j.at_turnin(arc.key))
 			gold0 = stage.player.inventory_component.count("gold")
 			dlg.dialogue_event.emit("arc:%s:pay" % arc.key)

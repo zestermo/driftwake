@@ -12,6 +12,8 @@ scripts/ui/game_menu.gd | web: the Esc that released the pointer lock (real inpu
 scripts/ui/ui_style.gd:sfx | menu sounds: a focus "move" right after another sound is dropped (menus run while paused)
 scripts/npc/humanoid.gd:play | co-op: a held pose re-played every frame is sent at most every 250 ms (network rate)
 scripts/npc/humanoid.gd:_process | the spike log: the rig's posing time this frame (Perf.add_us)
+scripts/enemies/pirate_grunt.gd:_physics_process | the spike log: a grunt's think time (Perf.add_us)
+scripts/ai/captain_brain.gd:_physics_process | the spike log: an AI captain's think time (Perf.add_us)
 scripts/psx/draw_lod.gd:steps | a build step's 12 ms budget (work sliced by real time so a frame never hitches)
 scripts/island/world_generator.gd | chain island build timing (the "ready in ... ms" log) and its per-frame build steps
 scripts/island/gen_island.gd | build timing (build_ms) per step

@@ -105,8 +105,7 @@ func _process(d: float) -> bool:
 			var pr = p.progression
 			while pr.mastery_level("ember") < 20:
 				pr.add_mastery("ember", pr.mastery_to_next(pr.mastery_level("ember")))
-			pr.gift("combat", 30)
-			check("the Ember tree bought with Combat points", ["e_kindled", "e_dash", "e_field", "e_smolder", "e_inferno"].all(func(k): return pr.buy(k)))
+			check("the Ember tree bought with its own points", ["e_kindled", "e_dash", "e_field", "e_smolder", "e_inferno"].all(func(k): return pr.buy(k)))
 			check("learned the Ember tree", pr.knows("flame_dash") and pr.knows("inferno") and pr.has_flag("kindled_blade"))
 			check("auto-equipped onto the bar", pc.loadout[2] == "flame_dash" and pc.loadout[3] == "ember_field" and pc.loadout[4] == "inferno")
 			# fire fist at a grunt 7 m away
@@ -288,9 +287,9 @@ func _process(d: float) -> bool:
 			check("1 reaches the skill bar after closing the menu", int(saw["casts"]) > 0)
 			# --- Armament: Coat
 			p.state_machine.force_state("Idle", {})
-			p.progression.grant_will("h_arm")
-			p.progression.grant_will("h_coat")
-			check("learned Armament: Coat (Will: Coat)", p.progression.knows("armament_coat"))
+			p.progression.gift("will", 1)
+			p.progression.buy("w_coat_heavy")
+			check("Coat bought with a Will point (Heavy Coat)", p.progression.knows("armament_coat"))
 			pc.equip("armament_coat", 3)
 			pc.energy = pc.max_energy()
 			pc.cooldowns.clear()

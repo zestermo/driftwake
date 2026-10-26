@@ -67,7 +67,7 @@ func _process(_d: float) -> bool:
 			# (past any counter-slash straight off its guard: that one it always had)
 			until = TK.wait_secs(0.6)
 		9:
-			attacked = false
+			# (1.23: light blows don't make it flinch any more (Poise), so it may answer while they're still landing)
 			until = TK.wait_secs(4.0)
 		10:
 			check("the grunt you were fighting comes at you after, without a turn of its own (after %d hits)" % hits, attacked)

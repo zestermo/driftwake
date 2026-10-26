@@ -8,6 +8,7 @@ extends RefCounted
 ##   train   weapon mastery of the weapon in your hand (ashore too)
 ##   read    sat on a crate with a book: experience, sea lore now and then, and in time a recipe
 ##   tinker  sat with mallet and lock: the kit tuned a while (a spare shot, quicker reloads, a little bite)
+##   meditate  sat cross-legged on the deck: Will, a point every 3 game days of it (WillPaths.MEDITATE_SECS)
 ##   fish    (on the same wheel) the rod's minigame with the equipped rod (Fishing, FishState), at the rail aboard
 ##   sleep   in the cabin's bunk: you heal, and (solo) the hours pass quickly
 ## (Cooking is the galley's, lane A's "cook" on the same wheel at order 30.)
@@ -19,6 +20,7 @@ const KINDS := {
 	"train": {"label": "Train", "where": "any", "every": 6.0, "order": 20},
 	"read": {"label": "Read", "where": "ship", "every": 8.0, "order": 40},
 	"tinker": {"label": "Tinker", "where": "ship", "every": 10.0, "order": 50},
+	"meditate": {"label": "Meditate", "where": "ship", "every": 10.0, "order": 45},
 	"sleep": {"label": "Sleep in the bunk", "where": "ship", "every": 2.0, "order": 70},
 }
 ## Mastery for each interval of training (fighting lands MASTERY_PER_HIT a hit, many hits a minute), and only up
@@ -67,6 +69,7 @@ static func register_wheel() -> void:
 	ActionWheel.register("train", _train_label, "", _train_ok, _train, KINDS["train"]["order"])
 	ActionWheel.register("read", KINDS["read"]["label"], "", _rest_ok, _read, KINDS["read"]["order"])
 	ActionWheel.register("tinker", KINDS["tinker"]["label"], "", _rest_ok, _tinker, KINDS["tinker"]["order"])
+	ActionWheel.register("meditate", KINDS["meditate"]["label"], "", _rest_ok, _meditate, KINDS["meditate"]["order"])
 	ActionWheel.register("fish", "Fish", "", _fish_ok, _fish, 60)
 	ActionWheel.register("sleep", _sleep_label, "", _sleep_ok, _sleep, KINDS["sleep"]["order"])
 
@@ -152,6 +155,10 @@ static func _read(p) -> void:
 
 static func _tinker(p) -> void:
 	start(p, "tinker")
+
+
+static func _meditate(p) -> void:
+	start(p, "meditate")
 
 
 ## Fish with the equipped rod: aboard, at the rail of the nearer side facing out first.
@@ -264,6 +271,12 @@ static func reward(p, kind: String) -> void:
 		"sleep":
 			var hc = p.health_component
 			hc.heal(hc.max_health * SLEEP_HEAL)
+		"meditate":
+			var k: float = pr.meditate(every(p, kind))
+			var n := int(pr.downtime.get("meditate_n", 0)) + 1
+			pr.downtime["meditate_n"] = n
+			if n % 6 == 0:
+				p.call("_toast", "Your Will settles: %d%% to the next point" % roundi(k * 100.0))
 
 
 ## Every tick of `kind` (the local captain's): sleeping runs the day's clock on (solo; in co-op the clock is

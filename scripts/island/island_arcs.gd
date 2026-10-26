@@ -1417,7 +1417,6 @@ func _fall(v: Node3D) -> void:
 	Net.everyone("_all_arc", [Net.key_of(self), "fell", [hidden]])
 	Net.bounty("arc", at, 400.0)
 	Admiralty.deed(get_tree(), at, "arc")
-	# TODO(will): an arc villain is worth 2 Will points (docs/v1_23_previews.md section 2) once the progression agent's Will API lands
 	Journal.advance(key, showdown())
 
 
@@ -1548,6 +1547,11 @@ func apply(op: String, args: Array) -> void:
 			var hidden: bool = args[0]
 			get_tree().call_group("hud", "show_banner", "%s: %s falls!" % [T["title"], villain_name],
 				("Hidden finish: %s. %s" % [T["hidden"]["name"], T["hidden"]["said"]]) if hidden else "Tell %s it's over." % village.elder_name, true)
+			# an arc villain is worth 2 Will (WillPaths "villain"), each captain near on their own machine; a beast or the queen
+			# already pays its "boss" share through its own Net.bounty
+			var me := get_tree().get_first_node_in_group("player") as Player
+			if me and not (str(T["villain"]["kind"]) in ["beast", "queen"] or place == "boss") and me.global_position.distance_to(villain_at()) < 400.0:
+				me.progression.will_deed("villain")
 			if hidden and str(T["hidden"]["kind"]) == "spare_men":
 				for g in men():
 					if _alive(g):

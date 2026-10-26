@@ -38,3 +38,5 @@ class_name HitData
 @export var poise: float = -1.0
 ## A launcher: throws a light foe up at this speed (m/s; Juggle). 0: it doesn't.
 @export var launch: float = 0.0
+## A brute's grab: the captain it lands on is held (GrabbedState) until they mash free or are thrown.
+@export var grab: bool = false

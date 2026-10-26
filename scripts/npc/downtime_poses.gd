@@ -7,6 +7,7 @@ extends RefCounted
 ##   dt_train_gun    a dry-fire drill: aim, a kick, the next mark across the bow
 ##   dt_tinker       on a crate, three taps of the mallet on the lock, a turn of it
 ##   dt_sleep        face up in the bunk, breathing
+##   dt_meditate     sat cross-legged on the deck, hands on the knees, a slow breath
 ##   dt_startle      (played) roused: the head snaps up and round, the hands come up
 ## Reading is a Blender clip (clip_read, ClipPlayer: docs/blender_clips.md). What's held (book, mallet, the
 ## crate) is DowntimeProps'. Fishing is the rod's minigame (FishState, FishPoses).
@@ -59,6 +60,15 @@ const SLEEP := {"pivot": Vector3(PI * 0.5, 0, 0), "hips": Vector3.ZERO, "torso":
 	"hand_r": Vector3.ZERO, "hand_l": Vector3.ZERO}
 
 
+## Meditating on the deck: sat cross-legged (the thighs out wide, the shins crossed), the back straight, the hands on
+## the knees, the head a touch bowed; a slow breath lifts the chest.
+const MEDITATE_BREATH := 4.0
+const MEDITATE := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(0.05, 0, 0), "head": Vector3(-0.18, 0, 0),
+	"leg_l": Vector3(1.45, 0.35, -0.75), "shin_l": Vector3(-2.35, 0, 0.45), "leg_r": Vector3(1.45, -0.35, 0.75), "shin_r": Vector3(-2.35, 0, -0.45),
+	"arm_l": Vector3(0.35, 0, -0.32), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(-0.3, 0, 0),
+	"arm_r": Vector3(0.35, 0, 0.32), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(-0.3, 0, 0)}
+
+
 static func pose(h, n: String, u: float) -> Array:
 	DowntimeProps.ensure(h, n)
 	var t: float = float(h._action["t"])
@@ -109,6 +119,12 @@ static func pose(h, n: String, u: float) -> Array:
 			var p := SLEEP.duplicate()
 			p["torso"] = (SLEEP["torso"] as Vector3) + Vector3(br, 0, 0)
 			return [h._keys(into, [[0.0, {}], [1.0, p]]), "full", Vector3(0, h._lift_for(0.13), 0) * into]
+		"dt_meditate":
+			var br := sin(t * TAU / MEDITATE_BREATH)
+			var p := MEDITATE.duplicate()
+			p["torso"] = (MEDITATE["torso"] as Vector3) + Vector3(-0.03 * br, 0, 0)
+			p["head"] = (MEDITATE["head"] as Vector3) + Vector3(0.02 * br, 0, 0)
+			return [h._keys(into, [[0.0, {}], [1.0, p]]), "full", Vector3(0, h._lift_for(0.16), 0) * into]
 		"dt_startle":
 			var up := {"torso": Vector3(0.12, 0, 0), "head": Vector3(0.3, 0.5, 0), "arm_r": Vector3(0.6, 0, 0.35), "fore_r": Vector3(1.1, 0, 0),
 				"arm_l": Vector3(0.6, 0, -0.35), "fore_l": Vector3(1.1, 0, 0)}

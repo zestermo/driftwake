@@ -33,6 +33,7 @@ var _muster := -1
 
 func _ready() -> void:
 	add_to_group("net_spawner")
+	add_to_group("grunt_camps")
 	if warm_start:
 		_warming = specs.map(func(c): return PirateGrunt.look_for(c))
 		Humanoid.prebuild(_warming)
@@ -56,6 +57,8 @@ func _spawn_one(i: int) -> void:
 	c["patrol"] = patrol
 	if c.has("hold"):
 		c["hold"] = [to_global(c["hold"][0]), c["hold"][1]]
+	if i == _horn_index():
+		c["horn"] = true
 	# (a setup's "script": a grunt of its own kind, the desert's bandit chief)
 	var g: PirateGrunt = load(c["script"]).new() if c.has("script") else PirateGrunt.new()
 	g.name = "G%d_%d" % [gen, i]
@@ -80,15 +83,52 @@ func request_token(g: Node) -> bool:
 	for t in _tokens:
 		if (t as PirateGrunt)._player == target:
 			same += 1
-	var cap := max_attackers + (2 + Net.extra_attackers() if Net.coop() else 0)
-	if same < max_attackers and _tokens.size() < cap:
+	var most := attackers_for()
+	var cap := most + (2 + Net.extra_attackers() if Net.coop() else 0)
+	if same < most and _tokens.size() < cap:
 		_tokens.append(g)
 		return true
 	return false
 
 
+## Which of the crew carries the horn (1.23): on tier 2+ islands, a crew of four or more, its first plain swordsman;
+## -1 for none.
+func _horn_index() -> int:
+	if level <= 0 or Levels.tier(level) < 2 or specs.size() < 4:
+		return -1
+	for i in range(specs.size()):
+		var s: Dictionary = specs[i]
+		if not s.get("captain", false) and str(s.get("role", "sword")) == "sword":
+			return i
+	return -1
+
+
+## How many may swing at one captain at once (1.23: one more on tier 3+ islands, Levels.tier).
+func attackers_for() -> int:
+	return max_attackers + (1 if level > 0 and Levels.tier(level) >= 3 else 0)
+
+
 func release_token(g: Node) -> void:
 	_tokens.erase(g)
+
+
+## A horn-blower's call (PirateGrunt._blow_horn): the nearest other camp within `reach` that has men standing sends
+## them to `at`.
+func call_help(at: Vector3, reach: float) -> void:
+	var best: GruntCamp = null
+	var bd := reach
+	for c in get_tree().get_nodes_in_group("grunt_camps"):
+		if c == self or (c as GruntCamp).alive_count() == 0:
+			continue
+		var d := (c as Node3D).global_position.distance_to(at)
+		if d < bd:
+			bd = d
+			best = c
+	if best == null:
+		return
+	for g in best.grunts:
+		if is_instance_valid(g) and (g as PirateGrunt).state != PirateGrunt.S.DEAD:
+			(g as PirateGrunt).answer_horn(at)
 
 
 func alert_all(from: Vector3) -> void:

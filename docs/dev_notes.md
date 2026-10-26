@@ -6615,6 +6615,64 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   draw 3.5 ms; scripts mapped to systems by regex), perf_budgets.ps1 <bench result>, and perf_gate.ps1 prints them
   per light (a warning, never a fail). The 1.23 "before" bench: anim 2.26, ai 1.10, world 1.69, draw 4.95 over.
 
+## 2026-10-26: 1.23 progression, piece 1: points per weapon tree
+- **What (docs/v1_23_previews.md section 1, option A).** Each weapon tree and the eaten fruit earn their own points by
+  mastery: `Progression.tree_earned(lv) = 2 lv + lv / 5` (2 when found, 11 at 5, 39 at 18, 66 at 30) and spend them only
+  on themselves. `SkillTrees.pool_of(tree)` returns the tree's own id for combat/fruit trees ("adventure" and "" as
+  before). Captain levels give stats and the Captain tree only (`combat_earned` is gone; the level-up banner names no
+  points). `pool("combat")` / `can_spend("combat")` are the found weapons' and fruit's points together (the skill
+  bar's pulse); a weapon's mastery toast adds its own "N Katana points (K)". `gift(pool, n)` takes a tree id.
+- **Save format 7.** An older save's weapon and fruit purchases (nodes and steps) are refunded once into their trees'
+  own points, nothing bought again; Adventure's are bought back as before; ids that no longer exist (the black-leg
+  nodes the combat agent replaces) just go. The banner: "Every weapon has its own points now".
+- **Skill map.** The header plate shows the open tree's own points beside Adventure's (the chart: every weapon's
+  together); the card's price line names the tree's points.
+- **Tests.** t/progression/pools, gate_and_buy, prompts, versions_bunk, refund_migration, fist_rename (now a format-7
+  save), weapon_refund (was buy_back: the format-6 refund), t/ui/skills_buy_node, skills_buy_step, skills_respec;
+  progtest, powertest and balancetest's lines (prepush).
+
+## 2026-10-26: 1.23 progression, piece 2: passive slots and the moved milestones
+- **Passive slots** (docs/v1_23_plan.md "Will, the Captain tree and passives"): `PASSIVE_SLOTS` 2, and the Captain
+  milestones `c_slot3` / `c_slot4` / `c_slot5` at 10 / 20 / 30 (effect `passive_slots`: `passive_slots()` = 2 + the
+  stat; 5 at most). A save with more slotted than it has slots keeps the first ones (`_fit_passives`).
+- **Squall Step and Ballast** left the Captain tree: `m_soru` is an Acrobatics tech (Dodge branch, at 8, 2 Adventure
+  points) and `v_tekkai` a Defense tech (Grit branch, at 10, 3 points), same ids and skills. The Captain's milestones
+  are non-hotbar perks now (Quartermaster's third loadout at 10, the slots). An older save loses them until bought
+  again (the bar slot clears on load; uses and so tiers are kept).
+- **Tests.** t/progression/passive_slots, captain_growth, refund_migration, pools, moved_skills (new); progtest's lines.
+
+## 2026-10-26: 1.23 progression, piece 3: Will paths, points and meditation
+- **What (docs/v1_23_previews.md section 2, docs/v1_23_plan.md "Will, the Captain tree and passives").** Will no
+  longer comes from set bosses. `scripts/progression/will_paths.gd` (WillPaths) holds the data and the gates; the nodes
+  are SkillTrees' (the Captain tree's Will branch, `_build_will`), each version and passive with `"pool": "will"` and a
+  `"cost"` (`SkillTrees.node_pool`). Paths: Iron Will (Coat T1: Heavy / Quick / Breaking; Emission T2: Line / Ring;
+  Inner Strike T3; Hardening), Sense (Flash T1: Long Warning / Gunsight / Big Moves; Foresight T2: Second Sight / Slow
+  Sight; Crowd Read T3; Instinct), Captain's Will (Roar T2: King's / Far; Clash T3; King's Will). A version costs its
+  tier (1/2/3), a passive 2 (needs the path's first ability). Tiers open at 0/4/8 Will spent in the path; the second
+  path at 8 spent; Captain's Will at 4 in each of the others. The first version bought is carried; other bought ones
+  switch in at a rest spot (`set_version`, kind "will", `has_version`). 33 points buys everything.
+- **Points.** `Progression.will_earned` (saved "will_pts"), `will_deed(kind, k)` from `Net._all_bounty` on each
+  captain's own machine (boss/villain/hunter/Leviathan 2, rival/officer/sergeant/miniboss 1; a "boss" at k < 1 is a
+  miniboss), `will_point(n, why)` (a toast), `meditate(secs)`: Downtime's new "meditate" (aboard or at camp, every
+  10 s, a point per `MEDITATE_SECS` = 3 game days meditated; pose `dt_meditate`, cross-legged, DowntimePoses).
+- **What the abilities do now** (in my files): Heavy Coat's `coat_dmg` (Progression.on_hit's extra share while coated),
+  Quick Coat's `cdr_armament_coat` (PowerComponent.skill_cooldown reads `cdr_<skill>`), Breaking Coat's `coat_burst`
+  (the Outflow burst without tier 3), Emission (`PowerComponent._tick_emission`/`emission`: 0.22 s into a coated heavy,
+  a 6 m line or a 4 m ring, 18 damage, unblockable, only while coated), Second Sight (an extra Foresight dodge),
+  Slow Sight (CombatManager.apply_slowmo on a foreseen blow), Inner Strike (`armament`: heavies unblockable, +8%),
+  Flash (`observation`). **Hooks for the combat side** (flags set, nothing reads them yet): `flash_early`,
+  `flash_shots`, `flash_boss`, `crowd_read`, `inner_strike` (stagger on hit), `roar_reach`, `will_clash`.
+- **Colour.** `will_color` (saved), picked on the Will page once a Will is yours (black lightning, red crackle, blue
+  haze, gold); `will_tint()` colours the Will buffs' aura (PowerComponent.add_buff for coat/foresight) and Emission
+  through Net.fx, so crewmates see it.
+- **Save format 8.** An older save's Wills come back as 2 Will points each (`WillPaths.OLD`), nothing bought; the
+  moved Squall Step / Ballast are dropped from the bar. One banner says what changed.
+- **Skill map.** The Will page is three path columns (abilities by tier, versions as chips, the passive under the
+  first ability, the path's lock in coral) and a card (points and sources, the node's versions with what Enter does or
+  why not, the colour swatches). The skill bar's pulse counts Will too.
+- **Per frame:** PowerComponent checks the player's state each frame only while coated (Emission).
+- **Tests.** t/progression/will_paths (was will_bosses), will_points (new), t/ui/skills_captain_forks; progtest and
+  powertest lines (prepush).
 ## 2026-10-26: 1.23 combat core, pieces 1-3: poise, juggling, black-leg's juggle set
 - **Why:** Zach's playtest: every captain had 2-3 knockdowns at will and they were all that mattered. Spec:
   docs/v1_23_previews.md sections 3-4 and docs/v1_23_plan.md "Preview answers" (approved starting numbers).
@@ -6725,6 +6783,46 @@ Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md ro
 - A crew villain whose captain's body is already gone counts as fallen (no reply, no hidden finish).
 - The arc's own villains are a GruntCamp "Villain" (captain cfg + men) built at the showdown on every machine.
 - Hidden rewards are the cache (a trait weapon two tiers up); the spec's named weapon / technique variant / flag emblem
-  need item and progression support (open). Will points: TODO in `_fall` (the progression agent's API).
+  need item and progression support (open). Will points: 2 ("villain", Progression.will_deed) to each captain within
+  400 m on their own machine, except a beast or the queen (their own Net.bounty "boss" already pays 2).
 - Test: t/quests/arc_templates (all ten made on one island with an outpost added: text filled, places and contacts
   on the island, each step done as a captain would, the villain falls, chest, the elder waits).
+
+## 2026-10-26: 1.23 combat core, piece 4: smarter enemies (and the brains at ~10 Hz)
+- **Defend** (PirateGrunt._on_hit): a sword grunt blocks `_block_chance()` (0.25; PirateBoss 0.4) of the blows from
+  the front, never two in a row (`_blocked_last`), always answering with the riposte; else SIDESTEP_CHANCE 0.15 (Quick
+  x2) a sidestep (the elites' dash, on its cooldown). Replaces the old "block until GUARD_BLOCKS, then the guard
+  breaks" (GUARD_BLOCKS, _guard_hits, _guard_max gone). Blows of Poise.KICK 30+ go through it.
+- **Shield grunt** (`shield`; 1 in 6 sword grunts on tier 2+, seeded; cfg "shield"): ShieldMesh on the off hand
+  (scripts/props/shield_mesh.gd); from the front everything (shots too) stops on it until a heavy (poise 25+), a kick
+  or a breaker knocks it aside (reels 1.2 s, guard down SHIELD_DOWN 4 s); flanks land.
+- **Group tactics:** GruntCamp.attackers_for() = max_attackers +1 on tier 3+ (Levels.tier); riflemen keep 10-15 m
+  (RIFLE_FAR 15); a horn-blower (GruntCamp._horn_index: tier 2+, a crew of 4+, its first plain swordsman; cfg "horn")
+  alive 8 s into a fight blows the horn (sfx "horn", a ring) and GruntCamp.call_help sends the nearest other camp
+  within 120 m (group "grunt_camps") to him (answer_horn: post moved there, alerted); men within 10 m of their camp
+  captain in a fight hit x1.15 (_set_rally, checked once a second; puppets via net_event "rally").
+- **Elites** (scripts/combat/elite_traits.gd, EliteTraits.roll: 1 in 6 on tier 2, 1 in 4 on tier 3+, seeded by the
+  grunt's seed and level; cfg "trait"): elite_rank (poise 55, dodges), a wisp aura of the trait's colour while
+  fighting (CPUParticles3D, 14, visibility 45 m), Armoured x1.5 poise, Berserk x1.25 run and 0.85 tells and no flinch
+  under 30% health, Quick 0.7 tells and dodge 0.95 / sidestep x2, Burning blows set you alight (BurnStatus on
+  hitbox.hit_landed, on whichever machine it landed). `_poise_class()` is "elite" only for elite_rank now (a level-12+
+  grunt still dodges like one but stands like a grunt).
+- **Punish:** a heavy started within 4.5 m with the captain facing it that ends without touching it gives 1 s
+  (PUNISH_WINDOW) in which it attacks at once, no turn needed (a lunge from further than its reach). A brute (hammer,
+  greatsword) blocked GRAB_AFTER 3 times (Player._on_hit_received -> `blocked_by`, a host call) reaches (BRUTE_WIND
+  0.45 s, an orange glint) and grabs: HitData.grab -> the captain's GrabbedState (new state "Grabbed",
+  scripts/player_states/grabbed_state.gd, pose jug_held): pinned at his chest, MASH 7 presses of attack / heavy /
+  dodge / block / jump break free (he reels: `grab_ended(true)`), HOLD 2.2 s and he throws you down (16 damage, a
+  knockdown). `grab` rides Net.hit_pack; blocked_by and grab_ended are HOST_CALLS.
+- **Brains (the 1.23 perf track's hook):** PirateGrunt thinks every THINK_EVERY 6 ticks (~10 Hz, staggered by
+  instance id) in THINK_STATES (was every other tick), moving on its last decision between; CaptainBrain plans (skills,
+  footwork, combos) at ~10 Hz the same way, holding the last stick, while seeing attacks and defending stay every tick.
+  Both time their thinking into the spike log (Perf.add_us(Perf.AI, ...); wallclock_allow lines).
+- **Juggling fix:** a juggled grunt passes through captains (collision bit 2 off up there) and lands if something
+  holds it up mid-fall.
+- **Per frame / tick added:** grunts think ~10 Hz instead of 30 (less); `_tactics` on think ticks only (a few
+  comparisons, the rally check once a second over the camp's list); an elite's aura emitter only while it fights.
+- Tests: t/combat/grunt_defend, shield_grunt, elite_traits, grunt_punish, grunt_tactics; grunt_pressed updated (a
+  light blow no longer stuns it, so it answers while they're landing). Render: tools/dev/eliteshot.gd ->
+  tools/dev/out/elite_line.png / elite_shield.png / elite_juggle.png. Expect at prepush: grunttest, guntest,
+  balancetest, r10test, bosstest, leveltest, the rival suites, nettest.

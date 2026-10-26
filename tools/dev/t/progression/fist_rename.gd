@@ -37,7 +37,7 @@ func _process(_d: float) -> bool:
 			var f := FileAccess.open(SAVE, FileAccess.READ)
 			var data: Dictionary = f.get_var()
 			f.close()
-			data["progression"] = {"format": 6, "level": 30, "xp": 0,
+			data["progression"] = {"format": 7, "level": 30, "xp": 0,
 				"bought": ["u_hip", "u_suplex", "u_swing"],
 				"mastery": {"unarmed": {"lv": 20, "xp": 0}}, "steps": {"u_skin": 2}, "versions": {}, "found": ["unarmed"],
 				"tiers": {}, "uses": {}, "passives": ["", "", ""]}

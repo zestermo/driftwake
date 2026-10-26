@@ -54,6 +54,8 @@ func _process(_d: float) -> bool:
 			if not p.is_free():
 				return false
 			g.alert()
+			g.health.max_health = 999.0
+			g.health.current_health = 999.0
 			# (facing away from the captain: no guard to turn it)
 			g.facing.rotation.y = PI
 			cast("rising_heel")
@@ -72,14 +74,19 @@ func _process(_d: float) -> bool:
 			check("...higher: it's still up (state %d)" % g.state, g.state == G.S.AIR)
 			until = TK.wait_secs(0.35)
 		5:
-			hp0 = g.health.current_health
+			# (forward held first, then the cast)
 			TK.press("move_forward")
+			until = TK.wait_ticks(3)
+		6:
+			hp0 = g.health.current_health
 			cast("sky_chase")
 			until = TK.wait_ticks(4)
-		6:
+		7:
 			TK.release("move_forward")
 			until = TK.wait_secs(1.5)
-		7:
+		8:
+			print("   grunt at %s v %s st_t %.2f floor %s phys %s mode %d real %s; captain at %s" % [g.global_position, g.velocity, g.st_t, g.is_on_floor(),
+				g.is_physics_processing(), g.process_mode, g.get_real_velocity(), p.global_position])
 			check("the spike lands (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)
 			check("...and drives it down (state %d)" % g.state, g.state in [G.S.DOWN, G.S.GETUP, G.S.DEAD])
 			check("you come down after it", p.is_on_floor())

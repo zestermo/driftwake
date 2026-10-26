@@ -569,6 +569,11 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		dir = global_position - (attacker as Node3D).global_position
 		dir.y = 0.0
 	dir = dir.normalized() if dir.length() > 0.01 else player_model.global_basis.z
+	# a brute's grab (1.23): held until you mash free; no guard stops it
+	if hit.grab:
+		if attacker is Node3D and current_state_name() not in ["Swim", "Helm", "Climb", "Grabbed"] and not is_ai:
+			state_machine.force_state("Grabbed", {"by": attacker})
+		return
 	# an unblockable attack (the enemy flashed red) gets through parries and blocks;
 	# a shot only if the blade's tree taught you to cut shots (parryshot_ nodes)
 	# (Windmill Guard's spinning pole only turns what comes from the front)
@@ -588,6 +593,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if fwd.normalized().dot(-dir) > 0.25:
 			var blk = state_machine.states.get("block")
 			if blk and blk.absorb(hit, dir):
+				# (a brute counts the blocks: GRAB_AFTER and he grabs)
+				if attacker and attacker.has_method("blocked_by"):
+					attacker.call("blocked_by", self)
 				return
 			# out of stamina: the guard breaks
 			Net.fx("sparkle", [global_position + Vector3(0, 1.4, 0), 10, Color(1.0, 0.8, 0.4)])
