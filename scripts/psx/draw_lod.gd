@@ -31,7 +31,7 @@ static func apply(root: Node) -> Array:
 ## apply as `count` build steps ([name, Callable], GenIsland.finish_steps) of about BUDGET_MS each:
 ## the first finds the geometry, the last does whatever is left. (12 ms slices were ~50 frames of 35 ms while a
 ## captain played on; steps left with nothing to do cost nothing, and WorldGenerator runs those in the same frame.)
-const BUDGET_MS := 4
+const BUDGET_MS := 3
 static func steps(root: Node, count: int) -> Array:
 	var st := {"list": null, "i": 0, "out": [0, 0, 0, 0], "folds": {}}
 	var out: Array = []

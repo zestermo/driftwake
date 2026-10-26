@@ -91,7 +91,8 @@ var _path_widths: Array = []
 var _arrays: Array = []
 ## The terrain's triangles for its colliders, a GROUND x GROUND grid of them (worked out in prepare).
 var _faces: Array = []
-const GROUND := 4
+## (8: a square's collider joining the physics space was 12-16 ms at 4, ~3 ms now)
+const GROUND := 8
 ## Its shore map (prepare), put in the sea by WorldGenerator.
 var shore: ShoreMap
 ## The cliffs' rock wall (Coast.cliffs): its columns, the clifftop splat, its meshes by square.
@@ -180,12 +181,19 @@ var _beast_task := -1
 func start_beasts() -> void:
 	make_beasts(node)
 	if not _beasts.is_empty():
-		_beast_task = WorkerThreadPool.add_task(_prebuild_beasts, false, "prebuild beasts")
+		_beast_task = WorkerThreadPool.add_task(_prebuild_beasts, true, "prebuild beasts")
 
 
 func _prebuild_beasts() -> void:
 	for slot in _beasts:
 		(_beasts[slot][1] as Node).prebuild()
+
+
+## The steps that take a prebuilt beast: WorldGenerator holds them (a frame at a time) until the worker has built
+## the models, instead of the step blocking on it (150-200 ms with the workers busy on the next islands' prepare).
+const BEAST_STEPS := ["boss", "beasts"]
+func step_ready(s: Array) -> bool:
+	return not (s[0] in BEAST_STEPS) or _beast_task < 0 or WorkerThreadPool.is_task_completed(_beast_task)
 
 
 func _beasts_built() -> void:
@@ -277,21 +285,69 @@ func finish_steps() -> Array:
 	return steps
 
 
-## Runs one of finish_steps; its ms (steps of the same name add up in build_ms).
+## Runs one of finish_steps; its longest slice in ms (its whole main-thread ms add up in build_ms by name). A long
+## step awaits breathe() in its loops: run by WorldGenerator (budgeted) it goes on over several frames, BUDGET_US a
+## frame; run straight through (finish: tests, tools) breathe returns at once and nothing waits.
 func run_step(s: Array) -> int:
-	var t0 := Time.get_ticks_usec()
+	_step_us = 0
+	_slice_max = 0
+	_slice_from = Time.get_ticks_usec()
 	# (DrawLOD folds the meshes from what they were built from: MeshBuilder.keep)
 	MeshBuilder.keep = true
-	(s[1] as Callable).call()
+	await (s[1] as Callable).call()
 	MeshBuilder.keep = false
-	var ms := _lap(t0)
+	_end_slice()
+	var ms := _step_us / 1000
+	var worst := _slice_max / 1000
 	build_ms[s[0]] = int(build_ms.get(s[0], 0)) + ms
 	_step_n[s[0]] = int(_step_n.get(s[0], 0)) + 1
-	if ms >= SLOW_STEP_MS:
-		slow_steps.append([ms, "%s #%d" % [s[0], _step_n[s[0]]]])
-	if ms > int(worst_step[1]):
-		worst_step = ["%s #%d" % [s[0], _step_n[s[0]]], ms]
-	return ms
+	if worst >= SLOW_STEP_MS:
+		slow_steps.append([worst, "%s #%d" % [s[0], _step_n[s[0]]]])
+	if worst > int(worst_step[1]):
+		worst_step = ["%s #%d" % [s[0], _step_n[s[0]]], worst]
+	return worst
+
+
+## A build step's work a frame when WorldGenerator puts the island in (budgeted): past it, breathe() waits a frame.
+const BUDGET_US := 3000
+## The island whose step runs on the budget right now (WorldGenerator.budget); null: straight through.
+static var _budgeted: GenIsland
+## WorldGenerator resumes a step waiting in breathe() with this, a slice a frame.
+signal resume
+var _slice_from := 0
+var _slice_max := 0
+var _step_us := 0
+
+
+## The step about to run (or resume) here is WorldGenerator's: breathe() may wait.
+func budget() -> void:
+	_budgeted = self
+
+
+static func unbudget() -> void:
+	_budgeted = null
+
+
+## In a long step's loop: once the frame's BUDGET_US is spent, the rest waits for the next frame (WorldGenerator
+## emits resume). Everything between it and the step's Callable must be awaited, or the step ends early. Freed while
+## waiting (the island let go), the step never resumes.
+static func breathe() -> void:
+	var isl := _budgeted
+	if isl == null or Time.get_ticks_usec() - isl._slice_from < BUDGET_US:
+		return
+	isl._end_slice()
+	_budgeted = null
+	MeshBuilder.keep = false
+	await isl.resume
+	_budgeted = isl
+	MeshBuilder.keep = true
+	isl._slice_from = Time.get_ticks_usec()
+
+
+func _end_slice() -> void:
+	var us := Time.get_ticks_usec() - _slice_from
+	_step_us += us
+	_slice_max = maxi(_slice_max, us)
 
 
 ## Work too long for one frame as `count` steps named `name`: each runs `unit` (one piece of it; false once nothing
