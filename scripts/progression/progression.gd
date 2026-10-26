@@ -6,9 +6,9 @@ extends Node
 ## from combat (defeating enemies). Fighting with a weapon builds that weapon's mastery (1-30), and only that
 ## weapon's: a hit counts for the first HITS_PER_FOE hits on each foe, a kill gives MASTERY_KILL_SHARE of its
 ## experience (ELITE_SHARE times that for elites and bosses).
-## The trees (SkillTrees; points model of docs/v1_18_4_plan.md): two pools. Combat points come from Captain levels
-## (combat_earned) and buy any weapon tree's or the eaten fruit's nodes; Adventure points, one a level any Adventure
-## tree gains, buy any Adventure tree's. Everything past a root is bought (buy, buy_why); a tree's level only gates
+## The trees (SkillTrees; points model of docs/v1_18_4_plan.md, per tree since 1.23): each weapon tree and the eaten
+## fruit earn their own points as their mastery rises (tree_earned) and spend them only on themselves; Adventure
+## points, one a level any Adventure tree gains, buy any Adventure tree's. Captain levels give stats and the Captain tree. Everything past a root is bought (buy, buy_why); a tree's level only gates
 ## it. A variant's versions are both owned and one is active, and passives count only in a passive slot. Versions
 ## and talents are switched at the ship's bunk (can_respec), and a tree's purchases come back there for gold
 ## (respec_tree). A tree shows once its first xp is earned (tree_found, with the HUD's card).
@@ -55,8 +55,9 @@ const REST_REACH := 3.5
 const FOUND_AT_START := ["captain", "sword"]
 ## Save format: 2 = per-tree points, mastery, tiers; 3 = families and life skills; 4 = the trimmed trees (older
 ## saves are refunded once); 5 = the redesign (steps, versions, passive slots, found trees); 6 = the two pools
-## (bought nodes; an older save's nodes and steps are bought back while the pools afford them, the rest refunded).
-const FORMAT := 6
+## (bought nodes; an older save's nodes and steps are bought back while the pools afford them, the rest refunded);
+## 7 = points per weapon tree (an older save's weapon and fruit purchases refunded, Adventure's bought back).
+const FORMAT := 7
 ## Respec at the bunk: RESPEC_GOLD + RESPEC_PER_LEVEL x the Captain's level, a tree.
 const RESPEC_GOLD := 100
 const RESPEC_PER_LEVEL := 40
@@ -86,8 +87,9 @@ var found: Dictionary = {}
 ## Will milestones earned (id -> true), and the bosses beaten that teach them (boss_kind -> true)
 var will: Dictionary = {}
 var beaten: Dictionary = {}
-## An older save was bought back on load (after_load's banner).
+## An older save was bought back on load (after_load's banner), and its weapon purchases refunded (format 7).
 var _migrated: bool = false
+var _refunded: bool = false
 ## Tests and render tools (master_all): points given on top of the earned ones, so the pools read 0.
 var _gift: Dictionary = {}
 var _spend_rev := -1
@@ -197,8 +199,6 @@ func _on_level_up() -> void:
 			if talent_at(lv) < 0:
 				sub += "  -  a talent to pick (K)"
 				break
-		if can_spend("combat"):
-			sub += "  -  " + points_line("combat")
 		get_tree().call_group("hud", "show_banner", "Level %d!" % level, sub)
 		SaveGame.save(player)
 	leveled_up.emit(level)
@@ -346,8 +346,8 @@ func _gain(tree: String, amount: int) -> void:
 			return SkillTrees.price(k) > 0 and n["kind"] != "step" and int(n["level"]) > lv - ups and int(n["level"]) <= lv)
 		if not opens.is_empty():
 			msg += "  -  opens " + ", ".join(opens.slice(0, 2).map(func(k): return str(SkillTrees.node_def(k)["name"])))
-		if SkillTrees.pool_of(tree) == "adventure" and can_spend("adventure"):
-			msg += "  -  " + points_line("adventure")
+		if SkillTrees.pool_of(tree) != "" and can_spend(SkillTrees.pool_of(tree)):
+			msg += "  -  " + points_line(SkillTrees.pool_of(tree))
 		player.call("_toast", msg)
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 12, Color(0.75, 0.9, 1.0)])
 	mastery_up.emit(tree, int(m["lv"]))
@@ -468,31 +468,39 @@ func tree_xp_next(tree: String) -> int:
 	return mastery_to_next(tree_level(tree)) if tree_level(tree) < max_of(tree) else 0
 
 
-## Combat points earned by Captain level `lv`: 2 at the start; then 2 on even levels and 1 on odd ones to 10, 2 a
-## level to 20, 3 to 30, 4 to 40 (106 in all).
-static func combat_earned(lv: int) -> int:
-	var n := 2
-	for l in range(2, lv + 1):
-		if l <= 10:
-			n += 2 if l % 2 == 0 else 1
-		else:
-			n += 2 if l <= 20 else (3 if l <= 30 else 4)
-	return n
+## A weapon's (or the fruit's) own points at mastery `lv` (1.23, docs/v1_23_previews.md option A): 2 a level, and a
+## bonus point every 5 levels (2 when found, 39 at 18, 66 at 30).
+static func tree_earned(lv: int) -> int:
+	return 2 * lv + lv / 5
 
 
-## Points earned into `pool` ("combat": Captain levels; "adventure": a point a level any Adventure tree gains).
+## Points earned into `pool` (a weapon's or fruit's id: its mastery; "adventure": a point a level any Adventure tree
+## gains; "combat": every found weapon's and the eaten fruit's together).
 func earned(pool: String) -> int:
 	var n := int(_gift.get(pool, 0))
 	if pool == "combat":
-		return n + combat_earned(level)
+		for t in _point_trees():
+			n += earned(t)
+		return n
+	if pool != "adventure":
+		return n + tree_earned(int(mastery.get(pool, {"lv": 1})["lv"]))
 	for t in SkillTrees.trees_in("adventure"):
 		if mastery.has(t):
 			n += int(mastery[t]["lv"]) - 1
 	return n
 
 
+## The trees whose own points count in "combat": the found weapons and the eaten fruit.
+func _point_trees() -> Array:
+	return visible_trees("combat") + visible_trees("fruit")
+
+
 func spent(pool: String) -> int:
 	var n := 0
+	if pool == "combat":
+		for t in _point_trees():
+			n += spent(t)
+		return n
 	for k in bought.keys():
 		if SkillTrees.pool_of(str(SkillTrees.node_def(k)["tree"])) == pool:
 			n += SkillTrees.price(k)
@@ -502,13 +510,14 @@ func spent(pool: String) -> int:
 	return n
 
 
-## Tests and render tools: `n` points into a pool on top of the earned ones (not saved).
+## Tests and render tools: `n` points into a pool (a tree's id or "adventure") on top of the earned ones (not saved).
 func gift(which: String, n: int) -> void:
 	_gift[which] = int(_gift.get(which, 0)) + n
 	_dirty()
 
 
-## Unspent points in "combat" or "adventure".
+## Unspent points in a weapon's or fruit's own pool (its id), "adventure", or "combat" (the weapons' and fruit's
+## together, each tree's only spendable in it).
 func pool(which: String) -> int:
 	return earned(which) - spent(which)
 
@@ -520,16 +529,18 @@ func points_free(tree: String) -> int:
 
 
 static func pool_name(which: String) -> String:
-	return "Combat" if which == "combat" else "Adventure"
+	if which in ["combat", "adventure"]:
+		return which.capitalize()
+	return tree_name(which)
 
 
-## The one short prompt: "5 Combat points (K)".
+## The one short prompt: "5 Katana points (K)".
 func points_line(which: String) -> String:
 	var n := pool(which)
 	return "%d %s point%s (K)" % [n, pool_name(which), "" if n == 1 else "s"]
 
 
-## Something in a found tree of `which` can be bought right now (remembered until something changes).
+## Something in a found tree of `which` (a pool) can be bought right now (remembered until something changes).
 func can_spend(which: String) -> bool:
 	if _spend_rev != _rev:
 		_spend_rev = _rev
@@ -537,7 +548,7 @@ func can_spend(which: String) -> bool:
 	if not _spend.has(which):
 		_spend[which] = false
 		if pool(which) > 0:
-			var trees := visible_trees("adventure") if which == "adventure" else visible_trees("combat") + visible_trees("fruit")
+			var trees: Array = visible_trees("adventure") if which == "adventure" else (_point_trees() if which == "combat" else [which])
 			for t in trees:
 				if SkillTrees.nodes_of(t).any(func(k): return buy_why(k) == ""):
 					_spend[which] = true
@@ -849,8 +860,10 @@ func master_all() -> void:
 				_take(k)
 	_sync_tree("captain", false)
 	_gift = {}
-	for p in ["combat", "adventure"]:
-		_gift[p] = maxi(spent(p) - earned(p), 0)
+	for t in SkillTrees.HEADERS.keys():
+		var p := SkillTrees.pool_of(t)
+		if p != "" and not _gift.has(p):
+			_gift[p] = maxi(spent(p) - earned(p), 0)
 	_fit_passives()
 	_dirty()
 
@@ -1100,6 +1113,7 @@ func from_dict(d: Dictionary) -> void:
 	skill_points = 0
 	bought = {}
 	_gift = {}
+	_refunded = false
 	var fmt := int(d.get("format", 1))
 	var ms: Dictionary = d.get("mastery", {})
 	var want: Array = []
@@ -1129,6 +1143,15 @@ func from_dict(d: Dictionary) -> void:
 		var n := SkillTrees.node_def(str(k))
 		if n.get("kind", "") == "step":
 			want_steps[str(k)] = clampi(int(sd[k]), 0, int(n["max_steps"]))
+	if fmt < 7:
+		# (1.23: the weapons' and fruit's nodes were bought from the one Combat pool; every point of it comes back once
+		# into the trees' own pools, nothing bought again)
+		var shared := func(k): return SkillTrees.pool_of(str(SkillTrees.node_def(k)["tree"])) == "adventure"
+		_refunded = want.any(func(k): return not shared.call(k)) or want_steps.keys().any(func(k): return not shared.call(k))
+		want = want.filter(shared)
+		for k in want_steps.keys():
+			if not shared.call(k):
+				want_steps.erase(k)
 	var vd: Dictionary = d.get("versions", {})
 	for k in vd.keys():
 		var n := SkillTrees.node_def(str(k))
@@ -1218,6 +1241,11 @@ func after_load() -> void:
 			if passives.has("") and not (p in passives):
 				passives[passives.find("")] = p
 		_rev += 1
+		if _refunded:
+			var trees: Array = _point_trees().filter(func(t): return can_spend(t))
+			get_tree().call_group("hud", "show_banner", "Every weapon has its own points now",
+				"What you'd bought came back: " + ", ".join(trees.map(func(t): return points_line(t).trim_suffix(" (K)"))) + " (K)", true)
+			return
 		var left: Array = ["combat", "adventure"].filter(func(p): return can_spend(p))
 		if not left.is_empty():
 			get_tree().call_group("hud", "show_banner", "The skill trees are new!",

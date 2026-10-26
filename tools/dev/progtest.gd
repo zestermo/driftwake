@@ -145,8 +145,8 @@ func _process(d: float) -> bool:
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
 				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
 					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))
-			check("one Combat pool for every weapon: Captain 14's 24 points", pr.pool("combat") == 24 and pr.points_free("sword") == 24 and pr.points_free("pistol") == 24)
-			check("...spent on the cutlass and the pistol alike", ["s_flying", "g_kata", "g_rain", "g_storm"].all(func(k): return pr.buy(k)) and pr.pool("combat") == 24 - 3 - 2 - 2 - 3)
+			check("each weapon its own points: cutlass 5 has 11, pistol 9 has 19", pr.points_free("sword") == 11 and pr.points_free("pistol") == 19)
+			check("...each spent on its own tree", ["s_flying", "g_kata", "g_rain", "g_storm"].all(func(k): return pr.buy(k)) and pr.pool("sword") == 11 - 3 and pr.pool("pistol") == 19 - 2 - 2 - 3)
 			check("Steadfast bought at Defense 4", pr.buy("v_steadfast"))
 			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")

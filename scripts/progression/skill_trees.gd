@@ -6,7 +6,7 @@ extends RefCounted
 ##   adventure  Acrobatics (1-30), Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
 ##   fruit      the Driftfruit you ate (levels 1-20)
 ## A tree grows up from its root in three branches. Every node past the root is bought (1.18.4, docs/v1_18_4_plan.md):
-## weapon and fruit trees from the Combat pool (Captain levels), Adventure trees from the Adventure pool (their levels);
+## weapon and fruit trees each from their own points (their mastery, 1.23), Adventure trees from the Adventure pool (their levels);
 ## the tree's level only gates it (price: PRICE by kind, or a node's own "cost"). Small stat "steps" (x/3, x/5) are
 ## bought a step at a time. A variant is two versions of one node: both owned once bought, one active (switched at the
 ## ship's bunk). The Captain's nodes and a fruit's level-1 powers still come by themselves. Progression reads the
@@ -135,11 +135,11 @@ static func max_level(tree: String) -> int:
 	return int(HEADERS[tree][3])
 
 
-## The points a tree's nodes are bought with: "combat" (weapons and the fruit), "adventure", "" (the Captain).
+## The points a tree's nodes are bought with: a weapon's or the fruit's own (its id, 1.23), "adventure", "" (the Captain).
 static func pool_of(tree: String) -> String:
 	match section_of(tree):
 		"combat", "fruit":
-			return "combat"
+			return tree
 		"adventure":
 			return "adventure"
 	return ""

@@ -677,7 +677,8 @@ func _draw_tree_page(body: Rect2, rail: bool) -> void:
 
 
 ## The one plate over a page: the open tree's icon, name and mastery with its bar (the chart's: how many weapons),
-## and both pools of points, the one this tree spends lit. Returns the body under it.
+## and the points: a weapon's own beside the Adventure pool (the one this tree spends lit; the chart: every weapon's
+## together). Returns the body under it.
 func _draw_header(body: Rect2, tree_id: String) -> Rect2:
 	var p := _pr()
 	var r := Rect2(body.position, Vector2(body.size.x, HEAD_H))
@@ -708,7 +709,8 @@ func _draw_header(body: Rect2, tree_id: String) -> Rect2:
 		var n := p.visible_trees("combat").size()
 		UIStyle.draw_ribbon(self, Vector2(x, cy - 6.0), "%d weapon%s found" % [n, "" if n == 1 else "s"])
 	var rx := r.end.x - 8.0
-	for which in ["adventure", "combat"]:
+	var shown: Array = ["adventure", "combat"] if mine == "" else (["adventure"] if mine == "adventure" else ["adventure", mine])
+	for which in shown:
 		var pts := p.pool(which)
 		var lit: bool = which == mine
 		var num := str(pts)

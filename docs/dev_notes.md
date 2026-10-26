@@ -6543,3 +6543,19 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
 - **Piece 5 (budgets).** tools/dev/perf_budgets.txt (anim 2.0, ai 0.8, world 1.2, ui 0.4, player 0.5, other 0.6,
   draw 3.5 ms; scripts mapped to systems by regex), perf_budgets.ps1 <bench result>, and perf_gate.ps1 prints them
   per light (a warning, never a fail). The 1.23 "before" bench: anim 2.26, ai 1.10, world 1.69, draw 4.95 over.
+
+## 2026-10-26: 1.23 progression, piece 1: points per weapon tree
+- **What (docs/v1_23_previews.md section 1, option A).** Each weapon tree and the eaten fruit earn their own points by
+  mastery: `Progression.tree_earned(lv) = 2 lv + lv / 5` (2 when found, 11 at 5, 39 at 18, 66 at 30) and spend them only
+  on themselves. `SkillTrees.pool_of(tree)` returns the tree's own id for combat/fruit trees ("adventure" and "" as
+  before). Captain levels give stats and the Captain tree only (`combat_earned` is gone; the level-up banner names no
+  points). `pool("combat")` / `can_spend("combat")` are the found weapons' and fruit's points together (the skill
+  bar's pulse); a weapon's mastery toast adds its own "N Katana points (K)". `gift(pool, n)` takes a tree id.
+- **Save format 7.** An older save's weapon and fruit purchases (nodes and steps) are refunded once into their trees'
+  own points, nothing bought again; Adventure's are bought back as before; ids that no longer exist (the black-leg
+  nodes the combat agent replaces) just go. The banner: "Every weapon has its own points now".
+- **Skill map.** The header plate shows the open tree's own points beside Adventure's (the chart: every weapon's
+  together); the card's price line names the tree's points.
+- **Tests.** t/progression/pools, gate_and_buy, prompts, versions_bunk, refund_migration, fist_rename (now a format-7
+  save), weapon_refund (was buy_back: the format-6 refund), t/ui/skills_buy_node, skills_buy_step, skills_respec;
+  progtest, powertest and balancetest's lines (prepush).

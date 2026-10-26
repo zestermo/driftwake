@@ -1,6 +1,6 @@
 extends SceneTree
 ## A save from before the skills rework (progression format 2) loads with its level, xp, mastery, uses, gold
-## and gear kept and every node refunded: no old skill points, the Combat pool from the Captain level and the
+## and gear kept and every node refunded: no old skill points, each weapon's points from its kept mastery and the
 ## Adventure pool from the kept levels all free, tiers by use alone (a skill used enough ranks up by itself), the
 ## Captain's milestones by level.
 ## Saved again it loads as it is.
@@ -55,7 +55,7 @@ func _process(_d: float) -> bool:
 			print("   level %d xp %d sword %s sea %s owned %s" % [pr.level, pr.xp, pr.mastery_of("sword"), pr.mastery_of("sea"), pr.owned.keys()])
 			check("level and xp kept", pr.level == 9 and pr.xp == 120)
 			check("no skill points any more", pr.skill_points == 0)
-			check("weapon mastery kept, Captain 9's 14 Combat points all free", pr.mastery_level("sword") == 5 and int(pr.mastery_of("sword")["xp"]) == 30 and pr.pool("combat") == 14)
+			check("weapon mastery kept, the cutlass's 11 points (mastery 5) all free", pr.mastery_level("sword") == 5 and int(pr.mastery_of("sword")["xp"]) == 30 and pr.pool("sword") == 11)
 			check("Sailing's mastery kept, 2 Adventure points, its Sea Hand to buy", pr.mastery_level("sea") == 3 and not pr.owns("sea_hand") and pr.pool("adventure") == 2)
 			check("old nodes gone, nothing owned past the roots", not pr.owns("c_agility") and not pr.owns("s_flying") and pr.owns("s_root"))
 			check("the Captain's milestone by level: Soru at 8", pr.owns("m_soru") and pr.knows("soru") and not pr.owns("c_quarter"))
@@ -67,7 +67,7 @@ func _process(_d: float) -> bool:
 			SG.save(p)
 			pr.from_dict({})
 			check("load again", SG.load_into(p))
-			check("...as it was", pr.pool("combat") == 14 and pr.skill_tier("soru") == 2 and pr.owns("m_soru"))
+			check("...as it was", pr.pool("sword") == 11 and pr.skill_tier("soru") == 2 and pr.owns("m_soru"))
 			SG.use_test_file("")
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE))
 			return TK.done(fails)
