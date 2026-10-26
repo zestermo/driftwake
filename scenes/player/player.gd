@@ -195,6 +195,8 @@ var _debug_crew := 0
 var hp_k := 1.0
 ## This captain's bounty in gold (Bounty: their own, saved with them).
 var bounty := 0
+## Why it rose: [deed kind (Bounty.TABLE), gold, game day], the newest last (Bounty.LOG of them; saved).
+var bounty_log: Array = []
 ## The capital arena's ladder (ArenaBout, 1.21): the next rank to fight (6: champion), and the day the title was last
 ## defended (Weather.day; -1 never). Their own, saved with them.
 var arena_rank := 0

@@ -84,16 +84,55 @@ static func fmt(b: int) -> String:
 	return s + out
 
 
-## Raise our captain's bounty by `amount` (their own machine): a toast, and a banner when it crosses a tier.
-static func add(p: Node, amount: int) -> void:
+## Why it rose, as a poster's line and the Wanted screen's deeds (by TABLE kind).
+const WHY := {
+	"rival": "for beating a rival crew",
+	"boss": "for bringing down an island's master",
+	"leviathan": "for facing down a Leviathan",
+	"ship": "for sinking a pirate ship",
+	"admiralty_ship": "for sinking an Admiralty ship",
+	"officer": "for striking down an Admiralty officer",
+	"hunter": "for beating an Admiralty hunter",
+	"bounty_hunter": "for seeing off bounty hunters",
+}
+## Deeds big enough for a new poster (the One Piece moment: WantedCard); the rest raise it with a toast.
+const POSTER_DEEDS := ["rival", "boss", "leviathan", "admiralty_ship", "officer", "hunter"]
+## Deeds kept per captain (Player.bounty_log, saved).
+const LOG := 12
+
+
+## Raise our captain's bounty by `amount` (their own machine) for deed `kind` (a TABLE key, or ""): logged, then a new
+## poster (WantedCard) for a big deed or a new tier, else a toast.
+static func add(p: Node, amount: int, kind: String = "") -> void:
 	if p == null or amount <= 0:
 		return
 	var before := int(p.get("bounty"))
 	var after := before + amount
 	p.set("bounty", after)
 	var tree: SceneTree = p.get_tree()
-	if tier_of(after) > tier_of(before):
+	var log_ = p.get("bounty_log")
+	if log_ is Array:
+		(log_ as Array).append([kind, amount, _day(tree)])
+		while (log_ as Array).size() > LOG:
+			(log_ as Array).pop_front()
+	var crossed := tier_of(after) > tier_of(before)
+	var settings := tree.root.get_node_or_null("Settings")
+	if (crossed or kind in POSTER_DEEDS) and not (settings and settings.call("tool_run")):
+		WantedCard.show_for(p, before, after, str(WHY.get(kind, "")))
+	elif crossed:
 		var t: Array = TIERS[tier_of(after)]
 		tree.call_group("hud", "show_banner", "%s: %s gold" % [str(t[1]), fmt(after)], str(t[2]).capitalize() + ".", true)
 	else:
 		tree.call_group("hud", "show_toast", "Your bounty rose to %s gold" % fmt(after))
+
+
+## The game day (Weather.day()), 0 without a Weather.
+static func _day(tree: SceneTree) -> int:
+	var w := tree.root.get_node_or_null("Weather")
+	return int(w.call("day")) if w and w.has_method("day") else 0
+
+
+## What tier `b` switches on next: [the next tier's name, from, what] or [] at the top.
+static func next_tier(b: int) -> Array:
+	var t := tier_of(b)
+	return [] if t >= TIERS.size() - 1 else [str(TIERS[t + 1][1]), int(TIERS[t + 1][0]), str(TIERS[t + 1][2])]

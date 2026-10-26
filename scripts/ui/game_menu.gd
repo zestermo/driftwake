@@ -19,7 +19,9 @@ var _load: SaveSlotList
 const YARD := preload("res://scripts/ui/shipwright_screen.gd")
 # the crew (1.22: the pause menu's Crew)
 const CREW := preload("res://scripts/ui/crew_screen.gd")
+const WANTED := preload("res://scripts/ui/wanted_screen.gd")
 var _crew: Control
+var _wanted: Control
 var _yard: Control
 # traders' stalls (talk to a vendor)
 const SHOP := preload("res://scripts/ui/shop_screen.gd")
@@ -73,6 +75,8 @@ func _ready() -> void:
 	_screens["idea"] = _idea
 	_crew = CREW.new(self)
 	_screens["crew"] = _crew
+	_wanted = WANTED.new(self)
+	_screens["wanted"] = _wanted
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -272,6 +276,9 @@ func open(screen: String) -> void:
 		_shop.on_open()
 	elif screen == "galley":
 		_galley.on_open()
+	elif screen == "wanted":
+		_wanted.on_open()
+		_focus_first(_wanted)
 	elif screen == "crew":
 		_crew.on_open()
 		_focus_first(_crew)
@@ -355,6 +362,7 @@ func _build_pause() -> Control:
 		["Inventory", func(): open("inventory")],
 		["Skill Map", func(): open("skills")],
 		["Crew", func(): open("crew")],
+		["Wanted", func(): open("wanted")],
 		["Appearance", func(): _open_appearance()],
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
