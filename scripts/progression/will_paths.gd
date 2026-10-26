@@ -28,31 +28,31 @@ const COLORS := {"black": ["Black lightning", Color(0.42, 0.16, 0.62)], "red": [
 ## Before a colour is picked.
 const NO_COLOR := Color(0.79, 0.66, 1.0)
 
-## The paths' abilities: id -> [path, tier, name, desc, versions: [[id, name, effects, desc, skill]]], in tier order.
+## The paths' abilities: id -> [path, tier, name, desc, versions: [[id, name, effects, desc, skill, chip label]]], in tier order.
 const ABILITIES := {
 	"w_coat": ["iron", 1, "Coat", "Coat your weapon or fists in Will (the skill): coated blows can't be blocked and land 30% harder.", [
-		["w_coat_heavy", "Heavy Coat", {"coat_dmg": 0.15}, "Coated blows land another 15% harder.", "armament_coat"],
-		["w_coat_quick", "Quick Coat", {"cdr_armament_coat": 0.3}, "The coat comes back 30% sooner, for a faster rhythm.", "armament_coat"],
-		["w_coat_break", "Breaking Coat", {"coat_burst": 1}, "A coated heavy blow bursts out round the one it hits, through their guards.", "armament_coat"]]],
+		["w_coat_heavy", "Heavy Coat", {"coat_dmg": 0.15}, "Coated blows land another 15% harder.", "armament_coat", "Heavy"],
+		["w_coat_quick", "Quick Coat", {"cdr_armament_coat": 0.3}, "The coat comes back 30% sooner, for a faster rhythm.", "armament_coat", "Quick"],
+		["w_coat_break", "Breaking Coat", {"coat_burst": 1}, "A coated heavy blow bursts out round the one it hits, through their guards.", "armament_coat", "Break"]]],
 	"w_emit": ["iron", 2, "Emission", "Will leaves the blade: while coated, a heavy attack strikes 6 m ahead too.", [
-		["w_emit_line", "Emission: Line", {"emission": 1}, "A coated heavy throws a line of Will 6 m straight ahead.", ""],
-		["w_emit_ring", "Emission: Ring", {"emission": 2}, "A coated heavy bursts a ring of Will 4 m round you.", ""]]],
+		["w_emit_line", "Emission: Line", {"emission": 1}, "A coated heavy throws a line of Will 6 m straight ahead.", "", "Line"],
+		["w_emit_ring", "Emission: Ring", {"emission": 2}, "A coated heavy bursts a ring of Will 4 m round you.", "", "Ring"]]],
 	"w_inner": ["iron", 3, "Inner Strike", "Through guards and armour: your heavy attacks can't be blocked, hit 8% harder and stagger.", [
-		["w_inner", "Inner Strike", {"armament": 1, "damage_pct": 0.08, "inner_strike": 1}, "Your heavy attacks can't be blocked, hit 8% harder and stagger what they hit.", ""]]],
+		["w_inner", "Inner Strike", {"armament": 1, "damage_pct": 0.08, "inner_strike": 1}, "Your heavy attacks can't be blocked, hit 8% harder and stagger what they hit.", "", "Strike"]]],
 	"w_flash": ["sense", 1, "Flash", "Sense intent: foes flash red as they start an attack, and your parry window is a little wider.", [
-		["w_flash_long", "Long Warning", {"observation": 1, "flash_early": 1}, "The flash comes earlier: more time to answer.", ""],
-		["w_flash_shots", "Gunsight", {"observation": 1, "flash_shots": 1}, "Guns flash too, before the shot.", ""],
-		["w_flash_boss", "Big Moves", {"observation": 1, "flash_boss": 1}, "Bosses' big moves flash as well.", ""]]],
+		["w_flash_long", "Long Warning", {"observation": 1, "flash_early": 1}, "The flash comes earlier: more time to answer.", "", "Early"],
+		["w_flash_shots", "Gunsight", {"observation": 1, "flash_shots": 1}, "Guns flash too, before the shot.", "", "Guns"],
+		["w_flash_boss", "Big Moves", {"observation": 1, "flash_boss": 1}, "Bosses' big moves flash as well.", "", "Bosses"]]],
 	"w_fore": ["sense", 2, "Foresight", "Sense what's coming (the skill): the next blows that would hit you are dodged by themselves.", [
-		["w_fore_sight", "Second Sight", {"foresight_charges": 1}, "Foresight dodges one more blow.", "foresight"],
-		["w_fore_slow", "Slow Sight", {"foresight_slow": 0.6}, "A blow Foresight dodges slows time for 0.6 s.", "foresight"]]],
+		["w_fore_sight", "Second Sight", {"foresight_charges": 1}, "Foresight dodges one more blow.", "foresight", "Second"],
+		["w_fore_slow", "Slow Sight", {"foresight_slow": 0.6}, "A blow Foresight dodges slows time for 0.6 s.", "foresight", "Slow"]]],
 	"w_crowd": ["sense", 3, "Crowd Read", "Read a whole crowd: every foe round you shows its next move.", [
-		["w_crowd", "Crowd Read", {"crowd_read": 1, "observation": 1}, "Every foe within 20 m flashes as it starts an attack, and for 4 s after a perfect dodge you see them all.", ""]]],
+		["w_crowd", "Crowd Read", {"crowd_read": 1, "observation": 1}, "Every foe within 20 m flashes as it starts an attack, and for 4 s after a perfect dodge you see them all.", "", "Read"]]],
 	"w_roar": ["conq", 2, "Roar", "A king's will (the ultimate): weak foes round you drop; everyone else is thrown back, reeling.", [
-		["w_roar_king", "King's Roar", {}, "Weak foes faint on the spot.", "conquerors_haki"],
-		["w_roar_far", "Far Roar", {"roar_reach": 0.5}, "The roar reaches half again as far.", "conquerors_haki"]]],
+		["w_roar_king", "King's Roar", {}, "Weak foes faint on the spot.", "conquerors_haki", "King"],
+		["w_roar_far", "Far Roar", {"roar_reach": 0.5}, "The roar reaches half again as far.", "conquerors_haki", "Far"]]],
 	"w_clash": ["conq", 3, "Clash", "When two great wills meet, they clash: timed presses decide who breaks.", [
-		["w_clash", "Clash", {"will_clash": 1}, "Two big Will attacks meeting (a boss's, a rival's or a crewmate's in a duel) start a clash won by timed presses.", ""]]],
+		["w_clash", "Clash", {"will_clash": 1}, "Two big Will attacks meeting (a boss's, a rival's or a crewmate's in a duel) start a clash won by timed presses.", "", "Clash"]]],
 }
 ## Each path's passive: id -> [path, name, effects, desc] (bought for PASSIVE_COST once the path's first ability is yours).
 const PASSIVES := {

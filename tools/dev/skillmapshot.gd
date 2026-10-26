@@ -72,7 +72,10 @@ func _process(_d: float) -> bool:
 			for s in [["wind_sever", 0], ["tiger_rush", 1], ["iai_counter", 2]]:
 				p.power.equip(s[0], s[1])
 			pr.equip_passive("k_clean", 0)
-			pr.gift("will", 1)
+			pr.gift("will", 8)
+			for k in ["w_coat_quick", "w_coat_heavy", "h_harden"]:
+				pr.buy(k)
+			pr.set_will_color("red")
 			pr.buy("w_coat_heavy")
 			pr.pick_talent(5, 0)
 			pr.pick_talent(10, 1)

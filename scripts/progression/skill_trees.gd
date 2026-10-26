@@ -343,7 +343,7 @@ static func _build_will() -> void:
 				var vid: String = v[0]
 				var vn := _node(vid, v[1], "version", 2, 1, v[2], v[3], v[4], [id], at)
 				vn.merge({"parent": id, "pool": "will", "path": path, "tier": int(a[1]), "cost": int(a[1])})
-				n["versions"].append({"id": vid, "name": v[1], "desc": vn["desc"], "level": 1, "effects": v[2], "skill": v[4]})
+				n["versions"].append({"id": vid, "name": v[1], "desc": vn["desc"], "level": 1, "effects": v[2], "skill": v[4], "tag": v[5]})
 			prev = id
 		for pid in WillPaths.PASSIVES:
 			var pd: Array = WillPaths.PASSIVES[pid]

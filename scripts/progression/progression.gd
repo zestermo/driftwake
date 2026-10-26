@@ -691,7 +691,7 @@ func respec_why(tree: String) -> String:
 	if not bought.keys().any(func(k): return SkillTrees.node_def(k)["tree"] == tree) and not steps.keys().any(func(k): return SkillTrees.node_def(k)["tree"] == tree):
 		return "Nothing bought"
 	if not can_respec():
-		return "Only at the ship's bunk"
+		return "Only at a rest spot"
 	if player.inventory_component.count("gold") < respec_price():
 		return "Needs %d gold" % respec_price()
 	return ""

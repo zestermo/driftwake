@@ -2,10 +2,11 @@ class_name SkillMapScreen
 extends Control
 ## The skills menu (K), as docs/media/progression_mock: a night sky under a wooden beam with a hanging sign per tab.
 ##   Captain     two pages (C / W, Tab, pad Y): the talent forks as rows up a level spine (both options' cards side by
-##               side, milestones on the spine; scrolls, up/down a fork, left/right an option), and the Will star chart
-##   Combat      a found weapon's tree (three branches up from its root, everything bought), or the chart of them all
-## Trees show icons and names; the card has the picked node in full (gate, price, what it does), the hover a one-line
-## tip, one plate over the page the tree's mastery and both pools; every path is drawn, grey and hollow until taken.
+##               side, milestones on the spine; scrolls, up/down a fork, left/right an option), and the Will paths
+##   Combat      a found weapon's tree (three branches up from its root, bought with its own points), or the chart of them all
+## Trees show icons and names; the card has the picked node in full (gate, price, what it does, why not yet), the hover
+## a one-line tip (its price and what Enter does or why not), one plate over the page the tree's mastery and its own
+## points beside Adventure's; every path is drawn, grey and hollow until taken.
 ## Only found trees show anywhere (no Adventure sign before one is found). At the bunk the card refunds the tree for gold.
 ##   Adventure   the found Adventure trees beside the open one
 ##   Loadout     the weapon loadouts, the one skill bar (1-5 + R), the passive slots, the library of what you know
@@ -754,7 +755,7 @@ func _draw_rail(r: Rect2) -> void:
 	draw_rect(r, Color(UIChrome.INK, 0.55))
 	draw_style_box(UIStyle.chrome("rope", 0, 0), Rect2(r.position.x, r.position.y - 1.0, r.size.x, 3))
 	var vis := _pr().visible_trees("combat")
-	var labels: Array = vis.map(func(t): return "%s %d" % [Progression.tree_name(t).to_upper(), _pr().tree_level(t)])
+	var labels: Array = vis.map(func(t): return "%s %d%s" % [Progression.tree_name(t).to_upper(), _pr().tree_level(t), " (+%d)" % _pr().pool(t) if _pr().pool(t) > 0 else ""])
 	var total := 0.0
 	for l in labels:
 		total += SILK.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 22.0
@@ -839,7 +840,7 @@ func _node_info(nid: String, x: float, y: float, w: float, limit: float, col: Co
 			good = int(n["level"]) <= p.level
 			status = "PICK ONE: ENTER" if good else "AT CAPTAIN %d" % int(n["level"])
 		else:
-			status = "BOTH YOURS: SWITCH AT THE BUNK" if kind == "variant" else "CHANGE AT THE BUNK"
+			status = "BOTH YOURS: SWITCH AT A REST SPOT" if kind == "variant" else "CHANGE AT A REST SPOT"
 			good = p.can_respec()
 	elif kind != "step" and p.owns_node(nid):
 		status = "YOURS" + ("  ·  1-5/R: ON THE BAR" if str(n["skill"]) != "" else "")
@@ -870,7 +871,8 @@ func _draw_tip() -> void:
 	if p.owns(nid) and n["kind"] != "step":
 		line += "  ·  YOURS"
 	elif price > 0 and p.buy_why(nid) != "Full":
-		line += "  ·  %d PT%s  ·  %s %d" % [price, "" if price == 1 else "S", Progression.tree_name(str(n["tree"])).to_upper(), int(n["level"])]
+		var why := p.buy_why(nid)
+		line += "  ·  %d PT%s  ·  %s" % [price, "" if price == 1 else "S", "ENTER: BUY" if why == "" else why.to_upper()]
 	var tw := SILK.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 10.0
 	var at := _mouse + Vector2(12, 14)
 	var r := Rect2(minf(at.x, size.x - tw - 4.0), minf(at.y, size.y - 40.0), tw, 13)
@@ -929,15 +931,15 @@ func _draw_chart(whole: Rect2) -> void:
 			draw_rect(hr.grow(4.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
 		var lp := (c + dir * (hub + (reach + 16.0 if not td["branches"].is_empty() else 26.0))).round()
 		var side := 0 if absf(dir.x) < 0.3 else (1 if dir.x > 0.0 else -1)
-		var lx := lp.x + (16.0 if side == 0 else (-6.0 if side > 0 else -94.0))
+		var lx := lp.x + (16.0 if side == 0 else (-6.0 if side > 0 else -134.0))
 		var al := HORIZONTAL_ALIGNMENT_LEFT if side >= 0 else HORIZONTAL_ALIGNMENT_RIGHT
 		var los := _loadouts_of(t).map(func(n): return "LOADOUT %d" % (n + 1))
 		if t == hand:
 			los.append("IN HAND")
-		_out(Vector2(lx, lp.y - 6.0), Progression.tree_name(t).to_upper(), col, al, 100.0)
-		_out(Vector2(lx, lp.y + 3.0), "MASTERY %d / %d" % [p.tree_level(t), SkillTrees.max_level(t)], UIStyle.CREAM, al, 100.0)
+		_out(Vector2(lx, lp.y - 6.0), Progression.tree_name(t).to_upper(), col, al, 140.0)
+		_out(Vector2(lx, lp.y + 3.0), "MASTERY %d/%d%s" % [p.tree_level(t), SkillTrees.max_level(t), " · %d PTS" % p.pool(t) if p.pool(t) > 0 else ""], UIStyle.CREAM, al, 140.0)
 		if not los.is_empty():
-			_out(Vector2(lx, lp.y + 12.0), " · ".join(los), UIStyle.GILT, al, 100.0)
+			_out(Vector2(lx, lp.y + 12.0), " · ".join(los), UIStyle.GILT, al, 140.0)
 	draw_circle(c, 28.0, UIChrome.INK)
 	draw_circle(c, 27.0, UIStyle.GILT)
 	draw_circle(c, 25.0, SkillTreeDraw.ROOT_BG)
@@ -1239,7 +1241,7 @@ func _will_chip(r: Rect2, aid: String, i: int, tint: Color) -> void:
 	var can := not mine and p.buy_why(vid) == ""
 	var on := inspected() == "n:" + vid
 	_box(r, tint if active else (tint.darkened(0.6) if mine else WILL_DARK), Color.WHITE if on else (tint if mine else (UIStyle.CORAL if can else WILL_DIM)))
-	var label := str(v["name"]).trim_prefix(str(an["name"]) + ": ").to_upper()
+	var label := str(v["tag"]).to_upper()
 	draw_string(SILK, Vector2(r.position.x, r.position.y + 9.0), label, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 8,
 		UIStyle.INK if active else (UIStyle.CREAM if mine or can else Color("6b6890")))
 	hit(r, "n:" + vid)
