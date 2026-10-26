@@ -1,9 +1,10 @@
 extends Node
 
-## The ship's storage (the chest in the crew cabin): what you've banked. It's
-## the only thing that survives a death; your bag goes on your grave. In
-## co-op the host's storage is the crew's (Net shares it as bag "storage").
+## The ship's storage (the chest in the crew cabin), its Shared tab: the crew's. In co-op the host's storage is the
+## crew's (Net shares it as bag "storage"). What you carry goes on your grave when you fall; what's stowed stays.
 var storage: Array[ItemStack] = []
+## The storage's Personal tab (1.23): this captain's own sea chest, saved with them, theirs in any crew.
+var sea_chest: Array[ItemStack] = []
 ## Your grave (where you last died, holding your bag) - one at a time.
 var grave: LootBag = null
 var loot_bag_scene: PackedScene
@@ -56,6 +57,7 @@ var play_time: float = 0.0
 ## rebuilt): forget everything from the previous session.
 func reset_session() -> void:
 	storage.clear()
+	sea_chest.clear()
 	opened.clear()
 	burned.clear()
 	world_flags.clear()

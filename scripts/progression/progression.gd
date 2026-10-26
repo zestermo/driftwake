@@ -49,6 +49,8 @@ const SWIM_TICKS := 15
 const PASSIVE_SLOTS := 3
 ## How close to the ship's bunk (m) steps, versions and talents can be switched.
 const BUNK_REACH := 2.5
+## How close to a rest spot (an inn's, the bunk's interactable) builds can be switched.
+const REST_REACH := 3.5
 ## Trees a new captain sees.
 const FOUND_AT_START := ["captain", "sword"]
 ## Save format: 2 = per-tree points, mastery, tiers; 3 = families and life skills; 4 = the trimmed trees (older
@@ -747,12 +749,18 @@ func has_will(id: String) -> bool:
 	return will.has(id)
 
 
-## Standing by the ship's bunk: where steps, versions and talents are switched.
+## At a rest spot: where steps, versions, talents and passives are switched (1.23: the ship's bunk, an inn's bed in any
+## village or city, or a camp's fire you're beside; group "rest_spots" + Camp.near).
 func can_respec() -> bool:
 	if player == null or not player.is_inside_tree():
 		return false
 	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	return ship != null and player.global_position.distance_to(ship.global_transform * Ship.BED_AT) < BUNK_REACH
+	if ship != null and player.global_position.distance_to(ship.global_transform * Ship.BED_AT) < BUNK_REACH:
+		return true
+	for r in get_tree().get_nodes_in_group("rest_spots"):
+		if r is Node3D and (r as Node3D).global_position.distance_to(player.global_position) < REST_REACH:
+			return true
+	return Camp.near(player) != null
 
 
 func passive_slots() -> int:
@@ -942,10 +950,11 @@ var downtime: Dictionary = {}
 var guards: Dictionary = {}
 
 
-func eat_meal(id: String) -> void:
+## Eat meal id: at your own Cooking's strength and length, or (k >= 0) a cook's (a portion off the galley table).
+func eat_meal(id: String, k_: float = -1.0, secs: float = -1.0) -> void:
 	meal = ""
-	var k := Food.strength(self)
-	meal_left = Food.seconds(self, id)
+	var k := Food.strength(self) if k_ < 0.0 else k_
+	meal_left = Food.seconds(self, id) if secs < 0.0 else secs
 	meal = id
 	meal_k = k
 	player.call("_recalc_stats")

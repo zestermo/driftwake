@@ -496,9 +496,9 @@ func _act_split(nid: String, i: int) -> void:
 	elif int(v["level"]) > p.tree_level(str(n["tree"])):
 		_deny("%s comes at %s %d" % [v["name"], "level" if n["tree"] == "captain" else Progression.tree_name(str(n["tree"])), int(v["level"])])
 	elif n["kind"] == "talent":
-		_deny("Change talents at the ship's bunk")
+		_deny("Change talents at a rest spot: the bunk, an inn or your camp")
 	else:
-		_deny("Switch versions at the ship's bunk")
+		_deny("Switch versions at a rest spot: the bunk, an inn or your camp")
 
 
 func _will_passive(wid: String) -> String:
@@ -1027,7 +1027,7 @@ func _draw_level_card(card: Rect2, forks: Array, miles: Array) -> void:
 	var g := SkillTrees.GROWTH
 	y = _lines(Vector2(x, y), "Every level: +%s HP, +%d%% dmg, +%s stamina and energy, +%s def." % [g["max_hp"], roundi(g["damage_pct"] * 100.0),
 		g["max_stamina"], g["defense"]], w, UIStyle.PARCH_DIM, 10.0) + 8.0
-	y = _lines(Vector2(x, y), "Every 5 levels pick one of two talents. Change it at the ship's bunk.", w, UIStyle.PARCH_DIM, 10.0) + 8.0
+	y = _lines(Vector2(x, y), "Every 5 levels pick one of two talents. Change it at a rest spot (the bunk, an inn, your camp).", w, UIStyle.PARCH_DIM, 10.0) + 8.0
 	for row in [["TALENTS", forks.filter(func(k): return p.version_of(k) >= 0).size(), forks.size()],
 			["MILESTONES", miles.filter(func(k): return p.owns_node(k)).size(), miles.size()]]:
 		draw_string(SILK, Vector2(x, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_INK)

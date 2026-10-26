@@ -201,6 +201,13 @@ func cook_selected() -> void:
 		return
 	UIStyle.sfx("sizzle")
 	var name_ := str(Food.MEALS[_sel]["name"])
+	# aboard, a pot of several portions goes on the galley table for the crew (the cook keeps one)
+	if portions > 1 and GalleyTable.of(get_tree()) != null:
+		pl.inventory_component.remove_item(ItemDB.get_item(_sel), portions - 1)
+		Net.table_serve(_sel, portions - 1, pl.display_name(), Food.strength(pl.progression), Food.seconds(pl.progression, _sel))
+		_flash("Cooked %s: one for you, %d on the galley table" % [name_, portions - 1], false)
+		_refresh()
+		return
 	_flash("Cooked %s%s" % [name_, " x%d" % portions if portions > 1 else ""], false)
 	if pl.progression.mastery_level("cook") > lv:
 		UIStyle.sfx("level_up")

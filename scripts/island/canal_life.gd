@@ -191,7 +191,7 @@ func _inn() -> void:
 	rest.name = "Rest"
 	rest.collision_layer = 512
 	rest.collision_mask = 0
-	rest.prompt_text = "Rest at the Oar and Lantern"
+	rest.prompt_text = "Rest at the Oar and Lantern  (K: switch your build here)"
 	rest.gesture = "push"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
@@ -201,6 +201,7 @@ func _inn() -> void:
 	add_child(rest)
 	rest.position = (_spot("inn_door")[0] as Vector3) + Vector3(0, 1.3, 0)
 	rest.interacted.connect(func(player: Player): player.call("_toast", GameManager.rest(player)))
+	rest.add_to_group("rest_spots")
 
 
 # --------------------------------------------------------------------------

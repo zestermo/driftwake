@@ -225,9 +225,12 @@ static func save(player: Player) -> bool:
 		if it:
 			worn[slot] = item_ref(it)
 	var stored: Array = []
+	var chest: Array = []
 	if gm:
 		for st in gm.storage:
 			stored.append([item_ref(st.item), st.quantity])
+		for st in gm.sea_chest:
+			chest.append([item_ref(st.item), st.quantity])
 	# your grave, if you've one: where, and what's in it (a grave on a ship's
 	# deck is kept by the deck spot, so it sails with her)
 	var grave: Array = []
@@ -269,6 +272,7 @@ static func save(player: Player) -> bool:
 		"kicks": player.kicks,
 		"bounty": player.bounty,
 		"bounty_log": player.bounty_log.duplicate(true),
+		"sea_chest": chest,
 		"arena_rank": player.arena_rank,
 		"arena_defended_day": player.arena_defended_day,
 		"loadouts": player.loadouts.duplicate(true),
@@ -375,6 +379,16 @@ static func load_into(player: Player) -> bool:
 		player.kicks = bool(data.get("kicks", false)) and player.knows_black_leg()
 		player.bounty = int(data.get("bounty", 0))
 		player.bounty_log = (data.get("bounty_log", []) as Array).duplicate(true)
+		var gmc := player.get_node_or_null("/root/GameManager")
+		if gmc:
+			gmc.sea_chest.clear()
+			for e in data.get("sea_chest", []):
+				var it := item_from(e[0])
+				if it:
+					var st := ItemStack.new()
+					st.item = it
+					st.quantity = int(e[1])
+					gmc.sea_chest.append(st)
 		player.arena_rank = int(data.get("arena_rank", 0))
 		player.arena_defended_day = int(data.get("arena_defended_day", -1))
 		player.unequip_weapon()

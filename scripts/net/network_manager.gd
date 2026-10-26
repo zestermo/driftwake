@@ -894,6 +894,46 @@ func _all_cutscene_waiting_next(kind: String, shot: int, n: int) -> void:
 		Cutscene.active.set_waiting_next(shot, n)
 
 
+## The galley table (GalleyTable): a cook's pot served (every screen shows it).
+func table_serve(meal: String, n: int, cook: String, k: float, secs: float) -> void:
+	everyone("_all_table", [meal, n, cook, k, secs])
+
+
+func _all_table(meal: String, n: int, cook: String, k: float, secs: float) -> void:
+	var t := GalleyTable.of(get_tree())
+	if t:
+		t.set_pot(meal, n, cook, k, secs)
+
+
+## Our captain takes a portion off the table: the host counts it, and the one who got it eats.
+func table_take() -> void:
+	if hosting or not active:
+		_table_take()
+	else:
+		_table_take.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _table_take() -> void:
+	if not is_host():
+		return
+	var t := GalleyTable.of(get_tree())
+	if t == null or t.meal == "" or t.left <= 0:
+		return
+	var who := multiplayer.get_remote_sender_id() if active else 0
+	everyone("_all_table_ate", [who if who != 0 else my_id(), t.meal, t.left - 1, t.cook, t.k, t.secs])
+
+
+func _all_table_ate(who: int, meal: String, left: int, cook: String, k: float, secs: float) -> void:
+	var t := GalleyTable.of(get_tree())
+	if t:
+		t.set_pot(meal if left > 0 else "", left, cook, k, secs)
+	var p := _me()
+	if p and who == my_id():
+		p.progression.eat_meal(meal, k, secs)
+		p.call("_toast", "%s's %s: %s" % [cook, str(Food.MEALS[meal]["name"]), Food.buff_text(meal, k)])
+
+
 func _all_cutscene_waiting(kind: String, n: int) -> void:
 	if Cutscene.active and Cutscene.active.kind == kind:
 		Cutscene.active.set_waiting(n)

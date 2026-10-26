@@ -166,7 +166,7 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	rest.name = "Rest"
 	rest.collision_layer = 512
 	rest.collision_mask = 0
-	rest.prompt_text = "Rest at the inn"
+	rest.prompt_text = "Rest at the inn  (K: switch your build here)"
 	rest.gesture = "push"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
@@ -178,6 +178,7 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	var door_y: float = inn.get("floor_y", isl.hv(inn_door))
 	rest.global_position = isl.to_global(Vector3(inn_door.x, door_y + 1.4, inn_door.y))
 	rest.interacted.connect(func(player: Player): player.call("_toast", GameManager.rest(player)))
+	rest.add_to_group("rest_spots")
 	# the trader's store and the cookhouse
 	var trade_id := _key("trader")
 	var food_id := _key("cook")
