@@ -114,3 +114,6 @@ to work toward.
 - **1.23 is the Playtest pass** (docs/v1_23_plan.md), after a 2 h co-op playtest of 1.22: a bug pass, a poise meter and
   smarter enemies, weapon points per tree, the beast motion and spectacle pass, sea pursuit and the Marines' response,
   a story arc per island, and the bounty made visible. Combat & gear moves to 1.24, strongholds and Driftfruits to 1.25.
+- **Stay on Godot** (Zach asked about Unity/Unreal, 2026-10-26): the frames are CPU-bound by our own scripts, so 1.23
+  gets a perf track instead (spike logger first, time-sliced builds, AI/animation LOD, native C++ for measured hot
+  paths); docs/v1_23_plan.md "Performance track".

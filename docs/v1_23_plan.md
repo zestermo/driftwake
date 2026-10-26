@@ -133,6 +133,24 @@ on your grave), the host's shared in co-op. Variants, talents and passives switc
 Order: with the combat core's progression work (step 2: rest spots, storage tabs, banking out) and the cooking buffs
 there too; the save migration moves today's storage into the Shared tab.
 
+### Performance track (2026-10-26)
+Zach: the game "feels heavy at times, fine at others"; asked whether to move to Unity or Unreal. **Decided: stay on
+Godot.** ~159k lines of procedural GDScript (463 files) and the whole tooling would be a year+ rewrite. The 1.21 bench
+is CPU-bound by our own per-frame scripts (proc_scr ~5 ms, draw ~4.3 ms, GPU ~3 ms), so a port of the same design would
+be slow there too. "Heavy sometimes" points at spikes, not the mean (Brinehollow ~12.7 ms vs the ~10 target).
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Engine | **Stay on Godot 4.7**; native code (GDExtension C++) only for measured hot paths | The bottleneck is our scripts, not the engine | If native hot paths and LOD can't reach the target |
+| 1. Spike logger (first, before Zach's next play) | Every frame over ~25 ms logs what ran (island build step, spawns, AI captains and enemies awake, the slowest scripts that frame, co-op peers) to `user://perf.log`, and the F12 capture includes the last spikes | Measure the heaviness instead of guessing | After that play session |
+| 2. Time-sliced builds | Island build steps, mesh commits and spawns get a per-frame budget (~3 ms) and finish over several frames (the beast/boss steps read 150-200 ms today) | Hitches before the mean (standing rule) | Spike log |
+| 3. AI and animation LOD | Far humanoids animate at 15-30 Hz; AI decisions at ~10 Hz, staggered across frames; a waiting rival or crowd member runs a cheap version until it fights | AI captains are full Player rigs | Spike log |
+| 4. Native hot paths | Profile, then move the 3-5 hottest pure-math functions to a GDExtension (C++): likely the humanoid animator's joint math, wave height sampling, spring chains, AI perception | 10-50x on tight loops; everything else stays GDScript | Profile |
+| 5. Budgets per system | Scripts, animation, AI and draw each get a slice of the frame, read by the perf gate | Creep shows the day it lands | - |
+
+Order: the spike logger lands with the bug pass (step 1), so Zach's next session produces a log; 2-5 follow in the
+order the log says, alongside the other steps. GPU-first (shaders, MultiMesh motion, GPU particles) stays the rule.
+
 ### Open / deferred
 - Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
   while building and listed for Zach's review with the per-tree point curve.
