@@ -99,6 +99,23 @@ chosen from the bag.
 Order: villagers, markers, interiors and outposts go with the island arcs (step 5; the arcs' rumour-tellers and
 villains live in these villages); district variants with them.
 
+### Will, the Captain tree and passives (2026-10-26)
+Found (scripts/progression/skill_trees.gd `_build_captain`): everyone gets Squall Step (level 8) and Ballast (level 14)
+as Captain milestones, and each Will ability is given by beating a set boss (Iron Will: Morrow; Coat: a great ape;
+Sense: the Brood Queen; Foresight: an arena beast; Captain's Will: a Leviathan with every other Will). Each Will passive
+comes free with its boss. Passive slots: `PASSIVE_SLOTS` 3, a fourth at level 25. In co-op, captains beat the same
+bosses together, so at level 15 Zach and his friend had half the same hotbar.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Will unlocks | **Will paths + Will points**: bosses give Will points, not abilities. Each captain chooses a path: **Iron Will** (armament: coat, harden, push), **Sense** (observation: flash, foresight, counters) or the rare late **Captain's Will** (needs both). Each path is a branch bought with Will points; Will masters (with the tree masters) teach a path's top abilities | Captains who beat the same boss grow differently | Point curve preview |
+| Squall Step, Ballast | **Move to the life trees**: Squall Step into Acrobatics, Ballast into Defense, learned by doing. The Captain tree's milestones become non-hotbar perks (loadout slot, passive slots) | No identical hotbars | - |
+| Passive slots | **Grow with level**: 2 at the start, +1 at Captain levels 10, 20 and 30 (5 at most). Passives come from every tree; Will passives are bought and slotted like the rest, no longer free | A real choice that grows | Point curve preview |
+| Will variety | **All four**: versions per ability (2-3 each, switched at the bunk like weapon variants: Coat for heavier hits, faster combos or blocking through); **tiers that awaken** (Iron Will: coat, then emission at range, then the inner strike through armour and guards; Sense: flash, then foresight, then reading a whole crowd); **a Will colour per captain** (colour and aura style, seen in co-op); **Will clashes** (two big Will attacks meeting, vs a boss, rival or a crewmate in a duel, start a short clash to win by timed presses) | Will should feel personal and shonen | After play |
+
+Order: with the combat core (step 2), alongside points per tree; previewed in the same node/point table. Saves: a
+migration refunds Will and the moved milestones (Settings VERSION / Progression save format 7).
+
 ### Open / deferred
 - Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
   while building and listed for Zach's review with the per-tree point curve.
