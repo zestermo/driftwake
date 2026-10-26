@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+# Driftwake's native code (GDExtension): docs/v1_23_plan.md "Cloth and hair physics, native".
+# Build: py -m SCons platform=windows target=template_debug   (and target=template_release for exports)
+# Bindings come from godot-cpp built against Godot 4.7's own API dump (extension_api.json, gdextension_interface.h).
+import os
+
+env = SConscript("godot-cpp/SConstruct", exports=[])
+env.Append(CPPPATH=["src/"])
+sources = Glob("src/*.cpp")
+suffix = env["suffix"]
+lib = env.SharedLibrary("../bin/driftwake_native{}{}".format(suffix, env["SHLIBSUFFIX"]), source=sources)
+Default(lib)
