@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Crews of five", "Up to five captains sail together. Your crew has a name and a roster, saved with the Captain's world: the pause menu's Crew screen. Crews you've joined are on the title screen's co-op panel: one click to rejoin."],
-	["Sail as one", "Quest rewards go to the whole crew, wherever they are. The party panel shows where each crewmate is and what they're doing: down (and how far, which way), at the helm, on the guns, in the water."],
-	["Loot worth finding", "Enemies rarely drop things now; chests are rolled for each captain round their island's level, so no two crewmates find the same. Brinehollow's chests are random too. Purple and gold gear only on later islands and from traders."],
-	["Your emblem on the sail", "The crew's emblem on the main sail, and six more emblems. Tackett does the basics; the finer refits are first seen at a city's yard."],
-	["The map", "Pan it with middle mouse. Crewmates named on the chart, the Captain's marks bigger, a legend; on screen, the nearest four marks and the rest counted."],
+	["Poise and juggles", "Hits wear down a foe's poise; a break staggers or floors them, so knockdowns are earned. Launchers throw foes up and the air step chases them. Grunts block some front hits instead of holding guard. Black leg has new moves."],
+	["Beasts that escalate", "The Silverback, Sand King and Bear King change over three phases with new moves. Break their parts for trophies and weaker attacks. Roamers posture, stalk or bolt: back off and some settle."],
+	["Wanted", "Your poster and bounty log are in the menu. Heat brings hunters and rivals and cools over days. Enemy ships chase and ram; the Admiralty blockades and hunts your wake. Marine outposts guard some islands: raid them, or sneak past."],
+	["Villages and the ship", "Tailors, smiths, luthiers and more in the villages; a ! or ? over people with quests. The tea house's master teaches black leg. Meals go on the galley table; ship storage has personal and shared tabs; rest and respec at any bunk or inn."],
+	["Story and help", "Cutscenes wait for you and let you reply. Vey's drills teach the controls, and a walkthrough explains each menu the first time. Drop quests and pick which one to track in the journal."],
 ]
 
 
