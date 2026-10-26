@@ -1088,6 +1088,63 @@ func _all_crew(c: Dictionary) -> void:
 	roster_changed.emit()
 
 
+# --------------------------------------------------------------------------
+# Crew techniques (1.24, CrewTechniques): the join zone on every screen; the host gives it to the first to ask
+# --------------------------------------------------------------------------
+func _all_crew_offer(key: String, tid: String, secs: float) -> void:
+	var p := node_of(key)
+	if p and p.get("crew_tech"):
+		p.crew_tech.open_zone(tid, secs)
+
+
+func _all_crew_close(key: String) -> void:
+	var p := node_of(key)
+	if p and p.get("crew_tech"):
+		p.crew_tech.close_zone()
+
+
+## `partner` asks to join `opener`'s zone.
+func crew_join(opener: Node, partner: Node) -> void:
+	if is_host():
+		_crew_try(key_of(opener), key_of(partner))
+	else:
+		_crew_ask.rpc_id(1, key_of(opener), key_of(partner))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _crew_ask(ok: String, pk: String) -> void:
+	if not hosting:
+		return
+	_crew_try(ok, pk)
+
+
+func _crew_try(ok: String, pk: String) -> void:
+	var o := node_of(ok)
+	var mate := node_of(pk)
+	if o == null or mate == null or not o.crew_tech.can_join():
+		return
+	o.crew_tech.taken = true
+	everyone("_all_crew_go", [ok, pk])
+
+
+func _all_crew_go(ok: String, pk: String) -> void:
+	var o := node_of(ok)
+	var mate := node_of(pk)
+	if o and mate:
+		o.crew_tech.go(mate)
+
+
+## A message for captain `to` from a crewmate's move (a launch, a blow on a guarded ward): its own machine acts on it.
+func crew_signal(to: Node, what: String, args: Array) -> void:
+	everyone("_all_crew_signal", [key_of(to), what, args])
+
+
+func _all_crew_signal(key: String, what: String, args: Array) -> void:
+	var p := node_of(key)
+	if p and p.get("crew_tech"):
+		p.crew_tech.signal_in(what, args)
+
+
 ## (1.21) A bout in the capital's arena for our own captain: the host runs it (ArenaBout); a guest asks the host,
 ## sending its own ladder rank (the guest's captain keeps it). `bout_kind` "ladder" or "defend".
 func request_arena(bout_kind: String, at_rank: int) -> void:

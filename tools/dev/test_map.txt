@@ -29,6 +29,10 @@ scripts/enemies/beasts/wild_hunt.gd     t/beast/roamers
 scripts/enemies/beasts/beast_dens.gd    t/beast/roamers bosstest
 scripts/enemies/beasts/beast_pool.gd    t/beast/roamers bosstest
 scripts/combat/poise.gd                 t/beast
+tools/dev/t/crew/*                      t/crew
+scripts/combat/crew_techniques.gd       t/crew techtest net
+scripts/player_states/crew_technique_state.gd  t/crew techtest net
+scripts/npc/crew_poses.gd               t/crew
 tools/dev/t/items/*                     t/items
 tools/dev/t/fishing/*                   t/fishing
 scripts/fishing/*                       t/fishing

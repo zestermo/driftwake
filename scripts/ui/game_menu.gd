@@ -573,7 +573,7 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 const BINDINGS := [
 	["Move", "W A S D", "move"], ["Look", "Mouse", "look"], ["Sprint", "Shift", "L3 (click: run)"], ["Jump / double jump", "Space", "jump"],
 	["Ready / sheathe weapon", "Z", "ready_weapon"], ["Light attack (3-hit combo)", "Left click", "light_attack"], ["Heavy attack", "Right click", "heavy_attack"],
-	["Dodge roll", "Left Ctrl", "dodge"], ["Sneak (toggle)", "C", "crouch"], ["Emote wheel (hold, point to pick)", "T", "emote"], ["Parry", "Q", "parry"], ["Interact / talk", "F", "interact"], ["Skills", "1 - 5", "LB+X Y B A RB"],
+	["Dodge roll", "Left Ctrl", "dodge"], ["Sneak (toggle); weapon out: crew technique", "C", "crouch"], ["Emote wheel (hold, point to pick)", "T", "emote"], ["Parry", "Q", "parry"], ["Interact / talk", "F", "interact"], ["Skills", "1 - 5", "LB+X Y B A RB"],
 	["Ultimate", "R", "ultimate"], ["Eat / drink (hold: choose)", "E", "quick_item"], ["Action wheel (hold: camp...)", "N", "action_wheel"], ["Swap weapon loadout (hold: choose)", "X", "loadout"], ["Crew chat (co-op)", "Enter", "-"],["Block (hold)", "Q", "parry"],
 	["Inventory", "Tab / I", "inventory"], ["Skill map", "K", "skill_map"], ["Map: out / away (click: mark)", "M", "sea_chart"], ["Belt lantern on / off", "L", "lantern"], ["Read the lodestone (hold)", "H", "log_pose"], ["Zoan: shift form", "V", "transform"], ["Summon your ship (hold)", "B", "summon_ship"], ["Pause menu", "Esc", "pause"], ["Zoom camera", "Mouse wheel", "-"],
 	["PSX resolution / dither", "F2 / F3", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter", "F11 / Alt+Enter"],
