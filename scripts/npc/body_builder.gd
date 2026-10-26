@@ -34,18 +34,24 @@ const STYLE_NAMES := ["shonen", "chibi", "heroic"]
 const CAPE_MODES := ["a", "a0", "b", "c"]
 static var cape_mode := "a"
 static var cape_net := true
+## The cape's net on every other set of chains (hair, coat tails, skirts, sashes, ties: SpringChains.use_net, _nets).
+static var cloth_net := true
 
 
-## The next cape mode (or the net on/off), every caped or cloaked body in the tree rebuilt with it; returns a line to show.
+## The next cape mode (or every net on/off: the capes' and the cloth's), every caped or cloaked body in the tree (every
+## body, for the nets) rebuilt with it; returns a line to show.
 static func cycle_cape(tree: SceneTree, net_only: bool) -> String:
 	if net_only:
 		cape_net = not cape_net
+		cloth_net = cape_net
 	else:
 		cape_mode = CAPE_MODES[(CAPE_MODES.find(cape_mode) + 1) % CAPE_MODES.size()]
 	for n in tree.root.find_children("*", "Humanoid", true, false):
 		var hm := n as Humanoid
-		if hm.look.get("cape", false) or hm.look.get("cloak", false):
+		if net_only or hm.look.get("cape", false) or hm.look.get("cloak", false):
 			hm.apply_look(hm.look)
+	if net_only:
+		return "Nets (capes, hair, cloth): %s" % ("on" if cape_net else "off")
 	return "Cape: %s%s" % [cape_mode.to_upper(), (", net on" if cape_net else ", net off") if cape_mode == "a" else ""]
 
 
@@ -137,6 +143,9 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	_clothes()
 	_accessories()
 	_commit_parts()
+	# (natively only: on the GDScript solver the nets cost a skirt ~1 ms a frame; without the library, the old chains)
+	if cloth_net and SpringChains.native_ok:
+		_nets()
 	for s in _sims.values():
 		(s as SpringChains).mb.fold_tints()
 		(s as SpringChains).finalize()
@@ -233,6 +242,20 @@ func _skin_one(node: Node3D, mb: MeshBuilder) -> bool:
 	mb.rebind(rest, b)
 	_lmb.merge(mb)
 	return true
+
+
+## The cape's net on the other sets (1.24): the head's (hair, a bandana's tails) eased off the torso and shoulders and
+## kept from flipping over; the hips' and torso's (coat tails, skirts, the apron, a sash's tail) eased off the legs,
+## out of the hips, held from flaring up.
+func _nets() -> void:
+	for key in _sims:
+		var s: SpringChains = _sims[key]
+		if s.mode != "a0":
+			continue
+		if key == h.head:
+			s.use_net(["torso", "hair_sh"], [], 0.012, 1.4, 1.0)
+		else:
+			s.use_net(SpringChains.NET_LEGS, ["hips"], 0.02, 1.2, 0.9)
 
 
 ## Physics chains anchored on a joint (created on first use).
@@ -2550,6 +2573,9 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 			rows.append(row)
 			chain.append(Vector3(sin(am) * aw, y, -cos(am) * ad))
 		var bones := sim.add_chain(chain, stiff, 0.06, 1.0, ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"])
+		# (the net's probes out to the panel's edges at the hem: a sector is wider than its chain)
+		var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[3] - chain[rows_n - 1]
+		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, edge * 0.8, -edge * 0.8]))
 		sim.mb.add_strip_grid(m, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3.ZERO)
 		if m_trim:
 			var last: PackedVector3Array = rows[rows_n - 1]

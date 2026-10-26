@@ -136,8 +136,8 @@ scripts/npc/humanoid.gd                 chartest t/player t/combat ragtest r10te
 scripts/npc/body_builder.gd             chartest t/player cliptest katanatest qoltest
 scripts/npc/character_look.gd           chartest t/player savetest
 scripts/npc/face_painter.gd             chartest
-scripts/npc/spring_chains.gd            cliptest chartest t/player/chains_native_same t/player/chains_fallback
-native/src/*                            t/player/chains_native_same
+scripts/npc/spring_chains.gd            cliptest chartest t/player/chains_native_same t/player/chains_fallback t/player/chains_net_clear
+native/src/*                            t/player/chains_native_same t/player/chains_net_clear
 driftwake_native.gdextension            t/player/chains_native_same t/player/chains_fallback
 scripts/npc/hair_flow.gd                t/player/flow_hair cliptest
 scripts/npc/arm_body.gd                 chartest t/player perftest

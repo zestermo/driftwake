@@ -13,6 +13,8 @@
 #   first launch. Baking D3D12 shaders needs a Windows editor running the Forward+ renderer: not
 #   --headless (that bakes nothing, silently), so the export opens an editor window, which runs on
 #   the runner's software adapter (WARP). The export step fails if the exe has no baked shaders.
+# - The native library (native/, built with scons first) is exported beside the exe by Godot's GDExtension
+#   exporter (driftwake_native.gdextension's windows.release.x86_64 line); the export step checks it's there.
 name: Build Windows
 
 on:
@@ -41,6 +43,22 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # The native library (native/, GDExtension: SpringChains' solver) the export ships beside the exe. scons finds
+      # the runner's Visual Studio itself; godot-cpp builds against the 4.7 API dump in native/.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the native library (template_release)
+        run: |
+          set -euo pipefail
+          python -m pip install scons==4.8.1
+          cd native
+          python -m SCons platform=windows target=template_release custom_api_file=extension_api.json -j4
+          test -f ../bin/driftwake_native.windows.template_release.x86_64.dll
 
       - id: godot
         uses: ./.github/actions/setup-godot
@@ -62,6 +80,7 @@ jobs:
           "$GODOT" --path . --export-release "Windows Desktop" build/windows/Driftwake.exe 2>&1 | tee build/export.log
           test -f build/windows/Driftwake.exe
           test -f build/windows/Driftwake.console.exe
+          test -f build/windows/driftwake_native.windows.template_release.x86_64.dll
           grep -m1 "Using Device" build/export.log || true
           baked=$(grep -a -o 'shader_cache/[A-Za-z0-9]*/[0-9a-f]*/[0-9a-f]*\.d3d12\.cache' build/windows/Driftwake.exe | sort -u | wc -l)
           echo "baked D3D12 shader files in the pck: $baked"

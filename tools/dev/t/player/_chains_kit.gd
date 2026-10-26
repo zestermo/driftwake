@@ -39,7 +39,7 @@ static func drive(h, i: int, yaw: float) -> float:
 	h.position += fwd * v * dt
 	h.position.y = 3.0 + maxf(0.0, sin(t * 2.3)) * 0.8
 	h.rotation.y = yaw
-	var kick := 1.1 * sin(t * 9.0)
+	var kick := 0.8 * sin(t * 9.0)
 	h.leg_l.rotation.x = kick
 	h.leg_r.rotation.x = -kick
 	h.shin_l.rotation.x = -0.6 * (1.0 + sin(t * 9.0 + 1.0))

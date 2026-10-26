@@ -14,10 +14,6 @@ using namespace godot;
 static const double STEP = 1.0 / 60.0;
 static const int MAX_STEPS = 4;
 static const Vector3 PROBES[3] = { Vector3(0, 0, 0), Vector3(-0.1, 0, 0), Vector3(0.1, 0, 0) };
-static const double CUSHION = 0.025;
-static const int NET_HIPS = 4;
-static const double NET_SWING = 1.5;
-static const double NET_SWING_TOP = 1.0;
 static const double NET_TURN = 0.9;
 static const double NET_IN = 40.0;
 static const double NET_OUT = 8.0;
@@ -28,8 +24,8 @@ static const double PI_ = 3.14159265358979323846;
 void ChainSolver::_bind_methods() {
 	ClassDB::bind_static_method("ChainSolver", D_METHOD("api"), &ChainSolver::api);
 	ClassDB::bind_method(D_METHOD("set_colliders", "nodes", "a", "b", "r"), &ChainSolver::set_colliders);
-	ClassDB::bind_method(D_METHOD("add_chain", "rest", "bones", "k", "d", "g", "col", "probes", "side_of", "side"), &ChainSolver::add_chain);
-	ClassDB::bind_method(D_METHOD("set_tuned", "back", "passes", "net", "caps"), &ChainSolver::set_tuned);
+	ClassDB::bind_method(D_METHOD("add_chain", "rest", "bones", "k", "d", "g", "col", "probes", "side_of", "side", "axis"), &ChainSolver::add_chain);
+	ClassDB::bind_method(D_METHOD("set_drawn", "tuned", "back", "passes", "net", "caps", "hard", "cushion", "swing", "swing_top", "from", "best"), &ChainSolver::set_drawn);
 	ClassDB::bind_method(D_METHOD("set_gravity", "g"), &ChainSolver::set_gravity);
 	ClassDB::bind_method(D_METHOD("reset"), &ChainSolver::reset);
 	ClassDB::bind_method(D_METHOD("simulate", "anchor", "skel", "delta"), &ChainSolver::simulate);
@@ -64,8 +60,9 @@ void ChainSolver::set_colliders(const Array &nodes, const PackedVector3Array &a,
 }
 
 void ChainSolver::add_chain(const PackedVector3Array &rest, const PackedInt32Array &bones, double k, double d, double g,
-		const PackedInt32Array &col, const PackedVector3Array &probes, int side_of, double side) {
+		const PackedInt32Array &col, const PackedVector3Array &probes, int side_of, double side, const Vector3 &axis) {
 	Chain c;
+	c.axis = axis;
 	for (int i = 0; i < rest.size(); i++) {
 		c.p.push_back(rest[i]);
 	}
@@ -95,14 +92,23 @@ void ChainSolver::add_chain(const PackedVector3Array &rest, const PackedInt32Arr
 	drawn.resize(chains.size());
 }
 
-void ChainSolver::set_tuned(double back, int passes, bool p_net, const PackedInt32Array &caps) {
-	tuned = true;
+void ChainSolver::set_drawn(bool p_tuned, double back, int passes, bool p_net, const PackedInt32Array &caps,
+		const PackedInt32Array &hard, double p_cushion, double p_swing, double p_swing_top, double p_from, bool p_best) {
+	blend = true;
+	net_from = p_from;
+	net_best = p_best;
+	tuned = p_tuned;
 	back_z = back;
 	iters = passes;
 	net = p_net;
+	cushion = p_cushion;
+	swing = p_swing;
+	swing_top = p_swing_top;
 	net_caps.clear();
+	net_hard.clear();
 	for (int i = 0; i < caps.size(); i++) {
 		net_caps.push_back(caps[i]);
+		net_hard.push_back(hard[i] != 0);
 	}
 }
 
@@ -294,7 +300,7 @@ void ChainSolver::simulate(Node3D *anchor, Skeleton3D *skel, double delta) {
 	const Transform3D g = anchor->get_global_transform_interpolated();
 	const bool jump = !has_last || g.origin.distance_to(last_origin) > 2.5;
 	read_colliders();
-	if (!tuned) {
+	if (!blend) {
 		// (posed against the body as of the last step: see spring_chains.gd's simulate)
 		if (jump) {
 			snap(g);
@@ -340,7 +346,11 @@ void ChainSolver::simulate(Node3D *anchor, Skeleton3D *skel, double delta) {
 		acc -= STEP;
 		// each step against the anchor where it was at that step's moment in the frame
 		const Transform3D gs = g_prev.interpolate_with(g, CLAMP(1.0 - acc / std::max(delta, 1e-6), 0.0, 1.0));
-		step_tuned(gs);
+		if (tuned) {
+			step_tuned(gs);
+		} else {
+			step(gs);
+		}
 		const Transform3D inv = gs.affine_inverse();
 		for (Chain &c : chains) {
 			c.lp.swap(c.lc);
@@ -354,8 +364,10 @@ void ChainSolver::simulate(Node3D *anchor, Skeleton3D *skel, double delta) {
 	std::vector<Cap> caps;
 	if (net) {
 		const Transform3D inv = g.affine_inverse();
-		for (int ci : net_caps) {
+		for (size_t k = 0; k < net_caps.size(); k++) {
+			const int ci = net_caps[k];
 			Cap cap;
+			cap.hard = net_hard[k];
 			cap.ok = ci >= 0 && cols[ci].ok;
 			if (cap.ok) {
 				const Collider &cd = cols[ci];
@@ -363,7 +375,7 @@ void ChainSolver::simulate(Node3D *anchor, Skeleton3D *skel, double delta) {
 				cap.a = t.xform(cd.a);
 				cap.b = t.xform(cd.b);
 				cap.r = cd.r * t.basis.get_scale().x;
-				const Vector3 reach = Vector3(1, 1, 1) * (cap.r + CUSHION);
+				const Vector3 reach = Vector3(1, 1, 1) * (cap.r + cushion);
 				cap.lo = cap.a.min(cap.b) - reach;
 				cap.hi = cap.a.max(cap.b) + reach;
 			}
@@ -403,6 +415,10 @@ static inline bool net_ok(const Vector3 &g, const Vector3 &want) {
 	return g.x >= want.x && g.y >= want.y && g.z >= want.z;
 }
 
+static inline double net_score(const Vector3 &g) {
+	return std::min<double>(g.x, std::min<double>(g.y, g.z));
+}
+
 static inline double move_toward(double from, double to, double delta) {
 	return std::abs(to - from) <= delta ? to : from + (to > from ? delta : -delta);
 }
@@ -410,14 +426,14 @@ static inline double move_toward(double from, double to, double delta) {
 // The drawn chain (anchor space) with every segment that comes within the cushion of a capsule, or ends in front of the
 // back's plane, swung back about its root just enough (spring_chains.gd's _net_clear).
 void ChainSolver::net_clear(Chain &c, std::vector<Vector3> &loc, const std::vector<Cap> &caps, double delta) {
-	const Vector3 right(1, 0, 0);
+	const Vector3 right = c.axis;
 	Vector3 a = loc[0];
 	for (size_t j = 0; j + 1 < loc.size(); j++) {
 		const Vector3 rest = c.rest_dir[j];
 		Vector3 d = loc[j + 1] - loc[j];
 		const double len = (c.p[j + 1] - c.p[j]).length();
 		Vector3 full = d.normalized() * len;
-		const double most = j == 0 ? NET_SWING_TOP : NET_SWING;
+		const double most = j == 0 ? swing_top : swing;
 		if (full.angle_to(rest) > most) {
 			const Vector3 axis = rest.cross(full);
 			full = (axis.length_squared() > 1e-10 ? rest.rotated(axis.normalized(), most) : rest) * full.length();
@@ -427,8 +443,8 @@ void ChainSolver::net_clear(Chain &c, std::vector<Vector3> &loc, const std::vect
 		const bool below = j > 0;
 		const Vector3 g0 = net_gap(a, full, rest, c.probe, caps, below);
 		double target = 0.0;
-		if (g0.x < CUSHION || g0.y < 0.0 || g0.z < -0.0001) {
-			Vector3 want(g0.x < CUSHION ? CUSHION * std::exp((g0.x - CUSHION) / CUSHION) : g0.x, 0.0, 0.0);
+		if (g0.x < cushion || g0.y < 0.0 || g0.z < -0.0001) {
+			Vector3 want(g0.x < cushion ? cushion * std::exp((g0.x - cushion) / cushion) : g0.x, 0.0, 0.0);
 			double hi = NET_TURN;
 			if (!net_ok(net_gap(a, full.rotated(right, -hi), rest, c.probe, caps, below), want)) {
 				want.x = std::min<double>(want.x, 0.0);
@@ -444,6 +460,16 @@ void ChainSolver::net_clear(Chain &c, std::vector<Vector3> &loc, const std::vect
 					}
 				}
 				target = hi;
+			} else if (net_best) {
+				double best = net_score(g0);
+				for (int k = 1; k < 5; k++) {
+					const double tk = NET_TURN * k / 4.0;
+					const double sc = net_score(net_gap(a, full.rotated(right, -tk), rest, c.probe, caps, below));
+					if (sc > best + 0.001) {
+						best = sc;
+						target = tk;
+					}
+				}
 			}
 		}
 		const double turn = move_toward(c.turn[j], target, (target > c.turn[j] ? NET_IN : NET_OUT) * delta);
@@ -476,7 +502,7 @@ Vector3 ChainSolver::net_gap(const Vector3 &a, const Vector3 &d, const Vector3 &
 	const Quaternion q = rest.dot(dn) > -0.9999 ? Quaternion(rest, dn) : Quaternion(Vector3(1, 0, 0), PI_);
 	for (const Vector3 &o : probes) {
 		const Vector3 ow = q.xform(o);
-		const Vector3 pa = a + ow;
+		const Vector3 pa = a + d * net_from + ow;
 		const Vector3 pb = x + ow;
 		if (std::abs(pb.x) <= NET_MID) {
 			plane = std::min(plane, (double)pb.z - back_z + NET_SHEET);
@@ -495,7 +521,7 @@ Vector3 ChainSolver::net_gap(const Vector3 &a, const Vector3 &d, const Vector3 &
 			double s;
 			closest_segments(pa, pb, cap.a, cap.b, on1, on2, s);
 			const double gc = on1.distance_to(on2) - cap.r;
-			if ((int)ci == NET_HIPS) {
+			if (cap.hard) {
 				hips = std::min(hips, gc);
 			} else {
 				gap = std::min(gap, gc);

@@ -24,6 +24,7 @@ public:
 		double r = 0.0;
 		Vector3 lo, hi;
 		bool ok = false;
+		bool hard = false;
 	};
 
 private:
@@ -42,15 +43,23 @@ private:
 		double k = 0.12, d = 0.08, g = 1.0;
 		int side_of = -1;
 		double side = 0.0;
+		Vector3 axis = Vector3(1, 0, 0);
 	};
 
 	std::vector<Collider> cols;
 	std::vector<Cap> cw;
 	std::vector<int> net_caps;
+	std::vector<bool> net_hard;
 	std::vector<Chain> chains;
 	std::vector<std::vector<Vector3>> drawn;
+	bool blend = false;
 	bool tuned = false;
 	bool net = false;
+	double cushion = 0.025;
+	double swing = 1.5;
+	double swing_top = 1.0;
+	double net_from = 0.0;
+	bool net_best = false;
 	int iters = 1;
 	double back_z = -INFINITY;
 	Vector3 gravity = Vector3(0, -9.8, 0);
@@ -75,15 +84,17 @@ protected:
 	static void _bind_methods();
 
 public:
-	static const int API = 2;
+	static const int API = 3;
 	static int api() { return API; }
 
 	// Colliders in order (nodes, their local capsules); chains name them by index.
 	void set_colliders(const Array &nodes, const PackedVector3Array &a, const PackedVector3Array &b, const PackedFloat32Array &r);
 	void add_chain(const PackedVector3Array &rest, const PackedInt32Array &bones, double k, double d, double g,
-			const PackedInt32Array &col, const PackedVector3Array &probes, int side_of, double side);
-	// Mode "a": the back's plane, constraint passes, the net and its capsules (indices; the hips' last).
-	void set_tuned(double back, int passes, bool p_net, const PackedInt32Array &caps);
+			const PackedInt32Array &col, const PackedVector3Array &probes, int side_of, double side, const Vector3 &axis);
+	// Modes "a" (`p_tuned`: the tuned step) and "n" (the plain step), both drawn blended between steps: the back's
+	// plane, constraint passes, the net, its capsules (indices) and which are hard, the cushion and the swing range.
+	void set_drawn(bool p_tuned, double back, int passes, bool p_net, const PackedInt32Array &caps, const PackedInt32Array &hard,
+			double p_cushion, double p_swing, double p_swing_top, double p_from, bool p_best);
 	void set_gravity(const Vector3 &g) { gravity = g; }
 	void reset() { has_last = false; }
 	void simulate(Node3D *anchor, Skeleton3D *skel, double delta);
