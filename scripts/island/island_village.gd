@@ -241,7 +241,7 @@ func _build_people(rng: RandomNumberGenerator) -> void:
 	var pr: float = p["plaza_r"]
 	for i in range(4, lks.size()):
 		var q := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(pr * 0.4, pr * 0.85)
-		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i], "barks": deck.deal("day", day, 2)}, q, c - q, hy)
+		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i], "barks": deck.deal("day", day, 2), "scenery": true}, q, c - q, hy)
 	# the jobs (posted on the board by IslandLife) and the talk
 	var camp = isl.get_node("Site_camp/Camp")
 	jobs["camp"] = {"name": str(camp.specs.filter(func(s): return s.get("captain", false))[0]["title"]), "at": isl.sites["camp"],
