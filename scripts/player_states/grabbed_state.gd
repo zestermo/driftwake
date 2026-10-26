@@ -32,7 +32,8 @@ func physics_update(delta: float) -> void:
 		var f: Vector3 = -_by.get_node("Facing").global_basis.z
 		f.y = 0.0
 		f = f.normalized()
-		var spot := _by.global_position + f * 0.85
+		# (a beast holds you further out: JungleApe.grab_spot)
+		var spot: Vector3 = _by.call("grab_spot") if _by.has_method("grab_spot") else _by.global_position + f * 0.85
 		player.velocity = (spot - player.global_position) * 12.0
 		player.velocity.y = 0.0
 		player.player_model.rotation.y = atan2(f.x, f.z)
@@ -73,8 +74,9 @@ func _thrown() -> void:
 	var f: Vector3 = -_by.get_node("Facing").global_basis.z
 	f.y = 0.0
 	_by.call("grab_ended", false)
-	if not Duel.beaten(player, THROW_DAMAGE * (1.0 - player.damage_reduction())):
-		player.health_component.take_damage(THROW_DAMAGE * (1.0 - player.damage_reduction()))
+	var dmg: float = (float(_by.call("grab_damage")) if _by.has_method("grab_damage") else THROW_DAMAGE) * (1.0 - player.damage_reduction())
+	if not Duel.beaten(player, dmg):
+		player.health_component.take_damage(dmg)
 	Net.fx("dust_ring", [player.global_position, 12, 0.9])
 	Net.fx("sfx", ["thud", player.global_position, -2.0, 0.05, 0.8])
 	if player.health_component.current_health > 0.0:

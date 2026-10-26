@@ -137,6 +137,8 @@ func _process(d: float) -> bool:
 			ape._set_state(2)
 			var hd := HitData.new()
 			hd.damage = 90.0
+			# (1.23: a beast boss's 400 poise; techniques drain ~60 each)
+			hd.poise = 140.0
 			for k in range(3):
 				ape._on_hit(hd, p)
 			check("enough hits and it staggers", ape.state == 9)

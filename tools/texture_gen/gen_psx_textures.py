@@ -1026,6 +1026,58 @@ def gen_icons():
     _icon("biscuit", biscuit)
 
 
+def gen_part_icons():
+    """1.23 beast pass: what a boss's broken parts drop (BeastParts)."""
+    def c(h, a=255):
+        return hexc(h) + (a,)
+
+    def ivory(d):
+        # a thick curved tusk, its broken root dark and jagged
+        d.arc([2, 2, 24, 26], 175, 285, fill=c("f4ecd4"), width=5)
+        d.arc([4, 4, 22, 24], 185, 280, fill=c("c8b890"), width=1)
+        d.polygon([(2, 14), (7, 13), (5, 17), (8, 19), (3, 20)], fill=c("8a6a40"))
+
+    def knuckle(d):
+        # a gnarled knuckle bone, callused grey on top
+        d.ellipse([4, 8, 20, 19], fill=c("e2d8bc"))
+        for x in (6, 10, 14):
+            d.ellipse([x, 5, x + 5, 11], fill=c("8a8680"))
+        d.line([(6, 15), (18, 15)], fill=c("a89a78"))
+
+    def sand_plate(d):
+        # an amber armour plate off the Sand King's back, ridged
+        d.polygon([(3, 16), (8, 5), (16, 4), (21, 13), (16, 21), (7, 21)], fill=c("b07a30"))
+        d.polygon([(8, 5), (16, 4), (14, 9), (9, 10)], fill=c("e8b860"))
+        for y in (12, 16):
+            d.line([(6, y), (18, y - 1)], fill=c("6a4418"))
+
+    def mandible(d):
+        # a curved mandible, saw-toothed on the inside
+        d.arc([3, 3, 23, 23], 200, 330, fill=c("3a2a1a"), width=4)
+        for (x, y) in ((8, 8), (12, 6), (16, 7)):
+            d.polygon([(x, y), (x + 2, y + 4), (x - 1, y + 3)], fill=c("e8dcc0"))
+
+    def bear_claw(d):
+        # three hooked claws on a scrap of hide
+        d.rectangle([4, 16, 20, 21], fill=c("6a5240"))
+        for x in (6, 11, 16):
+            d.polygon([(x, 16), (x + 3, 16), (x + 4, 9), (x + 2, 4), (x + 1, 9)], fill=c("2a2420"))
+            d.point((x + 2, 6), fill=c("8a8680"))
+
+    def bear_hide(d):
+        # a white pelt, ragged edges
+        d.polygon([(3, 6), (8, 3), (16, 4), (21, 7), (20, 18), (14, 21), (6, 20), (3, 15)], fill=c("e8ecf0"))
+        for (x, y) in ((7, 9), (13, 8), (10, 14), (16, 15)):
+            d.line([(x, y), (x + 2, y + 2)], fill=c("a8b0bc"))
+
+    _icon("ivory", ivory)
+    _icon("knuckle", knuckle)
+    _icon("sand_plate", sand_plate)
+    _icon("mandible", mandible)
+    _icon("bear_claw", bear_claw)
+    _icon("bear_hide", bear_hide)
+
+
 def gen_food_icons():
     """v1.18 cooking: the raw ingredients (Food.INGREDIENTS), the galley's meals (Food.MEALS) and the pearl."""
     def c(h, a=255):
@@ -2585,6 +2637,9 @@ def main():
         return
     if "icons" in sys.argv[1:]:
         gen_icons()
+        return
+    if "part_icons" in sys.argv[1:]:
+        gen_part_icons()
         return
     if "techniques" in sys.argv[1:]:
         gen_technique_icons()

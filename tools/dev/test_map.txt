@@ -11,6 +11,14 @@ tools/dev/stage_islands.gd              t
 tools/dev/test_kit.gd                   t
 tools/dev/t/player/*                    t/player
 tools/dev/t/combat/*                    t/combat
+tools/dev/t/beast/*                     t/beast
+scripts/enemies/jungle_ape.gd           t/beast
+scripts/npc/ape_poses.gd                t/beast
+scripts/npc/ape_builder.gd              t/beast
+scripts/enemies/beasts/beast_motion.gd  t/beast
+scripts/enemies/beasts/beast_parts.gd   t/beast
+scripts/enemies/beasts/beast_fx.gd      t/beast
+scripts/combat/poise.gd                 t/beast
 tools/dev/t/items/*                     t/items
 tools/dev/t/fishing/*                   t/fishing
 scripts/fishing/*                       t/fishing

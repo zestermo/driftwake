@@ -146,6 +146,31 @@ static func lane(from: Vector3, to: Vector3, w: float, secs: float, color: Color
 	tw.tween_callback(holder.queue_free)
 
 
+## A phase change's moment (1.23), on this screen: rings racing out over the ground, a wall of dust, and for a captain
+## near enough the camera punches in and shakes. (A beast's net event plays it on the others.)
+static func moment(at: Vector3, size: float, col: Color) -> void:
+	if _cam_far(at, 140.0):
+		return
+	FX.ring(at + Vector3.UP * 0.15, Vector3.UP, 10.0 * size, col, 0.6, 0.4)
+	FX.ring(at + Vector3.UP * 0.15, Vector3.UP, 6.5 * size, Color(1.0, 0.97, 0.9), 0.4, 0.22)
+	FX.puff_ring(at, "dust_low", 10, 1.2 * size, 2.6 * size, 1.3, Color(0.78, 0.7, 0.6), 8.0 * size)
+	FX.dust_ring(at, int(26 * size), 2.2 * size)
+	if not _cam_far(at, 45.0):
+		CombatManager.apply_camera_kick(0.55, 0.8)
+		CombatManager.apply_camera_shake(0.55, 0.5)
+
+
+## A part torn or snapped off a beast (1.23 part breaks), on this screen: shards of it flung out, a flash, a crunch.
+static func part_break(at: Vector3, col: Color) -> void:
+	if _cam_far(at, 120.0):
+		return
+	FX.debris(at, Vector3.UP, 10, col, 6.0)
+	FX.flash(at, 1.6, Color(1.0, 0.95, 0.8))
+	FX.ring(at, Vector3.UP, 2.2, col.lightened(0.3), 0.3, 0.12)
+	FX.sfx("crunch", at, 4.0, 0.05, 0.7)
+	FX.sfx("rock_crash", at, -2.0, 0.05, 1.3)
+
+
 ## Undergrowth thrashing where something big pushes through it: leaf bits and dust kicked up.
 static func brush(pos: Vector3, amount: int = 6) -> void:
 	leaves(pos + Vector3(0, 0.6, 0), amount, 0.8, false)
