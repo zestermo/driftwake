@@ -6699,3 +6699,37 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   light blow no longer stuns it, so it answers while they're landing). Render: tools/dev/eliteshot.gd ->
   tools/dev/out/elite_line.png / elite_shield.png / elite_juggle.png. Expect at prepush: grunttest, guntest,
   balancetest, r10test, bosstest, leveltest, the rival suites, nettest.
+
+## 2026-10-26: 1.23 beast pass, piece 1: the motion layer, beast poise, part breaks; the Silverback
+docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss will use, on the Silverback first.
+- **BeastMotion** (scripts/enemies/beasts/beast_motion.gd, rig-free, every screen from what every screen has): `look`
+  (head toward the nearest captain, clamped, locked on in a wind-up: JungleApe.LOOK_LOCK by action), `react` (a blow's
+  shove as a damped spring: the body leans back and swings in), `reel` (the stagger pose's weight), `breath` (a heave,
+  deeper each phase and in an opening), SwingChain springs for manes/tails/necklaces (`swing()`, driven by the parent's
+  acceleration and turn rate), `antic()`/`squash()` curves for anticipation and follow-through (for the procedural
+  rigs; the ape's are keyed in ApePoses). The ape lays it on after the Humanoid poses (PirateGrunt runs at priority 10,
+  after its humanoid): `_post_pose`. ApeBuilder splits the hump hair ("Mane") and the necklace into their own nodes.
+- **Beast poise:** Poise "beast_boss" (400, refill 30/s after 2 s, +25% each phase); blows in an opening (RECOVER, not
+  mid-chain) count double; a break = `ape_reel` (held, a swaying dazed pose) for REEL_S 2.4 s and double damage for
+  VULN_S 3 s, never knocked down or juggled (`juggle`/`launched` no-ops; launch zeroed on its hits).
+- **BeastParts** (beast_parts.gd): parts on nodes with a reach and an optional `opens` predicate; a blow's landing
+  point guessed from the attacker (`blow_at`); host-run, the broken ones ride the snapshot as a mask. A break: BeastFX
+  .part_break on every screen, "X broken!", Net.kill_loot of its item (every captain their own: chance 1/Loot.PART_K),
+  PART_POISE 120 drained, the look swapped (ApeBuilder's Tusks/TusksBroken, Knuckles/KnucklesBroken). `parts_broken()`
+  for IslandArcs' hidden finish. Items: ivory, knuckle (+ sand_plate, mandible, bear_claw, bear_hide for pieces 2-3),
+  icons from `py tools/texture_gen/gen_psx_textures.py part_icons`.
+- **The Silverback (jungle_ape.gd):** MOVES by phase (1: swipe, slam, leap, throw; 2: + canopy, Rock Barrage = three
+  throws running; 3: + Grab (GrabbedState: mash out, it reels; `grab_spot`/`grab_damage` hooks there), Berserk Pound
+  = four one-fist slams walking in, each a ring, a ground crack, debris and leaves). OPEN 1.4/1.1/0.8 s times each
+  move's weight; CHAIN 1/2/3 (a chain's next move ignores the basic moves' cooldowns, ends early if nothing's in reach;
+  a chain of three ends +0.45 s); TEMPO x1.15 in phase 3 on the wind-ups. Each phase change: `_moment` roar (it reels
+  0.5 s, then the chest-beat roar, a ring off its chest each beat, a 9.5 m push ring, BeastFX.moment: rings, a dust
+  wall, the camera's kick and shake for captains within 45 m) and `_apply_look` (eyes hotter, breath steam from
+  phase 2, steam off its back in 3, the mane bristling). Tusks (blows near its head; 8% of its health) -> no Grab,
+  ivory; fists (only while its fists are in the ground after a slam or pound; 10%) -> rings x0.6, a knuckle. Leaves
+  rain from the canopy on every slam.
+- **Per frame added:** the ape's `_post_pose` while awake and visible (a nearest-player lookup, two one-link springs,
+  a few rotations), one or two flip emitters (3-8 particles) from phase 2. Nothing for a sleeping ape.
+- Tests: t/beast/ape_phases, ape_poise_break, ape_parts; apetest's stagger check now carries poise. bossshot: the
+  ape's new films (moment, barrage, pound, grab, reel), and every move now begins after the wait before it (filmed
+  from its first frame). Expect at prepush: apetest, bosstest, leveltest, ragtest, netchain.

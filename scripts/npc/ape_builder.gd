@@ -29,6 +29,10 @@ var flat: Material
 var eye: Material
 var rng := RandomNumberGenerator.new()
 var _parts := {}
+## Where the swinging parts hang from (torso space), and what's being built for one (its points are made from there).
+const MANE_AT := Vector3(0, 0.6, 0.12)
+const NECK_AT := Vector3(0, 0.56, -0.02)
+var _off := Vector3.ZERO
 
 
 static func build(hum: Humanoid, _look: Dictionary) -> void:
@@ -54,6 +58,44 @@ func _run(hum: Humanoid) -> void:
 		var mb: MeshBuilder = _parts[node]
 		_paint(mb, node)
 		(node as Node3D).add_child(mb.to_instance("Mesh"))
+	_breakables()
+
+
+## Its own nodes for the 1.23 beast pass (JungleApe reads them by name): the hump's long hair ("Mane") and the
+## necklace ("Necklace") swing on springs; the tusks ("Tusks", "TusksBroken") and the stone-hard knuckle pads
+## ("Knuckles", "KnucklesBroken" on each hand) break off; the eyes ("Eyes") change with its phase.
+func _breakables() -> void:
+	var tusks := MeshBuilder.new()
+	var stubs := MeshBuilder.new()
+	for s in [-1.0, 1.0]:
+		var root := Vector3(s * 0.04, -0.035, -0.158)
+		tusks.add_tube(flat, PackedVector3Array([root, root + Vector3(s * 0.025, 0.05, -0.025), root + Vector3(s * 0.05, 0.1, -0.015), root + Vector3(s * 0.05, 0.13, 0.01)]),
+			0.017, 0.004, 5, 1.0, BONE)
+		stubs.add_cylinder(flat, Transform3D(_yb(Vector3(s * 0.4, 1, -0.4)), root), 0.017, 0.012, 0.03, 5, 1.0, BONE.darkened(0.15), false, true, false)
+		stubs.add_box(flat, Transform3D(Basis(), root + Vector3(0, -0.012, 0)), Vector3(0.03, 0.012, 0.02), 1.0, Color(0.45, 0.06, 0.05), false)
+	h.head.add_child(_named(tusks.to_instance("Tusks"), true))
+	h.head.add_child(_named(stubs.to_instance("TusksBroken"), false))
+	for hand in [h.hand_l, h.hand_r]:
+		var pads := MeshBuilder.new()
+		var raw := MeshBuilder.new()
+		for i in range(4):
+			var x := lerpf(-0.052, 0.052, i / 3.0)
+			pads.add_box(flat, Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(x, -0.142, -0.05)), Vector3(0.036, 0.022, 0.04), 1.0, Color(0.55, 0.53, 0.5), false)
+			raw.add_box(flat, Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(x, -0.138, -0.048)), Vector3(0.03, 0.012, 0.035), 1.0, Color(0.5, 0.07, 0.06), false)
+		(hand as Node3D).add_child(_named(pads.to_instance("Knuckles"), true))
+		(hand as Node3D).add_child(_named(raw.to_instance("KnucklesBroken"), false))
+	var eyes := MeshBuilder.new()
+	for s in [-1.0, 1.0]:
+		eyes.add_box(flat, Transform3D(Basis(), Vector3(s * 0.042, 0.066, -0.109)), Vector3(0.02, 0.013, 0.008), 1.0)
+	var emi := eyes.to_instance("Eyes")
+	emi.material_override = eye
+	h.head.add_child(emi)
+
+
+func _named(mi: MeshInstance3D, on: bool) -> MeshInstance3D:
+	mi.visible = on
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 func _node(n: String, pos: Vector3, parent: Node3D) -> Node3D:
@@ -128,7 +170,7 @@ static func _on(rings: Array, y: float, a: float) -> Array:
 func _tuft(mb: MeshBuilder, at: Vector3, dir: Vector3, length: float, w: float) -> void:
 	var s := rng.randf_range(0.62, 0.92)
 	var b := _yb(dir) * Basis(Vector3.UP, rng.randf() * TAU)
-	mb.add_cylinder(fur, Transform3D(b, at), w, 0.0, length, 3, 5.0, Color(s, s, s), false, false, false)
+	mb.add_cylinder(fur, Transform3D(b, at - _off), w, 0.0, length, 3, 5.0, Color(s, s, s), false, false, false)
 
 
 ## Tufts scattered over a lofted part: `count` between heights y0..y1 and angles a0..a1,
@@ -203,9 +245,13 @@ func _torso() -> void:
 	# (the saddle's hair is short: no clumps on it)
 	var bare := func(p: Vector3): return _chest(p) or (p.z < -0.15 and p.y > 0.14 and absf(p.x) < 0.24) or _silver(h.torso, p) > 0.3
 	_shag(mb, TORSO, -0.1, 0.66, -PI, PI, 48, 0.13, Vector3(0, -1, 0.35), 0.32, bare)
-	# the hump and shoulder line: longer, swept back
-	_shag(mb, TORSO, 0.5, 0.72, 0.9, TAU - 0.9, 18, 0.14, Vector3(0, -0.4, 1.0), 0.4)
-	_necklace(mb)
+	# the hump and shoulder line: longer, swept back (its own node: it swings, JungleApe)
+	var mane := _node("Mane", MANE_AT, h.torso)
+	_off = MANE_AT
+	_shag(_mb(mane), TORSO, 0.5, 0.72, 0.9, TAU - 0.9, 18, 0.14, Vector3(0, -0.4, 1.0), 0.4)
+	_off = NECK_AT
+	_necklace(_mb(_node("Necklace", NECK_AT, h.torso)))
+	_off = Vector3.ZERO
 	_harpoon(mb)
 
 
@@ -214,7 +260,7 @@ func _necklace(mb: MeshBuilder) -> void:
 	var pts := PackedVector3Array()
 	for i in range(13):
 		var a := lerpf(-1.9, 1.9, i / 12.0)
-		pts.append(Vector3(sin(a) * 0.27, 0.5 - cos(a) * 0.075, -cos(a) * 0.23 + 0.02))
+		pts.append(Vector3(sin(a) * 0.27, 0.5 - cos(a) * 0.075, -cos(a) * 0.23 + 0.02) - _off)
 	mb.add_tube(flat, pts, 0.008, 0.008, 4, 1.0, Color(0.32, 0.22, 0.13))
 	for i in range(1, 12):
 		if i == 6:
@@ -326,7 +372,6 @@ func _head() -> void:
 	mb.add_box(skin, Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(0, 0.098, -0.098)), Vector3(0.2, 0.04, 0.07), 4.0, Color.WHITE, false)
 	for s in [-1.0, 1.0]:
 		mb.add_box(flat, Transform3D(Basis(), Vector3(s * 0.042, 0.066, -0.104)), Vector3(0.042, 0.026, 0.01), 1.0, Color(0.05, 0.04, 0.04), false)
-		mb.add_box(eye, Transform3D(Basis(), Vector3(s * 0.042, 0.066, -0.108)), Vector3(0.02, 0.013, 0.008), 1.0)
 		mb.add_box(skin, Transform3D(Basis(Vector3.UP, s * 0.3), Vector3(s * 0.108, 0.065, 0.0)), Vector3(0.02, 0.04, 0.035), 4.0)
 	# the muzzle: a broad flat nose, a heavy jaw, fangs at the corners of the mouth
 	mb.add_blob(skin, Transform3D(Basis(), Vector3(0, 0.005, -0.12)), Vector3(0.085, 0.062, 0.068), rng, 0.0, 3, 8, 4.0)

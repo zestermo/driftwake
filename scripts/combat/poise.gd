@@ -17,6 +17,7 @@ const CLASSES := {
 	"captain": [90.0, 18.0, INF, 14.0],
 	"rival": [80.0, 20.0, 0.0, 0.0],
 	"miniboss": [160.0, 25.0, INF, 25.0],
+	"beast_boss": [400.0, 30.0, INF, INF],
 }
 ## What a blow is worth (Player.melee_hit sets them on the captain's hits; techniques scale with their damage).
 const LIGHT := 6.0

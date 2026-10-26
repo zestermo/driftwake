@@ -8,7 +8,10 @@ extends SceneTree
 ##   kind: ape | serpent | stalker | mantis | boar | behemoth (the boss's FILM
 ##   const lists its moves and how long to film each; the ape's are below).
 ## Env BSHOT_HOUR (11), BSHOT_EYE=1 films from the captain's shoulder (how it reads in play).
-const APE_FILM := [["roar", 2.2], ["swipe", 1.0], ["slam", 1.6], ["leap", 2.0], ["throw", 1.8], ["climb", 22.0]]
+## (1.23: "moment" the phase change, "reel" a poise break; barrage, pound and grab are phase 2-3 moves)
+const APE_FILM := [["roar", 2.2], ["swipe", 1.0], ["slam", 1.6], ["leap", 2.0], ["throw", 1.8], ["moment", 2.8], ["barrage", 4.2],
+	["pound", 3.4], ["grab", 3.4], ["reel", 2.4], ["climb", 22.0]]
+const APE_PHASE := {"moment": 1, "barrage": 2, "climb": 2, "pound": 3, "grab": 3, "reel": 3}
 const FRAMES := 8
 var t := 0.0
 var out := ""
@@ -175,7 +178,7 @@ func _start_film() -> void:
 	# awake: the arena's wake check runs on its own once the captain's near
 	boss.alert()
 	wait = 3.0
-	_begin_move()
+	mv_t = -1.0
 
 
 func _begin_move() -> void:
@@ -186,12 +189,22 @@ func _begin_move() -> void:
 	p.health_component.current_health = 999999.0
 	_put_player(9.0 if str(f[0]) != "leap" else 15.0)
 	if kind == "ape":
+		var m := str(f[0])
+		boss._come_down()
 		boss._special = ""
 		boss._set_state(2)
-		boss._cd = {"swipe": 99.0, "slam": 99.0, "leap": 99.0, "throw": 99.0, "canopy": 99.0}
-		if str(f[0]) == "climb":
-			boss.phase = 2
-		boss._begin_special(str(f[0]))
+		boss.humanoid.stop_action()
+		boss._cd = {"swipe": 99.0, "slam": 99.0, "leap": 99.0, "throw": 99.0, "canopy": 99.0, "grab": 99.0, "barrage": 99.0, "pound": 99.0}
+		boss.phase = int(APE_PHASE.get(m, 1))
+		boss.health.current_health = boss.health.max_health * [0.9, 0.5, 0.2][boss.phase - 1]
+		boss._apply_look()
+		if m == "moment":
+			_put_player(8.0)
+		elif m == "reel":
+			boss._poise_break(-boss._fwd())
+		else:
+			_put_player(4.5 if m == "grab" else (7.0 if m == "pound" else (15.0 if m == "leap" else 9.0)))
+			boss._begin_special(m)
 	else:
 		boss.end_move()
 		boss._set_state(1)
@@ -201,6 +214,11 @@ func _begin_move() -> void:
 func _film(d: float) -> void:
 	var f: Array = film[mv]
 	var secs := float(f[1])
+	# (each move begins once the wait before it is over: filmed from its first frame)
+	if mv_t < 0.0:
+		_begin_move()
+	if kind == "ape" and mv_t == 0.0 and str(f[0]) == "moment":
+		boss.health.current_health = boss.health.max_health * 0.55
 	mv_t += d
 	_frame_cam()
 	caption.text = "%s  -  %s  %.1f s" % [boss.boss_name, f[0], mv_t]
@@ -217,7 +235,7 @@ func _film(d: float) -> void:
 			quit()
 			return
 		wait = 1.2
-		_begin_move()
+		mv_t = -1.0
 
 
 ## Side on to the line between the captain and the beast, both in frame (or from
