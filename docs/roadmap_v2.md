@@ -109,3 +109,8 @@ to work toward.
   crew/party system and UI, quests and markers that play well with a full party (the journal is already the crew's
   own, synced by the host), and polish on the maps and quest markers. Its own grill and a UI mock for Zach's OK first.
   Combat and gear moves to 1.23, strongholds and Driftfruits to 1.24. (The site's roadmap is renumbered with 1.21.)
+
+## Decided (2026-10-26)
+- **1.23 is the Playtest pass** (docs/v1_23_plan.md), after a 2 h co-op playtest of 1.22: a bug pass, a poise meter and
+  smarter enemies, weapon points per tree, the beast motion and spectacle pass, sea pursuit and the Marines' response,
+  a story arc per island, and the bounty made visible. Combat & gear moves to 1.24, strongholds and Driftfruits to 1.25.
