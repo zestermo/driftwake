@@ -56,6 +56,9 @@ func _initialize() -> void:
 
 func _process(_d: float) -> bool:
 	if not stage.up:
+		# (a windowed run with no save opens the first-launch creator, which holds the captain)
+		for n in root.find_children("*", "CharacterCreator", true, false):
+			n._finish(true)
 		return false
 	if run < 0:
 		var st = root.get_node("Settings")
@@ -192,7 +195,8 @@ func _measure() -> void:
 			continue
 		var cd: Dictionary = cols[key]
 		var tt: Transform3D = (cd["node"] as Node3D).get_global_transform_interpolated()
-		caps.append([tt * (cd["a"] as Vector3), tt * (cd["b"] as Vector3), float(cd["r"]) * tt.basis.get_scale().x - 0.01])
+		# (less the capsules' clearance over the limb, as capelab measures: inside that is inside the body)
+		caps.append([tt * (cd["a"] as Vector3), tt * (cd["b"] as Vector3), float(cd["r"]) * tt.basis.get_scale().x - 0.03])
 	var n := 0
 	for s in hm._sims:
 		if s.name == "Cape":
@@ -209,10 +213,11 @@ func _measure() -> void:
 				var a := gt * bp.origin
 				var b := gt * (bp.origin + bp.basis * seg)
 				rec["swing"] = maxf(rec["swing"], (bp.basis * seg).angle_to(seg))
-				# (a root on the body it hangs from is where it's sewn on, not a clip)
-				var a2 := a.lerp(b, 0.25)
+				# (a root segment hangs from where it's sewn on, over a thigh's top or the nape: not a clip)
+				if j == 0:
+					continue
 				for cap in caps:
-					var st := SpringChains._closest_segments(a2, b, cap[0], cap[1])
+					var st := SpringChains._closest_segments(a, b, cap[0], cap[1])
 					var depth: float = float(cap[2]) - (st[0] as Vector3).distance_to(st[1])
 					if depth > 0.0:
 						n += 1

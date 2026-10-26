@@ -6962,3 +6962,37 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - grunttest and powertest's block checks were stale (a sword grunt blocks ~25% of front blows now, no guard break):
   grunttest hits until one blocks and then wears the poise down; powertest locks the parked grunt's cooldowns. Real bug:
   `PirateGrunt._rallied` read `camp.grunts` on a ship crew's EnemyShip (r8test script error); only a GruntCamp rallies.
+
+## 2026-10-26: 1.24 native chains, pieces 3-4: the cape's net on everything, and shipping the DLL
+- **Mode "n"** (SpringChains.use_net, called by BodyBuilder._nets at the end of a build for every set still on "a0":
+  hair, a bandana's tails, coat tails, skirts, hakama, the apron, a sash's tail): each chain keeps its own stiffness,
+  damping and colliders and the plain step, but steps against the anchor interpolated to each step's moment and is
+  drawn blended between the last two steps (like the cape), through the net. The net is per set now: `net_soft`
+  (eased off by `cushion`), `net_hard` (only kept out of), `swing` / `swing_top`, and per chain a turn axis
+  (`c["axis"]`: outward from the anchor's axis, where the chain hangs; the cape's stays RIGHT, so its numbers are
+  unchanged). Head: soft torso + hair_sh, cushion 1.2 cm, swing 1.4 / 1.0 rad. Hips and torso: soft legs, hard hips,
+  cushion 2 cm, swing 1.2 / 0.9. Skirt and coat sectors got probes out to their panel edges at the hem.
+- **Two net changes for cloth and hair** (off for the cape): `net_from` 0.5 judges a segment from its middle (a panel
+  sewn on over a thigh's top or hair from the nape starts inside its capsule: judged from the root, nothing ever
+  cleared and nothing below was helped), and `net_best` turns a segment no turn clears as far as gets it furthest out
+  (best of four, by a millimetre or more) instead of leaving it.
+- **Natively only:** _nets runs when SpringChains.native_ok (on GDScript a netted skirt costs ~1.3 ms a frame); without
+  the DLL bodies get the old a0 chains. API 3 (set_drawn replaces set_tuned; add_chain takes the axis).
+- **Debug:** Shift+F1 (BodyBuilder.cycle_cape net_only) now toggles every net (capes and cloth_net) and rebuilds every
+  body, for an in-game before/after.
+- **Measured** (tools/dev/clothlab.gd, real animation: walk, run, 180 turn, stop, jump, cutlass spin; segments below the
+  root inside the legs/hips/torso capsules less 3 cm, frames of 719): hair 338 -> 296, twin tails + skirt 266 -> 238,
+  long coat + sash 271 -> 246, bandana + braid 159 -> 149; the most any segment swung 177-179 deg -> 120 (no more hair
+  or tails flipped over). t/player/chains_net_clear (synthetic kicks): drapes into the legs 113 -> 9 and 102 -> 23 frames.
+  The drapes still graze the capsules often: a0's point collisions let a panel sit inside a thigh's clearance, and a
+  turn of NET_TURN (0.9 rad) about a root can't clear a thigh swung through a skirt's side.
+- **Per frame:** natively, the captain's spring sets ~10 -> ~24 us (rigprobe; the whole pose ~83 -> ~105 us, against
+  185 before the port).
+- **Shipping:** .github/workflows/build-windows.yml checks out submodules, installs scons 4.8.1 on Python 3.12 and
+  builds native/ (template_release) before the import; Godot's GDExtension exporter copies the DLL beside the exe (checked
+  locally: Driftwake.exe, Driftwake.console.exe, driftwake_native.windows.template_release.x86_64.dll; the exported game
+  starts with no extension errors) and the export step now fails without it. The Web preset excludes
+  driftwake_native.gdextension and bin/* (no web library: the browser build runs the GDScript chains).
+- Tests: t/player/chains_net_clear (new), chains_native_same (now all but 1% of frame-bones within 4 mm, worst under
+  3 cm: the net's thresholds can flip a frame's turn on a float), chains_fallback. Renders: tools/dev/out/clothlab/
+  sheet_{hair,twin,coat,ties}.png (off top, on below).
