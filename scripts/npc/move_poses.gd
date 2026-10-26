@@ -497,15 +497,18 @@ static func _air_step(h) -> Array:
 	var lo := -1.0 if ls == "l" else 1.0
 	var to := -lo
 	var start := {"pivot": h._action["events"]["p0"]}
-	var knee := {"pivot": Vector3(0.06, 0, 0), "hips": Vector3(0, 0.1 * s, 0), "torso": Vector3(-0.12, -0.12 * s, 0), "head": Vector3(0.12, 0.08 * s, 0),
-		"leg_" + ls: Vector3(1.8, 0, 0.06 * lo), "shin_" + ls: Vector3(-2.15, 0, 0), "leg_" + ts: Vector3(-0.2, 0, 0.05 * to), "shin_" + ts: Vector3(-0.55, 0, 0),
-		"arm_" + ts: Vector3(1.35, 0, 0.2 * to), "fore_" + ts: Vector3(1.25, 0, 0), "arm_" + ls: Vector3(-0.75, 0, 0.3 * lo), "fore_" + ls: Vector3(0.45, 0, 0),
+	# (1.23, Zach: the second jump read upright, not like a step on the air. Now the whole body leans into the step:
+	# the stepping knee drives up and forward, then the foot stamps down and BACK against the air, the other knee
+	# already coming through, the arms pumping like a sprint's, the head forward over the step.)
+	var knee := {"pivot": Vector3(-0.28, 0, 0), "hips": Vector3(0, 0.12 * s, 0), "torso": Vector3(-0.32, -0.14 * s, 0), "head": Vector3(0.3, 0.08 * s, 0),
+		"leg_" + ls: Vector3(1.95, 0, 0.06 * lo), "shin_" + ls: Vector3(-2.0, 0, 0), "leg_" + ts: Vector3(-0.45, 0, 0.05 * to), "shin_" + ts: Vector3(-0.7, 0, 0),
+		"arm_" + ts: Vector3(1.45, 0, 0.18 * to), "fore_" + ts: Vector3(1.3, 0, 0), "arm_" + ls: Vector3(-0.95, 0, 0.25 * lo), "fore_" + ls: Vector3(0.55, 0, 0),
 		"_scale": Vector3(1.05, 0.92, 1.05)}
-	var stamp := {"pivot": Vector3(-0.04, 0, 0), "hips": Vector3(0, -0.08 * s, 0), "torso": Vector3(0.06, 0.1 * s, 0), "head": Vector3(-0.02, -0.06 * s, 0),
-		"leg_" + ls: Vector3(0.02, 0, 0.04 * lo), "shin_" + ls: Vector3(-0.1, 0, 0), "leg_" + ts: Vector3(1.3, 0, 0.06 * to), "shin_" + ts: Vector3(-1.7, 0, 0),
-		"arm_" + ls: Vector3(1.2, 0, 0.25 * lo), "fore_" + ls: Vector3(1.15, 0, 0), "arm_" + ts: Vector3(-0.65, 0, 0.3 * to), "fore_" + ts: Vector3(0.5, 0, 0),
+	var stamp := {"pivot": Vector3(-0.38, 0, 0), "hips": Vector3(0, -0.1 * s, 0), "torso": Vector3(-0.2, 0.12 * s, 0), "head": Vector3(0.28, -0.06 * s, 0),
+		"leg_" + ls: Vector3(-0.6, 0, 0.04 * lo), "shin_" + ls: Vector3(-0.35, 0, 0), "leg_" + ts: Vector3(1.5, 0, 0.06 * to), "shin_" + ts: Vector3(-1.8, 0, 0),
+		"arm_" + ls: Vector3(1.35, 0, 0.2 * lo), "fore_" + ls: Vector3(1.2, 0, 0), "arm_" + ts: Vector3(-0.9, 0, 0.25 * to), "fore_" + ts: Vector3(0.55, 0, 0),
 		"_scale": Vector3(0.94, 1.1, 0.94)}
-	var drift := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(-0.08, 0.04 * s, 0), "head": Vector3(0.08, 0, 0),
+	var drift := {"pivot": Vector3(-0.16, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.14, 0.04 * s, 0), "head": Vector3(0.16, 0, 0),
 		"leg_" + ls: Vector3(0.55, 0, 0.08 * lo), "shin_" + ls: Vector3(-0.95, 0, 0), "leg_" + ts: Vector3(1.05, 0, 0.08 * to), "shin_" + ts: Vector3(-1.5, 0, 0),
 		"arm_" + ls: Vector3(0.7, 0, 0.75 * lo), "fore_" + ls: Vector3(0.6, 0, 0), "arm_" + ts: Vector3(0.4, 0, 0.85 * to), "fore_" + ts: Vector3(0.5, 0, 0),
 		"_scale": Vector3.ONE}
