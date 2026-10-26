@@ -26,6 +26,7 @@ const SIDE_STRIKE := 0.1
 ## A foe's blow live this close while you're untouchable in a sidestep: slipped.
 const SLIP_REACH := 2.8
 const SLIP_SECS := 1.2
+const CROWD_SECS := 4.0
 const DECOY_LIFE := 1.6
 const DECOY_EVERY := 6.0
 
@@ -53,6 +54,7 @@ var _air: bool = false
 ## "dash", "roll" or "sidestep".
 var mode: String = "dash"
 var _slipped: bool = false
+var _perfect: bool = false
 var _side_sign: float = 1.0
 var _decoy_at: float = -100.0
 
@@ -61,6 +63,7 @@ func enter(data: Dictionary) -> void:
 	timer = 0.0
 	iframes_ended = false
 	_slipped = false
+	_perfect = false
 	var pr := player.progression
 	_air = bool(data.get("air", false))
 	_logia = player.power.fruit_type() == "logia" and not player.power.suppressed()
@@ -215,6 +218,9 @@ func physics_update(delta: float) -> void:
 		Net.fx("puff_ring", [player.global_position + Vector3(0, 0.05, 0), "dust_low", 5, 0.25, 0.45, 0.4, Color(0.8, 0.74, 0.64, 0.75), 1.6])
 		Net.fx("sfx", ["thud", player.global_position, -16.0, 0.08, 1.3])
 
+	if not iframes_ended and not _perfect and _blow_near():
+		_perfect = true
+		_perfect_dodge()
 	if mode == "sidestep" and not iframes_ended and not _slipped and _blow_near():
 		_slip()
 	if timer >= _iframes and not iframes_ended:
@@ -244,6 +250,16 @@ func _blow_near() -> bool:
 		if hb is Hitbox and (hb as Hitbox).active and (e as Node3D).global_position.distance_to(player.global_position) < SLIP_REACH:
 			return true
 	return false
+
+
+## A perfect dodge (a blow passing through where you were): Slow Sight slows time, Crowd Read shows every foe for 4 s.
+func _perfect_dodge() -> void:
+	var pr := player.progression
+	var slow := pr.stat("foresight_slow")
+	if slow > 0.0:
+		CombatManager.apply_slowmo(0.35, slow)
+	if pr.has_flag("crowd_read"):
+		player.power.add_buff("crowd_sight", CROWD_SECS)
 
 
 ## Slipped a blow: a glint off the shoulder, and the next hit is a sure crit.

@@ -602,3 +602,6 @@ scripts/props/shield_mesh.gd            t/combat/shield_grunt
 scripts/player_states/grabbed_state.gd  t/combat/grunt_punish net
 scripts/enemies/grunt_camp.gd           t/combat/grunt_tactics grunttest
 scripts/ai/captain_brain.gd             t/combat/rival_duel t/combat/rival_crew t/combat/rival_rest t/combat/bounty_hunters
+scripts/player_states/dodge_state.gd      t/progression/will_hooks
+scripts/enemies/pirate_grunt.gd           t/progression/will_hooks
+scripts/enemies/pirate_boss.gd            t/progression/will_hooks

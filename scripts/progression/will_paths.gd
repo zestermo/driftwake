@@ -45,7 +45,7 @@ const ABILITIES := {
 		["w_flash_boss", "Big Moves", {"observation": 1, "flash_boss": 1}, "Bosses' big moves flash as well.", "", "Bosses"]]],
 	"w_fore": ["sense", 2, "Foresight", "Sense what's coming (the skill): the next blows that would hit you are dodged by themselves.", [
 		["w_fore_sight", "Second Sight", {"foresight_charges": 1}, "Foresight dodges one more blow.", "foresight", "Second"],
-		["w_fore_slow", "Slow Sight", {"foresight_slow": 0.6}, "A blow Foresight dodges slows time for 0.6 s.", "foresight", "Slow"]]],
+		["w_fore_slow", "Slow Sight", {"foresight_slow": 0.6}, "A perfect dodge (a blow passing through you as you dodge) slows time for 0.6 s.", "foresight", "Slow"]]],
 	"w_crowd": ["sense", 3, "Crowd Read", "Read a whole crowd: every foe round you shows its next move.", [
 		["w_crowd", "Crowd Read", {"crowd_read": 1, "observation": 1}, "Every foe within 20 m flashes as it starts an attack, and for 4 s after a perfect dodge you see them all.", "", "Read"]]],
 	"w_roar": ["conq", 2, "Roar", "A king's will (the ultimate): weak foes round you drop; everyone else is thrown back, reeling.", [

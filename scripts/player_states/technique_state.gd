@@ -1516,7 +1516,7 @@ func _conquer() -> void:
 	Net.fx("sfx", ["haki", c, 3.0, 0.0, 0.55])
 	Net.fx("sfx", ["thud", c, 2.0, 0.0, 0.5])
 	player.cam_shake(0.45)
-	for e in _pc.enemies_in(c + Vector3(0, 0.9, 0), 14.0):
+	for e in _pc.enemies_in(c + Vector3(0, 0.9, 0), 14.0 * (1.0 + player.progression.stat("roar_reach"))):
 		var hb := e.get("hurtbox") as Hurtbox
 		var hc = e.get("health")
 		if hb == null:

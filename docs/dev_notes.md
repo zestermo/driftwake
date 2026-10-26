@@ -6948,3 +6948,17 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Real bugs: `PowerComponent.enemies_in` returned a Breakable's owner (no `hurtbox`), crashing the reticle and
   Corsair body_center lookups near a crate; Hundred Fangs' eight blinks (6 poise each) broke a grunt's poise before the
   burst, whose floor then hit an immune foe: the blinks now cost 2 poise.
+
+## 2026-10-26: Will hooks wired (flash timing and kinds, Crowd Read, Slow Sight, Far Roar, Inner Strike)
+- PirateGrunt `_sense(p, kind)` / `_sense_delay`: the Sense flash is SENSE_LATE (0.2 s) after an attack starts, at its start
+  with `flash_early`; "shot" (aim start) needs `flash_shots`, "big" (PirateBoss `_begin_special`) needs `flash_boss`;
+  `crowd_read` flashes a foe that isn't after you within 20 m, anywhere while the `crowd_sight` buff (4 s after a
+  perfect dodge) lasts. Co-op: the event carries kind and targeted, each captain decides from their own Progression.
+- DodgeState `_perfect_dodge`: a foe's blow live within 2.8 m during the i-frames (any dodge mode): Slow Sight's
+  `foresight_slow` slowmo (no longer on a Foresight dodge in PowerComponent) and the Crowd Read buff.
+- `roar_reach` widens `_conquer` (14 m x (1+reach)); `inner_strike` makes a heavy a breaker (through guards and armour,
+  always staggers). JungleBeast has no tell to flash. `will_clash` stays a hook.
+- Test: t/progression/will_hooks (stats put into the stat cache; a dodge with a live blow beside it).
+- grunttest and powertest's block checks were stale (a sword grunt blocks ~25% of front blows now, no guard break):
+  grunttest hits until one blocks and then wears the poise down; powertest locks the parked grunt's cooldowns. Real bug:
+  `PirateGrunt._rallied` read `camp.grunts` on a ship crew's EnemyShip (r8test script error); only a GruntCamp rallies.

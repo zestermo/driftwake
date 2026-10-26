@@ -407,9 +407,6 @@ func use_foresight() -> bool:
 			foresight_charges = 1
 		if foresight_charges <= 0:
 			buffs["foresight"] = 0.0
-		var slow := player.progression.stat("foresight_slow") if player else 0.0
-		if slow > 0.0:
-			CombatManager.apply_slowmo(0.35, slow)
 		return true
 	return false
 

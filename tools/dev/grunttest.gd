@@ -162,14 +162,30 @@ func _process(d: float) -> bool:
 			p.global_position = g.global_position + g._fwd() * 1.8
 			p.reset_physics_interpolation()
 			var hp: float = g.health.current_health
-			g.hurtbox.take_hit(light(), p)
-			check("front light hit is blocked", g.state == BLOCK and is_equal_approx(g.health.current_health, hp))
-			g._riposte = false
-			g.hurtbox.take_hit(light(), p); g._riposte = false
-			g.hurtbox.take_hit(light(), p); g._riposte = false
-			g.hurtbox.take_hit(light(), p)
-			print("   after 4 front hits: state ", g.state, " hp ", g.health.current_health)
-			check("guard breaks: staggered + damaged", g.state == STAGGER and g.health.current_health < hp)
+			# (1.23: a sword grunt blocks about a quarter of the front blows, never two running, so hit until one does)
+			var blocked := false
+			var tries := 0
+			while tries < 40 and not blocked:
+				tries += 1
+				g._blocked_last = false
+				g._set_state(CIRCLE)
+				g.poise = Poise.make(g._poise_class())
+				g.hurtbox.take_hit(light(), p)
+				if g.state == BLOCK and is_equal_approx(g.health.current_health, hp):
+					blocked = true
+				else:
+					g.health.current_health = hp
+			check("a front light hit is sometimes blocked (%d tries)" % tries, blocked)
+			# (and no guard breaks any more: a run of front blows wears its poise down)
+			g._set_state(CIRCLE)
+			g.poise = Poise.make(g._poise_class())
+			var hits := 0
+			while hits < 12 and g.state != STAGGER and g.state != DOWN:
+				g._riposte = false
+				g.hurtbox.take_hit(light(), p)
+				hits += 1
+			print("   after %d front hits: state %d hp %.0f" % [hits, g.state, g.health.current_health])
+			check("a run of front hits breaks its poise: staggered or down, and damaged", (g.state == STAGGER or g.state == DOWN) and g.health.current_health < hp)
 			wait = 2.0
 		5:
 			g = circling()

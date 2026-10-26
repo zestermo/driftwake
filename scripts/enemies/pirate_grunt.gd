@@ -221,6 +221,10 @@ var _pressed_t: float = 0.0
 const PRESSED_FOR := 2.5
 ## A bullet flinches it at most once this often (rapid fire can't hold it in hitstun).
 const SHOT_FLINCH_EVERY := 1.0
+## The Sense flash comes this long after an attack starts (right at its start with Long Warning), Crowd Read sees this far.
+const SENSE_LATE := 0.2
+const CROWD_RANGE := 20.0
+const SENSE_NET_RANGE := 40.0
 var _shot_flinch_t: float = 0.0
 var _stun_len: float = 0.25
 var _stun_vel := Vector3.ZERO
@@ -1531,20 +1535,46 @@ func _start_wind() -> void:
 ## Observation Haki: the captain being targeted senses the attack coming (a
 ## red flash over the attacker) - on their own screen, since only they have
 ## the skill (co-op: the target may be on another machine).
-func _sense(p: Node) -> void:
+func _sense(p: Node, kind: String = "melee") -> void:
 	if p == null:
 		return
-	if p.is_in_group("player"):
-		_sense_fx()
-	elif Net.coop():
-		Net.event(self, "sense", [int(p.get("net_id"))])
+	for c in get_tree().get_nodes_in_group("players"):
+		var targeted: bool = c == p
+		if not targeted and global_position.distance_to((c as Node3D).global_position) > SENSE_NET_RANGE:
+			continue
+		if c.is_in_group("player"):
+			_sense_fx(kind, targeted)
+		elif Net.coop():
+			Net.event(self, "sense", [int(c.get("net_id")), kind, targeted])
 
 
-func _sense_fx() -> void:
+## The Sense path's flash (Progression "observation"): kind "melee" (an attack's start: late unless flash_early), "shot"
+## (flash_shots) or "big" (a boss's special: flash_boss); a foe that isn't after you flashes for Crowd Read (within
+## CROWD_RANGE, or anywhere for 4 s after a perfect dodge).
+func _sense_fx(kind: String = "melee", targeted: bool = true) -> void:
+	var delay := _sense_delay(kind, targeted)
+	if delay > 0.0:
+		get_tree().create_timer(delay).timeout.connect(_flash_sense)
+	elif delay == 0.0:
+		_flash_sense()
+
+
+## Seconds until this attack flashes for the local captain, -1 for no flash.
+func _sense_delay(kind: String, targeted: bool) -> float:
 	var me := get_tree().get_first_node_in_group("player")
-	if me and me.get("progression") and me.progression.has_flag("observation"):
-		FX.sparkle(global_position + Vector3(0, 2.0, 0), 6, Color(1.0, 0.25, 0.2))
-		FX.impact(global_position + Vector3(0, 1.9, 0), Color(1.0, 0.3, 0.25))
+	if me == null or me.get("progression") == null:
+		return -1.0
+	var pr = me.progression
+	if not pr.has_flag("observation") or (kind == "shot" and not pr.has_flag("flash_shots")) or (kind == "big" and not pr.has_flag("flash_boss")):
+		return -1.0
+	if not targeted and not (pr.has_flag("crowd_read") and (global_position.distance_to(me.global_position) <= CROWD_RANGE or me.power.buff("crowd_sight"))):
+		return -1.0
+	return SENSE_LATE if kind == "melee" and not pr.has_flag("flash_early") else 0.0
+
+
+func _flash_sense() -> void:
+	FX.sparkle(global_position + Vector3(0, 2.0, 0), 6, Color(1.0, 0.25, 0.2))
+	FX.impact(global_position + Vector3(0, 1.9, 0), Color(1.0, 0.3, 0.25))
 
 
 func _start_swing() -> void:
@@ -1885,7 +1915,7 @@ func answer_horn(at: Vector3) -> void:
 
 ## Its camp's captain fighting within RALLY_R.
 func _rallied() -> bool:
-	if captain or camp == null or not is_instance_valid(camp):
+	if captain or not is_instance_valid(camp) or not camp is GruntCamp:
 		return false
 	for g in camp.grunts:
 		if is_instance_valid(g) and g != self and (g as PirateGrunt).captain and (g as PirateGrunt).in_combat() \
@@ -2855,6 +2885,7 @@ func _start_aim(gun: String) -> void:
 	var p := _target()
 	_aim_point = _chest(p) if p else global_position + _fwd() * 10.0
 	_set_state(S.AIM)
+	_sense(p, "shot")
 	humanoid.play("aim_pistol" if gun == "pistol" else "aim_rifle", _aim_len + 0.3)
 	_aim_mat.albedo_color = AIM_TRACK
 	_locked = false
@@ -3305,7 +3336,7 @@ func net_event(what: String, args: Array) -> void:
 		"sense":
 			var me := get_tree().get_first_node_in_group("player")
 			if me and int(me.get("net_id")) == int(args[0]):
-				_sense_fx()
+				_sense_fx(str(args[1]), bool(args[2]))
 		"burn_fx":
 			BurnStatus.apply(self, float(args[0]), 0.0, null)
 		"poison_fx":
