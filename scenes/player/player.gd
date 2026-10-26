@@ -2591,6 +2591,8 @@ func _setup_ai() -> void:
 	player_model.add_child(lean)
 	body_model = Humanoid.new()
 	body_model.name = "Body"
+	# (posed at the rig LOD's rate by distance, as grunts and puppets are: a crew of five waiting was five full rigs)
+	body_model.lod = true
 	body_model.swappable_hands = true
 	body_model.auto_point_guns = true
 	var lk: Dictionary = net_profile.get("look", {})

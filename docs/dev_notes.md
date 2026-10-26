@@ -6519,3 +6519,27 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   t/island/build_budget_same (seed 4242's first island budgeted vs straight through: the same geometry, colliders
   and lights node for node; the wayside under 8 ms), t/island/wayside, build_slices, free_slices, beast_prebuild,
   forest_places, dungeon_nest_sleep, fog_isle.
+
+## 2026-10-26: 1.23 perf track, pieces 3-5: rig LOD for AI captains, the native candidates, budgets
+- **Piece 3 (AI and animation LOD).** Far rigs already pose at 30/20/10 Hz in view (Humanoid._lod_every: every frame
+  within 20 m, then every 2nd, 3rd, 6th; off screen every 6th/12th) for `lod` rigs. AI captains (rivals, the arena,
+  the ghost captain, the brig's gunners) were full-rate rigs: Player._setup_ai now sets `body_model.lod = true` (as
+  puppets and grunts have). t/combat/rival_rig_lod. Brains: the hook for the lead's files (pirate_grunt.gd,
+  captain_brain.gd), not built here: think at ~10 Hz staggered by instance,
+  `if (Engine.get_physics_frames() + get_instance_id()) % 6 != 0: return` round the decision part (not movement),
+  timed into the spike log with `var t0 := Time.get_ticks_usec()` ... `Perf.add_us(Perf.AI, Time.get_ticks_usec() - t0)`
+  (wallclock_allow line for that function). A waiting rival (order "rest"/"watch"/"hold", settled) could drop its
+  Player physics (`set_physics_process(false)` on the Player and its state machine, the rig left posing) and have
+  the brain look at the order at 4 Hz until it's called in.
+- **Piece 4 (native hot paths): profile, no build.** tools/dev/rigprobe.gd (headless, light stage, us a call):
+  the captain's own rig 243-254 us a pose, of which spring chains (hair, coat: SpringChains._simulate_tuned /
+  _step with capsule push-outs) 106 us (~60%: 16-57 us a set), foot IK 13-18 us (two physics rays), _locomotion
+  16 us, _update_look 4-6 us; Ocean.get_wave_height 3.3 us a call. The lead's 1.23 bench: humanoid.gd 2.3 ms of the
+  5.8 ms scripts a frame (the captain's own rig 1.5 ms: actions' swing IK on top), arm_body/lower_body 0.31.
+  Candidates in order: SpringChains (step + push_out + write_pose), Humanoid's swing IK (_best_swivel, reach_hand,
+  _wrist_for), the per-frame pose blend (_cur lerp, _sample_u/_action_pose keys), get_wave_height (the WAVES sum),
+  foot IK (rays stay in the engine). Toolchain: MSVC 14.51 Build Tools and the Windows SDK are installed; no scons,
+  no godot-cpp (nothing installed: piece stopped at the profile).
+- **Piece 5 (budgets).** tools/dev/perf_budgets.txt (anim 2.0, ai 0.8, world 1.2, ui 0.4, player 0.5, other 0.6,
+  draw 3.5 ms; scripts mapped to systems by regex), perf_budgets.ps1 <bench result>, and perf_gate.ps1 prints them
+  per light (a warning, never a fail). The 1.23 "before" bench: anim 2.26, ai 1.10, world 1.69, draw 4.95 over.
