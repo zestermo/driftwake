@@ -49,7 +49,7 @@ func _process(_d: float) -> bool:
 			check("prices by kind and gate: Quick Draw 2, Iai Upgrade 5, Thousand Petals 11, a step 1, Geppo 1, Iron Wall 3",
 				STS.price("k_draw") == 2 and STS.price("k_iai") == 5 and STS.price("k_petals") == 11
 				and STS.price("k_keen") == 1 and STS.price("m_geppo") == 1 and STS.price("df_wall") == 3)
-			check("the Captain's nodes aren't bought", STS.price("m_soru") == 0 and STS.price("talent_5") == 0)
+			check("the Captain's nodes aren't bought", STS.price("c_quarter") == 0 and STS.price("talent_5") == 0)
 			check("a weapon pays from its own pool", STS.pool_of("katana") == "katana" and STS.pool_of("acrobatics") == "adventure" and STS.pool_of("captain") == "")
 			check("a new captain: no Adventure points, the cutlass's 2", pr.pool("adventure") == 0 and pr.pool("sword") == 2)
 			to_level("acrobatics", 3)

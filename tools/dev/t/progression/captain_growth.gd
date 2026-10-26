@@ -1,7 +1,8 @@
 extends SceneTree
 ## The Captain grows by level with no points: each level adds health, damage, stamina, energy and defense by
-## itself; the milestones come at their level (Soru 8 on the bar, a third weapon loadout at 10, Tekkai 14, a fourth
-## passive slot at 25); the Captain tree always shows.
+## itself; the milestones come at their level (a third weapon loadout and passive slot at 10, a fourth slot at 20, a
+## fifth at 30), no hotbar skills (Squall Step and Ballast are Acrobatics' and Defense's since 1.23); the Captain tree
+## always shows.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -46,17 +47,15 @@ func _process(_d: float) -> bool:
 			check("...+12% damage", is_equal_approx(p.damage_multiplier() - dmg0, 0.12))
 			check("...+3.6 stamina, +3.6 energy, +3 defense", is_equal_approx(p.max_stamina - st0, 3.6) and is_equal_approx(p.power.max_energy() - en0, 3.6) and is_equal_approx(p.defense() - def0, 3.0))
 			check("...and no skill points", pr.skill_points == 0)
-			check("no Soru before 8", not pr.knows("soru"))
-			to_level(8)
-			check("level 8: Soru by itself, on the bar", pr.knows("soru") and "soru" in p.power.loadout)
 			var slots0: int = p.loadout_slots()
 			to_level(10)
-			check("level 10: a third weapon loadout (%d -> %d)" % [slots0, p.loadout_slots()], p.loadout_slots() == slots0 + 1)
-			to_level(14)
-			check("level 14: Tekkai", pr.knows("tekkai"))
-			check("three passive slots until 25", pr.passives.size() == 3)
-			to_level(25)
-			check("level 25: a fourth passive slot", pr.owns("c_slot4") and pr.passives.size() == 4)
+			check("level 10: a third weapon loadout (%d -> %d) and a third passive slot" % [slots0, p.loadout_slots()], p.loadout_slots() == slots0 + 1 and pr.owns("c_slot3") and pr.passives.size() == 3)
+			to_level(20)
+			check("level 20: a fourth passive slot", pr.owns("c_slot4") and pr.passives.size() == 4)
+			check("no Squall Step or Ballast from Captain levels (Acrobatics and Defense teach them)", not pr.knows("soru") and not pr.knows("tekkai")
+				and SkillTrees.node_def("m_soru")["tree"] == "acrobatics" and SkillTrees.node_def("v_tekkai")["tree"] == "defense")
+			to_level(30)
+			check("level 30: a fifth passive slot", pr.owns("c_slot5") and pr.passives.size() == 5)
 			return TK.done(fails)
 	step += 1
 	return false

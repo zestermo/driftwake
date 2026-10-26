@@ -1,7 +1,8 @@
 extends SceneTree
 ## Passives count only in a passive slot: Clean Line and Empty Mind bought at katana 22 go into free slots by
 ## themselves (the library lists them), Empty Mind's cooldown cut counts while slotted and not once it's taken
-## out, an unowned passive or a slot past the last can't be filled, and a fourth slot opens at level 25.
+## out, an unowned passive or a slot past the last can't be filled; two slots at first, one more at Captain 10, 20
+## and 30 (five at most), the slotted ones kept.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -29,13 +30,11 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			pr = p.progression
-			check("three empty slots", pr.passives.size() == 3 and pr.passives.count("") == 3)
+			check("two empty slots", pr.passives.size() == 2 and pr.passives.count("") == 2 and pr.passive_slots() == 2)
 			while pr.mastery_level("katana") < 22:
 				var m: Dictionary = pr.mastery_of("katana")
 				pr.add_mastery("katana", pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
-			while pr.level < 6:
-				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
-			check("katana 22, Captain 6: Clean Line and Empty Mind bought", pr.buy("k_clean") and pr.buy("k_calm"))
+			check("katana 22: Clean Line and Empty Mind bought", pr.buy("k_clean") and pr.buy("k_calm"))
 			check("...both passives in the library %s" % str(pr.library()["passives"]), pr.library()["passives"].has("k_clean") and pr.library()["passives"].has("k_calm"))
 			check("...slotted by themselves %s" % str(pr.passives), pr.passives.has("k_clean") and pr.passives.has("k_calm"))
 			check("...Empty Mind counts: katana techniques 25%% sooner (%.2f)" % pr.stat("cdr_katana"), is_equal_approx(pr.stat("cdr_katana"), 0.25))
@@ -43,11 +42,15 @@ func _process(_d: float) -> bool:
 			check("...and it stops counting (%.2f)" % pr.stat("cdr_katana"), pr.stat("cdr_katana") == 0.0)
 			check("...still in the library", pr.library()["passives"].has("k_calm"))
 			check("an unowned passive can't go in", not pr.equip_passive("s_flourish", 0) and not pr.equip_passive("k_eye", 0))
-			check("no slot past the last", not pr.equip_passive("k_calm", 3))
+			check("no slot past the last", not pr.equip_passive("k_calm", 2))
 			check("back in slot 0 (moving whatever was there out)", pr.equip_passive("k_calm", 0) and pr.passives[0] == "k_calm" and is_equal_approx(pr.stat("cdr_katana"), 0.25))
-			check("one passive in one slot only", pr.equip_passive("k_calm", 2) and pr.passives.count("k_calm") == 1 and pr.passives[2] == "k_calm")
-			pr.add_xp(999999)
-			check("level 25+: a fourth slot (%d)" % pr.passives.size(), pr.level >= 25 and pr.passives.size() == 4 and pr.passives[2] == "k_calm")
+			check("one passive in one slot only", pr.equip_passive("k_calm", 1) and pr.passives.count("k_calm") == 1 and pr.passives[1] == "k_calm")
+			p.unequip_weapon()
+			for lv_n in [[9, 2], [10, 3], [19, 3], [20, 4], [30, 5], [40, 5]]:
+				while pr.level < lv_n[0]:
+					pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
+				check("Captain %d: %d slots (%d)" % [lv_n[0], lv_n[1], pr.passives.size()], pr.passives.size() == lv_n[1] and pr.passive_slots() == lv_n[1])
+			check("...the slotted one kept", pr.passives[1] == "k_calm")
 			return TK.done(fails)
 	step += 1
 	return false

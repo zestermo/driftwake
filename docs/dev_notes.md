@@ -6559,3 +6559,13 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
 - **Tests.** t/progression/pools, gate_and_buy, prompts, versions_bunk, refund_migration, fist_rename (now a format-7
   save), weapon_refund (was buy_back: the format-6 refund), t/ui/skills_buy_node, skills_buy_step, skills_respec;
   progtest, powertest and balancetest's lines (prepush).
+
+## 2026-10-26: 1.23 progression, piece 2: passive slots and the moved milestones
+- **Passive slots** (docs/v1_23_plan.md "Will, the Captain tree and passives"): `PASSIVE_SLOTS` 2, and the Captain
+  milestones `c_slot3` / `c_slot4` / `c_slot5` at 10 / 20 / 30 (effect `passive_slots`: `passive_slots()` = 2 + the
+  stat; 5 at most). A save with more slotted than it has slots keeps the first ones (`_fit_passives`).
+- **Squall Step and Ballast** left the Captain tree: `m_soru` is an Acrobatics tech (Dodge branch, at 8, 2 Adventure
+  points) and `v_tekkai` a Defense tech (Grit branch, at 10, 3 points), same ids and skills. The Captain's milestones
+  are non-hotbar perks now (Quartermaster's third loadout at 10, the slots). An older save loses them until bought
+  again (the bar slot clears on load; uses and so tiers are kept).
+- **Tests.** t/progression/passive_slots, captain_growth, refund_migration, pools, moved_skills (new); progtest's lines.

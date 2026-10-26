@@ -46,7 +46,8 @@ const FAMILY_SHARE := 0.0
 ## Metres swum for a point of Swimming xp, and how often (ticks) the swim is measured.
 const SWIM_M := 4.0
 const SWIM_TICKS := 15
-const PASSIVE_SLOTS := 3
+## Passive slots at the start; the Captain's milestones add one at 10, 20 and 30 (5 at most).
+const PASSIVE_SLOTS := 2
 ## How close to the ship's bunk (m) steps, versions and talents can be switched.
 const BUNK_REACH := 2.5
 ## How close to a rest spot (an inn's, the bunk's interactable) builds can be switched.
@@ -80,8 +81,8 @@ var steps: Dictionary = {}
 var bought: Dictionary = {}
 ## variant or talent node -> the active version (a variant without an entry: 0; a talent: not picked)
 var versions: Dictionary = {}
-## The passive slots: node ids ("" empty), PASSIVE_SLOTS of them (a fourth at level 25).
-var passives: Array[String] = ["", "", ""]
+## The passive slots: node ids ("" empty), passive_slots() of them.
+var passives: Array[String] = ["", ""]
 ## tree -> true once its first point is earned (it shows in the menu)
 var found: Dictionary = {}
 ## Will milestones earned (id -> true), and the bosses beaten that teach them (boss_kind -> true)
@@ -775,7 +776,7 @@ func can_respec() -> bool:
 
 
 func passive_slots() -> int:
-	return PASSIVE_SLOTS + (1 if owns("c_slot4") else 0)
+	return PASSIVE_SLOTS + int(stat("passive_slots"))
 
 
 func is_passive(id: String) -> bool:

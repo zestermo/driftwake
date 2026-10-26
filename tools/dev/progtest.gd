@@ -135,13 +135,14 @@ func _process(d: float) -> bool:
 			check("Fleetfoot (Acrobatics 12) bought speeds you up", pr.buy("ac_fleet") and p.move_speed > 6.0)
 			pr.level = 14
 			pr._on_level_up()
-			check("Soru and Tekkai come at Captain 8 and 14, onto the bar", pc.loadout[0] == "soru" and pc.loadout[1] == "tekkai")
+			check("Captain 14 hands out no skills; Squall Step bought at Acrobatics 8+, onto the bar", not pr.knows("tekkai") and pr.buy("m_soru") and pc.loadout[0] == "soru")
 			check("a weapon's nodes are bought once its mastery gates them (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Needs Cutlass 4")
 			# (a pistol in loadout 2, so its skills can go on the bar)
 			p.inventory_component.add_item(item("pistol"), 1)
 			p.loadouts[1] = ["pistol", ""]
-			while pr.mastery_level("defense") < 4:
+			while pr.mastery_level("defense") < 10:
 				pr.add_life("defense", pr.mastery_to_next(pr.mastery_level("defense")))
+			check("Ballast bought at Defense 10, onto the bar", pr.buy("v_tekkai") and pc.loadout[1] == "tekkai")
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
 				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
 					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))

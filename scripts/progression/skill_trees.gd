@@ -288,11 +288,11 @@ static func _step(id: String, name_: String, on: String, max_steps: int, effects
 static func _build_captain() -> void:
 	_tree("captain", ["Milestones", "Talents", "Will"])
 	_root("c_root", "Captain", {},
-		"Every level makes you a little stronger by itself: +5.5 health, +2% damage, +0.6 stamina and energy, +0.5 defense. Milestones come at their level; every 5 levels you pick one of two talents; Will comes from the bosses you beat.")
-	_big("m_soru", "Squall Step", "auto", 0, 8, {}, "", "soru")
+		"Every level makes you a little stronger by itself: +5.5 health, +2% damage, +0.6 stamina and energy, +0.5 defense. Milestones come at their level (a third loadout, passive slots); every 5 levels you pick one of two talents; Will comes from the bosses you beat.")
 	_big("c_quarter", "Quartermaster", "auto", 0, 10, {"loadout_slots": 1}, "A third weapon loadout on the loadout wheel (X): three setups to swap between mid-fight.")
-	_big("v_tekkai", "Ballast", "auto", 0, 14, {}, "", "tekkai")
-	_big("c_slot4", "Fourth Slot", "auto", 0, 25, {}, "A fourth passive slot.")
+	_big("c_slot3", "Third Slot", "auto", 0, 10, {"passive_slots": 1}, "A third passive slot.")
+	_big("c_slot4", "Fourth Slot", "auto", 0, 20, {"passive_slots": 1}, "A fourth passive slot.")
+	_big("c_slot5", "Fifth Slot", "auto", 0, 30, {"passive_slots": 1}, "A fifth passive slot.")
 	_talent(5, ["v_mend", "Mend", {"regen_hp": 2.5}, "Out of combat (no damage for 5 s) you heal 2.5 health a second."],
 		["v_stomach", "Iron Stomach", {"potion_pct": 0.4}, "Food and drink heal you 40% more."])
 	_talent(10, ["t_hands", "Quick Hands", {"use_speed_pct": 0.35}, "You eat and drink 35% faster."],
@@ -375,6 +375,7 @@ static func _build_acrobatics() -> void:
 		["ac_sidestep", "Sidestep", 7, {"dodge_sidestep": 1},
 			"Your dodge is a short, sharp slip aside: cheaper and quicker to strike out of, and slipping a blow as it lands makes your next hit land 50% harder."]],
 		"Two ways to get out of the way. Both are yours; pick the one you carry at the ship's bunk.")
+	_big("m_soru", "Squall Step", "tech", 1, 8, {}, "", "soru")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
 	_big("ac_afterimage", "Afterimage", "move", 1, 18, {"afterimage": 1},
 		"Your dodge leaves a copy of you standing where you were, and the foes coming for you swing at it instead (once every 6 s).")
@@ -419,6 +420,7 @@ static func _build_defense() -> void:
 	_big("df_wall", "Iron Wall", "mech", 1, 20, {"block_cost_pct": 0.3}, "Blocking costs another 30% less stamina.")
 	_big("v_steadfast", "Steadfast", "mech", 2, 4, {"steadfast": 1}, "Light hits no longer make you flinch.")
 	_big("df_unshaken", "Unshaken", "mech", 2, 9, {"max_hp": 25.0}, "+25 max health.")
+	_big("v_tekkai", "Ballast", "tech", 2, 10, {}, "", "tekkai")
 	_big("df_skin", "Second Skin", "mech", 2, 14, {"defense": 6.0}, "+6 defense.")
 	_big("df_unbreak", "Unbreakable", "mech", 2, 18, {"max_hp": 40.0, "defense": 4.0}, "+40 max health and +4 defense.")
 	_step("df_timing", "Timing", "df_root", 5, {"parry_all": 0.008}, "A slightly wider parry window a step.")
