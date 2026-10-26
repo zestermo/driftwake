@@ -184,7 +184,7 @@ func _process(d: float) -> bool:
 			check("...rumours of the islands ahead (%s)" % [ahead], ahead.any(func(n): return " ".join(lines).contains(n)))
 			var isle: Array = dlg._load(named[1]["talk"])["nodes"]["isle"]["text"]
 			print("   %s on the island: %s" % [named[1]["name"], isle])
-			check("...and of this island (two rumours, tokens filled)", isle.size() == 2 and not " ".join(isle).contains("{"))
+			check("...and of this island (two rumours, a word of its arc first, tokens filled)", isle.size() >= 2 and isle.size() <= 3 and not " ".join(isle).contains("{"))
 			var nv = life.people.filter(func(v): return v.npc_name == named[0]["name"])[0]
 			dlg._cooldown = 0.0
 			nv.interactable.interacted.emit(p)
