@@ -38,7 +38,8 @@ func _process(_d: float) -> bool:
 			ship.sail_shown = 1.0
 			es = load("res://scripts/ship/enemy_ship.gd").new().setup(ship.global_position + Vector3(0, 0, 400), 30.0, 0.0, 5, "brig")
 			stage.add_child(es)
-			es.set_meta("no_sleep", true)
+			# (she only fires the chain shot here: held where she is, or she'd come over and board)
+			es.set_physics_process(false)
 			until = TK.wait_secs(10.0)
 		1:
 			whole_speed = ship.speed
