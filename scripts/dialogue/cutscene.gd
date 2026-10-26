@@ -22,8 +22,14 @@ signal finished(skipped: bool)
 ## The scene playing, or null (brains, the HUD and control check it).
 static var active: Cutscene = null
 
-const CHARS_PER_S := 38.0
+const CHARS_PER_S := 26.0
 const LINE_HOLD := 1.1
+## A shot with a line waits, once the line's typed and its time is up, for the captain to press on (Space, Enter or
+## a click; the first press while it types finishes the line). Co-op: every captain presses, or after this long
+## (seconds) the host moves every screen on, so one crewmate away from the keys can't hold the crew.
+const NEXT_WAIT := 10.0
+## Tests and render tools (Settings.tool_run) don't wait for presses unless a test sets this to test the wait.
+static var tools_wait := false
 const BAR := 0.15   # the letterbox bars, as a share of the screen's height (the bottom one holds the line)
 
 var shots: Array = []
@@ -46,6 +52,10 @@ var _blip: AudioStreamPlayer
 var _pitch := 1.0
 var _voted := false
 var _done := false
+## Pressed on past this shot's line (waiting for the crew in co-op).
+var _next_voted := false
+## Seconds this shot has waited for a press, its line done.
+var _wait_t := 0.0
 
 
 ## The shots of a scene by kind, built from `args` (node keys, names...) the same on every machine (co-op plays it
@@ -119,7 +129,7 @@ func _build_ui() -> void:
 	_chip.offset_bottom = -8.0
 	_chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_chip.add_theme_color_override("font_color", Color(0.85, 0.82, 0.7))
-	_chip.text = "F / Esc: skip"
+	_chip.text = "Space: next   F / Esc: skip"
 	_bars.add_child(_chip)
 	# the line as a subtitle in the bottom bar (a bubble over a head reads at play distance, not in a close-up)
 	_name_tag = _label2d(13, Color(1.0, 0.78, 0.4), 1.0 - BAR + 0.012, 1.0 - BAR + 0.05)
@@ -163,6 +173,10 @@ func _next() -> void:
 		return
 	var s: Dictionary = shots[_i]
 	_t = 0.0
+	_wait_t = 0.0
+	_next_voted = false
+	if not _voted:
+		_chip.text = "Space: next   F / Esc: skip"
 	_from = _resolve(s.get("cam", []), s.get("off", Vector3.ZERO))
 	_to = _resolve(s.get("to", []), s.get("off", Vector3.ZERO)) if s.has("to") else _from
 	if s.has("fov"):
@@ -239,11 +253,60 @@ func _process(delta: float) -> void:
 				_blip.pitch_scale = _pitch * randf_range(0.92, 1.08)
 				_blip.play()
 	if _t >= _len:
+		if _line == "" or (Settings.tool_run() and not tools_wait):
+			_next()
+			return
+		# a line: wait for the press (and, in co-op, the crew); the host moves everyone on after NEXT_WAIT
+		_wait_t += delta
+		if _wait_t >= NEXT_WAIT and _wait_t - delta < NEXT_WAIT:
+			var net := get_node_or_null("/root/Net")
+			if net and net.active:
+				if net.is_host():
+					net.cutscene_next_all(kind, _i)
+			else:
+				_next()
+
+
+## Every screen on past shot `shot` (Net: all pressed, or the wait ran out).
+func go_on(shot: int) -> void:
+	if not _done and shot == _i:
+		_next()
+
+
+func set_waiting_next(shot: int, n: int) -> void:
+	if _chip and shot == _i and _next_voted and not _voted:
+		_chip.text = "Next: waiting for %d more" % n
+
+
+## Space / Enter / a click: finish the line typing, else press on.
+func _press_next() -> void:
+	if _line != "" and int(_shown) < _line.length():
+		_shown = float(_line.length())
+		_bubble.text = _line
+		_len = minf(_len, _t)
+		return
+	if _t < _len:
+		_len = _t   # (its time not up yet: a press cuts the hold short)
+	if _line == "":
+		return
+	if _next_voted:
+		return
+	_next_voted = true
+	var net := get_node_or_null("/root/Net")
+	if net and net.active:
+		net.cutscene_next(kind, _i)
+	else:
 		_next()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _done or _voted or not event.is_pressed() or event.is_echo():
+	if _done or not event.is_pressed() or event.is_echo():
+		return
+	if event.is_action("jump") or event.is_action("ui_accept") or event.is_action("light_attack"):
+		get_viewport().set_input_as_handled()
+		_press_next()
+		return
+	if _voted:
 		return
 	if event.is_action("interact") or event.is_action("ui_cancel") or event.is_action("pause"):
 		get_viewport().set_input_as_handled()

@@ -72,6 +72,25 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		6:
 			check("Interact skips it at once", ended == [false, true] and cut().active == null and not p.input_locked)
+			# 1.23: a line waits for the captain's press (tests opt in to the wait)
+			cut().tools_wait = true
+			net.everyone("_all_cutscene", ["test", [net.key_of(stage.npc)]])
+			c = cut().active
+			c.finished.connect(func(skipped): ended.append(skipped))
+			until = TK.wait_secs(1.5)
+		7:
+			TK.act("jump")
+			until = TK.wait_ticks(3)
+		8:
+			check("a press while it types finishes the line ('%s')" % c._bubble.text, c._bubble.text == c._line and cut().active != null)
+			until = TK.wait_secs(3.0)
+		9:
+			check("...then it waits for the press, not the clock", cut().active == c and ended.size() == 2)
+			TK.act("jump")
+			until = TK.wait_ticks(3)
+		10:
+			check("...and a second press goes on (the scene ends, not skipped)", ended == [false, true, false] and cut().active == null)
+			cut().tools_wait = false
 			return TK.done(fails)
 	step += 1
 	return false

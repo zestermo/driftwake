@@ -242,6 +242,14 @@ func _person_at(who: String) -> Vector3:
 	return (n as Node3D).global_position + Vector3.UP * HEAD if n and (n as Node3D).visible else Vector3.INF
 
 
+## World flag prefix: quest `id`'s target was seen cleared (before or after it was taken).
+const CLEARED := "cleared_"
+
+
+func _cleared(id: String) -> bool:
+	return bool(GameManager.world_flags.get(CLEARED + id, false))
+
+
 ## Twice a second for the local captain: a place reached, a POI cleared (the host says), lost things shown.
 func _process(delta: float) -> void:
 	_t -= delta
@@ -259,6 +267,10 @@ func _process(delta: float) -> void:
 		var id: String = q["id"]
 		if _marks.has(id):
 			_show_mark(q)
+		# host: a target cleared before the quest was taken (or since respawned / freed) still counts: the moment it's
+		# first seen cleared is remembered as a world flag (saved, everyone's)
+		if Net.is_host() and q.has("clear") and not _cleared(id) and (q["clear"] as Callable).call():
+			Net.world_flag(CLEARED + id)
 		if not Journal.has(id) or Journal.is_done(id):
 			continue
 		var step := Journal.step_of(id)
@@ -267,7 +279,7 @@ func _process(delta: float) -> void:
 				if me.global_position.distance_to(q["point"]) < float(q["r"]):
 					Journal.advance(id, step)
 			"clear":
-				if Net.is_host() and (q["clear"] as Callable).call():
+				if Net.is_host() and (_cleared(id) or (q["clear"] as Callable).call()):
 					Journal.advance(id, step)
 			"pickup":
 				var n: Node3D = _marks[id]

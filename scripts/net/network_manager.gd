@@ -847,6 +847,53 @@ func _skip_vote(kind: String) -> void:
 		everyone("_all_cutscene_waiting", [kind, left])
 
 
+## Who pressed on to the next line (Cutscene: the shot index) on the scene playing: the host's tally.
+var _next_votes := {}
+
+
+## Our captain pressed on past a finished line: the host counts it; once every captain has (or the line's waited
+## Cutscene.NEXT_WAIT), every screen goes on to the next shot together.
+func cutscene_next(kind: String, shot: int) -> void:
+	if hosting or not active:
+		_next_vote(kind, shot)
+	else:
+		_next_vote.rpc_id(1, kind, shot)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _next_vote(kind: String, shot: int) -> void:
+	if not is_host():
+		return
+	if int(_next_votes.get("_shot", -1)) != shot:
+		_next_votes = {"_shot": shot}
+	var who := multiplayer.get_remote_sender_id() if active else 1
+	_next_votes[who if who != 0 else 1] = true
+	var left := 0
+	for id in ([1] + Array(multiplayer.get_peers()) if active else [1]):
+		if (id == 1 or players.has(id)) and not _next_votes.has(id):
+			left += 1
+	if left <= 0:
+		cutscene_next_all(kind, shot)
+	else:
+		everyone("_all_cutscene_waiting_next", [kind, shot, left])
+
+
+## Host: every screen on to the shot after `shot` (all pressed, or the wait ran out).
+func cutscene_next_all(kind: String, shot: int) -> void:
+	_next_votes = {}
+	everyone("_all_cutscene_next", [kind, shot])
+
+
+func _all_cutscene_next(kind: String, shot: int) -> void:
+	if Cutscene.active and Cutscene.active.kind == kind:
+		Cutscene.active.go_on(shot)
+
+
+func _all_cutscene_waiting_next(kind: String, shot: int, n: int) -> void:
+	if Cutscene.active and Cutscene.active.kind == kind:
+		Cutscene.active.set_waiting_next(shot, n)
+
+
 func _all_cutscene_waiting(kind: String, n: int) -> void:
 	if Cutscene.active and Cutscene.active.kind == kind:
 		Cutscene.active.set_waiting(n)

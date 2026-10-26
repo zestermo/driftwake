@@ -131,8 +131,9 @@ func _physics_process(delta: float) -> void:
 		if _special != "":
 			_special_update(delta)
 			return
-	# walking back to his post: the fight starts over from the top
-	if state in [S.RETURN, S.IDLE] and (phase != 1 or health.current_health < health.max_health or _red):
+	# back at his post: the fight starts over from the top (not while walking back: hit him on the way and the fight
+	# goes on where it was)
+	if state == S.IDLE and (phase != 1 or health.current_health < health.max_health or _red):
 		phase = 1
 		_volley_left = 0
 		_set_red(false)
@@ -504,6 +505,11 @@ func net_rescale(k: float) -> void:
 	health.max_health = _boss_hp() * k
 	if state != S.DEAD:
 		health.current_health = maxf(frac * health.max_health, 1.0)
+
+
+## A boss follows the fight further than his men (a big knockback mustn't send him home).
+func _leash() -> float:
+	return LEASH * 1.8
 
 
 ## Everyone left (or fell): back to his post, healed, from the top.

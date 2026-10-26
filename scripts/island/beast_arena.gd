@@ -16,6 +16,8 @@ class_name BeastArena
 
 const WAKE_R := 24.0
 const RESET_R := 48.0
+## A standing captain this close to the beast keeps the fight going wherever it is.
+const BOSS_NEAR_R := 35.0
 const RESPAWN := 900.0
 ## The fighting floor (clear; the canopy arena's giants ring it).
 const FLOOR_R := 19.0
@@ -388,7 +390,11 @@ func _process(delta: float) -> void:
 	elif alive and boss.in_combat():
 		var near := false
 		for p in Net.all_players():
-			if (p as Node3D).global_position.distance_to(global_position) < RESET_R and p.has_method("is_standing") and p.is_standing():
+			# near the arena, or near the beast itself (one that chased a captain out of the arena is still in a fight:
+			# it mustn't heal behind their back)
+			var pp := (p as Node3D).global_position
+			if (pp.distance_to(global_position) < RESET_R or pp.distance_to((boss as Node3D).global_position) < BOSS_NEAR_R) \
+					and p.has_method("is_standing") and p.is_standing():
 				near = true
 		_empty_t = 0.0 if near else _empty_t + delta
 		if _empty_t > 6.0:
