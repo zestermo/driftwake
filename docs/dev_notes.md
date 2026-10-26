@@ -6517,8 +6517,34 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   boat (it's gone in a minute).
 - **Group "pursuing"** (for the lead's HUD heat marker): an EnemyShip is in it while `pursuing()` (HUNT, BROADSIDE,
   BOARD, HOLD, RAM; TRACK from piece 4), on every screen from the state its snapshots carry.
-- Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics, t/ship/ram_hole, t/ship/boarding_boat;
-  t/ship/enemy_boarding holds her boat (it tests grapples).
+- **The Admiralty at sea** (piece 4, `scripts/ship/admiralty.gd`, one node "Admiralty" under the world, made by
+  the fleets (`Admiralty.ensure`), a net_spawner whose `net_gen` is the live ships' specs and booms, so guests and
+  late joiners build the same ones). Everything scales by the crew's **heat tier** (`EnemyShip.crew_heat_tier`: the
+  hottest captain's `Bounty.heat_tier`, which cools without deeds); the old Notorious gate on marine patrols uses it
+  too.
+  - **Deeds**: `Admiralty.deed(tree, at, what)` (static, host; the public hook: the island arcs call it with "arc"
+    when one finishes; `Net.bounty("boss", ..., k >= 1)` calls it now, so an island boss beaten counts; a miniboss's
+    0.4 share doesn't). One answer per DEED_EVERY 480 s. From Notorious (BLOCK_FROM 2) a **blockade**: two marine
+    ships (role "block", state BLOCK: anchored broadside, HUNT once the crew comes within NOTICE) BLOCK_OUT 30 m past
+    the island's no-go edge on the crew ship's side, BLOCK_SPREAD 46 m apart, and an **AdmiraltyBoom**
+    (`admiralty_boom.gd`: chained logs on collision layer 1 across the gap; 120 HP of crew fire breaks it, or her bow
+    at RAM_SPEED 7 m/s+, taking RAM_HULL 25). Then, once the crew's ship is out at sea (huntable, past the island's
+    edge + STANDOFF + 20), a **ring**: RING_N [0, 2, 3, 4, 5] by heat tier at RING_R 135 m, side-on, in HUNT (a
+    frigate in it from Infamous). Signal `deed_answered`.
+  - **Heat patrols**: at sea with a captain aboard, every PATROL_EVERY [-, 300, 200, 140, 95] s of game time with no
+    pursuer out, PATROL_KINDS (cutter; two cutters; frigate + cutter; frigate + two cutters) appear SPAWN_R 330 m back
+    along her **wake** (points every WAKE_EVERY 4 s, WAKE_LIFE 150 s, half in a storm) in state TRACK: they follow
+    the wake (`trail_from`) at full speed, go HUNT once she's within NOTICE x sight x 1.4, and give up past
+    LOSE x sight x TRACK_LOSE 2.2. Pursuers lose her in HUNT/BROADSIDE past LOSE x `Admiralty.sight_k` (fog to 0.45,
+    storm to 0.6: the weather's or a sea fog bank's/storm cell's at her position). Lost: `_lost` (PATROL, heading
+    away, never re-noticing); cleared once DESPAWN 480 m from every captain. Banners on every screen: "The
+    Admiralty!" when the first pursuer starts, "Escaped" when the last loses her (signals `hunt_started`, `escaped`;
+    the lead's HUD counts group "pursuing").
+  - EnemyShip: S gains TRACK and BLOCK (appended: snapshot ints unchanged), `pursuer`/`role`/`start_role`,
+    `pursuing()`; pursuers skip MAX_ATTACKERS and the bounty gate.
+- Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics, t/ship/ram_hole, t/ship/boarding_boat,
+  t/ship/admiralty_ring, t/ship/admiralty_hunt; t/ship/enemy_boarding holds her boat (it tests grapples).
+  Render: `pursuitshot` (tools/dev/out/pursuit_*.png).
 ## 2026-10-26: 1.23 perf track, piece 1: the spike logger
 - Zach: the game "feels heavy at times". `Perf` (scripts/game/perf_monitor.gd) now logs every frame over
   `SPIKE_MS` 25 ms (was: hitches over 50 only) with what ran in it: physics ticks run in the frame, the process /

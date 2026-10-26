@@ -101,7 +101,8 @@ func _take_men() -> void:
 		var h := c["node"] as Humanoid
 		h.reparent(self, false)
 		h.position = SEATS[i % SEATS.size()]
-		h.rotation = Vector3(0, PI, 0)
+		# (rowers face astern)
+		h.rotation = Vector3.ZERO
 		h.seated = true
 		h.visible = true
 		_bodies.append(h)

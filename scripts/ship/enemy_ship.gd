@@ -1498,7 +1498,16 @@ func _strike() -> void:
 func _wants_crew() -> bool:
 	if kind not in ADMIRALTY_KINDS:
 		return true
-	return Bounty.tier_of(crew_bounty(get_tree())) >= ADMIRALTY_FROM
+	return crew_heat_tier(get_tree()) >= ADMIRALTY_FROM
+
+
+## The crew's heat tier: the hottest of its captains (Bounty.heat_tier: a bounty cools without fresh deeds). Patrols,
+## blockades and rings scale by it.
+static func crew_heat_tier(tree: SceneTree) -> int:
+	var t := 0
+	for c in tree.get_nodes_in_group("players"):
+		t = maxi(t, Bounty.heat_tier(c))
+	return t
 
 
 ## Every captain's bounty together (the ship draws patrols by the crew's total).

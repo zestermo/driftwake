@@ -904,7 +904,10 @@ func tear_sail(local: Vector3) -> void:
 	while slot in used:
 		slot += 1
 	_dmg_id += 1
-	var patch := Vector3(clampf(local.x, -3.4, 3.4), clampf(local.y - (HullBuilder.YARD_Y - 0.15), -7.6, -0.9), 0.3)
+	var py := clampf(local.y - (HullBuilder.YARD_Y - 0.15), -7.6, -0.9)
+	# (on the sheet, which bellies aft to 0.45 at its middle reef band and back to 0.1 at the foot: _build_rig)
+	var pz := lerpf(0.0, 0.45, -py / 4.35) if py > -4.35 else lerpf(0.45, 0.1, (-py - 4.35) / 4.2)
+	var patch := Vector3(clampf(local.x, -3.4, 3.4), py, pz)
 	torn.append([_dmg_id, slot, patch])
 	Net.fx("sfx", ["whoosh_big", global_transform * local, 2.0, 0.05, 0.7])
 	Net.fx("dust", [global_transform * local, 14, 1.2])
@@ -915,7 +918,7 @@ func tear_sail(local: Vector3) -> void:
 func lash(by: Node3D, side: float) -> void:
 	for z in [-5.0, -1.0, 3.0]:
 		_dmg_id += 1
-		lines.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.5), DECK_Y, z), Net.key_of(by), Vector3(-side * 3.9, 1.6, z)])
+		lines.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.5), DECK_Y, z), Net.key_of(by), Vector3(-side * 3.7, 2.6, z)])
 	_send_damage()
 
 
@@ -992,11 +995,14 @@ func _tear_mesh(at: Vector3, id: int) -> Node3D:
 		var a := TAU * k / 7.0
 		var r := rng.randf_range(0.35, 0.8)
 		pts.append(Vector3(cos(a) * r * 1.3, sin(a) * r, 0.0))
+	# (a face just aft of the sheet and one just forward of it, so it shows from either side)
+	var aft := Vector3(0, 0, 0.06)
 	for k in range(7):
 		var a: Vector3 = pts[k]
 		var b: Vector3 = pts[(k + 1) % 7]
-		mb.add_tri(mat, Vector3.ZERO, a, b, Vector3.BACK, Vector3.BACK, Vector3.BACK, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.BACK)
-		mb.add_tri(mat, Vector3.ZERO, b, a, Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.FORWARD)
+		for o in [aft, -aft]:
+			mb.add_tri(mat, o, a + o, b + o, Vector3.BACK, Vector3.BACK, Vector3.BACK, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.BACK)
+			mb.add_tri(mat, o, b + o, a + o, Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.FORWARD)
 	var mi := mb.to_instance("Tear%d" % id)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = at
@@ -1008,12 +1014,15 @@ func _tear_mesh(at: Vector3, id: int) -> Node3D:
 func _rope_node(rail: Vector3) -> Node3D:
 	if _rope_mesh == null:
 		var mb := MeshBuilder.new()
-		mb.add_cylinder(PSXMat.lit("planks", Color(0.75, 0.62, 0.42)), Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO), 0.05, 0.05, 1.0, 4, 1.0)
+		mb.add_cylinder(PSXMat.lit("planks", Color(0.85, 0.72, 0.5)), Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO), 0.08, 0.08, 1.0, 4, 1.0)
 		_rope_mesh = mb.commit()
 	var hook := MeshBuilder.new()
 	var iron := PSXMat.lit("metal", Color(0.25, 0.24, 0.23))
-	hook.add_box(iron, Transform3D(Basis(), Vector3(0, 0.25, 0)), Vector3(0.08, 0.5, 0.08), 1.0)
-	hook.add_box(iron, Transform3D(Basis(Vector3.BACK, 0.6), Vector3(0.12, 0.05, 0)), Vector3(0.32, 0.07, 0.07), 1.0)
+	# (a three-pronged grapnel hooked over the rail, shank up)
+	hook.add_box(iron, Transform3D(Basis(), Vector3(0, 0.3, 0)), Vector3(0.1, 0.6, 0.1), 1.0)
+	for a in [0.0, TAU / 3.0, TAU * 2.0 / 3.0]:
+		var d := Vector3(cos(a), 0.0, sin(a))
+		hook.add_box(iron, Transform3D(Basis.looking_at(d + Vector3.DOWN * 0.6, Vector3.UP), d * 0.14), Vector3(0.07, 0.07, 0.36), 1.0)
 	var n := hook.to_instance("Grapple")
 	n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.position = rail + Vector3(signf(rail.x) * 0.45, 0.75, 0.0)

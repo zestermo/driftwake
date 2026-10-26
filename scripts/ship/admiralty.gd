@@ -6,9 +6,9 @@ extends Node3D
 ## * A deed (an island boss beaten: Net.bounty "boss"; the island arcs call `Admiralty.deed` when an arc finishes):
 ##   a blockade at the island's mouth (two ships holding station on the crew's way out, a boom of chained logs
 ##   between them: shoot it apart or ram it at speed), and once the crew's ship is out at sea a ring of warships
-##   closes round her (RING_N by bounty tier, RING_R off). Break out or fight through.
+##   closes round her (RING_N by heat tier, RING_R off). Break out or fight through.
 ## * Heat: while the crew's ship is at sea with a captain aboard, patrols come for a wanted crew, more often and more
-##   of them the higher the crew's bounty tier (PATROL_EVERY, PATROL_KINDS). They come in from the edge of view along
+##   of them the higher the crew's heat tier (PATROL_EVERY, PATROL_KINDS). They come in from the edge of view along
 ##   her wake (the wake is a trail of points every WAKE_EVERY s; storms wash it out sooner) and chase her once they
 ##   see her; fog and storms shorten how far they can keep her in sight (`sight_k`). Lost, they turn away and are gone
 ##   once out of every captain's sight.
@@ -22,7 +22,7 @@ signal hunt_started
 signal escaped
 
 const CHECK := 1.0
-## The ring: ships by bounty tier, how far off, and how far from the deed's island before it closes.
+## The ring: ships by heat tier, how far off, and how far from the deed's island before it closes.
 const RING_N := [0, 2, 3, 4, 5]
 ## A blockade from this tier (Notorious); deeds closer together than DEED_EVERY (game s) are one answer.
 const BLOCK_FROM := 2
@@ -31,7 +31,7 @@ const RING_R := 135.0
 ## The blockade: how far past the island's no-go edge its ships hold station, and their spread.
 const BLOCK_OUT := 30.0
 const BLOCK_SPREAD := 46.0
-## Patrols by bounty tier: seconds at sea between them (0: none), and what sails.
+## Patrols by heat tier: seconds at sea between them (0: none), and what sails.
 const PATROL_EVERY := [0.0, 300.0, 200.0, 140.0, 95.0]
 const PATROL_KINDS := [[], ["marine"], ["marine", "marine"], ["frigate", "marine"], ["frigate", "marine", "marine"]]
 ## They appear this far off, along the wake.
@@ -188,7 +188,7 @@ func _isle_of(at: Vector3) -> Array:
 
 
 func _tier() -> int:
-	return Bounty.tier_of(EnemyShip.crew_bounty(get_tree()))
+	return EnemyShip.crew_heat_tier(get_tree())
 
 
 func _level() -> int:
