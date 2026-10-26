@@ -252,6 +252,7 @@ func open(screen: String) -> void:
 		_yard.end_preview()
 	_current = screen
 	_root.visible = true
+	Walkthrough.first(get_tree(), screen)
 	# the inventory sits on top of the game; other screens dim it
 	_dim.visible = screen not in ["inventory", "skills", "yard"]
 	for n in _screens.keys():
@@ -500,6 +501,11 @@ func _build_options() -> Control:
 		for r in _opt_refreshers:
 			r.call())
 	buttons.add_child(reset)
+	var tips := UIStyle.button("Replay the tips", 130)
+	tips.pressed.connect(func():
+		Walkthrough.reset(get_tree())
+		_play("confirm"))
+	buttons.add_child(tips)
 	var back := UIStyle.button("Back", 120)
 	back.pressed.connect(_back)
 	buttons.add_child(back)

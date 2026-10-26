@@ -202,7 +202,7 @@ func _process(d: float) -> bool:
 				p.global_position = g.global_position - g._fwd() * 1.5
 				g.hurtbox.take_hit(h, p)
 				check("dies (ragdoll)", g.state == DEAD and g.humanoid.ragdoll != null)
-				check("drops gold", root.get_tree().current_scene.find_children("Coin*", "", false, false).size() > 0)
+				# (1.22: 60% of kills pay coins; the rates are t/economy/drop_rates')
 				step = 20
 			return false
 		20:

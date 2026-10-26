@@ -1,5 +1,5 @@
 extends SceneTree
-## The air step (Geppo, Sky Walk): its own upright move, no flip, the knee driven high; it gains height, and the
+## The air step (Geppo, Sky Walk): its own move, leaning into the step (1.23: not upright) but never a flip, the knee driven high; it gains height, and the
 ## next step takes the other foot.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -54,7 +54,7 @@ func _process(_d: float) -> bool:
 			foot = p.body_model.air_foot
 			until = TK.wait_secs(0.35)
 		4:
-			check("no flip: the body stays upright (%.2f rad at most)" % tip, tip < 0.35)
+			check("no flip: it leans into the step, never over (%.2f rad at most)" % tip, tip > 0.2 and tip < 0.7)
 			check("the stepping knee is driven high (%.2f)" % knee, knee > 1.6)
 			check("the step gains height (%.2f m over where it kicked off)" % (top - y0), top - y0 > 0.8)
 			TK.release("jump")

@@ -197,13 +197,13 @@ send you a render sheet plus a test build.
 
 ## 7. Bounty as heat
 
-| Tier | Bounty | At sea | On islands | Rewards |
+| Tier | Bounty | At sea | On islands | Small upside (Zach: a counterweight, not a reward) |
 |---|---|---|---|---|
 | 0 | <5,000 | the odd patrol, ignores you | - | - |
-| Wanted | 5,000 | patrols come about if they see you | posters; Admiralty shops +15% | +10% chest gold |
-| Notorious | 20,000 | 1-2 hunters chase you; blockades after island bosses | bounty hunters; elites +5% | +20% gold, purple a bit likelier |
-| Infamous | 60,000 | a fleet rings you after island bosses; a named hunter on your wake | Admiralty shops refuse you; elites +10% | +30% gold |
-| Dreaded | 150,000 | the hunters come in pairs; the Admiralty waits at harbours | the strongest rival crews seek you | +40% gold, gold-tier a bit likelier |
+| Wanted | 5,000 | patrols come about if they see you | posters; Admiralty shops +15% | +2% chest gold, +0.5% purple |
+| Notorious | 20,000 | 1-2 hunters chase you; blockades after island bosses | bounty hunters; elites +5% | +4% gold, +1% purple |
+| Infamous | 60,000 | a fleet rings you after island bosses; a named hunter on your wake | Admiralty shops refuse you; elites +10% | +6% gold, +1.5% purple |
+| Dreaded | 150,000 | the hunters come in pairs; the Admiralty waits at harbours | the strongest rival crews seek you | +8% gold, +2% purple |
 
 You raise it by sinking, raiding and beating; you can **lie low** too: a day without a deed takes 2% off the heat (not the
 number), so patrols thin out.

@@ -86,7 +86,7 @@ func decide(n: Dictionary, id: int) -> void:
 		return
 	# no crew here: bounty hunters try their luck on a notorious captain (Bounty)
 	var p = _gm().player
-	var tier := Bounty.tier_of(int(p.bounty)) if p and is_instance_valid(p) else 0
+	var tier := Bounty.heat_tier(p) if p and is_instance_valid(p) else 0
 	if tier >= HUNTERS_FROM:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(["hunters", int(n.get("seed", id))])

@@ -42,3 +42,7 @@ func _icon(id) -> Texture2D:
 
 func _do(id) -> void:
 	ActionWheel.run(id, player)
+
+
+func tip_id() -> String:
+	return "action"

@@ -16,6 +16,7 @@ const STEPS := [
 	{"id": "see_gus", "goal": "Find Gus at the Salted Gull", "npc": "Gus Brannock", "who": "Gus"},
 	{"id": "see_nessa", "goal": "See Nessa at the market", "npc": "Nessa", "who": "Nessa"},
 	{"id": "see_vey", "goal": "Find Sergeant Vey at the training yard", "npc": "Sergeant Vey", "who": "Vey"},
+	{"id": "vey_drills", "goal": "Show Vey every move on the training dummies", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "smugglers", "goal": "Drive the smugglers out of the south cove", "place": "smugglers", "who": "Smugglers' camp"},
 	{"id": "vey_skills", "goal": "Report back to Sergeant Vey", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "grell", "goal": "Defeat Captain Grell at the pirate den", "place": "den", "who": "Pirate den"},
@@ -129,6 +130,7 @@ func complete(id: String) -> void:
 	var i := index_of(id) + 1
 	step = STEPS[i]["id"] if i < STEPS.size() else DONE
 	changed.emit()
+	_drills()
 	if step == DONE:
 		UIStyle.sfx("quest_done")
 		get_tree().call_group("hud", "show_banner", "The sea is yours", "Sail where you like, Captain")
@@ -139,7 +141,14 @@ func complete(id: String) -> void:
 	_check_won()
 
 
+## Vey's drills (Drills: the yard's checklist) while that's the step.
+func _drills() -> void:
+	if step == "vey_drills":
+		Drills.start(get_tree())
+
+
 func _ready() -> void:
+	changed.connect(_drills)
 	Dialogue.dialogue_event.connect(func(ev: String):
 		if ev.begins_with("story:"):
 			complete(ev.substr(6)))

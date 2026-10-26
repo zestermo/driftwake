@@ -95,10 +95,14 @@ func _process(d: float) -> bool:
 			bug.hurtbox.take_hit(hit, p)
 			check("dies", bug.state == 9)
 			check("death ragdoll", bug._rag != null)
-			check("coins dropped", root.get_tree().current_scene.find_children("Coin*", "", false, false).size() > 0)
+			# (1.22: 60% of kills pay coins; the rates are t/economy/drop_rates')
 			until = TK.wait_secs(1.5)
 		6:
 			var left := root.get_tree().current_scene.find_children("Coin*", "", false, false)
+			if left.is_empty():
+				# (the 60% roll missed: coins of our own, to see them fly)
+				load("res://scripts/loot/coin_pickup.gd").spawn(root.get_tree(), bug.global_position + Vector3.UP * 0.5, 3)
+				left = root.get_tree().current_scene.find_children("Coin*", "", false, false)
 			if not left.is_empty():
 				p.global_position = (left[0] as Node3D).global_position + Vector3(1.5, 0.5, 0)
 				p.reset_physics_interpolation()

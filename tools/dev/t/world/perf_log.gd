@@ -34,11 +34,11 @@ func _process(_d: float) -> bool:
 				f.store_string("session %d" % k)
 				f.close()
 			perf.mark("test mark")
-			perf._note_hitch(80.0, perf._pipe_counts(), 100)
+			perf._note_spike(80.0, perf._pipe_counts(), 100, 1)
 			perf._write_line()
 			var txt := FileAccess.get_file_as_string(perf.log_path())
 			check("the new session's log has a header and a line", txt.begins_with("Driftwake") and txt.contains(" min  fps "))
-			check("...and the hitch, with what was marked in it", txt.contains("hitch  80.0 ms") and txt.contains("marks: test mark"))
+			check("...and the spike, with what was marked in it", txt.contains("spike  80.0 ms") and txt.contains("marks: test mark"))
 			check("the sessions before moved down one", FileAccess.get_file_as_string(perf.log_path(1)) == "session 0"
 				and FileAccess.get_file_as_string(perf.log_path(4)) == "session 3")
 			check("...and the oldest went", not FileAccess.file_exists(DIR + "perf_5.log"))

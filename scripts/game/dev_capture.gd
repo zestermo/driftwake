@@ -301,6 +301,16 @@ func state_text() -> String:
 			L.append("  %s (%s) %.1f m  state %s  hp %s  at %s" % [e.name, scr.resource_path.get_file() if scr else e.get_class(),
 				it[0], str(_call(e, "state_name", _prop(e, "state"))), ("%.0f" % hp.current_health) if hp else "?", _v(e.global_position)])
 
+	# --- the last spikes (Perf: frames over SPIKE_MS, what ran in them)
+	var perf := get_node_or_null("/root/Perf")
+	if perf:
+		L.append("")
+		L.append("## Last spikes (frames over %d ms, newest last; %d this half minute)" % [int(perf.SPIKE_MS), int(perf._spikes)])
+		for line in perf.recent:
+			L.append(line)
+		if perf.recent.is_empty():
+			L.append("  (none)")
+
 	# --- log tail
 	L.append("")
 	L.append("## Godot log (last %d lines)" % LOG_LINES)

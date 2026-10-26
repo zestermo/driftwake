@@ -6519,3 +6519,21 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   BOARD, HOLD, RAM; TRACK from piece 4), on every screen from the state its snapshots carry.
 - Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics, t/ship/ram_hole, t/ship/boarding_boat;
   t/ship/enemy_boarding holds her boat (it tests grapples).
+## 2026-10-26: 1.23 perf track, piece 1: the spike logger
+- Zach: the game "feels heavy at times". `Perf` (scripts/game/perf_monitor.gd) now logs every frame over
+  `SPIKE_MS` 25 ms (was: hitches over 50 only) with what ran in it: physics ticks run in the frame, the process /
+  physics / render split, pipelines compiled, nodes made; the **timed sections** (`Perf.add_us(Perf.ANIM, us)`: anim
+  = rigs posed, ai, build, spawn, sleep, fx: ms/calls), the **slowest named steps** (`Perf.step(what, us)`: chain island
+  build steps, "into the tree", freeing a let-go island), what was **spawned** (SceneTree.node_added: count and by
+  script), who was **awake** (enemies awake/all, AI captains, ActorSleep's actors awake/all and hidden:
+  `ActorSleep.tally()`), **co-op** (host/guest, captains, worst ping), the captain's state and place, and the marks.
+- A run of slow frames writes a line every 0.25 s (every hitch over 50 ms always); 20 lines a half minute at most. The
+  30 s line has `spikes N` beside `hitches`. Release builds log too (user://perf.log, last five sessions kept).
+- `Perf.recent`: the last 16 spike lines; the F12 capture's .txt lists them ("## Last spikes").
+- Humanoid's posing moved to `_pose(delta)`, timed in `_process` into the statics `Humanoid.anim_us` / `anim_n` that
+  Perf folds into ANIM each frame (humanoid.gd can't name the Perf autoload: a --script compiles it first) (wallclock_allow:
+  `scripts/npc/humanoid.gd:_process`). Cost on a normal frame: two fills of a 6-int array, a ticks read, and per posed
+  rig two usec reads and a call (~0.5 us a rig); node_added a call per node added.
+- Hooks for the enemy brains (lead's files): `Perf.add_us(Perf.AI, Time.get_ticks_usec() - t0)` round a brain's think.
+- Tests: t/world/spike_log (new: a frame forced over 50 ms with a step timed in it and a node spawned is in
+  Perf.recent, the perf log and the F12 text with its cause), t/world/perf_log (spike line), t/world/actor_sleep.

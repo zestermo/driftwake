@@ -31,6 +31,7 @@ param(
 	[switch]$NoConfirm
 )
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "perf_budgets_lib.ps1")
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $basePath = Join-Path $PSScriptRoot "perf_baseline.txt"
 $FRAME_PCT = 15.0
@@ -79,12 +80,14 @@ function Read-Bench([string]$path) {
 		$f = @($lines[$k].Trim() -split '\s+')
 		$r.scripts[$f[0]] = [double]$f[$ci]
 	}
+	$r.draw = (Read-BenchBudget $path).draw
 	return $r
 }
 
 ## Several runs of one light as one: each stop's (and script's) best, ALL = the mean of the stops.
 function Merge-Runs($each) {
-	$m = @{ calib = ($each | ForEach-Object { $_.calib } | Measure-Object -Minimum).Minimum; machine = $each[0].machine; stops = [ordered]@{}; scripts = @{} }
+	$m = @{ calib = ($each | ForEach-Object { $_.calib } | Measure-Object -Minimum).Minimum; machine = $each[0].machine; stops = [ordered]@{}; scripts = @{}
+		draw = ($each | ForEach-Object { $_.draw } | Measure-Object -Minimum).Minimum }
 	foreach ($s in $each[0].stops.Keys) {
 		$row = @{}
 		foreach ($c in $COLS) { $row[$c] = ($each | ForEach-Object { $_.stops[$s][$c] } | Measure-Object -Minimum).Minimum }
@@ -223,6 +226,8 @@ function Compare-Light([int]$h, $base, $now, [string]$what) {
 		if ($g.d -lt 0.01) { break }
 		Write-Host ("    {0,-46} {1,7:N3} -> {2,7:N3}  {3:+0.000}" -f $g.n, $g.a, $g.b, $g.d) -ForegroundColor $(if ($g.d -ge 0.1) { "Yellow" } else { "Gray" })
 	}
+	# (per-system budgets, tools/dev/perf_budgets.txt: a warning, never a fail)
+	$null = Show-Budgets (Get-Budgets) $now.scripts $now.draw "this checkout, $h`:00"
 	return , $fails
 }
 

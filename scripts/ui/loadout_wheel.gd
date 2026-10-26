@@ -70,3 +70,7 @@ func _do(id) -> void:
 
 func _tap() -> void:
 	player.swap_loadout((player.loadout_at + 1) % player.loadout_slots())
+
+
+func tip_id() -> String:
+	return "loadout"

@@ -51,6 +51,15 @@ static func asleep(actor: Node) -> bool:
 	return false
 
 
+## [actors, asleep, hidden] (the spike log's).
+static func tally() -> Array:
+	var out := [_all.size(), 0, 0]
+	for e in _all:
+		out[1] += int(bool(e["asleep"]))
+		out[2] += int(bool(e["hid"]))
+	return out
+
+
 func _process(delta: float) -> void:
 	if not enabled:
 		for e in _all:
