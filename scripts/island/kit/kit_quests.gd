@@ -247,7 +247,7 @@ const CLEARED := "cleared_"
 
 
 func _cleared(id: String) -> bool:
-	return bool(GameManager.world_flags.get(CLEARED + id, false))
+	return bool(get_node("/root/GameManager").world_flags.get(CLEARED + id, false))
 
 
 ## Twice a second for the local captain: a place reached, a POI cleared (the host says), lost things shown.

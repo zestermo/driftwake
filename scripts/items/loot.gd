@@ -119,7 +119,23 @@ static func rarity_round(tier: int, kind_of_chest: String, rng: RandomNumberGene
 			off = i - 1
 			break
 	var r := clampi(tier + off, 1, 4)
-	return mini(r, 2) if tier < 3 else r
+	if tier < 3:
+		return mini(r, 2)
+	# (1.23 bounty heat's small upside: +0.5% purple a bounty tier, on islands that can have it)
+	if r == 2 and rng.randf() < BOUNTY_PURPLE * _bounty_tier():
+		r = 3
+	return r
+
+
+## The local captain's bounty tier (Bounty), for the chests' small upside (1.23: a counterweight, not a reward).
+const BOUNTY_GOLD := 0.02
+const BOUNTY_PURPLE := 0.005
+
+
+static func _bounty_tier() -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	var p := tree.get_first_node_in_group("player") if tree else null
+	return Bounty.tier_of(int(p.get("bounty"))) if p and p.get("bounty") != null else 0
 
 
 ## A chest's contents rolled for this captain (see the header). `placed`: a hand-placed chest of the
@@ -137,7 +153,7 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 		var it := st.item
 		var n := st.quantity
 		if it.id == "gold":
-			n = maxi(_whole(n * CHEST_GOLD_K * rng.randf_range(0.7, 1.3), rng), 1)
+			n = maxi(_whole(n * CHEST_GOLD_K * rng.randf_range(0.7, 1.3) * (1.0 + BOUNTY_GOLD * _bounty_tier()), rng), 1)
 		elif it.is_loot() and it.id.begins_with("treasure"):
 			n = maxi(_keep(n, TREASURE_KEEP, rng), 1 if hoard else 0)
 		elif it.is_consumable() and it.devil_fruit == "":

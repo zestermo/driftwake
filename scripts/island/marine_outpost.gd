@@ -176,7 +176,7 @@ func _make(rng: RandomNumberGenerator) -> void:
 	add_child(_chest)
 	_chest.position = Vector3(-2.0, 0.0, 3.0)
 	(_chest.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
-	_apply_raided(GameManager.world_flags.has(key))
+	_apply_raided(get_node("/root/GameManager").world_flags.has(key))
 
 
 func _ready() -> void:
@@ -209,7 +209,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var dt := _t
 	_t = 0.0
-	if not raided and GameManager.world_flags.has(key):
+	if not raided and get_node("/root/GameManager").world_flags.has(key):
 		_apply_raided(true)
 	var net := get_node("/root/Net")
 	if not net.is_host() or raided:
@@ -261,7 +261,7 @@ func say(line: String) -> void:
 ## (host) The alarm: a squad for captain `p`'s bounty, on every screen.
 func _raise(p: Player) -> void:
 	var net := get_node("/root/Net")
-	var n := SQUAD + Bounty.tier_of(int(p.bounty))
+	var n := SQUAD + Bounty.heat_tier(p)
 	net.everyone("_all_outpost_alarm", [net.key_of(self), n, level, net.key_of(p)])
 
 
@@ -310,7 +310,7 @@ func _free_prisoner(by: Player) -> void:
 	if not raided or by == null:
 		return
 	var flag := key + "_freed"
-	if GameManager.world_flags.has(flag):
+	if get_node("/root/GameManager").world_flags.has(flag):
 		return
 	get_node("/root/Net").world_flag(flag)
 	var gold := 40 + tier * 30

@@ -136,3 +136,25 @@ static func _day(tree: SceneTree) -> int:
 static func next_tier(b: int) -> Array:
 	var t := tier_of(b)
 	return [] if t >= TIERS.size() - 1 else [str(TIERS[t + 1][1]), int(TIERS[t + 1][0]), str(TIERS[t + 1][2])]
+
+
+## Heat (1.23: bounty as a counterweight): what the Admiralty and hunters go by. The bounty itself never falls, but a
+## day without a deed cools the heat by COOL (at most down to HEAT_FLOOR of it), so lying low thins the pursuit.
+const COOL := 0.02
+const HEAT_FLOOR := 0.5
+
+
+static func heat(p: Node) -> int:
+	if p == null or p.get("bounty") == null:
+		return 0
+	var b := int(p.get("bounty"))
+	var log_ = p.get("bounty_log")
+	if not (log_ is Array) or (log_ as Array).is_empty():
+		return b
+	var days := maxi(_day(p.get_tree()) - int((log_ as Array)[-1][2]), 0)
+	return roundi(b * maxf(1.0 - COOL * days, HEAT_FLOOR))
+
+
+## The tier pursuit goes by (patrols, blockades, hunters): the heat's.
+static func heat_tier(p: Node) -> int:
+	return tier_of(heat(p))

@@ -48,8 +48,9 @@ func _on_hit(data: HitData, _attacker: Node) -> void:
 		else:
 			smash()
 	else:
-		FX.dust(at, 3, 0.4)
-		FX.sfx("thud", at, -8.0)
+		var fx := get_node("/root/FX")
+		fx.dust(at, 3, 0.4)
+		fx.sfx("thud", at, -8.0)
 
 
 ## (every machine) splinters and dust; the prop's meshes and colliders go until it comes back.
@@ -60,10 +61,11 @@ func smash() -> void:
 	_back_t = RETURN
 	var at := (owner as Node3D).global_position + Vector3.UP * _size * 0.5
 	# (each screen its own: every machine smashes its copy through Net._all_break)
-	FX.impact(at, Color(0.75, 0.6, 0.4))
-	FX.dust(at, 10, 0.8)
-	FX.sparkle(at, 8, Color(0.62, 0.45, 0.28))
-	FX.sfx("wood_crack", at, -4.0, 0.12, 1.0)
+	var fx := get_node("/root/FX")
+	fx.impact(at, Color(0.75, 0.6, 0.4))
+	fx.dust(at, 10, 0.8)
+	fx.sparkle(at, 8, Color(0.62, 0.45, 0.28))
+	fx.sfx("wood_crack", at, -4.0, 0.12, 1.0)
 	_show(false)
 
 
