@@ -170,9 +170,10 @@ func _finish_ready() -> void:
 		_pending.erase(id)
 		if _wanted().has(id):
 			var isl: GenIsland = e[0]
-			Perf.mark("%s into the tree" % isl.name)
+			var t := Time.get_ticks_usec()
 			isl.start_beasts()
 			add_child(isl)
+			Perf.step("%s into the tree" % isl.name, Time.get_ticks_usec() - t)
 			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0, 0]
 		else:
 			(e[0] as Node).free()
@@ -190,10 +191,10 @@ func _finish_step() -> void:
 	var t := Time.get_ticks_usec()
 	e[6] = int(e[6]) + 1
 	while true:
-		Perf.mark("%s step '%s'" % [isl.name, e[1][e[2]][0]])
 		var t1 := Time.get_ticks_usec()
 		e[5] = maxi(int(e[5]), isl.run_step(e[1][e[2]]))
 		e[4] = int(e[4]) + Time.get_ticks_usec() - t1
+		Perf.step("%s '%s'" % [isl.name, e[1][e[2]][0]], Time.get_ticks_usec() - t1)
 		e[2] = int(e[2]) + 1
 		if int(e[2]) >= (e[1] as Array).size():
 			_finishing.erase(id)
@@ -266,7 +267,7 @@ func _free_some() -> void:
 			_freeing.pop_front()
 		at.free()
 		n += 1
-	Perf.mark("freed %d pieces of islands let go" % n)
+	Perf.step("freed %d pieces of islands let go" % n, Time.get_ticks_usec() - t)
 
 
 ## The island chain from GameManager.chain_seed (remade when a load or a host's world changes it).

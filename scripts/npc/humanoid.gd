@@ -2884,6 +2884,12 @@ func _process(delta: float) -> void:
 		_lod_acc = 0.0
 		if far_figure and _figure(delta):
 			return
+	var t0 := Time.get_ticks_usec()
+	_pose(delta)
+	Perf.add_us(Perf.ANIM, Time.get_ticks_usec() - t0)
+
+
+func _pose(delta: float) -> void:
 	pose_frame = Engine.get_process_frames()
 	_t += delta
 	# bare-handed fighting: close the hands while the fist stance is up
