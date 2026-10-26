@@ -490,6 +490,72 @@ func _update_gold(delta: float) -> void:
 		_bounty_label.text = ("Bounty %s%s" % [Bounty.fmt(b), "  -  " + t if t != "" else ""]) if b > 0 else ""
 	_bounty_t = maxf(_bounty_t - delta, 0.0)
 	_bounty_label.modulate.a = 1.0 if keep else clampf(_bounty_t / 0.8, 0.0, 1.0)
+	_update_heat(delta)
+
+
+## Heat (1.23 "Bounty"): HUNTED while ships are chasing the crew (group "pursuing": EnemyShip in a chase), and an
+## "escaped" banner when the last one gives up after a real chase. And the morning paper: at dawn, yesterday's deeds.
+var _heat_label: Label
+var _heat_t := 0.0
+var _hunted_for := 0.0
+var _paper_day := -1
+const HEAT_EVERY := 0.5
+const ESCAPE_AFTER := 8.0
+
+
+func _update_heat(delta: float) -> void:
+	if _heat_label == null:
+		_heat_label = _tiny_label()
+		_heat_label.name = "Heat"
+		_heat_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		_heat_label.offset_left = -120; _heat_label.offset_right = 120; _heat_label.offset_top = 30; _heat_label.offset_bottom = 44
+		_heat_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_heat_label.add_theme_font_size_override("font_size", 12)
+		_heat_label.add_theme_color_override("font_color", Color(1.0, 0.32, 0.25))
+		_heat_label.visible = false
+		add_child(_heat_label)
+	if _heat_label.visible:
+		_heat_label.modulate.a = 0.65 + 0.35 * sin(_heat_t * 6.0)
+	_heat_t += delta
+	if fmod(_heat_t, HEAT_EVERY) > delta:
+		return
+	var n := get_tree().get_nodes_in_group("pursuing").size()
+	if n > 0:
+		_hunted_for += HEAT_EVERY
+		_heat_label.text = "HUNTED  -  %d ship%s on your wake" % [n, "" if n == 1 else "s"]
+		_heat_label.visible = not _menu_open
+	else:
+		if _hunted_for >= ESCAPE_AFTER:
+			show_banner("Escaped", "They've lost your wake.", true)
+		_hunted_for = 0.0
+		_heat_label.visible = false
+	_morning_paper()
+
+
+func _morning_paper() -> void:
+	var w := get_node_or_null("/root/Weather")
+	if w == null or player == null:
+		return
+	var d := int(w.call("day"))
+	if _paper_day < 0:
+		_paper_day = d
+		return
+	if d == _paper_day:
+		return
+	_paper_day = d
+	var log_: Array = player.get("bounty_log") if player.get("bounty_log") is Array else []
+	var gold := 0
+	var deeds := []
+	for e in log_:
+		if int(e[2]) == d - 1:
+			gold += int(e[1])
+			if not deeds.has(str(e[0])):
+				deeds.append(str(e[0]))
+	if gold <= 0:
+		return
+	var who := str(player.call("display_name")) if player.has_method("display_name") else "a captain"
+	var what := str(Bounty.WHY.get(deeds[0], "for trouble")) if not deeds.is_empty() else "for trouble"
+	show_banner("The Morning Gull", "\"%s's bounty climbs %s gold %s.\"" % [who, Bounty.fmt(gold), what])
 
 
 # ---- Skill bar ----

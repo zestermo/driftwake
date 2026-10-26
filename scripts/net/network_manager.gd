@@ -1346,7 +1346,7 @@ func _all_bounty(kind: String, at: Vector3, reach: float, k: float) -> void:
 	var p := _me()
 	if p == null or (at != Vector3.INF and p.global_position.distance_to(at) > reach):
 		return
-	Bounty.add(p, roundi(float(Bounty.TABLE.get(kind, 0)) * k))
+	Bounty.add(p, roundi(float(Bounty.TABLE.get(kind, 0)) * k), kind)
 
 
 func _all_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:

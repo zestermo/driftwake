@@ -19,11 +19,14 @@ tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 scripts/ship/enemy_ship.gd              t/ship/admiralty_patrol
-scripts/enemies/pirate_grunt.gd         t/combat/grunt_roles
+scripts/enemies/pirate_grunt.gd         t/combat/grunt_roles t/combat/grunt_pressed t/combat/boss_no_heal_return
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
 scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters t/combat/admiralty_hunter t/combat/arrest
-scripts/game/bounty.gd                  t/progression/bounty
+scripts/game/bounty.gd                  t/progression/bounty t/ui/wanted
+scripts/ui/wanted_*.gd                  t/ui/wanted
+scripts/world/ground_net.gd             t/swim/under_island
+scripts/quests/journal.gd               t/quests
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene t/ui/intro
 scripts/game/intro.gd                   t/ui/intro
