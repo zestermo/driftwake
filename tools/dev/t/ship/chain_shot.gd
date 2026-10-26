@@ -30,6 +30,8 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			ship = stage.ship
+			p.health_component.max_health = 99999.0
+			p.health_component.current_health = 99999.0
 			p.global_position = ship.to_global(Vector3(0.5, 0.6, 3.0))
 			p.reset_physics_interpolation()
 			ship.sail = 1.0
@@ -45,8 +47,9 @@ func _process(_d: float) -> bool:
 			check("...a plain sloop doesn't", not sloop.get("chain", false))
 			# a chain ball across her beam, through the mainsail
 			var CB = load("res://scripts/ship/cannonball.gd")
-			var from: Vector3 = ship.to_global(Vector3(30.0, 11.5, -1.8))
-			var to: Vector3 = ship.to_global(Vector3(-10.0, 10.0, -1.8))
+			# (through the canvas abaft the mast, so it flies on into the sea rather than bursting on the mast)
+			var from: Vector3 = ship.to_global(Vector3(30.0, 11.5, -0.2))
+			var to: Vector3 = ship.to_global(Vector3(-10.0, 10.0, -0.2))
 			var b = CB.launch(self, from, (to - from).normalized() * 46.0 + ship.hull_velocity(), "enemy", true, es, es, "test#1", true)
 			b.hull_damage = 7.0
 			until = TK.wait_secs(1.5)
