@@ -74,7 +74,17 @@ by itself; nothing waits for input. That's why lines were "too fast to read" and
 
 Order: advancing is a bug-pass fix (step 1); replies come with the island arcs (step 5) and the rivals (step 6).
 
+### From the inspiration research (2026-10-26, docs/inspiration_research.md)
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| In 1.23 | **Part breaks on beast bosses** (2-3 parts each: a break staggers it, removes or changes a move, drops a part material); **breakable places** (crates, stalls, fences, awnings under heavy hits and ultimates; a few big breakables in boss arenas); **masters teach trees** (a master per weapon tree in the chain, a duel test on the captain AI, techniques taught as mastery rises with a short "learned!" scene, the last nodes behind a final test; the face of points per tree); **bounty as heat** (the bounty is the difficulty bar: more and stronger patrols, elites, hunters, better loot and shady prices as it rises; raise it or lie low); **hidden finishes** (1-2 secret win conditions per boss or arc villain, each with a special reward) | Zach's picks | After play |
+| Not picked | A **visible** guard gauge (poise stays hidden; the stagger shows it), a game-wide elite affix system (elites stay as decided in round 2), a separate loadout screen | Zach | After play |
+| Own grills after 1.23 | **Crew Rush** (a shared gauge, combination finishers from two captains' styles); **style families and awakenings** (Power/Speed/Technique/Ranged movement, the ultimate tier as a timed transformation); **Sea Charts** (replayable star-rated co-op challenge missions); **shrines and cursed relics** | Zach | After 1.23 |
+
 ### Open / deferred
+- Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
+  while building and listed for Zach's review with the per-tree point curve.
 - Rival presence beyond the bug fix (Zach: no preference): **assumed** more often on islands (a gap of 2, and a crew
   can turn up mid-arc as a third party) and rivalry made visible (their posters and bounties beside yours, news of them
   taking an island ahead of you). Meeting rival ships at sea waits until the sea pursuit work has landed.
