@@ -52,7 +52,7 @@ func _process(_d: float) -> bool:
 			pl["last"] = str(pl["crew"])
 			gm.rivals[str(pl["crew"])] = {"met": 1, "won": 0, "lost": 0}
 	check("then rolled: some islands of 30 (%d), never before %d have passed" % [came.size(), w.MIN_GAP],
-		came.size() >= 3 and came.size() <= 10 and came.all(func(c): return int(c[1]) >= w.MIN_GAP))
+		came.size() >= 4 and came.size() <= 15 and came.all(func(c): return int(c[1]) >= w.MIN_GAP))
 	var crews := came.map(func(c): return c[2])
 	check("...the crews not met yet first (%s)" % str(crews.slice(0, 3)), crews.size() >= 3 and not "mudlark_brigade" in crews.slice(0, 3)
 		and crews.slice(0, 3).size() == {crews[0]: 1, crews[1]: 1, crews[2]: 1}.size())
