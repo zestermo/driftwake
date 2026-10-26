@@ -11,8 +11,8 @@ extends Node
 ## The plan lives in GameManager.rivals["_plan"] (saved with them).
 
 const FIRST_CREW := "mudlark_brigade"
-const MIN_GAP := 3
-const CHANCE := 0.45
+const MIN_GAP := 2
+const CHANCE := 0.5
 ## Ashore this long, this far from the dock, and nothing hostile awake this close: they come.
 const ASHORE_S := 20.0
 const INLAND := 45.0

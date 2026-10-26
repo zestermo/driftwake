@@ -82,6 +82,20 @@ static func plan(gi: GenIsland) -> IslandLife:
 		L.folk.append(L._person(rng, "%s %s" % [r["title"], names[i]], roles[i], str(r["work"]), true))
 	for i in range(rng.randi_range(AMBIENT[0], AMBIENT[1])):
 		L.folk.append(L._person(rng, names[NAMED + i], "", JOBS[rng.randi() % JOBS.size()], false))
+	# the village's traders (VillageVendors, 1.23): named folk with a market spot and a shop, on a stream of their own
+	var vrng := RandomNumberGenerator.new()
+	vrng.seed = hash([int(gi.node["seed"]), 5108])
+	var used := L.folk.map(func(f): return str(f["name"]).get_slice(" ", str(f["name"]).get_slice_count(" ") - 1))
+	for t in VillageVendors.roll(int(gi.node["seed"]), IslandContent.tier(gi)):
+		var nm: String = names[vrng.randi() % names.size()]
+		for k in range(8):
+			if not used.has(nm):
+				break
+			nm = names[vrng.randi() % names.size()]
+		used.append(nm)
+		var f := L._person(vrng, "%s %s" % [VillageVendors.TRADES[t]["title"], nm], "vendor:" + str(t), "market", true)
+		f["eve"] = "inn"
+		L.folk.append(f)
 	for k in _shuffled(KitQuests.KINDS, rng):
 		L.quests.append({"kind": k, "pick": rng.randf(), "pick2": rng.randf()})
 	L.quest_count = rng.randi_range(2, 3)
@@ -243,7 +257,7 @@ func _own_lines(i: int) -> void:
 		var g: Dictionary = folk[givers[i % givers.size()]["giver_i"]]
 		own["pointer"] = deck.deal("pointer", b["pointer"], 1).map(func(l): return LifePools.fill(l, {"who": g["name"], "where": _where(g)}))
 	if f["named"]:
-		var role: Dictionary = pools["roles"][f["role"]]
+		var role: Dictionary = _role(f)
 		own["talk"] = deck.deal("role_" + str(f["role"]), role["talk"], 3)
 		own["menu"] = deck.one("menu", pools["menu"])
 		own["quiet"] = deck.one("quiet", pools["rumour_quiet"])
@@ -443,6 +457,12 @@ func _routine(i: int) -> void:
 	f["walks"] = walks
 
 
+## A named person's role table: the theme's (pools.roles), or a trader's (VillageVendors).
+func _role(f: Dictionary) -> Dictionary:
+	var r := str(f["role"])
+	return VillageVendors.role(r.substr(7)) if r.begins_with("vendor:") else pools["roles"][r]
+
+
 func _short(f: Dictionary) -> String:
 	var parts := str(f["name"]).split(" ")
 	return parts[parts.size() - 1]
@@ -462,7 +482,7 @@ func _pois() -> Array:
 
 func _define_talk(i: int) -> void:
 	var f: Dictionary = folk[i]
-	var role: Dictionary = pools["roles"][f["role"]]
+	var role: Dictionary = _role(f)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(isl.node["seed"]), 5102, i])
 	var tok := {"name": _short(f)}
@@ -479,6 +499,13 @@ func _define_talk(i: int) -> void:
 		"self": {"text": _fill_all(role["self"], tok), "next": "menu"},
 		"work": {"text": own["talk"], "next": "menu"},
 	}
+	# a trader: their wares first on the menu (VillageVendors; the shop is theirs, the same on every machine)
+	var r := str(f["role"])
+	if r.begins_with("vendor:"):
+		var sid := key("shop%d" % i)
+		Shops.extra[sid] = VillageVendors.shop(r.substr(7), _short(f))
+		nodes["trade"] = {"text": [str(Shops.extra[sid]["line"])], "event": "shop:" + sid, "next": "end"}
+		menu.insert(0, {"text": "Show me your wares.", "next": "trade"})
 	for k in [["isle", heard], ["ahead", ahead]]:
 		if not (k[1] as Array).is_empty():
 			nodes[k[0]]["event"] = "rumour:%s_%s" % [f["talk"], k[0]]
@@ -652,6 +679,8 @@ func _spawn(i0: int) -> void:
 			cfg["dialogue"] = f["talk"]
 		else:
 			cfg["barks"] = f["barks"]
+			# (1.23: the crowd is scenery: their lines over their heads, no talk prompt)
+			cfg["scenery"] = true
 		var v := Villager.new()
 		v.setup(cfg)
 		v.follow(isl, f["stays"], f["walks"], _ambient(f))

@@ -166,7 +166,7 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	rest.name = "Rest"
 	rest.collision_layer = 512
 	rest.collision_mask = 0
-	rest.prompt_text = "Rest at the inn"
+	rest.prompt_text = "Rest at the inn  (K: switch your build here)"
 	rest.gesture = "push"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
@@ -178,6 +178,7 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	var door_y: float = inn.get("floor_y", isl.hv(inn_door))
 	rest.global_position = isl.to_global(Vector3(inn_door.x, door_y + 1.4, inn_door.y))
 	rest.interacted.connect(func(player: Player): player.call("_toast", GameManager.rest(player)))
+	rest.add_to_group("rest_spots")
 	# the trader's store and the cookhouse
 	var trade_id := _key("trader")
 	var food_id := _key("cook")
@@ -240,7 +241,7 @@ func _build_people(rng: RandomNumberGenerator) -> void:
 	var pr: float = p["plaza_r"]
 	for i in range(4, lks.size()):
 		var q := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(pr * 0.4, pr * 0.85)
-		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i], "barks": deck.deal("day", day, 2)}, q, c - q, hy)
+		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i], "barks": deck.deal("day", day, 2), "scenery": true}, q, c - q, hy)
 	# the jobs (posted on the board by IslandLife) and the talk
 	var camp = isl.get_node("Site_camp/Camp")
 	jobs["camp"] = {"name": str(camp.specs.filter(func(s): return s.get("captain", false))[0]["title"]), "at": isl.sites["camp"],
@@ -469,7 +470,9 @@ static func _market_steps(gi: GenIsland) -> Array:
 
 
 func _stalls(m: Dictionary) -> void:
-	var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])))
+	# (the shape on a stream of its own: the market's other draws stay as they were for the horseshoe)
+	var shape: String = KitMarket.force_shape if KitMarket.force_shape != "" else KitMarket.SHAPES[KitVillage._seeded(int(m["seed"]) + 7).randi() % KitMarket.SHAPES.size()]
+	var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])), 6.2, 5.4, 8.2, [8.0, 9.5], 9.0, shape)
 	market = {"c": m["c"], "stalls": stalls}
 	for s in stalls:
 		work_spots.append({"kind": "market", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})

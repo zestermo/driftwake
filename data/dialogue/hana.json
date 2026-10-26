@@ -1,0 +1,55 @@
+{
+	"speaker": "Hana Teal",
+	"voice": 1.2,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Welcome to the teahouse. Climb the stair, drink the tea, look at the sea.",
+				"Sit wherever the wind isn't."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Tea?",
+			"choices": [
+				{ "text": "Gus says you taught him to fight with his feet.", "next": "legs", "hide_if": "master_black_leg" },
+				{ "text": "Tell me about the teahouse.", "next": "house" },
+				{ "text": "Just the view, thanks.", "next": "bye" }
+			]
+		},
+		"legs": {
+			"text": [
+				"Gus? He came to me with a ladle in each hand and a temper like a stove. A cook's hands are for the pot. So we taught his legs instead.",
+				"It's the kitchen's way: low kick, high kick, the heel from above, and when they crowd you, down on your hands and sweep the floor with them.",
+				"I don't teach just anyone. Tomo, my pupil, will spar with you. Bare hands, no blades. Put him down and I'll teach you the rest."
+			],
+			"next": "legs_ask"
+		},
+		"legs_ask": {
+			"text": "Ready?",
+			"choices": [
+				{ "text": "Bring him out.", "next": "legs_test" },
+				{ "text": "Another time.", "next": "menu" }
+			]
+		},
+		"legs_test": {
+			"text": [
+				"Tomo! A guest wants to learn. Mind the teacups."
+			],
+			"event": "master:black_leg",
+			"next": "end"
+		},
+		"house": {
+			"text": [
+				"Tea from the far east, by way of Ysolde's junk and a great deal of arguing.",
+				"The keeper takes her lunch here every day and pays every other day. It evens out at the shrine."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "The sea's always there. So's the tea."
+		}
+	}
+}

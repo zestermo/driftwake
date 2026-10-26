@@ -121,6 +121,21 @@ func target_is_person(id: String) -> bool:
 	return is_instance_valid(src) and src.is_person(_defs[id], int(entries[id]["step"]))
 
 
+## The mark over person `who`'s head (1.23): "?" when a quest of theirs is ready to turn in, "!" when they've one to
+## give that the crew hasn't taken (board notices are taken at the board: no "!" for the poster), else "".
+func marker_for(who: String) -> String:
+	var mark := ""
+	for id in _defs.keys():
+		var q: Dictionary = _defs[id]
+		if str(q.get("giver", "")) != who:
+			continue
+		if at_turnin(id):
+			return "?"
+		if not entries.has(id) and str(q.get("src", "")) != "board":
+			mark = "!"
+	return mark
+
+
 func discount(shop_id: String) -> float:
 	return float(perks.get("discount:" + shop_id, 0.0))
 

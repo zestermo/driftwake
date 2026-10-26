@@ -12,6 +12,7 @@ extends Node3D
 ##                                       # an entry may be {"text", "after"/"before": story step}
 ##       "waypoints": [Vector3...],      # local positions (same space as the NPC's parent)
 ##       "voice": 1.0,                   # blip pitch
+##       "scenery": true,                # a face in the crowd: no talk prompt (1.23), barks over its head only
 ##   })
 ## `ground_func` (Callable(x, z) -> y) keeps wanderers glued to the terrain.
 
@@ -92,6 +93,8 @@ func setup(cfg: Dictionary) -> NPC:
 	interactable.position = Vector3.ZERO
 	add_child(interactable)
 	interactable.interacted.connect(_on_interacted)
+	if bool(cfg.get("scenery", false)):
+		interactable.enabled = false
 
 	name_tag = Label3D.new()
 	name_tag.name = "NameTag"
@@ -107,6 +110,42 @@ func setup(cfg: Dictionary) -> NPC:
 	name_tag.visible = false
 	add_child(name_tag)
 	return self
+
+
+## The quest mark over their head (1.23): a gold "!" with a quest to give, "?" with one ready to turn in
+## (Journal.marker_for), looked up once a second while a captain's within MARK_R.
+const MARK_R := 45.0
+var _mark: Label3D
+var _mark_t := 0.0
+
+
+func _quest_mark(delta: float, dist: float) -> void:
+	if not interactable or not interactable.enabled:
+		return
+	_mark_t -= delta
+	if _mark_t > 0.0:
+		return
+	_mark_t = 1.0
+	var j := get_node_or_null("/root/Journal")
+	var m: String = j.marker_for(npc_name) if j and dist < MARK_R else ""
+	if m == "" and _mark == null:
+		return
+	if _mark == null:
+		_mark = Label3D.new()
+		_mark.name = "QuestMark"
+		_mark.font = load("res://assets/fonts/PixelifySans-SemiBold.woff2")
+		_mark.font_size = 64
+		_mark.pixel_size = 0.008
+		_mark.outline_size = 12
+		_mark.outline_modulate = Color(0.2, 0.12, 0.04)
+		_mark.modulate = Color(1.0, 0.82, 0.25)
+		_mark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_mark.no_depth_test = true
+		_mark.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		_mark.position = name_tag.position + Vector3(0, 0.45, 0)
+		add_child(_mark)
+	_mark.text = m
+	_mark.visible = m != "" and not _in_dialogue
 
 
 func _short_name() -> String:
@@ -178,6 +217,7 @@ func _process(frame_delta: float) -> void:
 	var delta := _far_acc
 	_far_acc = 0.0
 	name_tag.visible = dist_to_player < 7.0 and not _in_dialogue and Settings.get_value("gameplay", "name_tags")
+	_quest_mark(delta, dist_to_player)
 
 	var want_face_player := _in_dialogue or dist_to_player < 3.5
 	var moving := false

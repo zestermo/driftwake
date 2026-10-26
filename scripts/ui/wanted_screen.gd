@@ -1,7 +1,8 @@
 extends PanelContainer
 ## Wanted (GameMenu screen "wanted", the pause menu's Wanted; 1.23 "Bounty"): your poster (your face, your bounty, its
 ## tier), what that tier means for you (the Admiralty, shops, hunters), how far to the next and what it brings, the
-## deeds that raised it, and the crew's bounties beside yours.
+## deeds that raised it, the crew's bounties beside yours, and the rival crews you've met with theirs (1.23: the rivalry
+## you can see; a crew's bounty grows each time it meets you, more when it beats you).
 
 var _menu: Node
 var _face: TextureRect
@@ -12,6 +13,7 @@ var _means: Label
 var _next: Label
 var _deeds: VBoxContainer
 var _crew: VBoxContainer
+var _rivals: VBoxContainer
 
 
 func _init(menu: Node) -> void:
@@ -63,6 +65,9 @@ func _init(menu: Node) -> void:
 	right.add_child(UIStyle.label("The crew", 8, UIStyle.ACCENT))
 	_crew = VBoxContainer.new()
 	right.add_child(_crew)
+	right.add_child(UIStyle.label("Rival crews", 8, UIStyle.ACCENT))
+	_rivals = VBoxContainer.new()
+	right.add_child(_rivals)
 	var done := UIStyle.button("Done", 64)
 	done.size_flags_horizontal = Control.SIZE_SHRINK_END
 	done.pressed.connect(func(): _menu.call("open", "pause"))
@@ -96,7 +101,7 @@ func refresh() -> void:
 	_means.text = (str(Bounty.TIERS[t][2]).capitalize() + ".") if t > 0 else "Nobody's put a price on you. Beat bosses, rival crews and the Admiralty and they will."
 	var nx := Bounty.next_tier(b)
 	_next.text = "Next: %s at %s gold (%s to go): %s." % [nx[0], Bounty.fmt(int(nx[1])), Bounty.fmt(int(nx[1]) - b), nx[2]] if not nx.is_empty() else "There's no higher price than yours."
-	for c in _deeds.get_children() + _crew.get_children():
+	for c in _deeds.get_children() + _crew.get_children() + _rivals.get_children():
 		c.queue_free()
 	var log_: Array = p.get("bounty_log") if p.get("bounty_log") is Array else []
 	if log_.is_empty():
@@ -116,8 +121,26 @@ func refresh() -> void:
 		others += 1
 	if others == 0:
 		_crew.add_child(UIStyle.label("Sailing alone.", 8, UIStyle.TEXT_DIM))
+	var gm := get_node_or_null("/root/GameManager")
+	var met := 0
+	if gm:
+		for id in gm.rivals.keys():
+			if str(id).begins_with("_") or RivalCrews.crew(str(id)).is_empty():
+				continue
+			var r: Dictionary = gm.rivals[id]
+			var c := RivalCrews.crew(str(id))
+			_rivals.add_child(UIStyle.label("%s (%s): %s gold  -  you %d, them %d" % [str(c.get("name", id)).capitalize(), str(c.get("captain", "?")),
+				Bounty.fmt(rival_bounty(r)), int(r.get("won", 0)), int(r.get("lost", 0))], 8, UIStyle.TEXT))
+			met += 1
+	if met == 0:
+		_rivals.add_child(UIStyle.label("None met yet. They're out there.", 8, UIStyle.TEXT_DIM))
 	var body = p.get("body_model")
 	if body and "look" in body:
 		var tex = await WantedPortrait.render(get_tree(), body.look)
 		if is_instance_valid(_face):
 			_face.texture = tex
+
+
+## A rival crew's bounty (what the board says of them): grows each meeting, more when they won.
+static func rival_bounty(r: Dictionary) -> int:
+	return 8000 + 5000 * int(r.get("met", 1)) + 9000 * int(r.get("lost", 0))

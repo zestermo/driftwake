@@ -159,8 +159,9 @@ var _cam_y: float = 0.0
 @onready var disembark_position: Marker3D = $ShipModel/DisembarkPosition
 @onready var respawn_point: Marker3D = $RespawnPoint
 @onready var helm_zone: Interactable = $HelmZone
-## The storage chest in the cabin (a LootBag that never empties away).
+## The storage chest in the cabin (a LootBag that never empties away), and its Personal tab (this captain's own).
 var storage: LootBag
+var personal: LootBag
 @onready var ship_camera: Node3D = $ShipCamera
 
 
@@ -1192,16 +1193,30 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.55, HullBuilder.QD_BACK - 0.18)), Vector3(0.6, 0.45, 0.04), 1.0)
 	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, QD_Y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
 	_line_mesh(mb, iron, Vector3(0.2, QD_Y - 0.5, 7.6), Vector3(0.2, QD_Y - 0.2, 7.6))
-	# the storage chest (the crew's bank: GameManager.storage, shared in co-op),
+	# the storage chest (its Shared tab: GameManager.storage, shared in co-op; its Personal tab, personal: this
+	# captain's own sea chest, GameManager.sea_chest, never shared: a hidden bag the storage window switches to),
 	# the bunk (rest) and the galley (cook: GalleyScreen)
 	storage = (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	storage.name = "Storage"
 	storage.persistent = true
-	storage.label = "Ship's storage"
+	storage.label = "Ship's storage: shared"
+	storage.add_to_group("ship_storage")
 	storage.shared_id = "storage" if Net.active else ""
 	if not Net.is_client():
 		storage.contents = _game_manager_storage()
 	ship_model.add_child(storage)
+	personal = (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	personal.name = "SeaChest"
+	personal.persistent = true
+	personal.label = "Ship's storage: personal"
+	personal.add_to_group("ship_storage")
+	personal.contents = get_node("/root/GameManager").sea_chest
+	ship_model.add_child(personal)
+	personal.position = STORAGE_AT + Vector3(0, -0.6, 0)
+	personal.visible = false
+	personal.collision_layer = 0
+	personal.interactable.monitorable = false
+	personal.interactable.collision_layer = 0
 	storage.position = STORAGE_AT
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).position = Vector3.ZERO
@@ -1210,10 +1225,16 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	chest_cs.shape = chest_cs.shape.duplicate()
 	(chest_cs.shape as SphereShape3D).radius = 1.1
 	storage.interactable.reach = 1.1
-	var bunk := _cabin_zone("Bunk", "Rest in the bunk", BED_AT + Vector3(0.85, 0.6, 0.0))
+	var bunk := _cabin_zone("Bunk", "Rest in the bunk  (K: switch your build here)", BED_AT + Vector3(0.85, 0.6, 0.0))
 	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
+	bunk.add_to_group("rest_spots")
 	var galley := _cabin_zone("Galley", "Cook at the galley", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
 	galley.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
+	# the galley table: a pot of several portions goes here for the crew (GalleyTable)
+	var table := GalleyTable.new()
+	table.name = "GalleyTable"
+	ship_model.add_child(table)
+	table.position = COUNTER_AT + Vector3(-1.05, 0.0, -0.4)
 	galley.gesture = "reach"
 	# seats: the cabin's stools (at the table), the crate by the chest, the two crates on deck
 	for sx in [-0.4, 0.5]:

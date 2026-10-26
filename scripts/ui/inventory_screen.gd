@@ -139,6 +139,9 @@ var _drag_area: Control
 var _loot_panel: PanelContainer
 var _loot_title: Label
 var _loot_grid: GridContainer
+var _loot_tabs: HBoxContainer
+## The storage window's slots on show before it scrolls (canvas px).
+const LOOT_VIEW_H := 190.0
 var _loot_slots: Array[Slot] = []
 var _container: Node = null
 var _view: Array[int] = []
@@ -1440,12 +1443,29 @@ func _build_loot() -> void:
 	_loot_panel.add_child(vb)
 	_loot_title = _text("Chest", UIStyle.ACCENT, BOLD)
 	vb.add_child(_loot_title)
+	# the ship's storage: Shared (the crew's) and Personal (yours) tabs (1.23)
+	_loot_tabs = HBoxContainer.new()
+	_loot_tabs.add_theme_constant_override("separation", 4)
+	for tab in [["Shared", "shared"], ["Personal", "personal"]]:
+		var b := UIStyle.button(str(tab[0]), 70)
+		b.name = str(tab[1])
+		b.focus_mode = Control.FOCUS_NONE
+		var which: String = tab[1]
+		b.pressed.connect(func(): storage_tab(which))
+		_loot_tabs.add_child(b)
+	_loot_tabs.visible = false
+	vb.add_child(_loot_tabs)
 	vb.add_child(_rule())
 	_loot_grid = GridContainer.new()
 	_loot_grid.columns = COLS
 	_loot_grid.add_theme_constant_override("h_separation", GAP)
 	_loot_grid.add_theme_constant_override("v_separation", GAP)
-	vb.add_child(_loot_grid)
+	# (a big store scrolls rather than running off the screen)
+	var sc := ScrollContainer.new()
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.custom_minimum_size = Vector2(0, LOOT_VIEW_H)
+	sc.add_child(_loot_grid)
+	vb.add_child(sc)
 	_grow_loot(20)
 	var take := UIStyle.button("Take all", 80)
 	take.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -1473,6 +1493,18 @@ func _click_loot(idx: int, shift: bool) -> void:
 		if has_container():
 			refresh()
 			_bounce_item(it)
+
+
+## The ship's storage window: show its "shared" or "personal" tab (the two chests in group "ship_storage").
+func storage_tab(which: String) -> void:
+	if not has_container() or not _container.is_in_group("ship_storage"):
+		return
+	for c in _container.get_parent().get_children():
+		if c is LootBag and c.is_in_group("ship_storage") and str(c.label).ends_with(which):
+			if c != _container:
+				menu._play("select")
+				set_container(c)
+			return
 
 
 func has_container() -> bool:
@@ -1524,6 +1556,12 @@ func _refresh_loot() -> void:
 	if not has_container():
 		return
 	_loot_title.text = str(_container.title())
+	var store: bool = _container.is_in_group("ship_storage")
+	_loot_tabs.visible = store
+	if store:
+		for b in _loot_tabs.get_children():
+			(b as Button).button_pressed = str(_container.label).ends_with(str(b.name))
+			b.modulate = Color.WHITE if (b as Button).button_pressed else Color(0.7, 0.7, 0.7)
 	var cont: Array = _container.contents
 	_grow_loot(cont.size())
 	for i in range(_loot_slots.size()):
