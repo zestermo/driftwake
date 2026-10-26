@@ -39,6 +39,13 @@ var _chest: LootBag
 var _camp: GruntCamp
 
 
+## Whether island `gi` rolls an outpost (data: its spot is found as it's built, so it may still have none).
+static func rolls(gi: GenIsland) -> bool:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(gi.node["seed"]), 5109])
+	return not (gi is CapitalIsland or gi.village_plan.is_empty()) and rng.randf() < CHANCE
+
+
 ## The build step (IslandContent): an outpost by the village, if this island rolls one and a spot fits.
 static func build(gi: GenIsland) -> void:
 	if gi is CapitalIsland or gi.village_plan.is_empty():

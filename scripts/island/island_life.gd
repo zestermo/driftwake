@@ -61,6 +61,9 @@ var notices: Array = []
 var encounter_kinds: Array = []
 var encounters: IslandEncounters
 var found: Array = []
+## The island's story arc (IslandArcs: planned here, made in the life step) and what plan worked out for it.
+var arc: IslandArcs
+var arc_plan := {}
 var _blockers: Array = []
 var _made := 0
 var _enc_done := 0
@@ -100,6 +103,7 @@ static func plan(gi: GenIsland) -> IslandLife:
 		L.quests.append({"kind": k, "pick": rng.randf(), "pick2": rng.randf()})
 	L.quest_count = rng.randi_range(2, 3)
 	L.encounter_kinds = IslandEncounters.roll(int(gi.node["seed"]), gi.theme)
+	L.arc_plan = IslandArcs.plan(gi)
 	L._enc_style = KitStyle.get_style(gi.theme)
 	for lk in L.folk.map(func(f): return f["look"]) + IslandEncounters.people_looks(L.encounter_kinds, gi.theme):
 		var h := Humanoid.new()
@@ -147,6 +151,8 @@ func _notification(what: int) -> void:
 			Humanoid.unstock(folk[i]["look"])
 		for i in range(_enc_done, encounter_kinds.size()):
 			IslandEncounters.unstock_rest(encounter_kinds[i], _enc_style)
+		for lk in arc_plan.get("looks", []):
+			Humanoid.unstock(lk)
 
 
 func steps() -> Array:
@@ -188,6 +194,9 @@ func _setup() -> void:
 		for f in folk:
 			Humanoid.unstock(f["look"])
 		_made = folk.size()
+		for lk in arc_plan.get("looks", []):
+			Humanoid.unstock(lk)
+		arc_plan = {}
 		return
 	quest_node = KitQuests.new()
 	quest_node.name = "Quests"
@@ -195,6 +204,7 @@ func _setup() -> void:
 	for q in given:
 		quest_node.add(q, isl)
 	var v := isl.get_node_or_null("Site_village/Village") as IslandVillage
+	arc = IslandArcs.make(self, v)
 	if v:
 		_post(v)
 	for i in placed:
@@ -261,6 +271,9 @@ func _own_lines(i: int) -> void:
 		own["talk"] = deck.deal("role_" + str(f["role"]), role["talk"], 3)
 		own["menu"] = deck.one("menu", pools["menu"])
 		own["quiet"] = deck.one("quiet", pools["rumour_quiet"])
+	# (the island's arc: a word of it from every third face in the crowd)
+	if arc and not f["named"] and i % 3 == 0:
+		own["day"] = own["day"] + deck.deal("arc", arc.rumours(), 1)
 	f["own"] = own
 	if f["named"]:
 		_rumours(f)
@@ -548,7 +561,7 @@ func _rumours(f: Dictionary) -> void:
 	var isle: Array = []
 	for poi in _pois():
 		isle.append_array(_fill_all(told.get(poi["kind"], told["any"]), {"name": poi["name"]}))
-	own["heard"] = deck.deal("rumour_isle", isle, 2)
+	own["heard"] = (deck.deal("arc", arc.rumours(), 1) if arc else []) + deck.deal("rumour_isle", isle, 2)
 	own["ahead"] = deck.deal("rumour_ahead", _ahead_lines(), 1)
 	if not own["ahead"].is_empty() and not deck.used(pools["rumour_hard"]):
 		own["ahead"].append_array(deck.deal("rumour_hard", [pools["rumour_hard"]], 1))

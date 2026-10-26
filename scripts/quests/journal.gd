@@ -104,6 +104,9 @@ func goal(id: String) -> String:
 		return "Done"
 	var g := str(e["goals"][int(e["step"])])
 	var src = _sources.get(id)
+	# (a source that tells the step its own way as things change: an island arc's showdown)
+	if is_instance_valid(src) and src.has_method("goal_of"):
+		g = src.goal_of(_defs[id], int(e["step"]), g)
 	return g + (src.progress(_defs[id], int(e["step"])) if is_instance_valid(src) else "")
 
 
@@ -172,6 +175,18 @@ func advance(id: String, n: int) -> void:
 		_ask("step", [id, n])
 
 
+## Straight on to step `to` from step `from` (the steps between skipped: an arc's reply that brings the showdown on now).
+func jump(id: String, from: int, to: int) -> void:
+	if step_of(id) == from and to > from:
+		_ask("jump", [id, from, to])
+
+
+## Done without its reward (an arc settled another way: the tax paid, the noble handed over).
+func settle(id: String) -> void:
+	if _live(id):
+		_ask("close", [id])
+
+
 ## Told the giver: the reward to every captain in the crew, wherever they are (1.22); the one turning in hands over the cost.
 func turn_in(id: String, at: Vector3) -> void:
 	if at_turnin(id):
@@ -211,8 +226,11 @@ func decide(op: String, args: Array) -> void:
 		"take":
 			if entries.has(args[0]["id"]):
 				return
-		"step":
+		"step", "jump":
 			if step_of(args[0]) != int(args[1]) or is_done(args[0]):
+				return
+		"close":
+			if not _live(args[0]):
 				return
 		"done":
 			if not at_turnin(args[0]):
@@ -269,6 +287,20 @@ func apply(op: String, args: Array) -> void:
 			_toast(str(d["steps"][n].get("said", goal(e["id"]))) if not d.is_empty() else goal(e["id"]))
 			if tracked == e["id"]:
 				get_tree().call_group("hud", "show_objective_banner", goal(e["id"]))
+		"jump":
+			var e: Dictionary = entries[args[0]]
+			e["step"] = int(args[2])
+			if tracked == e["id"]:
+				get_tree().call_group("hud", "show_objective_banner", goal(e["id"]))
+		"close":
+			var e: Dictionary = entries[args[0]]
+			e["done"] = true
+			_order += 1
+			e["order"] = _order
+			_toast("Quest over: %s" % e["title"])
+			if tracked == e["id"]:
+				var left := active()
+				tracked = left[0]["id"] if not left.is_empty() else "story"
 		"done":
 			_finish(args[0], args[1], int(args[2]), args[3])
 		"favour":

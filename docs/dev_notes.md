@@ -6660,3 +6660,39 @@ packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see
   t/weapons black_leg_tree / black_leg_cleaver_flambe / black_leg_learn updated, black_leg_wheel_hands removed.
   Renders: tools/dev/out/bl23_00_*.png (bl_rise, bl_sky, bl_sky_spike), tools/dev/out/jug_00_*.png.
   Expect at prepush: grunttest, r10test, ragtest, balancetest, techtest, airtest, progtest, nettest.
+## 2026-10-26: 1.23 island arcs, pieces 1-2: the arc frame, two templates, replies
+
+Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md rows "Islands" and "Replies".
+- **IslandArcs** (scripts/island/island_arcs.gd, node "Arc" under the GenIsland): `TEMPLATES` (data: villain, place,
+  the elder's telling, rumours, poster, contacts, beat-2 steps, showdown, `meet` and `moment` replies with their
+  outcomes, the hidden finish, thanks), `pick(facts)` (the fog isle the Cursed Festival once it's in; else the chain's
+  own shuffled order from `(id * 3) % n`, skipping templates whose `needs` the island lacks: outpost, cave, fog),
+  `plan` (IslandLife.plan, worker: the likely roll with `MarineOutpost.rolls`, its contacts' bodies stocked), `make`
+  (the life step, after the outpost: rolled again on what's built, contacts, the Journal quest, the elder's and the
+  board's hooks). `force` for tests and tools.
+- **State** = the crew's Journal entry (the step) + world flags `<isle key>_arc_*` (moment/meet picks, raid, settled,
+  fell, hidden): saved, sent to joiners. Every machine builds what the state asks for each 0.5 s tick (squads
+  "S<n>" as warm-start GruntCamps, a night wave "W<n>" as a ScuttlebugNest, the strongbox "Item<n>", the raid, the
+  "More" men); the host decides the rest (Net.arc_ask -> `decide`, Net._all_arc -> `apply`). Squads are cleared once
+  all have mustered and all are down (a squad killed between ticks once never counted).
+- **Steps** (beat 2): squad, pickup, talk (a contact's moment), wave (only at night: Weather.hour() 20-5; the goal says
+  "it comes at nightfall"). The showdown is the villain: the camp's captain (`camp`) or the island's beast (`beast`);
+  a villain already dead when the showdown begins counts at once (no reply, no hidden finish). Its fall (host): flag
+  "fell", `_all_arc fell` (banner, the arc chest `arc_chest`: gold, treasure, a trait weapon a tier up; the hidden
+  cache `arc_cache`), `Net.bounty("arc")` (Bounty "arc" 8000, a poster deed), `Admiralty.deed(.., "arc")`, and a
+  TODO for the Will points (2) until the progression agent's API lands. The elder's thanks (Journal turn-in) pay gold.
+- **Replies** (scripts/dialogue/replies.gd, reusable: the rivals can use it): `nodes` (a reply moment inside any
+  conversation), `open` (a conversation of its own; walking away emits -1), `shown` (every screen: the pick and the
+  answer as toasts, a bark over the speaker). The villain's meeting: the host asks the nearest standing captain within
+  `MEET_R` 30 m on the showdown (re-asks after 45 s or if they were busy); the moment: a contact's talk while its step
+  is on. Outcomes: fight, settle (Journal.settle: done without reward), pay:N (the picker's gold), hated (the island's
+  traders' prices x1.2 via a negative Journal discount), raid (a night raid at the village's edge before he can be
+  faced), more (two more men at the showdown), wounded:K (the villain starts K down once in combat), step, now
+  (Journal.jump to the showdown). Journal gained `jump`, `settle` and a source's `goal_of` (the showdown told as it
+  stands).
+- Hooks: IslandVillage.elder_hooks / board_hooks (the elder's "Something's wrong..." telling, the turn-in; the board's
+  WANTED poster), IslandLife deals one arc rumour to each named person's island news and one to every third face in
+  the crowd. Fights at the village's edge stay `EDGE` 38 m past the plaza (out of an outpost's town: no alarm).
+- Per tick: one 0.5 s timer per standing chain island with a taken arc (a few dictionary reads; the host's nearest
+  captain check in the showdown). Squads come warm-started (bodies on a worker).
+- Tests: t/quests/arc_roll, arc_beats, arc_reply. Expected to touch: lifetest, villagetest, isletest, nettest (net).

@@ -2421,6 +2421,29 @@ func _all_journal(op: String, args: Array) -> void:
 	Journal.apply(op, args)
 
 
+# An island's arc (IslandArcs, 1.23): a captain asks, the host decides, everyone applies.
+func arc_ask(key: String, op: String, args: Array) -> void:
+	if is_host():
+		var a := node_of(key)
+		if a:
+			a.decide(op, args, my_id())
+		return
+	_arc_req.rpc_id(1, key, op, args)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _arc_req(key: String, op: String, args: Array) -> void:
+	var a := node_of(key) if hosting else null
+	if a:
+		a.decide(op, args, multiplayer.get_remote_sender_id())
+
+
+func _all_arc(key: String, op: String, args: Array) -> void:
+	var a := node_of(key)
+	if a:
+		a.apply(op, args)
+
+
 # ==========================================================================
 # Menus don't stop the world in co-op
 # ==========================================================================

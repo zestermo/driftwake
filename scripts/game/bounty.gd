@@ -15,6 +15,7 @@ const TABLE := {
 	"officer": 4000,         # an Admiralty officer beaten
 	"hunter": 12000,         # a named Admiralty hunter beaten
 	"bounty_hunter": 1500,   # a civilian bounty hunter beaten
+	"arc": 8000,             # an island arc's villain brought down (IslandArcs)
 }
 
 ## The tiers: [from, name, what it switches on].
@@ -94,9 +95,10 @@ const WHY := {
 	"officer": "for striking down an Admiralty officer",
 	"hunter": "for beating an Admiralty hunter",
 	"bounty_hunter": "for seeing off bounty hunters",
+	"arc": "for overthrowing an island's tyrant",
 }
 ## Deeds big enough for a new poster (the One Piece moment: WantedCard); the rest raise it with a toast.
-const POSTER_DEEDS := ["rival", "boss", "leviathan", "admiralty_ship", "officer", "hunter"]
+const POSTER_DEEDS := ["rival", "boss", "leviathan", "admiralty_ship", "officer", "hunter", "arc"]
 ## Deeds kept per captain (Player.bounty_log, saved).
 const LOG := 12
 
