@@ -31,6 +31,9 @@ scripts/island/village_vendors.gd        t/quests/markers
 scripts/npc/npc.gd                      t/quests/markers
 scripts/island/marine_outpost.gd        t/island/outpost
 scripts/props/breakable.gd              t/world/breakable
+scripts/ui/drills.gd                    t/ui/drills
+scripts/ui/walkthrough.gd               t/ui/drills
+scripts/game/story.gd                   t/ui/drills
 scripts/quests/journal.gd               t/quests
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene t/ui/intro

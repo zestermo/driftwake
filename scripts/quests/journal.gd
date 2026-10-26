@@ -381,6 +381,7 @@ func open() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	UIStyle.sfx("open")
 	screen.on_open()
+	Walkthrough.first(get_tree(), "journal")
 
 
 func close() -> void:

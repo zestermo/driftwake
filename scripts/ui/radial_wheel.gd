@@ -115,8 +115,15 @@ func _can_open() -> bool:
 	return not (menu and menu.is_open()) and not get_node("/root/Dialogue").active
 
 
+## The first-time tip this wheel shows (Walkthrough; "" none).
+func tip_id() -> String:
+	return ""
+
+
 func _open_now() -> void:
 	_open = true
+	if tip_id() != "":
+		Walkthrough.first(get_tree(), tip_id())
 	shown = self
 	_vec = Vector2.ZERO
 	_pick = -1

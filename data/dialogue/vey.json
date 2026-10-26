@@ -3,16 +3,20 @@
 	"voice": 0.9,
 	"start": "intro",
 	"return": "menu",
-	"story": { "see_vey": "story_vey", "smugglers": "story_smugglers", "vey_skills": "story_skills", "grell": "story_grell" },
+	"story": { "see_vey": "story_vey", "vey_drills": "story_drills", "smugglers": "story_smugglers", "vey_skills": "story_skills", "grell": "story_grell" },
 	"nodes": {
 		"story_vey": {
 			"text": [
 				"Nessa sent you. Of course she did. Stand up straight. Hm. Arms like a deckhand, eyes like you've lost your own name.",
-				"You have? Doesn't matter. A blade doesn't care who you were. Left click cuts, right click lunges, Ctrl rolls, Q parries. Ask me for a lesson any time.",
-				"Now. There's a crew of smugglers camped on the beach south of the cove. They've been robbing the fishing boats blind, and the castaway girl down there won't stop complaining about them.",
-				"Clear them out. Come back in one piece and I'll teach you something worth knowing."
+				"You have? Doesn't matter. A blade doesn't care who you were. Show me what your hands remember. The dummies, there.",
+				"Cut, lunge, roll, parry, block, strike from a jump, sheathe and draw. All of it. I'll be watching.",
+				"Do that, and there's a crew of smugglers camped on the beach south of the cove who could use the same lesson."
 			],
 			"event": "story:see_vey",
+			"next": "menu"
+		},
+		"story_drills": {
+			"text": "The dummies won't hit themselves. Every move on the list, then we talk smugglers.",
 			"next": "menu"
 		},
 		"story_smugglers": {
