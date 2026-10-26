@@ -8,6 +8,12 @@ extends "res://scripts/enemies/beasts/behemoth.gd"
 
 func _init() -> void:
 	boss_name = "The Dune Strider"
+	wake_r = 22.0
+
+
+## (1.23) shy: it bolts from whoever comes near, and fights only struck or cornered.
+func _temper() -> String:
+	return "skittish"
 
 
 func _spec() -> Dictionary:

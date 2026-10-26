@@ -23,6 +23,11 @@ scripts/enemies/beasts/jungle_beast.gd  t/beast t/island/beast_moves
 scripts/enemies/beasts/quad_beast.gd    t/beast/bear_king
 scripts/enemies/beasts/sandworm.gd      t/beast/sand_king t/island/beast_moves
 scripts/enemies/beasts/great_bear.gd    t/beast/bear_king t/island/beast_moves
+scripts/enemies/beasts/behemoth.gd      t/beast/roamers bosstest
+scripts/enemies/beasts/dune_strider.gd  t/beast/roamers
+scripts/enemies/beasts/wild_hunt.gd     t/beast/roamers
+scripts/enemies/beasts/beast_dens.gd    t/beast/roamers bosstest
+scripts/enemies/beasts/beast_pool.gd    t/beast/roamers bosstest
 scripts/combat/poise.gd                 t/beast
 tools/dev/t/items/*                     t/items
 tools/dev/t/fishing/*                   t/fishing

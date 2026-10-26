@@ -56,6 +56,11 @@ func _speed() -> float:
 	return 5.6
 
 
+## (1.23) a hunter: it stalks a captain from behind and charges when it has their back.
+func _temper() -> String:
+	return "stalker"
+
+
 ## Abroad only at night (or while it's fighting someone, or dying).
 func _abroad() -> bool:
 	return float(Weather.night) > 0.5 or state in [S.FIGHT, S.STAGGER, S.DEAD]

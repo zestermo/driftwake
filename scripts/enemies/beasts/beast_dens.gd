@@ -14,7 +14,8 @@ static func steps(isl: GenIsland) -> Array:
 	var out: Array = []
 	for m in isl.node["minis"]:
 		out.append(["beasts", func(): _mini(isl, str(m))])
-	out.append(["beasts", func(): _roamer(isl)])
+	if str(isl.node["roamer"]) != "":
+		out.append(["beasts", func(): _roamer(isl)])
 	return out
 
 

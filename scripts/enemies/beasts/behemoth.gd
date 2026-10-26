@@ -116,8 +116,21 @@ func trophy(_t: int) -> ItemData:
 	return null
 
 
-## Grazing its way round the island: walk to a waypoint, browse a while, on to the next.
+## Grazing its way round the island: walk to a waypoint, browse a while, on to the next (unless its temper has it
+## warning someone off, bolting or stalking: below).
 func _idle(delta: float) -> Vector3:
+	match _temper():
+		"territorial":
+			if _territorial(delta):
+				return Vector3.ZERO
+		"skittish":
+			var v := _skittish(delta)
+			if v != Vector3.INF:
+				return v
+		"stalker":
+			var v := _stalker(delta)
+			if v != Vector3.INF:
+				return v
 	if waypoints.is_empty():
 		return super._idle(delta)
 	if _graze_t > 0.0:
@@ -145,7 +158,16 @@ func _idle(delta: float) -> Vector3:
 func _pose_for(delta: float) -> void:
 	super._pose_for(delta)
 	if state == S.SLEEP:
-		pose = {"head": -0.6 if _graze_t > 0.0 else -0.15}
+		match mood:
+			Mood.POSTURE:
+				# (reared half up, head low and swinging, pawing the ground, jaw open)
+				pose = {"rear": 0.35 + absf(sin(_tw * 5.0)) * 0.3, "head": -0.5 + sin(_tw * 2.5) * 0.15, "jaw": 0.8}
+			Mood.BOLT:
+				pose = {"head": 0.25, "stretch": 0.45, "tail": 1.0}
+			Mood.STALK:
+				pose = {"crouch": 0.45, "head": -0.3}
+			_:
+				pose = {"head": -0.6 if _graze_t > 0.0 else -0.15}
 
 
 # 1.20's moves (docs/v1_20_beasts.md 5), as a table (alpha_boar.gd): its one knockdown the charge; after the wallow
@@ -172,4 +194,173 @@ func _wake_move() -> String:
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if move == "" and mv_t < 0.0 and _last_move == "wallow" and not hit.dot:
 		hit.damage *= 2.0
+	mood = Mood.GRAZE
 	super._on_hit(hit, attacker)
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	_hear_it(delta)
+
+
+# ==========================================================================
+# 1.23: how it meets you (docs/v1_23_previews.md section 6 "Roamers"), by its _temper():
+#   territorial  (the Thornback, the Rimeback) whoever comes within wake_r gets a warning: it rears, paws and roars
+#                for WARN_S over a ring of its ground; back off out of it and it settles, stay (or come right up, or
+#                strike it) and it comes for you
+#   skittish     (the Dune Strider) it bolts from whoever comes within wake_r and grazes on further off; struck or
+#                cornered it fights
+#   stalker      (the Wild Hunt) it shadows a captain from STALK_R at their back, quiet, and when it has had their back
+#                for STALK_S it charges in (turn to face it and it holds off)
+# And it's an event you hear first: a captain coming within HEAR_R hears it roar across the island and sees the birds
+# go up over it (each screen its own, once a roamer).
+# ==========================================================================
+const WARN_S := 2.0
+const BOLT_S := 3.2
+const BOLT_SPEED := 11.0
+const STALK_SEE := 45.0
+const STALK_R := 15.0
+const STALK_S := 2.5
+const HEAR_R := 95.0
+enum Mood { GRAZE, POSTURE, BOLT, STALK }
+var mood := Mood.GRAZE
+var _mood_t := 0.0
+var _mood_of: Node3D
+var _heard := false
+var _hear_t := 0.0
+var _dust_t := 0.0
+
+
+func _temper() -> String:
+	return "territorial"
+
+
+## (in the fight its leash still holds; out of it its temper says when it wakes)
+func _watch(delta: float) -> void:
+	if state != S.SLEEP:
+		super._watch(delta)
+
+
+## The nearest standing captain within `r`, else null.
+func _captain_within(r: float) -> Node3D:
+	var best: Node3D = null
+	for p in Net.all_players():
+		var pp := p as Node3D
+		if pp.global_position.distance_to(global_position) < r and p.has_method("is_standing") and p.is_standing() \
+				and (best == null or pp.global_position.distance_to(global_position) < best.global_position.distance_to(global_position)):
+			best = pp
+	return best
+
+
+func _set_mood(m: Mood) -> void:
+	mood = m
+	_mood_t = 0.0
+
+
+func _territorial(delta: float) -> bool:
+	var p := _captain_within(wake_r)
+	if mood != Mood.POSTURE:
+		if p == null:
+			return false
+		_set_mood(Mood.POSTURE)
+		_mood_of = p
+		warn_ring(global_position, wake_r, WARN_S, Color(1.0, 0.55, 0.12))
+		say("bellow", global_position, 8.0, 0.8, 140.0)
+	_mood_t += delta
+	if is_instance_valid(_mood_of):
+		_face(_flat(_mood_of.global_position - global_position))
+		# (right up to it: no more warning)
+		if _flat(_mood_of.global_position - global_position).length() < wake_r * 0.4:
+			_set_mood(Mood.GRAZE)
+			alert()
+			return true
+	if _mood_t >= WARN_S:
+		_set_mood(Mood.GRAZE)
+		if _captain_within(wake_r + 1.0):
+			alert()
+		else:
+			say("snarl", global_position, -2.0, 0.6)
+	return true
+
+
+func _skittish(delta: float) -> Vector3:
+	if mood != Mood.BOLT:
+		var p := _captain_within(wake_r)
+		if p == null:
+			return Vector3.INF
+		_set_mood(Mood.BOLT)
+		_mood_of = p
+		say("bellow", global_position, 4.0, 1.25, 120.0)
+	_mood_t += delta
+	if _mood_t > BOLT_S or not is_instance_valid(_mood_of):
+		_set_mood(Mood.GRAZE)
+		_graze_t = _rng.randf_range(4.0, 8.0)
+		post = global_position
+		return Vector3.ZERO
+	var away := _flat(global_position - _mood_of.global_position).normalized()
+	var nd := _nav_dir(global_position + away * 20.0, delta)
+	_face(nd)
+	_dust_t -= delta
+	if _dust_t <= 0.0:
+		_dust_t = 0.3
+		Net.fx("dust", [global_position, 4, 1.0])
+	# (cornered: it turns and fights)
+	if _mood_t > 1.0 and _flat(get_real_velocity()).length() < 1.0:
+		_set_mood(Mood.GRAZE)
+		alert()
+		return Vector3.ZERO
+	return nd * BOLT_SPEED
+
+
+func _stalker(delta: float) -> Vector3:
+	var p := _captain_within(STALK_SEE)
+	if p == null:
+		if mood == Mood.STALK:
+			_set_mood(Mood.GRAZE)
+		return Vector3.INF
+	if mood != Mood.STALK:
+		_set_mood(Mood.STALK)
+		_mood_of = p
+	var to := _flat(p.global_position - global_position)
+	var faces := Vector3.FORWARD
+	var pm = p.get("player_model")
+	if pm is Node3D:
+		faces = _flat((pm as Node3D).global_basis.z).normalized()
+	# its back to us: the ambush builds; facing us: it holds off, out at the edge
+	if faces.dot(-to.normalized()) < 0.2:
+		_mood_t += delta
+	else:
+		_mood_t = maxf(_mood_t - delta * 2.0, 0.0)
+	_face(to)
+	if _mood_t >= STALK_S:
+		_set_mood(Mood.GRAZE)
+		alert()
+		end_move()
+		begin("charge")
+		return Vector3.ZERO
+	var spot := p.global_position - faces * STALK_R
+	return Vector3.ZERO if _flat(spot - global_position).length() < 2.0 else _nav_dir(spot, delta) * 3.4
+
+
+## The roamer heard before it's seen: its roar across the island, birds put up over it (this screen, once).
+func _hear_it(delta: float) -> void:
+	_hear_t -= delta
+	if _heard or _hear_t > 0.0 or state == S.DEAD:
+		return
+	_hear_t = 1.0
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	if me and me.global_position.distance_to(global_position) < HEAR_R:
+		_heard = true
+		BeastFX.sfx("bellow", global_position, 14.0, 0.7, 260.0)
+		BeastFX.birds(global_position, 16)
+		if me.has_method("_toast"):
+			me.call("_toast", "Something huge roars, out across the island")
+
+
+func _pack_extra() -> Array:
+	return [int(mood)]
+
+
+func _unpack_extra(a: Array, _b: Array, _f: float) -> void:
+	if a.size() > 0:
+		mood = int(a[0]) as Mood

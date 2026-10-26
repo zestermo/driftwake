@@ -6895,6 +6895,24 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   knockdown's get-up healed its stand-in back to full; the storm loses a still captain). Render: tools/dev/beastfilm.gd
   (new) -> tools/dev/out/beast/worm, tools/dev/out/beast/bear. Expect at prepush: bosstest, beasttest, desert/snow
   island suites that wake their bosses, netchain.
+
+## 2026-10-26: 1.23 beast pass, piece 4: fewer roamers, with tempers, heard first
+- **Fewer:** BeastPool.assign leaves `n["roamer"] = ""` on ROAMER_NONE (half) of the islands past a chain's first
+  (`start_next` always keep theirs), on its own seeded roll so every other pick stays as it was. "" is skipped by
+  BeastDens.steps, BeastPool.pois, GenIsland.make_beasts / warm_scripts.
+- **Tempers** (behemoth.gd, every roamer's base; `_temper()`), run from `_idle` while it's asleep (JungleBeast's own
+  wake check is off for them: `_watch` only past SLEEP): "territorial" (Thornback, Rimeback: within wake_r it postures
+  and roars WARN_S 2 s over an orange ring of its ground; backed out of wake_r it settles, still in it or within 40% of
+  it it fights), "skittish" (Dune Strider, wake_r 22: bolts at 11 m/s for 3.2 s and grazes on there; cornered or struck
+  it fights), "stalker" (Wild Hunt, by night: within 45 m it keeps 15 m off at the captain's back and charges once it's
+  had their back STALK_S 2.5 s; faced, the count runs back down). The mood rides the snapshot (`_pack_extra`) for its
+  pose (posture: reared, pawing, jaw open; bolt: stretched out; stalk: crouched).
+- **Heard first:** each screen, once a roamer: its captain within HEAR_R 95 m hears it bellow across the island
+  (BeastFX.sfx reach 260), birds go up over it (BeastFX.birds: one 16-particle burst) and a toast.
+- **Per frame added:** a roamer asleep and not dormant (a captain within 110 m) runs its temper's nearest-captain scan
+  each tick (a few distance checks); the hearing check once a second until it's heard.
+- Tests: t/beast/roamers. Expect at prepush: bosstest (its roamer is on the chain's first island: kept),
+  faunatest, the chain/island suites that build roamers, islanddump (chain nodes now print roamer= "" on half).
 ## 2026-10-26: 1.24 native chains, pieces 1-2: SpringChains' solver and the cape's net in C++
 - **What:** native/src/chain_solver.{h,cpp} (ChainSolver, a RefCounted in the GDExtension) is SpringChains' whole
   solver for modes "a0" (every hair, coat, skirt, scarf, sash chain) and "a" (the capes: _step_tuned with the probes,

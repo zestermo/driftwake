@@ -14,6 +14,8 @@ extends RefCounted
 ## with it, so two islands with the same beast still differ.
 
 const SALT := 70411
+## The share of islands (past a chain's first) with no roaming beast.
+const ROAMER_NONE := 0.5
 
 
 ## A theme's beast kind: {"script", "names", a boss's "looks", a mini's "site", maybe "stock"}.
@@ -59,6 +61,12 @@ static func assign(chain: Chain) -> void:
 		n["minis"] = picked
 		var roam: Array = theme.roamers
 		n["roamer"] = roam[rng.randi() % roam.size()]
+		# (1.23: fewer roamers, a rarer event: half the islands have none ("" here), but a chain's first islands, where
+		# it's met first; its own roll, so the picks above stay as they were)
+		var coin := RandomNumberGenerator.new()
+		coin.seed = hash([chain.seed_value, int(n["id"]), "roamer"])
+		if not chain.start_next.has(n["id"]) and coin.randf() < ROAMER_NONE:
+			n["roamer"] = ""
 
 
 ## The bosses of the nearest islands of the same theme behind `id` on every route.
@@ -94,6 +102,8 @@ static func pois(isl: GenIsland) -> Array:
 		var at: Vector2 = isl.sites[site]
 		out.append({"kind": "miniboss", "beast": m, "name": mini_name(isl, m), "at": at,
 			"pos": isl.to_global(Vector3(at.x, isl.hv(at), at.y)), "radius": 22.0})
+	if str(n["roamer"]) == "":
+		return out
 	var home: Vector2 = roam_home(isl)
 	out.append({"kind": "roamer", "beast": n["roamer"], "name": roamer_name(isl), "at": home,
 		"pos": isl.to_global(Vector3(home.x, isl.hv(home), home.y)), "radius": ROAM_R})

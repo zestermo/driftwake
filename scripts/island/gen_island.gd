@@ -204,7 +204,9 @@ func _beasts_built() -> void:
 
 func make_beasts(n: Dictionary) -> void:
 	var th := IslandThemes.of(str(n["theme"]))
-	var slots := {"boss": n["beast"], "roamer": n["roamer"]}
+	var slots := {"boss": n["beast"]}
+	if str(n["roamer"]) != "":
+		slots["roamer"] = n["roamer"]
 	for m in n["minis"]:
 		slots[str(m)] = m
 	for slot in slots:
@@ -236,6 +238,8 @@ static func warm_scripts(n: Dictionary) -> Array:
 	var th := IslandThemes.of(str(n["theme"]))
 	var paths: Array = th.creatures.values()
 	for k in [n["beast"], n["roamer"]] + (n["minis"] as Array):
+		if str(k) == "":
+			continue
 		var info: Dictionary = th.beasts[str(k)]
 		if info.has("script"):
 			paths.append(info["script"])
