@@ -202,8 +202,8 @@ func spike_line(ms: float, pipes: PackedInt64Array, nodes: int, ticks: int) -> S
 			(s as Script).resource_path.get_file().get_basename(), _added_by[s]])) + ")") if not by.is_empty() else ""]
 	var c := counts()
 	var caps := 0
-	for pl in get_tree().get_nodes_in_group("players"):
-		if pl.get("is_ai") and pl.can_process():
+	for r in get_tree().get_nodes_in_group("rivals"):
+		if r.can_process():
 			caps += 1
 	var t: Array = ActorSleep.tally()
 	L += "  | awake: enemies %d/%d  ai captains %d  actors %d/%d (%d hidden)" % [c["awake"], c["enemies"], caps, t[0] - t[1], t[0], t[2]]

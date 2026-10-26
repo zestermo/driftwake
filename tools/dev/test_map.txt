@@ -510,7 +510,12 @@ scripts/game/perf_monitor.gd            t/world/perf_log t/world/spike_log perft
 scripts/game/dev_capture.gd             t/world/spike_log
 scripts/game/fx.gd                      katanatest
 scripts/enemies/scuttlebug_nest.gd      t/island/build_slices
-scripts/island/gen_island.gd            t/island/build_slices
+scripts/island/gen_island.gd            t/island/build_slices t/island/build_breathe t/island/build_budget_same
+scripts/island/world_generator.gd       t/island/build_budget_same
+scripts/island/kit/kit_wayside.gd       t/island/build_budget_same t/island/wayside
+scripts/island/kit/kit_dungeons.gd      t/island/build_budget_same
+scripts/island/kit/kit_temple.gd        t/island/build_budget_same
+scripts/psx/draw_lod.gd                 t/island/build_budget_same
 scripts/enemies/beasts/quad_beast.gd    t/island/beast_prebuild
 scripts/enemies/beasts/jungle_beast.gd  t/island/beast_prebuild
 scripts/enemies/beasts/beast_dens.gd    t/island/beast_prebuild

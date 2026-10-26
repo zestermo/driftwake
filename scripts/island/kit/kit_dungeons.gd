@@ -422,16 +422,17 @@ static func steps(isl: GenIsland) -> Array:
 	var out: Array = []
 	for e in isl.interiors:
 		if e["kind"] == "temple":
-			out.append(["temple", func(): KitTemple.build(isl, e)])
+			out.append(["temple", func(): await KitTemple.build(isl, e)])
 			out.append(["temple", func(): KitTemple.populate(isl, e)])
 		else:
-			# (a frame each; the dressing's passes share one rng and mesh, in the order one call made them)
+			# (a frame each; the dressing's passes share one rng and mesh, in the order one call made them; the
+			# dripstone and the walls breathe room by room)
 			var w := {}
 			out.append(["dungeons", func(): _shell(isl, e)])
 			out.append(["dungeons", func(): _rock_collider(isl, e)])
-			out.append(["dungeons", func(): _dress_start(isl, e, w)])
+			out.append(["dungeons", func(): await _dress_start(isl, e, w)])
 			out.append(["dungeons", func(): _dress_kind(e, w)])
-			out.append(["dungeons", func(): _dress_walls(e, w)])
+			out.append(["dungeons", func(): await _dress_walls(e, w)])
 			out.append(["dungeons", func(): _dress_outside(isl, e, w)])
 			out.append(["dungeons", func(): _populate(isl, e)])
 	return out
@@ -551,7 +552,7 @@ static func _dress_start(isl: GenIsland, e: Dictionary, w: Dictionary) -> void:
 	d.add_child(clutter)
 	var frost: bool = KitStyle.of(isl.theme)["cave_frost"]
 	w.merge({"d": d, "rng": rng, "mb": MeshBuilder.new(), "clutter": clutter, "used": used, "frost": frost})
-	_dripstone_pass(e, w["mb"], clutter, rng, used, frost)
+	await _dripstone_pass(e, w["mb"], clutter, rng, used, frost)
 
 
 static func _dress_kind(e: Dictionary, w: Dictionary) -> void:
@@ -580,7 +581,7 @@ static func _dress_kind(e: Dictionary, w: Dictionary) -> void:
 
 static func _dress_walls(e: Dictionary, w: Dictionary) -> void:
 	var mb: MeshBuilder = w["mb"]
-	_walls(e, mb, w["rng"])
+	await _walls(e, mb, w["rng"])
 	var inside := mb.to_instance("Dressing")
 	inside.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	inside.visibility_range_end = float(e["radius"]) + 70.0
@@ -622,6 +623,7 @@ static func _dripstone_pass(e: Dictionary, mb: MeshBuilder, body: StaticBody3D, 
 			var a := rng.randf() * TAU
 			var q: Vector2 = r["c"] + Vector2.from_angle(a) * float(r["r"]) * rng.randf_range(0.85, 0.97)
 			mb.add_blob(rubble, Transform3D(Basis(Vector3.UP, a), loc(e, q, float(r["y"]) + 0.15)), Vector3.ONE * rng.randf_range(0.4, 1.1), rng, 0.25, 3, 6)
+		await GenIsland.breathe()
 
 
 ## A frozen cave's own (style "cave_frost"): clusters of ice crystals on the floors, and in the end room a waterfall
@@ -701,6 +703,7 @@ static func _walls(e: Dictionary, mb: MeshBuilder, rng: RandomNumberGenerator) -
 					var b := Basis.looking_at(nrm, up)
 					mb.add_box(glyph, Transform3D(b, p + nrm * 0.02), Vector3(rng.randf_range(0.8, 1.4), rng.randf_range(0.6, 1.1), 0.04), 0.6)
 			n += 1
+		await GenIsland.breathe()
 
 
 ## A dripstone hanging (`down`) or rising from `root`: flared at the rock, tapering to a point.

@@ -174,13 +174,14 @@ func _finish_ready() -> void:
 			isl.start_beasts()
 			add_child(isl)
 			Perf.step("%s into the tree" % isl.name, Time.get_ticks_usec() - t)
-			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0, 0]
+			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0, 0, false]
 		else:
 			(e[0] as Node).free()
 
 
 ## Steps of the first island being put in the world: one a frame, and the small ones after it while the frame's
-## island work is under SMALL_US (no big hitch; steps with nothing left to do take no frame of their own).
+## island work is under SMALL_US (no big hitch; steps with nothing left to do take no frame of their own). A long
+## step that breathes (GenIsland.breathe) goes on a slice a frame (e[7]: one is waiting) before the next starts.
 const SMALL_US := 1500
 func _finish_step() -> void:
 	if _finishing.is_empty():
@@ -190,18 +191,35 @@ func _finish_step() -> void:
 	var isl: GenIsland = e[0]
 	var t := Time.get_ticks_usec()
 	e[6] = int(e[6]) + 1
+	if e[7]:
+		var on: String = e[1][e[2]][0]
+		isl.resume.emit()
+		Perf.step("%s '%s' (on)" % [isl.name, on], Time.get_ticks_usec() - t)
+		return
 	while true:
+		if not isl.step_ready(e[1][e[2]]):
+			return
 		var t1 := Time.get_ticks_usec()
-		e[5] = maxi(int(e[5]), isl.run_step(e[1][e[2]]))
-		e[4] = int(e[4]) + Time.get_ticks_usec() - t1
-		Perf.step("%s '%s'" % [isl.name, e[1][e[2]][0]], Time.get_ticks_usec() - t1)
-		e[2] = int(e[2]) + 1
-		if int(e[2]) >= (e[1] as Array).size():
-			_finishing.erase(id)
-			_register_chain_island(isl, int(e[3]), int(e[4]), int(e[6]), int(e[5]))
+		var what: String = e[1][e[2]][0]
+		_step(id, e)
+		Perf.step("%s '%s'" % [isl.name, what], Time.get_ticks_usec() - t1)
+		if e[7] or not _finishing.has(id) or Time.get_ticks_usec() - t >= SMALL_US:
 			return
-		if Time.get_ticks_usec() - t >= SMALL_US:
-			return
+
+
+func _step(id: int, e: Array) -> void:
+	var isl: GenIsland = e[0]
+	e[7] = true
+	isl.budget()
+	var worst: int = await isl.run_step(e[1][e[2]])
+	GenIsland.unbudget()
+	e[7] = false
+	e[5] = maxi(int(e[5]), worst)
+	e[4] = int(e[4]) + isl._step_us
+	e[2] = int(e[2]) + 1
+	if int(e[2]) >= (e[1] as Array).size():
+		_finishing.erase(id)
+		_register_chain_island(isl, int(e[3]), int(e[4]), int(e[6]), int(e[5]))
 
 
 func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, worst_ms: int) -> void:

@@ -160,6 +160,7 @@ static func build(isl: GenIsland, e: Dictionary) -> void:
 	body.name = "Stone"
 	body.collision_layer = 1
 	body.collision_mask = 0
+	isl._unparented.append_array([d, body])
 	var mb := MeshBuilder.new()
 	var base: float = e["base"]
 	# the platform, a step round its foot, the stairs up to the porch
@@ -203,6 +204,7 @@ static func build(isl: GenIsland, e: Dictionary) -> void:
 	_wall(mb, stone, body, Vector2(SANCTUM[0], SANCTUM[2]), Vector2(SANCTUM[0], SANCTUM[3]), 0.0, 0.0, wc)
 	_wall(mb, stone, body, Vector2(SANCTUM[1], SANCTUM[2]), Vector2(SANCTUM[1], SANCTUM[3]), 0.0, 0.0, wc)
 	_wall(mb, stone, body, Vector2(SANCTUM[0], SANCTUM[2]), Vector2(SANCTUM[1], SANCTUM[2]), 0.0, 0.0, wc)
+	await GenIsland.breathe()
 	# roofs of slabs: fallen in over the hall's back, an oculus over the sanctum's altar
 	var holes := {}
 	var hx := rng.randi_range(-3, 1)
@@ -212,6 +214,7 @@ static func build(isl: GenIsland, e: Dictionary) -> void:
 	holes[Vector2i(0, -9)] = true
 	for r in [HALL, SHRINE_W, SHRINE_E, SANCTUM]:
 		_roof(mb, moss, body, r, holes)
+		await GenIsland.breathe()
 	# a stepped crown over the sanctum and a lower one over the hall, the temple's silhouette
 	for t in range(3):
 		var inset := 1.0 + t * 1.6
@@ -223,10 +226,15 @@ static func build(isl: GenIsland, e: Dictionary) -> void:
 	_box(mb, carved, Vector3(0.0, 5.45, HALL[3] + WT * 0.5 + 0.02), Vector3(3.6, 1.6, 0.04))
 	for sx in [-1.0, 1.0]:
 		_guardian(mb, stone, carved, Vector3(sx * 4.2, 0.0, pz1 - 1.6), body)
+	await GenIsland.breathe()
 	_hall(mb, stone, moss, carved, body, rng)
+	await GenIsland.breathe()
 	_shrines(d, mb, stone, carved, body, rng)
+	await GenIsland.breathe()
 	_sanctum(d, mb, stone, carved, body, rng)
+	await GenIsland.breathe()
 	_vines(mb, rng, pz1)
+	await GenIsland.breathe()
 	var mesh := mb.to_instance("Masonry")
 	body.add_child(mesh)
 	d.add_child(body)

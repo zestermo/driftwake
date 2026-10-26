@@ -19,7 +19,7 @@ const VIS := 200.0
 
 
 static func steps(isl: GenIsland) -> Array:
-	return [["wayside", func(): build(isl)]]
+	return [["wayside", func(): await build(isl)]]
 
 
 static func build(isl: GenIsland) -> void:
@@ -29,6 +29,7 @@ static func build(isl: GenIsland) -> void:
 	var mb := MeshBuilder.new()
 	var body := StaticBody3D.new()
 	body.name = "WaysideBody"
+	isl._unparented.append(body)
 	var mats := _mats(isl.theme)
 	var placed: Array = []
 	var n_find := 0
@@ -63,6 +64,7 @@ static func build(isl: GenIsland) -> void:
 						2:
 							_wall(isl, mb, body, rng, mats, q, dir)
 			d += rng.randf_range(SPACING.x, SPACING.y)
+			await GenIsland.breathe()
 	var mi := mb.to_instance("Wayside")
 	mi.visibility_range_end = VIS
 	isl.add_child(mi)

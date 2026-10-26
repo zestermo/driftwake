@@ -6492,3 +6492,30 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
 - Hooks for the enemy brains (lead's files): `Perf.add_us(Perf.AI, Time.get_ticks_usec() - t0)` round a brain's think.
 - Tests: t/world/spike_log (new: a frame forced over 50 ms with a step timed in it and a node spawned is in
   Perf.recent, the perf log and the F12 text with its cause), t/world/perf_log (spike line), t/world/actor_sleep.
+
+## 2026-10-26: 1.23 perf track, piece 2: island builds on a frame budget
+- The lead's 1.23 bench, stop "isles" (a chain island built while you stand there): 41 frames over 33 ms, each a
+  build step of 15-50 ms on top of a ~16 ms frame. Steps now keep to ~3 ms a frame where they can:
+- **Breathing steps** (GenIsland): WorldGenerator runs each step budgeted (`isl.budget()`); a long step's loops
+  `await GenIsland.breathe()`, which past `BUDGET_US` 3000 waits for the island's `resume` signal (emitted once a
+  frame by `_finish_step` while `e[7]`, a step waiting) and goes on. Straight through (finish: tests, tools,
+  islanddump) breathe returns at once. Everything between breathe and the step's Callable must `await`, or the step
+  ends early (the lambdas: `func(): await build(isl)`). Let go mid-way, the island is freed and the step never
+  resumes; nodes a step fills before they join the island go on `isl._unparented` (freed with it). `run_step` returns
+  the step's worst slice (the hitch), build_ms keeps its main-thread total. Breathing now: KitWayside.build (a find
+  or a piece of dressing at a time), KitTemple.build (between walls, roofs, hall, shrines, sanctum, vines),
+  KitDungeons' dripstone and wall passes (a room at a time).
+- **Ground colliders** GROUND 4 -> 8: 64 squares of ~3 ms joining the physics space (16 of 12-16 ms).
+- **Beasts:** the boss and beast steps no longer wait on the worker's prebuilt models inside the frame (150-200 ms
+  with the workers busy on the next islands' prepare): `GenIsland.step_ready` holds them a frame at a time until
+  the task is done, and the prebuild task is high priority.
+- DrawLOD.steps 3 ms slices (was 4).
+- Measured (t/island/build_budget_same, headless under test load, worst slice ms): ground 3, wayside 3 (were 12-16
+  and 28-61). Still whole: village shops 20, village houses 15, dungeons 15 (the shell's mesh and rock collider),
+  harbour 13, boss 13, terrain 12 (one mesh upload), colliders 10 (the trees' body joining), draw lod 9 (its walk).
+  Houses and shops need KitHouses.room / Buildings.house to breathe (shared with Brinehollow and the harbours: every
+  caller in a budgeted step would have to await); next in line if the spike log points there.
+- Brinehollow is untouched (StarterIsland uses none of these paths). Tests: t/island/build_breathe (the mechanism),
+  t/island/build_budget_same (seed 4242's first island budgeted vs straight through: the same geometry, colliders
+  and lights node for node; the wayside under 8 ms), t/island/wayside, build_slices, free_slices, beast_prebuild,
+  forest_places, dungeon_nest_sleep, fog_isle.
