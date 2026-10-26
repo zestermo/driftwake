@@ -223,6 +223,7 @@ static func barrel() -> Node3D:
 	mb.add_cylinder(band, _xf(Vector3(0, 0.8, 0)), 0.37, 0.36, 0.06, 8, 1.0, Color.WHITE, false)
 	body.add_child(mb.to_instance())
 	_add_cyl_col(body, 0.38, 1.0, Vector3.ZERO)
+	Breakable.add_to(body, 0.8, Vector3(0, 0.5, 0))
 	return body
 
 
@@ -238,6 +239,7 @@ static func crate(size: float = 0.8) -> Node3D:
 			mb.add_box(dark, _xf(Vector3(x * size * 0.47, size * 0.5, z * size * 0.47)), Vector3(0.08, size + 0.02, 0.08), 1.0)
 	body.add_child(mb.to_instance())
 	_add_box_col(body, Vector3.ONE * size, Vector3(0, size * 0.5, 0))
+	Breakable.add_to(body, size, Vector3(0, size * 0.5, 0))
 	return body
 
 

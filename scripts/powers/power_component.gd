@@ -444,7 +444,8 @@ func add_ult(damage: float) -> void:
 
 ## A weapon hit landed (energy, ultimate charge, mastery, Kindled Blade sears).
 func on_sword_hit(target: Node, hit: HitData) -> void:
-	if target == null:
+	# (a crate or barrel struck (Breakable): no energy, ultimate or mastery from the furniture)
+	if target == null or target.is_in_group("breakables"):
 		return
 	var st := player.style()
 	var pr := player.progression
