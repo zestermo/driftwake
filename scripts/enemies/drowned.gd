@@ -72,6 +72,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		h.damage *= SHOT_K
 		h.knockdown = false
 		h.crumple = false
+		h.poise = Poise.of(h) * SHOT_K
 		h.knockback_force *= 0.2
 		super._on_hit(h, attacker)
 		return

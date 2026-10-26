@@ -182,6 +182,8 @@ const MOMENTUM_SPEED := 0.07
 ## A hit you can steer a little while it plays ("steers": m/s at full stick; the Handstand Spin creeps where you push).
 const STEER_SPIN := 1.3
 const MOMENTUM_DAMAGE := 0.06
+## A launcher blow's throw up (m/s): ~2.7 m, a second and a half's hang to chase.
+const LAUNCH_UP := 9.0
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -321,6 +323,9 @@ func physics_update(delta: float) -> void:
 		# (the axe's finisher puts them on the ground)
 		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0 or cfg.get("trip", false) \
 			or (cfg.has("launch") and bool(cfg["launch"][combo_index]))
+		# (the uppercut: a launcher, Juggle)
+		if cfg.has("launch") and bool(cfg["launch"][combo_index]):
+			hit.launch = LAUNCH_UP
 		# (a polearm's thrust shoves them back to the point; a trident's goes through a guard)
 		if cfg.get("pole", false) and str(cfg["anims"][combo_index]) == "pole_thrust":
 			hit.knockback_force = 6.5

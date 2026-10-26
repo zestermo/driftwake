@@ -562,3 +562,15 @@ scenes/ui/player_hud.gd                 t/ui/party_where
 scripts/map/map_hold.gd                 t/map/map_pan
 scripts/ui/marker_layer.gd              t/map/map_marks
 scripts/items/loot.gd                   t/weapons faunatest t/economy
+# --- 1.23 combat core: poise, juggling, black-leg's juggle set ---
+scripts/combat/poise.gd                 t/combat grunttest ragtest balancetest techtest r10test
+scripts/combat/juggle.gd                t/combat techtest airtest
+scripts/npc/juggle_poses.gd             t/combat
+scripts/enemies/pirate_grunt.gd         t/combat/poise_knockdown t/combat/juggle_hold t/combat/juggle_chase t/combat/black_leg_launch
+scripts/enemies/pirate_boss.gd          t/combat r10test storytest
+scripts/player_states/plunge_state.gd   t/combat/juggle_chase airtest
+scripts/player_states/jump_state.gd     t/combat/juggle_chase t/player/air_step
+scripts/player_states/black_leg_arts.gd t/combat/black_leg_launch techtest
+scripts/npc/black_leg_moves.gd          t/combat/black_leg_launch techtest
+scripts/progression/skill_trees.gd      t/progression/black_leg_rename progtest
+scripts/progression/skills.gd           t/progression/black_leg_rename progtest

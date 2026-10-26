@@ -2041,15 +2041,16 @@ def gen_technique_icons():
         fx, fy = foot
         d.rectangle([fx - 1, fy - 2, fx + 4, fy + 2], fill=boot)
 
-    def mule_kick(d):
-        d.rectangle([2, 14, 6, 17], fill=SKIN)
-        d.rectangle([1, 18, 7, 20], fill=SKIN_D)
-        d.line([(5, 14), (8, 8)], fill=BLUE, width=3)
-        leg(d, (7, 8), (17, 8))
-        leg(d, (7, 11), (17, 12), HEAT)
-        for y in (6, 10, 14):
-            d.line([(19, y), (23, y)], fill=HEAT_W)
-        d.ellipse([20, 9, 23, 13], fill=HEAT)
+    def rising_heel(d):
+        # a leg swung straight up the front, a foe's head knocked up off the heel, lines of the launch
+        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
+        leg(d, (6, 22), (7, 14), HEAT_D)
+        leg(d, (7, 14), (9, 3), HEAT)
+        d.line([(7, 14), (9, 3)], fill=HEAT_W, width=1)
+        d.ellipse([14, 2, 19, 7], fill=SKIN)
+        for x in (15, 18, 21):
+            d.line([(x, 10), (x, 15)], fill=HEAT_W)
+        d.arc([4, -2, 16, 10], 200, 320, fill=HEAT, width=1)
 
     def hailstorm_heels(d):
         leg(d, (3, 20), (4, 12), HEAT_D)
@@ -2060,14 +2061,16 @@ def gen_technique_icons():
         d.ellipse([18, 16, 23, 21], fill=HEAT_D)
         d.line([(9, 21), (16, 21)], fill=HEAT_W)
 
-    def cartwheel_crescent(d):
-        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
-        d.arc([2, 2, 22, 22], 190, 20, fill=HEAT, width=2)
-        d.arc([5, 5, 19, 19], 200, 10, fill=HEAT_W, width=1)
-        d.line([(12, 12), (6, 4)], fill=HEAT_D, width=3)
-        d.line([(12, 12), (18, 20)], fill=HEAT_D, width=3)
-        d.rectangle([4, 2, 8, 4], fill=BLACK)
-        d.ellipse([10, 10, 14, 14], fill=SKIN)
+    def sky_chase(d):
+        # a ring stamped on the air below, a body carried up to a foe tumbling above, a heel on its way down
+        d.ellipse([2, 19, 12, 22], outline=HEAT_W)
+        d.line([(7, 18), (10, 11)], fill=HEAT_D, width=1)
+        leg(d, (9, 13), (16, 7), HEAT)
+        d.line([(9, 13), (16, 7)], fill=HEAT_W, width=1)
+        d.ellipse([16, 1, 21, 6], fill=SKIN)
+        d.line([(17, 6), (22, 9)], fill=BLUE, width=2)
+        for x in (3, 5):
+            d.line([(x, 9), (x, 15)], fill=HEAT_W)
 
     def last_course(d):
         d.ellipse([1, 17, 23, 23], outline=HEAT)
@@ -2125,8 +2128,8 @@ def gen_technique_icons():
                      ("hewing_frenzy", hewing_frenzy), ("axestorm", axestorm), ("fimbulwinter", fimbulwinter),
                      ("ravens_return", ravens_return), ("raiders_haul", raiders_haul),
                      ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns), ("updraft", updraft), ("gatekeeper", gatekeeper),
-                     ("skysplitter", skysplitter), ("mule_kick", mule_kick), ("hailstorm_heels", hailstorm_heels),
-                     ("cartwheel_crescent", cartwheel_crescent), ("last_course", last_course)):
+                     ("skysplitter", skysplitter), ("rising_heel", rising_heel), ("hailstorm_heels", hailstorm_heels),
+                     ("sky_chase", sky_chase), ("last_course", last_course)):
         _icon("skill_" + name, fn)
 
 

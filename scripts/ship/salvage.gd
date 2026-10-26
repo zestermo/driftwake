@@ -11,7 +11,7 @@ const KINDS := ["timber", "iron", "canvas", "copper"]
 ## [weight, weight per point of richness, fewest, most] per kind.
 const TABLE := {"timber": [5.0, 0.0, 2, 4], "canvas": [3.0, 0.0, 1, 3], "iron": [2.0, 4.0, 1, 3], "copper": [0.6, 2.0, 1, 2]}
 ## A sunk ship's haul: [pieces, richness] by kind (bigger ship, better haul).
-const HAULS := {"gunboat": [3, 0.1], "sloop": [4, 0.2], "marine": [5, 0.6], "brig": [6, 0.4]}
+const HAULS := {"gunboat": [3, 0.1], "sloop": [4, 0.2], "marine": [5, 0.6], "brig": [6, 0.4], "hunter": [4, 0.35], "frigate": [7, 0.7]}
 ## Swimming: how close you take it. Sailing: how far past her side a piece is still swept up.
 const SWIM_REACH := 1.8
 const HULL_REACH := 1.2

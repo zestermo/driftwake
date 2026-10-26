@@ -143,6 +143,9 @@ func air_attack_input() -> String:
 	if player.can_attack() and player.height_above_ground() < 0.9:
 		return ""
 	if input_buffer.consume_action("light_attack") or input_buffer.consume_action("heavy_attack"):
+		# (a juggled foe in reach: an air combo, whatever this jump has already used)
+		if player.can_attack() and juggled_in_reach():
+			return "Plunge" if player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()) else ""
 		if not player.can_attack():
 			player.draw_weapon()
 			return ""
@@ -181,6 +184,17 @@ func air_move() -> String:
 		return "falling_moon"
 	var mv: String = AIR_MOVES.get(player.style(), "")
 	return mv if mv != "" and player.progression.has_move(mv) else ""
+
+
+## Air combo hits a jump (Juggle): the last one spikes.
+const AIR_COMBO_MAX := 4
+
+
+## A juggled foe close enough for an air combo (a blade, fists or kicks in hand; this jump's combo not spent), else null.
+func juggled_in_reach() -> Node3D:
+	if player.weapon_class() == "gun" or int(player.air_uses.get("air_combo", 0)) >= AIR_COMBO_MAX:
+		return null
+	return Juggle.near(player.get_tree(), player.global_position, Juggle.COMBO_REACH)
 
 
 ## Moonstep (Acrobatics): dodge in mid-air, once a jump, for MOON_COST stamina.

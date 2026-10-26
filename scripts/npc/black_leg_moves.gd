@@ -23,32 +23,34 @@ const LEGS := {"leg_l": Vector3(0.3, 0, -0.12), "leg_r": Vector3(-0.22, 0, 0.12)
 ## Actions of every stance this file poses for black-leg (the held block is a raised shin, not the arms).
 const OWN := ["guard_block", "guard_block_hit"]
 ## Moves upside down (no foot IK while they play).
-const INVERTED := ["bl_4", "bl_wheel", "bl_mule", "bl_last"]
+const INVERTED := ["bl_4", "bl_last"]
 ## Where the hands go down on the ground: action -> [[u from, u to, "l" / "r" / "lr", latched]]. A latched hand
 ## stays where it touched down; the others follow the posed hand along the ground (the spins).
 const PLANTS := {
 	"bl_4": [[0.17, 0.82, "lr", false]],
 	"bl_air_land": [[0.0, 0.62, "r", true]],
 	"bl_deflect": [[0.2, 0.74, "r", true]],
-	"bl_mule": [[0.27, 0.66, "lr", true]],
 }
-static var WHEEL_PLANTS := _wheel_plants()
 ## Handstand Spin (bl_4): how far the split legs' plane tips off flat (rad) at the middle of the spin, and how fast
 ## the way it tips wanders round (turns of the tip per turn of the body, against the spin).
 const SPIN_TILT := 0.24
 const SPIN_PRECESS := -0.3
 
-## The techniques' timings (s at the length they're played; BlackLegArts runs them): Hailstorm Heels' kicks and their
-## heights (_kick_r k), Cartwheel Crescent's two turns and its heel, Last Course's heat spin, kicks and heel.
+## The techniques' timings (s at the length they're played; BlackLegArts runs them): Rising Heel's kick, Hailstorm
+## Heels' kicks and their heights (_kick_r k), Sky Chase's rise and kick, Last Course's heat spin, kicks and heel.
+const RISE_DUR := 0.8
+const RISE_AT := 0.24
 const HAIL_DUR := 1.3
 const HAIL_KICKS := 9
 const HAIL_FROM := 0.16
 const HAIL_EVERY := 0.09
 const HAIL_FINAL_AT := 1.08
 const HAIL_HEIGHTS := [1.0, 2.0, 0.0, 1.0, 2.0, 1.0, 0.0, 2.0, 1.0]
-const WHEEL_DUR := 1.45
-const WHEEL_ROLL := Vector2(0.1, 0.95)
-const WHEEL_HEEL := 1.15
+const SKY_DUR := 0.75
+const SKY_GO := 0.24
+const SKY_AT := 0.3
+## The spike's pose is played this long; the landing cuts it short.
+const SKY_SPIKE_DUR := 1.4
 const LAST_DUR := 2.7
 const LAST_HEAT := Vector2(0.05, 0.6)
 const LAST_KICKS := 7
@@ -59,10 +61,11 @@ const LAST_HEEL := 1.95
 ## flying side kick from FLAMBE_GO to FLAMBE_LAND (FLAMBE_LEN m through the line).
 const CLEAVE_DUR := 0.8
 const CLEAVE_AT := 0.3
-const FLAMBE_DUR := 1.0
+## (1.23, Zach: it went far too far: 9 m to 4.5)
+const FLAMBE_DUR := 0.85
 const FLAMBE_GO := 0.26
-const FLAMBE_LAND := 0.51
-const FLAMBE_LEN := 9.0
+const FLAMBE_LAND := 0.44
+const FLAMBE_LEN := 4.5
 
 
 static func guard(h) -> Dictionary:
@@ -284,12 +287,14 @@ static func pose(h, n: String, u: float) -> Array:
 		"bl_stance":
 			return [{}, "upper", lift]
 		# --- the techniques (BlackLegArts; keyed in seconds of the length they're played at) ---
-		"bl_mule":
-			return [_mule(h, u, T), "full", lift]
+		"bl_rise":
+			return [_rise(h, u, T), "full", lift]
 		"bl_hail":
 			return [_hail(h, u, T), "full", lift]
-		"bl_wheel":
-			return [_wheel(h, u, T), "full", lift]
+		"bl_sky":
+			return [_sky(h, u, T), "full", lift]
+		"bl_sky_spike":
+			return [_sky_spike(h, u, T), "full", lift]
 		"bl_last":
 			return [_last(h, u, T), "full", lift]
 		"bl_cleave":
@@ -329,37 +334,80 @@ static func _heel_down() -> Dictionary:
 		"_lift": Vector3(0, -0.26, 0), "_scale": Vector3(1.06, 0.92, 1.04)}
 
 
-## Mule Kick: turned your back to them and down onto both hands, tipped up over them nearly into a handstand with the
-## knees tucked to the chest (0.3 s), both heels driven up and back into them (0.42 s), held, then down and round to
-## face them again. (MULE_TIP: how far over the body goes; at a quarter turn it lay face-down on the ground.)
-const MULE_TIP := 2.45
+## Rising Heel (1.23, a launcher): sunk deep over the left knee with the right leg drawn back, then the right leg swung
+## straight up the front, the heel under their chin (RISE_AT: leaning back off the toes of the left foot, the arms flung
+## down and back, stretched tall), carried on up near vertical and held, folded down and back to the guard.
+static func _rise(h, u: float, T: float) -> Dictionary:
+	var load_ := {"pivot": Vector3(-0.12, 0.1, 0), "hips": Vector3(0, 0.15, 0), "torso": Vector3(-0.4, -0.05, 0), "head": Vector3(0.3, -0.05, 0),
+		"leg_l": Vector3(0.75, 0, -0.12), "shin_l": Vector3(-1.35, 0, 0), "leg_r": Vector3(-0.45, 0, 0.12), "shin_r": Vector3(-0.7, 0, 0),
+		"arm_l": Vector3(0.7, 0.2, -0.45), "fore_l": Vector3(1.2, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+		"arm_r": Vector3(0.1, 0, 0.5), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+		"_lift": Vector3(0, -0.32, 0), "_scale": Vector3(1.05, 0.92, 1.03)}
+	var up := {"pivot": Vector3(0.3, 0.0, 0.05), "hips": Vector3(0, 0.05, 0), "torso": Vector3(0.25, 0.0, 0.05), "head": Vector3(-0.12, 0, 0),
+		"leg_r": Vector3(2.45, 0, 0.1), "shin_r": Vector3(-0.12, 0, 0), "leg_l": Vector3(-0.15, 0, -0.08), "shin_l": Vector3(-0.1, 0, 0),
+		"arm_l": Vector3(-0.55, 0, -0.55), "fore_l": Vector3(0.4, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(-0.7, 0, 0.45), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, 0.08, 0), "_scale": Vector3(0.96, 1.07, 0.98)}
+	var top := up.merged({"pivot": Vector3(0.38, 0.0, 0.05), "leg_r": Vector3(2.75, 0, 0.1), "_scale": Vector3.ONE}, true)
+	var fold := {"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.05, 0.05, 0), "head": Vector3(0.05, 0, 0),
+		"leg_r": Vector3(1.25, 0, 0.15), "shin_r": Vector3(-1.7, 0, 0), "leg_l": Vector3(0.1, 0, -0.08), "shin_l": Vector3(-0.4, 0, 0),
+		"arm_l": Vector3(0.4, 0.1, -0.6), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+		"arm_r": Vector3(0.3, 0, 0.6), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+		"_lift": Vector3(0, -0.06, 0), "_scale": Vector3.ONE}
+	return h._keys(u, [[0.0, h._guard()], [0.13 / T, load_, "out"], [RISE_AT / T, up, "out"], [(RISE_AT + 0.14) / T, top],
+		[(RISE_AT + 0.34) / T, fold], [1.0, h._guard()]])
 
 
-static func _mule(h, u: float, T: float) -> Dictionary:
-	var s := u * T
-	var reach := _p([_dip(), {"arm_l": Vector3(1.85, 0, -0.35), "arm_r": Vector3(1.85, 0, 0.35)}])
-	var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.6, 0, 0),
-		"leg_l": Vector3(1.75, 0, -0.1), "shin_l": Vector3(-2.2, 0, 0), "leg_r": Vector3(1.75, 0, 0.1), "shin_r": Vector3(-2.2, 0, 0),
-		"arm_l": Vector3(2.5, 0, -0.3), "fore_l": Vector3(0.25, 0, 0), "hand_l": Vector3(-0.7, 0, 0),
-		"arm_r": Vector3(2.5, 0, 0.3), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-0.7, 0, 0),
-		"_lift": Vector3(0, -0.08, 0), "_scale": Vector3(1.04, 0.95, 0.97)}
-	var kick := tuck.merged({"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.65, 0, 0),
-		"leg_l": Vector3(0.45, 0, -0.07), "shin_l": Vector3(-0.05, 0, 0), "leg_r": Vector3(0.45, 0, 0.07), "shin_r": Vector3(-0.05, 0, 0),
-		"_lift": Vector3(0, -0.04, 0), "_scale": Vector3(0.98, 0.98, 1.07)}, true)
-	var pz: Dictionary = h._keys(u, [[0.0, h._guard()], [0.16 / T, reach, "out"], [0.3 / T, tuck, "out"], [0.42 / T, kick, "out"],
-		[0.6 / T, kick.merged({"_scale": Vector3.ONE}, true)], [0.82 / T, _walkover_land(), "out"], [1.0, h._guard()]])
-	var yaw := PI * Humanoid._ease(s / 0.2) if s < 0.68 else lerpf(PI, TAU, Humanoid._ease((s - 0.68) / 0.24))
-	var pitch := 0.0
-	if s < 0.3:
-		pitch = -(MULE_TIP - 0.25) * Humanoid._shape(s / 0.3, "out")
-	elif s < 0.42:
-		pitch = lerpf(-(MULE_TIP - 0.25), -MULE_TIP, Humanoid._shape((s - 0.3) / 0.12, "out"))
-	elif s < 0.6:
-		pitch = -MULE_TIP
-	else:
-		pitch = lerpf(-MULE_TIP, 0.0, Humanoid._ease((s - 0.6) / 0.25))
-	pz["pivot"] = Vector3(pitch, yaw, 0)
-	return pz
+## Sky Chase's stamp on the air: both knees tucked up, the arms swung down past the hips.
+static func _sky_spring() -> Dictionary:
+	return {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(-0.25, 0, 0), "head": Vector3(0.2, 0, 0),
+		"leg_l": Vector3(1.3, 0, -0.12), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(0.9, 0, 0.12), "shin_r": Vector3(-1.6, 0, 0),
+		"arm_l": Vector3(-0.5, 0, -0.5), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(-0.5, 0, 0.5), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3.ZERO, "_scale": Vector3(1.04, 0.93, 1.03)}
+
+
+## ...then up: stretched tall, the right knee chambered high in front, the left leg trailing, the left arm reaching up.
+static func _sky_rise() -> Dictionary:
+	return {"pivot": Vector3(0.1, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.05, 0, 0), "head": Vector3(-0.15, 0, 0),
+		"leg_r": Vector3(1.9, 0, 0.1), "shin_r": Vector3(-2.1, 0, 0), "leg_l": Vector3(-0.2, 0, -0.08), "shin_l": Vector3(-0.3, 0, 0),
+		"arm_l": Vector3(1.2, 0, -0.9), "fore_l": Vector3(0.6, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(-0.3, 0, 0.8), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3.ZERO, "_scale": Vector3(0.97, 1.05, 0.98)}
+
+
+## The scissor kick up: laid back near flat in the air, the right leg shot straight up into them, the left swept down,
+## the arms flung wide.
+static func _sky_kick() -> Dictionary:
+	return {"pivot": Vector3(0.95, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.15, 0, 0), "head": Vector3(-0.35, 0, 0),
+		"leg_r": Vector3(1.75, 0, 0.08), "shin_r": Vector3(-0.05, 0, 0), "leg_l": Vector3(-0.45, 0, -0.08), "shin_l": Vector3(-0.35, 0, 0),
+		"arm_l": Vector3(-0.2, 0, -1.3), "fore_l": Vector3(0.3, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(-0.2, 0, 1.3), "fore_r": Vector3(0.3, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3.ZERO, "_scale": Vector3(0.97, 1.0, 1.06)}
+
+
+## Falling after it: rolled back upright, knees drawn up, arms out for balance.
+static func _sky_tuck() -> Dictionary:
+	return {"pivot": Vector3(0.2, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.1, 0, 0),
+		"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.6, 0, 0), "leg_r": Vector3(0.7, 0, 0.12), "shin_r": Vector3(-1.3, 0, 0),
+		"arm_l": Vector3(0.5, 0, -1.1), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(0.5, 0, 1.1), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3.ZERO, "_scale": Vector3.ONE}
+
+
+## Sky Chase: the stamp, up beside them (SKY_GO), the scissor kick into them (SKY_AT), held, then tucked to fall.
+static func _sky(h, u: float, T: float) -> Dictionary:
+	var k := _sky_kick()
+	return h._keys(u, [[0.0, h._guard()], [0.08 / T, _sky_spring(), "out"], [SKY_GO / T, _sky_rise(), "out"], [SKY_AT / T, k, "out"],
+		[(SKY_AT + 0.14) / T, k.merged({"_scale": Vector3.ONE}, true)], [minf((SKY_AT + 0.36) / T, 1.0), _sky_tuck()], [1.0, _sky_tuck()]])
+
+
+## Sky Chase's spike: the stamp, up over them with the right leg straight up over the head (SKY_GO), the heel driven
+## down through them (SKY_AT), and crunched over it all the way down (played until the landing cuts it short).
+static func _sky_spike(h, u: float, T: float) -> Dictionary:
+	var d := _heel_down().merged({"_lift": Vector3.ZERO}, true)
+	return h._keys(u, [[0.0, h._guard()], [0.08 / T, _sky_spring(), "out"], [SKY_GO / T, _heel_up(0.0), "out"], [SKY_AT / T, d, "in"],
+		[(SKY_AT + 0.12) / T, d.merged({"_scale": Vector3.ONE}, true)], [1.0, d.merged({"_scale": Vector3.ONE}, true)]])
 
 
 ## A flurry kick: the right leg's roundhouse at height `k` with the hips only half over (it snaps out and back off
@@ -384,49 +432,6 @@ static func _hail(h, u: float, T: float) -> Dictionary:
 	keys.append_array([[(fa - 0.1) / T, _chamber_r(1.0), "out"], [fa / T, _sq(_kick_r(1.0), Vector3(1.04, 0.97, 1.05)), "out"],
 		[(fa + 0.1) / T, _kick_r(1.0)], [1.0, h._guard()]])
 	return h._keys(u, keys)
-
-
-## The cartwheel's star: arms up in a V overhead, legs out in a V.
-const STAR := {"hips": Vector3.ZERO, "torso": Vector3.ZERO, "head": Vector3(0.0, 0, 0),
-	"arm_l": Vector3(0.1, 0, -2.75), "fore_l": Vector3(0.15, 0, 0), "hand_l": Vector3(-0.5, 0, 0),
-	"arm_r": Vector3(0.1, 0, 2.75), "fore_r": Vector3(0.15, 0, 0), "hand_r": Vector3(-0.5, 0, 0),
-	"leg_l": Vector3(0.0, 0, -0.8), "shin_l": Vector3(-0.08, 0, 0), "leg_r": Vector3(0.0, 0, 0.8), "shin_r": Vector3(-0.08, 0, 0),
-	"_lift": Vector3.ZERO, "_scale": Vector3.ONE}
-
-
-## Cartwheel Crescent: turned side-on, two cartwheels toward the right side (forward) hand over hand, the legs wheeling
-## over (WHEEL_ROLL), then turned square and the heel brought down (WHEEL_HEEL).
-static func _wheel(h, u: float, T: float) -> Dictionary:
-	var s := u * T
-	var roll_v: Vector2 = WHEEL_ROLL
-	var heel: float = WHEEL_HEEL
-	var pz: Dictionary = h._keys(u, [[0.0, h._guard()], [roll_v.x / T, STAR, "out"], [roll_v.y / T, STAR], [(heel - 0.12) / T, _heel_up(0.05), "out"],
-		[heel / T, _heel_down(), "in"], [(heel + 0.15) / T, _heel_down().merged({"_scale": Vector3.ONE}, true)], [1.0, h._guard()]])
-	var k := clampf((s - roll_v.x) / (roll_v.y - roll_v.x), 0.0, 1.0)
-	var roll := -2.0 * TAU * k
-	var side := PI * 0.5 * (Humanoid._ease(s / roll_v.x) if s < roll_v.x else 1.0 - Humanoid._ease((s - roll_v.y) / 0.1))
-	var hp: Vector3 = pz.get("pivot", Vector3.ZERO)
-	pz["pivot"] = Vector3(hp.x, hp.y + side, roll)
-	if k > 0.0 and k < 1.0:
-		# (the hips a little higher upside down, held low enough that the planted hands reach the ground)
-		pz["_lift"] = Vector3(0, 0.02 + 0.035 * (1.0 - cos(roll)), 0)
-	return pz
-
-
-## When Cartwheel Crescent's hands are down ([u from, u to, side, latched], at the played length WHEEL_DUR): each
-## turn the right hand (the leading side) then the left, around where each points straight down (STAR's arms sit
-## ~23 deg off overhead: the right is under its shoulder ~157 deg into the turn, the left ~203; a plant from ~50 deg,
-## with the body still on its side, left the hands half a metre up, measured by t/weapons/black_leg_wheel_hands).
-static func _wheel_plants() -> Array:
-	var out: Array = []
-	var T: float = WHEEL_DUR
-	var r: Vector2 = WHEEL_ROLL
-	var turn := (r.y - r.x) * 0.5
-	for i in 2:
-		var a := r.x + turn * i
-		out.append([(a + turn * 0.34) / T, (a + turn * 0.54) / T, "r", true])
-		out.append([(a + turn * 0.47) / T, (a + turn * 0.67) / T, "l", true])
-	return out
 
 
 ## Last Course: a spin on the left foot with the right leg dragged out low round you, quicker and quicker (heating it,
@@ -529,7 +534,7 @@ static func _flambe(h, u: float, T: float) -> Dictionary:
 # --------------------------------------------------------------------------
 static func hands(h, _delta: float) -> void:
 	var act: String = h.current_action()
-	var wins: Array = WHEEL_PLANTS if act == "bl_wheel" else PLANTS.get(act, [])
+	var wins: Array = PLANTS.get(act, [])
 	if wins.is_empty() or h.ragdoll != null:
 		if h.has_meta("bl_latch"):
 			h.remove_meta("bl_latch")

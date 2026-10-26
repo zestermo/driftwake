@@ -13,7 +13,7 @@ const PATCH := 12
 const BAIL := 1
 const CAPSTAN := 3
 ## A ship sunk within SUNK_REACH of you, by kind.
-const SUNK := {"gunboat": 30, "sloop": 40, "marine": 50, "brig": 60}
+const SUNK := {"gunboat": 30, "sloop": 40, "marine": 50, "brig": 60, "hunter": 45, "frigate": 75}
 const SUNK_REACH := 250.0
 
 

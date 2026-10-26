@@ -21,3 +21,10 @@ __pycache__/
 
 # Claude Code worktrees (one per parallel session)
 /.claude/worktrees/
+
+# native builds (1.24: the release workflow builds them)
+bin/
+native/**/*.obj
+native/godot-cpp/bin/
+native/godot-cpp/gen/
+.sconsign.dblite

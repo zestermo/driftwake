@@ -25,7 +25,7 @@ class_name EnemyShip
 
 signal sunk(ship: EnemyShip)
 
-enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE }
+enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE, TRACK, BLOCK }
 
 ## What sails: speed, hull, guns a side (deck z), crew, broadside range
 ## [near, far], aim scatter, and how it fights (boards / rams / a second
@@ -38,12 +38,22 @@ const KINDS := {
 		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.6, 0.4, 0.3), "deck": Color(0.8, 0.7, 0.55), "trim": Color(0.75, 0.55, 0.2), "sail": Color(0.62, 0.16, 0.12), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
 	"brig": {"speed": 10.5, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [32.0, 54.0], "scatter": 1.0,
-		"boards": true, "rams": true, "double": true, "yields": true,
+		"boards": true, "rams": true, "double": true, "yields": true, "chain": true,
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
 	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
-		"boards": false, "rams": true, "double": false, "yields": false,
+		"boards": false, "rams": true, "double": false, "yields": false, "chain": true,
 		"look": {"hull_tex": "planks_grey", "hull": Color(0.95, 0.97, 1.0), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
+	# a pirate hunter: light and quick (quicker still before the wind: "downwind"), chain shot to bring you to her
+	"hunter": {"speed": 13.0, "hull": 190.0, "guns": [-4.2, 0.6], "crew": 5, "range": [30.0, 50.0], "scatter": 0.9,
+		"boards": true, "rams": true, "double": false, "yields": true, "chain": true, "downwind": 0.2,
+		"look": {"hull": Color(0.3, 0.32, 0.38), "deck": Color(0.7, 0.64, 0.56), "trim": Color(0.85, 0.68, 0.22), "sail": Color(0.42, 0.12, 0.1), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
+	# the Admiralty's heavy ship: slow, a double broadside, a crack gun crew
+	"frigate": {"speed": 11.0, "hull": 480.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [36.0, 60.0], "scatter": 0.6,
+		"boards": false, "rams": true, "double": true, "yields": false, "chain": true,
+		"look": {"hull_tex": "planks_grey", "hull": Color(0.8, 0.83, 0.88), "deck": Color(0.78, 0.8, 0.85), "trim": Color(0.3, 0.34, 0.42), "sail": Color(0.85, 0.86, 0.9), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 }
+## The Admiralty's kinds (group "admiralty", grey crews, an Admiralty ship's bounty).
+const ADMIRALTY_KINDS := ["marine", "frigate"]
 
 const ACCEL := 2.6
 const MAX_TURN := 0.5
@@ -75,6 +85,12 @@ const BOARD_GIVE_UP := 40.0
 ## The grapples fly this long before the men leap; lost if she pulls this far off.
 const HOOK_TIME := 1.2
 const HOOK_LOSE := 18.0
+## Lashed alongside with her boarders beaten: this long before the next party goes over.
+const PARTY_AGAIN := 8.0
+## A patrol on the crew's wake gives up past this many times her sight (LOSE, in fog and storm less).
+const TRACK_LOSE := 2.2
+## Chain shot is aimed this high (world): through the crew's mainsail.
+const CHAIN_AIM_Y := 10.5
 ## No more than this many ships fight the crew at once (the rest keep patrolling).
 const MAX_ATTACKERS := 2
 ## What a ball does to the crew's hull and to men near where it lands.
@@ -84,6 +100,14 @@ const BALL_SPLASH := 14.0
 ## before it tries again.
 const RAM_DAMAGE := 30.0
 const RAM_EVERY := 25.0
+## Holes a ram stoves in the crew's hull (kinds not listed: one).
+const RAM_HOLES := {"brig": 2, "frigate": 2}
+## Boarding boats: lowered when she can't catch the crew (within BOAT_RANGE, not closer than BOAT_MIN), this
+## often at most, with up to BOAT_MEN of her men at the oars (two at least, the helmsman stays).
+const BOAT_RANGE := 110.0
+const BOAT_MIN := 28.0
+const BOAT_EVERY := 35.0
+const BOAT_MEN := 3
 ## Fleeing at this share of hull; striking its colours at this share (if it
 ## would), once you've caught it.
 const FLEE_AT := 0.25
@@ -157,6 +181,14 @@ var _board_cd: float = 0.0
 var _fight_t: float = 0.0
 ## Seconds since her grapples flew (-1: not thrown).
 var _hook_t: float = -1.0
+## Seconds since her last boarding party went over (lashed alongside).
+var _party_t: float = 0.0
+var _chain_volley: bool = false
+var _boat_cd: float = 10.0
+var _boats: int = 0
+## Sent after the crew by the Admiralty (Admiralty.gd): no limit on attackers, no bounty gate, lost in fog and storm.
+var pursuer: bool = false
+var role: String = ""
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -202,14 +234,22 @@ func setup(center: Vector3, radius: float, start_angle: float, seed_value: int, 
 
 
 func _max_speed() -> float:
-	return float(spec["speed"]) * Ship.wind_boost(_heading, get_node_or_null("/root/Weather"))
+	var wx := get_node_or_null("/root/Weather")
+	var k := Ship.wind_boost(_heading, wx)
+	# (a hunter's rig loves the wind from astern: up to "downwind" more, fading out by a beam reach)
+	var dw: float = spec.get("downwind", 0.0)
+	if dw > 0.0:
+		var wd: Vector2 = wx.wind_dir()
+		var a := rad_to_deg(absf(Vector2(-sin(_heading), -cos(_heading)).angle_to(wd)))
+		k += dw * (1.0 - smoothstep(45.0, 100.0, a)) * lerpf(0.5, 1.0, clampf(float(wx.get("wind")), 0.0, 1.0))
+	return float(spec["speed"]) * k
 
 
 func _ready() -> void:
 	add_to_group("enemy_ships")
 	add_to_group("net_sync")
 	add_to_group("decks")
-	if kind == "marine":
+	if kind in ADMIRALTY_KINDS:
 		add_to_group("admiralty")
 	net_puppet = Net.is_client()
 	_rng.seed = look_seed
@@ -284,7 +324,7 @@ func _ready() -> void:
 	_bark.visible = false
 	add_child(_bark)
 	# her name and hull over the masthead, up for the whole fight
-	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter"}.get(kind, "Pirate Ship")
+	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter", "hunter": "Pirate Hunter", "frigate": "Admiralty Frigate"}.get(kind, "Pirate Ship")
 	_bar = OverheadBar.new().setup(title, HullBuilder.MAST_TOP + 2.6, 5.5, 320.0)
 	_bar.visible = false
 	add_child(_bar)
@@ -299,9 +339,43 @@ func is_dead() -> bool:
 	return state == S.SINK
 
 
-## ActorSleep: on patrol with nobody aboard (her guns and crew sleep with her).
+## ActorSleep: on patrol or holding a blockade station, with nobody aboard (her guns and crew sleep with her).
 func sleep_ok() -> bool:
-	return state == S.PATROL and not _anyone_aboard()
+	return state in [S.PATROL, S.BLOCK] and not _anyone_aboard()
+
+
+## After the crew's ship (closing, fighting, lashed to her): not patrolling, struck, sunk or fleeing.
+func pursuing() -> bool:
+	return state in [S.TRACK, S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]
+
+
+## (Admiralty) Sent after the crew: a "ring" closing in, a "patrol" on her wake, a "block" holding station at an
+## island's mouth.
+func start_role() -> void:
+	match role:
+		"ring":
+			_set_state(S.HUNT)
+			_volley_cd = FIRST_VOLLEY
+		"patrol":
+			_set_state(S.TRACK)
+		"block":
+			_set_state(S.BLOCK)
+
+
+## How far she keeps the crew in sight: a pursuer loses her sooner in fog and storm (Admiralty.sight_k).
+func _lose_r(tgt: Node3D) -> float:
+	return LOSE * (Admiralty.sight_k(get_tree(), tgt.global_position) if pursuer else 1.0)
+
+
+## (pursuer) She's lost them: back to patrolling, away from where they were (the Admiralty clears her once she's
+## out of every captain's sight).
+func _lost(away_from: Vector3) -> void:
+	_set_state(S.PATROL)
+	var d := _pos - away_from
+	d.y = 0.0
+	patrol_center = _pos + (d.normalized() if d.length() > 1.0 else _fwd()) * 300.0
+	patrol_radius = 60.0
+	bark("We've lost her. Mark the chart and come about.", 2.5)
 
 
 func in_combat() -> bool:
@@ -399,23 +473,31 @@ func _physics_process(delta: float) -> void:
 			# patched up at sea after a beating (enough to fight again)
 			if hull < max_hull * 0.6:
 				hull = minf(hull + 1.5 * delta, max_hull * 0.6)
-			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS and _wants_crew():
+			# (a pursuer that's lost them is done: she heads off and the Admiralty clears her)
+			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS and _wants_crew() and not pursuer:
 				_set_state(S.HUNT)
 				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
-				bark("That's the wanted ship! Come about!" if kind == "marine" else "A ship! Run out the guns!", 2.5)
+				bark("That's the wanted ship! Come about!" if kind in ADMIRALTY_KINDS else "A ship! Run out the guns!", 2.5)
 				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.HUNT, S.BROADSIDE:
 			var near_r: float = spec["range"][0]
 			var far_r: float = spec["range"][1]
-			if tgt == null or dist > LOSE or not _huntable(tgt):
-				_set_state(S.PATROL)
-				bark("Bah, let 'em go." if kind != "marine" else "They've slipped us. Back to patrol.")
+			if tgt == null or dist > _lose_r(tgt) or not _huntable(tgt):
+				if pursuer:
+					_lost(tgt.global_position if tgt else _pos - _fwd())
+				else:
+					_set_state(S.PATROL)
+					bark("Bah, let 'em go." if kind not in ADMIRALTY_KINDS else "They've slipped us. Back to patrol.")
 			elif hull < max_hull * FLEE_AT and not _fled:
 				_fled = true
 				_set_state(S.FLEE)
-				bark(["Fall back! Fall back!", "She's holed! Run for it!"][_rng.randi() % 2] if kind != "marine" else "Disengage! Make for open water!", 2.5)
+				bark(["Fall back! Fall back!", "She's holed! Run for it!"][_rng.randi() % 2] if kind not in ADMIRALTY_KINDS else "Disengage! Make for open water!", 2.5)
 			elif state == S.HUNT:
-				var lead := tgt.global_position + _vel_of(tgt) * 2.5 - _pos
+				_tactic_t -= delta
+				if _tactic_t <= 0.0:
+					_tactic_t = 0.25
+					_tactic(tgt, dist)
+				var lead := tactic_at - _pos
 				want_heading = atan2(-lead.x, -lead.z)
 				want_speed = _max_speed()
 				# (a beam coming to bear on the way in is a chance not to waste)
@@ -441,6 +523,7 @@ func _physics_process(delta: float) -> void:
 				_try_volley(tgt, to_t, dist)
 				_ram_cd -= delta
 				_board_cd -= delta
+				_boat_cd -= delta
 				if _volleys >= 1:
 					_fight_t += delta
 				# up close the guns won't bear: they ram you or board you
@@ -453,6 +536,10 @@ func _physics_process(delta: float) -> void:
 					_set_state(S.RAM)
 					bark(["Ramming speed!", "Brace! We're going in!", "Run 'em down!"][_rng.randi() % 3], 2.0)
 					Net.fx("sfx", ["horn", global_position, 4.0, 0.03, 0.8])
+				# they're getting away from her: a boatload of boarders rows over while she keeps her guns on them
+				elif spec["boards"] and _boat_cd <= 0.0 and not catchable and _volleys >= 1 and dist > BOAT_MIN and dist < BOAT_RANGE \
+						and _crew.size() - 1 - _crew_gone >= 2:
+					_lower_boat(tgt)
 				# board them: close, or after a volley if they can catch you
 				elif spec["boards"] and _can_board() and _warn_t < 0.0 and (close or (_volleys >= 1 and (catchable or _fight_t > BOARD_AFTER))):
 					_set_state(S.BOARD)
@@ -466,6 +553,31 @@ func _physics_process(delta: float) -> void:
 				want_heading = atan2(-aim.x, -aim.z)
 				want_speed = _max_speed() * 1.15
 				# (the hit itself: _sail, when the bow meets their hull)
+		S.TRACK:
+			# (an Admiralty patrol on the crew's wake: wake point to wake point until she's in sight)
+			var adm := Admiralty.of(get_tree())
+			var trail: Vector3 = adm.trail_from(_pos) if adm else Vector3.INF
+			# (her quarry, captains aboard or not: too far off and the wake's no use)
+			var quarry := get_tree().get_first_node_in_group("ship") as Node3D
+			if tgt and dist < NOTICE * Admiralty.sight_k(get_tree(), tgt.global_position) * 1.4 and _huntable(tgt):
+				_set_state(S.HUNT)
+				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
+				bark(["There she is! All sail!", "Sail ho! That's our quarry!"][_rng.randi() % 2], 2.5)
+				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
+			elif trail == Vector3.INF or quarry == null or _pos.distance_to(quarry.global_position) > _lose_r(quarry) * TRACK_LOSE:
+				_lost(quarry.global_position if quarry else _pos - _fwd())
+			else:
+				var to_w := trail - _pos
+				want_heading = atan2(-to_w.x, -to_w.z)
+				want_speed = _max_speed()
+		S.BLOCK:
+			# holding station across an island's mouth, broadside to the way out, until the crew comes by
+			want_heading = _heading
+			if tgt and dist < NOTICE and _huntable(tgt):
+				_set_state(S.HUNT)
+				_volley_cd = maxf(_volley_cd, 1.5)
+				bark("Close the harbour! Fire as she bears!", 2.5)
+				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.FLEE:
 			if tgt == null or dist > LOSE:
 				_set_state(S.PATROL)
@@ -509,11 +621,27 @@ func _physics_process(delta: float) -> void:
 				to_s.y = 0.0
 				want_heading = lerp_angle(tgt.global_rotation.y, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 6.0, 0.0, 0.7))
 				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.5, 0.0, _max_speed())
+				# (the lines hold her there: hauled in toward her spot, kept to the crew's pace)
+				if tgt is Ship and (tgt as Ship).lines_of(self) > 0:
+					_pos += to_s * clampf(0.6 * delta, 0.0, 1.0)
+					want_speed = minf(want_speed, _speed_of(tgt) + 1.5)
 			boarders = boarders.filter(func(g): return is_instance_valid(g) and not g.is_dead())
-			if boarders.is_empty() or st_t > 30.0 or tgt == null:
+			_party_t += delta
+			var lashed: int = (tgt as Ship).lines_of(self) if tgt is Ship else 0
+			if tgt == null or lashed == 0:
+				if tgt == null:
+					var crew_ship := get_tree().get_first_node_in_group("ship") as Ship
+					if crew_ship:
+						crew_ship.unlash(self)
+				else:
+					bark(["They've cut us loose!", "The lines are cut! Bring her about!"][_rng.randi() % 2], 2.0)
 				_set_state(S.BROADSIDE if tgt and _huntable(tgt) else S.PATROL)
 				_volley_cd = 4.0
 				_board_cd = BOARD_AGAIN
+			elif boarders.is_empty() and _party_t > PARTY_AGAIN and _crew.size() - 1 - _crew_gone >= 1:
+				# still lashed: the next party goes over
+				bark("Over the rail, the rest of you!", 2.0)
+				_board(tgt)
 		S.SINK:
 			_sink_update(delta)
 			return
@@ -527,6 +655,61 @@ func _set_state(s: S) -> void:
 	_hook_t = -1.0
 	if s in [S.BOARD, S.PATROL]:
 		_fight_t = 0.0
+
+
+## Fleet tactics (docs/v1_23_plan.md, sea pursuit), closing in: with others on the crew each takes a part by its
+## place among them (by name: the same every time): the first runs her down on her wake, the second cuts across her
+## course ahead of her, the third takes the weather gauge (upwind of her). Near land or a reef the second and later
+## steer for her open-water side instead, pinning her against it. Sets tactic_role and tactic_at (world).
+const PIN_REACH := 170.0
+const PIN_OFF := 45.0
+var tactic_role := "chase"
+var tactic_at := Vector3.ZERO
+var _tactic_t: float = 0.0
+
+
+func _tactic(tgt: Node3D, dist: float) -> void:
+	var mates: Array = []
+	for s in get_tree().get_nodes_in_group("enemy_ships"):
+		if (s as EnemyShip).state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]:
+			mates.append(String(s.name))
+	mates.sort()
+	var i := mates.find(String(name))
+	var tp := tgt.global_position
+	var vel := _vel_of(tgt)
+	tactic_role = "chase"
+	tactic_at = tp + vel * 2.5
+	if i <= 0:
+		return
+	var land := _land_near(tp)
+	if land != Vector3.INF:
+		tactic_role = "pin"
+		tactic_at = tp + vel * 3.0 + Vector3(tp.x - land.x, 0.0, tp.z - land.z).normalized() * PIN_OFF
+	elif i == 1:
+		tactic_role = "cut"
+		var t := clampf(dist / maxf(_max_speed(), 1.0), 4.0, 18.0)
+		tactic_at = tp + vel * t + (vel.normalized() * 25.0 if vel.length() > 1.0 else Vector3.ZERO)
+	else:
+		tactic_role = "gauge"
+		var wd: Vector2 = get_node("/root/Weather").wind_dir()
+		tactic_at = tp + vel * 4.0 - Vector3(wd.x, 0.0, wd.y) * float(spec["range"][1])
+
+
+## The nearest island or reef within PIN_REACH of `p` (its centre), or INF.
+func _land_near(p: Vector3) -> Vector3:
+	var circles: Array = no_go.duplicate()
+	var sf := get_tree().get_first_node_in_group("sea_features")
+	if sf:
+		circles.append_array(sf.reefs + sf.legs.reefs)
+	var best := Vector3.INF
+	var bd := PIN_REACH
+	for z in circles:
+		var c: Vector2 = z[0]
+		var d := Vector2(p.x, p.z).distance_to(c) - float(z[1])
+		if d < bd:
+			bd = d
+			best = Vector3(c.x, 0.0, c.y)
+	return best
 
 
 ## How many other ships are fighting the crew right now.
@@ -615,7 +798,11 @@ func _try_volley(tgt: Node3D, to_t: Vector3, dist: float) -> void:
 	# the warning: sparks at the muzzles, the bosun's shout
 	_volley_side = side
 	_warn_t = 0.0
-	bark(["Fire!", "Give 'em a broadside!", "Fire as she bears!"][_rng.randi() % 3], 1.4)
+	_chain_volley = _wants_chain(tgt)
+	if _chain_volley:
+		bark(["Chain shot! Take her sails!", "Load chain! Cripple her rigging!"][_rng.randi() % 2], 1.4)
+	else:
+		bark(["Fire!", "Give 'em a broadside!", "Fire as she bears!"][_rng.randi() % 3], 1.4)
 	for c in _side_guns(side):
 		Net.fx("sparkle", [(c as ShipCannon).muzzle(), 6, Color(1.0, 0.5, 0.2)])
 	Net.fx("sfx", ["blip_low", global_position, -2.0, 0.02, 0.7])
@@ -637,13 +824,16 @@ func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 		if prev < at and _warn_t >= at:
 			var c := guns[i] as ShipCannon
 			if tgt:
-				# lead the target, with some scatter (worse at range)
+				# lead the target, with some scatter (worse at range); chain shot goes high, at her sail
 				var fly := dist / ShipCannon.MUZZLE_SPEED
 				var spot := tgt.global_position + _vel_of(tgt) * fly
-				var spread := (1.5 + dist * 0.06) * float(spec["scatter"])
+				var spread := (1.5 + dist * 0.06) * float(spec["scatter"]) * (0.5 if _chain_volley else 1.0)
+				if _chain_volley:
+					spot = tgt.global_transform * Vector3(0, 0, HullBuilder.MAST_Z) + _vel_of(tgt) * fly
 				spot += Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
-				spot.y = 1.0
+				spot.y = CHAIN_AIM_Y if _chain_volley else 1.0
 				c.aim_at(spot)
+			c.chain = _chain_volley
 			c.fire(self)
 	if _warn_t >= WARN + 0.24 * guns.size() + 0.1:
 		# a brig's second broadside, hard on the heels of the first
@@ -672,7 +862,14 @@ func _ram(tgt: Node3D) -> void:
 	Net.fx("dust", [at, 16, 1.4])
 	Net.fx("splash", [Vector3(at.x, 0.3, at.z), 14, 1.4])
 	if tgt is Ship:
-		(tgt as Ship).hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0) * Levels.hull_k(level), at)
+		var crew_ship := tgt as Ship
+		crew_ship.hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0) * Levels.hull_k(level), at)
+		# the bow stove in her planking where it struck: holes at the waterline (a heavy ship's two)
+		var l := crew_ship.global_transform.affine_inverse() * at
+		var side := 1.0 if l.x >= 0.0 else -1.0
+		for i in range(RAM_HOLES.get(kind, 1)):
+			if crew_ship.breaches.size() < Ship.MAX_BREACHES:
+				crew_ship.add_breach(side, clampf(l.z + i * 2.2, Ship.DECK_Z_MIN, Ship.DECK_Z_MAX))
 	hull = maxf(hull - max_hull * 0.06, 1.0)
 	Net.everyone("_all_rammed", [Net.key_of(tgt), at, _fwd() * k])
 	speed = -3.0
@@ -694,6 +891,17 @@ func _surrender() -> void:
 # --------------------------------------------------------------------------
 # Boarding
 # --------------------------------------------------------------------------
+## Chain shot this volley: a ship that carries it, at a crew whose canvas is still whole and set, when she's getting
+## away from us (or it's the opening volley).
+func _wants_chain(tgt: Node3D) -> bool:
+	if not spec.get("chain", false) or not (tgt is Ship):
+		return false
+	var s := tgt as Ship
+	if s.torn.size() >= Ship.MAX_TORN or s.sail_shown < 0.3:
+		return false
+	return _speed_of(tgt) > _max_speed() - 1.0 or _volleys == 0
+
+
 ## Another boarding party: off cooldown, and two men to spare besides the helmsman.
 func _can_board() -> bool:
 	return _board_cd <= 0.0 and _crew.size() - 1 - _crew_gone >= 2
@@ -710,7 +918,12 @@ func _throw_grapples(tgt: Node3D) -> void:
 
 
 func _board(tgt: Node3D) -> void:
-	_set_state(S.HOLD)
+	if state != S.HOLD:
+		_set_state(S.HOLD)
+		# the hooks bite: she's lashed to us until the crew cut the lines
+		if tgt is Ship:
+			(tgt as Ship).lash(self, 1.0 if (tgt.global_basis.x).dot(_pos - tgt.global_position) > 0.0 else -1.0)
+	_party_t = 0.0
 	var n := 3 + clampi(Net.crew_size() - 2, 0, 2)
 	# (boarding nets on our rails keep one off)
 	if tgt is Ship:
@@ -718,6 +931,39 @@ func _board(tgt: Node3D) -> void:
 	var seed_value := _rng.randi()
 	_spawn_boarders(n, seed_value, tgt)
 	Net.fx("sfx", ["rope", global_position, 2.0, 0.05])
+
+
+## (host) A longboat lowered on the side toward the crew, the next men still aboard at its oars.
+func _lower_boat(tgt: Node3D) -> void:
+	_boat_cd = BOAT_EVERY
+	var n := mini(BOAT_MEN, _crew.size() - 1 - _crew_gone)
+	var men: Array = range(_crew_gone + 1, _crew_gone + 1 + n)
+	var side := 1.0 if _right().dot(tgt.global_position - _pos) > 0.0 else -1.0
+	_boats += 1
+	_launch_boat(men, side, _boats)
+	Net.event(self, "boat", [men, side, _boats])
+	bark(["Lower the boat! Row, you dogs!", "Away the boat! Get aboard her!"][_rng.randi() % 2], 2.5)
+	Net.fx("sfx", ["splash_big", global_transform * Vector3(side * 6.0, 0.0, 1.5), 0.0, 0.05])
+
+
+## (every screen) The boat goes over the side with those men in it.
+func _launch_boat(men: Array, side: float, n: int) -> void:
+	_crew_gone = maxi(_crew_gone, int(men.max()))
+	BoardingBoat.launch(self, men, side, n)
+
+
+## (host) The boat reached the crew's side: its men leap aboard as boarders.
+func boat_landed(boat: BoardingBoat, tgt: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(boat.name)
+	var s := 1.0 if (tgt.global_transform.affine_inverse() * boat.global_position).x > 0.0 else -1.0
+	for i in range(boat.men.size()):
+		var g := _turn_grunt(int(boat.men[i]), "BD", rng.randi())
+		g.camp = self
+		var land_local := Vector3(s * rng.randf_range(0.6, 2.4), Ship.DECK_Y + 0.2, rng.randf_range(-6.0, 1.5))
+		var t := 0.8 + 0.15 * i
+		g.leap(tgt.global_transform * land_local + _vel_of(tgt) * t, t)
+	Net.fx("sfx", ["rope", boat.global_position, 2.0, 0.05])
 
 
 ## (host) The boarders are the crew who were on deck: the next men still
@@ -809,7 +1055,7 @@ static func crew_plan(seed_value: int, kind_name: String) -> Array:
 	for i in range(mini(int(KINDS[kind_name]["crew"]), CREW_SPOTS.size())):
 		var look := PirateGrunt.crew_look(rng)
 		look["name"] = "Pirate"
-		if kind_name == "marine":
+		if kind_name in ADMIRALTY_KINDS:
 			EnemyShip.marine_look(look, rng, i == 0)
 		out.append([look, WeaponDesigns.random_design("cutlass", rng)])
 	return out
@@ -1094,6 +1340,13 @@ func _wake(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_crew_update(delta)
+	# (the HUD's heat marker counts group "pursuing": every screen, from the state the host's snapshots carry)
+	var chasing := pursuing()
+	if chasing != is_in_group("pursuing"):
+		if chasing:
+			add_to_group("pursuing")
+		else:
+			remove_from_group("pursuing")
 	# (puppets read hull and state from the host's snapshots, so this shows on every screen)
 	_bar.visible = state != S.SINK and state != S.PRIZE and (in_combat() or hull < max_hull - 0.5)
 	_bar.always = in_combat()
@@ -1201,6 +1454,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"prize":
 			_prize()
+		"boat":
+			_launch_boat(args[0], float(args[1]), int(args[2]))
 		"sink":
 			if state != S.SINK:
 				state = S.SINK
@@ -1241,9 +1496,18 @@ func _strike() -> void:
 ## Does she come after the crew's ship? Pirates always; the Admiralty once the crew's bounties together are
 ## Notorious (Bounty: "patrols come about for you"). Fired on, either comes for you (_on_hit).
 func _wants_crew() -> bool:
-	if kind != "marine":
+	if kind not in ADMIRALTY_KINDS:
 		return true
-	return Bounty.tier_of(crew_bounty(get_tree())) >= ADMIRALTY_FROM
+	return crew_heat_tier(get_tree()) >= ADMIRALTY_FROM
+
+
+## The crew's heat tier: the hottest of its captains (Bounty.heat_tier: a bounty cools without fresh deeds). Patrols,
+## blockades and rings scale by it.
+static func crew_heat_tier(tree: SceneTree) -> int:
+	var t := 0
+	for c in tree.get_nodes_in_group("players"):
+		t = maxi(t, Bounty.heat_tier(c))
+	return t
 
 
 ## Every captain's bounty together (the ship draws patrols by the crew's total).

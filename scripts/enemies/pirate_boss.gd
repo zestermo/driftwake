@@ -12,9 +12,8 @@ class_name PirateBoss
 ## 3. (below 30%) "Red Tide": the blade glows red, he's quicker, and he adds
 ##    a whirling blade storm that chases you down.
 ##
-## He doesn't get knocked over by ordinary heavy hits and shrugs off light
-## hits while winding up (stagger him with a parry, a guard break or Armament
-## Haki). Co-op: host-run like any grunt; his roar/slam shockwaves are judged
+## A miniboss's poise (Poise): knocked over only when a planned chain breaks it, light hits never make him
+## flinch (stagger him with a parry, a guard break, a heavy or Armament Haki). Co-op: host-run like any grunt; his roar/slam shockwaves are judged
 ## on each captain's own machine (Net.event "aoe").
 
 signal phase_changed(phase: int)
@@ -85,6 +84,7 @@ func _ready() -> void:
 	role = "sword"
 	super._ready()
 	add_to_group("bosses")
+	poise = Poise.make("miniboss")
 	health.max_health = _boss_hp()
 	health.current_health = _boss_hp()
 	# a longer reach for a bigger man
@@ -435,19 +435,22 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		return
 	_hit_by = attacker
 	var h := hit
-	# not floored by ordinary heavies (only while he's reeling)
-	if h.knockdown and state != S.STAGGER:
+	# (floored only when his poise breaks: Poise "miniboss")
+	if h.knockdown:
 		h = hit.duplicate() as HitData
-		h.knockdown = false
 		h.knockback_force = minf(h.knockback_force, 3.0)
 	if _special != "":
 		# mid-special: the hit lands, but he doesn't flinch - except Armament
-		# Haki breaking a slam before he leaves the ground
+		# Haki breaking a slam before he leaves the ground, or his poise running out
 		var dir := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
 		_take_damage(h, dir)
 		if state == S.DEAD:
 			return
-		if _special == "slam" and (h.haki or h.breaker) and _sp_t < SLAM_WIND:
+		if poise.take(h) == Poise.BREAK:
+			_set_peril(false)
+			_special = ""
+			_poise_broken(h, dir)
+		elif _special == "slam" and (h.haki or h.breaker) and _sp_t < SLAM_WIND:
 			_set_peril(false)
 			_special = ""
 			_stagger_len = 1.6
@@ -455,11 +458,6 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			Net.fx("sparkle", [global_position + Vector3(0, 1.6, 0), 14, Color(0.75, 0.45, 1.0)])
 			Net.fx("sfx", ["haki", global_position, -6.0, 0.05, 1.3])
 			_set_state(S.STAGGER)
-		return
-	# winding up a normal attack: armour against light hits
-	if state in [S.WIND, S.SWING] and _attack in ["combo", "lunge", "rush"] and not h.haki and not h.breaker and h.damage < 20.0 and not h.dot:
-		var dir2 := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
-		_take_damage(h, dir2)
 		return
 	super._on_hit(h, attacker)
 

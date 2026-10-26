@@ -6474,6 +6474,77 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
   crew, ship, mark). On-screen marks: the 4 nearest (MarkerLayer.SHOWN), the rest "+N more marks (M)", one you stand on
   fades. t/map/map_pan (new).
 
+## 2026-10-26: 1.23 sea pursuit (docs/v1_23_plan.md, "Sea pursuit" and "Marines")
+
+Ships at sea can catch and trap the crew's ship. All host-simulated; the crew's side rides the ship's damage
+packet (`Net.ship_damage([breaches, fires, flood, torn, lines])`), so guests see it and do the jobs through
+`Net.ship_work` like patching holes.
+
+- **Chain shot** (piece 1): `ShipCannon.chain` (sent with the fire event), `Cannonball.chain` (two half-balls on a
+  bar, spinning; half a ball's hull damage). Kinds with `"chain": true` (brig, marine, later hunter, frigate) load it
+  for a volley when the crew is getting away or on the opening volley (`EnemyShip._wants_chain`), aimed at the
+  mainsail (`CHAIN_AIM_Y`, half the scatter). The host's copy of a ball passing through the canvas box round the mast
+  calls `Ship.tear_sail`: `torn` [id, mend slot, patch], up to MAX_TORN 3, each TORN_SLOW 0.18 off top speed
+  (`sail_k()`); a ragged dark patch hangs on the sail node. Mend: hold F at `MEND_AT[slot]` (foot of the mast),
+  MEND_TIME 3 s (Seamanship "repair" shortens it).
+- **Grapples** (piece 1): when the boarders leap (`_board`), the hooks bite: `Ship.lash(by, side)` adds three
+  `lines` [id, rail spot, holder key, holder-local end]. Lashed, the crew's top speed is LASHED_SPEED 2.2; the holder
+  in HOLD is hauled to her alongside spot and kept to the crew's pace, sends another party PARTY_AGAIN 8 s after one's
+  beaten (while men are left), and breaks off once `lines_of(self)` is 0. Cut: hold F at the rail by a line,
+  CUT_TIME 1.1 s. Lines let go when the holder sinks or is gone, part after 1 s strained past LINE_SNAP 26 m, and go
+  when nobody's left aboard the crew's ship (`unlash`). Hook and rope drawn on every screen (`_ropes`, world-space
+  rope to the holder's interpolated transform). A banner "Grappled!" / toast "Cut free!" on every screen.
+- **Hunters and the frigate** (piece 2): KINDS "hunter" (pirate: 13 m/s, hull 190, two guns a side, chain shot,
+  `"downwind": 0.2` more speed running before the wind, fading out by a beam reach: ~16 m/s downwind, 13 into it)
+  and "frigate" (Admiralty: 11 m/s, hull 480, four guns, double broadside, chain). `ADMIRALTY_KINDS` replaces the
+  old `kind == "marine"` checks (group, crew looks, barks, the bounty gate). Sea legs: hunters from level 10, a
+  frigate zone at 18 (`SeaLegs.FLEETS`). Salvage/Seamanship tables have both.
+- **Fleet tactics** (piece 2): closing in (HUNT), `_tactic` (4 Hz) gives each ship on the crew a part by its place
+  among them sorted by name: "chase" (her wake, as before), "cut" (where she'll be in dist/speed s, 4-18, plus 25 m),
+  "gauge" (upwind of her by its far range); near land or a reef (`_land_near`: no_go circles and SeaFeatures reefs
+  within PIN_REACH 170 m) the second and later "pin" her from the open-water side (PIN_OFF 45 m). `tactic_role`,
+  `tactic_at`. MAX_ATTACKERS stays 2 for pirates.
+- **Rams hole the hull** (piece 3): `_ram` adds a breach at the struck spot (side and z from the contact point),
+  RAM_HOLES 2 for a brig or frigate, on top of the hull damage (hull_hit may add its own random one).
+- **Boarding boats** (piece 3, `scripts/ship/boarding_boat.gd`, BoardingBoat): in BROADSIDE, a boarding kind that
+  can't catch the crew (not `catchable`), after a volley, 28-110 m off, BOAT_EVERY 35 s, lowers a longboat on her
+  side toward the crew with up to BOAT_MEN 3 of her next men (their own Humanoid bodies reparented into it, `seated`
+  on the thwarts). It rows at 14 m/s on an intercept for a spot 2.2 m off the crew's side; there
+  `EnemyShip.boat_landed` turns the men into boarders ("BD" grunts, `_turn_grunt`) who leap aboard. A crew ball
+  splashing within 4.5 m (`Cannonball._splash` -> `BoardingBoat.near_splash`) or 40 HP of fire (siege x3) sinks it
+  with the men (25 XP). Gives up after 50 s. Co-op: `Net.event(ship, "boat", [men, side, n])` builds it on every
+  screen (Boat_<ship>_<n> beside her), net_sync snapshot [pos, yaw, state]; a captain joining mid-row won't see that
+  boat (it's gone in a minute).
+- **Group "pursuing"** (for the lead's HUD heat marker): an EnemyShip is in it while `pursuing()` (HUNT, BROADSIDE,
+  BOARD, HOLD, RAM; TRACK from piece 4), on every screen from the state its snapshots carry.
+- **The Admiralty at sea** (piece 4, `scripts/ship/admiralty.gd`, one node "Admiralty" under the world, made by
+  the fleets (`Admiralty.ensure`), a net_spawner whose `net_gen` is the live ships' specs and booms, so guests and
+  late joiners build the same ones). Everything scales by the crew's **heat tier** (`EnemyShip.crew_heat_tier`: the
+  hottest captain's `Bounty.heat_tier`, which cools without deeds); the old Notorious gate on marine patrols uses it
+  too.
+  - **Deeds**: `Admiralty.deed(tree, at, what)` (static, host; the public hook: the island arcs call it with "arc"
+    when one finishes; `Net.bounty("boss", ..., k >= 1)` calls it now, so an island boss beaten counts; a miniboss's
+    0.4 share doesn't). One answer per DEED_EVERY 480 s. From Notorious (BLOCK_FROM 2) a **blockade**: two marine
+    ships (role "block", state BLOCK: anchored broadside, HUNT once the crew comes within NOTICE) BLOCK_OUT 30 m past
+    the island's no-go edge on the crew ship's side, BLOCK_SPREAD 46 m apart, and an **AdmiraltyBoom**
+    (`admiralty_boom.gd`: chained logs on collision layer 1 across the gap; 120 HP of crew fire breaks it, or her bow
+    at RAM_SPEED 7 m/s+, taking RAM_HULL 25). Then, once the crew's ship is out at sea (huntable, past the island's
+    edge + STANDOFF + 20), a **ring**: RING_N [0, 2, 3, 4, 5] by heat tier at RING_R 135 m, side-on, in HUNT (a
+    frigate in it from Infamous). Signal `deed_answered`.
+  - **Heat patrols**: at sea with a captain aboard, every PATROL_EVERY [-, 300, 200, 140, 95] s of game time with no
+    pursuer out, PATROL_KINDS (cutter; two cutters; frigate + cutter; frigate + two cutters) appear SPAWN_R 330 m back
+    along her **wake** (points every WAKE_EVERY 4 s, WAKE_LIFE 150 s, half in a storm) in state TRACK: they follow
+    the wake (`trail_from`) at full speed, go HUNT once she's within NOTICE x sight x 1.4, and give up past
+    LOSE x sight x TRACK_LOSE 2.2. Pursuers lose her in HUNT/BROADSIDE past LOSE x `Admiralty.sight_k` (fog to 0.45,
+    storm to 0.6: the weather's or a sea fog bank's/storm cell's at her position). Lost: `_lost` (PATROL, heading
+    away, never re-noticing); cleared once DESPAWN 480 m from every captain. Banners on every screen: "The
+    Admiralty!" when the first pursuer starts, "Escaped" when the last loses her (signals `hunt_started`, `escaped`;
+    the lead's HUD counts group "pursuing").
+  - EnemyShip: S gains TRACK and BLOCK (appended: snapshot ints unchanged), `pursuer`/`role`/`start_role`,
+    `pursuing()`; pursuers skip MAX_ATTACKERS and the bounty gate.
+- Tests: t/ship/chain_shot, t/ship/grapple_cut, t/ship/fleet_tactics, t/ship/ram_hole, t/ship/boarding_boat,
+  t/ship/admiralty_ring, t/ship/admiralty_hunt; t/ship/enemy_boarding holds her boat (it tests grapples).
+  Render: `pursuitshot` (tools/dev/out/pursuit_*.png).
 ## 2026-10-26: 1.23 perf track, piece 1: the spike logger
 - Zach: the game "feels heavy at times". `Perf` (scripts/game/perf_monitor.gd) now logs every frame over
   `SPIKE_MS` 25 ms (was: hitches over 50 only) with what ran in it: physics ticks run in the frame, the process /
@@ -6602,3 +6673,48 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
 - **Per frame:** PowerComponent checks the player's state each frame only while coated (Emission).
 - **Tests.** t/progression/will_paths (was will_bosses), will_points (new), t/ui/skills_captain_forks; progtest and
   powertest lines (prepush).
+## 2026-10-26: 1.23 combat core, pieces 1-3: poise, juggling, black-leg's juggle set
+- **Why:** Zach's playtest: every captain had 2-3 knockdowns at will and they were all that mattered. Spec:
+  docs/v1_23_previews.md sections 3-4 and docs/v1_23_plan.md "Preview answers" (approved starting numbers).
+- **Poise** (`scripts/combat/poise.gd`, class Poise; hidden, the stagger shows it). `Poise.make(class)`: grunt 30/12 a
+  second (flinches at damage 10+ or poise 14+), elite / a rival's crewman 55/15 (only heavies flinch it), captain
+  (camp boss, outpost sergeant) 90/18 (never on lights), rival captain / hunter 80/20 (always flinches: the captain
+  AI dodges too), miniboss 160/25 (PirateBoss: Morrow, the bandit chief, the huntsman). Refill starts 2 s after the
+  last hit; empty = BREAK, then full and immune 4 s. Worked out on the hit from physics ticks (nothing per frame).
+  `take(hit)` -> NONE (shrugged off: no flinch, it keeps coming), FLINCH, BREAK. `Poise.of(hit)`: `HitData.poise`
+  (new; Player.melee_hit sets light 6, finisher 14, heavy 25, a technique's hit base x1.2 clamped 6-60, `_hd` with a
+  knockdown 35-60, an ultimate's knockdown 120, a pistol shot 4 / 12 inside 3 m), and anything with the old
+  `knockdown` flag drains at least Poise.KICK 30 (the kick moves, Arrow Kick, Handstand Spin, Cyclone Heel's ring,
+  heavies that floored). A break by a finisher's weight or more knocks down (a crumpling blow crumples, a launcher
+  launches), lighter ones reel hard (1.3 s). Every knockdown (`_knock_down`, `_crumple`) sets the 4 s immunity, and a
+  grunt down or getting up takes the damage only (no re-knockdown loop). Grunt guard: a blow of 30+ poise goes
+  through it (was: any knockdown flag). PirateBoss lost its own "no knockdown unless staggered" and wind-up armour
+  rules (the miniboss class covers both); a break mid-special ends the special. AI captains: `Player.poise` (made in
+  `_setup_ai`, "rival"; RivalEncounter makes the crewmen "elite"); humans have none. Drowned shots drain x SHOT_K.
+  Beasts keep their own (JungleBeast._poise) until the beast pass, which can use `Poise.make("miniboss")` /
+  `take(hit)` or a new class line. Other enemies (scuttlebugs, fauna, the sea king) still go by the knockdown flag.
+- **Juggling** (`scripts/combat/juggle.gd`, class Juggle; `HitData.launch`, m/s up, < 0 a spike). A grunt or elite
+  goes up on any launcher (`PirateGrunt.juggle`, state S.AIR, group "juggled", pose "jug_air", JugglePoses); a camp
+  captain / miniboss only when the launcher breaks its poise; beasts never. Up there: gravity 15, each hit lifts
+  `LIFT 4.5 x 0.75^hits` (x the hit's own launch / LIFT), none after AIR_MAX 3 s (then it falls 1.8x harder); a spike
+  drives it down. Landing = a knockdown (immune 4 s). Launchers: the fists' uppercut (LightAttackState LAUNCH_UP 9),
+  Updraft (grunts juggled instead of ragdoll-thrown; its apex cleave spikes), Rising Heel, Sky Chase. The air step
+  toward a juggled foe chases it (JumpState._chase: 0.3 s to arm's length, the stick ignored meanwhile: player meta
+  "chase_until", FallState too). An air attack within 3.4 m of one is an air combo (PlungeState "air_combo": the
+  style's light blows, one a press, hanging beside it, up to 4 a jump, the 4th spikes). Co-op: the host runs the
+  grunt; puppets join/leave the juggled group from the snapshot's state so a guest's air step chases too; `poise`
+  and `launch` ride `Net.hit_pack`.
+- **Black leg:** Rising Heel (`rising_heel`, node bl_rise, Mule Kick's slot; pose bl_rise: sunk over the left knee,
+  the heel swung up the front to vertical at RISE_AT 0.24, 20 dmg, launch 10, breaker), Sky Chase (`sky_chase`, node
+  bl_sky, Cartwheel Crescent's slot; up to a juggled foe within 10 m (refunded if none): a scissor kick up, launch 9,
+  or with the stick held forward the spike: heel down, launch -18, you dive after it and land in a 2.6 m ring that
+  floors the rest). Flambe Dash 9 m -> 4.5 m and it stops on landing (the 36 m/s it landed with bled off at 30 m/s²
+  carried it ~10 m further: that was most of "far too far"). Mule Kick, Cartwheel Crescent, their poses, plants and
+  icons are gone; SkillTrees.RENAMED / Skills.RENAMED give old saves the new nodes and bar slots (Heavy Heel's steps
+  hang on Sky Chase). New icons (gen_psx_textures.py techniques).
+- **Per frame / tick added:** none while nothing is juggled; a juggled grunt runs `_air_update` (gravity, a
+  move_and_slide) instead of its brain for ~2-3 s. Poise is lazy (on hits only).
+- Tests: t/combat/poise_knockdown, juggle_hold, juggle_chase, black_leg_launch; t/progression/black_leg_rename;
+  t/weapons black_leg_tree / black_leg_cleaver_flambe / black_leg_learn updated, black_leg_wheel_hands removed.
+  Renders: tools/dev/out/bl23_00_*.png (bl_rise, bl_sky, bl_sky_spike), tools/dev/out/jug_00_*.png.
+  Expect at prepush: grunttest, r10test, ragtest, balancetest, techtest, airtest, progtest, nettest.

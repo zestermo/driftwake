@@ -156,17 +156,18 @@ static func air_land(p: Player, already: Array, recover: float) -> void:
 
 
 # --------------------------------------------------------------------------
-# The techniques: Mule Kick (your back to them, down on both hands, both heels driven in), Hailstorm Heels (a hail
-# of kicks off one foot walking in, a big one last), Cartwheel Crescent (two cartwheels forward hand over hand, the
-# legs wheeling over through everyone on the way, a heel brought down at the end), Last Course (ult: a spin on one
+# The techniques: Rising Heel (a heel swung up under the chin: a launcher), Hailstorm Heels (a hail of kicks off one
+# foot walking in, a big one last), Sky Chase (up to a juggled foe: kick it higher or spike it down), Last Course (ult: a spin on one
 # foot that heats the leg red-hot, a storm of burning kicks, a leap, the heel down into a ring of fire), Cleaver Kick
 # (a crescent kick throwing a blade of air down the line), Flambe Dash (a hop, a flying side kick streaking through
-# the line). Poses: bl_mule, bl_hail, bl_wheel, bl_last, bl_cleave, bl_flambe.
+# the line). Poses: bl_rise, bl_hail, bl_sky / bl_sky_spike, bl_last, bl_cleave, bl_flambe.
 # --------------------------------------------------------------------------
-const MULE_REACH := 4.5
-const MULE_DUR := 0.95
-const MULE_AT := 0.42
-const MULE_DAMAGE := 28.0
+## Rising Heel: steps in on whoever's aimed at within RISE_REACH and launches everyone just in front (Juggle).
+const RISE_REACH := 3.5
+const RISE_DUR := BlackLegMoves.RISE_DUR
+const RISE_AT := BlackLegMoves.RISE_AT
+const RISE_DAMAGE := 20.0
+const RISE_LAUNCH := 10.0
 
 ## (the timings the poses are keyed to live in BlackLegMoves, which mustn't load this file: it touches autoloads)
 const HAIL_DUR := BlackLegMoves.HAIL_DUR
@@ -178,12 +179,20 @@ const HAIL_FINAL_AT := BlackLegMoves.HAIL_FINAL_AT
 const HAIL_FINAL := 18.0
 const HAIL_HEIGHTS := BlackLegMoves.HAIL_HEIGHTS
 
-const WHEEL_DUR := BlackLegMoves.WHEEL_DUR
-const WHEEL_ROLL := BlackLegMoves.WHEEL_ROLL
-const WHEEL_EVERY := 0.12
-const WHEEL_DAMAGE := 7.0
-const WHEEL_HEEL := BlackLegMoves.WHEEL_HEEL
-const WHEEL_FINAL := 20.0
+## Sky Chase: up to a juggled foe within SKY_REACH (Juggle), and the kick: up (it goes higher) or, with the stick held
+## forward, a spike down (driven into the ground; you come down with it in a ring).
+const SKY_REACH := 10.0
+const SKY_DUR := BlackLegMoves.SKY_DUR
+const SKY_SPIKE_DUR := BlackLegMoves.SKY_SPIKE_DUR
+const SKY_GO := BlackLegMoves.SKY_GO
+const SKY_AT := BlackLegMoves.SKY_AT
+const SKY_DAMAGE := 18.0
+const SKY_UP := 9.0
+const SKY_SPIKE_DAMAGE := 26.0
+const SKY_SPIKE := -18.0
+const SKY_DIVE := 20.0
+const SKY_LAND_R := 2.6
+const SKY_LAND_DAMAGE := 12.0
 
 const LAST_DUR := BlackLegMoves.LAST_DUR
 const LAST_HEAT := BlackLegMoves.LAST_HEAT
@@ -214,26 +223,35 @@ const FLAMBE_BURN := Vector2(3.5, 5.0)
 static func enter(s, id: String) -> bool:
 	var p: Player = s.player
 	match id:
-		"mule_kick":
-			s._target = s._aimed(MULE_REACH)
+		"rising_heel":
+			s._target = s._aimed(RISE_REACH)
 			if s._target == null:
-				s._target = s._nearest(MULE_REACH, true)
-			if s._target == null:
-				s._refund("Nobody close enough")
-				return true
-			s.dur = MULE_DUR
-			s._dir = s._flat_to(s._target)
+				s._target = s._nearest(RISE_REACH, true)
+			s.dur = RISE_DUR
+			if s._target:
+				s._dir = s._flat_to(s._target)
 			s.face_direction(s._dir, 1.0)
-			p.body_model.play("bl_mule", s.dur)
-			Net.fx("sfx", ["whoosh", p.global_position, -8.0, 0.05, 1.2])
+			p.body_model.play("bl_rise", s.dur)
+			Net.fx("sfx", ["hup", p.global_position, -8.0, 0.05, 1.0])
 		"hailstorm_heels":
 			s.dur = HAIL_DUR
 			p.body_model.play("bl_hail", s.dur)
 			Net.fx("sfx", ["hup", p.global_position, -8.0, 0.05, 1.1])
-		"cartwheel_crescent":
-			s.dur = WHEEL_DUR
-			p.body_model.play("bl_wheel", s.dur)
-			Net.fx("sfx", ["whoosh", p.global_position, -7.0, 0.05, 0.95])
+		"sky_chase":
+			s._target = Juggle.near(p.get_tree(), p.global_position, SKY_REACH, s.get_camera_forward())
+			if s._target == null:
+				s._refund("Nothing in the air to chase")
+				return true
+			s._dir = s._flat_to(s._target)
+			s.face_direction(s._dir, 1.0)
+			# (the stick held forward: the spike)
+			var spike: bool = s.get_movement_input().y < -0.5
+			s._done["spike"] = spike
+			s.dur = SKY_SPIKE_DUR if spike else SKY_DUR
+			s._from = p.global_position
+			p.variable_jump_active = false
+			p.body_model.play("bl_sky_spike" if spike else "bl_sky", s.dur)
+			Net.fx("sfx", ["whoosh", p.global_position, -6.0, 0.05, 1.2])
 		"last_course":
 			s.dur = LAST_DUR
 			s._victims = s._closest(LAST_R + 2.0, 8)
@@ -256,12 +274,12 @@ static func enter(s, id: String) -> bool:
 
 static func update(s, delta: float) -> bool:
 	match s.id:
-		"mule_kick":
-			_mule(s, delta)
+		"rising_heel":
+			_rise(s, delta)
 		"hailstorm_heels":
 			_hail(s, delta)
-		"cartwheel_crescent":
-			_wheel(s, delta)
+		"sky_chase":
+			_sky(s, delta)
 		"last_course":
 			_last(s, delta)
 		"cleaver_kick":
@@ -280,34 +298,102 @@ static func _burst(s, at: Vector3, dir: Vector3, big: bool) -> void:
 		Net.fx("element", ["black_leg", at, dir + Vector3.UP * 0.3, 10 if big else 4, 4.0])
 
 
-## Your back turned to them, down onto both hands, both heels driven back into them: unblockable, through a
-## wind-up, thrown clear.
-static func _mule(s, delta: float) -> void:
+## Sunk deep, then the heel swung straight up under their chin: everyone just in front is launched (Juggle; a heavier
+## foe only if it breaks their poise, else it rocks them). It breaks a wind-up.
+static func _rise(s, delta: float) -> void:
 	var p: Player = s.player
 	var alive: bool = s._target != null and is_instance_valid(s._target)
-	if s.t < MULE_AT - 0.08 and alive:
+	if s.t < RISE_AT - 0.06 and alive:
 		var to: Vector3 = s._target.global_position - p.global_position
 		to.y = 0.0
-		s._drift(delta, clampf((to.length() - 1.7) / maxf(MULE_AT - 0.08 - s.t, 0.05), 0.0, 14.0))
+		s._drift(delta, clampf((to.length() - 1.3) / maxf(RISE_AT - 0.06 - s.t, 0.05), 0.0, 12.0))
 	else:
 		s._rooted(delta, 0.0)
-	if s._once("glow", MULE_AT - 0.2) and s._elem():
-		Net.fx("hot_leg", [p.body_model, true, 0.6, FX.tree_col("black_leg", FX.EDGE)])
-		Net.fx("hot_leg", [p.body_model, false, 0.6, FX.tree_col("black_leg", FX.EDGE)])
-	if s._once("kick", MULE_AT):
-		var at: Vector3 = p.global_position + Vector3(0, 0.9, 0) + s._dir * 1.4
+	if s._once("glow", 0.06) and s._elem():
+		Net.fx("hot_leg", [p.body_model, true, 0.55, FX.tree_col("black_leg", FX.EDGE)])
+	if s._once("swoosh", RISE_AT - 0.05):
+		Net.fx("kick_swoosh", [p.body_model, 0.2, s._col(), s._col(FX.ACCENT) if s._elem() else s._col(), "r"])
+	if s._once("kick", RISE_AT):
+		var at: Vector3 = p.global_position + Vector3(0, 1.5, 0) + s._dir * 1.0
 		var hit := false
-		for e in s._pc.enemies_in(at, 1.6):
-			var hd: HitData = s._hd(MULE_DAMAGE, 14.0, true)
-			hd.unblockable = true
+		for e in s._pc.enemies_in(p.global_position + Vector3(0, 0.9, 0) + s._dir * 1.0, 1.5):
+			var hd: HitData = s._hd(RISE_DAMAGE, 2.0, false)
+			hd.launch = RISE_LAUNCH
 			hd.breaker = true
+			hd.stagger_duration = 0.6
+			hd.impact = "punch_heavy"
 			s._strike(e, hd)
 			hit = true
-		_burst(s, at, s._dir, true)
-		Net.fx("punch_wind", [at - s._dir * 0.6, s._dir, 1.6, s._col(FX.CORE), true])
-		Net.fx("sfx", ["punch_heavy" if hit else "whoosh_big", at, -2.0, 0.05, 0.9])
-		CombatManager.apply_hitstop(0.09, [p])
-		s.player.cam_kick(0.16, 0.3)
+		Net.fx("ring", [at, Vector3.UP, 1.3, s._col(), 0.22, 0.14])
+		Net.fx("speed_lines", [at, Vector3.UP, s._col(FX.CORE), 7, 2.0, 0.22, randi() % 1000])
+		if s._elem():
+			Net.fx("element", ["black_leg", at, Vector3.UP, 10, 5.0])
+		Net.fx("dust", [p.global_position + s._dir * 0.6, 6, 0.6])
+		Net.fx("sfx", ["punch_heavy" if hit else "whoosh_big", at, -2.0, 0.05, 1.05])
+		if hit:
+			CombatManager.apply_hitstop(0.08, [p])
+		s.player.cam_kick(0.14, 0.26)
+
+
+## Up to the juggled foe (a stamp on the air, then carried to it by SKY_GO), and the kick at SKY_AT: up (a scissor
+## kick, it goes higher, you hang and fall) or the spike (the heel down through it, you dive after it and land in a
+## ring that knocks everyone round flat).
+static func _sky(s, delta: float) -> void:
+	var p: Player = s.player
+	var spike: bool = s._done.get("spike", false)
+	var alive: bool = s._target != null and is_instance_valid(s._target) and s._target.is_in_group(Juggle.GROUP)
+	if s.t < SKY_AT and alive:
+		var goal: Vector3 = s._target.global_position - s._dir * 1.0 + Vector3(0, 1.3 if spike else -0.7, 0)
+		p.velocity = ((goal - p.global_position) / maxf(SKY_GO - s.t, 0.06)).limit_length(30.0)
+		p.move_and_slide()
+	elif spike and s._done.has("kick"):
+		p.velocity = Vector3(0, -SKY_DIVE, 0)
+		p.move_and_slide()
+	else:
+		p.velocity.x = move_toward(p.velocity.x, 0.0, 10.0 * delta)
+		p.velocity.z = move_toward(p.velocity.z, 0.0, 10.0 * delta)
+		p.velocity.y = maxf(p.velocity.y - p.gravity * 0.5 * delta, -12.0)
+		p.move_and_slide()
+	if s._once("stamp", 0.06):
+		var at: Vector3 = p.global_position + Vector3(0, 0.04, 0)
+		Net.fx("ring", [at, Vector3.UP, 0.9, Color(1.0, 0.98, 0.9, 0.85), 0.26, 0.08])
+		Net.fx("afterimage", [p.body_model, s._col(), 0.25])
+		Net.fx("sfx", ["jump", at, -6.0, 0.05, 1.1])
+	if s._once("swoosh", SKY_AT - 0.06):
+		Net.fx("kick_swoosh", [p.body_model, 0.2, s._col(), s._col(FX.ACCENT) if s._elem() else s._col(), "r"])
+	if s._once("kick", SKY_AT):
+		var at: Vector3 = Juggle.chest(s._target) if alive else p.global_position + Vector3(0, 1.2, 0) + s._dir
+		if alive and at.distance_to(p.global_position + Vector3(0, 1.0, 0)) < 3.2:
+			var hd: HitData = s._hd(SKY_SPIKE_DAMAGE if spike else SKY_DAMAGE, 3.0, false)
+			hd.launch = SKY_SPIKE if spike else SKY_UP
+			hd.impact = "punch_heavy"
+			s._strike(s._target, hd)
+			CombatManager.apply_hitstop(0.1 if spike else 0.07, [p])
+		var d := Vector3.DOWN if spike else Vector3.UP
+		Net.fx("ring", [at, d, 1.5, s._col(), 0.24, 0.14])
+		Net.fx("speed_lines", [at, d, s._col(FX.CORE), 8, 2.2, 0.24, randi() % 1000])
+		if s._elem():
+			Net.fx("element", ["black_leg", at, d, 10, 5.0])
+		Net.fx("sfx", ["punch_heavy", at, -1.0, 0.05, 0.85 if spike else 1.1])
+		s.player.cam_kick(0.16, 0.28)
+		if not spike:
+			p.velocity = Vector3(0, 2.0, 0)
+	if spike and s._done.has("kick") and not s._done.has("land") and (p.is_on_floor() or s.t > SKY_SPIKE_DUR - 0.5):
+		s._done["land"] = true
+		s.dur = s.t + 0.45
+		p.velocity = Vector3.ZERO
+		var at2: Vector3 = p.global_position
+		p.body_model.play("bl_air_land", 0.45)
+		p.squash(-5.0)
+		for e in s._pc.enemies_in(at2 + Vector3(0, 0.8, 0), SKY_LAND_R):
+			if e == s._target:
+				continue
+			s._strike(e, s._hd(SKY_LAND_DAMAGE, 7.0, true))
+		Net.fx("ring", [at2 + Vector3(0, 0.1, 0), Vector3.UP, SKY_LAND_R * 1.2, s._col(), 0.3, 0.12])
+		Net.fx("dust_ring", [at2, 16, 1.1])
+		Net.fx("ground_crack", [at2 + s._dir * 0.4, s._dir, 1.8, s._col(FX.EDGE) if s._elem() else Color(0, 0, 0, 0), randi() % 10000, 0.1])
+		Net.fx("sfx", ["thud", at2, 0.0, 0.05, 0.8])
+		s.player.cam_shake(0.25)
 
 
 ## Off the left foot, kick after kick at every height walking in (each into everyone just ahead), a big one last.
@@ -337,32 +423,6 @@ static func _hail(s, delta: float) -> void:
 		Net.fx("sfx", ["punch_heavy", at, -2.0, 0.05, 0.95])
 		CombatManager.apply_hitstop(0.08, [p])
 		s.player.cam_kick(0.14, 0.26)
-
-
-## Two cartwheels forward, the legs wheeling over through everyone about you on the way, then the heel brought down.
-static func _wheel(s, delta: float) -> void:
-	var p: Player = s.player
-	if s.t >= WHEEL_ROLL.x and s.t < WHEEL_ROLL.y:
-		s._drift(delta, 5.0)
-	else:
-		s._rooted(delta, 0.0)
-	if s._once("swoosh", WHEEL_ROLL.x):
-		Net.fx("kick_swoosh", [p.body_model, WHEEL_ROLL.y - WHEEL_ROLL.x, s._col(), s._col(FX.ACCENT) if s._elem() else s._col(), "lr"])
-	if s.t >= WHEEL_ROLL.x and s.t < WHEEL_ROLL.y and s._once("w%d" % s._hits, WHEEL_ROLL.x + 0.08 + WHEEL_EVERY * s._hits):
-		s._hits += 1
-		s._ring(2.2, WHEEL_DAMAGE, 3.0, false, false)
-		Net.fx("sfx", ["whoosh", p.global_position, -9.0, 0.08, 1.0 + 0.05 * (s._hits % 3)])
-	if s._once("glint", WHEEL_HEEL - 0.08):
-		Net.fx("glint", [p.global_position + Vector3(0, 2.0, 0) + s._dir * 0.6, s._col(FX.CORE), 0.8])
-	if s._once("heel", WHEEL_HEEL):
-		var at: Vector3 = p.global_position + s._dir * 1.15
-		s._cone(2.8, 0.4, WHEEL_FINAL, 8.0, true, false)
-		Net.fx("dust_ring", [at, 14, 1.0])
-		Net.fx("ground_crack", [at - s._dir * 0.2, s._dir, 1.5, s._col(FX.EDGE) if s._elem() else Color(0, 0, 0, 0), randi() % 10000, 0.08])
-		_burst(s, at + Vector3(0, 0.2, 0), Vector3.UP, true)
-		Net.fx("sfx", ["thud", at, -1.0, 0.05, 0.9])
-		CombatManager.apply_hitstop(0.08, [p])
-		s.player.cam_kick(0.14, 0.28)
 
 
 ## A high crescent kick: the leg swung up on the outside and over the top, and at the top (CLEAVE_AT) a blade of air
@@ -442,6 +502,9 @@ static func _flambe(s, delta: float) -> void:
 				BurnStatus.apply(e as Node3D, FLAMBE_BURN.x, FLAMBE_BURN.y, p)
 	if s._once("land", FLAMBE_LAND):
 		player_through(p, false)
+		# (landed, it stops: the dash's speed bled off over most of a second used to carry it 10 m past the landing)
+		p.velocity.x = s._dir.x * 2.5
+		p.velocity.z = s._dir.z * 2.5
 		var c: Color = s._col()
 		Net.fx("streak", [s._from + Vector3(0, 0.9, 0), p.global_position + Vector3(0, 0.9, 0), Color(c.r, c.g, c.b, 0.8), 0.22, 0.35])
 		Net.fx("dust_ring", [p.global_position, 12, 0.8])

@@ -18,7 +18,7 @@ extends PlayerState
 ##   hammer   skullcracker, rolling_quake, cyclone_crusher, titans_fall (ult) in HammerArts
 ##   dual_axe gallows_hook, hewing_frenzy, axestorm, fimbulwinter (ult) in DualAxeArts
 ##   greatsword guardbreaker, crescent_gale, tempest_turns, skysplitter (ult) in GreatswordArts
-##   black_leg mule_kick, hailstorm_heels, cartwheel_crescent, last_course (ult) in BlackLegArts
+##   black_leg rising_heel, hailstorm_heels, sky_chase, cleaver_kick, flambe_dash, last_course (ult) in BlackLegArts
 ##   unarmed  hip_toss (guard -> shoulder_throw), cannonball_fist, meteor_fist in FistArts; hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
@@ -647,6 +647,8 @@ func _hd(base: float, knock: float, down: bool) -> HitData:
 	var hd := player.melee_hit(base, "skill")
 	hd.knockback_force = knock
 	hd.knockdown = down
+	if down:
+		hd.poise = Poise.ULT if Skills.is_ult(id) else clampf(base * 1.2, Poise.TECH_MIN, Poise.TECH_MAX)
 	hd.stagger_duration = 0.5 if down else 0.3
 	hd.hitstop_duration = 0.07 if down else 0.03
 	hd.camera_shake_intensity = 0.15 if down else 0.05

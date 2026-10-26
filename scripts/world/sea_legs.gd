@@ -22,9 +22,9 @@ const ISLET_TOP := 1.8
 ## Pirate kinds by the next island's level: [from level, [first zone, second zone]].
 const FLEETS := [
 	[0, [["sloop", "gunboat"], ["gunboat", "sloop"]]],
-	[10, [["gunboat", "sloop"], ["brig", "gunboat"]]],
-	[14, [["brig", "gunboat"], ["marine"]]],
-	[18, [["brig", "marine"], ["marine", "brig"]]],
+	[10, [["gunboat", "hunter"], ["brig", "gunboat"]]],
+	[14, [["brig", "hunter"], ["marine"]]],
+	[18, [["hunter", "brig"], ["marine", "frigate"]]],
 ]
 const NOTES := [
 	"Whoever finds this: the reefs past here have taken better ships than mine.",
