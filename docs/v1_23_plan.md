@@ -82,6 +82,23 @@ Order: advancing is a bug-pass fix (step 1); replies come with the island arcs (
 | Not picked | A **visible** guard gauge (poise stays hidden; the stagger shows it), a game-wide elite affix system (elites stay as decided in round 2), a separate loadout screen | Zach | After play |
 | Own grills after 1.23 | **Crew Rush** (a shared gauge, combination finishers from two captains' styles); **style families and awakenings** (Power/Speed/Technique/Ranged movement, the ultimate tier as a timed transformation); **Sea Charts** (replayable star-rated co-op challenge missions); **shrines and cursed relics** | Zach | After 1.23 |
 
+### Villages, harbours and interiors (2026-10-26)
+Found: about a dozen shop kinds exist (grocer, fish, chandler, tailor, outfitter, curio, fence, glass, named traders),
+but chain villages roll one or two; no instrument seller; Brinehollow's temple and tea house have no role; black leg is
+chosen from the bag.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Villagers | **Every named NPC has a job**: vendor, quest giver, master or trainer, rumour-teller pointing at the island's arc, or a service (inn, barber, shipwright). Vendors are rolled per village size from a bigger pool (clothier, armourer, smith, instrument maker, cook, fence, cartographer, plus today's). Ambient crowds stay as scenery with no talk prompt | 85% of villagers did nothing | After play |
+| Quest markers | **! over an NPC with a quest, ? over one to turn in** | Quests were hard to find | - |
+| District variants | **More variants per district type** (market, harbour, plaza, square... in villages, cities and harbours), so the same market-stall ring isn't on every island | Reuse read as copy-paste | After play |
+| Interiors | **Masters live inside**: the tea house is the black-leg master's kitchen (the kicking stance is learned there through a cook's test, not chosen from the bag); the temple houses another master (katana, or the Captain tree's meditation). Elsewhere an interior has a purpose (a counter, a quest giver, a chest, a rest spot); empty rooms are cut | Interiors did nothing; ties to masters teach trees | - |
+| Marine outpost | **Warn, alarm, raid**: some villages roll a small fort or jail. Drawn weapons in town get a warning; a fight or duel rings the alarm and the fort sends squads (more with bounty). The fort's armoury holds a locked prize (a weapon or armour piece) you can raid, a stronghold in miniature; jailed NPCs can be freed for a reward | Marines present on islands; fits bounty as heat | After play |
+| Clothing pass | **1.24 combat & gear**: fix every clothing piece (textures, clipping, cloth physics, shapes) and add weapon skins, armour and clothing variants and types, with the armour stats. 1.23's clothiers sell today's clothes | 1.23 is already big | 1.24's grill |
+
+Order: villagers, markers, interiors and outposts go with the island arcs (step 5; the arcs' rumour-tellers and
+villains live in these villages); district variants with them.
+
 ### Open / deferred
 - Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
   while building and listed for Zach's review with the per-tree point curve.
