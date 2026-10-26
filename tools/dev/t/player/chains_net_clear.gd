@@ -31,6 +31,10 @@ func check(what: String, cond: bool) -> void:
 func _process(_d: float) -> bool:
 	if not stage.up:
 		return false
+	# (the cloth's nets are native only: a checkout that hasn't built native/ has none to test)
+	if not SpringChains.native_ok:
+		print("SKIP native not built (no ChainSolver at API %d in bin/): the cloth has no nets" % SpringChains.NATIVE_API)
+		return TK.done(fails)
 	for netted in [false, true]:
 		BodyBuilder.cloth_net = netted
 		BodyBuilder.cape_net = netted

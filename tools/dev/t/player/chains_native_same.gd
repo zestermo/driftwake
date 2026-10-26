@@ -32,7 +32,10 @@ func check(what: String, cond: bool) -> void:
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
-	check("the native library is loaded (ChainSolver, API %d)" % SpringChains.NATIVE_API, SpringChains.native_ok)
+	# (bin/ is gitignored: a checkout that hasn't built native/ runs the GDScript solver, and there's nothing to compare)
+	if not SpringChains.native_ok:
+		print("SKIP native not built (no ChainSolver at API %d in bin/): nothing to compare" % SpringChains.NATIVE_API)
+		return TK.done(fails)
 	for lk in KIT.looks():
 		var tag := "cloak" if lk.get("cloak", false) else "cape"
 		var a = KIT.body(root, lk, true)
