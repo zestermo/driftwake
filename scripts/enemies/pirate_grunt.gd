@@ -1915,7 +1915,7 @@ func answer_horn(at: Vector3) -> void:
 
 ## Its camp's captain fighting within RALLY_R.
 func _rallied() -> bool:
-	if captain or camp == null or not is_instance_valid(camp):
+	if captain or not is_instance_valid(camp) or not camp is GruntCamp:
 		return false
 	for g in camp.grunts:
 		if is_instance_valid(g) and g != self and (g as PirateGrunt).captain and (g as PirateGrunt).in_combat() \

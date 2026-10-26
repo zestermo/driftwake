@@ -6906,3 +6906,6 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - `roar_reach` widens `_conquer` (14 m x (1+reach)); `inner_strike` makes a heavy a breaker (through guards and armour,
   always staggers). JungleBeast has no tell to flash. `will_clash` stays a hook.
 - Test: t/progression/will_hooks (stats put into the stat cache; a dodge with a live blow beside it).
+- grunttest and powertest's block checks were stale (a sword grunt blocks ~25% of front blows now, no guard break):
+  grunttest hits until one blocks and then wears the poise down; powertest locks the parked grunt's cooldowns. Real bug:
+  `PirateGrunt._rallied` read `camp.grunts` on a ship crew's EnemyShip (r8test script error); only a GruntCamp rallies.

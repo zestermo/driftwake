@@ -311,6 +311,10 @@ func _process(d: float) -> bool:
 			var spot: Vector3 = ground(g.global_position + Vector3(6, 0, 0))
 			put(spot + Vector3.UP * 0.2)
 			park_grunt(g, ground(spot + Vector3(-1.8, 0, 0)))
+			g._cooldown = 99.0
+			g._pistol_cd = 99.0
+			g._shot_cd = 99.0
+			g._shove_cd = 99.0
 			face(g.global_position)
 			Input.action_press("parry")
 			p.state_machine.force_state("Parry", {})
