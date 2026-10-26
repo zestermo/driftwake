@@ -6485,7 +6485,8 @@ moved into vertex shaders; the CPU now writes a row only when something is born,
 - A run of slow frames writes a line every 0.25 s (every hitch over 50 ms always); 20 lines a half minute at most. The
   30 s line has `spikes N` beside `hitches`. Release builds log too (user://perf.log, last five sessions kept).
 - `Perf.recent`: the last 16 spike lines; the F12 capture's .txt lists them ("## Last spikes").
-- Humanoid's posing moved to `_pose(delta)`, timed in `_process` into ANIM (wallclock_allow:
+- Humanoid's posing moved to `_pose(delta)`, timed in `_process` into the statics `Humanoid.anim_us` / `anim_n` that
+  Perf folds into ANIM each frame (humanoid.gd can't name the Perf autoload: a --script compiles it first) (wallclock_allow:
   `scripts/npc/humanoid.gd:_process`). Cost on a normal frame: two fills of a 6-int array, a ticks read, and per posed
   rig two usec reads and a call (~0.5 us a rig); node_added a call per node added.
 - Hooks for the enemy brains (lead's files): `Perf.add_us(Perf.AI, Time.get_ticks_usec() - t0)` round a brain's think.
