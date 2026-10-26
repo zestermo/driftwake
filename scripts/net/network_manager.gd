@@ -907,6 +907,14 @@ func _all_outpost_alarm(key: String, n: int, level: int, who_key: String) -> voi
 		o.alarm(n, level, node_of(who_key) as Node3D)
 
 
+## A crate or barrel smashed (Breakable), on every screen.
+func _all_break(key: String) -> void:
+	var b := node_of(key)
+	var br := b.get_node_or_null("Breakable") as Breakable if b else null
+	if br:
+		br.smash()
+
+
 ## The galley table (GalleyTable): a cook's pot served (every screen shows it).
 func table_serve(meal: String, n: int, cook: String, k: float, secs: float) -> void:
 	everyone("_all_table", [meal, n, cook, k, secs])

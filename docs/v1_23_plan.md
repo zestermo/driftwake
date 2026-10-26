@@ -152,6 +152,15 @@ be slow there too. "Heavy sometimes" points at spikes, not the mean (Brinehollow
 Order: the spike logger lands with the bug pass (step 1), so Zach's next session produces a log; 2-5 follow in the
 order the log says, alongside the other steps. GPU-first (shaders, MultiMesh motion, GPU particles) stays the rule.
 
+### Tutorial and UI walkthrough (Zach, 2026-10-26)
+No controls or menus are explained today. 1.23 adds:
+- **Vey's practice yard**: Vey walks the captain through every combat button (light combo, heavy, dodge, parry/block,
+  techniques 1-5, the ultimate, drawing and sheathing, the loadout swap X), each tried on the dummies with a
+  prompt and a tick, then sends them to try it all on the bandit camp.
+- **A menu walkthrough**: short tooltip steps the first time each screen opens: the skill map (trees, points,
+  buying, versions at rest spots), the loadout wheel and how loadouts work, the bag, the journal, the Wanted
+  screen, and the interact/action menu (N). Each can be skipped and replayed from Options.
+
 ### Open / deferred
 - Where masters live and who they are (one per tree, placed on chain islands and in the cities): **assumed** decided
   while building and listed for Zach's review with the per-tree point curve.
@@ -159,3 +168,13 @@ order the log says, alongside the other steps. GPU-first (shaders, MultiMesh mot
   can turn up mid-arc as a third party) and rivalry made visible (their posters and bounties beside yours, news of them
   taking an island ahead of you). Meeting rival ships at sea waits until the sea pursuit work has landed.
 - What exactly is broken in the capital's arena: to get from Zach (a capture or a list) before its piece.
+
+### Preview answers (Zach, 2026-10-26)
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Previews | **Approved** with points per tree **option A** (2 a mastery level, +1 every 5: 66 at 30), the Will paths and sources, the poise and enemy AI tables, the 10 arcs, the three-boss beast pass and roamers (docs/v1_23_previews.md) | Zach | After play |
+| Bounty heat | **A counterweight, not a reward**: a higher bounty brings more and harder pursuit (the patrols, blockades, hunters, elite share and shop refusals in the preview's table) and only a small upside: **+2% chest gold and +0.5% purple chance a tier** (at most +8% / +2% at Dreaded) | Zach: the preview's rewards were too much | After play |
+| Black leg | **Keep Handstand Spin** (the 4th combo kick: it feels good). **Replace Cartwheel Crescent and Mule Kick** (they don't look good); **Flambe Dash goes far too far**: shorten it. Replacements **assumed** from the juggle set: Mule Kick's slot -> **Rising Heel** (a kick under the chin that launches the foe), Cartwheel's slot -> **Sky Chase** (air-step up to a launched foe, kick it higher or spike it down) | Zach | The anim pass |
+| Juggling | **Launchers + chase**: launcher moves knock grunts, rival crewmen and the like into the air every time; minibosses only when their poise breaks; big bosses never (they stagger). Anything hit in the air stays up, each hit lifting it less, and it drops after ~3 s (no infinite loops). Air-step toward a launched foe to chase it and keep the combo going | Zach | After play |
+| Air step | **The second jump (Squall Step) looks like stepping on air**: directional, the body leaning into the step's direction, a knee driving and the other leg pushing off, not upright like today. The normal and sprint jumps stay as they are | Zach | His look |
