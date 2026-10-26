@@ -511,6 +511,8 @@ func damage_reduction() -> float:
 
 func _recalc_stats() -> void:
 	var pr := progression
+	if pr:
+		pr.gear = GearStats.totals(equipment.slots)
 	max_stamina = MAX_STAMINA + (attribute("endurance") - 5) * 8.0 + (pr.stat("max_stamina") if pr else 0.0)
 	stamina = minf(stamina, max_stamina)
 	var hc := health_component
@@ -693,6 +695,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		return
 	if progression.has_flag("steadfast"):
 		return  # Steadfast: light hits don't make you flinch
+	# heavy armour's poise (GearStats): now and then a blow doesn't rock you
+	if randf() < progression.stat("poise_pct"):
+		return
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
 		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.5, 4.0), "flinch": true})
 

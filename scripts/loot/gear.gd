@@ -215,9 +215,10 @@ const PLUNDER := [
 ]
 
 
+## (a purple or better one gets its own roll from the stream's state: read, not drawn, so the caller's draws stay put)
 static func random_piece(rng: RandomNumberGenerator, tier: int) -> ItemData:
 	var p: Array = PLUNDER[rng.randi() % PLUNDER.size()]
-	return make(str(p[0]), str(p[1]), p[2], "", tier)
+	return make(str(p[0]), str(p[1]), p[2], "", tier, absi(rng.state % 9973) + 1 if tier >= GearStats.BONUS_TIER else 0)
 
 
 static func is_outfit_key(k: String) -> bool:
@@ -248,7 +249,7 @@ static func color_name(c: Color) -> String:
 
 ## Make (and register) a gear item. `style` is the look value that names it
 ## (e.g. "longcoat"); `look` holds the keys it sets when worn.
-static func make(kind: String, style: String, look: Dictionary, display: String = "", tier: int = 0) -> ItemData:
+static func make(kind: String, style: String, look: Dictionary, display: String = "", tier: int = 0, roll: int = 0) -> ItemData:
 	var it := ItemData.new()
 	it.item_type = ItemData.ItemType.GEAR
 	it.rarity = tier as ItemData.Rarity
@@ -269,7 +270,8 @@ static func make(kind: String, style: String, look: Dictionary, display: String 
 		if ck != "" and look.has(ck) and style != "straw" and not style in STEEL_PIECES:
 			nm = color_name(look[ck]) + " " + nm
 	it.display_name = nm
-	it.id = "gear_%s_%s_%d" % [kind, style, absi(hash(var_to_str(look)))] + ("@%d" % tier if tier > 0 else "")
+	it.gear_roll = roll
+	it.id = "gear_%s_%s_%d" % [kind, style, absi(hash(var_to_str(look)))] + ("~%d" % roll if roll != 0 else "") + ("@%d" % tier if tier > 0 else "")
 	it.icon = GearIcons.icon(it)
 	return ItemDB.register(it)
 

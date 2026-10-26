@@ -15,6 +15,10 @@ func _ready() -> void:
 
 func take_hit(data: HitData, attacker: Node) -> void:
 	attacker = Duel.blame(owner, attacker)
+	var k := GearStats.versus(attacker, owner)
+	if k != 1.0:
+		data = data.duplicate()
+		data.damage *= k
 	# co-op: another machine's captain, or (on a client) an enemy the host
 	# runs - the hit is sent there instead
 	var net := get_node_or_null("/root/Net")

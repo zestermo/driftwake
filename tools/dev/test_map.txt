@@ -610,3 +610,7 @@ scripts/ai/captain_brain.gd             t/combat/rival_duel t/combat/rival_crew 
 scripts/player_states/dodge_state.gd      t/progression/will_hooks
 scripts/enemies/pirate_grunt.gd           t/progression/will_hooks
 scripts/enemies/pirate_boss.gd            t/progression/will_hooks
+tools/dev/t/gear/*                      t/gear
+scripts/items/gear_stats.gd             t/gear t/items invtest qoltest
+scripts/loot/gear.gd                    t/gear
+scripts/loot/item_data.gd               t/gear

@@ -7080,3 +7080,26 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   like a rival's (rig LOD on), only while it exists.
 - Test: t/crew/yard_partner. The other crew tests take their stage dummy out of "training_dummies" (it's a target
   there, not a yard).
+## 2026-10-26: 1.24 gear stats, piece 1: weight and stats on every piece
+- **GearStats** (`scripts/items/gear_stats.gd`, docs/v1_24_previews.md section 1): a piece's weight by its look style
+  (`WEIGHT`, light unless listed: leather hats/vests/coats/gloves/boots medium, steel heavy) and its stats from its slot
+  row and weight (`TABLE`, the approved table; vests use the torso row, feet the legs row), or for accessories and belts
+  one trait each (`TRAITS`: earring +5% gold, eyepatch +3% crit, sash +5 stamina, pauldron +4 def...). Tier scales the
+  good numbers x1/1.15/1.3/1.5/1.75 (2.0, 2.3 for red, black); drawbacks stay. Purple and up roll a second stat from
+  `BONUS` if the piece has fewer than two good ones (seeded by its id without the tier). Remembered by id.
+- **Defence:** `ItemData.armor()` = GearStats.defense: the table's (medium/heavy) or the trait's; a piece whose row has
+  no defence (light, medium gloves) keeps its own Gear.DEFENSE (felt, cloth), x the tier scale. `ItemData.defense`
+  stays Gear.DEFENSE, so prices are unchanged. Balance: a full heavy kit is ~52 white (was ~24), a light one ~10.
+- **Rolls and saves:** a plunder piece (Gear.random_piece) of purple+ gets `gear_roll` from the stream's state (read, not
+  drawn); it rides in the id (`gear_..._<hash>~<roll>@<tier>`) and as ref[6] of SaveGame.item_ref (Net sends the same
+  ref). A pre-1.24 ref has no roll: its stats come from its id alone, the same every load and on every machine.
+- **On the captain:** Player._recalc_stats sets `Progression.gear = GearStats.totals(equipment.slots)` (defence left out),
+  and Progression.stat adds it like the meal and the kit: one more source in the stat cache, nothing of Will's touched.
+  New keys read: `attack_speed_pct` (LightAttackState's _spd), `poise_pct` (a chance a flinching blow doesn't rock you,
+  Player._on_hit_received), `gold_pct` (a coin picked up is now and then two), `vs_admiralty_pct` (Hurtbox.take_hit on
+  the striker's machine, before the hit is routed: anyone whose look has `admiralty`, set by EnemyShip.marine_look).
+  Each is read once per swing, hit or coin: nothing per frame.
+- **Tooltip:** InventoryScreen.fill_info adds WEIGHT, a line per stat with its difference from the worn piece ("(new)",
+  "lose ..."), and the set line ("Corsair set 2/3: +1 air step"). Sets (`GearStats.SETS`): Admiralty bicorne + admiral's
+  coat + cavalier boots (+10% vs the Admiralty), Corsair tricorn + captain's coat + tall boots (+1 air step).
+- Tests: t/gear/stats (new). Render: tools/dev/gearshot.gd (tools/dev/out/gear/g_*.png).

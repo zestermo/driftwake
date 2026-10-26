@@ -87,6 +87,9 @@ func _collect() -> void:
 	if inv == null or not inv.add_item(_gold, 1):
 		_pull = 0.0
 		return
+	# (an earring's luck: GearStats gold_pct)
+	if randf() < _player.get("progression").stat("gold_pct"):
+		inv.add_item(_gold, 1)
 	FX.sfx("coin", global_position, -4.0, 0.12)
 	FX.sparkle(global_position, 4, Color(1.0, 0.85, 0.35))
 	queue_free()

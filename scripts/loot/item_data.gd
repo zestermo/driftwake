@@ -42,6 +42,8 @@ const RARITY_VALUE := [1.0, 1.6, 2.56, 4.1, 6.55, 10.49, 16.78]
 @export var defense: float = 0.0
 ## Icon shape for runtime gear icons (see GearIcons).
 @export var icon_kind: String = ""
+## A looted piece's own roll (in its id: two of the same look can carry different bonus stats; 0 none).
+@export var gear_roll: int = 0
 
 @export_group("Consumable")
 @export var heal_amount: float = 0.0
@@ -99,8 +101,10 @@ func power() -> float:
 	return damage_mult * (1.0 + RARITY_DAMAGE * int(rarity))
 
 
-## The gear's defense with its tier.
+## The gear's defense with its tier (clothing and armour: GearStats).
 func armor() -> float:
+	if GearStats.is_wearable(self):
+		return GearStats.defense(self)
 	return defense * (1.0 + RARITY_DEFENSE * int(rarity))
 
 
