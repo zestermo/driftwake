@@ -47,6 +47,13 @@ weapons and armour stats move back a step (strongholds and Driftfruits likewise)
 3. Pirate grunts and some other enemies stand still spamming parry/block.
 4. Rival crews never showed up in a ~2 h co-op session (RivalWatch: the plan's save, the arrival hook, the ashore /
    inland / quiet conditions in co-op).
+5. **Quests and journal** (Zach, 2026-10-26):
+   - Main quests synced across the crew, but the random smaller quests sometimes didn't.
+   - A boss killed before its quest was accepted had to be killed again after accepting it (a quest should count a
+     target that's already dead).
+   - The mouse breaks on the journal screen.
+   - Old quests can't be abandoned, so they stay on the map late into the game: add **abandon/drop** in the journal.
+   - Taking a new quest keeps tracking an old one: **a newly accepted quest becomes the tracked one**.
 
 ### Open / deferred (round 4: Zach's reply didn't come through, to resend)
 - Which arena felt buggy: the island boss arenas (1.20), the capital's arena ladder (1.21), or both.
