@@ -44,7 +44,7 @@ func _process(_d: float) -> bool:
 		1:
 			ashore = AW.entries_for(p)
 			print("   ashore: %s" % str(ashore))
-			check("ashore the list has camp, train, cook, read, tinker, fish, cut bait, sleep", ashore == ["camp", "train", "cook", "read", "tinker", "fish", "cut_bait", "sleep"])
+			check("ashore the list has camp, train, cook, read, meditate, tinker, fish, cut bait, sleep", ashore == ["camp", "train", "cook", "read", "meditate", "tinker", "fish", "cut_bait", "sleep"])
 			check("...Make camp and Train can be done", AW.why_not("camp", p) == "" and AW.why_not("train", p) == "")
 			check("...Cook: at a galley or campfire", AW.why_not("cook", p) == "At a galley or campfire")
 			check("...Read: aboard or at camp", AW.why_not("read", p) == "Aboard or at camp")
