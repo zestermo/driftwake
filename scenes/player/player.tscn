@@ -1,4 +1,4 @@
-[gd_scene load_steps=43 format=3]
+[gd_scene load_steps=44 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/state_machine/state_machine.gd" id="2"]
@@ -37,6 +37,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/downtime_state.gd" id="downtime_state"]
 [ext_resource type="Script" path="res://scripts/player_states/fish_state.gd" id="fish_state"]
 [ext_resource type="Script" path="res://scripts/player_states/sky_leap_state.gd" id="sky_leap_state"]
+[ext_resource type="Script" path="res://scripts/player_states/grabbed_state.gd" id="grabbed_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -189,6 +190,9 @@ script = ExtResource("fish_state")
 
 [node name="SkyLeap" type="Node" parent="StateMachine"]
 script = ExtResource("sky_leap_state")
+
+[node name="Grabbed" type="Node" parent="StateMachine"]
+script = ExtResource("grabbed_state")
 
 [node name="Hurtbox" type="Area3D" parent="."]
 collision_layer = 128

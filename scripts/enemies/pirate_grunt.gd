@@ -26,7 +26,7 @@ extends CharacterBody3D
 
 signal died(grunt: PirateGrunt)
 
-enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR }
+enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR, GRAB }
 
 const GRAVITY := 20.0
 const RUN_SPEED := 4.4
@@ -38,7 +38,6 @@ const LEASH := 26.0
 const CIRCLE_RANGE := 3.3
 const COMBO_RANGE := 2.0
 const MAX_HP := 110.0
-const GUARD_BLOCKS := 3
 const BODY_LAYER := 4 | 2048
 ## Firearms
 const PISTOL_RANGE := 9.1          # ~10 yards: farther than this, a pistol may come out
@@ -50,7 +49,7 @@ const RIFLE_AIM := 1.4
 const RIFLE_LOCK := 0.42
 const RIFLE_EVERY := 8.0
 const RIFLE_NEAR := 10.0
-const RIFLE_FAR := 16.0
+const RIFLE_FAR := 15.0
 const SHOVE_RANGE := 3.0
 const SHOVE_COOLDOWN := 5.0
 ## The rifle butt's tell: drawn back with a glint on the stock and a pale arc on
@@ -118,6 +117,43 @@ var hitbox: Hitbox
 var health: HealthComponent
 var poise: Poise
 
+## 1.23 smarter enemies (docs/v1_23_previews.md section 4): a sword grunt blocks BLOCK_CHANCE of the blows from the
+## front (never twice running without a counter between) and sidesteps SIDESTEP_CHANCE; a shield grunt (1 in 6 sword
+## grunts on tier 2+) stops everything from the front until a heavy, a kick or a flank breaks its guard (down
+## SHIELD_DOWN s); a horn-blower left alive HORN_AFTER s into a fight calls the nearest other camp; men within RALLY_R
+## of their camp captain in a fight hit RALLY_K harder; a heavy whiffed in front of it is answered at once; a brute
+## (BRUTES) blocked GRAB_AFTER times grabs (GrabbedState); elites (EliteTraits) carry one trait and an aura.
+const BLOCK_CHANCE := 0.25
+const SIDESTEP_CHANCE := 0.15
+const SHIELD_ODDS := 1.0 / 6.0
+const SHIELD_DOWN := 4.0
+const HORN_AFTER := 8.0
+const HORN_REACH := 120.0
+const RALLY_R := 10.0
+const RALLY_K := 1.15
+const PUNISH_WINDOW := 1.0
+const GRAB_AFTER := 3
+const BRUTE_WIND := 0.45
+const BRUTE_HOLD := 2.6
+const BRUTES := ["hammer", "greatsword"]
+const GRAB_TELL := Color(1.0, 0.6, 0.2)
+var shield := false
+var horn := false
+var elite_trait := ""
+var _blocked_last := false
+var _shield_down_t := 0.0
+var _fight_t := 0.0
+var _horned := false
+var _rally := false
+var _rally_t := 0.0
+var _aura: CPUParticles3D
+var _whiff_seen := false
+var _whiff_hit := false
+var _punish_t := 0.0
+var _blocks_taken := 0
+var _grab_ready := false
+var _grab_target: Node3D
+
 var _col: CollisionShape3D
 var _bark: Label3D
 var _bark_t: float = 0.0
@@ -179,8 +215,6 @@ var _threat: String = ""
 var _threat_t: float = 0.0
 var _threat_skip: bool = false
 var _iframe_on: bool = false
-var _guard_hits: int = 0
-var _guard_t: float = 0.0
 ## Seconds left of being pressed in melee (a captain hitting it up close): it may answer without the camp's attack
 ## token, so a grunt you're fighting hits back instead of circling and blocking until its turn comes.
 var _pressed_t: float = 0.0
@@ -275,6 +309,9 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	_role_seed = int(cfg.get("seed", 1))
 	captain = bool(cfg.get("captain", false))
 	elite_rank = bool(cfg.get("elite", false))
+	shield = bool(cfg.get("shield", false))
+	horn = bool(cfg.get("horn", false))
+	elite_trait = str(cfg.get("trait", ""))
 	title = str(cfg.get("title", ""))
 	hold = cfg.get("hold", [])
 	look = PirateGrunt.look_for(cfg)
@@ -404,6 +441,7 @@ func _ready() -> void:
 	humanoid.reset_physics_interpolation()
 	# every pirate's blade is their own (and it's the one they drop)
 	_roll_role()
+	_roll_extras()
 	var d := WeaponDesigns.random_design("cutlass", _rng)
 	_blade_model = "cutlass:%s:0" % d
 	_blade_id = str(WeaponDesigns.DESIGNS["cutlass"][d]["id"]) if d != "" else "cutlass"
@@ -416,6 +454,10 @@ func _ready() -> void:
 	humanoid.set_weapon(Props.weapon_mesh("rifle" if role == "rifle" else _blade_model) if _blade_model != "" else null)
 	if _role().has("offhand"):
 		humanoid.set_offhand(Props.weapon_mesh(str(_role()["offhand"])))
+	if shield:
+		humanoid.set_offhand(ShieldMesh.mesh())
+	if elite_trait != "":
+		_aura = EliteTraits.aura(humanoid, elite_trait)
 	if role == "rifle":
 		humanoid._attach_weapon(true)
 		humanoid.carry = "rifle"
@@ -437,7 +479,9 @@ func _ready() -> void:
 	health.max_health = _max_hp()
 	add_child(health)
 	health.died.connect(_on_died)
-	poise = Poise.make(_poise_class())
+	poise = Poise.make(_poise_class(), float(EliteTraits.POISE_K.get(elite_trait, 1.0)))
+	if elite_trait == "quick":
+		_dodge_chance = EliteTraits.QUICK_DODGE
 
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -466,6 +510,7 @@ func _ready() -> void:
 	hitbox.add_child(bs)
 	facing.add_child(hitbox)
 	hitbox.owner = self
+	hitbox.hit_landed.connect(_on_blow_landed)
 	var hd := HitData.new()
 	hd.damage = _dmg(12.0) * float(_role().get("dmg", 1.0))
 	hd.knockback_force = 4.5
@@ -568,6 +613,8 @@ func _set_state(s: S) -> void:
 		remove_from_group(Juggle.GROUP)
 	state = s
 	st_t = 0.0
+	if _aura:
+		_aura.emitting = in_combat()
 
 
 func _target() -> Node3D:
@@ -689,11 +736,8 @@ func _physics_process(delta: float) -> void:
 	st_t += delta
 	_cooldown -= delta
 	_peril_cd -= delta
-	_guard_t -= delta
 	_pressed_t -= delta
 	_shot_flinch_t -= delta
-	if _guard_t <= 0.0:
-		_guard_hits = 0
 	_bark_t -= delta
 	if _bark_t <= 0.0:
 		_bark.visible = false
@@ -703,6 +747,10 @@ func _physics_process(delta: float) -> void:
 	_rush_cd -= delta
 	_dash_cd -= delta
 	_backoff_t -= delta
+	_shield_down_t -= delta
+	_punish_t -= delta
+	_rally_t -= delta
+	_fight_t = _fight_t + delta if in_combat() else 0.0
 	_disarm_tick(delta)
 	if state == S.DEAD:
 		_dead_update(delta)
@@ -730,11 +778,12 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 
-	# (moving about, it thinks every other tick and moves on its last decision in between; the thinking tick gets
-	# both ticks' time, so the states' own clocks keep their pace)
+	# (moving about, it thinks THINK_EVERY ticks (~10 Hz, staggered by instance) and moves on its last decision in
+	# between; the thinking tick gets the skipped ticks' time, so the states' own clocks keep their pace)
 	if _think_skip(delta):
 		_move_tail(_last_want, _last_accel, _last_turn, _last_running, _flat(velocity), delta)
 		return
+	var t0 := Time.get_ticks_usec()
 	var tick := delta
 	delta += _think_acc
 	_think_acc = 0.0
@@ -754,6 +803,7 @@ func _physics_process(delta: float) -> void:
 	var running := false
 	if elite() and (state in [S.ALERT, S.CHASE, S.CIRCLE, S.CLOSE, S.BLOCK, S.KEEP, S.REPOSITION] or (state == S.RECOVER and st_t > 0.25)):
 		_watch_threats(p, dist, dir_p, delta)
+	_tactics(p, dist, dir_p)
 
 	match state:
 		S.IDLE:
@@ -1072,23 +1122,48 @@ func _physics_process(delta: float) -> void:
 					humanoid.play("sheathe", 0.5)
 				health.heal(health.max_health)
 				_enter_idle()
+		S.GRAB:
+			# the reach (BRUTE_WIND, the tell), then the hands close on whoever's in front; held, it waits on
+			# grab_ended (the grabbed captain's machine says how it ends)
+			if st_t < BRUTE_WIND:
+				_face(dir_p)
+				want = dir_p * 2.5
+			elif not _swung:
+				_swung = true
+				if p and dist < 2.3 and _fwd().dot(dir_p) > 0.3 and p.has_node("Hurtbox") and (p.get_node("Hurtbox") as Hurtbox).monitorable:
+					var hd := HitData.new()
+					hd.grab = true
+					hd.damage = 0.0
+					hd.impact = "punch"
+					(p.get_node("Hurtbox") as Hurtbox).take_hit(hd, self)
+					Net.fx("sfx", ["punch", global_position, -4.0, 0.05, 0.7])
+					humanoid.hold("guard_block", 0.15)
+				else:
+					_end_attack(1.0)  # (grabbed at air: wide open)
+			elif st_t > BRUTE_WIND + BRUTE_HOLD:
+				humanoid.stop_action()
+				_end_attack(0.6)
 
 	# its blow came down on the decoy: that shatters it
 	if lured and state == S.SWING and st_t > 0.24 and dist < _reach() + 1.2:
 		Net.fx("decoy_break", [_lure.spot])
 		_lure = null
 
+	if elite_trait == "berserk" and state in [S.CHASE, S.CIRCLE, S.CLOSE]:
+		want *= EliteTraits.BERSERK_SPEED
 	_last_want = want
 	_last_accel = accel
 	_last_turn = turn
 	_last_running = running
+	Perf.add_us(Perf.AI, Time.get_ticks_usec() - t0)
 	_move_tail(want, accel, turn, running, hv, tick)
 
 
 
-## Thinks every other tick in these (no blow, guard or stagger on the line): THINK_STATES, _think_skip().
+## Thinks every THINK_EVERY ticks (~10 Hz at 60, staggered by instance) in these (no blow, guard or stagger on the
+## line): THINK_STATES, _think_skip(). (1.23 perf track's hook; it was every other tick.)
 const THINK_STATES := [S.IDLE, S.ALERT, S.CHASE, S.CIRCLE, S.REPOSITION, S.KEEP, S.RETURN]
-var _think_odd := false
+const THINK_EVERY := 6
 var _think_acc := 0.0
 var _last_want := Vector3.ZERO
 var _last_accel := 18.0
@@ -1098,13 +1173,12 @@ var _last_running := false
 
 func _think_skip(delta: float) -> bool:
 	if state not in THINK_STATES or _yank > 0.0:
-		_think_odd = get_instance_id() % 2 == 0
 		_think_acc = 0.0
 		return false
-	_think_odd = not _think_odd
-	if _think_odd:
+	if (Engine.get_physics_frames() + get_instance_id()) % THINK_EVERY != 0:
 		_think_acc += delta
-	return _think_odd
+		return true
+	return false
 
 
 ## Every tick: on toward `want` (around what it walked into, out of the sea), moved, turned, the body fed.
@@ -1379,13 +1453,13 @@ func _swing_len() -> float:
 	return 0.36 if _attack == "flurry" else 0.5
 
 
-## Light hits the guard soaks up before it breaks.
-func _guard_max() -> int:
-	return GUARD_BLOCKS
-
-
 func _wind_len() -> float:
-	return _wind_base() * float(_role().get("pace", 1.0))
+	return _wind_base() * float(_role().get("pace", 1.0)) * {"quick": EliteTraits.QUICK_TELL, "berserk": 0.85}.get(elite_trait, 1.0)
+
+
+## The share of blows from the front a sword grunt blocks (bosses: more).
+func _block_chance() -> float:
+	return BLOCK_CHANCE
 
 
 func _wind_base() -> float:
@@ -1411,6 +1485,7 @@ func _hits() -> int:
 
 func _start_wind() -> void:
 	_glinted = false
+	_blocked_last = false
 	_set_state(S.WIND)
 	if _attack == "peril":
 		# one overhead chop spanning the wind-up and the swing
@@ -1646,12 +1721,204 @@ func elite() -> bool:
 
 
 ## Its poise (Poise.CLASSES): a camp's captain or an outpost's sergeant, an elite, or a grunt (bosses: "miniboss").
+## (A grunt of level 12+ dodges like an elite, elite(), but only the 1-in-6 elites and the ones placed as such stand
+## like one.)
 func _poise_class() -> String:
 	if is_in_group("bosses"):
 		return "miniboss"
 	if captain:
 		return "captain"
-	return "elite" if elite() else "grunt"
+	return "elite" if elite_rank else "grunt"
+
+
+## (before the body's armed) an elite's trait, a sword grunt's shield (EliteTraits.roll; SHIELD_ODDS on tier 2+),
+## both seeded so every machine rolls the same; not for captains, bosses or a ship's boarders.
+func _roll_extras() -> void:
+	if captain or is_in_group("bosses") or _body != null or boarder:
+		return
+	if elite_trait == "":
+		elite_trait = EliteTraits.roll(_role_seed, level)
+	if elite_trait != "":
+		elite_rank = true
+	if role == "sword" and not shield and level > 0 and Levels.tier(level) >= 2:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(["shield", _role_seed, level])
+		shield = rng.randf() < SHIELD_ODDS
+
+
+## Its blow landed on `target`: a burning elite sets them alight (on the machine where it landed).
+func _on_blow_landed(target: Node, _hd: HitData) -> void:
+	if elite_trait == "burning" and target is Node3D:
+		BurnStatus.apply(target as Node3D, EliteTraits.BURN.x, EliteTraits.BURN.y, self)
+
+
+## A captain blocked its blow (Player._on_hit_received): a brute grabs after GRAB_AFTER of them.
+func blocked_by(p: Node) -> void:
+	if Net.forward(self, "blocked_by", [p]):
+		return
+	if role not in BRUTES:
+		return
+	_blocks_taken += 1
+	if _blocks_taken >= GRAB_AFTER:
+		_blocks_taken = 0
+		_grab_ready = true
+		_grab_target = p as Node3D
+
+
+## The grab is over (GrabbedState on the grabbed captain's machine): `broke` free (he reels) or thrown.
+func grab_ended(broke: bool) -> void:
+	if Net.forward(self, "grab_ended", [broke]):
+		return
+	if state != S.GRAB:
+		return
+	if broke:
+		bark(BARK_PARRIED, 0.8)
+		velocity = -_fwd() * 3.0
+		_stagger_len = 1.2
+		humanoid.react("stagger", 1.2, -_fwd())
+		_set_state(S.STAGGER)
+	else:
+		humanoid.play(str(_role()["heavy"]), 0.7)
+		_end_attack(0.8)
+
+
+## A blow stopped on the guard (the blade, or the shield): sparks, no damage; `stand` turns it into the block
+## (BLOCK state) with a counter after when `counter`.
+func _guard(hit: HitData, dir: Vector3, stand: bool, counter: bool) -> void:
+	var spark := global_position + Vector3(0, 1.25, 0) - dir * 0.55
+	Net.fx("impact", [spark, Color(1.0, 0.95, 0.7)])
+	Net.fx("sparkle", [spark, 6, Color(1.0, 0.9, 0.5)])
+	CombatManager.guard(hit, not shield, spark, -2.0, 0.05, 0.8 if shield else 1.1)
+	if not hit.ranged:
+		get_node("/root/CombatManager").apply_hitstop(0.04, [_hit_by, self])
+	if not stand:
+		return
+	humanoid.play("block", 0.4)
+	velocity = dir * 2.5
+	_riposte = counter
+	_set_state(S.BLOCK)
+
+
+## A heavy, a kick or a breaker knocks the shield aside: it reels and the guard stays down SHIELD_DOWN s.
+func _shield_broken(hit: HitData, dir: Vector3) -> void:
+	_shield_down_t = SHIELD_DOWN
+	_take_damage(hit, dir)
+	if state == S.DEAD:
+		return
+	bark(BARK_PARRIED, 0.7)
+	Net.fx("sparkle", [global_position + Vector3(0, 1.4, 0) - dir * 0.5, 12, Color(1.0, 0.8, 0.4)])
+	Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.7])
+	_release_token()
+	hitbox.deactivate()
+	velocity = dir * 3.0
+	_stagger_len = 1.2
+	humanoid.react("stagger", 1.2, dir)
+	_set_state(S.STAGGER)
+
+
+## A quick step out of the blow's line (the elites' dash, on its cooldown), no damage. False if there's no room.
+func _sidestep(dir: Vector3) -> bool:
+	var side := Vector3.UP.cross(dir) * (1.0 if _rng.randf() < 0.5 else -1.0)
+	if _dash_cd > 0.0 or not (_dash_ok(side) or _dash_ok(-side)):
+		return false
+	_start_dash(side)
+	return true
+
+
+## The fight around it, as it thinks: the horn, the captain's rally, a whiffed heavy punished, a brute's grab.
+func _tactics(p: Node3D, dist: float, dir_p: Vector3) -> void:
+	if p == null or not in_combat():
+		return
+	if horn and not _horned and _fight_t > HORN_AFTER and state not in [S.DOWN, S.GETUP, S.AIR, S.STAGGER, S.SWIM]:
+		_blow_horn()
+	if _rally_t <= 0.0:
+		_rally_t = 1.0
+		_set_rally(_rallied())
+	_watch_whiff(p, dist, dir_p)
+	if _punish_t > 0.0 and state in [S.CIRCLE, S.CHASE, S.BLOCK, S.RECOVER, S.CLOSE] and dist < 5.0 and _player_ok(p) and role != "rifle":
+		_punish_t = 0.0
+		bark(["Too slow!", "Wide open!", "Missed me!"], 0.8)
+		_has_token = true
+		_attack = "lunge" if dist > _reach() + 0.6 else "combo"
+		_swing_i = 0
+		_start_wind()
+	elif _grab_ready and state in [S.CIRCLE, S.CHASE, S.BLOCK, S.CLOSE] and dist < 2.6 and _player_ok(p):
+		_start_grab()
+
+
+## A heavy thrown in front of it (within 4.5 m, the captain facing it) that ends without touching it: PUNISH_WINDOW
+## s to answer it.
+func _watch_whiff(p: Node3D, dist: float, dir_p: Vector3) -> void:
+	if not p.has_method("current_state_name"):
+		return
+	var heavy := str(p.call("current_state_name")) == "HeavyAttack"
+	if heavy and not _whiff_seen and dist < 4.5 and _captain_fwd(p).dot(-dir_p) > 0.5:
+		_whiff_seen = true
+		_whiff_hit = false
+	elif not heavy and _whiff_seen:
+		_whiff_seen = false
+		if not _whiff_hit:
+			_punish_t = PUNISH_WINDOW
+
+
+## The horn-blower calls the nearest other camp (GruntCamp.call_help): its men come running.
+func _blow_horn() -> void:
+	_horned = true
+	bark(["Sound the horn!", "To me, lads! To me!"], 1.0)
+	var at := global_position + Vector3(0, 1.8, 0)
+	Net.fx("sfx", ["horn", at, 2.0, 0.05, 1.0])
+	Net.fx("ring", [at, Vector3.UP, 4.0, Color(1.0, 0.85, 0.5), 0.5, 0.08])
+	if camp and is_instance_valid(camp):
+		camp.call("call_help", global_position, HORN_REACH)
+
+
+## Called by another camp's horn: it comes to `at` (its post there now) and joins the fight.
+func answer_horn(at: Vector3) -> void:
+	if state not in [S.IDLE, S.RETURN]:
+		return
+	post = at + Vector3(_rng.randf_range(-2.0, 2.0), 0.0, _rng.randf_range(-2.0, 2.0))
+	hold = []
+	alert()
+	if state == S.IDLE:
+		_set_state(S.RETURN)
+
+
+## Its camp's captain fighting within RALLY_R.
+func _rallied() -> bool:
+	if captain or camp == null or not is_instance_valid(camp):
+		return false
+	for g in camp.grunts:
+		if is_instance_valid(g) and g != self and (g as PirateGrunt).captain and (g as PirateGrunt).in_combat() \
+				and (g as Node3D).global_position.distance_to(global_position) < RALLY_R:
+			return true
+	return false
+
+
+## The captain's rally on or off: its blows RALLY_K harder (the puppets too: net_event "rally").
+func _set_rally(on: bool) -> void:
+	if on == _rally:
+		return
+	_rally = on
+	var k := RALLY_K if on else 1.0 / RALLY_K
+	for h in [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]:
+		(h as HitData).damage *= k
+	if not net_puppet:
+		Net.event(self, "rally", [on])
+		if on:
+			Net.fx("sparkle", [global_position + Vector3(0, 1.9, 0), 5, Color(1.0, 0.75, 0.3)])
+
+
+## The brute's grab (after GRAB_AFTER blocks): it reaches (BRUTE_WIND, an orange glint the tell), then S.GRAB.
+func _start_grab() -> void:
+	_grab_ready = false
+	_release_token()
+	_attack = "grab"
+	_swung = false
+	_set_state(S.GRAB)
+	humanoid.play("wind_l", BRUTE_WIND)
+	bark(["Come here!", "Got you now!", "Enough blocking!"], 0.9)
+	Net.fx("sparkle", [global_position + Vector3(0, 1.5, 0) + _fwd() * 0.6, 8, GRAB_TELL])
+	Net.fx("sfx", ["blip_high", global_position, -8.0, 0.05, 0.7])
 
 
 ## Something coming that a quick dash beats: [what, dash direction].
@@ -1791,6 +2058,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DASH and st_t < DASH_IFRAMES and not hit.dot:
 		return
 	_hit_by = attacker
+	_whiff_hit = true
 	if not hit.ranged and attacker is Node3D and (attacker as Node3D).is_in_group("players"):
 		_pressed_t = PRESSED_FOR
 	var dir := Vector3.ZERO
@@ -1875,36 +2143,24 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_read_heavy(hit, dir)
 		return
 
-	# blocked: sparks, no damage (until the guard breaks)
-	# (a cutlass can't stop a bullet)
-	if guarding and from_front and Poise.of(hit) < Poise.KICK and not hit.unblockable and not hit.ranged and not hit.breaker:
-		if _guard_hits < _guard_max():
-			_guard_hits += 1
-			_guard_t = 3.5
-			var spark := global_position + Vector3(0, 1.25, 0) - dir * 0.55
-			Net.fx("impact", [spark, Color(1.0, 0.95, 0.7)])
-			Net.fx("sparkle", [spark, 6, Color(1.0, 0.9, 0.5)])
-			CombatManager.guard(hit, true, spark, -2.0, 0.05, 1.1)
-			get_node("/root/CombatManager").apply_hitstop(0.04, [_hit_by, self])
-			humanoid.play("block", 0.4)
-			velocity = dir * 2.5
-			# mashing into a guard gets you a quick counter-slash
-			_riposte = _guard_hits >= 2 or _rng.randf() < 0.35
-			_set_state(S.BLOCK)
-			return
-		# third hit: the guard breaks
-		_guard_hits = 0
-		_stagger_len = 1.1
-		_take_damage(hit, dir)
-		if state == S.DEAD:
-			return
-		bark(BARK_HURT, 0.5)
-		Net.fx("sparkle", [global_position + Vector3(0, 1.5, 0), 10, Color(1.0, 0.8, 0.4)])
-		_release_token()
-		humanoid.react("stagger", 1.1, dir)
-		velocity = dir * 3.0
-		_set_state(S.STAGGER)
+	# the shield: everything from the front stops on it, until a heavy, a kick or a breaker knocks it aside
+	if shield and from_front and _shield_down_t <= 0.0 and not hit.unblockable \
+			and state not in [S.IDLE, S.RETURN, S.STAGGER, S.HITSTUN, S.ALERT]:
+		if Poise.of(hit) >= Poise.HEAVY or hit.breaker:
+			_shield_broken(hit, dir)
+		else:
+			_guard(hit, dir, state not in [S.WIND, S.SWING, S.GRAB], _rng.randf() < 0.3)
 		return
+	# a sword grunt blocks some of the blows from the front (never twice running without a counter between: the
+	# riposte always follows) and sidesteps some; a cutlass can't stop a bullet
+	if guarding and from_front and Poise.of(hit) < Poise.KICK and not hit.unblockable and not hit.ranged and not hit.breaker:
+		if not _blocked_last and _rng.randf() < _block_chance():
+			_blocked_last = true
+			_guard(hit, dir, true, true)
+			return
+		_blocked_last = false
+		if _rng.randf() < SIDESTEP_CHANCE * (2.0 if elite_trait == "quick" else 1.0) and _sidestep(dir):
+			return
 
 	_take_damage(hit, dir)
 	if state == S.DEAD:
@@ -1913,6 +2169,9 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if took == Poise.BREAK:
 		_poise_broken(hit, dir)
 		return
+	# (a berserk elite low on health doesn't flinch at all)
+	if elite_trait == "berserk" and health.current_health < health.max_health * EliteTraits.BERSERK_BELOW:
+		took = Poise.NONE
 	if took == Poise.NONE:
 		return  # it shrugs it off and keeps coming
 	bark(BARK_HURT, 0.3)
@@ -2077,6 +2336,8 @@ func juggle(up: float, dir: Vector3) -> void:
 	_spiked = false
 	velocity = dir * Juggle.CARRY + Vector3.UP * up
 	_set_state(S.AIR)
+	# (up there it passes the captains by: one chasing it, or under it, never holds it up)
+	set_collision_mask_value(2, false)
 	add_to_group(Juggle.GROUP)
 	humanoid.play("jug_air", Juggle.AIR_MAX + 1.0)
 	bark(BARK_HURT, 0.5)
@@ -2105,7 +2366,9 @@ func _air_update(delta: float) -> void:
 	velocity.x = h.x
 	velocity.z = h.z
 	move_and_slide()
-	var down := st_t > 0.15 and velocity.y <= 0.0 and (is_on_floor() or _surface_depth() > SWIM_ENTER_DEPTH)
+	# (down on the ground, in the sea, or come to rest on something on the way)
+	var down := st_t > 0.15 and velocity.y <= 0.0 and (is_on_floor() or _surface_depth() > SWIM_ENTER_DEPTH \
+		or (velocity.y < -3.0 and get_real_velocity().y > -0.3))
 	if down or st_t > Juggle.AIR_MAX + 2.0:
 		Net.fx("dust_ring", [global_position, 14 if _spiked else 9, 1.0 if _spiked else 0.7])
 		Net.fx("sfx", ["thud", global_position, -2.0 if _spiked else -6.0, 0.05, 0.8])
@@ -2929,6 +3192,8 @@ func _net_update(delta: float) -> void:
 			add_to_group(Juggle.GROUP)
 		else:
 			remove_from_group(Juggle.GROUP)
+		if _aura:
+			_aura.emitting = in_combat()
 	health.max_health = float(b[5])
 	health.current_health = float(b[4])
 	HumanoidSync.apply(humanoid, a[6], b[6], f)
@@ -3031,6 +3296,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"die":
 			_net_die()
+		"rally":
+			_set_rally(bool(args[0]))
 		"disarm":
 			_show_disarm(bool(args[0]), args[1])
 		"vanish":

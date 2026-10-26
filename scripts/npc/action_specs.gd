@@ -426,6 +426,7 @@ const SPECS := {
 		"variants": [{"push": Vector3(0, 0, -1)}, {"push": Vector3(1, 0, 0)}, {"push": Vector3(-0.7, 0, 0.7)}]},
 	"jug_air": {"len": 3.0, "stance": "sword", "weapon": "cutlass"},
 	"jug_hit": {"len": 2.0, "stance": "sword", "weapon": "cutlass"},
+	"jug_held": {"len": 0.12, "hold": true, "stance": "sword", "weapon": "cutlass"},
 	"mantle": {"len": 1.0, "stance": "sword", "weapon": "cutlass"},
 	"drink": {"len": 1.0, "stance": "sword", "weapon": "cutlass"},
 	"eat": {"len": 1.0, "stance": "sword", "weapon": "cutlass"},

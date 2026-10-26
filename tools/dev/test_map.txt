@@ -574,3 +574,8 @@ scripts/player_states/black_leg_arts.gd t/combat/black_leg_launch techtest
 scripts/npc/black_leg_moves.gd          t/combat/black_leg_launch techtest
 scripts/progression/skill_trees.gd      t/progression/black_leg_rename progtest
 scripts/progression/skills.gd           t/progression/black_leg_rename progtest
+scripts/combat/elite_traits.gd          t/combat/elite_traits grunttest
+scripts/props/shield_mesh.gd            t/combat/shield_grunt
+scripts/player_states/grabbed_state.gd  t/combat/grunt_punish net
+scripts/enemies/grunt_camp.gd           t/combat/grunt_tactics grunttest
+scripts/ai/captain_brain.gd             t/combat/rival_duel t/combat/rival_crew t/combat/rival_rest t/combat/bounty_hunters
