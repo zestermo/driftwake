@@ -225,6 +225,8 @@ func _physics_process(delta: float) -> void:
 		# the squad beaten: raided, for everyone (saved)
 		if _camp and is_instance_valid(_camp) and _camp.alive_count() == 0 and not _camp.grunts.is_empty():
 			net.world_flag(key)
+			# the sergeant's fall: an Admiralty officer beaten (bounty, and a Will point, for every captain near)
+			net.bounty("officer", global_position)
 			_apply_raided(true)
 			get_tree().call_group("hud", "show_banner", "Outpost raided", "The armoury's open and the cell's unguarded.", true)
 		return
