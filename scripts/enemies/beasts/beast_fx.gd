@@ -175,3 +175,73 @@ static func part_break(at: Vector3, col: Color) -> void:
 static func brush(pos: Vector3, amount: int = 6) -> void:
 	leaves(pos + Vector3(0, 0.6, 0), amount, 0.8, false)
 	FX.dust(pos, 3, 0.7)
+
+
+## A sandstorm over `at` (`r` m round) for `secs`, on this screen: sheets of sand blowing across, a haze under them;
+## it thins out over its last two seconds.
+static func sandstorm(at: Vector3, r: float, secs: float) -> void:
+	if _cam_far(at, r + 120.0):
+		return
+	var holder := Node3D.new()
+	holder.name = "Sandstorm"
+	_root().add_child(holder)
+	holder.global_position = at + Vector3.UP * 1.5
+	var wind := Vector3(1.0, 0.0, 0.35).normalized()
+	var sheets := FX.flip_emitter(holder, "sand", 60, 3.4, 2.2, {"world": true, "radius": r, "direction": wind, "spread": 10.0, "vel_min": 9.0,
+		"vel_max": 14.0, "gravity": Vector3.ZERO, "damping": 0.0, "color": Color(0.95, 0.82, 0.58, 0.55), "fade": 0.5, "range": r + 120.0})
+	var haze := FX.flip_emitter(holder, "dust", 26, 7.0, 3.2, {"world": true, "radius": r * 0.8, "direction": wind, "spread": 20.0, "vel_min": 4.0,
+		"vel_max": 7.0, "gravity": Vector3.ZERO, "damping": 0.0, "color": Color(0.9, 0.76, 0.52, 0.35), "fade": 0.6, "range": r + 120.0})
+	# (and the weather's own blowing sand closes the view in round here: Weather.sand_boost)
+	var wx := (Engine.get_main_loop() as SceneTree).root.get_node("Weather")
+	var near := not _cam_far(at, r + 40.0)
+	if near:
+		holder.tree_exiting.connect(func(): wx.set("sand_boost", 0.0))
+	var tw := holder.create_tween()
+	if near:
+		tw.tween_property(wx, "sand_boost", 0.85, 1.2)
+	tw.tween_interval(maxf(secs - 2.2 - (1.2 if near else 0.0), 0.1))
+	tw.tween_callback(func():
+		sheets.emitting = false
+		haze.emitting = false)
+	if near:
+		tw.tween_property(wx, "sand_boost", 0.0, 2.0)
+	tw.tween_interval(1.2)
+	tw.tween_callback(holder.queue_free)
+
+
+static var _bird_quad: QuadMesh
+
+
+## Birds put up out of the trees at `at` by something big: a dark flock rising and scattering, their cries.
+static func birds(at: Vector3, amount: int = 14) -> void:
+	if _cam_far(at, 220.0):
+		return
+	if _bird_quad == null:
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		m.albedo_color = Color(0.08, 0.07, 0.07)
+		_bird_quad = QuadMesh.new()
+		_bird_quad.size = Vector2(0.5, 0.18)
+		_bird_quad.material = m
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.explosiveness = 0.6
+	p.amount = amount
+	p.lifetime = 3.5
+	p.local_coords = true
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 6.0
+	p.direction = Vector3.UP
+	p.spread = 50.0
+	p.gravity = Vector3(0, 1.5, 0)
+	p.initial_velocity_min = 4.0
+	p.initial_velocity_max = 8.0
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 1.2
+	p.mesh = _bird_quad
+	_root().add_child(p)
+	p.global_position = at + Vector3.UP * 10.0
+	p.emitting = true
+	p.finished.connect(p.queue_free)
+	FX.sfx("jungle_bird", at + Vector3.UP * 10.0, 2.0, 0.1, 0.8)

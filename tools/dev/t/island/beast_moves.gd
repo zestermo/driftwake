@@ -20,6 +20,7 @@ var t := 0.0
 var seq: Array = []
 var was := ""
 var low := false
+var landed := false
 
 
 func _initialize() -> void:
@@ -74,6 +75,9 @@ func _process(d: float) -> bool:
 				p.global_position = beast.global_position + beast._fwd() * 4.0 + Vector3.UP * 0.2
 				p.reset_physics_interpolation()
 			p.get_node("HealthComponent").current_health = maxf(_hp(), 50000.0)
+			# (any blow over the fight: a knockdown's get-up can heal the stand-in back to full, 1.23)
+			if _hp() < 99999.0:
+				landed = true
 			if beast.move != "" and beast.move != was:
 				seq.append(beast.move)
 			was = beast.move
@@ -90,7 +94,8 @@ func _process(d: float) -> bool:
 				kinds[seq[i]] = true
 				if i > 0 and seq[i] == seq[i - 1]:
 					twice = true
-			check("%s lands a blow and fights by its own moves: %s" % [KINDS[ki][1], str(seq)], _hp() < 99999.0 and kinds.size() >= MIN_MOVES and not twice)
+			check("%s lands a blow and fights by its own moves: %s" % [KINDS[ki][1], str(seq)], landed and kinds.size() >= MIN_MOVES and not twice)
+			landed = false
 			beast.queue_free()
 			ki += 1
 			if ki >= KINDS.size():

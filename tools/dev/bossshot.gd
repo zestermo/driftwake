@@ -132,7 +132,7 @@ func _setup() -> void:
 		["asleep", "%s asleep" % boss.boss_name, c + entry * 9.0 + side * 4.0 + Vector3(0, 2.4, 0), c + Vector3(0, 1.4, 0)],
 	]
 	film = []
-	var list: Array = APE_FILM if kind == "ape" else boss.FILM
+	var list: Array = APE_FILM if kind == "ape" else (boss.film_list() if boss.has_method("film_list") else boss.FILM)
 	for f in list:
 		if moves.is_empty() or moves.has(f[0]):
 			film.append(f)

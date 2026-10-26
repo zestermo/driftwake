@@ -6860,6 +6860,41 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Tests: t/beast/ape_phases, ape_poise_break, ape_parts; apetest's stagger check now carries poise. bossshot: the
   ape's new films (moment, barrage, pound, grab, reel), and every move now begins after the wait before it (filmed
   from its first frame). Expect at prepush: apetest, bosstest, leveltest, ragtest, netchain.
+
+## 2026-10-26: 1.23 beast pass, pieces 2-3: BeastPass on JungleBeast; the Sand King and the Bear King
+- **BeastPass** (scripts/enemies/beasts/beast_pass.gd), opt-in per JungleBeast kind (`_pass_moves()` not empty; bp is
+  null for the other 14): `moves()` by phase less what broken parts take (`_part_takes`), `pick()` only allows those,
+  a chain's next move ignores cooldowns but for `_chain_waits()`; `began()` counts only moves pick() chose (not a
+  slam's own dive); `end_move()` scales the kind's own recovery by OPEN_K [1, 0.8, 0.6] (+0.45 at a chain of three's
+  end) or gives CHAIN_GAP 0.15 into the chain's next; nothing in reach: the chain ends and a 0.8 s opening comes.
+  `_phase_check` on a phase up: Poise "beast_boss" x1.25^n, the chain dropped, move "moment" (generic `_moment_tick`:
+  the ring push at 1.3 s, BeastFX.moment, `_on_moment` for the kind's touch, over at 2.2 s; kinds pose it). Hits:
+  `_taken_k(attacker)` and x2 while vulnerable; `part_hit()` by BeastParts.blow_at; poise only when not `_armoured()`,
+  opening blows x2; `poise_break()` = stagger(2.4) + 3 s of double damage. Co-op: the parts mask is net_pack's [10],
+  "flash" carries the shove (BeastMotion on puppets), "moment"/"part" events play the effects. QuadBeast `_motion()`
+  (head tracking by `_look_lock()`, shove, breath, reel sway, tail springs) only while awake.
+- **The Sand King** (sandworm.gd): 1: erupt (a sand geyser), bite (the head now lies on the sand after: its opening),
+  slam (lies across the ground SLAM_LIE 1.7 s: its plates in reach), dive; 2: + sinkhole, acid spit; 3: + Twin (a
+  second worm of 12 rings, `_twin_*` host-run and packed, bites the nearest captain within 9 m every 1.7 s for 5.5 s) and
+  Sandstorm (BeastFX.sandstorm on every screen: sand sheets, haze and Weather.sand_boost, the weather's own blowing sand
+  closing in; for STORM_S 10 s `_target()` only hears captains who moved 0.5 m in the last half second; nobody heard, it
+  roams and erupts at random). Parts: plate_a/plate_b (segs 3 and 6, only while it lies after a slam; each +25% damage
+  taken; sand_plate), mandibles (head down: a bite's end and opening, a stagger, the slam; no Bite; mandible). Look:
+  heat wisps from phase 2, plates glowing like coals in 3. `parts_broken()` for IslandArcs.
+- **The Bear King** (great_bear.gd): woken it rears and roars ("roar"); 1: maul, charge, swat; 2: + Body Slam (KO),
+  Fish-scoop; 3: + Frenzy, Avalanche Roar (rears 1 s: icicles fall on each captain's spot - streak + ice spikes + a
+  ring - and four snow lanes slide in from the arena's edge, all warned). Parts: claws (front ankles; Frenzy 2 swipes
+  not 4; bear_claw; ClawsFL/FR hidden), hide (the haunches; the raw Patch shows, blows there x2; bear_hide). Breath
+  steam always (a mist emitter), foam and red eyes in phase 3, snow puffs at every step (local, from its own gait).
+  bossshot reads `film_list()` where a kind can't override FILM.
+- **Per frame added:** for these two only, while awake: BeastMotion.tick and a nearest-player lookup, the bear's rig
+  touch-ups and a one-link tail spring; the worm's head-tracking basis and the twin's 12 rings while it's up; the
+  storm's hearing check every 0.5 s on the host. Emitters: the bear's breath (3 particles), foam (5, phase 3), the
+  worm's heat (3 x 3, phase 2+), a storm's 86 particles for 10 s.
+- Tests: t/beast/sand_king, bear_king; t/island/beast_moves now counts a blow landed at any time in the fight (a
+  knockdown's get-up healed its stand-in back to full; the storm loses a still captain). Render: tools/dev/beastfilm.gd
+  (new) -> tools/dev/out/beast/worm, tools/dev/out/beast/bear. Expect at prepush: bosstest, beasttest, desert/snow
+  island suites that wake their bosses, netchain.
 ## 2026-10-26: 1.24 native chains, pieces 1-2: SpringChains' solver and the cape's net in C++
 - **What:** native/src/chain_solver.{h,cpp} (ChainSolver, a RefCounted in the GDExtension) is SpringChains' whole
   solver for modes "a0" (every hair, coat, skirt, scarf, sash chain) and "a" (the capes: _step_tuned with the probes,

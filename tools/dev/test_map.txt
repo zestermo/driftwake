@@ -18,6 +18,11 @@ scripts/npc/ape_builder.gd              t/beast
 scripts/enemies/beasts/beast_motion.gd  t/beast
 scripts/enemies/beasts/beast_parts.gd   t/beast
 scripts/enemies/beasts/beast_fx.gd      t/beast
+scripts/enemies/beasts/beast_pass.gd    t/beast t/island/beast_moves
+scripts/enemies/beasts/jungle_beast.gd  t/beast t/island/beast_moves
+scripts/enemies/beasts/quad_beast.gd    t/beast/bear_king
+scripts/enemies/beasts/sandworm.gd      t/beast/sand_king t/island/beast_moves
+scripts/enemies/beasts/great_bear.gd    t/beast/bear_king t/island/beast_moves
 scripts/combat/poise.gd                 t/beast
 tools/dev/t/items/*                     t/items
 tools/dev/t/fishing/*                   t/fishing
