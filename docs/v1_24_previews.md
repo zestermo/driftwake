@@ -49,7 +49,7 @@ Solo: Bond links to your ship's crew deck (shelter works on yourself once a figh
 
 ## 3. Crew techniques (docs/v1_24_plan.md table)
 
-Own key (**C**), cooldown **90 s** (60 s for the quick ones: Pincer, Covering Fire), a prompt zone 3 m round you for 6 s
+Own key (**the crouch key while in combat stance**; out of combat it still crouches), cooldown **90 s** (60 s for the quick ones: Pincer, Covering Fire), a prompt zone 3 m round you for 6 s
 where a crewmate presses **F** to join. The table of one per weapon kind is in docs/v1_24_plan.md (Skyward Kick for
 black leg, Guardian Stance for katana, Crossed Blades, Hurl, Pole Vault, Anvil, Shield Wall, Pincer, Covering Fire,
 Human Cannonball). Solo: the techniques that need a crewmate work with an AI rival or a downtime dummy only in the

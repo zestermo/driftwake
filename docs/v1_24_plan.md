@@ -33,4 +33,4 @@ pieces decided while 1.23 was building: new Will paths and crew techniques.
 ## Previews approved (Zach, 2026-10-26)
 docs/v1_24_previews.md approved as written: armour/clothing weight + up to two stats a piece, rarity scaling, 3-piece
 sets; the four Will paths (Tide, Tempo, Fury, Bond) and the upgrades to Iron, Sense and Captain's Will; crew techniques
-on C, 90 s (60 s quick ones), a 6 s join zone (F), solo self-versions.
+on **the crouch key** (Zach, 2026-10-26: in combat stance crouch does nothing else, nobody crouches mid-fight; out of combat it still crouches), 90 s (60 s quick ones), a 6 s join zone (F), solo self-versions.
