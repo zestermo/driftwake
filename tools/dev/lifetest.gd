@@ -1,5 +1,5 @@
 extends SceneTree
-## A chain island's life (IslandLife): 19-26 people, villagers on routines that
+## A chain island's life (IslandLife): 21-31 people (1.23: 2-5 of them traders), villagers on routines that
 ## follow the world clock (work by day, the inn or the plaza in the evening, home
 ## at night, walking between), named characters whose dialogue trees talk of the
 ## island, its beast and the islands ahead, quests of every kind taken, their steps
@@ -74,7 +74,7 @@ func walk_len(v, k: int) -> float:
 func _routines(island, tag: String) -> Array:
 	var npcs: Array = get_nodes_in_group("npcs").filter(func(x): return x.get_parent() == island)
 	print("   %s: %d people: %s" % [island.island_name, npcs.size(), ", ".join(npcs.map(func(x): return x.npc_name))])
-	check(tag + "19-26 people on the island (%d)" % npcs.size(), npcs.size() >= 19 and npcs.size() <= 26)
+	check(tag + "21-31 people on the island, traders included (%d)" % npcs.size(), npcs.size() >= 21 and npcs.size() <= 31)
 	check(tag + "each one's name is its own", npcs.all(func(x): return npcs.filter(func(y): return y.name == x.name).size() == 1))
 	var vs: Array = island.life.people
 	check(tag + "villagers on routines (%d), each with 4-5 stays" % vs.size(), vs.size() >= 11 and vs.all(func(v): return v.stays.size() >= 4 and v.walks.size() == v.stays.size()))
@@ -172,7 +172,11 @@ func _process(d: float) -> bool:
 			check("...and those in the village are seen (%d)" % near.size(), not near.is_empty() and near.all(func(v): return v.visible))
 			# named characters and their talk
 			var named: Array = life.folk.filter(func(f): return f["named"])
-			check("three named characters with their own dialogue trees", named.size() == 3 and named.all(func(f): return dlg._load(f["talk"])["nodes"].has("ahead")))
+			# (1.23: plus the village's 2-5 traders, VillageVendors, named folk with a shop on their menu)
+			var traders: Array = named.filter(func(f): return str(f["role"]).begins_with("vendor:"))
+			check("three named characters and 2-5 traders, each with their own dialogue tree (%d named, %d traders)" % [named.size(), traders.size()],
+				named.size() - traders.size() == 3 and traders.size() >= 2 and traders.size() <= 5 and named.all(func(f): return dlg._load(f["talk"])["nodes"].has("ahead")))
+			named = named.filter(func(f): return not traders.has(f))
 			var c = root.get_node("World/Islands").chain()
 			var ahead: Array = c.next_of(int(isl.node["id"])).map(func(id): return c.node(id)["name"])
 			var lines: Array = dlg._load(named[0]["talk"])["nodes"]["ahead"]["text"]
