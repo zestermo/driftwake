@@ -6991,8 +6991,11 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - **Shipping:** .github/workflows/build-windows.yml checks out submodules, installs scons 4.8.1 on Python 3.12 and
   builds native/ (template_release) before the import; Godot's GDExtension exporter copies the DLL beside the exe (checked
   locally: Driftwake.exe, Driftwake.console.exe, driftwake_native.windows.template_release.x86_64.dll; the exported game
-  starts with no extension errors) and the export step now fails without it. The Web preset excludes
-  driftwake_native.gdextension and bin/* (no web library: the browser build runs the GDScript chains).
+  starts with no extension errors) and the export step now fails without it. Still to do (the main checkout had
+  export_presets.cfg open): the Web preset's exclude_filter wants `, driftwake_native.gdextension, bin/*` (no web
+  library: the browser build runs the GDScript chains).
+- The chain tests print "SKIP native not built" and pass where bin/ has no ChainSolver at the current API (a fresh
+  worktree). The DLL isn't in a test's cache key, so a skipped pass stays cached until a file it loads changes.
 - Tests: t/player/chains_net_clear (new), chains_native_same (now all but 1% of frame-bones within 4 mm, worst under
   3 cm: the net's thresholds can flip a frame's turn on a float), chains_fallback. Renders: tools/dev/out/clothlab/
   sheet_{hair,twin,coat,ties}.png (off top, on below).
