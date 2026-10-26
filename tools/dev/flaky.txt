@@ -14,3 +14,4 @@ airtest | one heavy shot knocks them flat
 r8test | ...and fires a broadside
 net-board | the men still aboard her are the host's
 net-five | watcher: sees the host and the other clients
+t.player.afterimage | its blow shattered the decoy before it faded
