@@ -55,11 +55,16 @@ weapons and armour stats move back a step (strongholds and Driftfruits likewise)
    - Old quests can't be abandoned, so they stay on the map late into the game: add **abandon/drop** in the journal.
    - Taking a new quest keeps tracking an old one: **a newly accepted quest becomes the tracked one**.
 
-### Open / deferred (round 4: Zach's reply didn't come through, to resend)
-- Which arena felt buggy: the island boss arenas (1.20), the capital's arena ladder (1.21), or both.
-- Wandering beasts: fewer with real behaviour (herds flee, predators stalk, territorial ones warn first) vs tied to
-  arcs vs cut for now.
-- Rival presence beyond the bug: more often on islands, at sea (rival ships, races, boarding), rivalry made visible
-  (their posters and bounties, news of them ahead of you).
-- Build order: recommended bugs first, then combat core (poise, AI, points per tree), the beast pass, sea pursuit and
-  Marines, island arcs, bounty UI and rivals; unstable builds as pieces land.
+### Round 4 (2026-10-26)
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Arena | **The capital's arena** (the 1.21 ladder: bouts, crowd, wooden weapons) is the buggy, unpolished one; it gets a polish pass. The island boss arenas only get the leash/reset fix from the bug pass | Zach | Details from Zach's next play or F12 captures |
+| Wandering beasts | **Fewer, with behaviour**: herds graze and flee, predators stalk and ambush from cover, territorial ones warn first (posture, roar) before charging; the roamer becomes a rare event you hear coming, with the bosses' motion pass | Zach | After play |
+| Order | **1** bug pass (terrain falls, arena resets, guard spam, missing rivals, quests and journal); **2** combat core: poise, smarter enemies, points per tree (previews first); **3** the beast motion pass (2-3 bosses first); **4** sea pursuit and the Marines; **5** island arcs (arc list previewed first); **6** bounty UI and rivals; then the capital arena polish and the roamers. Unstable builds as pieces land | Zach | - |
+
+### Open / deferred
+- Rival presence beyond the bug fix (Zach: no preference): **assumed** more often on islands (a gap of 2, and a crew
+  can turn up mid-arc as a third party) and rivalry made visible (their posters and bounties beside yours, news of them
+  taking an island ahead of you). Meeting rival ships at sea waits until the sea pursuit work has landed.
+- What exactly is broken in the capital's arena: to get from Zach (a capture or a list) before its piece.
