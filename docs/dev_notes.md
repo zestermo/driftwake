@@ -6826,3 +6826,31 @@ Spec: docs/v1_23_previews.md section 5 (the 10 templates), docs/v1_23_plan.md ro
   light blow no longer stuns it, so it answers while they're landing). Render: tools/dev/eliteshot.gd ->
   tools/dev/out/elite_line.png / elite_shield.png / elite_juggle.png. Expect at prepush: grunttest, guntest,
   balancetest, r10test, bosstest, leveltest, the rival suites, nettest.
+
+## 2026-10-26: 1.24 native chains, pieces 1-2: SpringChains' solver and the cape's net in C++
+- **What:** native/src/chain_solver.{h,cpp} (ChainSolver, a RefCounted in the GDExtension) is SpringChains' whole
+  solver for modes "a0" (every hair, coat, skirt, scarf, sash chain) and "a" (the capes: _step_tuned with the probes,
+  push_segment, back_z, the interpolated steps, then the net: _net_caps, _net_clear, _net_gap, _net_side, the turn
+  rates), and it poses the Skeleton3D's bones itself. State lives in std::vectors; colliders are read once a frame by
+  ObjectID (get_global_transform_interpolated, like the GDScript's _world_colliders, whose per-step reads all saw the
+  same frame). Modes "b"/"c" (CapeMotion) stay GDScript.
+- **Where it plugs in:** spring_chains.gd `native_ok` (static: the class exists and `ChainSolver.api()` ==
+  NATIVE_API 2, so a stale DLL falls back instead of failing), `native` per set (tests flip it), `_nat` built lazily on
+  the first simulate after add_chain / set_probes / set_side / use_tuned / net / back_z / gravity / native change or a
+  new collider (colliders by index; chains' names resolved there). reset() resets it. `_acc` and `_net_acted` are copied
+  back each frame; `steps_of(ci)` gives capelab the last two steps. The GDScript solver is unchanged: the fallback and
+  the reference. The public API (add_chain, chain(), chain_count, pose_local, colliders, use_tuned, set_probes,
+  set_side, mode, motion) is the same, so beasts' tails/manes keep working.
+- **Loading:** driftwake_native.gdextension moved to the project root (native/ keeps its .gdignore);
+  bin/driftwake_native.windows.template_{debug,release}.x86_64.dll, gitignored, built with scons (tools/dev/README.md
+  "native/"). Without the DLL Godot prints three "GDExtension dynamic library not found" errors at start and every
+  chain runs on GDScript. `.worktreeinclude` copies bin/ into new worktrees. The test that compares them notes the
+  native sources as deps (note_dep), so a C++ change makes its pass stale.
+- **Numbers (rigprobe, us per call, this laptop, quiet):** the captain's whole pose 185 -> 83 (idle); his three
+  spring sets 90 -> 10; a cape's set 365 -> 11; the cloak's 726 -> 22; long coat + long hair + scarf + sash 57+56 ->
+  7+5; skirt + ponytail 28+113 -> 4+10. Per frame added: nothing new; the same work at ~1/10 the cost.
+- **Tests:** t/player/chains_native_same (two bodies, cloak + cascade hair + longcoat + scarf + sash, and cape +
+  ponytail + skirt, one native and one GDScript, driven alike for 420 frames at uneven frame times with kicks, hops and
+  180 turns: every chain bone within 4 mm; worst seen 0.5 mm cloak, 2.2 mm skirt), t/player/chains_fallback
+  (native_ok off: all GDScript, swinging, finite). Also checked by hand with bin/ renamed away (rigprobe: the three
+  load errors, then the GDScript numbers).

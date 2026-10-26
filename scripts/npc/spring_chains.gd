@@ -31,14 +31,25 @@ const NET_OUT := 8.0
 ## How far in front of the plane the sheet's own probe lines may sit (its wrap toward the edges is shaped that way).
 const NET_SHEET := 0.012
 const NET_MID := 0.12
+## Modes "a0" and "a" step in native code (native/src/chain_solver.cpp, ChainSolver) when its library is loaded and
+## built from these sources' API; this file's solver is the fallback and the reference the native one is tested against.
+const NATIVE_API := 2
+static var native_ok: bool = ClassDB.class_exists("ChainSolver") and ClassDB.class_has_method("ChainSolver", "api") and ClassDB.class_call_static("ChainSolver", "api") == NATIVE_API
 
 var skel: Skeleton3D
 ## Skinned geometry is added here by BodyBuilder, then finalize() commits it.
 var mb: MeshBuilder
 ## name -> {node, a, b, r} capsules in the given node's local space.
 var colliders: Dictionary = {}
-var gravity := Vector3(0, -9.8, 0)
+var gravity := Vector3(0, -9.8, 0):
+	set(v):
+		gravity = v
+		_nat = null
 var enabled := true
+var native := native_ok:
+	set(v):
+		native = v
+		_nat = null
 
 ## How a drape moves (BodyBuilder.cape_mode for capes and cloaks): "a0" the plain solver, "a" the tuned one
 ## (use_tuned) with its safety net; "b" and "c" hand the chains to `motion` (CapeMotion, the cape lab's).
@@ -46,8 +57,14 @@ var mode := "a0"
 var motion: CapeMotion
 var iters := 1
 ## Mode "a": anchor-local z every point stays behind (the back's plane).
-var back_z := -INF
-var net := false
+var back_z := -INF:
+	set(v):
+		back_z = v
+		_nat = null
+var net := false:
+	set(v):
+		net = v
+		_nat = null
 
 var _chains: Array = []
 var _acc := 0.0
@@ -57,6 +74,10 @@ var _g_prev := Transform3D()
 var _cw: Dictionary = {}
 ## Whether the net moved anything on the last frame (capelab reads it).
 var _net_acted := false
+## The native solver (a ChainSolver, untyped: the class is missing without the library), built on the first simulate
+## after the chains or their settings change, and how many colliders it was built with.
+var _nat = null
+var _nat_cols := 0
 
 
 func _init() -> void:
@@ -91,12 +112,14 @@ func add_chain(points: PackedVector3Array, stiffness: float = 0.12, damping: flo
 		bones.append(first + i)
 	_chains.append({"p": points, "bones": bones, "x": [], "px": [],
 		"k": stiffness, "d": damping, "g": gravity_scale, "col": collide, "probe": PackedVector3Array([Vector3.ZERO])})
+	_nat = null
 	return per_point
 
 
 ## The net's probe lines for chain `ci`: offsets from the chain across the sheet it carries (rest space).
 func set_probes(ci: int, offsets: PackedVector3Array) -> void:
 	_chains[ci]["probe"] = offsets
+	_nat = null
 
 
 ## The net keeps chain `ci` on its side (`sign` -1 left, 1 right) of an earlier chain `of` of the same sheet, at least
@@ -104,6 +127,7 @@ func set_probes(ci: int, offsets: PackedVector3Array) -> void:
 func set_side(ci: int, of: int, sign: float) -> void:
 	_chains[ci]["side_of"] = of
 	_chains[ci]["side"] = sign
+	_nat = null
 
 
 func _net_side(c: Dictionary, loc: PackedVector3Array, mid: PackedVector3Array) -> PackedVector3Array:
@@ -136,6 +160,7 @@ func use_tuned(back: float, k: float, d: float, passes: int, collide: Array) -> 
 		c["k"] = k
 		c["d"] = d
 		c["col"] = collide
+	_nat = null
 
 
 ## Commit the skinned mesh and bind it to the skeleton.
@@ -157,6 +182,15 @@ func finalize() -> void:
 ## Snap every chain back to its rest pose (spawns, teleports, far away).
 func reset() -> void:
 	_last_origin = Vector3.INF
+	if _nat != null:
+		_nat.reset()
+
+
+## A drawn chain's last two steps in the anchor's space (mode "a"; capelab reads them): [previous, latest].
+func steps_of(ci: int) -> Array:
+	if _nat != null:
+		return [_nat.get_lp(ci), _nat.get_lc(ci)]
+	return [_chains[ci]["lp"], _chains[ci]["lc"]]
 
 
 func simulate(delta: float) -> void:
@@ -164,6 +198,13 @@ func simulate(delta: float) -> void:
 		return
 	if motion != null:
 		motion.update(self, delta)
+		return
+	if native:
+		if _nat == null or _nat_cols != colliders.size():
+			_nat_build()
+		_nat.simulate(self, skel, delta)
+		_acc = _nat.get_acc()
+		_net_acted = _nat.get_net_acted()
 		return
 	if mode == "a":
 		_simulate_tuned(delta)
@@ -184,6 +225,35 @@ func simulate(delta: float) -> void:
 		_g_step = g
 	# posed against the body as of the last step (against "now", a ship's speed snapped them back and forth between steps)
 	_write_pose(_g_step)
+
+
+func _nat_build() -> void:
+	_nat = ClassDB.instantiate("ChainSolver")
+	_nat_cols = colliders.size()
+	var names: Array = colliders.keys()
+	var nodes: Array = []
+	var ca := PackedVector3Array()
+	var cb := PackedVector3Array()
+	var cr := PackedFloat32Array()
+	for key in names:
+		var cd: Dictionary = colliders[key]
+		nodes.append(cd["node"])
+		ca.append(cd["a"])
+		cb.append(cd["b"])
+		cr.append(cd["r"])
+	_nat.set_colliders(nodes, ca, cb, cr)
+	_nat.set_gravity(gravity)
+	for c in _chains:
+		var col := PackedInt32Array()
+		for key in c["col"]:
+			if names.has(key):
+				col.append(names.find(key))
+		_nat.add_chain(c["p"], c["bones"], c["k"], c["d"], c["g"], col, c["probe"], c.get("side_of", -1), c.get("side", 0.0))
+	if mode == "a":
+		var caps := PackedInt32Array()
+		for key in NET_CAPS:
+			caps.append(names.find(key))
+		_nat.set_tuned(back_z, iters, net, caps)
 
 
 func _snap(g: Transform3D) -> void:

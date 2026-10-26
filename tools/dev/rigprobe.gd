@@ -39,12 +39,33 @@ func _process(_d: float) -> bool:
 		_line("  _update_physics (all %d spring sets) %s" % [rig._sims.size(), tag], func(): rig._update_physics(DT))
 		for s in rig._sims:
 			_line("    %s simulate (%s, %d chains)" % [s.name, s.mode, s._chains.size()], func(): s.simulate(DT))
+	for lk in _dressed():
+		rig.apply_look(lk)
+		_line("pose run whole, %s" % lk["probe"], func(): _pose(true))
+		for s in rig._sims:
+			_line("    %s simulate (%s, %d chains)" % [s.name, s.mode, s._chains.size()], func(): s.simulate(DT))
+			if s.native:
+				s.native = false
+				_line("    %s simulate (%s, %d chains), GDScript" % [s.name, s.mode, s._chains.size()], func(): s.simulate(DT))
+				s.native = true
 	var oc = root.get_node("Ocean")
 	var at := Vector3(12.0, 0.0, -30.0)
 	_line("Ocean.get_wave_height", func(): oc.get_wave_height(at))
 	print("PROBE done")
 	quit()
 	return true
+
+
+## The wardrobe's chains: a cape, the cloak, a long coat with long hair, a scarf and a sash, a skirt with a ponytail.
+func _dressed() -> Array:
+	var out: Array = []
+	for o in [{"probe": "cape", "cape": true}, {"probe": "cloak", "cloak": true},
+			{"probe": "longcoat+long hair+scarf+sash", "coat": "longcoat", "hair": "long", "scarf": true, "belt": "sash"},
+			{"probe": "skirt+ponytail", "legs": "skirt", "hair": "ponytail"}]:
+		var lk: Dictionary = CharacterLook.default_look()
+		lk.merge(o, true)
+		out.append(lk)
+	return out
 
 
 func _moving(run: bool) -> void:
