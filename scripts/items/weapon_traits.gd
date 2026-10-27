@@ -14,9 +14,9 @@ const TRAITS := {
 		"desc": "The combo's last blow throws a wind blade 9 m ahead that cuts everything on its line."},
 	"bloodthirsty": {"name": "Bloodthirsty", "move": "Finisher", "kinds": ["cutlass", "katana", "axe", "dagger", "hammer"],
 		"desc": "A finisher that lands heals you 5% of your health."},
-	"thundering": {"name": "Thundering", "move": "Heavy", "kinds": ["cutlass", "katana", "axe", "polearm", "hammer"],
+	"thundering": {"name": "Thundering", "move": "Heavy", "kinds": ["cutlass", "katana", "axe", "polearm", "hammer", "longgun", "cannon"],
 		"desc": "The heavy attack lands with a shockwave that knocks down everyone within 3.5 m."},
-	"headsman": {"name": "Headsman's", "move": "Heavy", "kinds": ["axe", "katana", "hammer", "greatsword"],
+	"headsman": {"name": "Headsman's", "move": "Heavy", "kinds": ["axe", "katana", "hammer", "greatsword", "cannon"],
 		"desc": "The heavy attack does double damage to an enemy under a third of its health."},
 	"rushing": {"name": "Rushing", "move": "Running cut", "kinds": ["cutlass", "katana", "polearm", "hammer", "greatsword"],
 		"desc": "The running cut drives twice as far and knocks them down."},
@@ -26,9 +26,9 @@ const TRAITS := {
 		"desc": "A clean parry ripostes at once: a free cut that staggers them."},
 	"venomous": {"name": "Venomous", "move": "Every hit", "kinds": ["cutlass", "dagger"],
 		"desc": "Every hit poisons them for 4 s."},
-	"hair_trigger": {"name": "Hair-trigger", "move": "Shot", "kinds": ["pistol"],
+	"hair_trigger": {"name": "Hair-trigger", "move": "Shot", "kinds": ["pistol", "longgun", "slingshot"],
 		"desc": "A shot within a second of a roll always crits and knocks them down."},
-	"blasting": {"name": "Blasting", "move": "Shot", "kinds": ["pistol"],
+	"blasting": {"name": "Blasting", "move": "Shot", "kinds": ["pistol", "longgun"],
 		"desc": "The last ball of each load bursts where it hits, knocking down everyone within 2.5 m."},
 }
 

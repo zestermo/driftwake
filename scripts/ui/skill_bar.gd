@@ -194,6 +194,29 @@ func _draw() -> void:
 			"%d" % int(pc.energy), "EN")
 	_draw_xp()
 	_draw_ammo()
+	_draw_crew()
+
+
+## The crew technique (C in combat stance): a badge over the energy orb in the weapon tree's colour, the cooldown
+## filling its rim back up with the seconds left; ready, the rim pulses while the weapon is out.
+func _draw_crew() -> void:
+	var ct := player.crew_tech
+	var tid := ct.id()
+	if tid == "":
+		return
+	var c := Vector2(W - ORB_R - 2.0, 6.0)
+	var col := CrewTechniques.tree_col(tid, FX.EDGE)
+	draw_circle(c, 8.0, UIStyle.BG_DARK)
+	if ct.cooldown > 0.0:
+		var k := 1.0 - ct.cooldown / maxf(ct.cooldown_len, 0.01)
+		draw_arc(c, 8.0, 0.0, TAU, 20, UIStyle.BORDER_DIM, 1.0)
+		draw_arc(c, 8.0, -PI * 0.5, -PI * 0.5 + TAU * k, maxi(int(20 * k), 2), col, 2.0)
+		_text(c + Vector2(-10.0, 3.0), str(ceili(ct.cooldown)), Color(1, 1, 1, 0.8), 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
+		return
+	var open := ct.offer > 0.0
+	var a := 0.75 + 0.25 * sin(_t * (12.0 if open else 4.0)) if player.armed else 0.5
+	draw_arc(c, 8.0, 0.0, TAU, 20, Color(col.r, col.g, col.b, a) if player.armed else UIStyle.BORDER_DIM, 2.0 if open else 1.0)
+	_text(c + Vector2(-10.0, 3.0), "C", UIStyle.ACCENT if player.armed else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
 
 
 func _text(pos: Vector2, s: String, col: Color = UIStyle.TEXT, size_px: int = 8, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
@@ -324,6 +347,11 @@ func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 		_text(Vector2(r.position.x, r.get_center().y + 4.0), str(ceili(cd)), Color.WHITE, 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	if _ready_flash[i] > 0.0:
 		draw_rect(r.grow(-1.0), Color(1, 1, 1, _ready_flash[i] * 1.2))
+	# (Twin Finisher: the joint gauge along the slot's foot)
+	if str(sk["id"]) == "will_twin":
+		var gf := pc.will.bond.gauge / WillBond.GAUGE_MAX
+		draw_rect(Rect2(r.position.x + 1.0, r.end.y - 4.0, r.size.x - 2.0, 3.0), Color(0, 0, 0, 0.7))
+		draw_rect(Rect2(r.position.x + 1.0, r.end.y - 4.0, (r.size.x - 2.0) * gf, 3.0), WillBond.COL if gf < 1.0 else WillBond.COL.lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0)))
 	_text(r.position + Vector2(2, 8), key, UIStyle.ACCENT)
 	_text(Vector2(r.position.x, r.end.y - 1.0), str(int(cost)), Color(1.0, 0.75, 0.4) if afford else Color(1.0, 0.35, 0.3), 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
 
@@ -452,7 +480,8 @@ func _draw_xp() -> void:
 ## Pistols: loaded shots per gun over the middle of the plate.
 func _draw_ammo() -> void:
 	var blade_gun := player.style() == "sword_pistol"
-	if player.weapon_class() != "gun" and not blade_gun:
+	# (the slingshot never reloads: no loads to show)
+	if player.weapon_class() != "gun" and not blade_gun or player.style() == "slingshot":
 		return
 	var c := Vector2(W * 0.5, PLATE_Y - 6.0)
 	if player.reloading():

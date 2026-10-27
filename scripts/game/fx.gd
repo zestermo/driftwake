@@ -1349,6 +1349,12 @@ const TREE_FX := {
 	# black-leg: heat - a white-hot core, cherry-red edge, a deep crimson (not the axe's ember orange): the kicking leg
 	# glowing red-hot, crimson flames bursting off the big kicks
 	"black_leg": [Color(1.0, 0.95, 0.82), Color(1.0, 0.17, 0.16), Color(0.7, 0.04, 0.1)],
+	# long guns: starlight - silver-white shots with a moon-blue edge and a deep indigo, star glints where they land
+	"long_gun": [Color(1.0, 1.0, 1.0), Color(0.72, 0.84, 1.0), Color(0.38, 0.4, 0.9)],
+	# the cannon: brimstone - a sulphur-white core, sulphur-yellow edge, a violet accent; violet smoke, burning shrapnel
+	"cannon": [Color(1.0, 0.97, 0.75), Color(1.0, 0.8, 0.22), Color(0.62, 0.3, 0.88)],
+	# the slingshot: the trickster's spark - a pale pink core, hot-pink edge, a tangerine accent
+	"slingshot": [Color(1.0, 0.96, 0.96), Color(1.0, 0.38, 0.72), Color(1.0, 0.62, 0.2)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1486,8 +1492,35 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			gust(pos, dir, amount, speed)
 		"black_leg":
 			heat(pos, dir, amount, speed)
+		"long_gun":
+			starlight(pos, dir, amount, speed)
+		"cannon":
+			brimstone(pos, dir, amount, speed)
+		"slingshot":
+			muzzle_sparks(pos, dir, amount, tree_col(tree, EDGE))
+			motes(pos, dir, maxi(amount / 2, 2), c, speed * 0.8)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Brimstone thrown off a blast (the cannon's element): sulphur sparks flung hard, burning shrapnel, a puff of violet
+## smoke.
+const BRIMSTONE_SMOKE := Color(0.32, 0.14, 0.42, 0.8)
+
+
+func brimstone(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	muzzle_sparks(pos, dir, amount, tree_col("cannon", EDGE))
+	embers(pos, dir, maxi(amount / 2, 2), tree_col("cannon", CORE), speed)
+	smoke(pos, maxi(amount / 4, 1), 0.7, 1.4, BRIMSTONE_SMOKE)
+
+
+## Starlight thrown off a shot (the long gun's element): silver motes drifting off along `dir`, a few indigo ones
+## slower behind, and a star's glint at the heart of it.
+func starlight(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	motes(pos, dir, maxi(amount * 2 / 3, 2), tree_col("long_gun", EDGE), speed)
+	motes(pos, dir, maxi(amount / 3, 1), tree_col("long_gun", ACCENT), speed * 0.5)
+	if amount >= 6:
+		glint(pos, tree_col("long_gun", CORE), 0.5 + amount * 0.03)
 
 
 ## Heat thrown off a kick (black-leg's element): crimson flames tinted off the fire sheet (not the axe's orange
@@ -2886,6 +2919,16 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"black_leg":
 			heat(pos, dir + Vector3.UP * 0.3, 6, 3.5)
 			ring(pos, dir, 0.9, edge, 0.16, 0.2)
+		"long_gun":
+			starlight(pos, dir + Vector3.UP * 0.3, 7, 3.0)
+			ring(pos, dir, 0.7, edge, 0.14, 0.12)
+		"cannon":
+			brimstone(pos, dir + Vector3.UP * 0.3, 8, 4.0)
+			ring(pos, dir, 1.0, edge, 0.18, 0.2)
+		"slingshot":
+			muzzle_sparks(pos, dir + Vector3.UP * 0.3, 6, edge)
+			motes(pos, dir + Vector3.UP * 0.3, 4, accent, 3.0)
+			ring(pos, dir, 0.6, edge, 0.14, 0.14)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

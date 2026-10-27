@@ -40,7 +40,8 @@ class_name ActionSpecs
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
-	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"]}
+	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"],
+	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"], "slingshot": ["sl_parry", "sl_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -266,6 +267,44 @@ const SPECS := {
 	"gs_parry": {"len": 0.66, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_deflect": {"len": 0.45, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_block": {"len": 0.24, "hold": true, "stance": "greatsword", "weapon": "greatsword"},
+	# --- long guns (GunMoves): shouldered aim (held), the shot, the ramrod reload, the butt stroke, the rush ---
+	"lg_stance": {"len": 1.0, "stance": "long_gun", "weapon": "longgun"},
+	"lg_aim": {"len": 0.12, "hold": true, "stance": "long_gun", "weapon": "longgun"},
+	"lg_fire": {"len": 0.6, "stance": "long_gun", "weapon": "longgun", "sharp": 70.0},
+	"lg_reload": {"len": 1.5, "stance": "long_gun", "weapon": "longgun"},
+	"lg_butt": {"len": 0.72, "hit": [0.4, 0.58], "stance": "long_gun", "weapon": "longgun"},
+	"lg_rush": {"len": 0.62, "hit": [0.3, 0.6], "stance": "long_gun", "weapon": "longgun"},
+	"lg_air": {"len": 0.75, "hit": [0.55, 0.6], "stance": "long_gun", "weapon": "longgun", "extras": {"grounded": false}},
+	"lg_parry": {"len": 0.66, "stance": "long_gun", "weapon": "longgun"},
+	"lg_deflect": {"len": 0.42, "stance": "long_gun", "weapon": "longgun"},
+	"lg_block": {"len": 0.24, "hold": true, "stance": "long_gun", "weapon": "longgun"},
+	"lg_kneel": {"len": 0.2, "hold": true, "stance": "long_gun", "weapon": "longgun"},
+	"lg_kneel_fire": {"len": 0.35, "stance": "long_gun", "weapon": "longgun", "sharp": 70.0},
+	"lg_burst": {"len": 0.75, "hit": [0.42, 0.5], "stance": "long_gun", "weapon": "longgun"},
+	"lg_sweep": {"len": 0.9, "hit": [0.3, 0.72], "stance": "long_gun", "weapon": "longgun"},
+	# --- the cannon (GunMoves): the braced shot, the ramming reload, the barrel swung like a club, the ram ---
+	"cn_stance": {"len": 1.0, "stance": "cannon", "weapon": "cannon"},
+	"cn_fire": {"len": 0.9, "stance": "cannon", "weapon": "cannon"},
+	"cn_reload": {"len": 2.4, "stance": "cannon", "weapon": "cannon"},
+	"cn_bash": {"len": 0.85, "hit": [0.46, 0.62], "stance": "cannon", "weapon": "cannon"},
+	"cn_ram": {"len": 0.65, "hit": [0.32, 0.62], "stance": "cannon", "weapon": "cannon"},
+	"cn_air": {"len": 0.8, "stance": "cannon", "weapon": "cannon", "extras": {"grounded": false}},
+	"cn_parry": {"len": 0.66, "stance": "cannon", "weapon": "cannon"},
+	"cn_deflect": {"len": 0.42, "stance": "cannon", "weapon": "cannon"},
+	"cn_block": {"len": 0.24, "hold": true, "stance": "cannon", "weapon": "cannon"},
+	"cn_brace": {"len": 0.2, "hold": true, "stance": "cannon", "weapon": "cannon"},
+	"cn_lob": {"len": 1.2, "stance": "cannon", "weapon": "cannon"},
+	"cn_back": {"len": 1.0, "stance": "cannon", "weapon": "cannon"},
+	# --- the slingshot (GunMoves): the draw and loose, the held power draw, the slide, the hail ---
+	"sl_stance": {"len": 1.0, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_shot": {"len": 0.36, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
+	"sl_draw": {"len": 0.18, "hold": true, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_release": {"len": 0.35, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
+	"sl_skid": {"len": 0.6, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_air": {"len": 0.6, "stance": "slingshot", "weapon": "slingshot", "extras": {"grounded": false}},
+	"sl_parry": {"len": 0.66, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_deflect": {"len": 0.42, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_block": {"len": 0.24, "hold": true, "stance": "slingshot", "weapon": "slingshot"},
 	# --- black-leg (BlackLegMoves): kicks low, mid, high, the handstand spin; "legs": which leg's trail is drawn ---
 	"bl_stance": {"len": 1.0, "stance": "black_leg", "weapon": ""},
 	"bl_1": {"len": 0.42, "hit": [0.26, 0.5], "chain": 0.3, "swoosh": [0.2, 0.5], "legs": "l", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},
@@ -417,6 +456,14 @@ const SPECS := {
 		"variants": [{"armed": true}]},
 	"sky_leap_charge": {"len": 1.2, "stance": "sword", "weapon": "", "extras": {"armed": false}},
 	"sky_leap": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 20.0}},
+	# crew techniques (CrewPoses, CrewTechniqueState)
+	"ct_kick_launch": {"len": 0.9, "hit": [0.44, 0.52], "sharp": 45.0, "stance": "black_leg", "weapon": ""},
+	"ct_perch": {"len": 0.12, "hold": true, "stance": "sword", "weapon": "cutlass"},
+	"ct_launched": {"len": 0.6, "stance": "sword", "weapon": "cutlass", "extras": {"grounded": false}},
+	"ct_wall_kick": {"len": 0.55, "sharp": 45.0, "stance": "black_leg", "weapon": ""},
+	"ct_hurl": {"len": 1.1, "sharp": 40.0, "stance": "axe", "weapon": "boarding_axe"},
+	"ct_swung": {"len": 0.12, "hold": true, "stance": "sword", "weapon": "cutlass"},
+	"ct_cup": {"len": 0.75, "sharp": 45.0, "stance": "fist", "weapon": ""},
 	# Defense's moves (MovePoses)
 	"parry_disarm": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass"},
 	"parry_shove": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass", "variants": [{"stance": "fist"}]},

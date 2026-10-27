@@ -21,11 +21,11 @@ const EQUIP_KEYS := ["instrument", "rod"]
 ## Look keys each slot kind controls.
 const SLOT_KEYS := {
 	"head": ["hat", "hat_color"],
-	"torso": ["top", "sleeves", "top_color"],
-	"vest": ["vest", "vest_color"],
-	"coat": ["coat", "coat_color", "trim_color"],
+	"torso": ["top", "sleeves", "top_color", "top_pattern"],
+	"vest": ["vest", "vest_color", "vest_pattern"],
+	"coat": ["coat", "coat_color", "trim_color", "coat_pattern"],
 	"hands": ["gloves", "gloves_color", "gauntlets", "bracers", "long_gloves"],
-	"legs": ["legs", "legs_color"],
+	"legs": ["legs", "legs_color", "legs_pattern"],
 	"feet": ["feet", "feet_color"],
 	"belt": ["belt", "belt_color", "sash_color"],
 	"equipment": ["instrument", "rod", "equip_hidden"],
@@ -36,6 +36,8 @@ const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apro
 const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color", "mantle": "mantle_color", "cloak": "cloak_color"}
 ## How torn a cape or cloak is (0..1, BodyBuilder._drape_rows), carried by the item.
 const ACC_TATTER := {"cape": "cape_tatter", "cloak": "cloak_tatter"}
+## Tailors' skins (1.24): a pattern woven into a piece's cloth ("<slot>_pattern": BodyBuilder._cloth), named first.
+const PATTERN_NAMES := {"stripes": "Striped", "check": "Check", "brocade": "Brocade", "patched": "Patched"}
 ## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
 const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm"]
 
@@ -215,9 +217,10 @@ const PLUNDER := [
 ]
 
 
+## (a purple or better one gets its own roll from the stream's state: read, not drawn, so the caller's draws stay put)
 static func random_piece(rng: RandomNumberGenerator, tier: int) -> ItemData:
 	var p: Array = PLUNDER[rng.randi() % PLUNDER.size()]
-	return make(str(p[0]), str(p[1]), p[2], "", tier)
+	return make(str(p[0]), str(p[1]), p[2], "", tier, absi(rng.state % 9973) + 1 if tier >= GearStats.BONUS_TIER else 0)
 
 
 static func is_outfit_key(k: String) -> bool:
@@ -248,7 +251,7 @@ static func color_name(c: Color) -> String:
 
 ## Make (and register) a gear item. `style` is the look value that names it
 ## (e.g. "longcoat"); `look` holds the keys it sets when worn.
-static func make(kind: String, style: String, look: Dictionary, display: String = "", tier: int = 0) -> ItemData:
+static func make(kind: String, style: String, look: Dictionary, display: String = "", tier: int = 0, roll: int = 0) -> ItemData:
 	var it := ItemData.new()
 	it.item_type = ItemData.ItemType.GEAR
 	it.rarity = tier as ItemData.Rarity
@@ -268,8 +271,12 @@ static func make(kind: String, style: String, look: Dictionary, display: String 
 		var ck := _main_color_key(kind, style)
 		if ck != "" and look.has(ck) and style != "straw" and not style in STEEL_PIECES:
 			nm = color_name(look[ck]) + " " + nm
+		var pat := str(look.get(ck.trim_suffix("_color") + "_pattern", "")) if ck != "" else ""
+		if pat != "":
+			nm = str(PATTERN_NAMES[pat]) + " " + nm
 	it.display_name = nm
-	it.id = "gear_%s_%s_%d" % [kind, style, absi(hash(var_to_str(look)))] + ("@%d" % tier if tier > 0 else "")
+	it.gear_roll = roll
+	it.id = "gear_%s_%s_%d" % [kind, style, absi(hash(var_to_str(look)))] + ("~%d" % roll if roll != 0 else "") + ("@%d" % tier if tier > 0 else "")
 	it.icon = GearIcons.icon(it)
 	return ItemDB.register(it)
 
@@ -362,6 +369,9 @@ static func compose(appearance: Dictionary, equipped: Dictionary, hidden: Dictio
 	var fem := str(lk.get("body", "masc")) == "fem"
 	for kind in SLOT_KEYS.keys():
 		var it: ItemData = equipped.get(kind)
+		for k in SLOT_KEYS[kind]:
+			if k.ends_with("_pattern"):
+				lk.erase(k)
 		if kind == "equipment":
 			lk.merge(bare(kind, fem), true)
 		lk.merge(it.look if it else bare(kind, fem), true)

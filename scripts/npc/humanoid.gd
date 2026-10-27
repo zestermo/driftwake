@@ -307,6 +307,8 @@ const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup
 ## Taking a quick-slot item (Player.use_item): the left hand holds its prop, the head may tip back to drink.
 const HEAL_ACTIONS := ["bite", "swig", "slurp", "tonic"]
 var _freeze: float = 0.0
+## How fast this body's clock runs (Still Point slows a foe's to half).
+var time_k := 1.0
 var _base: Dictionary = {}
 ## Hip height from the body style (the legs' length); PIVOT_Y is the reference.
 var hip_y: float = PIVOT_Y
@@ -858,7 +860,7 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
-	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword"]:
+	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword", "longgun", "cannon"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
@@ -1017,6 +1019,12 @@ func _guard() -> Dictionary:
 			return HammerMoves.GUARD
 		"greatsword":
 			return GreatswordMoves.GUARD
+		"long_gun":
+			return GunMoves.LG_GUARD
+		"cannon":
+			return GunMoves.CN_GUARD
+		"slingshot":
+			return GunMoves.SL_GUARD
 		"sword":
 			return SwordMoves.guard(self)
 		"dual_pistol":
@@ -1048,6 +1056,9 @@ const STANCE_LEGS := {
 	"dual_axe": DualAxeMoves.LEGS,
 	"greatsword": GreatswordMoves.LEGS,
 	"black_leg": BlackLegMoves.LEGS,
+	"long_gun": GunMoves.LG_LEGS,
+	"cannon": GunMoves.CN_LEGS,
+	"slingshot": GunMoves.SL_LEGS,
 }
 
 
@@ -1232,6 +1243,12 @@ func _block_pose() -> Dictionary:
 			return DualAxeMoves.block()
 		"greatsword":
 			return GreatswordMoves.BLOCK
+		"long_gun":
+			return GunMoves.LG_BLOCK
+		"cannon":
+			return GunMoves.CN_BLOCK
+		"slingshot":
+			return GunMoves.SL_BLOCK
 		"sword":
 			return SwordMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
@@ -2367,8 +2384,12 @@ func _action_pose(n: String, u: float) -> Array:
 		return DualAxeMoves.pose(self, n, u)
 	if n.begins_with("gs_"):
 		return GreatswordMoves.pose(self, n, u)
+	if n.begins_with("lg_") or n.begins_with("cn_") or n.begins_with("sl_"):
+		return GunMoves.pose(self, n, u)
 	if n.begins_with("fs_"):
 		return FistMoves.pose(self, n, u)
+	if n.begins_with("ct_"):
+		return CrewPoses.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
@@ -2872,6 +2893,7 @@ func _locomotion(delta: float) -> Dictionary:
 func _process(delta: float) -> void:
 	if not is_visible_in_tree() or pivot == null:
 		return
+	delta *= time_k
 	if _freeze > 0.0:
 		_freeze -= delta
 		return
@@ -3011,10 +3033,12 @@ func _pose(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	StanceLife.grip(self, delta)
-	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0 or guard2 and stance in MASTERED:
+	if stance in ["polearm", "hammer", "greatsword", "long_gun", "cannon"] or pole_w > 0.0 or guard2 and stance in MASTERED:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)
+	if stance == "slingshot" or has_meta("sling_band"):
+		GunMoves.sling_band(self)
 	_apply_smear()
 	_katana_hands()
 	_axe_hands()

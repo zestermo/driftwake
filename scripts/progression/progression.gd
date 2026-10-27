@@ -986,7 +986,7 @@ func stat(key: String) -> float:
 			if e.has(key):
 				total += float(e[key]) * int(steps[k])
 		_stats[key] = total
-	var v: float = _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0)
+	var v: float = _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0) + float(gear.get(key, 0.0))
 	# Sea Dog: stamina twice as fast aboard
 	if key == "stamina_regen_pct" and stat("sea_dog") > 0.0 and player and Downtime.ship_under(player) != null:
 		v += 1.0
@@ -1034,6 +1034,9 @@ func _tick_meal(delta: float) -> void:
 
 
 var _stats: Dictionary = {}
+## What the captain wears (GearStats.totals: key -> value), one more source stat() adds; the captain sets it when
+## their gear changes.
+var gear: Dictionary = {}
 var _stat_n: int = -1
 var _rev: int = 0
 var _stat_rev: int = -1

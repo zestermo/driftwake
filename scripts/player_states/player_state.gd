@@ -161,7 +161,7 @@ func air_attack_input() -> String:
 		# (a Meteor Kick that connects bounces you up for another, a few in a row)
 		if mv == "meteor_kick" and (used > int(player.air_uses.get("bounce", 0)) or used >= METEOR_CHAIN):
 			return ""
-		if mv == "hang_shot" and (player.reloading() or player.ammo[0] <= 0):
+		if mv in ["hang_shot", "sky_shot", "recoil_leap"] and (player.reloading() or player.ammo[0] <= 0):
 			return ""
 		return "Plunge" if player.spend_stamina(player.PLUNGE_COST * player.attack_cost_k()) else ""
 	return ""
@@ -172,10 +172,12 @@ func air_attack_input() -> String:
 const AIR_MOVES := {"katana": "air_slash", "axe": "skybreaker", "dual_sword": "twin_cyclone",
 	"fist": "meteor_kick", "pistol": "hang_shot", "sword": "boarding_dive", "sword_pistol": "deadmans_drop",
 	"dagger": "fang_dive", "dual_dagger": "knife_rain", "polearm": "falling_spear", "hammer": "hammerfall", "dual_axe": "buzzsaw",
-	"greatsword": "falling_cleave", "black_leg": "cyclone_heel"}
+	"greatsword": "falling_cleave", "black_leg": "cyclone_heel", "long_gun": "sky_shot", "cannon": "recoil_leap", "slingshot": "hail_shot"}
 ## The learned air attacks you get once per jump.
 const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear", "hammerfall",
-	"buzzsaw", "falling_cleave", "cyclone_heel", "falling_moon"]
+	"buzzsaw", "falling_cleave", "cyclone_heel", "falling_moon", "sky_shot", "recoil_leap", "hail_shot"]
+## The 1.24 ranged kinds' air attacks, run by their arts file (GunKinds.art: air_enter / air_update).
+const GUN_AIR := ["sky_shot", "recoil_leap", "hail_shot"]
 const METEOR_CHAIN := 3
 
 func air_move() -> String:

@@ -152,6 +152,8 @@ var equipment: EquipmentComponent
 var power: PowerComponent
 ## Level, experience and the skill map.
 var progression: Progression
+## The weapon kind's crew technique (C in combat stance): cooldown, the join zone, marks.
+var crew_tech: CrewTechniques
 ## Off-hand weapon (dual wielding: a second sword or pistol), or null.
 var offhand_weapon: ItemData
 ## Zoan: in hybrid beast form.
@@ -190,6 +192,8 @@ var inp: CaptainInput = CaptainInput.new()
 ## A captain-style AI (a rival, an Admiralty officer): the full brain and states, fed by a brain instead of the
 ## keyboard; none of the local captain's camera, HUD or saves (docs/v1_19_plan.md "Build notes").
 var is_ai: bool = false
+## An AI captain on the players' side: the training yard's sparring partner (SparringPartner).
+var sparring: bool = false
 ## An AI captain's poise (Poise "rival"; a rival's crewmen "elite"); null for the players.
 var poise: Poise
 var _debug_crew := 0
@@ -219,9 +223,10 @@ func cam_shake(intensity: float, duration: float = 0.2) -> void:
 	CombatManager.apply_camera_shake(intensity, duration)
 
 
-## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128).
+## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128;
+## the training yard's sparring partner is on your side: SparringPartner).
 func foe_mask() -> int:
-	return 128 if is_ai else 32
+	return 128 if is_ai and not sparring else 32
 
 
 ## The camera punching in on this captain's move: the local captain's only.
@@ -290,6 +295,10 @@ func _ready() -> void:
 	fish_rod.name = "Rod"
 	fish_rod.player = self
 	add_child(fish_rod)
+	crew_tech = CrewTechniques.new()
+	crew_tech.name = "CrewTech"
+	crew_tech.player = self
+	add_child(crew_tech)
 	if not is_local:
 		_setup_puppet()
 		return
@@ -494,14 +503,17 @@ func defense() -> float:
 	return d
 
 
-## Share of incoming damage the worn gear soaks up (diminishing returns).
+## Share of incoming damage the worn gear soaks up (diminishing returns, flattening toward 62.5%: a gold heavy kit's
+## ~91 blocks about half, a white one's ~52 about 42%, leather's ~24 about 31%; Zach, 2026-10-27).
 func damage_reduction() -> float:
-	var d := defense()
-	return d / (d + 40.0)
+	var d := maxf(defense(), 0.0)
+	return d / (1.6 * d + 40.0)
 
 
 func _recalc_stats() -> void:
 	var pr := progression
+	if pr:
+		pr.gear = GearStats.totals(equipment.slots)
 	max_stamina = MAX_STAMINA + (attribute("endurance") - 5) * 8.0 + (pr.stat("max_stamina") if pr else 0.0)
 	stamina = minf(stamina, max_stamina)
 	var hc := health_component
@@ -540,6 +552,11 @@ func _recalc_stats() -> void:
 	stats_changed.emit()
 
 
+## What the worn gear weighs (GearStats LIGHT, MEDIUM, HEAVY): sets the dodge and the swim.
+func gear_load() -> int:
+	return GearStats.load_of(equipment.slots)
+
+
 func dodge_cost() -> float:
 	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct")) * (0.7 if progression.has_flag("dodge_sidestep") else 1.0)
 
@@ -553,7 +570,7 @@ func attack_cost_k() -> float:
 ## (hitstun), or a full physics knockdown for heavy hits. A parry takes no
 ## damage and lets the attacker know it was parried.
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
-	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished():
+	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished() or power.will.untouchable():
 		return
 	# a spirit (the drowned captain): shot and shell pass through him
 	if bloodless() and (hit.ranged or hit.impact == "shot"):
@@ -586,6 +603,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if attacker is Node3D and not hit.ranged:
 			parried_by = attacker
 			parried_tick = Engine.get_physics_frames()
+			power.will.mirror(hit, attacker)
 		return
 	if is_blocking and not hit.unblockable and not hit.dot and current_state_name() == "Block":
 		var fwd := -player_model.global_basis.z
@@ -618,10 +636,13 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		power.buffs["riposte"] = 0.0
 		state_machine.force_state("Technique", {"id": "riposte_counter", "target": attacker})
 		return
+	# crew techniques: a Shield Wall, a guardian's guard
+	if crew_tech.blow(hit, attacker, dir):
+		return
 	if hit.knockdown and power.iron_reflex():
 		_toast("Iron Reflex!")
 	_since_hit = 0.0
-	var dmg := hit.damage * (1.0 - damage_reduction())
+	var dmg := hit.damage * (1.0 - damage_reduction()) * crew_tech.damage_k()
 	if power.buff("tekkai"):
 		dmg *= 0.3
 	if power.buff("berserk"):
@@ -629,6 +650,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	# Captain's Presence: common foes' blows land softer
 	if attacker and not attacker.is_in_group("players") and not Progression.is_elite(attacker):
 		dmg *= 1.0 - progression.stat("presence")
+	dmg = power.will.incoming(hit, dmg)
 	# Last Stand: once a minute, a killing blow leaves you at 1
 	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:
 		dmg = health_component.current_health - 1.0
@@ -681,6 +703,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		return
 	if progression.has_flag("steadfast"):
 		return  # Steadfast: light hits don't make you flinch
+	# heavy armour's poise (GearStats): now and then a blow doesn't rock you (rolled only when worn: the draws stay put)
+	var poise_k := progression.stat("poise_pct")
+	if poise_k > 0.0 and randf() < poise_k:
+		return
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
 		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.5, 4.0), "flinch": true})
 
@@ -1597,8 +1623,8 @@ func try_summon() -> String:
 
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
-## a pair for the twin axes). Each new kind adds its line. It also teaches black-leg (no item: learned).
-const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1}
+## a pair for the twin axes). Each new kind adds its line (1.24: the ranged kinds). It also teaches black-leg (no item: learned).
+const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1, "slingshot": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1717,11 +1743,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()
 		return
-	# C: sneak (CrouchState), C again to stand
+	# C: sneak (CrouchState), C again to stand; in combat stance the weapon's crew technique (CrewTechniques)
 	if event.is_action_pressed("crouch"):
 		var st := current_state_name()
 		if st == "Crouch":
 			state_machine.force_state("Idle", {})
+		elif armed and context == Context.ON_FOOT:
+			crew_tech.trigger()
 		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():
 			state_machine.force_state("Crouch", {})
 		get_viewport().set_input_as_handled()
@@ -2098,7 +2126,7 @@ func _hands_changed() -> void:
 static func class_of(item: ItemData) -> String:
 	if item == null:
 		return "fist"
-	return "gun" if item.weapon_model in ["pistol", "rifle"] else "sword"
+	return "gun" if item.weapon_model in ["pistol", "rifle"] or GunKinds.STYLE.has(item.weapon_model) else "sword"
 
 
 ## What you're fighting with: fist / sword / gun / claw (Zoan hybrid).
@@ -2134,6 +2162,8 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 				return "dual_dagger" if main == "dagger" and off_hand.weapon_model == "dagger" else "dual_sword"
 			return main if main in ["axe", "dagger"] else "sword"
 		"gun":
+			if GunKinds.STYLE.has(main_hand.weapon_model):
+				return GunKinds.STYLE[main_hand.weapon_model]
 			return "dual_pistol" if dual else "pistol"
 	return c
 
@@ -2158,8 +2188,8 @@ func _offhand_valid(item: ItemData) -> bool:
 		and equipped_weapon.weapon_model != "axe"
 	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
-	# (the katana, polearms, hammers and greatswords take both hands)
-	for two in ["katana", "polearm", "hammer", "greatsword"]:
+	# (the katana, polearms, hammers, greatswords and the 1.24 ranged kinds take both hands)
+	for two in ["katana", "polearm", "hammer", "greatsword"] + GunKinds.STYLE.keys():
 		if two in [item.weapon_model, equipped_weapon.weapon_model]:
 			return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
@@ -2218,6 +2248,8 @@ func drop_from_bag(idx: int, qty: int = -1) -> bool:
 # Pistols
 # --------------------------------------------------------------------------
 func max_ammo() -> int:
+	if style() in GunKinds.OWN:
+		return GunKinds.shots(self)
 	return 2 + int(progression.stat("extra_shots")) + int(progression.style_stat("shots", style()))
 
 
@@ -2232,8 +2264,8 @@ func reloading() -> bool:
 
 func reload_time() -> float:
 	var st := style()
-	var t := 1.4 if st == "sword_pistol" else (1.5 if offhand_weapon else 1.1)
-	return t * (1.0 - progression.stat("reload_pct") - progression.style_stat("reload", st))
+	var t := GunKinds.reload_base(self) if st in GunKinds.OWN else (1.4 if st == "sword_pistol" else (1.5 if offhand_weapon else 1.1))
+	return t * (1.0 - progression.stat("reload_pct") - progression.style_stat("reload", st)) * crew_tech.reload_k()
 
 
 func start_reload() -> void:
@@ -2242,7 +2274,7 @@ func start_reload() -> void:
 	_reload_t = reload_time()
 	# (the sword-and-pistol reloads one-handed as you fight: no stopping for it mid-attack)
 	if style() != "sword_pistol" or not body_model.is_busy():
-		body_model.play("reload", _reload_t)
+		body_model.play(GunKinds.RELOAD_ANIM.get(style(), "reload"), _reload_t)
 	Net.fx("sfx", ["blip_low", global_position, -12.0, 0.05, 1.1])
 
 
@@ -2291,7 +2323,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy", "slingshot": "punch"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2366,6 +2398,10 @@ const REACH := {
 	"kick_spin": [Vector3(4.0, 1.6, 4.0), Vector3(0.0, -0.1, 0.0)],
 	"kick_axe": [Vector3(1.6, 2.4, 2.3), Vector3(0.0, 0.0, -1.2)],
 	"kick_fly": [Vector3(1.8, 1.5, 2.4), Vector3(0.0, 0.1, -1.3)],
+	# a long gun's stock driven out ahead (the butt stroke, the stock rush)
+	"stock": [Vector3(1.8, 1.4, 2.0), Vector3(-0.15, 0.2, -1.05)],
+	# a cannon's barrel swung across the front, the ram's muzzle out ahead
+	"cannon": [Vector3(2.4, 1.6, 2.3), Vector3(-0.2, 0.25, -1.15)],
 }
 
 
@@ -2408,6 +2444,7 @@ func damage_multiplier() -> float:
 		k += 0.3
 	if power.buff("howl"):
 		k += 0.25
+	k += power.will.damage_k()
 	return w * k
 
 
@@ -2907,6 +2944,8 @@ func net_event(what: String, args: Array) -> void:
 			match str(args[0]):
 				"projectile":
 					Projectile.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]), str(a[4]))
+				"shell":
+					Shell.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]), str(a[4]))
 				"fireball":
 					Fireball.launch(get_tree(), a[0], a[1], self)
 				"fire_zone":

@@ -7021,3 +7021,392 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Per frame: nothing new (one float add per gap test).
 - Tests: t/player/coat_tails_hang (new), chains_native_same, chains_net_clear, chains_fallback. clothlab gained the
   duster and skirt looks, CL_NEAR (a close look) and CL_GD, and a split of its count by set > capsule.
+## 2026-10-26: 1.24 Will paths, piece 1: Tempo and Fury
+- **What (docs/v1_24_previews.md section 2, approved).** Two of the four new paths in `WillPaths` (tempo, fury). Each
+  is five nodes: T1 (1 Will), a T2 ability (2 a version), T3 (3), the passive (2). **The gate is all Will spent**
+  (`WillPaths.OPEN`): "tier 2 from 4 spent, tier 3 from 8" can't be met inside a path whose five nodes cost 10 in all
+  (T1 + passive is 3), so for the new paths it counts every Will point spent, and they're always open (no second-path
+  lock). Iron Will / Sense / Captain's Will keep their in-path gates.
+  - Tempo: Second Step (`air_jumps` +1), Rhythm (Cancel `dash_cancel` / Flow `will_flow`), Still Point (skill
+    `will_still_point`, 30 energy, 2 min), Light on Your Feet (`move_pct` 0.08).
+  - Fury: Red Mist (`red_mist`: +1% damage per 4% health missing), Berserk (skill `will_berserk`, 20 energy, 40 s:
+    10 s buff `w_berserk`, heal 4% of each weapon blow landed, blows taken x1.2), Unbowed (`unbowed`: once a fight the
+    felling blow leaves 1 health + buff `unbowed` 2 s where nothing lands; "a fight" ends with `Player.in_fight()`),
+    Thick Blood (`thick_blood` 0.5: every damage-over-time hit on you halved: bleed, burn and poison alike).
+- **Where.** `scripts/powers/will_powers.gd` (WillPowers, PowerComponent's child "Will": `damage_k` into
+  Player.damage_multiplier, `flow_k` into LightAttackState's `_spd`, `landed` from on_sword_hit, `incoming` /
+  `untouchable` in Player._on_hit_received), `scripts/powers/will_arts.gd` (WillArts, the skills' timelines, one of
+  TechniqueState's `_arts`), `scripts/powers/still_point.gd` (StillPoint). Small hooks: player.gd (3 lines),
+  light_attack_state.gd (Flow's speed, Cancel), humanoid.gd (`time_k` scales `_process`'s delta), network_manager.gd
+  (`_all_will` -> `WillPowers.all`).
+- **Still Point in co-op.** `Net.everyone("_all_will", ["still", [at, 20, 3]])`: every machine builds a StillPoint
+  over the foes within 20 m; the host (which runs them) lets each think and move only every other physics tick
+  (`set_physics_process` toggled, put back after; one that wasn't processing is left alone), and every screen plays
+  their bodies at `time_k` 0.5 with a pale afterimage now and then. Engine.time_scale is untouched (co-op can't use it).
+- **Skill map.** The Will page has two sets of columns (`WillPaths.PAGES`, `will_set`): a strip over them
+  (clickable) and A/D flip them; the new paths' footer says "TIERS AT 4 / 8 SPENT". skillmapshot adds `_will2`.
+- **Per frame / tick:** WillPowers: an int count a tick, its work every 10 ticks (fight over, Berserk's aura); a
+  StillPoint only while one runs (its foes, a few seconds every 2 minutes at most).
+- **Tests:** t/will/open_paths, t/will/tempo, t/will/fury (new group); t/progression and t/ui/skills_captain_forks
+  still pass. Co-op for nettest to cover later: a guest's Still Point slowing the host's grunts.
+
+## 2026-10-26: 1.24 Will paths, piece 2: Tide
+- **Nodes.** Deep Breath (`breath_pct` 1.0, `swim_pct` 0.3), Sea Legs: Wave Walk (`wave_walk`) / Swell (skill
+  `will_swell`, 25 energy, 45 s), Call the Wind (skill `will_wind`, 20 energy, 3 min), Helm Sense (`helm_sense` 0.2).
+- **Wave Walk** (`scripts/powers/wave_walk.gd`, run by WillPowers every tick only for a captain with the node): onto
+  deep water (Ocean.depth_at > 1 m) faster than 5 m/s, feet within 0.6 m above / 0.25 m under the surface: a small
+  StaticBody floor (layer 1) under the feet at the surface, moved with you each tick, so Move/Idle/Jump work on it as on
+  ground. A step every 0.32 s on it (a ring and spray through Net.fx), 6 steps, then it's gone and you swim. Ground or
+  a deck (feet 0.6 m+ above the water) fills the steps. Its own depth check excludes it (Ocean.depth_at's exclude:
+  the player's water_depth_at hit the floor and ended it every tick).
+- **Swell:** only aboard your ship (else refunded); `_all_will "swell"`: the host throws each foe on the deck
+  (`ship.aboard`) out over the nearer rail (`launched`, 10 out / 9 up) and carries its body with the ragdoll's hips
+  for 1.2 s with a collision exception to the hull (the grunt's down state follows the hips only across, so the body
+  stuck at the bulwark). Waves and spray over the deck on every screen.
+- **Call the Wind:** aboard or within 30 m of your ship: `_all_will "wind"` sets `Ship.will_wind` 30 s on every
+  machine (every machine runs the sail sim); `Ship.will_k()` (1.25) multiplies the top speed.
+- **Helm Sense:** the helmsman's machine sends `_all_will "helm" [0.2, 2.5]` every 60 ticks while at the helm;
+  `Ship.hull_hit` (host) takes `will_guard_k` off while `will_guard` lasts.
+- **Per tick:** a Wave Walk captain: a few checks a tick (state and speed first, the water lookups only when those
+  pass), the floor moved while walking. Ship: two subtractions.
+- **Tests:** t/will/tide. Co-op for nettest: a guest's Call the Wind on the host's ship, a guest helmsman's Helm Sense
+  on the host's hull, a guest's Swell throwing the host's boarders.
+
+## 2026-10-26: 1.24 Will paths, piece 3: Bond
+- **Nodes.** Link (`will_link`), Side by Side: Joint Gauge (`joint_gauge`) / Shelter (`shelter`), Twin Finisher (skill
+  `will_twin`, no energy, 8 s, needs the gauge full: PowerComponent.can_cast says "Joint gauge not full"; the skill
+  bar draws the gauge along the slot's foot), Crew's Strength (`crew_strength` 0.04).
+- **Where.** `scripts/powers/will_bond.gd` (WillBond, WillPowers' child "Bond"); Twin Finisher in WillArts
+  (`will_twin` lead, `will_twin_mate`, `twin_net`). Crewmates are the other captains in "players" that aren't AI.
+- **Host-arbitrated.** Every machine keeps `WillBond.links` (captain key -> crewmate key, or "ship") and
+  `WillBond.sheltered`. A holder's machine re-picks the nearest standing crewmate within 15 m every 20 ticks and asks
+  (`_all_will "link_ask"`); the host checks the distance and sends `"link"` to all. A blow on a linked crewmate is
+  split on *their* machine (where their hits land): 85% theirs, 15% sent to the holder (`"took"`, taken straight off
+  health). Shelter: the shelterer's machine calls `"shelter" [by, ward, 0.7 s]` while a crewmate within 3 m is down or
+  under 30%; the ward's machine sends that blow to the shelterer instead. Twin Finisher: the lead spends the gauge and
+  asks `"twin_ask"`; the host lets the mate in (standing, not in a technique or at the helm, within 12 m) and sends
+  `"twin"`; the mate's own machine forces its Technique `will_twin_mate`. Each side closes on the foe (the lead on the
+  near side, the mate opposite the lead), strikes (0.3 / 0.42 s), and both cross through it at 0.7 s (a 2.6 m
+  unblockable knockdown round the foe from each); the lead draws `twin_cross` in both weapons' colours. Hits route to
+  the host as usual. Untouchable from the start to 0.95 s.
+- **Solo (bonded to the ship).** Within 15 m of her: 15% of the blows on you go to her hull (never below 1); she counts
+  as a crewmate for Crew's Strength and the gauge (within 20 m); Shelter: once a fight a blow landing while you're under
+  30% does nothing; Twin Finisher's second weapon is her broadside on the foe (`Ship.broadside`).
+- **Departures from the table, forced by the code:** downed captains can't be hit at all in today's game, so Shelter
+  covers a crewmate who is down *or* under 30% health (the blow is the shelterer's); the gauge fills at half rate with
+  Shelter carried instead of Joint Gauge (Twin Finisher would otherwise be dead with Shelter); "solo shelter on
+  yourself once a fight" is read as a blow under 30% health.
+- **Per tick:** a Bond captain: the sheltered table's countdown (empty unless someone shelters) and every 20 ticks the
+  crew count, the link pick and a tether streak. Messages: a link ask only when the pick changes; shelter calls 3 a
+  second only while a crewmate needs it.
+- **Tests:** t/will/bond_crew, t/will/bond_solo. Render: abilityshot `will_twin` (spawns a captain-style crewmate and
+  links it). Co-op for nettest: a guest linked to the host (each side's split), a guest's Twin Finisher with the host
+  joining, Shelter across the wire.
+
+## 2026-10-26: 1.24 Will paths, piece 4: the upgrades to Iron Will, Sense and Captain's Will
+- **As new versions of today's abilities** (so the paths keep their shape, gates and prices; each one carried or
+  switched in at a rest spot like the others):
+  - Iron Will: Emission's **Stomp** (`emission` 3: PowerComponent.emission, a 3.5 m quake round you, 18 base, a breaker
+    and *not* unblockable so a shield or guard takes it and is knocked aside); Inner Strike's **Mirror Guard**
+    (`mirror_guard`: a parried blow, Player._on_hit_received, is sent back unblockable at your damage scale:
+    WillPowers.mirror).
+  - Sense: Flash's **Ambush Sense** (`ambush_sense`: a foe starting an attack on you from behind your camera's view
+    puts a red "!" over itself and a sharp note; PirateGrunt `_ambush_warn`, in `_sense_fx` on each captain's own
+    machine); Foresight's **Glimpse** (skill `will_glimpse`, 15 energy, 30 s: foes and closed chests within 40 m
+    marked through walls for 3 s, on your screen only: `scripts/powers/will_sight.gd`, no-depth-test diamonds);
+    Crowd Read's **Weak Point** (`weak_point`: the nearest boss with breakable parts within 40 m has its unbroken
+    parts marked through everything: BeastParts from JungleBeast's `bp` or the ape's `parts`, checked every 10 ticks).
+  - Captain's Will: Roar's **Intimidate** (`intimidate`: the roar's weak foes call `surrender()` instead of fainting:
+    a bark, kneeling, gone 2 s later through `vanish` (no loot); +250 bounty each; a host call, in `HOST_CALLS`);
+    Clash's **Rally** (`will_rally` 0.1: while you fight your machine calls `_all_will "rally"` every 30 ticks; every
+    captain within 12 m of you gets the `w_rally` buff for 1 s: +10% damage) and **Plant the Flag** (skill
+    `will_flag`, 25 energy, 60 s: `_all_will "flag"` builds a WarFlag (`scripts/powers/war_flag.gd`) on every
+    machine for 20 s; each machine mends its own captain within 6 m by 3% of their health a second).
+- **Per frame / tick:** Glimpse's and Weak Point's markers follow their targets each frame (at most 24, only while
+  shown); a flag's pulse and mend check twice a second while it stands (20 s); Rally one message a half second while
+  fighting.
+- **Tests:** t/will/upgrades. Co-op for nettest: a guest's Intimidate making the host's grunt surrender, a guest
+  inside the host's Rally and beside the host's flag.
+## 2026-10-26: 1.24 crew techniques, piece 1: the framework and Skyward Kick (docs/v1_24_plan.md, v1_24_previews.md 3)
+- What: every weapon kind gets a two-person crew technique on the crouch key while the weapon is out (C; out of stance
+  C still sneaks). Alone (single player, or no captain within `MATE_NEAR` 14 m) the weapon's self version plays at once.
+  With a crewmate near, C opens a join zone (3 m, 6 s) drawn on every screen (a ring in the weapon tree's colour and an
+  inner one shrinking with the time left); you stay free to fight. A crewmate inside it gets "F: join <name>'s <move>"
+  on the HUD; F asks the host, the host gives the zone to the first to ask (`Net.crew_join` -> `_crew_try` ->
+  `everyone("_all_crew_go")`), and each captain's own machine runs its side. C again while waiting goes alone; nobody
+  joining costs nothing. Cooldown 90 s (60 s for Pincer and Covering Fire), on game time, a badge over the energy orb.
+- Where: `scripts/combat/crew_techniques.gd` (CrewTechniques: the table, one per captain as Player.crew_tech "CrewTech",
+  puppets too for their zone; trigger, zone, join prompt, `signal_in` for a crewmate's cues), `scripts/player_states/
+  crew_technique_state.gd` (state CrewTechnique, extends TechniqueState for its helpers; roles lead / partner / solo and
+  a "flight" phase after any launch: a little steering, attack = a free plunge, the landing a Sky Leap crater with no
+  fall damage), `scripts/npc/crew_poses.gd` (CrewPoses, "ct_" names), Net `_all_crew_offer/_close/_go/_signal`,
+  `crew_join`, `_crew_ask`, `crew_signal`. Player edits: the crouch path, creating crew_tech. Skill bar: `_draw_crew`.
+- Skyward Kick (black leg): the lead raises the right foot (`ct_kick_launch`, 0.9 s), the partner perches on it
+  (`ct_perch`, 0.75 m ahead, 0.62 m up, its own machine placing it on the lead's puppet), the kick at 0.42 s sends
+  `Net.crew_signal(mate, "launch", [v])` with v at 22 m/s along the lead's aim, the elevation 60 deg at the camera's
+  rest pitch, steeper looking up / flatter looking down (42-80 deg): ~10 m up, ~15 m along. Self version Wall Kick:
+  off a wall within 2.2 m ahead (18 up, 3 forward) or the ground (15 up, 6.5 forward).
+- Per tick: CrewTechniques._physics_process on each captain (cooldown, the zone's countdown; the local captain scans
+  the open zones, a list that's empty unless someone's offering). Two ring meshes per captain, made on first use,
+  70 m visibility range, no shadow.
+- Co-op paths nettest should cover (not run here): a guest opening a zone the host joins and the other way round; two
+  joiners at once (the host takes the first); the launch signal reaching the partner's machine.
+- Tests: t/crew (stance_trigger, cooldown, join_expiry, join_prompt, skyward_kick: the lead with a captain-style AI
+  crewmate whose side runs locally as a guest's would). Render: `abilityshot ... crew:skyward_kick black_leg`.
+
+## 2026-10-26: 1.24 crew techniques, piece 2: the other nine (docs/v1_24_plan.md table)
+- The state is table-driven now (`crew_technique_state.gd`): LAUNCH (when the lead throws, length, forward/up speed,
+  the landing, plough), PERCH (where the thrown crewmate stands on the lead), SOLO (each self version's go, speeds,
+  pose). Launches all end in the shared flight (free plunge, crater landing) plus the move's landing: "slash" (ring 2.8
+  m, 30) or "slam" (3.5 m, 40, knockdown), or Human Cannonball's plough (foes within 1.4 m in flight, 25, knocked
+  down, once each).
+  - Crossed Blades (cutlass, dual blades): the guard held (riposte_guard / cross_guard), the crewmate on the blade
+    (1.25 m up), the cut at 0.5 s flings them 9 fwd / 12 up into a leaping slash. Self: Blade Vault (8 / 10, slash).
+  - Hurl (axe, twin axes): the lead turns once (ct_hurl) while the crewmate is swung round at 1.4 m on its own clock
+    (ct_swung), thrown at 0.75 s 16 / 7 into a slam. Self: Hurled Slam (9 / 10, slam).
+  - Pole Vault (polearm): pole_land planted, the crewmate at the top (1.7 m), 14 / 13 at 0.42 s. Self: the pole_vault
+    move, 11 / 12.
+  - Anvil (hammer): ham_upper's upswing bats the crewmate off the head 4 / 22 (skyward). Self: Rebound, ham_smash's
+    slam (3 m, 20) then 3 / 16.
+  - Human Cannonball (fists, claws): ct_cup, 24 / 6 at 0.35 s, ploughing. Self: Cannonball 18 / 5, ploughing.
+  - Guardian Stance (katana): marks "guarding"/"guarded" (8 s, 3 blows) set in CrewTechniques.go on every machine. A
+    melee blow on the ward (Player._on_hit_received -> `crew_tech.blow`, on the ward's machine) is turned ("Guarded!")
+    and `crew_signal(guardian, "guard_hit", [attacker])` brings the guardian out as role "counter": `_blink_side` to
+    the attacker, iai_slash, 45 unblockable at 0.11 s. The guardian must be within 10 m and standing. Self: Counter
+    Stance, the riposte buff for 3 s (the blow answered by TechniqueState's katana riposte).
+  - Shield Wall (greatsword): gs_gate held 8 s (4 alone), turning slowly with the camera; mark "wall" stops blows from
+    the front (dot > 0.3); C, an attack or a dodge drops it (C reaches it through CrewTechniques.trigger -> on_crouch).
+    The joiner's "walled" mark: within 4 m behind the lead while it still holds the wall, shots stop, blows x0.5.
+  - Pincer (daggers, 60 s): the foe ahead (14 m) marked for 10 s on both (the partner's through the "pincer" signal).
+    Each one's next hit on it (PowerComponent.on_sword_hit -> `crew_tech.on_hit`) adds a crit of 0.75x the blow; the
+    second of the pair's 1.5x ("Pincer!", the first one's hit signals "pincer_struck"). Self: Marked Prey, 3 crits.
+    No foe in reach: the cooldown is given back.
+  - Covering Fire (pistols, 60 s): a 2 s volley, a shot every 0.25 s at the foe ahead (8, a 0.35 s stagger: pinned),
+    then a fresh reload; "covered" on both for 8 s: blows x0.7 (`damage_k`), reloads x0.5 (`reload_k`).
+- Hooks outside the feature's files: Player._on_hit_received (`crew_tech.blow`, `damage_k`), Player.reload_time
+  (`reload_k`), PowerComponent.on_sword_hit (`crew_tech.on_hit`). Poses: ct_hurl, ct_swung, ct_cup (CrewPoses); the
+  rest reuse the weapons' own.
+- Per tick: nothing new beyond piece 1 (the marks count down in CrewTechniques._physics_process; `_behind_wall` runs
+  only when a blow lands).
+- Co-op paths for nettest: a guest's ward struck (the guard_hit signal reaching a host guardian and back), a guest
+  thrown by a host lead, the walled/covered marks applied on both machines from `_all_crew_go`, a guest's pincer hit
+  on a host-run enemy (the extra crit routes through Hurtbox.take_hit -> Net.route_hit).
+- Tests: t/crew (one per technique, the co-op side with a captain-style AI crewmate, and the self version). Render:
+  `AB_STRIKE=0.9 abilityshot ... crew:guardian_stance katana game,side 10 1.0 0.7`.
+
+## 2026-10-26: 1.24 ranged weapon kinds, piece 1: long guns (docs/weapons_plan.md "Long guns", guns family)
+- **Item and models** (WeaponDesigns kind "longgun", base resources/items/musket.tres "Sea Musket"; meshes in
+  scripts/weapons/gun_models.gd): the right hand at the stock's wrist, the barrel "barrel" m ahead along -Z, the bore
+  LG_BORE above the hand, the stock LG_STOCK back to the butt plate, the lock on the right. Designs: long rifle (eight
+  flats, range x1.3, slower reload), blunderbuss (a brass bell; "spread" 8 pellets in a 0.17 rad cone, range x0.3),
+  boarding carbine (short, quick reload), double fowler (two barrels: "shots" 2, a 4-pellet scatter), jezail (RARE: the
+  curved inlaid stock, range x1.45). Two-handed (Player._offhand_valid), slung on the back (DrawMoves.on_back), drawn with
+  the two-hander's heave. Class "gun", style "long_gun" (GunKinds.STYLE: Player.class_of / style_of).
+- **The stance** (scripts/weapons/gun_moves.gd, "lg_*" from Humanoid._action_pose): the polearm's grip channels solved
+  by PoleMoves.hands (GunMoves.LG_GRIPS: the low ready by the right hip slanting across to the front left, the block
+  level across the front, port arms at a sprint). Side on over the left foot. Aiming is the chest's lean (aim_pitch,
+  already synced).
+- **The shot** (scripts/weapons/long_gun_arts.gd through ShootState: `art.shoot_enter/update/exit`): left click
+  shoulders it (hold "lg_aim", SHOULDER 0.12 s) and fires on release: a tap is the quick shot (34), held AIM_STEADY 0.7
+  s the aim steadies (a glint and a click; x1.5 damage, through the first foe into a second, knockdown; the camera eases
+  in while aiming). Hitscan (GunKinds.aim_point / line: the reticle with a 0.06 rad assist onto a body centre, walls
+  stop it), falloff past 30 m to 0.6 at the range (70 m x design). Scatter guns: pellets in a cone (tighter when
+  steady), each foe struck once for the pellets that found it (7 each, harder close, most of a load point-blank knocks
+  down). One load (Player.max_ammo -> GunKinds.shots), then the ramrod (lg_reload, RELOAD 1.5 s x design; Paper
+  Cartridges / Skirmisher shorten it). The recoil pushes you back a step. Traits: hair-trigger, blasting (shots),
+  thundering (the butt stroke).
+- **Moves**: right click the butt stroke (HeavyAttackState "butt_stroke": lg_butt, breaker, reach "stock"); Stock Rush
+  at a sprint (crossways into them with the shoulder, knockdown); Sky Shot in the air (PlungeState GUN_AIR -> air_enter
+  / air_update: a hang, a steady shot at the reticle with a 0.15 rad assist, the kick up and back; needs the load);
+  parry / block with the gun level across the front (ActionSpecs.PARRIES "long_gun").
+- **Tree** (SkillTrees "long_gun": Marksman / Powder / Stock, element starlight "lg": Starlit Sights 16 / Falling Star
+  25): Iron Sights 3 (steady_ 0.35) · Pinning Shot 8 · Volley Line 14 · Eagle Eye 20 (range_ +30%, pierce_ +1);
+  Powder Burst 5 · Stock Sweep 10 · Hawkeye 30; Stock Rush 2 · Paper Cartridges 4 · Sky Shot 6 · Old Soldier 13
+  (passive) · Marksman's Way 22 (Sniper / Skirmisher). Steps 30. Tab "LONG GUN". New stat keys read by LongGunArts:
+  steady_, range_, pierce_ (Progression.style_stat).
+- **Techniques** (LongGunArts in TechniqueState._arts): Pinning Shot (kneel, the aimed foe within 45 m shot at 0.35 s:
+  30 unblockable, a 2.5 s stagger and rooted), Powder Burst (a double charge from the hip at 0.32 s: 6.5 m cone 28
+  knockdown unblockable, you kicked back 7 m/s; doesn't spend the load), Volley Line (up to three foes ahead within 32
+  m, a shot each at 0.25/0.55/0.85 s, 22, the last knocks down, then reloaded), Stock Sweep (butt first round once:
+  rings 3.2 m at 0.36 s 12 and 0.6 s 20 knockdown), Hawkeye (ult, untouchable: up to six foes ahead within 50 m marked
+  in slow time at 0.3 s, then a shot through each every 0.24 s from 0.75 s: 48 knockdown unblockable; with the element
+  a streak falls on each like a shooting star).
+- **FX**: TREE_FX "long_gun" starlight (white core, moon-blue edge, deep indigo); `FX.starlight` (silver and indigo
+  motes, a glint) for element / elem_hit; a shot is a powder blast (FX.blast 0.45, 0.7 for a scatter), sparks, a
+  tracer (the tree's edge with tier 2). Sounds: gunshot pitched down (0.72; 0.62 a scatter).
+- **Co-op**: nothing new on the wire: hitscan hits go through Hurtbox.take_hit (routed to the host), effects through
+  Net.fx, the held aim through hold/play mirroring and aim_pitch.
+- **Per frame**: PoleMoves.hands on long-gun bodies (as the polearm's). While aiming (only then): a reticle ray each
+  tick for the pitch and a camera kick. Shots are one-shots (up to 8 rays a scatter).
+- **Sources**: IslandContent.LOOT_WEAPONS and IslandEncounters.LOOT have "musket" (shifts the islands' chest rolls);
+  a chest's long gun never turns into a greatsword (Loot.chest); Shops.RARE_KINDS "longgun"; Haldor's pool musket /
+  carbine / blunderbuss / long_rifle@1 / fowling_piece@1; WeaponDesigns.random_item; Shift+F10's rack (DEBUG_RACK).
+- Gotcha: the body's scripts (pole_moves, humanoid) must not name GunKinds (it names Player and the arts, which need
+  the autoloads): posebench and other --script tools stop compiling. GunMoves.STANCE mirrors GunKinds.STYLE for them.
+  Arts files reach Net through the tree (`_net()`) and FX's statics through a preload (the static-autoload lint).
+- Tests: t/weapons long_gun_fire, long_gun_moves, long_gun_tree, long_gun_loot. Renders: tools/dev/out/lg/ (posebench
+  a_/b_/c_/d_/e_*). posebench: a held pose needs u < 1 (at 1 it ends and the bench's next shot errors).
+  Expect techtest/progtest/balancetest/uitest (a new tab), the chest-roll suites and guntest-adjacent ones to want a
+  look at the push.
+
+## 2026-10-26: 1.24 ranged weapon kinds, piece 2: the cannon (docs/weapons_plan.md "Cannon", guns family)
+- **Item and models** (WeaponDesigns kind "cannon", base resources/items/hand_cannon.tres; GunModels.cannon): a fat barrel
+  along the top (bore CN_BORE above the hand) running CN_BREECH back over the shoulder, a pistol grip for the right
+  hand, a front grip for the left, a shoulder pad, rings, a swelled muzzle. Designs: swivel gun (light: blast x0.8,
+  reload x0.75), carronade (stubby: blast x1.15, range x0.7), dragon cannon (brass jaws; "burn" 4 s), bombard (RARE:
+  blast x1.35, reload x1.25). Two-handed, slung on the back. Style "cannon".
+- **The rounds** (scripts/weapons/shell.gd, class Shell): a round under gravity, on every screen (Player.net_power
+  "shell" -> net_event), only the shooter's machine hits: a fat ray of its size against the foes' hurtboxes and a ray
+  against the world each tick, then its art's `shell_hit` (CannonArts now, SlingArts next). Kinds: ball, mortar (lobbed
+  high, `lob_v`), giant (the Leviathan Shell), chain (straight, cutting through everyone on its line). `aim_v` gives the
+  low arc onto the reticle. A smoke wake behind the balls (each screen's own, a puff every 0.05 s).
+- **The shot** (scripts/weapons/cannon_arts.gd through ShootState): left click braces (cn_fire), the ball leaves at
+  FIRE_AT 0.25 s at 40 m/s on the arc to the reticle (60 m x design): the one it strikes takes 45, everyone within
+  BLAST 3.2 m (x design, Big Bang) the splash 28 (half at the rim), all knocked down and thrown out (`explode`, the
+  splash through GunKinds.splash with the push from the middle). The kick shoves you back 6 m/s (Braced halves it). One
+  load, then a 2.4 s reload (cn_reload). Traits: thundering and headsman's (the barrel bash).
+- **Moves**: right click the barrel swung like a club (HeavyAttackState "barrel_bash", breaker, knockdown); Cannon Ram at
+  a sprint; Recoil Leap in the air (fired straight down: the blast below 3 m knocks them flat, you thrown up 13 and on
+  6 m/s; needs the load); parry/block with the cannon held across the front.
+- **Tree** (SkillTrees "cannon": Iron / Blast / Recoil, element brimstone "cn": Brimstone 16 / Hellfire Shells 25):
+  Braced 3 (recoil_ 0.5) · Mortar Lob 8 · Powder Monkey 14 (reload_ 0.3) · Iron Hide 20; Canister Shot 5 · Chain Shot 10
+  · Leviathan Shell 30; Cannon Ram 2 · Recoil Leap 6 · Rocket Charge 12 · Big Bang 13 (passive: blast_, heavy_) ·
+  Gunner's Way 22 (Demolisher / Quick Gunner). Steps 30. New keys: recoil_, blast_.
+- **Techniques** (CannonArts in TechniqueState._arts): Canister Shot (12 balls in a 0.4 rad cone to 12 m at 0.25 s, 6
+  each, a foe struck once for its balls, 3+ knock down; no load spent), Chain Shot (a chain round at 30 m/s for 30 m,
+  26 + a 1 s stagger on everyone on its line), Mortar Lob (three shells at 0.35/0.5/0.65 s lobbed 0.9 s onto the
+  reticle and 2.6 m either side, 22 each in 2.6 m, a ring warns where), Rocket Charge (fired behind at 0.2 s: carried 20
+  m/s to 0.68 s ramming everyone in the way, 26 knockdown), the Leviathan Shell (ult, untouchable: braced on a knee, the
+  moment at 0.45 s, a giant shell at 0.95 s: 70 unblockable knockdown in 8 m, six cracks; with the element the ground
+  burns 4 s).
+- **FX**: TREE_FX "cannon" brimstone (sulphur core and edge, violet accent); `FX.brimstone` (sulphur sparks, embers,
+  violet smoke) for element / elem_hit; the shot FX.cannon_fire, the burst FX.cannon_blast (its glow the element) +
+  cannon_hit. Sounds: cannon, cannon_hit.
+- **Sources**: rarer: in no island's pool; a weapon a chest keeps (not already a greatsword) becomes a cannon
+  CANNON_CHANCE 0.08 (a hoard CANNON_HOARD 0.2) from its own stream (`rng_for(key|cannon)`); Shops.RARE_KINDS; Haldor's
+  pool hand_cannon / swivel_gun / carronade@1; WeaponDesigns.random_item; the Shift+F10 rack.
+- **Co-op**: rounds replicate as harmless copies on the other screens; hits through Hurtbox.take_hit, effects through
+  Net.fx. **Per frame**: each round in flight does a shape query and a ray a tick (a handful at once at most) and a
+  smoke puff every 0.05 s; nothing on idle bodies beyond the long gun's grip solve.
+- Gotcha: a test must not name `Shell` as a type (it compiles before the autoloads exist): filter "projectiles" by kind.
+- Tests: t/weapons cannon_fire, cannon_moves, cannon_tree, cannon_loot. Renders: tools/dev/out/cn/ (posebench a_/b_/c_*).
+
+## 2026-10-27: 1.24 ranged weapon kinds, piece 3: the slingshot and its trick ammo (docs/weapons_plan.md "Slingshot")
+- **Item and models** (WeaponDesigns kind "slingshot", base resources/items/slingshot.tres; GunModels.slingshot): a
+  handle in the fist, the fork's prongs up out of the top of it to the band's ends (SL_TIP, "w"), a slack band and
+  pouch. Designs: bone, vine (speed x1.15), iron (dmg x1.12, speed x0.92), beetle (RARE: a horn, wider fork, tricks
+  x1.3). Style "slingshot" (two-handed: the fork in the right hand, the pouch in the left), at the hip put away.
+- **The stance** (GunMoves "sl_*", keyed arms, no grip channels): side on with the right shoulder leading, the fork low
+  ahead, the pouch pinched behind it; drawn, the fork arm straight out at the target and the pouch at the left cheek.
+  **The band** (GunMoves.sling_band, each frame on a slingshot body after posing): two stretched strands from the prong
+  tips to the left hand while it's out (one shared box mesh, two transforms a frame), hidden put away.
+- **The stone** (scripts/weapons/sling_arts.gd through ShootState): left click draws and looses (sl_shot, 0.36 s x
+  speed; the stone leaves at 0.2 s): Shell "pellet" at 46 m/s on the low arc to the reticle, 9 damage, a 0.25 s
+  stagger, no reload ever (the HUD shows no loads). Right click held is the power draw (HeavyAttackState
+  "power_draw", cfg "arts": SlingArts.heavy_enter / heavy_update): two levels at 0.4 / 0.9 s (Quick Draw sooner), let
+  go (or 1.6 s) a "pellet_big": 14 / 24 / 36, the full draw knocks down. Skid Shot at a sprint (a slide, three stones
+  fanned); Hail Shot in the air (three fanned down at the reticle); parry/block with the hands up crossed.
+- **Trick ammo** (a round's `extra`: "fire" / "smoke" / "blast" / "sticky", "@k" its strength x the design's "trick" and
+  trick_ stats; SlingArts.burst where it lands): fire (a 2.2 m burst, 10, burning 4 s), smoke (a 4 m cloud: everyone in
+  it staggered 2 s "Blinded", you slip out of sight if you're in it), blast (2.6 m, 20, knockdown), sticky (3 m: rooted
+  3 s via `root_enemy`, "Stuck!"). Each is a technique (Fire / Smoke / Blast / Sticky Pellet); Bag of Tricks (ult,
+  untouchable) fires five at the foes ahead, a trick each at x1.6. Trick Pouch: every fifth stone a random trick at half.
+- **Tree** (SkillTrees "slingshot": Tricks / Aim / Pouch, element "sl" the trickster's spark): Fire Pellet 4 · Smoke
+  Pellet 8 · Trick Pouch 14 · Nasty Surprises 20 (trick_ +30%); Blast Pellet 5 · Sticky Pellet 10 · Bag of Tricks 30;
+  Skid Shot 2 · Quick Draw 4 (draw_) · Hail Shot 6 · Sharpshooter 13 (passive) · Trickster's Way 22 (Prankster / Sure
+  Shot). Steps 30. New keys: trick_, draw_, pouch_.
+- **FX**: TREE_FX "slingshot" (pale pink core, hot-pink edge, tangerine accent); element / elem_hit pink sparks and
+  tangerine motes. Pellets wear their trick's colour (a fire pellet glows). Sounds: whoosh + slap on the loose, rope
+  creaking on the draw, the tricks' own (fire_burst, thud, cannon_hit, splash).
+- **Sources**: IslandContent.LOOT_WEAPONS and IslandEncounters.LOOT "slingshot"; never turned into a greatsword by a
+  chest; Shops.RARE_KINDS; Haldor's pool slingshot / vine / bone / iron@1; the Shift+F10 rack. Trait: hair-trigger.
+- **Co-op**: stones are Shells (harmless copies on the other screens), hits through Hurtbox.take_hit, `rooted` through
+  its HOST_CALLS forward, effects through Net.fx. **Per frame**: the band on slingshot bodies (two transforms); a stone
+  in flight a shape query and a ray a tick.
+- Tests: t/weapons sling_fire, sling_tricks, sling_tree, sling_loot. Renders: tools/dev/out/sl/.
+
+## 2026-10-27: 1.24 ranged weapon kinds, piece 4: their crew techniques (docs/v1_24_plan.md table)
+- Entries only in the crew technique registry (CrewTechniques.ALL, CrewTechniqueState's LAUNCH / PERCH / LEAD_POSE /
+  SOLO): **long guns** share the pistols' **Covering Fire** (its volley plays lg_fire for them); the **cannon**'s **Cannon
+  Ride** (a launch: the crewmate perched on the barrel at the shoulder, thrown at 0.27 s on cn_fire's kick, 18 on / 9
+  up, landing "slam"; alone **Recoil Jump**: cn_air, 6 on / 15 up, the slam on landing); the **slingshot**'s **Sling
+  Launch** (a launch: crouched in the pouch ahead, flung at 0.5 s of sl_shot, 11 on / 17 up, a free plunge; alone
+  **Slingshot Hop** off a skid). Their throw's show is the arts file's `crew_throw` (the cannon's blast, the band's
+  snap), called from `_throw` / `_self_launch`. Nothing new on the wire (launches already sync as the others).
+- Tests: t/crew cannon_ride, sling_launch (also: a long gun's technique is Covering Fire); covering_fire still passes.
+- Where each kind is found: piece 1-3's notes (long guns and slingshots in the islands' pools and Haldor's; cannons
+  rarer: a chest's weapon now and then, Haldor, the merchants; all three on the Shift+F10 rack).
+## 2026-10-26: 1.24 crew techniques, piece 3: the training yard's sparring partner
+- What: single player, alone within 14 m of a training dummy (Brinehollow's yard, every KitCamps.training_yard), a
+  crew technique that throws a crewmate (the six launches) is played with a sparring partner instead of the self
+  version: a captain-style AI ("Sparring Partner", a fixed random look) steps in 1.8 m to your right, joins, takes the
+  throw on its own state like a guest would. Used again it's called back to your side; it leaves once you're 30 m off.
+  The guard, wall, pincer and covering fire keep their self versions in the yard (a partner adds nothing you'd see).
+  Never in co-op (`Net.coop()`): the crew is there for that, and an AI only one machine runs would be a ghost to the rest.
+- Where: `scripts/combat/sparring_partner.gd` (SparringPartner: `at_side`, `in_yard`, the brain: a check a second),
+  CrewTechniques.trigger, Player.sparring (foe_mask 32: its landings hit the foes; hurtbox layer 0, out of the enemies'
+  groups and net_sync), dummy_target.gd joins group "training_dummies".
+- Per frame/tick: the partner's brain checks the distance once a second (game time); the AI captain's own states run
+  like a rival's (rig LOD on), only while it exists.
+- Test: t/crew/yard_partner. The other crew tests take their stage dummy out of "training_dummies" (it's a target
+  there, not a yard).
+## 2026-10-26: 1.24 gear stats, piece 1: weight and stats on every piece
+- **GearStats** (`scripts/items/gear_stats.gd`, docs/v1_24_previews.md section 1): a piece's weight by its look style
+  (`WEIGHT`, light unless listed: leather hats/vests/coats/gloves/boots medium, steel heavy) and its stats from its slot
+  row and weight (`TABLE`, the approved table; vests use the torso row, feet the legs row), or for accessories and belts
+  one trait each (`TRAITS`: earring +5% gold, eyepatch +3% crit, sash +5 stamina, pauldron +4 def...). Tier scales the
+  good numbers x1/1.15/1.3/1.5/1.75 (2.0, 2.3 for red, black); drawbacks stay. Purple and up roll a second stat from
+  `BONUS` if the piece has fewer than two good ones (seeded by its id without the tier). Remembered by id.
+- **Defence:** `ItemData.armor()` = GearStats.defense: the table's (medium/heavy) or the trait's; a piece whose row has
+  no defence (light, medium gloves) keeps its own Gear.DEFENSE (felt, cloth), x the tier scale. `ItemData.defense`
+  stays Gear.DEFENSE, so prices are unchanged. Balance: a full heavy kit is ~52 white (was ~24), a light one ~10.
+- **Rolls and saves:** a plunder piece (Gear.random_piece) of purple+ gets `gear_roll` from the stream's state (read, not
+  drawn); it rides in the id (`gear_..._<hash>~<roll>@<tier>`) and as ref[6] of SaveGame.item_ref (Net sends the same
+  ref). A pre-1.24 ref has no roll: its stats come from its id alone, the same every load and on every machine.
+- **On the captain:** Player._recalc_stats sets `Progression.gear = GearStats.totals(equipment.slots)` (defence left out),
+  and Progression.stat adds it like the meal and the kit: one more source in the stat cache, nothing of Will's touched.
+  New keys read: `attack_speed_pct` (LightAttackState's _spd), `poise_pct` (a chance a flinching blow doesn't rock you,
+  Player._on_hit_received), `gold_pct` (a coin picked up is now and then two), `vs_admiralty_pct` (Hurtbox.take_hit on
+  the striker's machine, before the hit is routed: anyone whose look has `admiralty`, set by EnemyShip.marine_look).
+  Each is read once per swing, hit or coin: nothing per frame. Poise and gold roll randf only when the stat is
+  above 0: an unconditional roll on every hit shifted every seeded draw after it (grunttest, powertest failed).
+- **Tooltip:** InventoryScreen.fill_info adds WEIGHT, a line per stat with its difference from the worn piece ("(new)",
+  "lose ..."), and the set line ("Corsair set 2/3: +1 air step"). Sets (`GearStats.SETS`): Admiralty bicorne + admiral's
+  coat + cavalier boots (+10% vs the Admiralty), Corsair tricorn + captain's coat + tall boots (+1 air step).
+- Tests: t/gear/stats (new). Render: tools/dev/gearshot.gd (tools/dev/out/gear/g_*.png).
+
+## 2026-10-26: 1.24 gear stats, piece 2: weight on the dodge and the swim; sets
+- **Load** (GearStats.load_of, Player.gear_load): medium pieces 1, heavy 2, summed over what's worn: LIGHT at 0 (nothing
+  but cloth: barefoot or shoes, no leather), HEAVY from 7 (most of a steel kit), MEDIUM between, so a plain outfit's
+  leather boots keep today's dash. Shown after DMG over the paper doll.
+- **Dodge** (DodgeState): with no Acrobatics style, LIGHT rolls (the roll at x1.15: ~5.2 m against the dash's ~3.4),
+  HEAVY hops ("hop": HOP_DIST 1.7 m in 0.3 s, 0.13 s untouchable, a 2.6 m/s pop, the "sidestep" action; parry held at
+  its end lands back in Block). A style keeps its move, x LOAD_DODGE_K (1.15 / 1 / 0.75). From the guard (BlockState),
+  heavy armour hops with the guard kept up (Rolling Guard's path, HOP_DUR 0.3, 1.5 m): blows from the front still
+  glance off. Animations are existing actions, so crewmates see them through HumanoidSync as before.
+- **Swim:** GearStats.totals adds LOAD_SWIM (+5% / 0 / -15%) to swim_pct.
+- **Sets:** checked in totals (three pieces worn): the corsair set's air_jumps lands in Player._recalc_stats' max_jumps;
+  the Admiralty set's vs_admiralty_pct in Hurtbox.take_hit (piece 1).
+- Per frame: nothing (the load is summed when a dodge or guard-hop starts, ~11 slots).
+- Tests: t/gear/weight_dodge, t/gear/set_bonus (new); t/player/dodge and dodge_styles still pass (the stage's
+  captain wears boots: medium).
+
+## 2026-10-26: 1.24 gear stats, piece 3: the clothing pass and skins at the village tailors and smiths
+- **Clothing skins** (patterns): a look key `<slot>_pattern` (top, vest, coat, legs: in Gear.SLOT_KEYS) picks the
+  fabric BodyBuilder._cloth draws that colour key with: `fabric_stripes`, `fabric_check`, `fabric_brocade`,
+  `fabric_patched` (gen_psx_textures.py `clothes` mode: the fabric weave with the pattern woven in, grayscale, tinted by
+  the piece's dye, 32x32 like fabric). Gear.compose clears a slot's pattern before laying its piece on (a plain coat over
+  a brocade one leaves no brocade); Gear.make names it first ("Brocade Oxblood Long Coat", Gear.PATTERN_NAMES);
+  GearIcons draws the pattern over the icon. Crewmates get it in the look like any key.
+- **Weapon skins:** WeaponDesigns entries with `"skin": true` (the kind's plain weapon in another finish, dmg 1.0:
+  Gilded and Blackwater Cutlass, Sakura Katana, Bloodwood Axe, Silvered Pistol, Jewelled Dirk, Lacquered Spear, Bronze
+  Warhammer, Gilt Greatsword); designs_of leaves them out, so they never drop or turn up in a home shop.
+- **Sold** by the 1.23 village vendors (VillageVendors.shop): a tailor's pool gets SKINS["tailor"] (12 patterned
+  pieces, white and green), a smith's every WeaponDesigns.skin_ids(), each showing SKIN_SIZE (2) more a day.
+- **Textures:** mail (vest "mail", hat "coif") was the fabric weave tinted grey and read as wool: now `mail`, rows of
+  rings lit from above, 64x64 so the rings stay small.
+- **Clipping:** the pauldron sat inside a coat's sleeve and half inside a greatcoat's shoulder cape or a mantle: it
+  now sits 1.4 cm out over any coat, and over the greatcoat's cape and the mantle 3 cm out and 4.5 cm up. The
+  greatcoat's cape still meets its inner edge (the cape is on the torso, the pauldron on the arm); left open.
+- Tests: t/gear/skins (new). Renders: tools/dev/out/gear/skins/{clothes,stripes,check,patched,mail4,pauldron3,
+  weapons,weapons2}_*.png (modelshot with `S.dressed({...})`, model_samples.gd).

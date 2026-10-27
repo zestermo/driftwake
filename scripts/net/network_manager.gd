@@ -38,7 +38,7 @@ const XP_RANGE := 40.0
 const CONNECT_TIMEOUT := 10.0
 const WEB_NO_COOP := "Co-op needs the desktop build"
 ## What clients may ask the host to do to an enemy (see ask_host).
-const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole", "perfect_parried", "launched", "blocked_by", "grab_ended"]
+const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole", "perfect_parried", "launched", "blocked_by", "grab_ended", "surrender"]
 
 var active: bool = false
 var hosting: bool = false
@@ -794,6 +794,11 @@ func everyone(method: String, args: Array = []) -> void:
 			_allr.rpc_id(id, time(), method, args)
 
 
+## A Will path's doing on every machine (WillPowers.all).
+func _all_will(op: String, args: Array) -> void:
+	WillPowers.all(op, args)
+
+
 ## A captain-style AI (RivalDuel) on every screen, named `rname` under `parent_key`: the host's runs its brain
 ## (`skill`), a guest's is a captain puppet of it (its snapshots, its blows routed to the host).
 func _all_spawn_rival(parent_key: String, rname: String, look: Dictionary, weapon: String, at: Vector3, yaw: float, skill: float) -> void:
@@ -1086,6 +1091,63 @@ func _all_crew(c: Dictionary) -> void:
 	if gm:
 		gm.crew = c.duplicate(true)
 	roster_changed.emit()
+
+
+# --------------------------------------------------------------------------
+# Crew techniques (1.24, CrewTechniques): the join zone on every screen; the host gives it to the first to ask
+# --------------------------------------------------------------------------
+func _all_crew_offer(key: String, tid: String, secs: float) -> void:
+	var p := node_of(key)
+	if p and p.get("crew_tech"):
+		p.crew_tech.open_zone(tid, secs)
+
+
+func _all_crew_close(key: String) -> void:
+	var p := node_of(key)
+	if p and p.get("crew_tech"):
+		p.crew_tech.close_zone()
+
+
+## `partner` asks to join `opener`'s zone.
+func crew_join(opener: Node, partner: Node) -> void:
+	if is_host():
+		_crew_try(key_of(opener), key_of(partner))
+	else:
+		_crew_ask.rpc_id(1, key_of(opener), key_of(partner))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _crew_ask(ok: String, pk: String) -> void:
+	if not hosting:
+		return
+	_crew_try(ok, pk)
+
+
+func _crew_try(ok: String, pk: String) -> void:
+	var o := node_of(ok)
+	var mate := node_of(pk)
+	if o == null or mate == null or not o.crew_tech.can_join():
+		return
+	o.crew_tech.taken = true
+	everyone("_all_crew_go", [ok, pk])
+
+
+func _all_crew_go(ok: String, pk: String) -> void:
+	var o := node_of(ok)
+	var mate := node_of(pk)
+	if o and mate:
+		o.crew_tech.go(mate)
+
+
+## A message for captain `to` from a crewmate's move (a launch, a blow on a guarded ward): its own machine acts on it.
+func crew_signal(to: Node, what: String, args: Array) -> void:
+	everyone("_all_crew_signal", [key_of(to), what, args])
+
+
+func _all_crew_signal(key: String, what: String, args: Array) -> void:
+	var p := node_of(key)
+	if p and p.get("crew_tech"):
+		p.crew_tech.signal_in(what, args)
 
 
 ## (1.21) A bout in the capital's arena for our own captain: the host runs it (ArenaBout); a guest asks the host,

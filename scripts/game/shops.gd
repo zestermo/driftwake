@@ -37,7 +37,10 @@ const SHOPS := {
 			["spear", 50], ["pitchfork", 25], ["trident", 95], ["naginata", 110], ["halberd@1", 170],
 			["warhammer", 55], ["shipwrights_mallet", 22], ["kanabo", 100], ["maul@1", 180],
 			["tomahawk", 40], ["reavers_axe@1", 150], ["ships_cleaver", 40],
-			["greatsword", 170], ["claymore@1", 280], ["sawtooth_greatblade@1", 300]],
+			["greatsword", 170], ["claymore@1", 280], ["sawtooth_greatblade@1", 300],
+			["musket"], ["boarding_carbine"], ["blunderbuss"], ["long_rifle@1"], ["fowling_piece@1"],
+			["hand_cannon"], ["swivel_gun"], ["carronade@1"],
+			["slingshot"], ["vine_slingshot"], ["bone_slingshot"], ["iron_slingshot@1"]],
 		"size": 5,
 		"buys": {"weapon": 0.6},
 	},
@@ -139,7 +142,7 @@ const RARE_GEAR := [
 	["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.24, 0.12, 0.08)}],
 	["accessory", "cloak", {"cloak": true, "cloak_color": Color(0.3, 0.08, 0.1)}],
 ]
-const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword"]
+const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword", "longgun", "cannon", "slingshot"]
 ## The chance a treasure merchant also has a piece of rare gear on a given day.
 const RARE_GEAR_CHANCE := 0.6
 ## The chance a treasure merchant has a fine rod that day (half of them the master's: only ever here).

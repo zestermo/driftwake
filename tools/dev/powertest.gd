@@ -321,7 +321,10 @@ func _process(d: float) -> bool:
 			wait = 0.5
 			step += 1
 		54:
-			check("holding parry settles into a block", p.current_state_name() == "Block" and p.is_blocking)
+			# (the parry window runs on physics ticks; under load 0.5 s of frames can end before it does)
+			if p.current_state_name() == "Parry":
+				return false
+			check("holding parry settles into a block (%s)" % p.current_state_name(), p.current_state_name() == "Block" and p.is_blocking)
 			var hp0: float = p.health_component.current_health
 			var st0: float = p.stamina
 			var hd := HitData.new()

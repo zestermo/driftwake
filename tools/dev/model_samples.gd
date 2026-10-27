@@ -25,6 +25,13 @@ static func outfit_row(field: String, values: Array, over := {}) -> Node3D:
 	return row
 
 
+## The starting captain with `extra` look keys laid over (clothes, patterns: "coat_pattern": "brocade").
+static func dressed(extra: Dictionary) -> Node3D:
+	var lk := CharacterLook.default_look()
+	lk.merge(extra, true)
+	return Humanoid.make(lk)
+
+
 ## Look i of t/world/one_skin_same's range, built with BodyBuilder.one_skin `one`, held in that test's seeded pose
 ## (seed `pose_i`; -1 = as built). `how`: "" | "<weapon> hand" | "<weapon> hip" | "peril" (the grunt's red overlay).
 ## For old-vs-new sheets: render with one false, then true, and diff.

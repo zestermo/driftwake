@@ -128,6 +128,16 @@ func _process(_d: float) -> bool:
 			until = 20
 		9:
 			shot("will")
+			var pw = stage.player.progression
+			pw.gift("will", 6)
+			for k in ["w_step_v", "h_feet", "w_mist_v", "w_cancel"]:
+				pw.buy(k)
+			sm._set_will_set(1)
+			sm.sel = "n:w_cancel"
+			until = 20
+		10:
+			shot("will2")
+			sm._set_will_set(0)
 			sm._set_page(false)
 			var pr = stage.player.progression
 			var xp := 0
@@ -138,12 +148,12 @@ func _process(_d: float) -> bool:
 				pr.pick_talent(lv, lv / 5 % 2)
 			sm.set_tab("captain")
 			until = 20
-		10:
+		11:
 			shot("captain40")
 			for i in range(5):
 				sm._fork_nav(Vector2.DOWN)
 			until = 10
-		11:
+		12:
 			shot("captain40_low")
 			var pr = stage.player.progression
 			pr.level = 1
@@ -156,7 +166,7 @@ func _process(_d: float) -> bool:
 				pr.owned.erase(k)
 			sm.set_tab("captain")
 			until = 20
-		12:
+		13:
 			shot("captain1")
 			quit()
 	step += 1

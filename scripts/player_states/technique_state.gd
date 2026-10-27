@@ -19,6 +19,9 @@ extends PlayerState
 ##   dual_axe gallows_hook, hewing_frenzy, axestorm, fimbulwinter (ult) in DualAxeArts
 ##   greatsword guardbreaker, crescent_gale, tempest_turns, skysplitter (ult) in GreatswordArts
 ##   black_leg rising_heel, hailstorm_heels, sky_chase, cleaver_kick, flambe_dash, last_course (ult) in BlackLegArts
+##   long_gun pin_shot, powder_burst, volley_line, stock_sweep, hawkeye (ult) in LongGunArts
+##   cannon   canister_shot, chain_shot, mortar_lob, rocket_charge, leviathan_shell (ult) in CannonArts
+##   slingshot fire_pellet, smoke_pellet, blast_pellet, sticky_pellet, bag_of_tricks (ult) in SlingArts
 ##   unarmed  hip_toss (guard -> shoulder_throw), cannonball_fist, meteor_fist in FistArts; hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
@@ -34,7 +37,7 @@ const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "si
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
 	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
 ## Techniques that live in their own files (enter/update return false for ids not theirs).
-var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts]
+var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts, WillArts, LongGunArts, CannonArts, SlingArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""
@@ -1516,12 +1519,19 @@ func _conquer() -> void:
 	Net.fx("sfx", ["haki", c, 3.0, 0.0, 0.55])
 	Net.fx("sfx", ["thud", c, 2.0, 0.0, 0.5])
 	player.cam_shake(0.45)
+	var fear := player.progression.has_flag("intimidate")
+	var gave_up := 0
 	for e in _pc.enemies_in(c + Vector3(0, 0.9, 0), 14.0 * (1.0 + player.progression.stat("roar_reach"))):
 		var hb := e.get("hurtbox") as Hurtbox
 		var hc = e.get("health")
 		if hb == null:
 			continue
 		var weak: bool = hc is HealthComponent and not e.is_in_group("bosses") and hc.current_health < hc.max_health * 0.4
+		# (Intimidate: they give up and go instead: no loot, the bounty rises)
+		if weak and fear and e.has_method("surrender"):
+			e.surrender()
+			gave_up += 1
+			continue
 		var hd := HitData.new()
 		hd.unblockable = true
 		hd.haki = true
@@ -1537,6 +1547,8 @@ func _conquer() -> void:
 			hd.knockback_force = 9.0
 			hd.stagger_duration = 1.2
 		hb.take_hit(hd, player)
+	if gave_up > 0:
+		Bounty.add(player, WillPowers.INTIMIDATE_BOUNTY * gave_up)
 
 
 func exit() -> void:

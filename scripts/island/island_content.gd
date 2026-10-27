@@ -13,7 +13,7 @@ extends RefCounted
 
 const FIRST := ["Ned", "Sal", "Mags", "Bram", "Corvin", "Ysolde", "Rook", "Tamsin", "Hask", "Vel", "Odo", "Fen"]
 const EPITHET := ["Bloody", "One-Eye", "Iron", "Black", "Mad", "Saltjaw", "Red", "Grinning", "Lucky", "Bonesaw", "Quiet", "Hook"]
-const LOOT_WEAPONS := ["cutlass", "boarding_axe", "katana", "pistol", "dagger", "spear", "warhammer"]
+const LOOT_WEAPONS := ["cutlass", "boarding_axe", "katana", "pistol", "dagger", "spear", "warhammer", "musket", "slingshot"]
 
 
 ## The sites as GenIsland.finish_steps, in order: one random stream through

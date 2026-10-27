@@ -650,7 +650,8 @@ func refresh() -> void:
 	_refresh_loot()
 	_gold_label.text = "%d G" % inv.count("gold")
 	_name_label.text = str(pl.body_model.look.get("name", "Captain")) if pl.body_model else "Captain"
-	_stats_label.text = "LV %d    DEF %d    DMG x%.2f" % [pl.progression.level, int(pl.defense()), pl.damage_multiplier()]
+	_stats_label.text = "LV %d    DEF %d    DMG x%.2f    %s" % [pl.progression.level, int(pl.defense()), pl.damage_multiplier(),
+		GearStats.WEIGHT_NAMES[pl.gear_load()].to_upper()]
 	if _tab == "character":
 		_fill_sheet()
 	_show_slot(_hover)
@@ -789,7 +790,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		_stat(grid, "DAMAGE", str(int(round(ws["damage"]))), int(round(ws["damage"])) - int(round(cs["damage"])) if cur else 0, true)
 		_stat(grid, "SPEED", str(ws["speed"]), signf(snappedf(ws["rate"] - cs["rate"], 0.01)) if cur else 0, false)
 		if ws["gun"]:
-			_stat(grid, "RANGE", "%d M" % int(SHOOT.RANGE), 0, false)
+			_stat(grid, "RANGE", "%d M" % int(ws.get("range", SHOOT.RANGE)), 0, false)
 		else:
 			fx.append(["Heavy: " + HEAVY_NAMES[HEAVY.style_for(it.weapon_model)], UIStyle.TEXT])
 		if it.poison > 0.0:
@@ -813,6 +814,10 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				if WeaponDesigns.great(it.design, "bleed", 0.0) > 0.0:
 					fx.append(["Its cuts bleed", Color(1.0, 0.45, 0.4)])
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
+		if GunKinds.STYLE.has(it.weapon_model):
+			for line in GunKinds.notes(it):
+				fx.append([line, Color(0.8, 0.88, 1.0)])
+			fx.append(["Two-handed", UIStyle.TEXT_DIM])
 	elif Instruments.kind_of(it) != "":
 		fx.append(["Play it: hold T, pick Play", UIStyle.ACCENT])
 	elif Rods.tier_of(it) != "":
@@ -826,6 +831,19 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		var cur := pl.equipment.get_item(pl.equipment.slot_for(it)) if src in COMPARE else null
 		var arm := int(round(it.armor()))
 		_stat(grid, "DEFENSE", str(arm), arm - (int(round(cur.armor())) if cur else 0) if src in COMPARE else 0, true)
+		if GearStats.is_wearable(it):
+			var wt := GearStats.weight(it)
+			_stat(grid, "WEIGHT", GearStats.WEIGHT_NAMES[wt].to_upper(), 0, false)
+			for l in GearStats.compare_lines(it, cur if src in COMPARE else null):
+				fx.append([l[0], UP if l[1] > 0 else (DOWN if l[1] < 0 else UIStyle.TEXT_DIM)])
+			var set_id := GearStats.set_of(it)
+			if set_id != "":
+				var sd: Dictionary = GearStats.SETS[set_id]
+				var sim := pl.equipment.slots.duplicate()
+				if src != "doll":
+					sim[pl.equipment.slot_for(it)] = it
+				var n := GearStats.set_count(sim, set_id)
+				fx.append(["%s %d/3: %s" % [sd["name"], mini(n, 3), GearStats.bonus_text(set_id)], Color(1.0, 0.85, 0.45) if n >= 3 else UIStyle.TEXT_DIM])
 	elif it.is_consumable():
 		if it.heal_amount > 0.0:
 			_stat(grid, "HEALS", str(int(it.heal_amount)), 0, false)
@@ -896,6 +914,8 @@ static func _kind(it: ItemData) -> String:
 
 ## What a weapon does on its own: damage (an average light hit, or a shot), hits a second, a word for it.
 static func weapon_stats(it: ItemData) -> Dictionary:
+	if GunKinds.STYLE.has(it.weapon_model):
+		return GunKinds.stats(it).merged({"speed": _speed_word(GunKinds.stats(it)["rate"])})
 	if it.weapon_model in ["pistol", "rifle"]:
 		var rate := 1.0 / 0.34
 		return {"gun": true, "damage": SHOOT.SINGLE_DAMAGE * it.power(), "rate": rate, "speed": _speed_word(rate)}

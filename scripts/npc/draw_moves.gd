@@ -21,7 +21,7 @@ const SOUND := {"katana": ["draw_katana", "sheathe_katana"], "blade": ["draw_bla
 static func kind(h) -> String:
 	var model: String = str(h.weapon.mesh.get_meta("model", "")) if h.weapon != null and is_instance_valid(h.weapon) and h.weapon.mesh != null else ""
 	var k := model.get_slice(":", 0)
-	if (k == "axe" and model.get_slice(":", 1) in GREAT) or k in ["polearm", "hammer", "greatsword"]:
+	if (k == "axe" and model.get_slice(":", 1) in GREAT) or k in ["polearm", "hammer", "greatsword", "longgun", "cannon"]:
 		return "great"
 	if k in ["katana", "axe", "dagger", "pistol"]:
 		return k
@@ -41,6 +41,12 @@ static func on_back(w: MeshInstance3D) -> Transform3D:
 	# (a greatsword the way it hangs: the grip up behind the right shoulder, the blade flat down the back to the left)
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "greatsword":
 		return Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0, 0, 0.24))
+	# (a long gun slung muzzle up behind the right shoulder, the butt down by the left hip)
+	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "longgun":
+		return Transform3D(Basis(Vector3.RIGHT, PI) * Basis(Vector3.BACK, PI * 0.5), Vector3(0, 0, -0.35))
+	# (a cannon across the back on its sling, muzzle up behind the right shoulder, the barrel turned out of the way)
+	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "cannon":
+		return Transform3D(Basis(Vector3.RIGHT, PI) * Basis(Vector3.BACK, -PI * 0.5), Vector3(0.0, 0.1, -0.2))
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 1) in GREAT:
 		return Transform3D(Basis(Vector3(0, 0, 1), PI * 0.5), Vector3(0, 0, 0.28))
 	return Transform3D.IDENTITY

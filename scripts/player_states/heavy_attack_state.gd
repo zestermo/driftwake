@@ -95,6 +95,22 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.13, "shake": 0.26, "knockback": 14.0, "stagger": 0.7,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false, "reach": "fist",
 		"color": Color(1.0, 0.95, 0.8), "tree": "unarmed", "breaker": true},
+	# long guns (the butt stroke): drawn back down the right side, then the stock driven up into their face, stepping in;
+	# breaks a wind-up, leaves them reeling
+	"butt_stroke": {"anim": "lg_butt", "impulse": 6.5,
+		"damage": 24.0, "hitstop": 0.1, "shake": 0.18, "knockback": 11.0, "stagger": 0.9,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.05, "impact_fx": false, "reach": "stock",
+		"color": Color(0.9, 0.92, 1.0), "tree": "long_gun", "breaker": true},
+	# the cannon (the barrel bash): heaved back over the shoulder, then the barrel brought down across the front like a
+	# club, stepping in: through a guard, flat on their back
+	"barrel_bash": {"anim": "cn_bash", "impulse": 5.0,
+		"damage": 30.0, "hitstop": 0.13, "shake": 0.26, "knockback": 14.0, "stagger": 0.8,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.8, "impact_fx": false, "reach": "cannon",
+		"color": Color(1.0, 0.9, 0.7), "tree": "cannon", "breaker": true},
+	# the slingshot (the power draw): held, drawn back in two levels; let go, a heavy stone (SlingArts runs it: "arts")
+	"power_draw": {"anim": "sl_draw", "impulse": 0.0,
+		"damage": 14.0, "hitstop": 0.0, "shake": 0.0, "knockback": 0.0, "stagger": 0.0,
+		"trail": "", "trail_len": 0.0, "sfx": "", "pitch": 1.0, "impact_fx": false, "tree": "slingshot", "arts": true},
 	"whip": {"anim": "pistol_whip", "impulse": 5.0,
 		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
 		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
@@ -196,6 +212,14 @@ func enter(data: Dictionary) -> void:
 			cfg = STYLES["kata"] if player.progression.has_move("gun_kata") else STYLES["whip"]
 		"claw":
 			cfg = STYLES["maul"]
+		"long_gun":
+			cfg = STYLES["butt_stroke"]
+		"cannon":
+			cfg = STYLES["barrel_bash"]
+		"slingshot":
+			cfg = STYLES["power_draw"]
+			SlingArts.heavy_enter(self)
+			return
 		_:
 			cfg = STYLES[style_for(model)]
 	player.set_reach(str(cfg.get("reach", "sword")))
@@ -246,6 +270,9 @@ func enter(data: Dictionary) -> void:
 
 
 func physics_update(delta: float) -> void:
+	if cfg.get("arts", false):
+		SlingArts.heavy_update(self, delta)
+		return
 	apply_gravity(delta)
 	if _charging:
 		_charge_update(delta)
@@ -478,6 +505,9 @@ func _strike_fx(second: bool = false) -> void:
 		return
 	if cfg["tree"] == "greatsword":
 		GreatswordArts.cleave_fx(player, _level)
+		return
+	if cfg["tree"] in GunKinds.OWN:
+		GunKinds.art(str(cfg["tree"])).heavy_fx(player, elem)
 		return
 	if cfg["tree"] == "dual_axe":
 		# each chop a ring where it bites; the crossed crash an X on the ground and a ring round it

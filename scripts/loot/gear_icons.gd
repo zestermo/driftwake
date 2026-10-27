@@ -21,7 +21,11 @@ static func icon(it: ItemData) -> Texture2D:
 		main = main.lightened(0.22)
 	if second.get_luminance() < 0.16:
 		second = second.lightened(0.22)
-	var key := "%s|%s|%s" % [it.icon_kind, main.to_html(), second.to_html()]
+	var pat := ""
+	for k in it.look.keys():
+		if str(k).ends_with("_pattern"):
+			pat = str(it.look[k])
+	var key := "%s|%s|%s|%s" % [it.icon_kind, main.to_html(), second.to_html(), pat]
 	if _cache.has(key):
 		return _cache[key]
 	var img := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
@@ -39,6 +43,8 @@ static func icon(it: ItemData) -> Texture2D:
 			"r": col = Color(0.78, 0.16, 0.18)
 			"i": col = Color(0.92, 0.88, 0.76)
 		_fill(img, layer[1], col)
+	if pat != "":
+		_pattern(img, pat)
 	_outline(img)
 	var tex := ImageTexture.create_from_image(img)
 	_cache[key] = tex
@@ -486,6 +492,22 @@ static func _fill(img: Image, poly: Array, col: Color) -> void:
 			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
 				var shade := 1.12 - 0.26 * float(y) / SIZE
 				img.set_pixel(x, y, Color(col.r * shade, col.g * shade, col.b * shade, 1.0))
+
+
+## A tailor's skin over the filled shape (Gear.PATTERN_NAMES): stripes, a check, a brocade lattice, a patch.
+static func _pattern(img: Image, pat: String) -> void:
+	for y in range(SIZE):
+		for x in range(SIZE):
+			var c := img.get_pixel(x, y)
+			if c.a == 0.0:
+				continue
+			var k := 1.0
+			match pat:
+				"stripes": k = 0.62 if y % 4 == 0 else 1.0
+				"check": k = (0.75 if x % 6 < 2 else 1.0) * (0.75 if y % 6 < 2 else 1.0)
+				"brocade": k = 1.35 if (x + y) % 6 == 0 or (x - y + 24) % 6 == 0 else 0.9
+				"patched": k = 0.7 if x in range(13, 18) and y in range(11, 16) else 1.0
+			img.set_pixel(x, y, Color(minf(c.r * k, 1.0), minf(c.g * k, 1.0), minf(c.b * k, 1.0), 1.0))
 
 
 static func _outline(img: Image) -> void:

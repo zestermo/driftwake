@@ -28,9 +28,21 @@ pieces decided while 1.23 was building: new Will paths and crew techniques.
 | Dual blades / daggers | **Pincer**: mark a foe | the crewmate's next hit on it and yours strike together for a crit |
 | Pistol / corsair | **Covering Fire**: you suppress an area | crewmates inside take less damage and reload faster |
 | Fists | **Human Cannonball**: cup your hands | they launch from your grip (shorter, faster than the kick) |
+| Long gun | **Covering Fire** (the pistols'): a volley from the shoulder | as the pistols' |
+| Cannon | **Cannon Ride**: climb on and fire | they ride the shot far along your aim, landing in a slam (alone: Recoil Jump) |
+| Slingshot | **Sling Launch**: the band drawn with them in the pouch | flung high over everything ahead, a free plunge (alone: Slingshot Hop) |
 | Driftfruit | the fruit's own (a vine bridge, a flame dash a crewmate rides) | per fruit |
 
 ## Previews approved (Zach, 2026-10-26)
 docs/v1_24_previews.md approved as written: armour/clothing weight + up to two stats a piece, rarity scaling, 3-piece
 sets; the four Will paths (Tide, Tempo, Fury, Bond) and the upgrades to Iron, Sense and Captain's Will; crew techniques
 on **the crouch key** (Zach, 2026-10-26: in combat stance crouch does nothing else, nobody crouches mid-fight; out of combat it still crouches), 90 s (60 s quick ones), a 6 s join zone (F), solo self-versions.
+
+## Status (2026-10-27, paused for usage)
+- On main: native SpringChains + cloth/hair nets, crew techniques (all 10 + sparring partner), gear stats + clothing
+  pass, the defence curve cap (gold heavy ~50%). Will paths was mid-landing (branch worktree-agent-ac3890f9e415fc8e6).
+- Ranged weapons: stopped mid-build; long guns piece committed on branch worktree-agent-a6c07f1cb2b6f6a17 (3 commits,
+  not landed). Resume: land that branch, then the cannon, slingshot and their crew techniques.
+- Before tagging 1.24: prepush (incl. nettest for crew techniques and Bond), the Web preset's exclude
+  (`, driftwake_native.gdextension, bin/*`), rebuild the editor DLL (native/: `py -m SCons platform=windows
+  target=template_debug custom_api_file=extension_api.json -j10` with the editor closed).

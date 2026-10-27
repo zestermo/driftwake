@@ -23,7 +23,7 @@ const KIND_NAME := {"root": "Root", "move": "Move", "tech": "Technique", "mech":
 	"ult": "Ultimate", "step": "Stat step", "variant": "Variant", "auto": "Comes by itself", "talent": "Talent", "will": "Will", "version": "Version"}
 ## A tree's item for its icon (weapons, fruits).
 const TREE_ITEM := {"sword": "cutlass", "katana": "katana", "axe": "boarding_axe", "dagger": "dagger", "dual": "cutlass",
-	"dual_dagger": "dagger", "polearm": "spear", "hammer": "warhammer", "dual_axe": "tomahawk", "greatsword": "greatsword", "corsair": "cutlass", "pistol": "pistol", "ember": "ember_fruit", "wolf": "wolf_fruit", "vine": "vine_fruit"}
+	"dual_dagger": "dagger", "polearm": "spear", "hammer": "warhammer", "dual_axe": "tomahawk", "greatsword": "greatsword", "corsair": "cutlass", "pistol": "pistol", "long_gun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot", "ember": "ember_fruit", "wolf": "wolf_fruit", "vine": "vine_fruit"}
 
 
 static func tree_icon(tree: String) -> Texture2D:
