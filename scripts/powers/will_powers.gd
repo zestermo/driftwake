@@ -20,25 +20,55 @@ const FURY := Color(0.95, 0.2, 0.15)
 ## The slow tick (fight over, auras) every this many physics ticks.
 const TICK_EVERY := 10
 
+## Helm Sense: the helmsman's machine tells every machine's ship this often (ticks), for HELM_HOLD s.
+const HELM_EVERY := 60
+const HELM_HOLD := 2.5
+
 var player: Player
 var flow := 0
 var _unbowed_used := false
 var _n := 0
+## Wave Walk: the floor under you on the water (WaveWalk), and the steps left until solid ground.
+var _walk: WaveWalk
+var _steps := WaveWalk.STEPS
 
 
 func _ready() -> void:
 	player = get_parent().get_parent() as Player
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	_n += 1
-	if _n % TICK_EVERY != 0 or not player.is_local:
+	if not player.is_local:
+		return
+	if player.progression.has_flag("wave_walk"):
+		_wave_tick(delta)
+	if _n % TICK_EVERY != 0:
 		return
 	if not player.in_fight():
 		_unbowed_used = false
 		flow = 0
 	if player.power.buff("w_berserk"):
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 3, FURY])
+	var helm := player.progression.stat("helm_sense")
+	if helm > 0.0 and player.context == Player.Context.HELM and _n % HELM_EVERY == 0:
+		Net.everyone("_all_will", ["helm", [helm, HELM_HOLD]])
+
+
+## Wave Walk (Tide): the sea under your feet while the steps last; ground fills them again.
+func _wave_tick(delta: float) -> void:
+	if _walk:
+		if _walk.tick(delta):
+			_steps = _walk.steps
+			return
+		_steps = _walk.steps
+		_walk.queue_free()
+		_walk = null
+		return
+	if player.is_on_floor() and player.water_depth() < -WaveWalk.ABOVE:
+		_steps = WaveWalk.STEPS
+	elif _steps > 0 and WaveWalk.can_start(player):
+		_walk = WaveWalk.start(player, _steps)
 
 
 ## Extra damage share now (Player.damage_multiplier).
@@ -106,6 +136,17 @@ func berserk() -> void:
 
 ## Something every machine does for a Will (Net._all_will): "still" [centre, reach, secs] slows the foes there.
 static func all(op: String, a: Array) -> void:
+	var ship = (Engine.get_main_loop() as SceneTree).get_first_node_in_group("ship")
 	match op:
 		"still":
 			StillPoint.start(a[0], a[1], a[2])
+		"swell":
+			if ship and (Engine.get_main_loop() as SceneTree).root.get_node("Net").is_host():
+				WillArts.swell_foes(ship)
+		"wind":
+			if ship:
+				ship.will_wind = maxf(ship.will_wind, float(a[0]))
+		"helm":
+			if ship:
+				ship.will_guard_k = float(a[0])
+				ship.will_guard = float(a[1])

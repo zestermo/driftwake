@@ -52,6 +52,10 @@ const ALL := {
 			{"uses": 40, "cost": 3, "cooldown": 3.0, "name": "Future Sight", "desc": "Mastered: a stance you switch on and off. While on, it dodges an attack by itself every 3 s; it drains 2 energy a second and drops when you run dry."},
 		]},
 	# --- Will (WillPaths' 1.24 paths; run by WillArts in the Technique state) ---
+	"will_swell": {"name": "Swell", "tree": "base", "cost": 25.0, "cooldown": 45.0, "needs": "", "fruit": "", "state": "Technique",
+		"desc": "Tide Will. Aboard your ship: stamp the deck and a wave rolls over it, throwing every boarder off."},
+	"will_wind": {"name": "Call the Wind", "tree": "base", "cost": 20.0, "cooldown": 180.0, "needs": "", "fruit": "", "state": "Technique",
+		"desc": "Tide Will. Aboard or beside your ship: whistle up a wind, 25% more sail speed for 30 s."},
 	"will_still_point": {"name": "Still Point", "tree": "base", "cost": 30.0, "cooldown": 120.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Tempo Will. Find the still point: for 3 s every foe within 20 m moves and strikes at half speed, and you don't."},
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",

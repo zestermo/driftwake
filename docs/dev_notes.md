@@ -7028,3 +7028,25 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   StillPoint only while one runs (its foes, a few seconds every 2 minutes at most).
 - **Tests:** t/will/open_paths, t/will/tempo, t/will/fury (new group); t/progression and t/ui/skills_captain_forks
   still pass. Co-op for nettest to cover later: a guest's Still Point slowing the host's grunts.
+
+## 2026-10-26: 1.24 Will paths, piece 2: Tide
+- **Nodes.** Deep Breath (`breath_pct` 1.0, `swim_pct` 0.3), Sea Legs: Wave Walk (`wave_walk`) / Swell (skill
+  `will_swell`, 25 energy, 45 s), Call the Wind (skill `will_wind`, 20 energy, 3 min), Helm Sense (`helm_sense` 0.2).
+- **Wave Walk** (`scripts/powers/wave_walk.gd`, run by WillPowers every tick only for a captain with the node): onto
+  deep water (Ocean.depth_at > 1 m) faster than 5 m/s, feet within 0.6 m above / 0.25 m under the surface: a small
+  StaticBody floor (layer 1) under the feet at the surface, moved with you each tick, so Move/Idle/Jump work on it as on
+  ground. A step every 0.32 s on it (a ring and spray through Net.fx), 6 steps, then it's gone and you swim. Ground or
+  a deck (feet 0.6 m+ above the water) fills the steps. Its own depth check excludes it (Ocean.depth_at's exclude:
+  the player's water_depth_at hit the floor and ended it every tick).
+- **Swell:** only aboard your ship (else refunded); `_all_will "swell"`: the host throws each foe on the deck
+  (`ship.aboard`) out over the nearer rail (`launched`, 10 out / 9 up) and carries its body with the ragdoll's hips
+  for 1.2 s with a collision exception to the hull (the grunt's down state follows the hips only across, so the body
+  stuck at the bulwark). Waves and spray over the deck on every screen.
+- **Call the Wind:** aboard or within 30 m of your ship: `_all_will "wind"` sets `Ship.will_wind` 30 s on every
+  machine (every machine runs the sail sim); `Ship.will_k()` (1.25) multiplies the top speed.
+- **Helm Sense:** the helmsman's machine sends `_all_will "helm" [0.2, 2.5]` every 60 ticks while at the helm;
+  `Ship.hull_hit` (host) takes `will_guard_k` off while `will_guard` lasts.
+- **Per tick:** a Wave Walk captain: a few checks a tick (state and speed first, the water lookups only when those
+  pass), the floor moved while walking. Ship: two subtractions.
+- **Tests:** t/will/tide. Co-op for nettest: a guest's Call the Wind on the host's ship, a guest helmsman's Helm Sense
+  on the host's hull, a guest's Swell throwing the host's boarders.

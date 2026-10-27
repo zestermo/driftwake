@@ -6,6 +6,7 @@ extends RefCounted
 ##   sense  Sense: Flash (1), Foresight (2), Crowd Read (3); its passive Instinct
 ##   conq   Captain's Will: Roar (2), Clash (3); its passive King's Will (needs 4 Will spent in each of the others)
 ## 1.24 (docs/v1_24_previews.md section 2), always open, tiers by all the Will spent (OPEN); at work in WillPowers / WillArts:
+##   tide   Tide: Deep Breath (1), Sea Legs: Wave Walk / Swell (2), Call the Wind (3); its passive Helm Sense
 ##   tempo  Tempo: Second Step (1), Rhythm: Cancel / Flow (2), Still Point (3); its passive Light on Your Feet
 ##   fury   Fury: Red Mist (1), Berserk (2), Unbowed (3); its passive Thick Blood
 ## A tier's ability has versions, each bought for the tier's points (1, 2, 3); the first bought is the active one and
@@ -18,10 +19,10 @@ extends RefCounted
 const SOURCES := {"boss": 2, "villain": 2, "hunter": 2, "leviathan": 2, "rival": 1, "officer": 1, "sergeant": 1, "miniboss": 1}
 ## Meditation (Downtime "meditate"): a point for every 3 game days spent meditating (game seconds).
 const MEDITATE_SECS := 3.0 * 1440.0
-const PATHS := ["iron", "sense", "conq", "tempo", "fury"]
+const PATHS := ["iron", "sense", "conq", "tide", "tempo", "fury"]
 const PATH_NAMES := {"iron": "Iron Will", "sense": "Sense", "conq": "Captain's Will", "tide": "Tide", "tempo": "Tempo", "fury": "Fury", "bond": "Bond"}
 ## The Will page's two sets of columns (A/D or a click flips them).
-const PAGES := [["iron", "sense", "conq"], ["tempo", "fury"]]
+const PAGES := [["iron", "sense", "conq"], ["tide", "tempo", "fury"]]
 ## The 1.24 paths (docs/v1_24_previews.md section 2): five nodes each, always open, their tiers opened by all the Will
 ## you've spent (a path's own five nodes, 10 Will, can't reach 4 and 8 by themselves).
 const OPEN := ["tide", "tempo", "fury", "bond"]
@@ -62,6 +63,13 @@ const ABILITIES := {
 		["w_roar_far", "Far Roar", {"roar_reach": 0.5}, "The roar reaches half again as far.", "conquerors_haki", "Far"]]],
 	"w_clash": ["conq", 3, "Clash", "When two great wills meet, they clash: timed presses decide who breaks.", [
 		["w_clash", "Clash", {"will_clash": 1}, "Two big Will attacks meeting (a boss's, a rival's or a crewmate's in a duel) start a clash won by timed presses.", "", "Clash"]]],
+	"w_breath": ["tide", 1, "Deep Breath", "The sea's own lungs: you hold your breath longer and swim faster.", [
+		["w_breath_v", "Deep Breath", {"breath_pct": 1.0, "swim_pct": 0.3}, "Twice the breath on a dive, and you swim 30% faster.", "", "Breath"]]],
+	"w_sea": ["tide", 2, "Sea Legs", "The sea answers you: it holds you for a few steps, or rolls over your deck at a word.", [
+		["w_wave", "Wave Walk", {"wave_walk": 1}, "Run onto deep water and it holds you for 6 steps, then you swim. Ground or a deck fills the steps again.", "", "Walk"],
+		["w_swell", "Swell", {}, "Aboard your ship (the skill): a wave rolls over the deck and throws every boarder off it.", "will_swell", "Swell"]]],
+	"w_wind": ["tide", 3, "Call the Wind", "Whistle up a wind (the skill): your ship's sails fill.", [
+		["w_wind_v", "Call the Wind", {}, "Aboard or beside your ship: 25% more sail speed for 30 s. Every 3 minutes.", "will_wind", "Wind"]]],
 	"w_step": ["tempo", 1, "Second Step", "Kick off the air once more: one more jump in mid-air.", [
 		["w_step_v", "Second Step", {"air_jumps": 1}, "+1 air step.", "", "Step"]]],
 	"w_rhythm": ["tempo", 2, "Rhythm", "Fight to your own beat: dash out of a blow's recovery, or flow faster while nothing touches you.", [
@@ -81,6 +89,7 @@ const PASSIVES := {
 	"h_harden": ["iron", "Hardening", {"defense": 8.0, "energy_regen_pct": 0.2}, "Passive (a slot). Will under the skin: +8 defense, and energy refills 20% faster."],
 	"h_instinct": ["sense", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider."],
 	"h_will": ["conq", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."],
+	"h_helm": ["tide", "Helm Sense", {"helm_sense": 0.2}, "Passive (a slot). While you steer, your ship's hull takes 20% less damage."],
 	"h_feet": ["tempo", "Light on Your Feet", {"move_pct": 0.08}, "Passive (a slot). +8% move speed."],
 	"h_blood": ["fury", "Thick Blood", {"thick_blood": 0.5}, "Passive (a slot). Bleeding, burning and poison hurt you half as much."],
 }

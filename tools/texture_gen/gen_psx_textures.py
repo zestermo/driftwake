@@ -2699,7 +2699,15 @@ def gen_will_icons():
         d.ellipse([8, 9, 16, 15], fill=W_)
         d.ellipse([10, 10, 14, 14], fill=BLACK)
 
-    for name, fn in (("will_still_point", still_point), ("will_berserk", berserk), ("will_wind", call_wind),
+    def swell(d):
+        # a wave curling over a deck rail, a figure thrown off it
+        d.rectangle([2, 18, 22, 21], fill=WOOD)
+        d.arc([3, 4, 21, 26], 180, 300, fill=SEA, width=3)
+        d.arc([6, 8, 18, 22], 190, 290, fill=SEA_L, width=1)
+        d.ellipse([17, 3, 20, 6], fill=BLACK)
+        d.line([(18, 6), (21, 10)], fill=BLACK, width=1)
+
+    for name, fn in (("will_swell", swell), ("will_still_point", still_point), ("will_berserk", berserk), ("will_wind", call_wind),
                      ("will_twin", twin_finisher), ("will_flag", plant_flag), ("will_glimpse", glimpse)):
         _icon("skill_" + name, fn)
 

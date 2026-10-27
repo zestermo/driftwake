@@ -609,5 +609,7 @@ tools/dev/t/will/*                        t/will
 scripts/powers/will_powers.gd             t/will
 scripts/powers/will_arts.gd               t/will
 scripts/powers/still_point.gd             t/will/tempo
+scripts/powers/wave_walk.gd               t/will/tide
+scripts/ship/ship.gd                      t/will/tide
 scripts/progression/will_paths.gd         t/will t/progression/will_paths
 scripts/player_states/light_attack_state.gd t/will/tempo
