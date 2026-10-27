@@ -7103,3 +7103,19 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   "lose ..."), and the set line ("Corsair set 2/3: +1 air step"). Sets (`GearStats.SETS`): Admiralty bicorne + admiral's
   coat + cavalier boots (+10% vs the Admiralty), Corsair tricorn + captain's coat + tall boots (+1 air step).
 - Tests: t/gear/stats (new). Render: tools/dev/gearshot.gd (tools/dev/out/gear/g_*.png).
+
+## 2026-10-26: 1.24 gear stats, piece 2: weight on the dodge and the swim; sets
+- **Load** (GearStats.load_of, Player.gear_load): medium pieces 1, heavy 2, summed over what's worn: LIGHT at 0 (nothing
+  but cloth: barefoot or shoes, no leather), HEAVY from 7 (most of a steel kit), MEDIUM between, so a plain outfit's
+  leather boots keep today's dash. Shown after DMG over the paper doll.
+- **Dodge** (DodgeState): with no Acrobatics style, LIGHT rolls (the roll at x1.15: ~5.2 m against the dash's ~3.4),
+  HEAVY hops ("hop": HOP_DIST 1.7 m in 0.3 s, 0.13 s untouchable, a 2.6 m/s pop, the "sidestep" action; parry held at
+  its end lands back in Block). A style keeps its move, x LOAD_DODGE_K (1.15 / 1 / 0.75). From the guard (BlockState),
+  heavy armour hops with the guard kept up (Rolling Guard's path, HOP_DUR 0.3, 1.5 m): blows from the front still
+  glance off. Animations are existing actions, so crewmates see them through HumanoidSync as before.
+- **Swim:** GearStats.totals adds LOAD_SWIM (+5% / 0 / -15%) to swim_pct.
+- **Sets:** checked in totals (three pieces worn): the corsair set's air_jumps lands in Player._recalc_stats' max_jumps;
+  the Admiralty set's vs_admiralty_pct in Hurtbox.take_hit (piece 1).
+- Per frame: nothing (the load is summed when a dodge or guard-hop starts, ~11 slots).
+- Tests: t/gear/weight_dodge, t/gear/set_bonus (new); t/player/dodge and dodge_styles still pass (the stage's
+  captain wears boots: medium).

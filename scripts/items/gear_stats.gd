@@ -71,6 +71,15 @@ const LABELS := {
 	"breath_pct": "breath", "xp_pct": "experience", "vs_admiralty_pct": "damage vs the Admiralty", "air_jumps": "air step",
 }
 
+## The load (what all of it weighs: a medium piece 1, a heavy 2): light at 0 (nothing but cloth), heavy from
+## HEAVY_LOAD (most of a steel kit); between, medium, the dash as it always was (a plain outfit's boots are leather).
+const HEAVY_LOAD := 7
+## By load: the dodge (light a long roll, medium the dash, heavy a short hop that keeps the guard), its distance with
+## an Acrobatics dodge style, and swim speed.
+const LOAD_DODGE := ["roll", "dash", "hop"]
+const LOAD_DODGE_K := [1.15, 1.0, 0.75]
+const LOAD_SWIM := [0.05, 0.0, -0.15]
+
 static var _cache := {}
 
 
@@ -150,9 +159,19 @@ static func set_count(slots: Dictionary, id: String) -> int:
 	return n
 
 
-## Everything worn, summed (defence left out: EquipmentComponent.defense), with the full sets' bonuses.
+## LIGHT, MEDIUM or HEAVY: the load of everything worn.
+static func load_of(slots: Dictionary) -> int:
+	var n := 0
+	for it in slots.values():
+		if it and is_wearable(it):
+			n += weight(it)
+	return LIGHT if n == 0 else (HEAVY if n >= HEAVY_LOAD else MEDIUM)
+
+
+## Everything worn, summed (defence left out: EquipmentComponent.defense), with the full sets' bonuses and the load's
+## swim speed.
 static func totals(slots: Dictionary) -> Dictionary:
-	var out := {}
+	var out := {"swim_pct": float(LOAD_SWIM[load_of(slots)])}
 	for it in slots.values():
 		if it == null or not is_wearable(it):
 			continue

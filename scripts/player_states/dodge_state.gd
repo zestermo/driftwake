@@ -21,6 +21,11 @@ const ROLL_IFRAMES := 0.34
 const SIDE_DUR := 0.22
 const SIDE_DIST := 2.1
 const SIDE_IFRAMES := 0.18
+## Heavy armour's hop (GearStats load HEAVY): short, a little off the ground, briefly untouchable.
+const HOP_DUR := 0.3
+const HOP_DIST := 1.7
+const HOP_IFRAMES := 0.13
+const HOP_UP := 2.6
 ## Out of a sidestep this soon you can strike.
 const SIDE_STRIKE := 0.1
 ## A foe's blow live this close while you're untouchable in a sidestep: slipped.
@@ -51,8 +56,10 @@ var _vine_dist: float = 0.0
 const AIR_DASH_DIST := 6.5
 const AIR_DASH_DUR := 0.32
 var _air: bool = false
-## "dash", "roll" or "sidestep".
+## "dash", "roll", "sidestep" or "hop".
 var mode: String = "dash"
+## The load's distance (GearStats.LOAD_DODGE_K).
+var _wk := 1.0
 var _slipped: bool = false
 var _perfect: bool = false
 var _side_sign: float = 1.0
@@ -73,6 +80,11 @@ func enter(data: Dictionary) -> void:
 			mode = "roll"
 		elif pr.has_flag("dodge_sidestep"):
 			mode = "sidestep"
+	# what you wear (GearStats): all cloth rolls long, plate hops short; an Acrobatics style keeps its own, longer or shorter
+	var wt: int = player.gear_load()
+	_wk = float(GearStats.LOAD_DODGE_K[wt])
+	if mode == "dash" and not _air and not _logia:
+		mode = str(GearStats.LOAD_DODGE[wt])
 	_speed = dodge_speed * (1.0 + pr.stat("dodge_dist_pct"))
 	_dur = dodge_duration
 	_iframes = iframes_duration * (1.0 + pr.stat("dodge_iframe_pct"))
@@ -109,6 +121,9 @@ func enter(data: Dictionary) -> void:
 		"sidestep":
 			_sidestep()
 			return
+		"hop":
+			_hop()
+			return
 
 	# dash direction in the model's frame picks sidestep / forward / backstep
 	var local := player.player_model.global_basis.orthonormalized().inverse() * dodge_direction
@@ -143,7 +158,7 @@ func _roll() -> void:
 	var pr := player.progression
 	_dur = ROLL_DUR
 	_iframes = ROLL_IFRAMES * (1.0 + pr.stat("dodge_iframe_pct"))
-	_speed = ROLL_DIST * (1.0 + pr.stat("dodge_dist_pct")) / (0.75 * ROLL_DUR)
+	_speed = ROLL_DIST * _wk * (1.0 + pr.stat("dodge_dist_pct")) / (0.75 * ROLL_DUR)
 	face_direction(dodge_direction, 1.0)
 	player.body_model.dash_dir = Vector2(0, 1)
 	player.body_model.play("dodge_roll", ROLL_DUR)
@@ -156,12 +171,30 @@ func _roll() -> void:
 	TraitMoves.on_dodge(player)
 
 
+## Heavy armour's hop: a short low bound, still facing them, guard kept (held, it lands back in the Block).
+func _hop() -> void:
+	var pr := player.progression
+	_dur = HOP_DUR
+	_iframes = HOP_IFRAMES * (1.0 + pr.stat("dodge_iframe_pct"))
+	_speed = HOP_DIST * (1.0 + pr.stat("dodge_dist_pct")) / (0.7 * HOP_DUR)
+	player.velocity.y = HOP_UP
+	var local := player.player_model.global_basis.orthonormalized().inverse() * dodge_direction
+	player.body_model.dash_dir = Vector2(local.x, -local.z)
+	player.body_model.play("sidestep", HOP_DUR + 0.1)
+	player.squash(-2.0)
+	player.cam_shake(player.DASH_SHAKE * 0.6)
+	Net.fx("dust", [player.global_position - dodge_direction * 0.2 + Vector3(0, 0.05, 0), 5, 0.5])
+	Net.fx("sfx", ["whoosh", player.global_position, -10.0, 0.08, 0.85])
+	_trail_timer = 0.0
+	TraitMoves.on_dodge(player)
+
+
 ## Sidestep: a short sharp slip aside, still facing them.
 func _sidestep() -> void:
 	var pr := player.progression
 	_dur = SIDE_DUR
 	_iframes = SIDE_IFRAMES * (1.0 + pr.stat("dodge_iframe_pct"))
-	_speed = SIDE_DIST * (1.0 + pr.stat("dodge_dist_pct")) / (0.72 * SIDE_DUR)
+	_speed = SIDE_DIST * _wk * (1.0 + pr.stat("dodge_dist_pct")) / (0.72 * SIDE_DUR)
 	var local := player.player_model.global_basis.orthonormalized().inverse() * dodge_direction
 	player.body_model.dash_dir = Vector2(local.x, -local.z)
 	player.body_model.play("sidestep", SIDE_DUR + 0.12)
@@ -191,6 +224,8 @@ func physics_update(delta: float) -> void:
 			spd = _speed * (0.9 if u < 0.62 else lerpf(0.9, 0.1, (u - 0.62) / 0.38))
 		"sidestep":
 			spd = _speed * maxf(1.5 - 1.55 * u, 0.0)
+		"hop":
+			spd = _speed * maxf(1.3 - 1.2 * u, 0.1)
 	player.velocity.x = dodge_direction.x * spd
 	player.velocity.z = dodge_direction.z * spd
 	player.move_and_slide()
@@ -235,6 +270,9 @@ func physics_update(delta: float) -> void:
 	if timer >= _dur:
 		if _air:
 			transitioned.emit(self, "Fall", {})
+			return
+		if mode == "hop" and player.inp.pressed("parry"):
+			transitioned.emit(self, "Block", {})
 			return
 		var move_input := get_movement_input()
 		if move_input.length() > 0.1:

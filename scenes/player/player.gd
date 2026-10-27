@@ -551,6 +551,11 @@ func _recalc_stats() -> void:
 	stats_changed.emit()
 
 
+## What the worn gear weighs (GearStats LIGHT, MEDIUM, HEAVY): sets the dodge and the swim.
+func gear_load() -> int:
+	return GearStats.load_of(equipment.slots)
+
+
 func dodge_cost() -> float:
 	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct")) * (0.7 if progression.has_flag("dodge_sidestep") else 1.0)
 

@@ -650,7 +650,8 @@ func refresh() -> void:
 	_refresh_loot()
 	_gold_label.text = "%d G" % inv.count("gold")
 	_name_label.text = str(pl.body_model.look.get("name", "Captain")) if pl.body_model else "Captain"
-	_stats_label.text = "LV %d    DEF %d    DMG x%.2f" % [pl.progression.level, int(pl.defense()), pl.damage_multiplier()]
+	_stats_label.text = "LV %d    DEF %d    DMG x%.2f    %s" % [pl.progression.level, int(pl.defense()), pl.damage_multiplier(),
+		GearStats.WEIGHT_NAMES[pl.gear_load()].to_upper()]
 	if _tab == "character":
 		_fill_sheet()
 	_show_slot(_hover)

@@ -17,9 +17,14 @@ const ROLL_DIST := 3.0
 const ROLL_COST := 0.6
 const PLANTED_COST := 0.7
 const PLANTED_MOVE := 0.5
+## Heavy armour's guarded hop.
+const HOP_DUR := 0.3
+const HOP_DIST := 1.5
 
 var t: float = 0.0
 var _roll_t: float = -1.0
+var _roll_dur := ROLL_DUR
+var _roll_dist := ROLL_DIST
 var _roll_dir := Vector3.ZERO
 var _planted: bool = false
 
@@ -51,9 +56,10 @@ func physics_update(delta: float) -> void:
 	if not player.inp.pressed("parry"):
 		transitioned.emit(self, "Idle" if mi.length() < 0.1 else "Move", {})
 		return
-	if player.progression.has_flag("rolling_guard"):
+	var heavy: bool = player.gear_load() == GearStats.HEAVY
+	if player.progression.has_flag("rolling_guard") or heavy:
 		if input_buffer.consume_action("dodge") and player.spend_stamina(player.dodge_cost() * ROLL_COST):
-			_roll(mi)
+			_roll(mi, heavy and not player.progression.has_flag("rolling_guard"))
 			return
 	elif wants_dodge():
 		transitioned.emit(self, "Dodge", {})
@@ -67,12 +73,19 @@ func physics_update(delta: float) -> void:
 
 
 ## Rolling Guard: over and up with the guard kept up, still facing them (input's way, or back out of reach).
-func _roll(mi: Vector2) -> void:
+## In heavy armour (GearStats) without it: a short hop instead, the guard still up.
+func _roll(mi: Vector2, hop: bool) -> void:
 	_roll_t = 0.0
+	_roll_dur = HOP_DUR if hop else ROLL_DUR
+	_roll_dist = HOP_DIST if hop else ROLL_DIST
 	_roll_dir = get_camera_relative_direction(mi) if mi.length() > 0.1 else -get_camera_forward()
 	var local := player.player_model.global_basis.orthonormalized().inverse() * _roll_dir
 	player.body_model.dash_dir = Vector2(local.x, -local.z)
-	player.body_model.play("guard_roll", ROLL_DUR)
+	if hop:
+		player.velocity.y = 2.2
+		player.body_model.play("sidestep", HOP_DUR + 0.1)
+	else:
+		player.body_model.play("guard_roll", ROLL_DUR)
 	player.squash(-2.5)
 	player.progression.add_life("defense", 3)
 	var at := player.global_position
@@ -82,15 +95,15 @@ func _roll(mi: Vector2) -> void:
 
 func _roll_update(delta: float) -> void:
 	_roll_t += delta
-	var u := clampf(_roll_t / ROLL_DUR, 0.0, 1.0)
-	var spd := ROLL_DIST / (0.8 * ROLL_DUR) * (1.0 if u < 0.6 else lerpf(1.0, 0.5, (u - 0.6) / 0.4))
+	var u := clampf(_roll_t / _roll_dur, 0.0, 1.0)
+	var spd := _roll_dist / (0.8 * _roll_dur) * (1.0 if u < 0.6 else lerpf(1.0, 0.5, (u - 0.6) / 0.4))
 	player.velocity.x = _roll_dir.x * spd
 	player.velocity.z = _roll_dir.z * spd
 	player.move_and_slide()
 	face_camera(delta)
 	if _roll_t >= 0.16 and _roll_t - delta < 0.16:
 		Net.fx("puff_ring", [player.global_position + Vector3(0, 0.05, 0), "dust_low", 4, 0.22, 0.4, 0.4, Color(0.8, 0.74, 0.64, 0.7), 1.4])
-	if _roll_t < ROLL_DUR:
+	if _roll_t < _roll_dur:
 		return
 	_roll_t = -1.0
 	if not player.inp.pressed("parry"):
