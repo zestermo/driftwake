@@ -7050,6 +7050,37 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   pass), the floor moved while walking. Ship: two subtractions.
 - **Tests:** t/will/tide. Co-op for nettest: a guest's Call the Wind on the host's ship, a guest helmsman's Helm Sense
   on the host's hull, a guest's Swell throwing the host's boarders.
+
+## 2026-10-26: 1.24 Will paths, piece 3: Bond
+- **Nodes.** Link (`will_link`), Side by Side: Joint Gauge (`joint_gauge`) / Shelter (`shelter`), Twin Finisher (skill
+  `will_twin`, no energy, 8 s, needs the gauge full: PowerComponent.can_cast says "Joint gauge not full"; the skill
+  bar draws the gauge along the slot's foot), Crew's Strength (`crew_strength` 0.04).
+- **Where.** `scripts/powers/will_bond.gd` (WillBond, WillPowers' child "Bond"); Twin Finisher in WillArts
+  (`will_twin` lead, `will_twin_mate`, `twin_net`). Crewmates are the other captains in "players" that aren't AI.
+- **Host-arbitrated.** Every machine keeps `WillBond.links` (captain key -> crewmate key, or "ship") and
+  `WillBond.sheltered`. A holder's machine re-picks the nearest standing crewmate within 15 m every 20 ticks and asks
+  (`_all_will "link_ask"`); the host checks the distance and sends `"link"` to all. A blow on a linked crewmate is
+  split on *their* machine (where their hits land): 85% theirs, 15% sent to the holder (`"took"`, taken straight off
+  health). Shelter: the shelterer's machine calls `"shelter" [by, ward, 0.7 s]` while a crewmate within 3 m is down or
+  under 30%; the ward's machine sends that blow to the shelterer instead. Twin Finisher: the lead spends the gauge and
+  asks `"twin_ask"`; the host lets the mate in (standing, not in a technique or at the helm, within 12 m) and sends
+  `"twin"`; the mate's own machine forces its Technique `will_twin_mate`. Each side closes on the foe (the lead on the
+  near side, the mate opposite the lead), strikes (0.3 / 0.42 s), and both cross through it at 0.7 s (a 2.6 m
+  unblockable knockdown round the foe from each); the lead draws `twin_cross` in both weapons' colours. Hits route to
+  the host as usual. Untouchable from the start to 0.95 s.
+- **Solo (bonded to the ship).** Within 15 m of her: 15% of the blows on you go to her hull (never below 1); she counts
+  as a crewmate for Crew's Strength and the gauge (within 20 m); Shelter: once a fight a blow landing while you're under
+  30% does nothing; Twin Finisher's second weapon is her broadside on the foe (`Ship.broadside`).
+- **Departures from the table, forced by the code:** downed captains can't be hit at all in today's game, so Shelter
+  covers a crewmate who is down *or* under 30% health (the blow is the shelterer's); the gauge fills at half rate with
+  Shelter carried instead of Joint Gauge (Twin Finisher would otherwise be dead with Shelter); "solo shelter on
+  yourself once a fight" is read as a blow under 30% health.
+- **Per tick:** a Bond captain: the sheltered table's countdown (empty unless someone shelters) and every 20 ticks the
+  crew count, the link pick and a tether streak. Messages: a link ask only when the pick changes; shelter calls 3 a
+  second only while a crewmate needs it.
+- **Tests:** t/will/bond_crew, t/will/bond_solo. Render: abilityshot `will_twin` (spawns a captain-style crewmate and
+  links it). Co-op for nettest: a guest linked to the host (each side's split), a guest's Twin Finisher with the host
+  joining, Shelter across the wire.
 ## 2026-10-26: 1.24 crew techniques, piece 1: the framework and Skyward Kick (docs/v1_24_plan.md, v1_24_previews.md 3)
 - What: every weapon kind gets a two-person crew technique on the crouch key while the weapon is out (C; out of stance
   C still sneaks). Alone (single player, or no captain within `MATE_NEAR` 14 m) the weapon's self version plays at once.

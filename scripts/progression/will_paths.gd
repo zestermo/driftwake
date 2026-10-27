@@ -9,6 +9,7 @@ extends RefCounted
 ##   tide   Tide: Deep Breath (1), Sea Legs: Wave Walk / Swell (2), Call the Wind (3); its passive Helm Sense
 ##   tempo  Tempo: Second Step (1), Rhythm: Cancel / Flow (2), Still Point (3); its passive Light on Your Feet
 ##   fury   Fury: Red Mist (1), Berserk (2), Unbowed (3); its passive Thick Blood
+##   bond   Bond: Link (1), Side by Side: Joint Gauge / Shelter (2), Twin Finisher (3); its passive Crew's Strength
 ## A tier's ability has versions, each bought for the tier's points (1, 2, 3); the first bought is the active one and
 ## the others are switched in at a rest spot (Progression.set_version). A path's next tier opens with Will spent in it
 ## (TIER_AT); the first path is free to pick, a second opens at SECOND_AT Will spent. A passive (PASSIVE_COST) needs the
@@ -19,10 +20,10 @@ extends RefCounted
 const SOURCES := {"boss": 2, "villain": 2, "hunter": 2, "leviathan": 2, "rival": 1, "officer": 1, "sergeant": 1, "miniboss": 1}
 ## Meditation (Downtime "meditate"): a point for every 3 game days spent meditating (game seconds).
 const MEDITATE_SECS := 3.0 * 1440.0
-const PATHS := ["iron", "sense", "conq", "tide", "tempo", "fury"]
+const PATHS := ["iron", "sense", "conq", "tide", "tempo", "fury", "bond"]
 const PATH_NAMES := {"iron": "Iron Will", "sense": "Sense", "conq": "Captain's Will", "tide": "Tide", "tempo": "Tempo", "fury": "Fury", "bond": "Bond"}
 ## The Will page's two sets of columns (A/D or a click flips them).
-const PAGES := [["iron", "sense", "conq"], ["tide", "tempo", "fury"]]
+const PAGES := [["iron", "sense", "conq"], ["tide", "tempo", "fury", "bond"]]
 ## The 1.24 paths (docs/v1_24_previews.md section 2): five nodes each, always open, their tiers opened by all the Will
 ## you've spent (a path's own five nodes, 10 Will, can't reach 4 and 8 by themselves).
 const OPEN := ["tide", "tempo", "fury", "bond"]
@@ -83,6 +84,13 @@ const ABILITIES := {
 		["w_berserk_v", "Berserk", {}, "For 10 s every blow you land heals you 4% of its damage, and blows on you land 20% harder.", "will_berserk", "Berserk"]]],
 	"w_unbowed": ["fury", 3, "Unbowed", "Refuse to fall: once a fight, the blow that would fell you doesn't.", [
 		["w_unbowed_v", "Unbowed", {"unbowed": 1}, "Once a fight a blow that would fell you leaves you at 1 health, and nothing touches you for 2 s.", "", "Unbowed"]]],
+	"w_link": ["bond", 1, "Link", "Bound to a crewmate: you take a share of what lands on them.", [
+		["w_link_v", "Link", {"will_link": 1}, "Tethered to the nearest crewmate within 15 m: you take 15% of every blow on them. Alone, bonded to your ship: 15% of the blows on you go to her hull.", "", "Link"]]],
+	"w_side": ["bond", 2, "Side by Side", "Fight as one: build a joint gauge together, or shelter a crewmate who's down.", [
+		["w_gauge", "Joint Gauge", {"joint_gauge": 1}, "Your blows landed with your link within 8 m (alone: your ship within 20 m) fill the joint gauge for Twin Finisher; half as fast without this.", "", "Gauge"],
+		["w_shelter", "Shelter", {"shelter": 1}, "A crewmate within 3 m who's down or under 30% health takes nothing: the blow is yours. Alone: once a fight, a blow while you're under 30% does nothing.", "", "Shelter"]]],
+	"w_twin": ["bond", 3, "Twin Finisher", "Spend the full joint gauge (the skill): you and your link strike as one.", [
+		["w_twin_v", "Twin Finisher", {}, "Gauge full: you and your linked crewmate close on a foe from both sides and cross your weapons through it. Alone, your ship's broadside is the second weapon.", "will_twin", "Twin"]]],
 }
 ## Each path's passive: id -> [path, name, effects, desc] (bought for PASSIVE_COST once the path's first ability is yours).
 const PASSIVES := {
@@ -91,6 +99,7 @@ const PASSIVES := {
 	"h_will": ["conq", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."],
 	"h_helm": ["tide", "Helm Sense", {"helm_sense": 0.2}, "Passive (a slot). While you steer, your ship's hull takes 20% less damage."],
 	"h_feet": ["tempo", "Light on Your Feet", {"move_pct": 0.08}, "Passive (a slot). +8% move speed."],
+	"h_crew": ["bond", "Crew's Strength", {"crew_strength": 0.04}, "Passive (a slot). +4% damage for every crewmate within 20 m (alone: your ship)."],
 	"h_blood": ["fury", "Thick Blood", {"thick_blood": 0.5}, "Passive (a slot). Bleeding, burning and poison hurt you half as much."],
 }
 ## The Will milestones of saves before 1.23 (format < 8): each comes back as SOURCES["boss"] Will points.

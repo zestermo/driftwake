@@ -31,10 +31,19 @@ var _n := 0
 ## Wave Walk: the floor under you on the water (WaveWalk), and the steps left until solid ground.
 var _walk: WaveWalk
 var _steps := WaveWalk.STEPS
+## Bond's link, gauge and shelter (WillBond).
+var bond: WillBond
+## Rally: the share it gives while its buff "w_rally" lasts; Weak Point's marks on the boss near (WillSight).
+var _rally_k := 0.0
+var _weak: WillSight
+var _weak_boss: Node
 
 
 func _ready() -> void:
 	player = get_parent().get_parent() as Player
+	bond = WillBond.new()
+	bond.name = "Bond"
+	add_child(bond)
 
 
 func _physics_process(delta: float) -> void:
@@ -78,7 +87,7 @@ func damage_k() -> float:
 	if pr.has_flag("red_mist"):
 		var hc := player.health_component
 		k += (1.0 - hc.current_health / hc.max_health) * 0.01 / MIST_PER
-	return k
+	return k + bond.damage_k()
 
 
 ## Flow's attack speed share now (LightAttackState).
@@ -92,6 +101,7 @@ func landed(hit: HitData) -> void:
 		flow = mini(flow + 1, FLOW_MAX)
 	if player.power.buff("w_berserk"):
 		player.health_component.heal(hit.damage * BERSERK_HEAL)
+	bond.landed(hit)
 
 
 ## Nothing lands on you (Unbowed's moment).
@@ -108,6 +118,7 @@ func incoming(hit: HitData, dmg: float) -> float:
 		flow = 0
 	if player.power.buff("w_berserk"):
 		dmg *= 1.0 + BERSERK_TAKEN
+	dmg = bond.incoming(hit, dmg)
 	var hc := player.health_component
 	if pr.has_flag("unbowed") and not _unbowed_used and dmg >= hc.current_health and hc.current_health > 1.0:
 		_unbowed_used = true
@@ -134,7 +145,9 @@ func berserk() -> void:
 	player.cam_kick(0.1, 0.3)
 
 
-## Something every machine does for a Will (Net._all_will): "still" [centre, reach, secs] slows the foes there.
+## Something every machine does for a Will (Net._all_will): "still" [centre, reach, secs] slows the foes there; "swell"
+## (the host throws the boarders off); "wind" [secs], "helm" [share, secs] on the ship; Twin Finisher's "twin_ask" /
+## "twin" (WillArts); the rest are Bond's (WillBond.all).
 static func all(op: String, a: Array) -> void:
 	var ship = (Engine.get_main_loop() as SceneTree).get_first_node_in_group("ship")
 	match op:
@@ -150,3 +163,7 @@ static func all(op: String, a: Array) -> void:
 			if ship:
 				ship.will_guard_k = float(a[0])
 				ship.will_guard = float(a[1])
+		"twin_ask", "twin":
+			WillArts.twin_net(op, a)
+		_:
+			WillBond.all(op, a)

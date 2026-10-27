@@ -3,6 +3,11 @@ class_name WillArts
 ## for ids that aren't theirs. What the paths change outside a skill is WillPowers'.
 ##   will_still_point  Tempo: a held breath, then the world round you slows (StillPoint, every machine)
 ##   will_berserk      Fury: a roar, then WillPowers' berserk buff
+##   will_swell        Tide: aboard, a wave over the deck; the host throws the boarders off (swell_foes)
+##   will_wind         Tide: Call the Wind (Ship.will_wind on every machine)
+##   will_twin         Bond: Twin Finisher's lead (the joint gauge spent); the linked crewmate's machine, told by the
+##                     host (twin_net), runs will_twin_mate: both close on the foe from either side, strike, and cross
+##                     their weapons through it at the same beat. Alone, the ship's broadside fires on it instead.
 
 const STILL_REACH := 20.0
 const STILL_SECS := 3.0
@@ -15,10 +20,31 @@ const SWELL_UP := 9.0
 const SWELL_CLEAR := 1.2
 const WIND_NEAR := 30.0
 const WIND_SECS := 30.0
+## Twin Finisher: the foe it closes on (m), its length, each one's first strike and the crossing finale (base
+## damage), the finale's reach, where each stands from the foe; the beats (s).
+const TWIN_REACH := 10.0
+const TWIN_DUR := 1.1
+const TWIN_HIT := 30.0
+const TWIN_FINAL := 50.0
+const TWIN_RING := 2.6
+const TWIN_GAP := 1.5
+const TWIN_CLOSE := 0.06
+const TWIN_STRIKE := [0.3, 0.42]
+const TWIN_CROSS_AT := 0.7
+const TWIN_SAFE := 0.95
+## The host lets a crewmate join only this close to the lead.
+const TWIN_JOIN := 12.0
 
 
 static func _net() -> Node:
 	return (Engine.get_main_loop() as SceneTree).root.get_node("Net")
+
+
+## A captain's weapon colour (its tree's, plain steel for one without).
+static func _weapon_col(p: Player) -> Color:
+	var fx := (Engine.get_main_loop() as SceneTree).root.get_node("FX")
+	var tr := SkillTree.style_tree(p.style())
+	return fx.tree_col(tr if fx.TREE_FX.has(tr) else "plain", 1)
 
 
 static func enter(s, id: String) -> bool:
@@ -44,9 +70,97 @@ static func enter(s, id: String) -> bool:
 			s._target = ship
 			p.body_model.play("coat" if id == "will_swell" else "foresight", s.dur)
 			net.fx("gather", [p.global_position + Vector3(0, 1.2, 0), 1.4, SEA, 0.3, 12])
+		"will_twin", "will_twin_mate":
+			var lead: bool = id == "will_twin"
+			var foe: Node3D = s._nearest(TWIN_REACH, false) if lead else s._target
+			if foe == null:
+				s._refund("Nobody close enough")
+				return true
+			s._target = foe
+			s.dur = TWIN_DUR
+			p.hurtbox.set_deferred("monitorable", false)
+			p.body_model.play("thrust", 0.4)
+			net.fx("gather", [p.global_position + Vector3(0, 1.2, 0), 1.4, WillBond.COL, 0.2, 12])
+			if lead:
+				var bond: WillBond = p.power.will.bond
+				bond.gauge = 0.0
+				var mate := bond.partner()
+				s.set_meta("twin_with", mate)
+				if mate is Player:
+					net.everyone("_all_will", ["twin_ask", [net.key_of(p), net.key_of(mate), net.key_of(foe)]])
 		_:
 			return false
 	return true
+
+
+## Twin Finisher over the wire. "twin_ask" [lead, mate, foe]: the host lets the mate join if they're standing, not
+## busy in another one, and within TWIN_JOIN of the lead, and tells everyone "twin"; the mate's own machine then runs
+## its half.
+static func twin_net(op: String, a: Array) -> void:
+	var net := _net()
+	var lead := net.node_of(str(a[0])) as Player
+	var mate := net.node_of(str(a[1])) as Player
+	var foe := net.node_of(str(a[2])) as Node3D
+	if lead == null or mate == null or foe == null:
+		return
+	if op == "twin_ask":
+		if net.is_host() and mate.health_component.current_health > 0.0 and not mate.is_bleeding() \
+				and mate.current_state_name() not in ["Downed", "Technique", "Helm"] and mate.global_position.distance_to(lead.global_position) <= TWIN_JOIN:
+			net.everyone("_all_will", ["twin", a])
+		return
+	if mate.is_local:
+		var tech = mate.state_machine.get_node("Technique")
+		tech.set_meta("twin_with", lead)
+		mate.state_machine.force_state("Technique", {"id": "will_twin_mate", "target": foe})
+
+
+## One side of Twin Finisher: close on the foe (the lead on the near side, the mate on the far side from the lead),
+## strike, and both cross through it at TWIN_CROSS_AT; the lead draws the cross in both their colours (and, bonded to
+## the ship, calls her broadside on it).
+static func _twin(s, p: Player, delta: float) -> void:
+	var net := _net()
+	var lead: bool = s.id == "will_twin"
+	var foe: Node3D = s._target
+	var with_ = s.get_meta("twin_with") if s.has_meta("twin_with") else null
+	if not is_instance_valid(foe):
+		s._rooted(delta, 0.0)
+		return
+	if s._once("close", TWIN_CLOSE):
+		var from: Vector3 = p.global_position if lead or not is_instance_valid(with_) else (with_ as Node3D).global_position
+		var to := foe.global_position - from
+		to.y = 0.0
+		to = to.normalized() if to.length() > 0.05 else -foe.global_basis.z
+		var spot := foe.global_position + to * (-TWIN_GAP if lead else TWIN_GAP)
+		net.fx("afterimage", [p.body_model, WillBond.COL, 0.25])
+		s._place(Vector3(spot.x, p.global_position.y, spot.z))
+		s._dir = (foe.global_position - spot).normalized() * Vector3(1, 0, 1)
+		s.face_direction(s._dir, 1.0)
+	else:
+		s._rooted(delta, 0.0)
+	if s._once("strike", TWIN_STRIKE[0 if lead else 1]):
+		p.body_model.play("dual_cross", 0.5)
+		s._strike(foe, s._hd(TWIN_HIT, 2.0, false))
+		net.fx("slash", [p.player_model, "right" if lead else "left", 0.25, _weapon_col(p)])
+		net.fx("sfx", ["whoosh_big", p.global_position, -3.0, 0.05, 1.2 if lead else 1.05])
+	if s._once("cross", TWIN_CROSS_AT):
+		var hd: HitData = s._hd(TWIN_FINAL, 10.0, true)
+		hd.unblockable = true
+		for e in p.power.enemies_in(foe.global_position + Vector3(0, 0.9, 0), TWIN_RING):
+			s._strike(e, hd.duplicate())
+		if lead:
+			var other: Color = _weapon_col(with_) if with_ is Player else WillArts.SEA
+			var at := foe.global_position + Vector3(0, 1.1, 0)
+			net.fx("twin_cross", [at, s._dir, 2.4, _weapon_col(p), other, 0.35])
+			net.fx("ring", [foe.global_position + Vector3(0, 0.1, 0), Vector3.UP, TWIN_RING + 0.6, WillBond.COL, 0.35, 0.14])
+			net.fx("sfx", ["clash", at, 2.0, 0.0, 0.8])
+			s._moment(0.35, 0.25, 0.2)
+			p.power.will.bond.gauge = 0.0
+			if with_ != null and with_.is_in_group("ship"):
+				var local: Vector3 = (with_ as Node3D).global_transform.affine_inverse() * foe.global_position
+				with_.broadside(1.0 if local.x >= 0.0 else -1.0, foe.global_position, p)
+		p.cam_shake(0.3)
+	if s._once("safe", TWIN_SAFE):
+		p.hurtbox.set_deferred("monitorable", true)
 
 
 ## The crew's ship if you're aboard it (reach 0) or within `reach` m of it, else null.
@@ -92,8 +206,8 @@ class _Carry extends RefCounted:
 			body.global_position = h.hips.global_position - Vector3.UP * h.hip_y * h.global_basis.get_scale().y
 
 
-## The host's side of Swell: each foe on the deck flung out over the nearer rail, its body let through the bulwark
-## (world collision off) for SWELL_CLEAR s so it follows its limbs into the sea. Returns how many.
+## The host's side of Swell: each foe on the deck flung out over the nearer rail, its body carried with its limbs
+## through the bulwark (_Carry) into the sea. Returns how many.
 static func swell_foes(ship: Node3D) -> int:
 	var tree := ship.get_tree()
 	var n := 0
@@ -146,6 +260,8 @@ static func update(s, delta: float) -> bool:
 				net.fx("speed_lines", [sail_at, -(s._target as Node3D).global_basis.z, SEA_FOAM, 14, 5.0, 0.6])
 				net.fx("sfx", ["whoosh_big", p.global_position, 0.0, 0.05, 0.6])
 				p.cam_kick(0.1, 0.5)
+		"will_twin", "will_twin_mate":
+			_twin(s, p, delta)
 		_:
 			return false
 	return true

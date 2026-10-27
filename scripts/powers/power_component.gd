@@ -291,6 +291,8 @@ func can_cast(slot: int) -> String:
 	var stance_off := str(sk["id"]) == "foresight" and foresight_stance
 	if cooldown_left(slot) > 0.0 and not free and not stance_off:
 		return "Not ready"
+	if str(sk["id"]) == "will_twin" and will.bond.gauge < WillBond.GAUGE_MAX:
+		return "Joint gauge not full"
 	if slot == ULT:
 		if ult < ULT_MAX:
 			return "Ultimate not charged"
