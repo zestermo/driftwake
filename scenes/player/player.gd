@@ -192,6 +192,8 @@ var inp: CaptainInput = CaptainInput.new()
 ## A captain-style AI (a rival, an Admiralty officer): the full brain and states, fed by a brain instead of the
 ## keyboard; none of the local captain's camera, HUD or saves (docs/v1_19_plan.md "Build notes").
 var is_ai: bool = false
+## An AI captain on the players' side: the training yard's sparring partner (SparringPartner).
+var sparring: bool = false
 ## An AI captain's poise (Poise "rival"; a rival's crewmen "elite"); null for the players.
 var poise: Poise
 var _debug_crew := 0
@@ -221,9 +223,10 @@ func cam_shake(intensity: float, duration: float = 0.2) -> void:
 	CombatManager.apply_camera_shake(intensity, duration)
 
 
-## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128).
+## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128;
+## the training yard's sparring partner is on your side: SparringPartner).
 func foe_mask() -> int:
-	return 128 if is_ai else 32
+	return 128 if is_ai and not sparring else 32
 
 
 ## The camera punching in on this captain's move: the local captain's only.

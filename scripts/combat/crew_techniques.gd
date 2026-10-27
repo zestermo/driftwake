@@ -6,7 +6,8 @@ extends Node
 ## decides who got in first (Net.crew_join), and the move plays on both machines (CrewTechniqueState: the opener's
 ## "lead" side on theirs, the joiner's "partner" side on theirs). With no crewmate near (single player, or nobody
 ## within MATE_NEAR) the weapon's self version plays at once; C again while the zone is open goes alone too.
-## Nobody joining in time costs nothing. One per captain, child "CrewTech" of the Player (puppets too: their zone).
+## Nobody joining in time costs nothing. Alone by a training dummy (single player), the throws are played with the
+## yard's SparringPartner. One per captain, child "CrewTech" of the Player (puppets too: their zone).
 
 const ZONE_R := 3.0
 const ZONE_SECS := 6.0
@@ -155,6 +156,12 @@ func trigger() -> String:
 		_refused_until = now + REFUSE_LOCK
 		return "busy"
 	if _mates_near().is_empty():
+		# (alone in a training yard: the sparring partner steps in for the throws)
+		var yard: Node3D = SparringPartner.at_side(player) if ALL[tid].get("launch", false) and not player.is_ai else null
+		if yard:
+			Net.everyone("_all_crew_offer", [Net.key_of(player), tid, ZONE_SECS])
+			Net.crew_join(player, yard)
+			return "yard"
 		_solo(tid)
 		return "solo"
 	Net.everyone("_all_crew_offer", [Net.key_of(player), tid, ZONE_SECS])

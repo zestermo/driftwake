@@ -30,6 +30,8 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
+			# (the dummy's a target here, not a training yard's: no sparring partner)
+			stage.dummy.remove_from_group("training_dummies")
 			p.unequip_weapon()
 			TK.act("ready_weapon")
 			y0 = p.global_position.y

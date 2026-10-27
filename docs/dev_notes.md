@@ -7172,3 +7172,18 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   on a host-run enemy (the extra crit routes through Hurtbox.take_hit -> Net.route_hit).
 - Tests: t/crew (one per technique, the co-op side with a captain-style AI crewmate, and the self version). Render:
   `AB_STRIKE=0.9 abilityshot ... crew:guardian_stance katana game,side 10 1.0 0.7`.
+
+## 2026-10-26: 1.24 crew techniques, piece 3: the training yard's sparring partner
+- What: single player, alone within 14 m of a training dummy (Brinehollow's yard, every KitCamps.training_yard), a
+  crew technique that throws a crewmate (the six launches) is played with a sparring partner instead of the self
+  version: a captain-style AI ("Sparring Partner", a fixed random look) steps in 1.8 m to your right, joins, takes the
+  throw on its own state like a guest would. Used again it's called back to your side; it leaves once you're 30 m off.
+  The guard, wall, pincer and covering fire keep their self versions in the yard (a partner adds nothing you'd see).
+  Never in co-op (`Net.coop()`): the crew is there for that, and an AI only one machine runs would be a ghost to the rest.
+- Where: `scripts/combat/sparring_partner.gd` (SparringPartner: `at_side`, `in_yard`, the brain: a check a second),
+  CrewTechniques.trigger, Player.sparring (foe_mask 32: its landings hit the foes; hurtbox layer 0, out of the enemies'
+  groups and net_sync), dummy_target.gd joins group "training_dummies".
+- Per frame/tick: the partner's brain checks the distance once a second (game time); the AI captain's own states run
+  like a rival's (rig LOD on), only while it exists.
+- Test: t/crew/yard_partner. The other crew tests take their stage dummy out of "training_dummies" (it's a target
+  there, not a yard).
