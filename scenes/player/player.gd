@@ -503,10 +503,11 @@ func defense() -> float:
 	return d
 
 
-## Share of incoming damage the worn gear soaks up (diminishing returns).
+## Share of incoming damage the worn gear soaks up (diminishing returns, flattening toward 62.5%: a gold heavy kit's
+## ~91 blocks about half, a white one's ~52 about 42%, leather's ~24 about 31%; Zach, 2026-10-27).
 func damage_reduction() -> float:
-	var d := defense()
-	return d / (d + 40.0)
+	var d := maxf(defense(), 0.0)
+	return d / (1.6 * d + 40.0)
 
 
 func _recalc_stats() -> void:
