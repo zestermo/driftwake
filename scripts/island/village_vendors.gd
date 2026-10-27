@@ -39,6 +39,26 @@ const APOTHECARY := {"trade": "grocer", "stock": [["tonic", 28], ["rum", 9], ["b
 	"pool": [["pepper"], ["mushroom"], ["salt"], ["seaweed"], ["egg"]], "size": 2, "buys": {"ingredient": 0.5, "consumable": 0.4}}
 
 
+## Skins (1.24): a village tailor's patterned clothes (here) and a village smith's weapons in another finish
+## (WeaponDesigns.skin_ids), in their pools beside the home shop's (SKIN_SIZE more shown a day).
+const SKINS := {
+	"tailor": [
+		["coat", "longcoat", {"coat": "longcoat", "coat_color": Color(0.4, 0.1, 0.12), "trim_color": Color(0.85, 0.68, 0.24), "coat_pattern": "brocade"}, 1],
+		["coat", "captain", {"coat": "captain", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.85, 0.68, 0.24), "coat_pattern": "brocade"}, 1],
+		["coat", "jacket", {"coat": "jacket", "coat_color": Color(0.62, 0.52, 0.38), "trim_color": Color(0.4, 0.28, 0.18), "coat_pattern": "patched"}, 0],
+		["coat", "frock", {"coat": "frock", "coat_color": Color(0.18, 0.34, 0.2), "trim_color": Color(0.85, 0.68, 0.24), "coat_pattern": "check"}, 1],
+		["torso", "shirt", {"top": "shirt", "sleeves": "long", "top_color": Color(0.9, 0.88, 0.8), "top_pattern": "stripes"}, 0],
+		["torso", "tunic", {"top": "tunic", "sleeves": "short", "top_color": Color(0.66, 0.14, 0.12), "top_pattern": "check"}, 0],
+		["vest", "vest", {"vest": "vest", "vest_color": Color(0.8, 0.62, 0.2), "vest_pattern": "brocade"}, 1],
+		["vest", "vest", {"vest": "vest", "vest_color": Color(0.36, 0.2, 0.44), "vest_pattern": "stripes"}, 0],
+		["legs", "trousers", {"legs": "trousers", "legs_color": Color(0.82, 0.76, 0.62), "legs_pattern": "stripes"}, 0],
+		["legs", "breeches", {"legs": "breeches", "legs_color": Color(0.4, 0.1, 0.12), "legs_pattern": "check"}, 0],
+		["legs", "slops", {"legs": "slops", "legs_color": Color(0.62, 0.52, 0.38), "legs_pattern": "patched"}, 0],
+		["legs", "skirt", {"legs": "skirt", "legs_color": Color(0.14, 0.18, 0.34), "legs_pattern": "check"}, 0]],
+}
+const SKIN_SIZE := 2
+
+
 ## The trades a village with seed `seed_` has (its own stream: nothing else's draws move).
 static func roll(seed_: int, tier: int) -> Array:
 	var rng := RandomNumberGenerator.new()
@@ -63,4 +83,10 @@ static func shop(t: String, who: String) -> Dictionary:
 	var base: Dictionary = (Shops.SHOPS[d["from"]] as Dictionary).duplicate(true) if str(d["from"]) != "" else APOTHECARY.duplicate(true)
 	base["name"] = str(d["shop"]).replace("{n}", who)
 	base["line"] = d["line"]
+	var skins: Array = SKINS.get(t, [])
+	if t == "smith":
+		skins = WeaponDesigns.skin_ids().map(func(i): return [i])
+	if not skins.is_empty():
+		base["pool"] = (base["pool"] as Array) + skins
+		base["size"] = int(base["size"]) + SKIN_SIZE
 	return base

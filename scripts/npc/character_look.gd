@@ -21,6 +21,8 @@ extends RefCounted
 ##   apron bool, apron_color, cape bool, cape_color, cloak bool, cloak_color, mantle bool, mantle_color
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
 ##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
+##   top_pattern, vest_pattern, coat_pattern, legs_pattern: a tailor's skin ("stripes", "check", "brocade", "patched";
+##   absent: plain), only ever from a worn piece
 
 ## Tests running side by side point this at their own file.
 static var save_path := "user://character.cfg"

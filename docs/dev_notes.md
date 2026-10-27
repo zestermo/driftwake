@@ -7187,3 +7187,63 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   like a rival's (rig LOD on), only while it exists.
 - Test: t/crew/yard_partner. The other crew tests take their stage dummy out of "training_dummies" (it's a target
   there, not a yard).
+## 2026-10-26: 1.24 gear stats, piece 1: weight and stats on every piece
+- **GearStats** (`scripts/items/gear_stats.gd`, docs/v1_24_previews.md section 1): a piece's weight by its look style
+  (`WEIGHT`, light unless listed: leather hats/vests/coats/gloves/boots medium, steel heavy) and its stats from its slot
+  row and weight (`TABLE`, the approved table; vests use the torso row, feet the legs row), or for accessories and belts
+  one trait each (`TRAITS`: earring +5% gold, eyepatch +3% crit, sash +5 stamina, pauldron +4 def...). Tier scales the
+  good numbers x1/1.15/1.3/1.5/1.75 (2.0, 2.3 for red, black); drawbacks stay. Purple and up roll a second stat from
+  `BONUS` if the piece has fewer than two good ones (seeded by its id without the tier). Remembered by id.
+- **Defence:** `ItemData.armor()` = GearStats.defense: the table's (medium/heavy) or the trait's; a piece whose row has
+  no defence (light, medium gloves) keeps its own Gear.DEFENSE (felt, cloth), x the tier scale. `ItemData.defense`
+  stays Gear.DEFENSE, so prices are unchanged. Balance: a full heavy kit is ~52 white (was ~24), a light one ~10.
+- **Rolls and saves:** a plunder piece (Gear.random_piece) of purple+ gets `gear_roll` from the stream's state (read, not
+  drawn); it rides in the id (`gear_..._<hash>~<roll>@<tier>`) and as ref[6] of SaveGame.item_ref (Net sends the same
+  ref). A pre-1.24 ref has no roll: its stats come from its id alone, the same every load and on every machine.
+- **On the captain:** Player._recalc_stats sets `Progression.gear = GearStats.totals(equipment.slots)` (defence left out),
+  and Progression.stat adds it like the meal and the kit: one more source in the stat cache, nothing of Will's touched.
+  New keys read: `attack_speed_pct` (LightAttackState's _spd), `poise_pct` (a chance a flinching blow doesn't rock you,
+  Player._on_hit_received), `gold_pct` (a coin picked up is now and then two), `vs_admiralty_pct` (Hurtbox.take_hit on
+  the striker's machine, before the hit is routed: anyone whose look has `admiralty`, set by EnemyShip.marine_look).
+  Each is read once per swing, hit or coin: nothing per frame. Poise and gold roll randf only when the stat is
+  above 0: an unconditional roll on every hit shifted every seeded draw after it (grunttest, powertest failed).
+- **Tooltip:** InventoryScreen.fill_info adds WEIGHT, a line per stat with its difference from the worn piece ("(new)",
+  "lose ..."), and the set line ("Corsair set 2/3: +1 air step"). Sets (`GearStats.SETS`): Admiralty bicorne + admiral's
+  coat + cavalier boots (+10% vs the Admiralty), Corsair tricorn + captain's coat + tall boots (+1 air step).
+- Tests: t/gear/stats (new). Render: tools/dev/gearshot.gd (tools/dev/out/gear/g_*.png).
+
+## 2026-10-26: 1.24 gear stats, piece 2: weight on the dodge and the swim; sets
+- **Load** (GearStats.load_of, Player.gear_load): medium pieces 1, heavy 2, summed over what's worn: LIGHT at 0 (nothing
+  but cloth: barefoot or shoes, no leather), HEAVY from 7 (most of a steel kit), MEDIUM between, so a plain outfit's
+  leather boots keep today's dash. Shown after DMG over the paper doll.
+- **Dodge** (DodgeState): with no Acrobatics style, LIGHT rolls (the roll at x1.15: ~5.2 m against the dash's ~3.4),
+  HEAVY hops ("hop": HOP_DIST 1.7 m in 0.3 s, 0.13 s untouchable, a 2.6 m/s pop, the "sidestep" action; parry held at
+  its end lands back in Block). A style keeps its move, x LOAD_DODGE_K (1.15 / 1 / 0.75). From the guard (BlockState),
+  heavy armour hops with the guard kept up (Rolling Guard's path, HOP_DUR 0.3, 1.5 m): blows from the front still
+  glance off. Animations are existing actions, so crewmates see them through HumanoidSync as before.
+- **Swim:** GearStats.totals adds LOAD_SWIM (+5% / 0 / -15%) to swim_pct.
+- **Sets:** checked in totals (three pieces worn): the corsair set's air_jumps lands in Player._recalc_stats' max_jumps;
+  the Admiralty set's vs_admiralty_pct in Hurtbox.take_hit (piece 1).
+- Per frame: nothing (the load is summed when a dodge or guard-hop starts, ~11 slots).
+- Tests: t/gear/weight_dodge, t/gear/set_bonus (new); t/player/dodge and dodge_styles still pass (the stage's
+  captain wears boots: medium).
+
+## 2026-10-26: 1.24 gear stats, piece 3: the clothing pass and skins at the village tailors and smiths
+- **Clothing skins** (patterns): a look key `<slot>_pattern` (top, vest, coat, legs: in Gear.SLOT_KEYS) picks the
+  fabric BodyBuilder._cloth draws that colour key with: `fabric_stripes`, `fabric_check`, `fabric_brocade`,
+  `fabric_patched` (gen_psx_textures.py `clothes` mode: the fabric weave with the pattern woven in, grayscale, tinted by
+  the piece's dye, 32x32 like fabric). Gear.compose clears a slot's pattern before laying its piece on (a plain coat over
+  a brocade one leaves no brocade); Gear.make names it first ("Brocade Oxblood Long Coat", Gear.PATTERN_NAMES);
+  GearIcons draws the pattern over the icon. Crewmates get it in the look like any key.
+- **Weapon skins:** WeaponDesigns entries with `"skin": true` (the kind's plain weapon in another finish, dmg 1.0:
+  Gilded and Blackwater Cutlass, Sakura Katana, Bloodwood Axe, Silvered Pistol, Jewelled Dirk, Lacquered Spear, Bronze
+  Warhammer, Gilt Greatsword); designs_of leaves them out, so they never drop or turn up in a home shop.
+- **Sold** by the 1.23 village vendors (VillageVendors.shop): a tailor's pool gets SKINS["tailor"] (12 patterned
+  pieces, white and green), a smith's every WeaponDesigns.skin_ids(), each showing SKIN_SIZE (2) more a day.
+- **Textures:** mail (vest "mail", hat "coif") was the fabric weave tinted grey and read as wool: now `mail`, rows of
+  rings lit from above, 64x64 so the rings stay small.
+- **Clipping:** the pauldron sat inside a coat's sleeve and half inside a greatcoat's shoulder cape or a mantle: it
+  now sits 1.4 cm out over any coat, and over the greatcoat's cape and the mantle 3 cm out and 4.5 cm up. The
+  greatcoat's cape still meets its inner edge (the cape is on the torso, the pauldron on the arm); left open.
+- Tests: t/gear/skins (new). Renders: tools/dev/out/gear/skins/{clothes,stripes,check,patched,mail4,pauldron3,
+  weapons,weapons2}_*.png (modelshot with `S.dressed({...})`, model_samples.gd).

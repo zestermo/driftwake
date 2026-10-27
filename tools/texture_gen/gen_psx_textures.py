@@ -521,6 +521,73 @@ def gen_fabric():
     save(to_img(rgb), "fabric")
 
 
+def gen_fabric_patterns():
+    """Fabric skins (1.24, tailors): the fabric weave with a pattern woven in, grayscale and tinted in game by the
+    piece's colour, so a dark stripe or check reads in any dye. 32x32 like fabric (3 tiles a metre on a body)."""
+    rng = np.random.default_rng(1203)
+    n = fbm(32, 4, 2, rng) * 0.5 + rng.random((32, 32)) * 0.5
+    weave = ((np.arange(32)[:, None] + np.arange(32)[None, :]) % 2) * 0.12
+    base = np.clip(0.72 + (norm(n) - 0.5) * 0.25 + weave, 0, 1)
+    ys, xs = np.mgrid[0:32, 0:32]
+
+    def out(v, name):
+        g = (np.clip(v, 0, 1) * 255).astype(np.uint8)
+        save(to_img(np.dstack([g, g, g])), name)
+
+    # stripes: broad dark bands across, a fine one between (sailors' ticking)
+    v = base.copy()
+    v[(ys % 8) < 3] *= 0.55
+    v[(ys % 8) == 5] *= 0.8
+    out(v, "fabric_stripes")
+    # check: two crossing sets of bands, darker where they cross (a plaid)
+    v = base.copy()
+    a = (xs % 16) < 6
+    b = (ys % 16) < 6
+    v[a] *= 0.72
+    v[b] *= 0.72
+    v[(xs % 16) == 10] *= 0.85
+    v[(ys % 16) == 10] *= 0.85
+    out(v, "fabric_check")
+    # brocade: a pale diamond lattice with a dot in each cell (rich coats)
+    v = base.copy() * 0.82
+    d = (np.abs((xs % 16) - 8) + np.abs((ys % 16) - 8))
+    v[d == 7] = np.clip(v[d == 7] * 1.45, 0, 1)
+    v[d <= 1] = np.clip(v[d <= 1] * 1.4, 0, 1)
+    out(v, "fabric_brocade")
+    # patched: squares of other cloth sewn on, stitched round
+    v = base.copy()
+    for (x0, y0, w, h, k) in [(3, 4, 10, 9, 0.68), (18, 15, 11, 12, 1.12), (6, 22, 8, 7, 0.82)]:
+        v[y0:y0 + h, x0:x0 + w] *= k
+        v[y0, x0:x0 + w:2] *= 0.6
+        v[y0 + h - 1, x0:x0 + w:2] *= 0.6
+        v[y0:y0 + h:2, x0] *= 0.6
+        v[y0:y0 + h:2, x0 + w - 1] *= 0.6
+    out(v, "fabric_patched")
+
+
+def gen_mail():
+    """Riveted mail: rows of rings, each a bright rim round a dark hole, the rows offset (grayscale, tinted in game)."""
+    rng = np.random.default_rng(1305)
+    size, cw, rh = 64, 4, 4
+    v = np.full((size, size), 0.34)
+    ys, xs = np.mgrid[0:size, 0:size]
+    for r in range(size // rh):
+        cy = r * rh + 2
+        for c in range(size // cw):
+            cx = c * cw + (2 if r % 2 else 0)
+            dx = (xs - cx + size // 2) % size - size // 2
+            dy = (ys - cy + size // 2) % size - size // 2
+            d = np.sqrt(dx * dx + dy * dy)
+            # a ring lit from above: bright on its upper rim, dull below, dark in the middle and between rings
+            rim = (d >= 0.8) & (d < 1.8)
+            v = np.where(rim, np.maximum(v, 0.9 - np.clip(dy + 1, 0, None) * 0.14), v)
+    v += (rng.random((size, size)) - 0.5) * 0.08
+    pal_g = [0.28, 0.42, 0.58, 0.72, 0.86, 0.96]
+    q = np.array(pal_g)[np.clip((norm(v) * len(pal_g)).astype(int), 0, len(pal_g) - 1)]
+    g = (q * 255).astype(np.uint8)
+    save(to_img(np.dstack([g, g, g])), "mail")
+
+
 def gen_metal():
     rng = np.random.default_rng(1301)
     n = fbm(32, 2, 3, rng)
@@ -2734,6 +2801,9 @@ def main():
     if "village" in sys.argv[1:]:
         gen_cobbles(); gen_sign_smithy()
         return
+    if "clothes" in sys.argv[1:]:
+        gen_fabric_patterns(); gen_mail()
+        return
     if "doors" in sys.argv[1:]:
         gen_door_panel()
         return
@@ -2759,7 +2829,7 @@ def main():
     gen_cloth(1210, hexc("b03a2e"), hexc("e8e0cc"), "cloth_red")
     gen_cloth(1211, hexc("2e5a8a"), hexc("e8e0cc"), "cloth_blue")
     gen_cloth(1212, hexc("d8d0b8"), hexc("d8d0b8"), "canvas", stripes=False)
-    gen_fabric(); gen_metal(); gen_straw()
+    gen_fabric(); gen_fabric_patterns(); gen_mail(); gen_metal(); gen_straw()
     gen_leaves(); gen_palm_frond(); gen_bush(); gen_grass_tuft(); gen_fern()
     gen_driftstone(); gen_rope(); gen_sign_tavern(); gen_sign_fish(); gen_window(); gen_door(); gen_door_panel()
     gen_faces()

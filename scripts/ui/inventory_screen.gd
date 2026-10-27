@@ -650,7 +650,8 @@ func refresh() -> void:
 	_refresh_loot()
 	_gold_label.text = "%d G" % inv.count("gold")
 	_name_label.text = str(pl.body_model.look.get("name", "Captain")) if pl.body_model else "Captain"
-	_stats_label.text = "LV %d    DEF %d    DMG x%.2f" % [pl.progression.level, int(pl.defense()), pl.damage_multiplier()]
+	_stats_label.text = "LV %d    DEF %d    DMG x%.2f    %s" % [pl.progression.level, int(pl.defense()), pl.damage_multiplier(),
+		GearStats.WEIGHT_NAMES[pl.gear_load()].to_upper()]
 	if _tab == "character":
 		_fill_sheet()
 	_show_slot(_hover)
@@ -826,6 +827,19 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		var cur := pl.equipment.get_item(pl.equipment.slot_for(it)) if src in COMPARE else null
 		var arm := int(round(it.armor()))
 		_stat(grid, "DEFENSE", str(arm), arm - (int(round(cur.armor())) if cur else 0) if src in COMPARE else 0, true)
+		if GearStats.is_wearable(it):
+			var wt := GearStats.weight(it)
+			_stat(grid, "WEIGHT", GearStats.WEIGHT_NAMES[wt].to_upper(), 0, false)
+			for l in GearStats.compare_lines(it, cur if src in COMPARE else null):
+				fx.append([l[0], UP if l[1] > 0 else (DOWN if l[1] < 0 else UIStyle.TEXT_DIM)])
+			var set_id := GearStats.set_of(it)
+			if set_id != "":
+				var sd: Dictionary = GearStats.SETS[set_id]
+				var sim := pl.equipment.slots.duplicate()
+				if src != "doll":
+					sim[pl.equipment.slot_for(it)] = it
+				var n := GearStats.set_count(sim, set_id)
+				fx.append(["%s %d/3: %s" % [sd["name"], mini(n, 3), GearStats.bonus_text(set_id)], Color(1.0, 0.85, 0.45) if n >= 3 else UIStyle.TEXT_DIM])
 	elif it.is_consumable():
 		if it.heal_amount > 0.0:
 			_stat(grid, "HEALS", str(int(it.heal_amount)), 0, false)

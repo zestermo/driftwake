@@ -511,6 +511,8 @@ func damage_reduction() -> float:
 
 func _recalc_stats() -> void:
 	var pr := progression
+	if pr:
+		pr.gear = GearStats.totals(equipment.slots)
 	max_stamina = MAX_STAMINA + (attribute("endurance") - 5) * 8.0 + (pr.stat("max_stamina") if pr else 0.0)
 	stamina = minf(stamina, max_stamina)
 	var hc := health_component
@@ -547,6 +549,11 @@ func _recalc_stats() -> void:
 		body_model.kick_pockets = pr != null and pr.has_flag("pockets_black_leg")
 	stamina_changed.emit(stamina, max_stamina)
 	stats_changed.emit()
+
+
+## What the worn gear weighs (GearStats LIGHT, MEDIUM, HEAVY): sets the dodge and the swim.
+func gear_load() -> int:
+	return GearStats.load_of(equipment.slots)
 
 
 func dodge_cost() -> float:
@@ -695,6 +702,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		return
 	if progression.has_flag("steadfast"):
 		return  # Steadfast: light hits don't make you flinch
+	# heavy armour's poise (GearStats): now and then a blow doesn't rock you (rolled only when worn: the draws stay put)
+	var poise_k := progression.stat("poise_pct")
+	if poise_k > 0.0 and randf() < poise_k:
+		return
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
 		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.5, 4.0), "flinch": true})
 
