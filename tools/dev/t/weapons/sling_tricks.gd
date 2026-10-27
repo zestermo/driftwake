@@ -51,6 +51,12 @@ func _process(_d: float) -> bool:
 		1:
 			if not p.is_free():
 				return false
+			# (back on its mark and held still while it aims: after a trick the grunt closes to a metre or two, where a
+			# reticle shot from over the shoulder passes beside it)
+			g.global_position = Vector3(0, g.global_position.y, -7.0)
+			g.reset_physics_interpolation()
+			g.velocity = Vector3.ZERO
+			g.set_physics_process(false)
 			# (the reticle laid on the grunt, as a player aims)
 			var ray: Array = p.reticle_ray()
 			var r: Vector3 = ray[1]
@@ -65,13 +71,14 @@ func _process(_d: float) -> bool:
 			p.state_machine.force_state("Technique", {"id": TRICKS[ti], "slot": 0})
 			until = TK.wait_secs(0.9)
 		2:
+			g.set_physics_process(true)
 			match TRICKS[ti]:
 				"fire_pellet":
 					check("the fire pellet bursts and sets them burning (%d)" % hits, hits >= 1 and g.get_node_or_null("Burn") != null)
 				"smoke_pellet":
 					check("the smoke pellet blinds them: a long stagger (%.1f s, %d blows)" % [longest, hits], longest >= 1.5)
 				"sticky_pellet":
-					check("the sticky pellet roots them where they stand (%.1f s)" % float(g._stagger_len), hits >= 1 and float(g._stagger_len) >= 2.5)
+					check("the sticky pellet roots them where they stand (%.1f s, %d blows, state %d)" % [float(g._stagger_len), hits, int(g.state)], hits >= 1 and float(g._stagger_len) >= 2.5)
 				"blast_pellet":
 					check("the blast pellet knocks them down (%d blows)" % hits, down)
 			ti += 1
