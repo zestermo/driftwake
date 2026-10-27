@@ -7065,3 +7065,58 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   on a host-run enemy (the extra crit routes through Hurtbox.take_hit -> Net.route_hit).
 - Tests: t/crew (one per technique, the co-op side with a captain-style AI crewmate, and the self version). Render:
   `AB_STRIKE=0.9 abilityshot ... crew:guardian_stance katana game,side 10 1.0 0.7`.
+
+## 2026-10-26: 1.24 ranged weapon kinds, piece 1: long guns (docs/weapons_plan.md "Long guns", guns family)
+- **Item and models** (WeaponDesigns kind "longgun", base resources/items/musket.tres "Sea Musket"; meshes in
+  scripts/weapons/gun_models.gd): the right hand at the stock's wrist, the barrel "barrel" m ahead along -Z, the bore
+  LG_BORE above the hand, the stock LG_STOCK back to the butt plate, the lock on the right. Designs: long rifle (eight
+  flats, range x1.3, slower reload), blunderbuss (a brass bell; "spread" 8 pellets in a 0.17 rad cone, range x0.3),
+  boarding carbine (short, quick reload), double fowler (two barrels: "shots" 2, a 4-pellet scatter), jezail (RARE: the
+  curved inlaid stock, range x1.45). Two-handed (Player._offhand_valid), slung on the back (DrawMoves.on_back), drawn with
+  the two-hander's heave. Class "gun", style "long_gun" (GunKinds.STYLE: Player.class_of / style_of).
+- **The stance** (scripts/weapons/gun_moves.gd, "lg_*" from Humanoid._action_pose): the polearm's grip channels solved
+  by PoleMoves.hands (GunMoves.LG_GRIPS: the low ready by the right hip slanting across to the front left, the block
+  level across the front, port arms at a sprint). Side on over the left foot. Aiming is the chest's lean (aim_pitch,
+  already synced).
+- **The shot** (scripts/weapons/long_gun_arts.gd through ShootState: `art.shoot_enter/update/exit`): left click
+  shoulders it (hold "lg_aim", SHOULDER 0.12 s) and fires on release: a tap is the quick shot (34), held AIM_STEADY 0.7
+  s the aim steadies (a glint and a click; x1.5 damage, through the first foe into a second, knockdown; the camera eases
+  in while aiming). Hitscan (GunKinds.aim_point / line: the reticle with a 0.06 rad assist onto a body centre, walls
+  stop it), falloff past 30 m to 0.6 at the range (70 m x design). Scatter guns: pellets in a cone (tighter when
+  steady), each foe struck once for the pellets that found it (7 each, harder close, most of a load point-blank knocks
+  down). One load (Player.max_ammo -> GunKinds.shots), then the ramrod (lg_reload, RELOAD 1.5 s x design; Paper
+  Cartridges / Skirmisher shorten it). The recoil pushes you back a step. Traits: hair-trigger, blasting (shots),
+  thundering (the butt stroke).
+- **Moves**: right click the butt stroke (HeavyAttackState "butt_stroke": lg_butt, breaker, reach "stock"); Stock Rush
+  at a sprint (crossways into them with the shoulder, knockdown); Sky Shot in the air (PlungeState GUN_AIR -> air_enter
+  / air_update: a hang, a steady shot at the reticle with a 0.15 rad assist, the kick up and back; needs the load);
+  parry / block with the gun level across the front (ActionSpecs.PARRIES "long_gun").
+- **Tree** (SkillTrees "long_gun": Marksman / Powder / Stock, element starlight "lg": Starlit Sights 16 / Falling Star
+  25): Iron Sights 3 (steady_ 0.35) · Pinning Shot 8 · Volley Line 14 · Eagle Eye 20 (range_ +30%, pierce_ +1);
+  Powder Burst 5 · Stock Sweep 10 · Hawkeye 30; Stock Rush 2 · Paper Cartridges 4 · Sky Shot 6 · Old Soldier 13
+  (passive) · Marksman's Way 22 (Sniper / Skirmisher). Steps 30. Tab "LONG GUN". New stat keys read by LongGunArts:
+  steady_, range_, pierce_ (Progression.style_stat).
+- **Techniques** (LongGunArts in TechniqueState._arts): Pinning Shot (kneel, the aimed foe within 45 m shot at 0.35 s:
+  30 unblockable, a 2.5 s stagger and rooted), Powder Burst (a double charge from the hip at 0.32 s: 6.5 m cone 28
+  knockdown unblockable, you kicked back 7 m/s; doesn't spend the load), Volley Line (up to three foes ahead within 32
+  m, a shot each at 0.25/0.55/0.85 s, 22, the last knocks down, then reloaded), Stock Sweep (butt first round once:
+  rings 3.2 m at 0.36 s 12 and 0.6 s 20 knockdown), Hawkeye (ult, untouchable: up to six foes ahead within 50 m marked
+  in slow time at 0.3 s, then a shot through each every 0.24 s from 0.75 s: 48 knockdown unblockable; with the element
+  a streak falls on each like a shooting star).
+- **FX**: TREE_FX "long_gun" starlight (white core, moon-blue edge, deep indigo); `FX.starlight` (silver and indigo
+  motes, a glint) for element / elem_hit; a shot is a powder blast (FX.blast 0.45, 0.7 for a scatter), sparks, a
+  tracer (the tree's edge with tier 2). Sounds: gunshot pitched down (0.72; 0.62 a scatter).
+- **Co-op**: nothing new on the wire: hitscan hits go through Hurtbox.take_hit (routed to the host), effects through
+  Net.fx, the held aim through hold/play mirroring and aim_pitch.
+- **Per frame**: PoleMoves.hands on long-gun bodies (as the polearm's). While aiming (only then): a reticle ray each
+  tick for the pitch and a camera kick. Shots are one-shots (up to 8 rays a scatter).
+- **Sources**: IslandContent.LOOT_WEAPONS and IslandEncounters.LOOT have "musket" (shifts the islands' chest rolls);
+  a chest's long gun never turns into a greatsword (Loot.chest); Shops.RARE_KINDS "longgun"; Haldor's pool musket /
+  carbine / blunderbuss / long_rifle@1 / fowling_piece@1; WeaponDesigns.random_item; Shift+F10's rack (DEBUG_RACK).
+- Gotcha: the body's scripts (pole_moves, humanoid) must not name GunKinds (it names Player and the arts, which need
+  the autoloads): posebench and other --script tools stop compiling. GunMoves.STANCE mirrors GunKinds.STYLE for them.
+  Arts files reach Net through the tree (`_net()`) and FX's statics through a preload (the static-autoload lint).
+- Tests: t/weapons long_gun_fire, long_gun_moves, long_gun_tree, long_gun_loot. Renders: tools/dev/out/lg/ (posebench
+  a_/b_/c_/d_/e_*). posebench: a held pose needs u < 1 (at 1 it ends and the bench's next shot errors).
+  Expect techtest/progtest/balancetest/uitest (a new tab), the chest-roll suites and guntest-adjacent ones to want a
+  look at the push.

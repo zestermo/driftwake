@@ -35,6 +35,7 @@ const HEADERS := {
 	"greatsword": ["Greatsword", "combat", Color(0.72, 0.95, 0.84), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
+	"long_gun": ["Long Gun", "combat", Color(0.74, 0.84, 1.0), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
 	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
 	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 30],
@@ -71,6 +72,7 @@ const ELEMENTS := {
 	"dual_axe": ["dx", "Hoarfrost", "Winter's Bite", "frost: rime and ice chips cracking off every chop, a cold mist, and Fimbulwinter heaves ice up out of the ground under your foes"],
 	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
+	"long_gun": ["lg", "Starlit Sights", "Falling Star", "starlight: silver shots with a moon-blue edge, star glints where they land, and Hawkeye's shots fall like shooting stars"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 	"black_leg": ["bl", "Searing Heel", "Red-Hot Leg", "heat: the kicking leg glows red-hot, crimson flames burst off the big kicks and white-hot sparks off every one, and Last Course sets the ground burning"],
 }
@@ -205,6 +207,7 @@ static func _build() -> void:
 	_build_greatsword()
 	_build_corsair()
 	_build_pistol()
+	_build_long_gun()
 	_build_unarmed()
 	_build_black_leg()
 	_build_ember()
@@ -1024,6 +1027,43 @@ static func _build_pistol() -> void:
 	_step("g_hand", "Light Hand", "g_hangshot", 3, {"stam_pistol": 0.05}, "Pistol attacks cost 5% less stamina a step.")
 	_step("g_flow", "Flow", "g_storm", 3, {"flow_pistol": 0.15}, "Pistol hits give 15% more energy a step.")
 	_step("g_recover", "Recovery", "g_close", 3, {"cdr_pistol": 0.05}, "Pistol techniques come back 5% sooner a step.")
+
+
+## Long guns (sea musket, long rifle, blunderbuss, boarding carbine, double fowler, jezail): the held aim that steadies,
+## one heavy load and the ramrod, the butt stroke; starlight as the element.
+static func _build_long_gun() -> void:
+	_tree("long_gun", ["Marksman", "Powder", "Stock"])
+	_root("lg_root", "Long Gun", {},
+		"A long gun in both hands. Left-click shoulders it and fires when you let go: tap for a quick shot, or hold and the aim steadies, and a steady shot hits half again as hard, goes through the first enemy into the next and knocks them down. A blunderbuss scatters a cone of shot instead. One load, then the ramrod; right-click drives the butt into whoever's close. Fight with a long gun in hand to build its mastery.")
+	_big("lg_sights", "Iron Sights", "mech", 0, 3, {"steady_long_gun": 0.35}, "Your aim steadies 35% sooner.")
+	_big("lg_pin", "Pinning Shot", "tech", 0, 8, {}, "", "pin_shot")
+	_big("lg_volley", "Volley Line", "tech", 0, 14, {}, "", "volley_line")
+	_big("lg_eagle", "Eagle Eye", "mech", 0, 20, {"range_long_gun": 0.3, "pierce_long_gun": 1},
+		"Your shots carry 30% further, and a steady shot goes through one more enemy.")
+	_big("lg_burst", "Powder Burst", "tech", 1, 5, {}, "", "powder_burst")
+	_big("lg_sweep", "Stock Sweep", "tech", 1, 10, {}, "", "stock_sweep")
+	_elem(1)
+	_elem(2)
+	_big("lg_hawk", "Hawkeye", "ult", 1, 30, {}, "", "hawkeye")
+	_big("lg_rush", "Stock Rush", "move", 2, 2, {"mv_stock_rush": 1},
+		"Attack at a sprint: the gun held crossways in both hands and driven into them with your shoulder. It breaks their wind-up and knocks them down.")
+	_big("lg_cartridge", "Paper Cartridges", "mech", 2, 4, {"reload_long_gun": 0.25}, "You reload a long gun 25% faster.")
+	_big("lg_sky", "Sky Shot", "move", 2, 6, {"mv_sky_shot": 1},
+		"Attack in the air: hang a beat drawing a bead down at the reticle, then one steady shot that knocks them flat, the kick throwing you up and back (once per jump, uses your load).")
+	_big("lg_soldier", "Old Soldier", "passive", 2, 13, {"heavy_long_gun": 0.3, "def_long_gun": 4.0},
+		"Passive (a slot). Your butt stroke (right-click) lands 30% harder, and you have 4 more defense with a long gun in hand.")
+	_variant("lg_way", "Marksman's Way", 2, [
+		["lg_sniper", "Sniper", 22, {"exec_long_gun": 0.5, "crit_long_gun": 0.06}, "A hit that leaves them under 30% health deals 50% more on top, and 6% more of your hits are crits."],
+		["lg_skirm", "Skirmisher", 22, {"reload_long_gun": 0.2, "cdr_long_gun": 0.2}, "You reload another 20% faster, and long gun techniques come back 20% sooner."]],
+		"Two ways to carry a long gun. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("lg_bore", "True Bore", "lg_root", 5, {"dmg_long_gun": 0.05}, "+5% long gun damage a step.")
+	_step("lg_strap", "Sling Strap", "lg_sights", 3, {"def_long_gun": 3.0}, "+3 defense with a long gun in hand a step.")
+	_step("lg_keen", "Keen Eye", "lg_elem", 5, {"crit_long_gun": 0.03}, "3% more of your long gun hits land 50% harder, a step.")
+	_step("lg_patience", "Patience", "lg_volley", 5, {"skill_long_gun": 0.06}, "Long gun techniques hit 6% harder a step.")
+	_step("lg_wind", "Second Wind", "lg_rush", 3, {"stam_long_gun": 0.05}, "Long gun attacks cost 5% less stamina a step.")
+	_step("lg_heft", "Heavy Stock", "lg_sky", 3, {"heavy_long_gun": 0.08}, "Your butt stroke (right-click) hits 8% harder a step.")
+	_step("lg_draw", "Draw Breath", "lg_burst", 3, {"flow_long_gun": 0.15}, "Long gun hits give 15% more energy a step.")
+	_step("lg_recover", "Recovery", "lg_soldier", 3, {"cdr_long_gun": 0.05}, "Long gun techniques come back 5% sooner a step.")
 
 
 static func _build_unarmed() -> void:

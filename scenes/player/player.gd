@@ -1606,8 +1606,8 @@ func try_summon() -> String:
 
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
-## a pair for the twin axes). Each new kind adds its line. It also teaches black-leg (no item: learned).
-const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1}
+## a pair for the twin axes). Each new kind adds its line (1.24: the ranged kinds). It also teaches black-leg (no item: learned).
+const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2109,7 +2109,7 @@ func _hands_changed() -> void:
 static func class_of(item: ItemData) -> String:
 	if item == null:
 		return "fist"
-	return "gun" if item.weapon_model in ["pistol", "rifle"] else "sword"
+	return "gun" if item.weapon_model in ["pistol", "rifle"] or GunKinds.STYLE.has(item.weapon_model) else "sword"
 
 
 ## What you're fighting with: fist / sword / gun / claw (Zoan hybrid).
@@ -2145,6 +2145,8 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 				return "dual_dagger" if main == "dagger" and off_hand.weapon_model == "dagger" else "dual_sword"
 			return main if main in ["axe", "dagger"] else "sword"
 		"gun":
+			if GunKinds.STYLE.has(main_hand.weapon_model):
+				return GunKinds.STYLE[main_hand.weapon_model]
 			return "dual_pistol" if dual else "pistol"
 	return c
 
@@ -2169,8 +2171,8 @@ func _offhand_valid(item: ItemData) -> bool:
 		and equipped_weapon.weapon_model != "axe"
 	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
-	# (the katana, polearms, hammers and greatswords take both hands)
-	for two in ["katana", "polearm", "hammer", "greatsword"]:
+	# (the katana, polearms, hammers, greatswords and the 1.24 ranged kinds take both hands)
+	for two in ["katana", "polearm", "hammer", "greatsword"] + GunKinds.STYLE.keys():
 		if two in [item.weapon_model, equipped_weapon.weapon_model]:
 			return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
@@ -2229,6 +2231,8 @@ func drop_from_bag(idx: int, qty: int = -1) -> bool:
 # Pistols
 # --------------------------------------------------------------------------
 func max_ammo() -> int:
+	if style() in GunKinds.OWN:
+		return GunKinds.shots(self)
 	return 2 + int(progression.stat("extra_shots")) + int(progression.style_stat("shots", style()))
 
 
@@ -2243,7 +2247,7 @@ func reloading() -> bool:
 
 func reload_time() -> float:
 	var st := style()
-	var t := 1.4 if st == "sword_pistol" else (1.5 if offhand_weapon else 1.1)
+	var t := GunKinds.reload_base(self) if st in GunKinds.OWN else (1.4 if st == "sword_pistol" else (1.5 if offhand_weapon else 1.1))
 	return t * (1.0 - progression.stat("reload_pct") - progression.style_stat("reload", st)) * crew_tech.reload_k()
 
 
@@ -2253,7 +2257,7 @@ func start_reload() -> void:
 	_reload_t = reload_time()
 	# (the sword-and-pistol reloads one-handed as you fight: no stopping for it mid-attack)
 	if style() != "sword_pistol" or not body_model.is_busy():
-		body_model.play("reload", _reload_t)
+		body_model.play(GunKinds.RELOAD_ANIM.get(style(), "reload"), _reload_t)
 	Net.fx("sfx", ["blip_low", global_position, -12.0, 0.05, 1.1])
 
 
@@ -2302,7 +2306,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2377,6 +2381,8 @@ const REACH := {
 	"kick_spin": [Vector3(4.0, 1.6, 4.0), Vector3(0.0, -0.1, 0.0)],
 	"kick_axe": [Vector3(1.6, 2.4, 2.3), Vector3(0.0, 0.0, -1.2)],
 	"kick_fly": [Vector3(1.8, 1.5, 2.4), Vector3(0.0, 0.1, -1.3)],
+	# a long gun's stock driven out ahead (the butt stroke, the stock rush)
+	"stock": [Vector3(1.8, 1.4, 2.0), Vector3(-0.15, 0.2, -1.05)],
 }
 
 

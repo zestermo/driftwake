@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "musket"
+display_name = "Sea Musket"
+description = "A long gun on a full wooden stock, both hands to hold it. One shot, a long reload, and a stock that settles arguments up close."
+value = 30
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "longgun"
+damage_mult = 1.0

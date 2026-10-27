@@ -789,7 +789,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		_stat(grid, "DAMAGE", str(int(round(ws["damage"]))), int(round(ws["damage"])) - int(round(cs["damage"])) if cur else 0, true)
 		_stat(grid, "SPEED", str(ws["speed"]), signf(snappedf(ws["rate"] - cs["rate"], 0.01)) if cur else 0, false)
 		if ws["gun"]:
-			_stat(grid, "RANGE", "%d M" % int(SHOOT.RANGE), 0, false)
+			_stat(grid, "RANGE", "%d M" % int(ws.get("range", SHOOT.RANGE)), 0, false)
 		else:
 			fx.append(["Heavy: " + HEAVY_NAMES[HEAVY.style_for(it.weapon_model)], UIStyle.TEXT])
 		if it.poison > 0.0:
@@ -813,6 +813,10 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				if WeaponDesigns.great(it.design, "bleed", 0.0) > 0.0:
 					fx.append(["Its cuts bleed", Color(1.0, 0.45, 0.4)])
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
+		if GunKinds.STYLE.has(it.weapon_model):
+			for line in GunKinds.notes(it):
+				fx.append([line, Color(0.8, 0.88, 1.0)])
+			fx.append(["Two-handed", UIStyle.TEXT_DIM])
 	elif Instruments.kind_of(it) != "":
 		fx.append(["Play it: hold T, pick Play", UIStyle.ACCENT])
 	elif Rods.tier_of(it) != "":
@@ -896,6 +900,8 @@ static func _kind(it: ItemData) -> String:
 
 ## What a weapon does on its own: damage (an average light hit, or a shot), hits a second, a word for it.
 static func weapon_stats(it: ItemData) -> Dictionary:
+	if GunKinds.STYLE.has(it.weapon_model):
+		return GunKinds.stats(it).merged({"speed": _speed_word(GunKinds.stats(it)["rate"])})
 	if it.weapon_model in ["pistol", "rifle"]:
 		var rate := 1.0 / 0.34
 		return {"gun": true, "damage": SHOOT.SINGLE_DAMAGE * it.power(), "rate": rate, "speed": _speed_word(rate)}

@@ -19,6 +19,7 @@ extends PlayerState
 ##   dual_axe gallows_hook, hewing_frenzy, axestorm, fimbulwinter (ult) in DualAxeArts
 ##   greatsword guardbreaker, crescent_gale, tempest_turns, skysplitter (ult) in GreatswordArts
 ##   black_leg rising_heel, hailstorm_heels, sky_chase, cleaver_kick, flambe_dash, last_course (ult) in BlackLegArts
+##   long_gun pin_shot, powder_burst, volley_line, stock_sweep, hawkeye (ult) in LongGunArts
 ##   unarmed  hip_toss (guard -> shoulder_throw), cannonball_fist, meteor_fist in FistArts; hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
@@ -34,7 +35,7 @@ const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "si
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
 	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
 ## Techniques that live in their own files (enter/update return false for ids not theirs).
-var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts]
+var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts, LongGunArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""

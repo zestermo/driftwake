@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer", "greatsword": "greatsword"}
+	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -164,6 +164,25 @@ const DESIGNS := {
 			"dmg": 1.26, "worth": 2.6, "len": 1.3, "w": 0.15, "taper": 0.42, "curve": 0.34, "guard": "bone", "pommel": "drop",
 			"blade": Color(1.12, 1.05, 0.88), "fit": Color(0.92, 0.88, 0.78), "grip": Color(0.25, 0.4, 0.42), "grip_tex": "fabric",
 			"speed": 0.86, "reach": 1.12, "weight": 1.15, "rare": true},
+	},
+	# (the base is a sea musket: a round barrel on a full wooden stock; GunModels.longgun). Long guns add "barrel" (m from
+	# the hand to the muzzle), "range" (x the shot's reach), "reload" (x the reload's time), "shots" (loads before a
+	# reload), "spread" (pellets a shot: the scatter) and "cone" (rad, the scatter's half-angle); "rare" drops less often
+	"longgun": {
+		"rifle": {"id": "long_rifle", "name": "Long Rifle", "desc": "A long, true barrel cut with eight flats and a silver lock. What it can see, it can hit.",
+			"dmg": 1.12, "worth": 1.8, "barrel": 1.2, "sides": 8, "range": 1.3, "reload": 1.15, "wood": Color(0.42, 0.26, 0.16), "fit": Color(0.82, 0.84, 0.9)},
+		"blunderbuss": {"id": "blunderbuss", "name": "Blunderbuss", "desc": "A short barrel flaring to a brass bell, loaded with nails and shot. Everything in front of it has a bad day.",
+			"dmg": 1.0, "worth": 1.4, "barrel": 0.72, "r": 0.02, "flare": 0.07, "brass_barrel": true, "spread": 8, "cone": 0.17, "range": 0.3,
+			"wood": Color(0.62, 0.4, 0.22)},
+		"carbine": {"id": "boarding_carbine", "name": "Boarding Carbine", "desc": "A musket cut down for close work on a pitching deck. Quick to load, quick to swing.",
+			"dmg": 0.92, "worth": 1.1, "barrel": 0.62, "range": 0.8, "reload": 0.78, "wood": Color(0.5, 0.32, 0.18)},
+		"fowler": {"id": "fowling_piece", "name": "Double Fowler", "desc": "Two long barrels side by side. Two loads of birdshot before you need the ramrod.",
+			"dmg": 0.9, "worth": 1.6, "barrel": 0.95, "barrels": 2, "r": 0.015, "shots": 2, "spread": 4, "cone": 0.07, "range": 0.65,
+			"wood": Color(0.66, 0.44, 0.26)},
+		# (rare: kept a third of the times it's rolled)
+		"jezail": {"id": "jezail", "name": "Jezail", "desc": "A mountain gun with a barrel as long as a man, its curved stock inlaid with bone. Patient, and it never misses twice.",
+			"dmg": 1.24, "worth": 2.4, "barrel": 1.3, "range": 1.45, "reload": 1.25, "curve": true, "rare": true,
+			"wood": Color(0.5, 0.22, 0.12), "fit": Color(0.92, 0.86, 0.72)},
 	},
 }
 
@@ -382,6 +401,8 @@ static func build(model: String) -> ArrayMesh:
 			_hammer(mb, p, tier)
 		"greatsword":
 			_greatsword(mb, p, tier)
+		"longgun":
+			GunModels.longgun(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()

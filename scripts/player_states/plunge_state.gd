@@ -170,6 +170,9 @@ func enter(_data: Dictionary) -> void:
 		return
 	if _mode in ONCE_PER_JUMP or _mode == "meteor_kick":
 		player.air_uses[_mode] = int(player.air_uses.get(_mode, 0)) + 1
+	if _mode in GUN_AIR:
+		GunKinds.art(player.style()).air_enter(self)
+		return
 	match _mode:
 		"rain":
 			player.gun_rains += 1
@@ -282,6 +285,9 @@ func enter(_data: Dictionary) -> void:
 
 func physics_update(delta: float) -> void:
 	timer += delta
+	if _mode in GUN_AIR:
+		GunKinds.art(player.style()).air_update(self, delta)
+		return
 	match _mode:
 		"air_combo":
 			_air_combo_update(delta)

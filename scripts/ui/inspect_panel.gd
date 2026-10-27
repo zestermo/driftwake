@@ -4,7 +4,7 @@ extends PanelContainer
 
 const STYLES := {"fist": "Brawler", "black_leg": "Black Leg","sword": "Cutlass", "axe": "Axe", "katana": "Katana", "dagger": "Dagger", "polearm": "Polearm", "hammer": "Hammer", "greatsword": "Greatsword",
 	"dual_sword": "Twin blades", "dual_dagger": "Twin daggers", "dual_axe": "Twin axes", "sword_pistol": "Blade and pistol",
-	"pistol": "Pistol", "dual_pistol": "Twin pistols", "claw": "Beast claws"}
+	"pistol": "Pistol", "dual_pistol": "Twin pistols", "claw": "Beast claws", "long_gun": "Long gun"}
 const TIP_W := 150
 
 var viewer: Node

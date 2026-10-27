@@ -18,10 +18,18 @@ var timer: float = 0.0
 var dur: float = 0.3
 var _hand: int = 0
 static var _next_hand: int = 0
+## The 1.24 ranged kinds run their shots in their arts file (GunKinds.art): its phase and the aim's steadiness.
+var art = null
+var mode := ""
+var steady := 0.0
 
 
 func enter(_data: Dictionary) -> void:
 	timer = 0.0
+	art = GunKinds.art(player.style())
+	if art:
+		art.shoot_enter(self)
+		return
 	var dual := player.style() == "dual_pistol"
 	dur = 0.28 if dual else 0.34
 	face_direction(get_camera_forward(), 1.0)
@@ -149,7 +157,15 @@ func _ricochet(at: Vector3, first: Node, dmg: float) -> void:
 	Net.fx("impact", [hb.global_position, Color(1.0, 0.75, 0.45)])
 
 
+func exit() -> void:
+	if art:
+		art.shoot_exit(self)
+
+
 func physics_update(delta: float) -> void:
+	if art:
+		art.shoot_update(self, delta)
+		return
 	timer += delta
 	apply_gravity(delta)
 	var mi := get_movement_input()

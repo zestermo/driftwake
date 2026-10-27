@@ -95,6 +95,12 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.13, "shake": 0.26, "knockback": 14.0, "stagger": 0.7,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false, "reach": "fist",
 		"color": Color(1.0, 0.95, 0.8), "tree": "unarmed", "breaker": true},
+	# long guns (the butt stroke): drawn back down the right side, then the stock driven up into their face, stepping in;
+	# breaks a wind-up, leaves them reeling
+	"butt_stroke": {"anim": "lg_butt", "impulse": 6.5,
+		"damage": 24.0, "hitstop": 0.1, "shake": 0.18, "knockback": 11.0, "stagger": 0.9,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.05, "impact_fx": false, "reach": "stock",
+		"color": Color(0.9, 0.92, 1.0), "tree": "long_gun", "breaker": true},
 	"whip": {"anim": "pistol_whip", "impulse": 5.0,
 		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
 		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
@@ -196,6 +202,8 @@ func enter(data: Dictionary) -> void:
 			cfg = STYLES["kata"] if player.progression.has_move("gun_kata") else STYLES["whip"]
 		"claw":
 			cfg = STYLES["maul"]
+		"long_gun":
+			cfg = STYLES["butt_stroke"]
 		_:
 			cfg = STYLES[style_for(model)]
 	player.set_reach(str(cfg.get("reach", "sword")))
@@ -478,6 +486,9 @@ func _strike_fx(second: bool = false) -> void:
 		return
 	if cfg["tree"] == "greatsword":
 		GreatswordArts.cleave_fx(player, _level)
+		return
+	if cfg["tree"] in GunKinds.OWN:
+		GunKinds.art(str(cfg["tree"])).heavy_fx(player, elem)
 		return
 	if cfg["tree"] == "dual_axe":
 		# each chop a ring where it bites; the crossed crash an X on the ground and a ring round it

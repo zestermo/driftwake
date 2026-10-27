@@ -1,0 +1,68 @@
+class_name GunModels
+## The meshes of the 1.24 ranged kinds (WeaponDesigns.build sends them here), in the frame every two-handed weapon uses:
+## the right hand at the origin, the weapon along -Z, its underside (trigger guard, grip) toward -Y.
+
+## Where a long gun's bore runs above the hand (m), and its stock back to the butt plate behind it.
+const LG_BORE := 0.035
+const LG_STOCK := 0.34
+
+
+## A long gun's barrel length (the muzzle this far ahead of the hand, along -Z).
+static func lg_barrel(design: String) -> float:
+	return float((WeaponDesigns.DESIGNS["longgun"] as Dictionary).get(design, {}).get("barrel", 1.0))
+
+
+## Long guns: a full wooden stock from the butt plate behind the hand to the forestock under the barrel, the lock on
+## the right side, brass bands; the blunderbuss flares to a bell, the fowler has two barrels side by side, the jezail's
+## stock drops in a deep curve.
+static func longgun(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := WeaponDesigns._mats(p, tier, Color(1.0, 0.78, 0.4), Color.WHITE, "planks")
+	var wood := PSXMat.lit("planks", WeaponDesigns._c(p, "wood", Color(0.58, 0.36, 0.2)))
+	var fit: Material = m["fit"]
+	var steel: Material = fit if bool(p.get("brass_barrel", false)) else m["blade"]
+	var along := Basis(Vector3.RIGHT, -PI * 0.5)
+	var bl := WeaponDesigns._f(p, "barrel", 1.0)
+	var r := WeaponDesigns._f(p, "r", 0.017)
+	var sides := int(p.get("sides", 6))
+	var n := int(p.get("barrels", 1))
+	var y := LG_BORE
+	# the barrel (or two)
+	if n == 2:
+		for x in [-r, r]:
+			mb.add_cylinder(steel, Transform3D(along, Vector3(x, y, -0.02)), r, r * 0.92, bl, sides, 2.0)
+	else:
+		var flare := WeaponDesigns._f(p, "flare", 0.0)
+		if flare > 0.0:
+			mb.add_cylinder(steel, Transform3D(along, Vector3(0, y, -0.02)), r * 1.15, r * 1.25, bl * 0.7, sides, 2.0)
+			mb.add_cylinder(steel, Transform3D(along, Vector3(0, y, -0.02 - bl * 0.7)), r * 1.25, flare, bl * 0.3, 8, 2.0, Color.WHITE, false)
+		else:
+			mb.add_cylinder(steel, Transform3D(along, Vector3(0, y, -0.02)), r * 1.12, r * 0.95, bl, sides, 2.0)
+			mb.add_cylinder(fit, Transform3D(along, Vector3(0, y, -0.02 - bl + 0.03)), r * 1.25, r * 1.25, 0.025, sides, 2.0)
+			# the front sight
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, y + r + 0.008, -bl + 0.05)), Vector3(0.006, 0.014, 0.012), 2.0)
+	# the forestock under it, the ramrod beneath, brass bands round both
+	var fore := bl * (0.45 if p.has("flare") else 0.72)
+	var fw := 0.05 + (0.02 if n == 2 else 0.0)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, y - r - 0.006, -0.03 - fore * 0.5)), Vector3(fw, 0.034, fore), 2.0)
+	mb.add_cylinder(m["blade"], Transform3D(along, Vector3(0, y - r - 0.026, -0.06)), 0.005, 0.005, fore * 0.95, 4, 2.0)
+	for k in [0.35, 0.68, 0.98]:
+		mb.add_box(fit, Transform3D(Basis(), Vector3(0, y - 0.006, -0.03 - fore * k)), Vector3(fw + 0.008, r * 2.0 + 0.03, 0.02), 2.0)
+	# the lock on the right side, the hammer cocked above it, the trigger and its guard below the hand
+	mb.add_box(m["blade"], Transform3D(Basis(), Vector3(0.026, 0.02, -0.03)), Vector3(0.008, 0.035, 0.12), 2.0)
+	mb.add_box(m["blade"], Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0.024, 0.06, 0.0)), Vector3(0.012, 0.045, 0.016), 2.0)
+	mb.add_box(fit, Transform3D(Basis(), Vector3(0, -0.04, -0.02)), Vector3(0.012, 0.012, 0.11), 2.0)
+	mb.add_box(m["blade"], Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(0, -0.028, -0.01)), Vector3(0.006, 0.03, 0.006), 2.0)
+	# the wrist round the hand, then the stock dropping back to the butt plate
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.005, 0.0)), Vector3(0.042, 0.05, 0.12), 2.0)
+	var drop := 0.32 if bool(p.get("curve", false)) else 0.16
+	var stock_c := Vector3(0, -0.025 - drop * 0.12, 0.06 + LG_STOCK * 0.5)
+	mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, drop), stock_c), Vector3(0.046, 0.085, LG_STOCK), 2.0)
+	mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, drop * 0.6), stock_c + Vector3(0, -0.045, 0.03)), Vector3(0.044, 0.06, LG_STOCK * 0.8), 2.0)
+	var butt := Vector3(0, -0.05 - drop * 0.18, 0.06 + LG_STOCK)
+	mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, drop), butt), Vector3(0.05, 0.13, 0.016), 2.0)
+	if bool(p.get("curve", false)):
+		# the jezail's inlay down its stock
+		for k in [0.25, 0.5, 0.75]:
+			mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, drop), stock_c + Vector3(0.024, 0, (k - 0.5) * LG_STOCK)), Vector3(0.004, 0.03, 0.03), 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(-0.026, 0.02, -0.03)), Vector3(0.008, 0.03, 0.03), 2.0)

@@ -217,6 +217,17 @@ const ALL := {
 		"desc": "Shove the barrel into the nearest enemy and fire: a blast that throws them off their feet."},
 	"deaths_waltz": {"name": "Death's Waltz", "tree": "pistol", "cost": 0.0, "cooldown": 3.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Turn through a deadly waltz, shooting every enemy within 18 m three times; the last shot knocks them down."},
+	# --- Long guns ---
+	"pin_shot": {"name": "Pinning Shot", "tree": "long_gun", "cost": 16.0, "cooldown": 7.0, "styles": ["long_gun"], "needs_text": "a long gun", "state": "Technique",
+		"desc": "Drop to one knee and put a ball into the enemy in your sights: it can't be blocked, and it nails them where they stand for a few seconds."},
+	"powder_burst": {"name": "Powder Burst", "tree": "long_gun", "cost": 20.0, "cooldown": 7.0, "styles": ["long_gun"], "needs_text": "a long gun", "state": "Technique",
+		"desc": "A double charge fired from the hip: a cone of fire and shot throws everyone close in front off their feet, and the kick throws you back a step. It doesn't spend your load."},
+	"volley_line": {"name": "Volley Line", "tree": "long_gun", "cost": 22.0, "cooldown": 8.0, "styles": ["long_gun"], "needs_text": "a long gun", "state": "Technique",
+		"desc": "Three paper cartridges, loaded and fired as fast as you can bite them: a shot into each of up to three enemies ahead (the last knocks them down), and the gun's loaded again after."},
+	"stock_sweep": {"name": "Stock Sweep", "tree": "long_gun", "cost": 16.0, "cooldown": 6.0, "styles": ["long_gun"], "needs_text": "a long gun", "state": "Technique",
+		"desc": "Let the gun out at arm's length, butt first, and swing round once: everyone close is clubbed, then knocked flat."},
+	"hawkeye": {"name": "Hawkeye", "tree": "long_gun", "cost": 0.0, "cooldown": 3.0, "styles": ["long_gun"], "needs_text": "a long gun", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Down on one knee, time slows while every enemy ahead (up to six) is marked; then a shot through each in turn, unblockable, knocking them all down. Nothing touches you until it's done."},
 	# --- Unarmed: power ---
 	"hip_toss": {"name": "Shoulder Throw", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Hands open to catch for a second: a blow caught in them is turned aside and whoever threw it goes over your shoulder, knocking down anyone they land on. A boss or a heavy gets a straight right back instead."},

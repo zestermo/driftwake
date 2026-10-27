@@ -40,7 +40,8 @@ class_name ActionSpecs
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
-	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"]}
+	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"],
+	"long_gun": ["lg_parry", "lg_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -266,6 +267,21 @@ const SPECS := {
 	"gs_parry": {"len": 0.66, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_deflect": {"len": 0.45, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_block": {"len": 0.24, "hold": true, "stance": "greatsword", "weapon": "greatsword"},
+	# --- long guns (GunMoves): shouldered aim (held), the shot, the ramrod reload, the butt stroke, the rush ---
+	"lg_stance": {"len": 1.0, "stance": "long_gun", "weapon": "musket"},
+	"lg_aim": {"len": 0.12, "hold": true, "stance": "long_gun", "weapon": "musket"},
+	"lg_fire": {"len": 0.6, "stance": "long_gun", "weapon": "musket", "sharp": 70.0},
+	"lg_reload": {"len": 1.5, "stance": "long_gun", "weapon": "musket"},
+	"lg_butt": {"len": 0.72, "hit": [0.4, 0.58], "stance": "long_gun", "weapon": "musket"},
+	"lg_rush": {"len": 0.62, "hit": [0.3, 0.6], "stance": "long_gun", "weapon": "musket"},
+	"lg_air": {"len": 0.75, "hit": [0.55, 0.6], "stance": "long_gun", "weapon": "musket", "extras": {"grounded": false}},
+	"lg_parry": {"len": 0.66, "stance": "long_gun", "weapon": "musket"},
+	"lg_deflect": {"len": 0.42, "stance": "long_gun", "weapon": "musket"},
+	"lg_block": {"len": 0.24, "hold": true, "stance": "long_gun", "weapon": "musket"},
+	"lg_kneel": {"len": 0.2, "hold": true, "stance": "long_gun", "weapon": "musket"},
+	"lg_kneel_fire": {"len": 0.35, "stance": "long_gun", "weapon": "musket", "sharp": 70.0},
+	"lg_burst": {"len": 0.75, "hit": [0.42, 0.5], "stance": "long_gun", "weapon": "musket"},
+	"lg_sweep": {"len": 0.9, "hit": [0.3, 0.72], "stance": "long_gun", "weapon": "musket"},
 	# --- black-leg (BlackLegMoves): kicks low, mid, high, the handstand spin; "legs": which leg's trail is drawn ---
 	"bl_stance": {"len": 1.0, "stance": "black_leg", "weapon": ""},
 	"bl_1": {"len": 0.42, "hit": [0.26, 0.5], "chain": 0.3, "swoosh": [0.2, 0.5], "legs": "l", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},

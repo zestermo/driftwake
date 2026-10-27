@@ -164,7 +164,7 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 		elif generic(it):
 			if arms_rng.randf() < float(ARMS_BY_KIND[kind_of_chest]):
 				var kind := it.weapon_model
-				if kind != "pistol" and rng_for(key + "|great").randf() < (GREAT_HOARD if hoard else GREAT_CHANCE):
+				if kind not in ["pistol", "longgun"] and rng_for(key + "|great").randf() < (GREAT_HOARD if hoard else GREAT_CHANCE):
 					kind = "greatsword"
 				it = weapon(kind, rarity_round(int(it.rarity), kind_of_chest, arms_rng), rng)
 				# (tomahawks and reavers' axes are carried in pairs: found two at a time, ready for both hands)
