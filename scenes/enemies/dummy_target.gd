@@ -12,6 +12,8 @@ var _flash_mats: Array[ShaderMaterial] = []
 
 
 func _ready() -> void:
+	# (a training yard: SparringPartner steps in here)
+	add_to_group("training_dummies")
 	damage_number_scene = load("res://scenes/effects/damage_number.tscn")
 	hurtbox.hit_received.connect(_on_hit_received)
 	health_component.died.connect(_on_died)

@@ -192,6 +192,8 @@ var inp: CaptainInput = CaptainInput.new()
 ## A captain-style AI (a rival, an Admiralty officer): the full brain and states, fed by a brain instead of the
 ## keyboard; none of the local captain's camera, HUD or saves (docs/v1_19_plan.md "Build notes").
 var is_ai: bool = false
+## An AI captain on the players' side: the training yard's sparring partner (SparringPartner).
+var sparring: bool = false
 ## An AI captain's poise (Poise "rival"; a rival's crewmen "elite"); null for the players.
 var poise: Poise
 var _debug_crew := 0
@@ -221,9 +223,10 @@ func cam_shake(intensity: float, duration: float = 0.2) -> void:
 	CombatManager.apply_camera_shake(intensity, duration)
 
 
-## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128).
+## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128;
+## the training yard's sparring partner is on your side: SparringPartner).
 func foe_mask() -> int:
-	return 128 if is_ai else 32
+	return 128 if is_ai and not sparring else 32
 
 
 ## The camera punching in on this captain's move: the local captain's only.
@@ -500,14 +503,17 @@ func defense() -> float:
 	return d
 
 
-## Share of incoming damage the worn gear soaks up (diminishing returns).
+## Share of incoming damage the worn gear soaks up (diminishing returns, flattening toward 62.5%: a gold heavy kit's
+## ~91 blocks about half, a white one's ~52 about 42%, leather's ~24 about 31%; Zach, 2026-10-27).
 func damage_reduction() -> float:
-	var d := defense()
-	return d / (d + 40.0)
+	var d := maxf(defense(), 0.0)
+	return d / (1.6 * d + 40.0)
 
 
 func _recalc_stats() -> void:
 	var pr := progression
+	if pr:
+		pr.gear = GearStats.totals(equipment.slots)
 	max_stamina = MAX_STAMINA + (attribute("endurance") - 5) * 8.0 + (pr.stat("max_stamina") if pr else 0.0)
 	stamina = minf(stamina, max_stamina)
 	var hc := health_component
@@ -544,6 +550,11 @@ func _recalc_stats() -> void:
 		body_model.kick_pockets = pr != null and pr.has_flag("pockets_black_leg")
 	stamina_changed.emit(stamina, max_stamina)
 	stats_changed.emit()
+
+
+## What the worn gear weighs (GearStats LIGHT, MEDIUM, HEAVY): sets the dodge and the swim.
+func gear_load() -> int:
+	return GearStats.load_of(equipment.slots)
 
 
 func dodge_cost() -> float:
@@ -690,6 +701,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		return
 	if progression.has_flag("steadfast"):
 		return  # Steadfast: light hits don't make you flinch
+	# heavy armour's poise (GearStats): now and then a blow doesn't rock you (rolled only when worn: the draws stay put)
+	var poise_k := progression.stat("poise_pct")
+	if poise_k > 0.0 and randf() < poise_k:
+		return
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
 		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.5, 4.0), "flinch": true})
 

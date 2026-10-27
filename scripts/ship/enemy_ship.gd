@@ -1069,6 +1069,7 @@ static func marine_look(lk: Dictionary, rng: RandomNumberGenerator, officer: boo
 	var dark := Color(0.2, 0.22, 0.25)
 	var steel := Color(0.62, 0.65, 0.68)
 	lk["name"] = "Admiralty officer" if officer else "Admiralty marine"
+	lk["admiralty"] = true
 	lk["hat"] = "cap" if officer else "morion"
 	lk["hat_color"] = dark if officer else steel
 	lk["top"] = "shirt"

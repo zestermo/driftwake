@@ -31,7 +31,7 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
-			check("stamina starts full", is_equal_approx(p.stamina, p.MAX_STAMINA))
+			check("stamina starts full (%.0f of %.0f: worn gear adds to it)" % [p.stamina, p.max_stamina], is_equal_approx(p.stamina, p.max_stamina))
 			until = TK.wait_secs(0.3)
 		1:
 			# spam heavies until the bar can't pay for the next one

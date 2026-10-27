@@ -267,6 +267,7 @@ func enter(data: Dictionary) -> void:
 			and player.body_model.current_action() == str(cfg["anims"][combo_index - 1]):
 		_mom = int(data.get("momentum", 0)) + 1
 		_spd *= 1.0 + MOMENTUM_SPEED * _mom
+	_spd *= 1.0 + player.progression.stat("attack_speed_pct")
 	_window = ActionSpecs.hit_seconds(anim) / _spd
 	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
 	_thud_t = float(HammerMoves.THUD[anim]) * ActionSpecs.length(anim) / _spd if HammerMoves.THUD.has(anim) else -1.0
