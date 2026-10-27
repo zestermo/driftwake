@@ -6,9 +6,10 @@ const TK := preload("res://tools/dev/test_kit.gd")
 const KIT := preload("res://tools/dev/t/player/_chains_kit.gd")
 const EPS := 0.004
 ## The net's thresholds (inside the cushion or not, a best turn by a millimetre) can turn a float's difference into a
-## frame's different turn on a hem that a kicking thigh keeps in the balance: a few frame-bones may part, briefly.
+## frame's different turn on a hem that a kicking thigh keeps in the balance: a few frame-bones may part, briefly (a
+## skirt's hem by 5.7 cm for 6 frames since 1.24's seat clearance moved its panels; the same with no net slack).
 const OFF_SHARE := 0.01
-const WORST := 0.03
+const WORST := 0.07
 var stage
 var step := 0
 var until := 0

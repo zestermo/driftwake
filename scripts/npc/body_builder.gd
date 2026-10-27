@@ -261,7 +261,7 @@ func _nets() -> void:
 			var bind := {}
 			for k in SpringChains.NET_LEGS:
 				bind[k] = _unposed(key).affine_inverse() * _unposed(colliders[k]["node"])
-			s.use_slack(bind, 0.025)
+			s.use_slack(bind, 0.02)
 
 
 ## A joint in the humanoid's space with the body unposed (its rest offsets, no rotations).
@@ -541,6 +541,11 @@ func _hips_hw() -> float:
 	var base := 0.198 * (1.0 + (hp - 1.0) * 0.6) * (1.0 + (wa - 1.0) * 0.3) if fem else 0.175 * hp * (1.0 + (wa - 1.0) * 0.5)
 	# wide enough that the thighs run up inside the pelvis (it, not the thighs, makes the hips' outline)
 	return maxf(base, float(st["leg_gap"]) + (0.098 if fem else 0.09) * limb)
+
+
+## How far back the seat reaches (hips space): _lower_body's fullest pelvis ring.
+func _seat_back() -> float:
+	return _hips_hd() * 1.08 + 0.016 if fem else _hips_hd() * 1.02 + 0.006
 
 
 func _hips_hd() -> float:
@@ -945,13 +950,16 @@ func _torso() -> void:
 		var secs := []
 		for i in range(6):
 			secs.append([i * 60.0, (i + 1) * 60.0])
-		_cloth_sectors(m_top, null, secs, -0.01, -0.21 if top == "tunic" else -0.27, [0.012, 0.02, 0.032], 0.2, 0.014)
+		# under a long coat only what its opening shows (the rest, swinging on its own chains, came out through the tails)
+		if _long_coat():
+			secs = [] if str(lk.get("coat", "none")) == "frock" else [[-36.0, 0.0], [0.0, 36.0]]
+		_cloth_sectors(m_top, null, secs, -0.01, -0.21 if top == "tunic" else -0.27, [0.012, 0.02, 0.032], 0.2, 0.014, 0.03, _coat_tails())
 	if top == "doublet":
 		# a short peplum over the hips, buttons up the front
 		var secs := []
 		for i in range(6):
 			secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
-		_cloth_sectors(m_top, null, secs, -0.01, -0.11, [0.012, 0.024], 0.25, 0.014)
+		_cloth_sectors(m_top, null, secs, -0.01, -0.11, [0.012, 0.024], 0.25, 0.014, 0.03, _coat_tails())
 		var brass := PSXMat.flat(Color(0.82, 0.68, 0.32))
 		for i in range(5):
 			var by := ty(0.08 + i * 0.1)
@@ -2310,13 +2318,13 @@ func _clothes() -> void:
 	var mb := MeshBuilder.new()
 	match str(lk.get("vest", "none")):
 		"vest":
-			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.57)), 0.016, 0.0, true), open_body(0.3), 3.0, Color.WHITE, false, false, false)
+			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _vest_shell(tr, 0.0, tu(0.57), 0.016, true), open_body(0.3), 3.0, Color.WHITE, false, false, false)
 			for i in range(3):
 				var by := ty(0.12 + i * 0.12)
 				var r := _at(tr, by)
 				mb.add_box(PSXMat.flat(_col("trim_color")), Transform3D(Basis(), Vector3(-float(r[1]) * 0.3 - 0.012, by, _front_z(r) - 0.016)), Vector3(0.016, 0.016, 0.01), 3.0)
 		"corset":
-			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _off(_clip(tr, 0.0, ty(0.36 if fem else 0.4)), 0.011), P_BODY(), 3.0, Color.WHITE, false, false)
+			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _vest_shell(tr, 0.0, ty(0.36 if fem else 0.4), 0.011), P_BODY(), 3.0, Color.WHITE, false, false)
 			for i in range(5):
 				var by := ty(0.05 + i * 0.06)
 				var r := _at(tr, by)
@@ -2325,7 +2333,7 @@ func _clothes() -> void:
 			# a steel breast- and backplate, a ridge down the front, two lames over the belly
 			# (the metal texture stretched wide: tiled at cloth scale it read as stripes)
 			var steel := PSXMat.lit("metal", Color(0.92, 0.94, 0.98).lerp(_col("vest_color"), 0.2))
-			mb.add_loft(steel, Transform3D.IDENTITY, _off(_clip(tr, ty(0.02), tu(0.56)), 0.026), P_BODY(), 0.5, Color.WHITE, false, false)
+			mb.add_loft(steel, Transform3D.IDENTITY, _vest_shell(tr, ty(0.02), tu(0.56), 0.026), P_BODY(), 0.5, Color.WHITE, false, false)
 			# the ridge in four pieces, each on the chest where it lies (one straight bar stood
 			# off the narrower waist and out through a coat)
 			var y_lo := ty(0.08)
@@ -2349,7 +2357,7 @@ func _clothes() -> void:
 		"brigandine":
 			# leather studded with the heads of the plates riveted inside it
 			var m_brig := _textured("leather", _col("vest_color"))
-			mb.add_loft(m_brig, Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.55)), 0.022), P_BODY(), 3.0, Color.WHITE, false, false)
+			mb.add_loft(m_brig, Transform3D.IDENTITY, _vest_shell(tr, 0.0, tu(0.55), 0.022), P_BODY(), 3.0, Color.WHITE, false, false)
 			var stud := PSXMat.lit("metal", Color(0.85, 0.82, 0.7))
 			for row in range(5):
 				var by := ty(0.06 + row * 0.08)
@@ -2364,12 +2372,12 @@ func _clothes() -> void:
 			var w0 := float(tr[0][1])
 			var d0 := float(tr[0][2])
 			var mail := [[-0.11, w0 + 0.045, d0 + 0.045], [-0.03, w0 + 0.03, d0 + 0.03]]
-			for r in _off(_clip(tr, 0.0, tu(0.57)), 0.016, 0.0, true):
+			for r in _vest_shell(tr, 0.0, tu(0.57), 0.016, true):
 				mail.append(r)
 			mb.add_loft(m_mail, Transform3D.IDENTITY, mail, MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, false, false)
 		"jerkin":
 			# a sleeveless leather jerkin laced up the front
-			mb.add_loft(_textured("leather", _col("vest_color")), Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.57)), 0.015), P_BODY(), 3.0, Color.WHITE, false, false)
+			mb.add_loft(_textured("leather", _col("vest_color")), Transform3D.IDENTITY, _vest_shell(tr, 0.0, tu(0.57), 0.015), P_BODY(), 3.0, Color.WHITE, false, false)
 			var lace := PSXMat.flat(Color(0.82, 0.76, 0.6))
 			for i in range(5):
 				var by := ty(0.06 + i * 0.07)
@@ -2380,7 +2388,7 @@ func _clothes() -> void:
 			var w0 := float(tr[0][1])
 			var d0 := float(tr[0][2])
 			var jack := [[-0.07, w0 + 0.036, d0 + 0.036], [-0.02, w0 + 0.03, d0 + 0.03]]
-			for r in _off(_clip(tr, 0.0, tu(0.58)), 0.028, 0.0, true):
+			for r in _vest_shell(tr, 0.0, tu(0.58), 0.028, true):
 				jack.append(r)
 			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, jack, P_BODY(), 3.0, Color.WHITE, false, false)
 			var stitch := _textured("fabric", _col("vest_color").darkened(0.3))
@@ -2391,7 +2399,7 @@ func _clothes() -> void:
 					P_BODY(), 3.0, Color.WHITE, false, false, true, false, true)
 		"scale":
 			# leather hung with rows of overlapping steel scales, front and back
-			mb.add_loft(_textured("leather", _col("vest_color")), Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.56)), 0.02), P_BODY(), 3.0, Color.WHITE, false, false)
+			mb.add_loft(_textured("leather", _col("vest_color")), Transform3D.IDENTITY, _vest_shell(tr, 0.0, tu(0.56), 0.02), P_BODY(), 3.0, Color.WHITE, false, false)
 			var steel := PSXMat.lit("metal", Color(0.88, 0.9, 0.94))
 			for row in range(6):
 				var by := ty(0.04 + row * 0.07)
@@ -2440,8 +2448,9 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, P_BODY() if frock else open_body(0.3), 3.0, Color.WHITE, false, false, frock)
 	if coat == "jacket":
 		# short tails over the hips (cloth panels: a rigid hem let the thighs through)
+		var tj := _coat_tails()
 		_cloth_sectors(m_coat, null, [[32.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 328.0]],
-			0.04, -0.14, [0.03 + thick, 0.045 + thick, 0.06 + thick], 0.18, 0.035 + thick)
+			tj["top"], tj["bot"], tj["flare"], 0.18, tj["top_off"])
 	var collar_h := 0.15 if coat == "duster" else 0.11
 	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.6), 0.105 + thick, 0.095 + thick, 0.012], [tu(0.6) + collar_h, 0.115 + thick, 0.105 + thick, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
 	var lap := m_trim if captain else _textured("fabric", _col("coat_color").darkened(0.12))
@@ -2488,16 +2497,16 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 		var fmb := MeshBuilder.new()
 		fmb.add_loft(m_trim if captain or frock else lap, Transform3D.IDENTITY, cuff, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
 		_mesh(h.fore_l if side < 0 else h.fore_r, fmb)
-	var flare := [0.03 + thick, 0.05 + thick, 0.08 + thick, 0.11 + thick]
+	var tl := _coat_tails()
 	if coat in ["longcoat", "captain", "greatcoat", "duster", "admiral"]:
 		_cloth_sectors(m_coat, m_trim if captain else null, [[32.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 328.0]],
-			0.04, -0.02 - 0.42 * Ls - {"greatcoat": 0.14, "duster": 0.22}.get(coat, 0.08), flare, 0.14, 0.035 + thick)
+			tl["top"], tl["bot"], tl["flare"], 0.14, tl["top_off"])
 	if frock:
 		# a full skirt all the way round, hemmed in the trim
 		var secs := []
 		for i in range(6):
 			secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
-		_cloth_sectors(m_coat, m_trim, secs, 0.04, -0.02 - 0.42 * Ls - 0.04, flare, 0.14, 0.035 + thick)
+		_cloth_sectors(m_coat, m_trim, secs, tl["top"], tl["bot"], tl["flare"], 0.14, tl["top_off"])
 	if coat == "greatcoat":
 		# a short cape over the shoulders
 		var cape: Array = []
@@ -2517,7 +2526,6 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 func _haori(mb: MeshBuilder, tr: Array) -> void:
 	var m_coat := _cloth("coat_color")
 	var co := _coat_off()
-	var thick := co - 0.03 - (0.012 if fem else 0.0)
 	var shell := _off(_clip(tr, 0.0, tu(0.62)), co, 0.0, true)
 	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, open_body(0.4), 3.0, Color.WHITE, false, false, false)
 	var band := _textured("fabric", _col("coat_color").darkened(0.2))
@@ -2538,15 +2546,20 @@ func _haori(mb: MeshBuilder, tr: Array) -> void:
 	var rc := _at(tr, ty(0.42))
 	for s in [-1.0, 1.0]:
 		mb.add_box(cord, Transform3D(Basis(Vector3.BACK, s * 0.5), Vector3(s * 0.035, ty(0.42), _front_z(rc) - co - 0.008)), Vector3(0.05, 0.006, 0.006), 3.0)
+	var tl := _coat_tails()
 	_cloth_sectors(m_coat, null, [[40.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 320.0]],
-		0.04, -0.02 - 0.42 * Ls * 0.55, [0.03 + thick, 0.045 + thick, 0.065 + thick], 0.16, 0.035 + thick)
+		tl["top"], tl["bot"], tl["flare"], 0.16, tl["top_off"])
 
 
 func _skirt(m: Material) -> void:
 	var secs := []
 	for i in range(6):
 		secs.append([i * 60.0, (i + 1) * 60.0])
-	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.42 * Ls + 0.04, [0.02, 0.04, 0.08, 0.12], 0.2)
+	# under a long coat only what its opening shows, as the tunic (swinging on their own chains, the panels behind came
+	# out through the tails)
+	if _long_coat():
+		secs = [] if str(lk.get("coat", "none")) == "frock" else [[-36.0, 0.0], [0.0, 36.0]]
+	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.42 * Ls + 0.04, [0.02, 0.04, 0.08, 0.12], 0.2, 0.035, 0.035, _coat_tails())
 
 
 ## Hakama: wide pleated trousers hanging in panels from the waist to mid-shin.
@@ -2554,18 +2567,17 @@ func _hakama(m: Material) -> void:
 	var secs := []
 	for i in range(6):
 		secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
-	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.65 * Ls, [0.02, 0.035, 0.055, 0.08, 0.1], 0.22)
+	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.65 * Ls, [0.02, 0.035, 0.055, 0.08, 0.1], 0.22, 0.035, 0.035, _coat_tails())
 
 
 ## Hanging cloth around the hips (coat tails, skirts) split into sectors, each
 ## a physics chain so it swings and is pushed aside by the legs.
 ## angles: [[a0, a1], ...] in degrees (0 = front, 90 = right). Rows run from
-## y_top down to y_bot with outward `flare` per row.
+## y_top down to y_bot with outward `flare` per row; `seat_gap` behind, over the seat; `tails` the coat's (_coat_tails) for
+## cloth worn under it.
 func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float, y_bot: float, flare: Array, stiff: float,
-		top_off: float = 0.035) -> void:
+		top_off: float = 0.035, seat_gap: float = 0.06, tails: Dictionary = {}) -> void:
 	var sim := _sim(h.hips)
-	var hw := _hips_hw()
-	var hd := _hips_hd()
 	var rows_n := flare.size()
 	for sec in sectors:
 		var a0 := deg_to_rad(float(sec[0]))
@@ -2575,18 +2587,17 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 		var rows := []
 		for r in range(rows_n):
 			var y := lerpf(y_top, y_bot, float(r) / (rows_n - 1))
-			var fl: float = flare[r]
-			var aw := hw + fl
-			var ad := hd + fl * 0.9
-			if r == 0:
-				aw = (_torso_rings()[0][1] as float) + top_off
-				ad = (_torso_rings()[0][2] as float) + top_off
+			var s := _sector_r(r, flare, top_off, seat_gap)
+			# (cloth under a coat's tails kept 2.5 cm inside them: as wide, a skirt and a tunic's hem came out through them)
+			if not tails.is_empty() and y >= float(tails["bot"]):
+				var o := _sector_row(y, tails["top"], tails["bot"], tails["flare"], tails["top_off"], 0.06) - Vector3.ONE * 0.025
+				s = Vector3(minf(s.x, o.x), minf(s.y, o.y), minf(s.z, o.z))
 			var row := PackedVector3Array()
 			for k in range(4):
 				var a := lerpf(a0, a1, k / 3.0)
-				row.append(Vector3(sin(a) * aw, y, -cos(a) * ad))
+				row.append(Vector3(sin(a) * s.x, y, -cos(a) * (s.y if cos(a) >= 0.0 else s.z)))
 			rows.append(row)
-			chain.append(Vector3(sin(am) * aw, y, -cos(am) * ad))
+			chain.append(Vector3(sin(am) * s.x, y, -cos(am) * (s.y if cos(am) >= 0.0 else s.z)))
 		var bones := sim.add_chain(chain, stiff, 0.06, 1.0, ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"])
 		# (the net's probes out to the panel's edges at the hem: a sector is wider than its chain)
 		var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[3] - chain[rows_n - 1]
@@ -2620,6 +2631,67 @@ func _strap(mb: MeshBuilder, m: Material, tr: Array, a: Vector2, b: Vector2, w: 
 		var along := (p1 - p0).normalized()
 		var side := along.cross(Vector3(0, 0, 1.0 if back else -1.0)).normalized()
 		mb.add_box(m, Transform3D(Basis(side, along, side.cross(along)), (p0 + p1) * 0.5), Vector3(w, p0.distance_to(p1) * 1.15, 0.006), 3.0)
+
+
+## Whether a coat with tails to the knee or below (or the frock's full skirt) goes over the hips' other cloth.
+func _long_coat() -> bool:
+	return str(lk.get("coat", "none")) in ["longcoat", "captain", "greatcoat", "duster", "admiral", "frock"]
+
+
+## The coat's tails as _cloth_sectors cuts them (top and bottom y, flare per row, top_off), {} without tails: what the
+## cloth under them (a skirt, a tunic's hem) is kept inside.
+func _coat_tails() -> Dictionary:
+	var coat := str(lk.get("coat", "none"))
+	var thick := _coat_off() - 0.03 - (0.012 if fem else 0.0)
+	var fl := [0.03 + thick, 0.05 + thick, 0.08 + thick, 0.11 + thick]
+	match coat:
+		"jacket":
+			return {"top": 0.04, "bot": -0.14, "flare": [0.03 + thick, 0.045 + thick, 0.06 + thick], "top_off": 0.035 + thick}
+		"haori":
+			return {"top": 0.04, "bot": -0.02 - 0.42 * Ls * 0.55, "flare": [0.03 + thick, 0.045 + thick, 0.065 + thick], "top_off": 0.035 + thick}
+		"frock":
+			return {"top": 0.04, "bot": -0.02 - 0.42 * Ls - 0.04, "flare": fl, "top_off": 0.035 + thick}
+		"longcoat", "captain", "greatcoat", "duster", "admiral":
+			return {"top": 0.04, "bot": -0.02 - 0.42 * Ls - {"greatcoat": 0.14, "duster": 0.22}.get(coat, 0.08), "flare": fl, "top_off": 0.035 + thick}
+	return {}
+
+
+## A sector row's half-width, half-depth in front and behind at height y, as _cloth_sectors builds it.
+func _sector_row(y: float, y_top: float, y_bot: float, flare: Array, top_off: float, seat_gap: float) -> Vector3:
+	var n := flare.size()
+	var t := clampf(inverse_lerp(y_top, y_bot, y) * (n - 1), 0.0, n - 1.0)
+	var r0 := int(minf(floorf(t), n - 2.0))
+	var a := _sector_r(r0, flare, top_off, seat_gap)
+	var b := _sector_r(r0 + 1, flare, top_off, seat_gap)
+	return a.lerp(b, t - r0)
+
+
+func _sector_r(r: int, flare: Array, top_off: float, seat_gap: float) -> Vector3:
+	if r == 0:
+		var t0: Array = _torso_rings()[0]
+		return Vector3(float(t0[1]) + top_off, float(t0[2]) + top_off, float(t0[2]) + top_off)
+	var fl: float = flare[r]
+	var ad := _hips_hd() + fl * 0.9
+	# (behind, clear of the seat: a full seat, pushed out by a stride, came through skirts and coats; a layer over
+	# another clears it by more)
+	return Vector3(_hips_hw() + fl, ad, maxf(ad, _seat_back() + seat_gap))
+
+
+## A vest's shell: the torso from lo to hi stood `o` off it, `strip` the plain outline. Up past the armpits it keeps
+## the chest's width (armholes: over the deltoid cap the shell's edge stood out through the sleeve), and its top edge
+## turns in to the body (open, it showed a bare paper-thin edge and the gap down to the shirt).
+func _vest_shell(tr: Array, lo: float, hi: float, o: float, strip: bool = false) -> Array:
+	var rings := _off(_clip(tr, lo, hi), o, 0.0, strip)
+	var w := float(_at(rings, minf(tu(0.42), hi))[1])
+	for r in rings:
+		if float(r[0]) > tu(0.42):
+			r[1] = minf(float(r[1]), w)
+	var top: Array = (rings[rings.size() - 1] as Array).duplicate()
+	top[0] = float(top[0]) + 0.012
+	top[1] = float(top[1]) - o * 0.8
+	top[2] = float(top[2]) - o * 0.8
+	rings.append(top)
+	return rings
 
 
 ## How far the vest stands off the body over the chest (`waist` false) or round the belt line,

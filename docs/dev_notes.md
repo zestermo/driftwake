@@ -7021,6 +7021,27 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Per frame: nothing new (one float add per gap test).
 - Tests: t/player/coat_tails_hang (new), chains_native_same, chains_net_clear, chains_fallback. clothlab gained the
   duster and skirt looks, CL_NEAR (a close look) and CL_GD, and a split of its count by set > capsule.
+
+## 2026-10-27: 1.24 clothing fixes, pieces 2-3: layers under coats, the seat, vests' armholes and top edge
+- **Under a coat** (body_builder `_coat_tails`, `_sector_row`/`_sector_r`, `_cloth_sectors(..., seat_gap, tails)`):
+  the coat's tails are one description (jacket, haori, frock, the long coats) that both the coat and what's under it
+  read. Under a long coat a skirt or a tunic's/kimono's hem keeps only the two panels its opening shows (-36..36 deg;
+  none under the frock, buttoned closed): their own chains swung them out through the tails (outfit renders: white
+  tunic flaps and brown skirt patches through blue coats). Every other panel under tails is cut 2.5 cm inside them.
+- **The seat:** a panel's rows behind (below the waist row) stand at least `_seat_back()` (the fullest pelvis ring:
+  hd x 1.08 + 1.6 cm fem, x 1.02 + 0.6 cm masc) + seat_gap: tunic/doublet 3 cm, skirt/hakama 3.5, coats 6. Stout
+  bodies' seats came through skirts and coats.
+- **Vests** (`_vest_shell`, every vest kind): above tu(0.42) the shell keeps the chest's width (armholes: over the
+  deltoid cap the closed shells' edge stood out through the sleeve, a thin purple shard over each shoulder from above),
+  and the top edge turns in 1.2 cm to the body (it was a bare paper-thin edge with the gap down to the shirt).
+- The net's slack cap 2.5 -> 2 cm: at 2.5 the outfit grid's front panels let a thigh through at idle. Idle hems now
+  0.4-3.0 cm out from built (was 2-5.4).
+- chains_native_same's WORST 3 -> 7 cm: the moved skirt panels part one hem bone 5.7 cm for 6 frames in the cape look
+  (a float flip in the net; the same with no slack at all).
+- Tests: t/player/cloth_layers (new: panels under each coat, the seat's clearance per x), coat_tails_hang, the chains_*
+  tests, cliptest. Renders: tools/dev/out/models/{coats_f3,skirtcoat4,v2_*}_sheet.png (before: coats_f, skirtcoat,
+  v_*), og_after{,_back}/ vs og_before/ and og_back/. model_samples gained `outfit_row`. Not checked: the seat in
+  a stride (a modelshot body can't hold a pose: the skinned lower body follows the legs in _process).
 ## 2026-10-26: 1.24 Will paths, piece 1: Tempo and Fury
 - **What (docs/v1_24_previews.md section 2, approved).** Two of the four new paths in `WillPaths` (tempo, fury). Each
   is five nodes: T1 (1 Will), a T2 ability (2 a version), T3 (3), the passive (2). **The gate is all Will spent**
