@@ -169,8 +169,10 @@ func _textured(tex: String, c: Color) -> Material:
 	return PSXMat.lit(tex, Color(minf(c.r * k, 1.0), minf(c.g * k, 1.0), minf(c.b * k, 1.0)))
 
 
+## (a tailor's skin: "<slot>_pattern" in the look weaves stripes, a check, brocade or patches into the cloth)
 func _cloth(key: String) -> Material:
-	return _textured("fabric", _col(key))
+	var pat := str(lk.get(key.trim_suffix("_color") + "_pattern", ""))
+	return _textured("fabric" if pat == "" else "fabric_" + pat, _col(key))
 
 
 func _leather(key: String) -> Material:
@@ -2283,7 +2285,7 @@ func _hat(mb: MeshBuilder) -> void:
 			# the face hid half of it from any angle but straight on)
 			var hood_prof := PackedVector2Array([Vector2(0.86, -0.5), Vector2(1, -0.15), Vector2(1, 0.45), Vector2(0.45, 1),
 				Vector2(-0.45, 1), Vector2(-1, 0.45), Vector2(-1, -0.15), Vector2(-0.86, -0.5)])
-			mb.add_loft(_textured("fabric", Color(0.66, 0.68, 0.72)) if coif else m_hat, Transform3D.IDENTITY, hood, hood_prof, 3.0, Color.WHITE, false, false, false)
+			mb.add_loft(_textured("mail", Color(0.66, 0.68, 0.72)) if coif else m_hat, Transform3D.IDENTITY, hood, hood_prof, 3.0, Color.WHITE, false, false, false)
 
 
 # --------------------------------------------------------------------------
@@ -2345,7 +2347,7 @@ func _clothes() -> void:
 					mb.add_box(stud, Transform3D(Basis(), Vector3(x, by, z)), Vector3(0.012, 0.012, 0.008), 3.0)
 		"mail":
 			# a shirt of rings, hanging down over the hips
-			var m_mail := _textured("fabric", Color(0.66, 0.68, 0.72))
+			var m_mail := _textured("mail", Color(0.66, 0.68, 0.72))
 			var w0 := float(tr[0][1])
 			var d0 := float(tr[0][2])
 			var mail := [[-0.11, w0 + 0.045, d0 + 0.045], [-0.03, w0 + 0.03, d0 + 0.03]]
@@ -3048,10 +3050,15 @@ func _accessories() -> void:
 		var pm := PSXMat.lit("metal", Color(0.85, 0.85, 0.9))
 		var pmb := MeshBuilder.new()
 		var k := limb * (1.0 + (sh - 1.0) * 0.4)
-		pmb.add_loft(pm, Transform3D(Basis(Vector3.FORWARD, 0.3), Vector3(-0.01, 0.0, 0.0)),
-			[[-0.09, 0.11 * k, 0.115 * k], [0.0, 0.105 * k, 0.11 * k], [0.05, 0.075 * k, 0.08 * k], [0.075, 0.02, 0.02]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
-		pmb.add_loft(_leather("belt_color"), Transform3D(Basis(Vector3.FORWARD, 0.3), Vector3(-0.01, 0.0, 0.0)),
-			[[-0.1, 0.113 * k, 0.118 * k], [-0.085, 0.113 * k, 0.118 * k]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
+		# worn over what's on the shoulder: a coat's sleeve, or a greatcoat's cape or a mantle (it sank into them)
+		var caped: bool = str(lk.get("coat", "none")) == "greatcoat" or lk.get("mantle", false)
+		var g := 0.03 if caped else (0.014 if coated else 0.0)
+		var lift := Vector3(-0.01, 0.045 if caped else 0.0, 0.0)
+		pmb.add_loft(pm, Transform3D(Basis(Vector3.FORWARD, 0.3), lift),
+			[[-0.09, 0.11 * k + g, 0.115 * k + g], [0.0, 0.105 * k + g, 0.11 * k + g], [0.05 + g * 0.6, 0.075 * k + g, 0.08 * k + g], [0.075 + g, 0.02, 0.02]],
+			MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
+		pmb.add_loft(_leather("belt_color"), Transform3D(Basis(Vector3.FORWARD, 0.3), lift),
+			[[-0.1, 0.113 * k + g, 0.118 * k + g], [-0.085, 0.113 * k + g, 0.118 * k + g]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
 		_mesh(h.arm_l, pmb)
 	_mesh(h.torso, mb)
 	_mesh(h.head, hmb)

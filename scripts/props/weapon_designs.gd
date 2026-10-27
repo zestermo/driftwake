@@ -42,6 +42,11 @@ const DESIGNS := {
 			"dmg": 1.15, "worth": 3.0, "len": 0.5, "tip": 0.34, "w": 0.08, "taper": 1.25, "curve": 0.45, "guard": "cross", "guard_size": 0.17,
 			"blade": Color(0.45, 0.32, 0.55), "venom": Color(0.5, 1.0, 0.25), "fit": Color(0.3, 0.2, 0.35), "grip": Color(0.2, 0.32, 0.18),
 			"grip_tex": "leather", "pommel": "ball", "unique": true, "poison": 5.0},
+		# (skins, 1.24: the plain weapon in another finish, its numbers unchanged; a village smith's)
+		"gilded": {"id": "gilded_cutlass", "name": "Gilded Cutlass", "desc": "A plain cutlass dressed for a captain: a gilt guard and red cord on the grip.",
+			"dmg": 1.0, "worth": 2.2, "fit": Color(1.15, 0.9, 0.4), "grip": Color(0.62, 0.12, 0.1), "grip_tex": "fabric", "skin": true},
+		"blackwater": {"id": "blackwater_cutlass", "name": "Blackwater Cutlass", "desc": "Blued steel and a black grip. It doesn't flash in the moonlight.",
+			"dmg": 1.0, "worth": 2.0, "blade": Color(0.5, 0.56, 0.68), "fit": Color(0.3, 0.3, 0.32), "grip": Color(0.1, 0.09, 0.09), "grip_tex": "leather", "skin": true},
 	},
 	"katana": {
 		"uchigatana": {"id": "uchigatana", "name": "Uchigatana", "desc": "A fighting katana in red cord, a square guard edged in brass.",
@@ -57,6 +62,8 @@ const DESIGNS := {
 			"dmg": 0.95, "worth": 1.0, "len": 0.58, "curve": 0.22, "wrap": Color(0.18, 0.22, 0.4), "fit": Color(0.45, 0.42, 0.42)},
 		"ninjato": {"id": "ninjato", "name": "Ninjato", "desc": "A straight blade with a square guard. Made for the dark, not for show.",
 			"dmg": 1.0, "worth": 1.3, "len": 0.74, "curve": 0.0, "tsuba": "square", "wrap": Color(0.1, 0.1, 0.11), "fit": Color(0.3, 0.3, 0.3)},
+		"sakura": {"id": "sakura_katana", "name": "Sakura Katana", "desc": "A plain katana rewrapped in blossom-pink cord, its guard in brass.",
+			"dmg": 1.0, "worth": 2.0, "wrap": Color(0.86, 0.5, 0.58), "fit": Color(1.0, 0.78, 0.4), "skin": true},
 	},
 	# (two axes in hand fight as twin axes: "speed" x how fast that style's moves play, "hook" x how far its hooks
 	# reach; a pair's numbers are the two axes' average, DualAxeArts.pair. "pair": found and sold two at a time)
@@ -77,6 +84,8 @@ const DESIGNS := {
 		"reaver": {"id": "reavers_axe", "name": "Reaver's Axe", "desc": "Its beard sweeps back into a hook. Made to catch a guard or a collar and haul it in. Carried in pairs.",
 			"dmg": 1.06, "worth": 1.5, "haft": 0.78, "head": "reaver", "wood": Color(0.3, 0.22, 0.17), "bands": true, "speed": 0.98, "hook": 1.4,
 			"pair": true, "fit": Color(0.42, 0.42, 0.44)},
+		"bloodwood": {"id": "bloodwood_axe", "name": "Bloodwood Axe", "desc": "A boarding axe on a haft of red bloodwood bound in brass. The head's the same; the hand knows the difference.",
+			"dmg": 1.0, "worth": 2.0, "wood": Color(1.5, 0.55, 0.42), "bands": true, "fit": Color(1.15, 0.9, 0.4), "skin": true},
 	},
 	"pistol": {
 		"duelling": {"id": "duelling_pistol", "name": "Duelling Pistol", "desc": "A long, true barrel and a silver lock. Made for one shot that counts.",
@@ -89,6 +98,8 @@ const DESIGNS := {
 			"dmg": 1.0, "worth": 1.6, "barrel": 0.2, "r": 0.011, "barrels": 5, "wood": Color(0.3, 0.2, 0.14)},
 		"dragon": {"id": "dragon_pistol", "name": "Dragon Pistol", "desc": "Brass from lock to muzzle, the muzzle a dragon's open jaws.",
 			"dmg": 1.1, "worth": 2.0, "barrel": 0.32, "r": 0.022, "brass_barrel": true, "dragon": true, "wood": Color(0.25, 0.14, 0.1), "fit": Color(1.15, 0.9, 0.4)},
+		"silvered": {"id": "silvered_pistol", "name": "Silvered Pistol", "desc": "A sea-service pistol with its lock and fittings silvered and its stock stained near black.",
+			"dmg": 1.0, "worth": 2.0, "wood": Color(0.18, 0.12, 0.1), "fit": Color(0.92, 0.94, 1.0), "skin": true},
 	},
 	# (the base is a plain sailor's dirk: len 0.21, a small cross guard)
 	"dagger": {
@@ -107,6 +118,8 @@ const DESIGNS := {
 		"sharktooth": {"id": "sharktooth_knife", "name": "Sharktooth Knife", "desc": "A bone grip and a blade set with shark's teeth. It doesn't cut, it tears.",
 			"dmg": 1.08, "worth": 1.3, "len": 0.2, "tip": 0.07, "w": 0.046, "taper": 0.85, "teeth": true, "guard": "none",
 			"fit": Color(0.9, 0.86, 0.74), "grip": Color(0.95, 0.9, 0.78), "grip_tex": "bark", "pommel": "cap"},
+		"jewelled": {"id": "jewelled_dirk", "name": "Jewelled Dirk", "desc": "A sailor's dirk with a gilt guard and a grip bound in violet silk. Worth more than the man carrying it.",
+			"dmg": 1.0, "worth": 2.2, "fit": Color(1.15, 0.9, 0.4), "grip": Color(0.4, 0.18, 0.5), "grip_tex": "fabric", "skin": true},
 	},
 	# (the base is a boarding spear: a leaf head on an ash shaft). Polearms add "reach" (x the hitbox's length),
 	# "speed" (x how fast its moves play), "sweep" (x a sweep's width) and "pierce" (thrusts can't be blocked);
@@ -124,6 +137,8 @@ const DESIGNS := {
 			"dmg": 1.12, "worth": 1.8, "head": "halberd", "speed": 0.92, "reach": 1.05, "fit": Color(0.55, 0.55, 0.58), "wood": Color(0.36, 0.25, 0.16)},
 		"pitchfork": {"id": "pitchfork", "name": "Pitchfork", "desc": "A farmer's fork, three tines and an ash handle. It's held a village gate before.",
 			"dmg": 0.88, "worth": 0.5, "head": "fork", "reach": 0.95, "fit": Color(0.45, 0.42, 0.4), "wood": Color(0.72, 0.56, 0.38)},
+		"lacquered": {"id": "lacquered_spear", "name": "Lacquered Spear", "desc": "A boarding spear on a shaft lacquered oxblood red, its socket in brass.",
+			"dmg": 1.0, "worth": 2.0, "wood": Color(0.42, 0.08, 0.08), "fit": Color(1.0, 0.78, 0.4), "skin": true},
 	},
 	# (the base is an iron warhammer: a square face and a back spike). Hammers add "haft" (m from the right hand
 	# to the head), "speed" (x how fast its moves play), "reach" (x the hitbox's length) and "weight" (x the
@@ -141,6 +156,8 @@ const DESIGNS := {
 		"anchor": {"id": "anchor_hammer", "name": "Anchor Hammer", "desc": "A ship's anchor on a chain-wrapped shank. Only the strongest lift it; nothing stands where it lands.",
 			"dmg": 1.26, "worth": 2.4, "head": "anchor", "haft": 1.08, "reach": 1.06, "speed": 0.82, "weight": 1.3, "rare": true,
 			"blade": Color(0.5, 0.52, 0.55), "fit": Color(0.62, 0.6, 0.56), "grip": Color(0.8, 0.72, 0.55), "grip_tex": "fabric"},
+		"bronze": {"id": "bronze_warhammer", "name": "Bronze Warhammer", "desc": "The warhammer cast in bronze, face and spike. It rings like a bell on a helmet.",
+			"dmg": 1.0, "worth": 2.0, "blade": Color(0.95, 0.68, 0.36), "fit": Color(0.85, 0.6, 0.32), "skin": true},
 	},
 	# (the base is a plain greatsword: a broad straight blade and a cross guard). Greatswords add "len" (the blade's
 	# length), "speed" (x how fast its moves play), "reach" (x the hitbox), "sweep" (x a sweep's width), "weight" (x the
@@ -164,6 +181,8 @@ const DESIGNS := {
 			"dmg": 1.26, "worth": 2.6, "len": 1.3, "w": 0.15, "taper": 0.42, "curve": 0.34, "guard": "bone", "pommel": "drop",
 			"blade": Color(1.12, 1.05, 0.88), "fit": Color(0.92, 0.88, 0.78), "grip": Color(0.25, 0.4, 0.42), "grip_tex": "fabric",
 			"speed": 0.86, "reach": 1.12, "weight": 1.15, "rare": true},
+		"gilt": {"id": "gilt_greatsword", "name": "Gilt Greatsword", "desc": "The two-hander with its cross guard gilded and the grip bound in red. For the captain who wants to be seen.",
+			"dmg": 1.0, "worth": 2.2, "fit": Color(1.15, 0.9, 0.4), "grip": Color(0.62, 0.12, 0.1), "skin": true},
 	},
 }
 
@@ -177,10 +196,20 @@ const TIER_BLADE := [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE, Color.W
 static var _icons: Dictionary = {}
 
 
-## The designs anyone might carry, find or buy (unique ones left out).
+## The designs anyone might carry, find or buy (unique ones and skins left out).
 static func designs_of(kind: String) -> Array:
 	var d: Dictionary = DESIGNS.get(kind, {})
-	return d.keys().filter(func(k): return not bool((d[k] as Dictionary).get("unique", false)))
+	return d.keys().filter(func(k): return not bool((d[k] as Dictionary).get("unique", false)) and not bool((d[k] as Dictionary).get("skin", false)))
+
+
+## Skins (1.24): a kind's plain weapon in another finish, the base's numbers (only a village smith sells them).
+static func skin_ids() -> Array:
+	var out: Array = []
+	for kind in DESIGNS.keys():
+		for d in (DESIGNS[kind] as Dictionary).values():
+			if d.get("skin", false):
+				out.append(str(d["id"]))
+	return out
 
 
 ## A design of `kind` picked at random (the base included: key "").

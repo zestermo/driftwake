@@ -614,3 +614,9 @@ tools/dev/t/gear/*                      t/gear
 scripts/items/gear_stats.gd             t/gear t/items invtest qoltest
 scripts/loot/gear.gd                    t/gear
 scripts/loot/item_data.gd               t/gear
+scripts/player_states/dodge_state.gd    t/gear/weight_dodge
+scripts/player_states/block_state.gd    t/gear/weight_dodge t/player/guard_styles
+scripts/island/village_vendors.gd       t/gear/skins
+scripts/props/weapon_designs.gd         t/gear/skins
+scripts/loot/gear_icons.gd              t/gear/skins
+scripts/npc/body_builder.gd             t/gear/skins cliptest

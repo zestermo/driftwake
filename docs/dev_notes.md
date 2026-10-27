@@ -7098,7 +7098,8 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   New keys read: `attack_speed_pct` (LightAttackState's _spd), `poise_pct` (a chance a flinching blow doesn't rock you,
   Player._on_hit_received), `gold_pct` (a coin picked up is now and then two), `vs_admiralty_pct` (Hurtbox.take_hit on
   the striker's machine, before the hit is routed: anyone whose look has `admiralty`, set by EnemyShip.marine_look).
-  Each is read once per swing, hit or coin: nothing per frame.
+  Each is read once per swing, hit or coin: nothing per frame. Poise and gold roll randf only when the stat is
+  above 0: an unconditional roll on every hit shifted every seeded draw after it (grunttest, powertest failed).
 - **Tooltip:** InventoryScreen.fill_info adds WEIGHT, a line per stat with its difference from the worn piece ("(new)",
   "lose ..."), and the set line ("Corsair set 2/3: +1 air step"). Sets (`GearStats.SETS`): Admiralty bicorne + admiral's
   coat + cavalier boots (+10% vs the Admiralty), Corsair tricorn + captain's coat + tall boots (+1 air step).
@@ -7119,3 +7120,23 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Per frame: nothing (the load is summed when a dodge or guard-hop starts, ~11 slots).
 - Tests: t/gear/weight_dodge, t/gear/set_bonus (new); t/player/dodge and dodge_styles still pass (the stage's
   captain wears boots: medium).
+
+## 2026-10-26: 1.24 gear stats, piece 3: the clothing pass and skins at the village tailors and smiths
+- **Clothing skins** (patterns): a look key `<slot>_pattern` (top, vest, coat, legs: in Gear.SLOT_KEYS) picks the
+  fabric BodyBuilder._cloth draws that colour key with: `fabric_stripes`, `fabric_check`, `fabric_brocade`,
+  `fabric_patched` (gen_psx_textures.py `clothes` mode: the fabric weave with the pattern woven in, grayscale, tinted by
+  the piece's dye, 32x32 like fabric). Gear.compose clears a slot's pattern before laying its piece on (a plain coat over
+  a brocade one leaves no brocade); Gear.make names it first ("Brocade Oxblood Long Coat", Gear.PATTERN_NAMES);
+  GearIcons draws the pattern over the icon. Crewmates get it in the look like any key.
+- **Weapon skins:** WeaponDesigns entries with `"skin": true` (the kind's plain weapon in another finish, dmg 1.0:
+  Gilded and Blackwater Cutlass, Sakura Katana, Bloodwood Axe, Silvered Pistol, Jewelled Dirk, Lacquered Spear, Bronze
+  Warhammer, Gilt Greatsword); designs_of leaves them out, so they never drop or turn up in a home shop.
+- **Sold** by the 1.23 village vendors (VillageVendors.shop): a tailor's pool gets SKINS["tailor"] (12 patterned
+  pieces, white and green), a smith's every WeaponDesigns.skin_ids(), each showing SKIN_SIZE (2) more a day.
+- **Textures:** mail (vest "mail", hat "coif") was the fabric weave tinted grey and read as wool: now `mail`, rows of
+  rings lit from above, 64x64 so the rings stay small.
+- **Clipping:** the pauldron sat inside a coat's sleeve and half inside a greatcoat's shoulder cape or a mantle: it
+  now sits 1.4 cm out over any coat, and over the greatcoat's cape and the mantle 3 cm out and 4.5 cm up. The
+  greatcoat's cape still meets its inner edge (the cape is on the torso, the pauldron on the arm); left open.
+- Tests: t/gear/skins (new). Renders: tools/dev/out/gear/skins/{clothes,stripes,check,patched,mail4,pauldron3,
+  weapons,weapons2}_*.png (modelshot with `S.dressed({...})`, model_samples.gd).
