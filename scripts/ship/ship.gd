@@ -64,6 +64,12 @@ var rudder: float = 0.0
 ## canvas takes a moment to come down; the speed follows what's set out).
 var sail: float = 0.0
 var sail_shown: float = 0.0
+## Tide Will (WillPowers.all, set on every machine): Call the Wind's seconds left (WIND_K more top speed), Helm Sense's
+## seconds left and the share of hull damage it turns.
+const WIND_K := 1.25
+var will_wind := 0.0
+var will_guard := 0.0
+var will_guard_k := 0.0
 var _turn_in: float = 0.0
 var _back_in: bool = false
 var _sail_node: Node3D
@@ -239,7 +245,9 @@ func _physics_process(delta: float) -> void:
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
 	# (water in her: low and sluggish; a fair wind: a little faster)
-	var top := MAX_SPEED * _top_k * _helm_k.x * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood * _helm_k.z) * wind_effect() * sail_k()
+	var top := MAX_SPEED * _top_k * _helm_k.x * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood * _helm_k.z) * wind_effect() * sail_k() * will_k()
+	will_wind = maxf(will_wind - delta, 0.0)
+	will_guard = maxf(will_guard - delta, 0.0)
 	if not lines.is_empty():
 		top = minf(top, LASHED_SPEED)
 	var want := top * sail_shown
@@ -490,6 +498,8 @@ func broadside(side: float, target: Vector3, by: Node) -> int:
 func hull_hit(dmg: float, at: Vector3) -> void:
 	if Net.is_client():
 		return
+	if will_guard > 0.0:
+		dmg *= 1.0 - will_guard_k
 	hull = maxf(hull - dmg, 0.0)
 	_since_hit = 0.0
 	FX.dust(at, 10, 0.8)
@@ -893,6 +903,11 @@ static var _rope_mesh: Mesh
 
 func sail_k() -> float:
 	return 1.0 - TORN_SLOW * torn.size()
+
+
+## Call the Wind's lift on her top speed (1 without it).
+func will_k() -> float:
+	return WIND_K if will_wind > 0.0 else 1.0
 
 
 ## Host: chain shot tore through the canvas at `local` (ship-local).

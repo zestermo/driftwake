@@ -347,6 +347,11 @@ func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 		_text(Vector2(r.position.x, r.get_center().y + 4.0), str(ceili(cd)), Color.WHITE, 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	if _ready_flash[i] > 0.0:
 		draw_rect(r.grow(-1.0), Color(1, 1, 1, _ready_flash[i] * 1.2))
+	# (Twin Finisher: the joint gauge along the slot's foot)
+	if str(sk["id"]) == "will_twin":
+		var gf := pc.will.bond.gauge / WillBond.GAUGE_MAX
+		draw_rect(Rect2(r.position.x + 1.0, r.end.y - 4.0, r.size.x - 2.0, 3.0), Color(0, 0, 0, 0.7))
+		draw_rect(Rect2(r.position.x + 1.0, r.end.y - 4.0, (r.size.x - 2.0) * gf, 3.0), WillBond.COL if gf < 1.0 else WillBond.COL.lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0)))
 	_text(r.position + Vector2(2, 8), key, UIStyle.ACCENT)
 	_text(Vector2(r.position.x, r.end.y - 1.0), str(int(cost)), Color(1.0, 0.75, 0.4) if afford else Color(1.0, 0.35, 0.3), 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
 

@@ -193,7 +193,7 @@ func _process(d: float) -> bool:
 				else:
 					g.global_position = ground(land + Vector3(40 + k * 3, 0, 40))
 				k += 1
-			if skill.begins_with("crew:") and OS.get_environment("AB_SOLO") == "":
+			if (skill.begins_with("crew:") or skill == "will_twin") and OS.get_environment("AB_SOLO") == "":
 				var rng := RandomNumberGenerator.new()
 				rng.seed = 7
 				mate = load("res://scenes/player/player.gd").spawn_ai(root.get_tree().current_scene, load("res://scripts/npc/character_look.gd").random_look(rng),land + Vector3(1.6, 0.3, 0.6), 0.0, Node.new(), "CrewMate")
@@ -235,6 +235,15 @@ func _process(d: float) -> bool:
 			elif skill == "riposte_counter":
 				p.state_machine.force_state("Technique", {"id": "riposte_counter", "target": camp.grunts[0]})
 				print("cast riposte_counter: true")
+			elif skill == "will_twin":
+				# (Twin Finisher: linked to the crewmate on the right, the joint gauge full; the host tells it to join)
+				var net = root.get_node("Net")
+				if mate:
+					load("res://scripts/powers/will_bond.gd").links[net.key_of(p)] = net.key_of(mate)
+				pc.will.bond.gauge = 100.0
+				pc.equip(skill, 0)
+				pc.cooldowns.clear()
+				print("cast will_twin: ", pc.try_cast(0))
 			else:
 				var slot := 4 if Skills.is_ult(skill) else 0
 				pc.equip(skill, slot)

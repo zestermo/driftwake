@@ -2698,7 +2698,91 @@ def gen_fur():
     save(to_img(np.dstack([g, g, g])), "fur")
 
 
+def gen_will_icons():
+    """The 1.24 Will paths' skills (WillArts): Still Point, Berserk, Call the Wind, Twin Finisher, Plant the Flag, Glimpse."""
+    W_ = (255, 255, 245, 255)
+    PALE = hexc("bcd8ff") + (255,)
+    PALE_D = hexc("6a86b8") + (255,)
+    RED = hexc("e8322a") + (255,)
+    RED_D = hexc("8a1810") + (255,)
+    SEA = hexc("4aa8e8") + (255,)
+    SEA_L = hexc("bfe8ff") + (255,)
+    GOLD = hexc("f0c040") + (255,)
+    GOLD_D = hexc("9a6a18") + (255,)
+    WOOD = hexc("6a4628") + (255,)
+    CLOTH = hexc("d8d0b8") + (255,)
+    BLACK = (24, 18, 22, 255)
+    VIOLET = hexc("b48af0") + (255,)
+
+    def still_point(d):
+        # a clock face held still: rings round a dot, the hands stopped
+        d.ellipse([3, 3, 21, 21], outline=PALE_D, width=2)
+        d.ellipse([6, 6, 18, 18], outline=PALE, width=1)
+        d.line([(12, 12), (12, 6)], fill=W_, width=1)
+        d.line([(12, 12), (16, 14)], fill=W_, width=1)
+        d.ellipse([11, 11, 13, 13], fill=W_)
+        for x, y in ((1, 12), (22, 12), (12, 1), (12, 22)):
+            d.point((x, y), fill=PALE)
+
+    def berserk(d):
+        # a fist up in red mist, rage lines off it
+        d.polygon([(4, 22), (8, 14), (16, 14), (20, 22)], fill=RED_D)
+        d.rectangle([7, 7, 17, 15], fill=RED)
+        for x in (7, 10, 13, 16):
+            d.rectangle([x, 5, x + 1, 8], fill=RED)
+        for a, b in (((2, 4), (5, 7)), ((22, 4), (19, 7)), ((12, 0), (12, 3))):
+            d.line([a, b], fill=W_, width=1)
+
+    def call_wind(d):
+        # a sail filled by three gusts
+        d.line([(15, 2), (15, 22)], fill=WOOD, width=2)
+        d.polygon([(14, 4), (14, 18), (5, 16), (3, 10), (5, 5)], fill=CLOTH)
+        for y in (6, 11, 16):
+            d.line([(17, y), (22, y - 1)], fill=SEA_L, width=1)
+            d.point((20, y + 1), fill=SEA)
+
+    def twin_finisher(d):
+        # two blades crossed, a star where they meet
+        d.line([(3, 21), (20, 4)], fill=hexc("d0d8e0") + (255,), width=2)
+        d.line([(4, 4), (21, 21)], fill=hexc("d0d8e0") + (255,), width=2)
+        d.line([(2, 19), (6, 23)], fill=GOLD, width=2)
+        d.line([(18, 23), (22, 19)], fill=GOLD, width=2)
+        d.polygon([(12, 7), (13, 11), (17, 12), (13, 13), (12, 17), (11, 13), (7, 12), (11, 11)], fill=GOLD)
+
+    def plant_flag(d):
+        # a flag driven into the ground, a ring of green round its foot
+        d.ellipse([3, 17, 21, 23], outline=hexc("7ae07a") + (255,), width=1)
+        d.line([(9, 2), (9, 20)], fill=WOOD, width=2)
+        d.polygon([(10, 3), (21, 6), (10, 10)], fill=BLACK)
+        d.ellipse([13, 5, 16, 8], fill=W_)
+
+    def glimpse(d):
+        # an eye through a wall: bricks, and the eye bright over them
+        for y in (4, 10, 16):
+            off = 0 if y % 12 == 4 else 4
+            for x in range(-4 + off, 24, 8):
+                d.rectangle([x, y, x + 6, y + 4], fill=hexc("5a5048") + (255,))
+        d.ellipse([3, 8, 21, 16], fill=VIOLET)
+        d.ellipse([8, 9, 16, 15], fill=W_)
+        d.ellipse([10, 10, 14, 14], fill=BLACK)
+
+    def swell(d):
+        # a wave curling over a deck rail, a figure thrown off it
+        d.rectangle([2, 18, 22, 21], fill=WOOD)
+        d.arc([3, 4, 21, 26], 180, 300, fill=SEA, width=3)
+        d.arc([6, 8, 18, 22], 190, 290, fill=SEA_L, width=1)
+        d.ellipse([17, 3, 20, 6], fill=BLACK)
+        d.line([(18, 6), (21, 10)], fill=BLACK, width=1)
+
+    for name, fn in (("will_swell", swell), ("will_still_point", still_point), ("will_berserk", berserk), ("will_wind", call_wind),
+                     ("will_twin", twin_finisher), ("will_flag", plant_flag), ("will_glimpse", glimpse)):
+        _icon("skill_" + name, fn)
+
+
 def main():
+    if "will_icons" in sys.argv[1:]:
+        gen_will_icons()
+        return
     if "beasts" in sys.argv[1:]:
         gen_scales(); gen_fur()
         return
@@ -2755,6 +2839,7 @@ def main():
     gen_power_icons()
     gen_skill_icons()
     gen_technique_icons()
+    gen_will_icons()
     gen_move_icons()
     gen_fruit_skins()
     gen_thornbrush()

@@ -38,7 +38,7 @@ const XP_RANGE := 40.0
 const CONNECT_TIMEOUT := 10.0
 const WEB_NO_COOP := "Co-op needs the desktop build"
 ## What clients may ask the host to do to an enemy (see ask_host).
-const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole", "perfect_parried", "launched", "blocked_by", "grab_ended"]
+const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole", "perfect_parried", "launched", "blocked_by", "grab_ended", "surrender"]
 
 var active: bool = false
 var hosting: bool = false
@@ -792,6 +792,11 @@ func everyone(method: String, args: Array = []) -> void:
 	if active and world_ready:
 		for id in _targets():
 			_allr.rpc_id(id, time(), method, args)
+
+
+## A Will path's doing on every machine (WillPowers.all).
+func _all_will(op: String, args: Array) -> void:
+	WillPowers.all(op, args)
 
 
 ## A captain-style AI (RivalDuel) on every screen, named `rname` under `parent_key`: the host's runs its brain
