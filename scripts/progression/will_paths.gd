@@ -5,6 +5,9 @@ extends RefCounted
 ##   iron   Iron Will: Coat (tier 1), Emission (2), Inner Strike (3); its passive Hardening
 ##   sense  Sense: Flash (1), Foresight (2), Crowd Read (3); its passive Instinct
 ##   conq   Captain's Will: Roar (2), Clash (3); its passive King's Will (needs 4 Will spent in each of the others)
+## 1.24 (docs/v1_24_previews.md section 2), always open, tiers by all the Will spent (OPEN); at work in WillPowers / WillArts:
+##   tempo  Tempo: Second Step (1), Rhythm: Cancel / Flow (2), Still Point (3); its passive Light on Your Feet
+##   fury   Fury: Red Mist (1), Berserk (2), Unbowed (3); its passive Thick Blood
 ## A tier's ability has versions, each bought for the tier's points (1, 2, 3); the first bought is the active one and
 ## the others are switched in at a rest spot (Progression.set_version). A path's next tier opens with Will spent in it
 ## (TIER_AT); the first path is free to pick, a second opens at SECOND_AT Will spent. A passive (PASSIVE_COST) needs the
@@ -15,9 +18,15 @@ extends RefCounted
 const SOURCES := {"boss": 2, "villain": 2, "hunter": 2, "leviathan": 2, "rival": 1, "officer": 1, "sergeant": 1, "miniboss": 1}
 ## Meditation (Downtime "meditate"): a point for every 3 game days spent meditating (game seconds).
 const MEDITATE_SECS := 3.0 * 1440.0
-const PATHS := ["iron", "sense", "conq"]
-const PATH_NAMES := {"iron": "Iron Will", "sense": "Sense", "conq": "Captain's Will"}
-## Will spent in a path that opens each tier (a path's first tier opens at 0: Captain's Will starts at tier 2).
+const PATHS := ["iron", "sense", "conq", "tempo", "fury"]
+const PATH_NAMES := {"iron": "Iron Will", "sense": "Sense", "conq": "Captain's Will", "tide": "Tide", "tempo": "Tempo", "fury": "Fury", "bond": "Bond"}
+## The Will page's two sets of columns (A/D or a click flips them).
+const PAGES := [["iron", "sense", "conq"], ["tempo", "fury"]]
+## The 1.24 paths (docs/v1_24_previews.md section 2): five nodes each, always open, their tiers opened by all the Will
+## you've spent (a path's own five nodes, 10 Will, can't reach 4 and 8 by themselves).
+const OPEN := ["tide", "tempo", "fury", "bond"]
+## Will spent that opens each tier (a path's first tier opens at 0: Captain's Will starts at tier 2): in the path, or
+## in all for the OPEN paths.
 const TIER_AT := {1: 0, 2: 4, 3: 8}
 const SECOND_AT := 8
 const CONQ_NEEDS := 4
@@ -53,12 +62,27 @@ const ABILITIES := {
 		["w_roar_far", "Far Roar", {"roar_reach": 0.5}, "The roar reaches half again as far.", "conquerors_haki", "Far"]]],
 	"w_clash": ["conq", 3, "Clash", "When two great wills meet, they clash: timed presses decide who breaks.", [
 		["w_clash", "Clash", {"will_clash": 1}, "Two big Will attacks meeting (a boss's, a rival's or a crewmate's in a duel) start a clash won by timed presses.", "", "Clash"]]],
+	"w_step": ["tempo", 1, "Second Step", "Kick off the air once more: one more jump in mid-air.", [
+		["w_step_v", "Second Step", {"air_jumps": 1}, "+1 air step.", "", "Step"]]],
+	"w_rhythm": ["tempo", 2, "Rhythm", "Fight to your own beat: dash out of a blow's recovery, or flow faster while nothing touches you.", [
+		["w_cancel", "Cancel", {"dash_cancel": 1}, "Dodge out of a combo blow's recovery as soon as its hit is done.", "", "Cancel"],
+		["w_flow", "Flow", {"will_flow": 1}, "Every blow you land while unhit makes your attacks 2% faster, up to 20%; a blow on you breaks the flow.", "", "Flow"]]],
+	"w_still": ["tempo", 3, "Still Point", "Find the still point (the skill): for 3 s everything round you moves at half speed; you don't.", [
+		["w_still_v", "Still Point", {}, "Foes within 20 m move and strike at half speed for 3 s. Every 2 minutes.", "will_still_point", "Still"]]],
+	"w_mist": ["fury", 1, "Red Mist", "The worse you're hurt, the harder you hit.", [
+		["w_mist_v", "Red Mist", {"red_mist": 1}, "+1% damage for every 4% of your health missing.", "", "Mist"]]],
+	"w_berserk": ["fury", 2, "Berserk", "Throw your guard away (the skill): your blows heal you, theirs land harder.", [
+		["w_berserk_v", "Berserk", {}, "For 10 s every blow you land heals you 4% of its damage, and blows on you land 20% harder.", "will_berserk", "Berserk"]]],
+	"w_unbowed": ["fury", 3, "Unbowed", "Refuse to fall: once a fight, the blow that would fell you doesn't.", [
+		["w_unbowed_v", "Unbowed", {"unbowed": 1}, "Once a fight a blow that would fell you leaves you at 1 health, and nothing touches you for 2 s.", "", "Unbowed"]]],
 }
 ## Each path's passive: id -> [path, name, effects, desc] (bought for PASSIVE_COST once the path's first ability is yours).
 const PASSIVES := {
 	"h_harden": ["iron", "Hardening", {"defense": 8.0, "energy_regen_pct": 0.2}, "Passive (a slot). Will under the skin: +8 defense, and energy refills 20% faster."],
 	"h_instinct": ["sense", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider."],
 	"h_will": ["conq", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."],
+	"h_feet": ["tempo", "Light on Your Feet", {"move_pct": 0.08}, "Passive (a slot). +8% move speed."],
+	"h_blood": ["fury", "Thick Blood", {"thick_blood": 0.5}, "Passive (a slot). Bleeding, burning and poison hurt you half as much."],
 }
 ## The Will milestones of saves before 1.23 (format < 8): each comes back as SOURCES["boss"] Will points.
 const OLD := ["h_arm", "h_coat", "h_obs", "h_fore", "h_conq"]
@@ -91,6 +115,8 @@ static func spent_all(pr) -> int:
 
 ## Why a path can't be bought into yet ("" = it's open).
 static func path_why(pr, path: String) -> String:
+	if path in OPEN:
+		return ""
 	if path == "conq":
 		if spent_in(pr, "iron") < CONQ_NEEDS or spent_in(pr, "sense") < CONQ_NEEDS:
 			return "Needs %d Will spent in Iron Will and in Sense" % CONQ_NEEDS
@@ -114,6 +140,10 @@ static func why(pr, id: String) -> String:
 		var first: String = abilities_of(path)[0]
 		if not pr.owns(first):
 			return "Needs %s first" % ABILITIES[first][2]
+	elif path in OPEN:
+		var gate_all: int = TIER_AT[int(n["tier"])]
+		if spent_all(pr) < gate_all:
+			return "Needs %d Will spent" % gate_all
 	else:
 		var gate: int = TIER_AT[int(n["tier"])] - TIER_AT[first_tier(path)]
 		if spent_in(pr, path) < gate:

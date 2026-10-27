@@ -51,6 +51,11 @@ const ALL := {
 			{"uses": 12, "cost": 2, "name": "Second Sight", "desc": "Lasts 8 s and dodges the next two attacks."},
 			{"uses": 40, "cost": 3, "cooldown": 3.0, "name": "Future Sight", "desc": "Mastered: a stance you switch on and off. While on, it dodges an attack by itself every 3 s; it drains 2 energy a second and drops when you run dry."},
 		]},
+	# --- Will (WillPaths' 1.24 paths; run by WillArts in the Technique state) ---
+	"will_still_point": {"name": "Still Point", "tree": "base", "cost": 30.0, "cooldown": 120.0, "needs": "", "fruit": "", "state": "Technique",
+		"desc": "Tempo Will. Find the still point: for 3 s every foe within 20 m moves and strikes at half speed, and you don't."},
+	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
+		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
 	"fire_fist": {"name": "Cinder Fist", "tree": "Ember", "cost": 18.0, "cooldown": 2.5, "needs": "", "fruit": "ember",
 		"desc": "Hurl a ball of fire where you aim. It bursts on impact and sets enemies ablaze."},

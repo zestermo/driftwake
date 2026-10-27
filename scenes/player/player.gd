@@ -553,7 +553,7 @@ func attack_cost_k() -> float:
 ## (hitstun), or a full physics knockdown for heavy hits. A parry takes no
 ## damage and lets the attacker know it was parried.
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
-	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished():
+	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished() or power.will.untouchable():
 		return
 	# a spirit (the drowned captain): shot and shell pass through him
 	if bloodless() and (hit.ranged or hit.impact == "shot"):
@@ -629,6 +629,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	# Captain's Presence: common foes' blows land softer
 	if attacker and not attacker.is_in_group("players") and not Progression.is_elite(attacker):
 		dmg *= 1.0 - progression.stat("presence")
+	dmg = power.will.incoming(hit, dmg)
 	# Last Stand: once a minute, a killing blow leaves you at 1
 	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:
 		dmg = health_component.current_health - 1.0
@@ -2408,6 +2409,7 @@ func damage_multiplier() -> float:
 		k += 0.3
 	if power.buff("howl"):
 		k += 0.25
+	k += power.will.damage_k()
 	return w * k
 
 

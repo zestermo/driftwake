@@ -794,6 +794,11 @@ func everyone(method: String, args: Array = []) -> void:
 			_allr.rpc_id(id, time(), method, args)
 
 
+## A Will path's doing on every machine (WillPowers.all).
+func _all_will(op: String, args: Array) -> void:
+	WillPowers.all(op, args)
+
+
 ## A captain-style AI (RivalDuel) on every screen, named `rname` under `parent_key`: the host's runs its brain
 ## (`skill`), a guest's is a captain puppet of it (its snapshots, its blows routed to the host).
 func _all_spawn_rival(parent_key: String, rname: String, look: Dictionary, weapon: String, at: Vector3, yaw: float, skill: float) -> void:

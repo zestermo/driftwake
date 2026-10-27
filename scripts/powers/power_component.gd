@@ -77,10 +77,15 @@ var _emit_done := false
 var _free_recast: Dictionary = {}
 var _ult_lock: float = 0.0
 var _regen_wait: float = 0.0
+## The 1.24 Will paths at work (WillPowers).
+var will: WillPowers
 
 
 func _ready() -> void:
 	player = get_parent() as Player
+	will = WillPowers.new()
+	will.name = "Will"
+	add_child(will)
 
 
 func has_fruit() -> bool:
@@ -535,6 +540,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	TraitMoves.landed(player, target, hit)
 	if player.is_local:
 		pr.on_hit(target, hit)
+		will.landed(hit)
 		var leech := pr.style_stat("leech", st)
 		if leech > 0.0:
 			player.health_component.heal(hit.damage * leech)

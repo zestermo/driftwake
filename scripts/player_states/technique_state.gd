@@ -34,7 +34,7 @@ const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "si
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
 	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
 ## Techniques that live in their own files (enter/update return false for ids not theirs).
-var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts]
+var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts, WillArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""

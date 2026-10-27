@@ -6999,3 +6999,32 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Tests: t/player/chains_net_clear (new), chains_native_same (now all but 1% of frame-bones within 4 mm, worst under
   3 cm: the net's thresholds can flip a frame's turn on a float), chains_fallback. Renders: tools/dev/out/clothlab/
   sheet_{hair,twin,coat,ties}.png (off top, on below).
+
+## 2026-10-26: 1.24 Will paths, piece 1: Tempo and Fury
+- **What (docs/v1_24_previews.md section 2, approved).** Two of the four new paths in `WillPaths` (tempo, fury). Each
+  is five nodes: T1 (1 Will), a T2 ability (2 a version), T3 (3), the passive (2). **The gate is all Will spent**
+  (`WillPaths.OPEN`): "tier 2 from 4 spent, tier 3 from 8" can't be met inside a path whose five nodes cost 10 in all
+  (T1 + passive is 3), so for the new paths it counts every Will point spent, and they're always open (no second-path
+  lock). Iron Will / Sense / Captain's Will keep their in-path gates.
+  - Tempo: Second Step (`air_jumps` +1), Rhythm (Cancel `dash_cancel` / Flow `will_flow`), Still Point (skill
+    `will_still_point`, 30 energy, 2 min), Light on Your Feet (`move_pct` 0.08).
+  - Fury: Red Mist (`red_mist`: +1% damage per 4% health missing), Berserk (skill `will_berserk`, 20 energy, 40 s:
+    10 s buff `w_berserk`, heal 4% of each weapon blow landed, blows taken x1.2), Unbowed (`unbowed`: once a fight the
+    felling blow leaves 1 health + buff `unbowed` 2 s where nothing lands; "a fight" ends with `Player.in_fight()`),
+    Thick Blood (`thick_blood` 0.5: every damage-over-time hit on you halved: bleed, burn and poison alike).
+- **Where.** `scripts/powers/will_powers.gd` (WillPowers, PowerComponent's child "Will": `damage_k` into
+  Player.damage_multiplier, `flow_k` into LightAttackState's `_spd`, `landed` from on_sword_hit, `incoming` /
+  `untouchable` in Player._on_hit_received), `scripts/powers/will_arts.gd` (WillArts, the skills' timelines, one of
+  TechniqueState's `_arts`), `scripts/powers/still_point.gd` (StillPoint). Small hooks: player.gd (3 lines),
+  light_attack_state.gd (Flow's speed, Cancel), humanoid.gd (`time_k` scales `_process`'s delta), network_manager.gd
+  (`_all_will` -> `WillPowers.all`).
+- **Still Point in co-op.** `Net.everyone("_all_will", ["still", [at, 20, 3]])`: every machine builds a StillPoint
+  over the foes within 20 m; the host (which runs them) lets each think and move only every other physics tick
+  (`set_physics_process` toggled, put back after; one that wasn't processing is left alone), and every screen plays
+  their bodies at `time_k` 0.5 with a pale afterimage now and then. Engine.time_scale is untouched (co-op can't use it).
+- **Skill map.** The Will page has two sets of columns (`WillPaths.PAGES`, `will_set`): a strip over them
+  (clickable) and A/D flip them; the new paths' footer says "TIERS AT 4 / 8 SPENT". skillmapshot adds `_will2`.
+- **Per frame / tick:** WillPowers: an int count a tick, its work every 10 ticks (fight over, Berserk's aura); a
+  StillPoint only while one runs (its foes, a few seconds every 2 minutes at most).
+- **Tests:** t/will/open_paths, t/will/tempo, t/will/fury (new group); t/progression and t/ui/skills_captain_forks
+  still pass. Co-op for nettest to cover later: a guest's Still Point slowing the host's grunts.

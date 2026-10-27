@@ -49,6 +49,8 @@ var tab := "combat"
 var chart := false
 ## Captain: the Will page instead of the talent forks.
 var will_page := false
+## Which of WillPaths.PAGES the Will page shows.
+var will_set := 0
 ## Captain: the lowest fork row in view, and how many rows the canvas fits (4 at 640x360, 6 at 800x450).
 var _first := 0
 var _rows := 4
@@ -142,7 +144,11 @@ func _captain_home() -> void:
 	var p := _pr()
 	if will_page:
 		var won := WillPaths.ABILITIES.keys().filter(func(k): return p.has_will(k))
-		sel = "n:" + str(won[0] if not won.is_empty() else "w_coat")
+		var first := str(won[0] if not won.is_empty() else "w_coat")
+		sel = "n:" + first
+		for i in range(WillPaths.PAGES.size()):
+			if WillPaths.ABILITIES[first][0] in WillPaths.PAGES[i]:
+				will_set = i
 		return
 	var f := _forks()
 	var k := f.size() - 1
@@ -151,6 +157,16 @@ func _captain_home() -> void:
 			k = i
 	sel = "f:%s:%d" % [f[k], maxi(p.version_of(f[k]), 0)]
 	_first = clampi(k - _rows / 2, 0, maxi(f.size() - _rows, 0))
+
+
+## The Will page's set of path columns (WillPaths.PAGES): the pick moves to its first path's first ability.
+func _set_will_set(i: int) -> void:
+	if will_set == i:
+		return
+	will_set = i
+	hover = ""
+	sel = "n:" + str(WillPaths.abilities_of(WillPaths.PAGES[i][0])[0])
+	menu._play("select")
 
 
 func _set_page(w: bool) -> void:
@@ -292,7 +308,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:") or id == "respec" or id.begins_with("page:") or id.begins_with("col:"):
+			elif id.begins_with("w:") or id == "respec" or id.begins_with("page:") or id.begins_with("col:") or id.begins_with("wset:"):
 				_act(id)
 			elif id != "":
 				sel = id
@@ -349,6 +365,8 @@ func _input(event: InputEvent) -> void:
 		else:
 			_pick_root()
 		menu._play("select")
+	elif (k == KEY_A or k == KEY_D) and tab == "captain" and will_page:
+		_set_will_set(wrapi(will_set + (-1 if k == KEY_A else 1), 0, WillPaths.PAGES.size()))
 	elif (k == KEY_A or k == KEY_D) and tab == "combat":
 		_cycle_tree(-1 if k == KEY_A else 1)
 	elif (k == KEY_W or k == KEY_S) and tab == "adventure":
@@ -425,6 +443,8 @@ func _act(id: String) -> void:
 		_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 	elif id.begins_with("page:"):
 		_set_page(id == "page:w")
+	elif id.begins_with("wset:"):
+		_set_will_set(int(id.substr(5)))
 	elif id.begins_with("col:"):
 		if p.set_will_color(id.substr(4)):
 			menu._play("equip")
@@ -605,7 +625,7 @@ func _hints() -> Array:
 			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
 		"captain":
 			if will_page:
-				return [["Q/E", "TAB"], ["C/W", "PAGE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY / CARRY"], ["K", "CLOSE"]]
+				return [["Q/E", "TAB"], ["C/W", "PAGE"], ["A/D", "PATHS"], ["ARROWS", "INSPECT"], ["ENTER", "BUY / CARRY"], ["K", "CLOSE"]]
 			return [["Q/E", "TAB"], ["C/W", "PAGE"], ["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["K", "CLOSE"]]
 		"loadout":
 			return [["Q/E", "TAB"], ["ENTER", "PUT ON BAR"], ["1-5/R", "SLOT"], ["RMB", "CLEAR"], ["K", "CLOSE"]]
@@ -1181,9 +1201,20 @@ func _draw_will(r: Rect2) -> void:
 	var panel := Rect2(r.end.x - pw, r.position.y - 4.0, pw, r.size.y + 4.0)
 	var field := Rect2(r.position, Vector2(panel.position.x - r.position.x - 8.0, r.size.y))
 	var tint := p.will_tint()
-	var cw := floorf(field.size.x / 3.0)
-	for c in range(3):
-		var path: String = WillPaths.PATHS[c]
+	var tx := field.position.x
+	for i in range(WillPaths.PAGES.size()):
+		var label := " · ".join(WillPaths.PAGES[i].map(func(k): return str(WillPaths.PATH_NAMES[k]).to_upper()))
+		var tw := SILK.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 12.0
+		var tr := Rect2(tx, field.position.y, tw, 12)
+		_box(tr, WILL_DARK, WILL if i == will_set else WILL_DIM)
+		draw_string(SILK, Vector2(tx, tr.position.y + 9.0), label, HORIZONTAL_ALIGNMENT_CENTER, tw, 8, UIStyle.CREAM if i == will_set else Color("8b80b0"))
+		hit(tr, "wset:%d" % i, false)
+		tx += tw + 4.0
+	field = Rect2(field.position + Vector2(0, 16), field.size - Vector2(0, 16))
+	var paths: Array = WillPaths.PAGES[will_set]
+	var cw := floorf(field.size.x / paths.size())
+	for c in range(paths.size()):
+		var path: String = paths[c]
 		var col := Rect2(field.position.x + c * cw, field.position.y, cw - 6.0, field.size.y)
 		var why := WillPaths.path_why(p, path)
 		var spent := WillPaths.spent_in(p, path)
@@ -1214,7 +1245,8 @@ func _draw_will(r: Rect2) -> void:
 				for pid in WillPaths.PASSIVES:
 					if WillPaths.PASSIVES[pid][0] == path:
 						_will_passive_chip(Rect2(box.position.x, vy + 15.0, box.size.x, 12), pid, tint)
-		draw_string(SILK, Vector2(col.position.x, col.end.y - 3.0), "TIERS AT 0 / 4 / 8 IN IT" if path != "conq" else "4 IN EACH OTHER PATH", HORIZONTAL_ALIGNMENT_CENTER, col.size.x, 8, WILL_DIM)
+		var foot := "4 IN EACH OTHER PATH" if path == "conq" else ("TIERS AT 4 / 8 SPENT" if path in WillPaths.OPEN else "TIERS AT 0 / 4 / 8 IN IT")
+		draw_string(SILK, Vector2(col.position.x, col.end.y - 3.0), foot, HORIZONTAL_ALIGNMENT_CENTER, col.size.x, 8, WILL_DIM)
 	_draw_will_card(panel, _will_shown())
 
 

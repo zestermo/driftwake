@@ -307,6 +307,8 @@ const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup
 ## Taking a quick-slot item (Player.use_item): the left hand holds its prop, the head may tip back to drink.
 const HEAL_ACTIONS := ["bite", "swig", "slurp", "tonic"]
 var _freeze: float = 0.0
+## How fast this body's clock runs (Still Point slows a foe's to half).
+var time_k := 1.0
 var _base: Dictionary = {}
 ## Hip height from the body style (the legs' length); PIVOT_Y is the reference.
 var hip_y: float = PIVOT_Y
@@ -2872,6 +2874,7 @@ func _locomotion(delta: float) -> Dictionary:
 func _process(delta: float) -> void:
 	if not is_visible_in_tree() or pivot == null:
 		return
+	delta *= time_k
 	if _freeze > 0.0:
 		_freeze -= delta
 		return
