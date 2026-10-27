@@ -131,6 +131,9 @@ func _process(_d: float) -> bool:
 		5:
 			check("Rally: on while you fight (+%.2f)" % p.power.will.damage_k(), is_equal_approx(p.power.will.damage_k(), 0.1))
 			give("will_rally", 0.0)
+			# (the shield grunt, roused by the stomp, would cut the planting short)
+			g.global_position = p.global_position + Vector3(0, 0, -60)
+			g.reset_physics_interpolation()
 			p.health_component.current_health = 1000.0
 			p.state_machine.force_state("Technique", {"id": "will_flag"})
 			until = TK.wait_secs(2.5)
