@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket"}
+	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -183,6 +183,21 @@ const DESIGNS := {
 		"jezail": {"id": "jezail", "name": "Jezail", "desc": "A mountain gun with a barrel as long as a man, its curved stock inlaid with bone. Patient, and it never misses twice.",
 			"dmg": 1.24, "worth": 2.4, "barrel": 1.3, "range": 1.45, "reload": 1.25, "curve": true, "rare": true,
 			"wood": Color(0.5, 0.22, 0.12), "fit": Color(0.92, 0.86, 0.72)},
+	},
+	# (the base is a bronze hand cannon; GunModels.cannon). Cannons add "len" (the barrel), "r" (its bore), "barrel" (its
+	# metal's colour), "blast" (x the splash's radius), "range" (x the reach), "reload" (x the reload's time) and "burn"
+	# (s: its shells set them burning); "rare" drops less often
+	"cannon": {
+		"swivel": {"id": "swivel_gun", "name": "Swivel Gun", "desc": "A rail gun pulled off its post and given a grip. Lighter, quicker to load, a smaller bang.",
+			"dmg": 0.85, "worth": 0.8, "len": 0.95, "r": 0.055, "blast": 0.8, "reload": 0.75, "barrel": Color(0.42, 0.42, 0.45)},
+		"carronade": {"id": "carronade", "name": "Carronade", "desc": "A stubby ship-smasher cut down to carry. It doesn't reach far; where it lands, nothing's left standing.",
+			"dmg": 1.1, "worth": 1.4, "len": 0.72, "r": 0.095, "blast": 1.15, "range": 0.7, "barrel": Color(0.32, 0.32, 0.34)},
+		"dragon": {"id": "dragon_cannon", "name": "Dragon Cannon", "desc": "Brass from breech to muzzle, the muzzle a dragon's open jaws. Its shells burst into fire.",
+			"dmg": 1.05, "worth": 1.9, "dragon": true, "burn": 4.0, "barrel": Color(1.1, 0.85, 0.4), "fit": Color(1.15, 0.9, 0.4)},
+		# (rare: kept a third of the times it's rolled)
+		"bombard": {"id": "bombard", "name": "Bombard", "desc": "A siege gun no sane sailor would carry. One shot and a long breath, and the deck is clear.",
+			"dmg": 1.25, "worth": 2.4, "len": 1.12, "r": 0.11, "blast": 1.35, "reload": 1.25, "rare": true, "barrel": Color(0.28, 0.28, 0.3),
+			"fit": Color(0.5, 0.48, 0.46)},
 	},
 }
 
@@ -403,6 +418,8 @@ static func build(model: String) -> ArrayMesh:
 			_greatsword(mb, p, tier)
 		"longgun":
 			GunModels.longgun(mb, p, tier)
+		"cannon":
+			GunModels.cannon(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()

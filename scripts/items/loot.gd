@@ -37,6 +37,9 @@ const HOARD_GOLD := 55
 ## often (a boss's hoard more often). Drawn from the chest's own second stream, so the rest of its roll is unchanged.
 const GREAT_CHANCE := 0.1
 const GREAT_HOARD := 0.3
+## (1.24) cannons the same way, rarer still: from any weapon a chest keeps (not one already a greatsword), their own stream.
+const CANNON_CHANCE := 0.08
+const CANNON_HOARD := 0.2
 
 
 ## The local captain's name: what makes a chest's roll theirs.
@@ -166,6 +169,8 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 				var kind := it.weapon_model
 				if kind not in ["pistol", "longgun"] and rng_for(key + "|great").randf() < (GREAT_HOARD if hoard else GREAT_CHANCE):
 					kind = "greatsword"
+				elif rng_for(key + "|cannon").randf() < (CANNON_HOARD if hoard else CANNON_CHANCE):
+					kind = "cannon"
 				it = weapon(kind, rarity_round(int(it.rarity), kind_of_chest, arms_rng), rng)
 				# (tomahawks and reavers' axes are carried in pairs: found two at a time, ready for both hands)
 				if WeaponDesigns.comes_paired(it.id.get_slice("+", 0).get_slice("@", 0)):

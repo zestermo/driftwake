@@ -5,9 +5,9 @@ class_name GunKinds
 ## which model makes which style, its load and reload, aiming at the reticle, the hitscan line and a blast's splash.
 
 ## weapon_model -> fighting style.
-const STYLE := {"longgun": "long_gun"}
+const STYLE := {"longgun": "long_gun", "cannon": "cannon"}
 ## Every style these kinds fight in (Player.style()).
-const OWN := ["long_gun"]
+const OWN := ["long_gun", "cannon"]
 
 
 ## A design's number for any of these kinds ("reload", "range", "shots"...; `def` for the base item).
@@ -20,6 +20,8 @@ static func art(style: String) -> Variant:
 	match style:
 		"long_gun":
 			return LongGunArts
+		"cannon":
+			return CannonArts
 	return null
 
 
@@ -33,11 +35,13 @@ static func reload_base(p: Player) -> float:
 	match p.style():
 		"long_gun":
 			return LongGunArts.RELOAD * design(p.equipped_weapon, "reload")
+		"cannon":
+			return CannonArts.RELOAD * design(p.equipped_weapon, "reload")
 	return 1.2
 
 
 ## The action a reload plays.
-const RELOAD_ANIM := {"long_gun": "lg_reload"}
+const RELOAD_ANIM := {"long_gun": "lg_reload", "cannon": "cn_reload"}
 
 
 ## What the bag shows for one (InventoryScreen.weapon_stats): a shot's damage (a full scatter's), shots a second
@@ -50,6 +54,9 @@ static func stats(it: ItemData) -> Dictionary:
 			var loads := design(it, "shots")
 			var rate: float = loads / (loads * LongGunArts.FIRE_LEN + LongGunArts.RELOAD * design(it, "reload"))
 			return {"gun": true, "damage": dmg * it.power(), "rate": rate, "range": LongGunArts.RANGE * design(it, "range")}
+		"cannon":
+			var rate: float = 1.0 / (CannonArts.FIRE_LEN + CannonArts.RELOAD * design(it, "reload"))
+			return {"gun": true, "damage": CannonArts.DIRECT * it.power(), "rate": rate, "range": CannonArts.RANGE * design(it, "range")}
 	return {}
 
 
@@ -60,6 +67,11 @@ static func notes(it: ItemData) -> Array:
 			if design(it, "spread", 0.0) > 0.0:
 				return ["Scatters a cone of shot; hold to tighten it", "Right-click: the butt stroke"]
 			return ["Hold to aim: a steady shot pierces", "Right-click: the butt stroke"]
+		"cannon":
+			var out := ["Bursts where it lands: knocks them all down", "Right-click: the barrel like a club"]
+			if design(it, "burn", 0.0) > 0.0:
+				out.append("Its shells set them burning")
+			return out
 	return []
 
 

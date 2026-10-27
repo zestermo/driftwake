@@ -228,6 +228,17 @@ const ALL := {
 		"desc": "Let the gun out at arm's length, butt first, and swing round once: everyone close is clubbed, then knocked flat."},
 	"hawkeye": {"name": "Hawkeye", "tree": "long_gun", "cost": 0.0, "cooldown": 3.0, "styles": ["long_gun"], "needs_text": "a long gun", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Down on one knee, time slows while every enemy ahead (up to six) is marked; then a shot through each in turn, unblockable, knocking them all down. Nothing touches you until it's done."},
+	# --- The cannon ---
+	"canister_shot": {"name": "Canister Shot", "tree": "cannon", "cost": 18.0, "cooldown": 7.0, "styles": ["cannon"], "needs_text": "a cannon", "state": "Technique",
+		"desc": "A canister of grape fired point-blank: a cone of a dozen balls that hurls everyone close in front back and off their feet. It doesn't spend your load."},
+	"chain_shot": {"name": "Chain Shot", "tree": "cannon", "cost": 20.0, "cooldown": 7.0, "styles": ["cannon"], "needs_text": "a cannon", "state": "Technique",
+		"desc": "Two balls on a chain, spinning down the line at the reticle: they cut through everyone on it, thirty paces, and leave them reeling."},
+	"mortar_lob": {"name": "Mortar Lob", "tree": "cannon", "cost": 24.0, "cooldown": 9.0, "styles": ["cannon"], "needs_text": "a cannon", "state": "Technique",
+		"desc": "Tip the cannon up and lob three shells high: they come down on the reticle and either side of it, each bursting and throwing everyone round it flat."},
+	"rocket_charge": {"name": "Rocket Charge", "tree": "cannon", "cost": 20.0, "cooldown": 8.0, "styles": ["cannon"], "needs_text": "a cannon", "state": "Technique",
+		"desc": "Turn the muzzle behind you and fire: the recoil hurls you ten paces forward, ramming everyone in your path off their feet."},
+	"leviathan_shell": {"name": "Leviathan Shell", "tree": "cannon", "cost": 0.0, "cooldown": 3.0, "styles": ["cannon"], "needs_text": "a cannon", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Down on one knee, a breath, and one giant shell at the reticle: where it lands everything within eight paces is thrown down, unblockable, and the ground cracks open. Nothing touches you while you brace."},
 	# --- Unarmed: power ---
 	"hip_toss": {"name": "Shoulder Throw", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Hands open to catch for a second: a blow caught in them is turned aside and whoever threw it goes over your shoulder, knocking down anyone they land on. A boss or a heavy gets a straight right back instead."},

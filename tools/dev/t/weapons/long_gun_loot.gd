@@ -1,7 +1,8 @@
 extends SceneTree
 ## Long guns are found and sold like cutlasses: every design is an item (sea musket, long rifle, blunderbuss, boarding
 ## carbine, double fowler, jezail) with its model and icon; the jezail is the rarest roll; the islands' chest pools and
-## the encounters' loot list the musket (and a chest's long gun never becomes a greatsword); Haldor's forge, the treasure
+## the encounters' loot list the musket (and a chest's long gun never becomes a greatsword, though now and then a
+## cannon); Haldor's forge, the treasure
 ## merchants and the Shift+F10 rack carry them; a purple one rolls a trait long guns can have; the bag shows its range.
 const TK := preload("res://tools/dev/test_kit.gd")
 const DESIGNS := ["musket", "long_rifle", "blunderbuss", "boarding_carbine", "fowling_piece", "jezail"]
@@ -57,9 +58,9 @@ func _process(_d: float) -> bool:
 			if st.item.is_weapon():
 				if st.item.weapon_model == "longgun":
 					found += 1
-				else:
+				elif st.item.weapon_model != "cannon":
 					other += 1
-	check("a hoard's long gun stays a long gun (%d of 300, %d turned)" % [found, other], found == 300 and other == 0)
+	check("a hoard's long gun stays a long gun, or now and then a cannon, never a blade (%d of 300, %d turned)" % [found, other], found > 200 and other == 0)
 	var shops = load("res://scripts/game/shops.gd")
 	check("the treasure merchants' kinds carry them", "longgun" in shops.RARE_KINDS)
 	var forge: Array = shops.SHOPS["haldor"]["pool"].map(func(e): return str(e[0]))

@@ -7120,3 +7120,45 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   a_/b_/c_/d_/e_*). posebench: a held pose needs u < 1 (at 1 it ends and the bench's next shot errors).
   Expect techtest/progtest/balancetest/uitest (a new tab), the chest-roll suites and guntest-adjacent ones to want a
   look at the push.
+
+## 2026-10-26: 1.24 ranged weapon kinds, piece 2: the cannon (docs/weapons_plan.md "Cannon", guns family)
+- **Item and models** (WeaponDesigns kind "cannon", base resources/items/hand_cannon.tres; GunModels.cannon): a fat barrel
+  along the top (bore CN_BORE above the hand) running CN_BREECH back over the shoulder, a pistol grip for the right
+  hand, a front grip for the left, a shoulder pad, rings, a swelled muzzle. Designs: swivel gun (light: blast x0.8,
+  reload x0.75), carronade (stubby: blast x1.15, range x0.7), dragon cannon (brass jaws; "burn" 4 s), bombard (RARE:
+  blast x1.35, reload x1.25). Two-handed, slung on the back. Style "cannon".
+- **The rounds** (scripts/weapons/shell.gd, class Shell): a round under gravity, on every screen (Player.net_power
+  "shell" -> net_event), only the shooter's machine hits: a fat ray of its size against the foes' hurtboxes and a ray
+  against the world each tick, then its art's `shell_hit` (CannonArts now, SlingArts next). Kinds: ball, mortar (lobbed
+  high, `lob_v`), giant (the Leviathan Shell), chain (straight, cutting through everyone on its line). `aim_v` gives the
+  low arc onto the reticle. A smoke wake behind the balls (each screen's own, a puff every 0.05 s).
+- **The shot** (scripts/weapons/cannon_arts.gd through ShootState): left click braces (cn_fire), the ball leaves at
+  FIRE_AT 0.25 s at 40 m/s on the arc to the reticle (60 m x design): the one it strikes takes 45, everyone within
+  BLAST 3.2 m (x design, Big Bang) the splash 28 (half at the rim), all knocked down and thrown out (`explode`, the
+  splash through GunKinds.splash with the push from the middle). The kick shoves you back 6 m/s (Braced halves it). One
+  load, then a 2.4 s reload (cn_reload). Traits: thundering and headsman's (the barrel bash).
+- **Moves**: right click the barrel swung like a club (HeavyAttackState "barrel_bash", breaker, knockdown); Cannon Ram at
+  a sprint; Recoil Leap in the air (fired straight down: the blast below 3 m knocks them flat, you thrown up 13 and on
+  6 m/s; needs the load); parry/block with the cannon held across the front.
+- **Tree** (SkillTrees "cannon": Iron / Blast / Recoil, element brimstone "cn": Brimstone 16 / Hellfire Shells 25):
+  Braced 3 (recoil_ 0.5) · Mortar Lob 8 · Powder Monkey 14 (reload_ 0.3) · Iron Hide 20; Canister Shot 5 · Chain Shot 10
+  · Leviathan Shell 30; Cannon Ram 2 · Recoil Leap 6 · Rocket Charge 12 · Big Bang 13 (passive: blast_, heavy_) ·
+  Gunner's Way 22 (Demolisher / Quick Gunner). Steps 30. New keys: recoil_, blast_.
+- **Techniques** (CannonArts in TechniqueState._arts): Canister Shot (12 balls in a 0.4 rad cone to 12 m at 0.25 s, 6
+  each, a foe struck once for its balls, 3+ knock down; no load spent), Chain Shot (a chain round at 30 m/s for 30 m,
+  26 + a 1 s stagger on everyone on its line), Mortar Lob (three shells at 0.35/0.5/0.65 s lobbed 0.9 s onto the
+  reticle and 2.6 m either side, 22 each in 2.6 m, a ring warns where), Rocket Charge (fired behind at 0.2 s: carried 20
+  m/s to 0.68 s ramming everyone in the way, 26 knockdown), the Leviathan Shell (ult, untouchable: braced on a knee, the
+  moment at 0.45 s, a giant shell at 0.95 s: 70 unblockable knockdown in 8 m, six cracks; with the element the ground
+  burns 4 s).
+- **FX**: TREE_FX "cannon" brimstone (sulphur core and edge, violet accent); `FX.brimstone` (sulphur sparks, embers,
+  violet smoke) for element / elem_hit; the shot FX.cannon_fire, the burst FX.cannon_blast (its glow the element) +
+  cannon_hit. Sounds: cannon, cannon_hit.
+- **Sources**: rarer: in no island's pool; a weapon a chest keeps (not already a greatsword) becomes a cannon
+  CANNON_CHANCE 0.08 (a hoard CANNON_HOARD 0.2) from its own stream (`rng_for(key|cannon)`); Shops.RARE_KINDS; Haldor's
+  pool hand_cannon / swivel_gun / carronade@1; WeaponDesigns.random_item; the Shift+F10 rack.
+- **Co-op**: rounds replicate as harmless copies on the other screens; hits through Hurtbox.take_hit, effects through
+  Net.fx. **Per frame**: each round in flight does a shape query and a ray a tick (a handful at once at most) and a
+  smoke puff every 0.05 s; nothing on idle bodies beyond the long gun's grip solve.
+- Gotcha: a test must not name `Shell` as a type (it compiles before the autoloads exist): filter "projectiles" by kind.
+- Tests: t/weapons cannon_fire, cannon_moves, cannon_tree, cannon_loot. Renders: tools/dev/out/cn/ (posebench a_/b_/c_*).

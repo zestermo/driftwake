@@ -1351,6 +1351,8 @@ const TREE_FX := {
 	"black_leg": [Color(1.0, 0.95, 0.82), Color(1.0, 0.17, 0.16), Color(0.7, 0.04, 0.1)],
 	# long guns: starlight - silver-white shots with a moon-blue edge and a deep indigo, star glints where they land
 	"long_gun": [Color(1.0, 1.0, 1.0), Color(0.72, 0.84, 1.0), Color(0.38, 0.4, 0.9)],
+	# the cannon: brimstone - a sulphur-white core, sulphur-yellow edge, a violet accent; violet smoke, burning shrapnel
+	"cannon": [Color(1.0, 0.97, 0.75), Color(1.0, 0.8, 0.22), Color(0.62, 0.3, 0.88)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1490,8 +1492,21 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			heat(pos, dir, amount, speed)
 		"long_gun":
 			starlight(pos, dir, amount, speed)
+		"cannon":
+			brimstone(pos, dir, amount, speed)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Brimstone thrown off a blast (the cannon's element): sulphur sparks flung hard, burning shrapnel, a puff of violet
+## smoke.
+const BRIMSTONE_SMOKE := Color(0.32, 0.14, 0.42, 0.8)
+
+
+func brimstone(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	muzzle_sparks(pos, dir, amount, tree_col("cannon", EDGE))
+	embers(pos, dir, maxi(amount / 2, 2), tree_col("cannon", CORE), speed)
+	smoke(pos, maxi(amount / 4, 1), 0.7, 1.4, BRIMSTONE_SMOKE)
 
 
 ## Starlight thrown off a shot (the long gun's element): silver motes drifting off along `dir`, a few indigo ones
@@ -2902,6 +2917,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"long_gun":
 			starlight(pos, dir + Vector3.UP * 0.3, 7, 3.0)
 			ring(pos, dir, 0.7, edge, 0.14, 0.12)
+		"cannon":
+			brimstone(pos, dir + Vector3.UP * 0.3, 8, 4.0)
+			ring(pos, dir, 1.0, edge, 0.18, 0.2)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

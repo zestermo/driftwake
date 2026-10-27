@@ -36,6 +36,7 @@ const HEADERS := {
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"long_gun": ["Long Gun", "combat", Color(0.74, 0.84, 1.0), 30],
+	"cannon": ["Cannon", "combat", Color(1.0, 0.82, 0.34), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
 	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
 	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 30],
@@ -73,6 +74,7 @@ const ELEMENTS := {
 	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"long_gun": ["lg", "Starlit Sights", "Falling Star", "starlight: silver shots with a moon-blue edge, star glints where they land, and Hawkeye's shots fall like shooting stars"],
+	"cannon": ["cn", "Brimstone", "Hellfire Shells", "brimstone: sulphur-yellow blasts, violet smoke and burning shrapnel, and the Leviathan Shell leaves the ground burning"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 	"black_leg": ["bl", "Searing Heel", "Red-Hot Leg", "heat: the kicking leg glows red-hot, crimson flames burst off the big kicks and white-hot sparks off every one, and Last Course sets the ground burning"],
 }
@@ -208,6 +210,7 @@ static func _build() -> void:
 	_build_corsair()
 	_build_pistol()
 	_build_long_gun()
+	_build_cannon()
 	_build_unarmed()
 	_build_black_leg()
 	_build_ember()
@@ -1064,6 +1067,43 @@ static func _build_long_gun() -> void:
 	_step("lg_heft", "Heavy Stock", "lg_sky", 3, {"heavy_long_gun": 0.08}, "Your butt stroke (right-click) hits 8% harder a step.")
 	_step("lg_draw", "Draw Breath", "lg_burst", 3, {"flow_long_gun": 0.15}, "Long gun hits give 15% more energy a step.")
 	_step("lg_recover", "Recovery", "lg_soldier", 3, {"cdr_long_gun": 0.05}, "Long gun techniques come back 5% sooner a step.")
+
+
+## The cannon (hand cannon, swivel gun, carronade, dragon cannon, bombard): one explosive ball and a long reload, the
+## recoil turned into movement; brimstone as the element.
+static func _build_cannon() -> void:
+	_tree("cannon", ["Iron", "Blast", "Recoil"])
+	_root("cn_root", "Cannon", {},
+		"A hand cannon on your shoulder. Left-click braces and fires a ball that bursts where it lands, throwing everyone round it off their feet; the kick shoves you back a step. One load, then a long reload. Right-click swings the barrel like a club. Fight with a cannon in hand to build its mastery.")
+	_big("cn_brace", "Braced", "mech", 0, 3, {"recoil_cannon": 0.5}, "Plant your feet: the recoil shoves you back half as far.")
+	_big("cn_mortar", "Mortar Lob", "tech", 0, 8, {}, "", "mortar_lob")
+	_big("cn_monkey", "Powder Monkey", "mech", 0, 14, {"reload_cannon": 0.3}, "You reload a cannon 30% faster.")
+	_big("cn_iron", "Iron Hide", "mech", 0, 20, {"def_cannon": 6.0, "armor_cannon": 1},
+		"Mid-swing with a cannon, blows don't make you flinch or knock you off your feet, and you have 6 more defense with one in hand.")
+	_big("cn_canister", "Canister Shot", "tech", 1, 5, {}, "", "canister_shot")
+	_big("cn_chain", "Chain Shot", "tech", 1, 10, {}, "", "chain_shot")
+	_elem(1)
+	_elem(2)
+	_big("cn_levi", "Leviathan Shell", "ult", 1, 30, {}, "", "leviathan_shell")
+	_big("cn_ram", "Cannon Ram", "move", 2, 2, {"mv_cannon_ram": 1},
+		"Attack at a sprint: the cannon dropped to the hip and driven muzzle first into them at the run. It breaks their wind-up and knocks them flat.")
+	_big("cn_leap", "Recoil Leap", "move", 2, 6, {"mv_recoil_leap": 1},
+		"Attack in the air: turn the muzzle straight down and fire. The blast below knocks everyone round it flat and throws you high up and on (once per jump, uses your load).")
+	_big("cn_rocket", "Rocket Charge", "tech", 2, 12, {}, "", "rocket_charge")
+	_big("cn_bang", "Big Bang", "passive", 2, 13, {"blast_cannon": 0.25, "heavy_cannon": 0.25},
+		"Passive (a slot). Your blasts reach 25% further, and the barrel (right-click) lands 25% harder.")
+	_variant("cn_way", "Gunner's Way", 2, [
+		["cn_demo", "Demolisher", 22, {"exec_cannon": 0.5, "blast_cannon": 0.15}, "A hit that leaves them under 30% health deals 50% more on top, and your blasts reach another 15% further."],
+		["cn_quick", "Quick Gunner", 22, {"reload_cannon": 0.25, "cdr_cannon": 0.2}, "You reload another 25% faster, and cannon techniques come back 20% sooner."]],
+		"Two ways to work a gun. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("cn_bore", "Wide Bore", "cn_root", 5, {"dmg_cannon": 0.05}, "+5% cannon damage a step.")
+	_step("cn_plate", "Iron Plate", "cn_brace", 3, {"def_cannon": 3.0}, "+3 defense with a cannon in hand a step.")
+	_step("cn_fuse", "Short Fuse", "cn_elem", 5, {"crit_cannon": 0.03}, "3% more of your cannon hits land 50% harder, a step.")
+	_step("cn_powder", "Double Powder", "cn_chain", 5, {"skill_cannon": 0.06}, "Cannon techniques hit 6% harder a step.")
+	_step("cn_wind", "Second Wind", "cn_ram", 3, {"stam_cannon": 0.05}, "Cannon attacks cost 5% less stamina a step.")
+	_step("cn_heft", "Heft", "cn_leap", 3, {"heavy_cannon": 0.08}, "The barrel (right-click) hits 8% harder a step.")
+	_step("cn_draw", "Draw Breath", "cn_canister", 3, {"flow_cannon": 0.15}, "Cannon hits give 15% more energy a step.")
+	_step("cn_recover", "Recovery", "cn_bang", 3, {"cdr_cannon": 0.05}, "Cannon techniques come back 5% sooner a step.")
 
 
 static func _build_unarmed() -> void:

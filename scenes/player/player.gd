@@ -1607,7 +1607,7 @@ func try_summon() -> String:
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
 ## a pair for the twin axes). Each new kind adds its line (1.24: the ranged kinds). It also teaches black-leg (no item: learned).
-const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1}
+const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2306,7 +2306,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2383,6 +2383,8 @@ const REACH := {
 	"kick_fly": [Vector3(1.8, 1.5, 2.4), Vector3(0.0, 0.1, -1.3)],
 	# a long gun's stock driven out ahead (the butt stroke, the stock rush)
 	"stock": [Vector3(1.8, 1.4, 2.0), Vector3(-0.15, 0.2, -1.05)],
+	# a cannon's barrel swung across the front, the ram's muzzle out ahead
+	"cannon": [Vector3(2.4, 1.6, 2.3), Vector3(-0.2, 0.25, -1.15)],
 }
 
 
@@ -2924,6 +2926,8 @@ func net_event(what: String, args: Array) -> void:
 			match str(args[0]):
 				"projectile":
 					Projectile.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]), str(a[4]))
+				"shell":
+					Shell.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]), str(a[4]))
 				"fireball":
 					Fireball.launch(get_tree(), a[0], a[1], self)
 				"fire_zone":

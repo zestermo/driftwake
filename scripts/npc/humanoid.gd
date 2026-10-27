@@ -858,7 +858,7 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
-	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword", "longgun"]:
+	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword", "longgun", "cannon"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
@@ -1019,6 +1019,8 @@ func _guard() -> Dictionary:
 			return GreatswordMoves.GUARD
 		"long_gun":
 			return GunMoves.LG_GUARD
+		"cannon":
+			return GunMoves.CN_GUARD
 		"sword":
 			return SwordMoves.guard(self)
 		"dual_pistol":
@@ -1051,6 +1053,7 @@ const STANCE_LEGS := {
 	"greatsword": GreatswordMoves.LEGS,
 	"black_leg": BlackLegMoves.LEGS,
 	"long_gun": GunMoves.LG_LEGS,
+	"cannon": GunMoves.CN_LEGS,
 }
 
 
@@ -1237,6 +1240,8 @@ func _block_pose() -> Dictionary:
 			return GreatswordMoves.BLOCK
 		"long_gun":
 			return GunMoves.LG_BLOCK
+		"cannon":
+			return GunMoves.CN_BLOCK
 		"sword":
 			return SwordMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
@@ -2372,7 +2377,7 @@ func _action_pose(n: String, u: float) -> Array:
 		return DualAxeMoves.pose(self, n, u)
 	if n.begins_with("gs_"):
 		return GreatswordMoves.pose(self, n, u)
-	if n.begins_with("lg_"):
+	if n.begins_with("lg_") or n.begins_with("cn_"):
 		return GunMoves.pose(self, n, u)
 	if n.begins_with("fs_"):
 		return FistMoves.pose(self, n, u)
@@ -3020,7 +3025,7 @@ func _pose(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	StanceLife.grip(self, delta)
-	if stance in ["polearm", "hammer", "greatsword", "long_gun"] or pole_w > 0.0 or guard2 and stance in MASTERED:
+	if stance in ["polearm", "hammer", "greatsword", "long_gun", "cannon"] or pole_w > 0.0 or guard2 and stance in MASTERED:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)

@@ -101,6 +101,12 @@ const STYLES := {
 		"damage": 24.0, "hitstop": 0.1, "shake": 0.18, "knockback": 11.0, "stagger": 0.9,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.05, "impact_fx": false, "reach": "stock",
 		"color": Color(0.9, 0.92, 1.0), "tree": "long_gun", "breaker": true},
+	# the cannon (the barrel bash): heaved back over the shoulder, then the barrel brought down across the front like a
+	# club, stepping in: through a guard, flat on their back
+	"barrel_bash": {"anim": "cn_bash", "impulse": 5.0,
+		"damage": 30.0, "hitstop": 0.13, "shake": 0.26, "knockback": 14.0, "stagger": 0.8,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.8, "impact_fx": false, "reach": "cannon",
+		"color": Color(1.0, 0.9, 0.7), "tree": "cannon", "breaker": true},
 	"whip": {"anim": "pistol_whip", "impulse": 5.0,
 		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
 		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
@@ -204,6 +210,8 @@ func enter(data: Dictionary) -> void:
 			cfg = STYLES["maul"]
 		"long_gun":
 			cfg = STYLES["butt_stroke"]
+		"cannon":
+			cfg = STYLES["barrel_bash"]
 		_:
 			cfg = STYLES[style_for(model)]
 	player.set_reach(str(cfg.get("reach", "sword")))

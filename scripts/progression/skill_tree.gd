@@ -33,6 +33,7 @@ const TREES := {
 	"corsair": {"name": "Corsair", "tab": "CORSAIR", "kind": "weapon"},
 	"pistol": {"name": "Pistol", "tab": "PISTOL", "kind": "weapon"},
 	"long_gun": {"name": "Long Gun", "tab": "LONG GUN", "kind": "weapon"},
+	"cannon": {"name": "Cannon", "tab": "CANNON", "kind": "weapon"},
 	"life": {"name": "Life Skills", "tab": "LIFE", "kind": "tab"},
 	"swim": {"name": "Swimming", "tab": "LIFE", "kind": "life"},
 	"sea": {"name": "Sailing", "tab": "LIFE", "kind": "life"},
@@ -40,20 +41,20 @@ const TREES := {
 	"fish": {"name": "Fishing", "tab": "LIFE", "kind": "life"},
 	"fruit": {"name": "Driftfruit", "tab": "FRUIT", "kind": "fruit"},
 }
-const TAB_ORDER := ["base", "unarmed", "black_leg", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "polearm", "hammer", "dual_axe", "greatsword", "corsair", "pistol", "long_gun", "life", "fruit"]
+const TAB_ORDER := ["base", "unarmed", "black_leg", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "polearm", "hammer", "dual_axe", "greatsword", "corsair", "pistol", "long_gun", "cannon", "life", "fruit"]
 const LIFE_SKILLS := ["swim", "sea", "cook", "fish"]
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
 const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe", "dagger": "dagger",
 	"dual_sword": "dual", "dual_dagger": "dual_dagger", "sword_pistol": "corsair", "pistol": "pistol", "dual_pistol": "pistol", "polearm": "polearm",
-	"hammer": "hammer", "dual_axe": "dual_axe", "greatsword": "greatsword", "black_leg": "black_leg", "long_gun": "long_gun"}
+	"hammer": "hammer", "dual_axe": "dual_axe", "greatsword": "greatsword", "black_leg": "black_leg", "long_gun": "long_gun", "cannon": "cannon"}
 
 const REGION_COLORS := {
 	"Core": Color(0.85, 0.78, 0.6), "Mobility": Color(0.45, 0.85, 0.95), "Survival": Color(0.5, 0.9, 0.45),
 	"Armament": Color(0.6, 0.45, 0.85), "Observation": Color(0.95, 0.5, 0.75), "Conqueror": Color(0.95, 0.3, 0.3),
 	"Seafarer": Color(0.4, 0.75, 0.95),
 	"Unarmed": Color(1.0, 0.85, 0.6), "Black Leg": Color(1.0, 0.45, 0.35), "Cutlass": Color(0.85, 0.85, 0.95), "Katana": Color(0.7, 0.85, 1.0),
-	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Dagger": Color(1.0, 0.45, 0.58), "Twin Daggers": Color(0.6, 1.0, 0.45), "Polearm": Color(1.0, 0.9, 0.4), "Hammer": Color(0.88, 0.74, 0.54), "Twin Axes": Color(0.8, 0.88, 1.0), "Greatsword": Color(0.72, 0.95, 0.84), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4), "Long Gun": Color(0.74, 0.84, 1.0),
+	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Dagger": Color(1.0, 0.45, 0.58), "Twin Daggers": Color(0.6, 1.0, 0.45), "Polearm": Color(1.0, 0.9, 0.4), "Hammer": Color(0.88, 0.74, 0.54), "Twin Axes": Color(0.8, 0.88, 1.0), "Greatsword": Color(0.72, 0.95, 0.84), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4), "Long Gun": Color(0.74, 0.84, 1.0), "Cannon": Color(1.0, 0.82, 0.34),
 	"Ember": Color(1.0, 0.5, 0.15), "Wolf": Color(0.7, 0.62, 0.5), "Vine": Color(0.45, 0.85, 0.3),
 	"Seamanship": Color(0.45, 0.8, 0.9), "Swimming": Color(0.4, 0.7, 1.0), "Cooking": Color(1.0, 0.72, 0.4), "Fishing": Color(0.55, 0.9, 0.75),
 }
