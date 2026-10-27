@@ -1552,11 +1552,27 @@ func _sense(p: Node, kind: String = "melee") -> void:
 ## (flash_shots) or "big" (a boss's special: flash_boss); a foe that isn't after you flashes for Crowd Read (within
 ## CROWD_RANGE, or anywhere for 4 s after a perfect dodge).
 func _sense_fx(kind: String = "melee", targeted: bool = true) -> void:
+	if targeted and _ambush_warn():
+		FX.float_text(global_position + Vector3(0, 2.4, 0), "!", Color(1.0, 0.3, 0.25), 36)
+		FX.sfx("blip_high", global_position, -2.0, 0.0, 1.6)
 	var delay := _sense_delay(kind, targeted)
 	if delay > 0.0:
 		get_tree().create_timer(delay).timeout.connect(_flash_sense)
 	elif delay == 0.0:
 		_flash_sense()
+
+
+## Ambush Sense (Sense's Flash version, Progression "ambush_sense"): this foe is behind the local captain's view.
+func _ambush_warn() -> bool:
+	var me := get_tree().get_first_node_in_group("player")
+	var cam := get_viewport().get_camera_3d()
+	if me == null or cam == null or not me.progression.has_flag("ambush_sense"):
+		return false
+	var to := global_position - (me as Node3D).global_position
+	to.y = 0.0
+	var look := -cam.global_basis.z
+	look.y = 0.0
+	return to.normalized().dot(look.normalized()) < 0.0
 
 
 ## Seconds until this attack flashes for the local captain, -1 for no flash.
@@ -2270,6 +2286,30 @@ func launched(v: Vector3) -> void:
 		humanoid.ragdoll.push(v - (rb.linear_velocity if rb else Vector3.ZERO))
 		return
 	_knock_down(v)
+
+
+## Intimidate (Captain's Will): it throws down its arms, kneels and is gone a moment later (vanish: no loot). Host-run.
+const SURRENDER_S := 2.0
+
+
+func surrender() -> void:
+	if Net.forward(self, "surrender", []):
+		return
+	if state in [S.DEAD, S.DOWN]:
+		return
+	bark(["I yield! I yield!", "Mercy! Take it, take it all!", "Not me, not today!"], 1.0)
+	hitbox.deactivate()
+	_drop_aim()
+	_release_token()
+	velocity = Vector3.ZERO
+	humanoid.kneeling = true
+	_stagger_len = SURRENDER_S + 1.0
+	_set_state(S.STAGGER)
+	Net.fx("dust", [global_position, 6, 0.5])
+	get_tree().create_timer(SURRENDER_S).timeout.connect(func():
+		if is_instance_valid(self) and state != S.DEAD:
+			Net.fx("smoke", [global_position + Vector3(0, 0.8, 0), 6, 0.8, 1.0])
+			vanish(false))
 
 
 ## Defense (Clean Parry): a perfect parry, after parried(): "clean" reels it longer, "disarm" (Disarm) also knocks

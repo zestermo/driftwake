@@ -5,6 +5,8 @@ class_name WillArts
 ##   will_berserk      Fury: a roar, then WillPowers' berserk buff
 ##   will_swell        Tide: aboard, a wave over the deck; the host throws the boarders off (swell_foes)
 ##   will_wind         Tide: Call the Wind (Ship.will_wind on every machine)
+##   will_glimpse      Sense: foes and chests marked through walls (WillSight, this screen only)
+##   will_flag         Captain's Will: Plant the Flag (WarFlag on every machine)
 ##   will_twin         Bond: Twin Finisher's lead (the joint gauge spent); the linked crewmate's machine, told by the
 ##                     host (twin_net), runs will_twin_mate: both close on the foe from either side, strike, and cross
 ##                     their weapons through it at the same beat. Alone, the ship's broadside fires on it instead.
@@ -32,6 +34,7 @@ const TWIN_CLOSE := 0.06
 const TWIN_STRIKE := [0.3, 0.42]
 const TWIN_CROSS_AT := 0.7
 const TWIN_SAFE := 0.95
+const GLIMPSE_SECS := 3.0
 ## The host lets a crewmate join only this close to the lead.
 const TWIN_JOIN := 12.0
 
@@ -70,6 +73,14 @@ static func enter(s, id: String) -> bool:
 			s._target = ship
 			p.body_model.play("coat" if id == "will_swell" else "foresight", s.dur)
 			net.fx("gather", [p.global_position + Vector3(0, 1.2, 0), 1.4, SEA, 0.3, 12])
+		"will_glimpse":
+			s.dur = 0.4
+			p.body_model.play("foresight", s.dur)
+			net.fx("sparkle", [p.global_position + Vector3(0, 1.7, 0), 12, WillSight.FOE])
+		"will_flag":
+			s.dur = 0.8
+			p.body_model.play("coat", s.dur)
+			net.fx("gather", [p.global_position + Vector3(0, 1.2, 0), 1.2, p.progression.will_tint(), 0.3, 10])
 		"will_twin", "will_twin_mate":
 			var lead: bool = id == "will_twin"
 			var foe: Node3D = s._nearest(TWIN_REACH, false) if lead else s._target
@@ -165,7 +176,7 @@ static func _twin(s, p: Player, delta: float) -> void:
 
 ## The crew's ship if you're aboard it (reach 0) or within `reach` m of it, else null.
 static func _my_ship(p: Player, reach: float) -> Node3D:
-	var ship := p.get_tree().get_first_node_in_group("ship") as Node3D
+	var ship := WillBond.crew_ship(p.get_tree())
 	if ship == null:
 		return null
 	if ship.aboard(p.global_position) or (reach > 0.0 and ship.global_position.distance_to(p.global_position) < reach):
@@ -260,6 +271,19 @@ static func update(s, delta: float) -> bool:
 				net.fx("speed_lines", [sail_at, -(s._target as Node3D).global_basis.z, SEA_FOAM, 14, 5.0, 0.6])
 				net.fx("sfx", ["whoosh_big", p.global_position, 0.0, 0.05, 0.6])
 				p.cam_kick(0.1, 0.5)
+		"will_glimpse":
+			s._rooted(delta, 0.3)
+			if s._once("see", 0.15):
+				WillSight.glimpse(p, GLIMPSE_SECS)
+				net.fx("ring", [p.global_position + Vector3(0, 1.0, 0), Vector3.UP, 2.0, WillSight.FOE, 0.3, 0.08])
+				net.fx("sfx", ["blip_high", p.global_position, -6.0, 0.0, 0.7])
+		"will_flag":
+			s._rooted(delta, 0.0)
+			if s._once("plant", 0.4):
+				var at: Vector3 = p.global_position + s._dir * 0.8
+				net.everyone("_all_will", ["flag", [Vector3(at.x, p.global_position.y, at.z), p.progression.will_tint()]])
+				net.fx("sfx", ["thud", at, -2.0, 0.05, 0.8])
+				p.cam_shake(0.12)
 		"will_twin", "will_twin_mate":
 			_twin(s, p, delta)
 		_:

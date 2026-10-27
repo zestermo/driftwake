@@ -7081,6 +7081,31 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - **Tests:** t/will/bond_crew, t/will/bond_solo. Render: abilityshot `will_twin` (spawns a captain-style crewmate and
   links it). Co-op for nettest: a guest linked to the host (each side's split), a guest's Twin Finisher with the host
   joining, Shelter across the wire.
+
+## 2026-10-26: 1.24 Will paths, piece 4: the upgrades to Iron Will, Sense and Captain's Will
+- **As new versions of today's abilities** (so the paths keep their shape, gates and prices; each one carried or
+  switched in at a rest spot like the others):
+  - Iron Will: Emission's **Stomp** (`emission` 3: PowerComponent.emission, a 3.5 m quake round you, 18 base, a breaker
+    and *not* unblockable so a shield or guard takes it and is knocked aside); Inner Strike's **Mirror Guard**
+    (`mirror_guard`: a parried blow, Player._on_hit_received, is sent back unblockable at your damage scale:
+    WillPowers.mirror).
+  - Sense: Flash's **Ambush Sense** (`ambush_sense`: a foe starting an attack on you from behind your camera's view
+    puts a red "!" over itself and a sharp note; PirateGrunt `_ambush_warn`, in `_sense_fx` on each captain's own
+    machine); Foresight's **Glimpse** (skill `will_glimpse`, 15 energy, 30 s: foes and closed chests within 40 m
+    marked through walls for 3 s, on your screen only: `scripts/powers/will_sight.gd`, no-depth-test diamonds);
+    Crowd Read's **Weak Point** (`weak_point`: the nearest boss with breakable parts within 40 m has its unbroken
+    parts marked through everything: BeastParts from JungleBeast's `bp` or the ape's `parts`, checked every 10 ticks).
+  - Captain's Will: Roar's **Intimidate** (`intimidate`: the roar's weak foes call `surrender()` instead of fainting:
+    a bark, kneeling, gone 2 s later through `vanish` (no loot); +250 bounty each; a host call, in `HOST_CALLS`);
+    Clash's **Rally** (`will_rally` 0.1: while you fight your machine calls `_all_will "rally"` every 30 ticks; every
+    captain within 12 m of you gets the `w_rally` buff for 1 s: +10% damage) and **Plant the Flag** (skill
+    `will_flag`, 25 energy, 60 s: `_all_will "flag"` builds a WarFlag (`scripts/powers/war_flag.gd`) on every
+    machine for 20 s; each machine mends its own captain within 6 m by 3% of their health a second).
+- **Per frame / tick:** Glimpse's and Weak Point's markers follow their targets each frame (at most 24, only while
+  shown); a flag's pulse and mend check twice a second while it stands (20 s); Rally one message a half second while
+  fighting.
+- **Tests:** t/will/upgrades. Co-op for nettest: a guest's Intimidate making the host's grunt surrender, a guest
+  inside the host's Rally and beside the host's flag.
 ## 2026-10-26: 1.24 crew techniques, piece 1: the framework and Skyward Kick (docs/v1_24_plan.md, v1_24_previews.md 3)
 - What: every weapon kind gets a two-person crew technique on the crouch key while the weapon is out (C; out of stance
   C still sneaks). Alone (single player, or no captain within `MATE_NEAR` 14 m) the weapon's self version plays at once.

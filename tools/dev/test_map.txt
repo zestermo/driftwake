@@ -617,6 +617,8 @@ scripts/powers/wave_walk.gd               t/will/tide
 scripts/powers/will_bond.gd               t/will/bond_crew t/will/bond_solo
 scripts/powers/will_sight.gd              t/will/upgrades
 scripts/powers/war_flag.gd                t/will/upgrades
+scripts/enemies/pirate_grunt.gd           t/will/upgrades
+scripts/player_states/technique_state.gd  t/will/upgrades t/will/bond_crew
 scripts/ship/ship.gd                      t/will/tide
 scripts/progression/will_paths.gd         t/will t/progression/will_paths
 scripts/player_states/light_attack_state.gd t/will/tempo

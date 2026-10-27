@@ -53,6 +53,8 @@ const EMIT_WIDE := 1.6
 const EMIT_RING := 4.0
 const EMIT_AFTER := 0.22
 const EMIT_DAMAGE := 18.0
+## Stomp (Emission's third version): the quake's reach round you.
+const STOMP_RING := 3.5
 
 var player: Player
 var fruit: String = ""
@@ -472,7 +474,7 @@ func _tick_emission(delta: float) -> void:
 	emission(kind)
 
 
-## Emission's strike: 1 a line EMIT_RANGE m straight ahead, 2 a ring EMIT_RING m round you. Unblockable Will; the
+## Emission's strike: 1 a line EMIT_RANGE m straight ahead, 2 a ring EMIT_RING m round you, 3 Stomp's quake. Unblockable Will; the
 ## effect in the captain's Will colour on every screen. Returns the foes struck.
 func emission(kind: int) -> Array:
 	var hd := HitData.new()
@@ -483,6 +485,19 @@ func emission(kind: int) -> Array:
 	hd.haki = true
 	var tint := player.progression.will_tint()
 	var at := player.global_position
+	if kind == 3:
+		# Stomp: a breaker, not unblockable, so a shield or a guard takes it and is knocked aside
+		hd.unblockable = false
+		hd.breaker = true
+		hd.knockback_force = 5.0
+		hd.stagger_duration = 0.6
+		Net.fx("ring", [at + Vector3(0, 0.1, 0), Vector3.UP, STOMP_RING, tint, 0.3, 0.14])
+		Net.fx("heavy_dust", [at, 16, 1.0])
+		Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP, 8, Color(0.42, 0.36, 0.3), 5.0])
+		Net.fx("sparkle", [at + Vector3(0, 0.4, 0), 20, tint])
+		Net.fx("sfx", ["thud", at, 1.0, 0.05, 0.6])
+		player.cam_shake(0.22)
+		return blast(at, STOMP_RING, hd)
 	if kind == 2:
 		Net.fx("dust_ring", [at, 16, EMIT_RING / 3.0])
 		Net.fx("sparkle", [at + Vector3(0, 0.8, 0), 26, tint])

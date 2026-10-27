@@ -58,8 +58,16 @@ func solo() -> bool:
 	return crewmates().is_empty()
 
 
+## The crew's ship (group "ship" holds moored hulls too), or null.
+static func crew_ship(tree: SceneTree) -> Ship:
+	for s in tree.get_nodes_in_group("ship"):
+		if s is Ship:
+			return s
+	return null
+
+
 func ship_near(reach: float) -> Node3D:
-	var ship := get_tree().get_first_node_in_group("ship") as Node3D
+	var ship := crew_ship(get_tree())
 	if ship and (ship.aboard(player.global_position) or ship.global_position.distance_to(player.global_position) < reach):
 		return ship
 	return null
@@ -85,6 +93,9 @@ func _physics_process(delta: float) -> void:
 	var pr := player.progression
 	if not player.in_fight():
 		_shelter_used = false
+	if not (pr.has_flag("will_link") or pr.has_flag("shelter") or pr.has_flag("crew_strength")):
+		crew_near = 0
+		return
 	var mates := crewmates()
 	if mates.is_empty():
 		crew_near = 1 if ship_near(CREW_REACH) else 0

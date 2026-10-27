@@ -592,6 +592,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if attacker is Node3D and not hit.ranged:
 			parried_by = attacker
 			parried_tick = Engine.get_physics_frames()
+			power.will.mirror(hit, attacker)
 		return
 	if is_blocking and not hit.unblockable and not hit.dot and current_state_name() == "Block":
 		var fwd := -player_model.global_basis.z
