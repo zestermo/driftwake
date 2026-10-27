@@ -2225,6 +2225,175 @@ def gen_technique_icons():
     for name, fn in (("cleaver_kick", cleaver_kick), ("flambe_dash", flambe_dash)):
         _icon("skill_" + name, fn)
 
+    # --- 1.24 ranged kinds: long guns (starlight), the cannon (brimstone), the slingshot (trickster's spark) ---
+    STAR = hexc("c8dcff") + (255,)
+    INDIGO = hexc("5a62e6") + (255,)
+    SULPH = hexc("ffd040") + (255,)
+    VIOLET = hexc("9a48d8") + (255,)
+    IRON = hexc("4a4a50") + (255,)
+    BRONZE = hexc("d89850") + (255,)
+    HOTPINK = hexc("ff60b8") + (255,)
+    TANG = hexc("ffa030") + (255,)
+    FIREC = hexc("ff7020") + (255,)
+    TAR = hexc("2a2418") + (255,)
+
+    def musket(d, a, b):
+        # a long gun from the butt `a` to the muzzle `b`: the wooden stock, the steel barrel on along it
+        ax, ay = a
+        bx, by = b
+        mx, my = ax + (bx - ax) * 0.35, ay + (by - ay) * 0.35
+        d.line([(ax, ay), (mx, my)], fill=WOOD, width=3)
+        d.line([(mx, my), (bx, by)], fill=STEEL, width=1)
+        d.line([(mx, my + 1), (ax + (bx - ax) * 0.7, ay + (by - ay) * 0.7 + 1)], fill=WOOD, width=1)
+
+    def puff(d, x, y, r=3, col=SMOKE_L):
+        d.ellipse([x - r, y - r, x + r, y + r], fill=col)
+
+    def pin_shot(d):
+        # a shot streaking into a foe, a ring at its feet nailing it to the ground
+        musket(d, (1, 14), (12, 12))
+        d.line([(12, 12), (19, 11)], fill=STAR, width=1)
+        d.ellipse([17, 4, 21, 8], fill=SKIN)
+        d.rectangle([17, 8, 21, 17], fill=BLUE)
+        d.ellipse([13, 18, 23, 22], outline=INDIGO)
+        for x in (14, 22):
+            d.line([(x, 17), (x, 21)], fill=STAR)
+
+    def powder_burst(d):
+        # fired from the hip: a cone of fire and shot, the smoke rolling
+        musket(d, (1, 18), (9, 15))
+        d.polygon([(9, 15), (22, 7), (22, 22)], fill=FIREC)
+        d.polygon([(9, 15), (18, 11), (18, 19)], fill=SULPH)
+        for x, y in ((20, 9), (21, 14), (19, 19), (16, 12)):
+            d.point((x, y), fill=W_)
+        puff(d, 6, 9, 3)
+
+    def volley_line(d):
+        # three shots fanned out to three foes
+        musket(d, (1, 13), (8, 12))
+        for y in (4, 12, 20):
+            d.line([(8, 12), (19, y)], fill=STAR, width=1)
+            d.ellipse([19, y - 2, 23, y + 2], fill=SKIN)
+        puff(d, 9, 10, 2)
+
+    def stock_sweep(d):
+        # the gun swung round butt first, an arc of air behind it
+        d.arc([2, 2, 22, 22], 30, 300, fill=STAR, width=1)
+        musket(d, (19, 9), (5, 16))
+        d.rectangle([18, 7, 21, 11], fill=WOOD)
+
+    def hawkeye(d):
+        # a sight's ring on the foes, shots falling on each like stars
+        d.ellipse([3, 3, 21, 21], outline=STAR)
+        d.line([(12, 1), (12, 7)], fill=STAR)
+        d.line([(12, 17), (12, 23)], fill=STAR)
+        d.line([(1, 12), (7, 12)], fill=STAR)
+        d.line([(17, 12), (23, 12)], fill=STAR)
+        for x, y in ((9, 10), (15, 14)):
+            d.ellipse([x - 1, y - 1, x + 1, y + 1], fill=W_)
+            d.line([(x + 4, y - 6), (x, y)], fill=INDIGO)
+
+    def cannon(d, a, b, col=BRONZE):
+        # a hand cannon from the breech `a` to the muzzle `b`
+        d.line([a, b], fill=col, width=5)
+        d.line([a, b], fill=W_ if col == BRONZE else STEEL_D, width=1)
+        d.ellipse([b[0] - 3, b[1] - 3, b[0] + 3, b[1] + 3], fill=IRON)
+
+    def blast(d, x, y, r):
+        d.ellipse([x - r, y - r, x + r, y + r], fill=FIREC)
+        d.ellipse([x - r // 2, y - r // 2, x + r // 2, y + r // 2], fill=SULPH)
+        for k in range(6):
+            a = k * math.pi / 3
+            d.point((x + math.cos(a) * (r + 2), y + math.sin(a) * (r + 2)), fill=VIOLET)
+
+    def canister_shot(d):
+        cannon(d, (1, 16), (8, 13))
+        for k in range(7):
+            a = -0.55 + k * 0.18
+            d.point((10 + math.cos(a) * 12, 13 + math.sin(a) * 12), fill=SULPH)
+            d.point((10 + math.cos(a) * 7, 13 + math.sin(a) * 7), fill=IRON)
+        puff(d, 9, 9, 3)
+
+    def chain_shot(d):
+        # two balls on a chain spinning down the line
+        d.arc([4, 4, 20, 20], 200, 340, fill=SMOKE_L, width=1)
+        d.line([(6, 16), (18, 8)], fill=STEEL_D, width=1)
+        for x, y in ((6, 16), (18, 8)):
+            d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=IRON)
+            d.point((x - 1, y - 1), fill=STEEL)
+
+    def mortar_lob(d):
+        # three shells on high arcs onto the ground ahead
+        cannon(d, (2, 22), (6, 15))
+        for x in (14, 18, 22):
+            d.arc([4, 4, 2 * x - 4, 40], 200, 270, fill=SMOKE_L, width=1)
+            d.ellipse([x - 2, 19, x + 2, 23], fill=FIREC)
+
+    def rocket_charge(d):
+        # fired backwards: the blast behind, the gunner hurled forward through a foe
+        blast(d, 4, 14, 3)
+        cannon(d, (13, 12), (7, 14))
+        d.ellipse([12, 6, 16, 10], fill=SKIN)
+        for y in (9, 13, 17):
+            d.line([(17, y), (22, y)], fill=SULPH)
+
+    def leviathan_shell(d):
+        cannon(d, (1, 22), (8, 15), IRON)
+        blast(d, 17, 9, 6)
+        d.ellipse([9, 2, 23, 16], outline=VIOLET)
+        for x in (12, 21):
+            d.line([(x, 17), (x - 2, 23)], fill=FIREC)
+
+    def fork(d, x, y):
+        # a slingshot's fork, its band drawn back
+        d.line([(x, y + 7), (x, y + 2)], fill=WOOD, width=2)
+        d.line([(x, y + 2), (x - 3, y - 2)], fill=WOOD, width=2)
+        d.line([(x, y + 2), (x + 3, y - 2)], fill=WOOD, width=2)
+
+    def pellet(d, x, y, col):
+        d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=col)
+        d.point((x - 1, y - 1), fill=W_)
+
+    def fire_pellet(d):
+        fork(d, 4, 13)
+        d.line([(8, 12), (14, 10)], fill=TANG)
+        for x, h in ((15, 5), (18, 8), (21, 5)):
+            d.polygon([(x - 2, 20), (x, 20 - h), (x + 2, 20)], fill=FIREC)
+        pellet(d, 18, 10, SULPH)
+
+    def smoke_pellet(d):
+        fork(d, 4, 13)
+        for x, y, r in ((15, 12, 5), (19, 8, 3), (19, 16, 4), (11, 9, 3)):
+            puff(d, x, y, r, SMOKE if r > 4 else SMOKE_L)
+        pellet(d, 9, 13, SMOKE)
+
+    def blast_pellet(d):
+        fork(d, 4, 13)
+        blast(d, 17, 11, 4)
+        d.line([(7, 12), (12, 11)], fill=TANG)
+
+    def sticky_pellet(d):
+        fork(d, 4, 13)
+        d.ellipse([11, 15, 23, 21], fill=TAR)
+        for x in (13, 17, 21):
+            d.line([(x, 15), (x, 11)], fill=TAR, width=1)
+        pellet(d, 17, 9, TAR)
+
+    def bag_of_tricks(d):
+        # a fan of five pellets of every colour
+        fork(d, 4, 14)
+        for k, col in enumerate((FIREC, TAR, SULPH, SMOKE, HOTPINK)):
+            a = -0.7 + k * 0.35
+            d.line([(7, 14), (7 + math.cos(a) * 9, 14 + math.sin(a) * 9)], fill=TANG)
+            pellet(d, 7 + math.cos(a) * 13, 14 + math.sin(a) * 13, col)
+
+    for name, fn in (("pin_shot", pin_shot), ("powder_burst", powder_burst), ("volley_line", volley_line), ("stock_sweep", stock_sweep),
+                     ("hawkeye", hawkeye), ("canister_shot", canister_shot), ("chain_shot", chain_shot), ("mortar_lob", mortar_lob),
+                     ("rocket_charge", rocket_charge), ("leviathan_shell", leviathan_shell), ("fire_pellet", fire_pellet),
+                     ("smoke_pellet", smoke_pellet), ("blast_pellet", blast_pellet), ("sticky_pellet", sticky_pellet),
+                     ("bag_of_tricks", bag_of_tricks)):
+        _icon("skill_" + name, fn)
+
     for name, fn in (("riposte", riposte), ("iai_counter", iai_counter), ("cross_counter", cross_counter),
                      ("swordfish", swordfish), ("kraken_wake", kraken),
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),
