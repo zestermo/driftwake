@@ -83,6 +83,8 @@ func partner() -> Node3D:
 
 
 func _physics_process(delta: float) -> void:
+	if not player.is_local or player.is_ai:
+		return
 	for k in sheltered.keys():
 		sheltered[k][1] = float(sheltered[k][1]) - delta
 		if float(sheltered[k][1]) <= 0.0:
