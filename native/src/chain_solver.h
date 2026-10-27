@@ -39,7 +39,7 @@ private:
 		std::vector<Vector3> p, x, px, lp, lc, rest_dir;
 		std::vector<int> bones, col;
 		std::vector<Vector3> probe;
-		std::vector<float> turn;
+		std::vector<float> turn, slack;
 		double k = 0.12, d = 0.08, g = 1.0;
 		int side_of = -1;
 		double side = 0.0;
@@ -84,7 +84,7 @@ protected:
 	static void _bind_methods();
 
 public:
-	static const int API = 3;
+	static const int API = 4;
 	static int api() { return API; }
 
 	// Colliders in order (nodes, their local capsules); chains name them by index.
@@ -95,6 +95,8 @@ public:
 	// plane, constraint passes, the net, its capsules (indices) and which are hard, the cushion and the swing range.
 	void set_drawn(bool p_tuned, double back, int passes, bool p_net, const PackedInt32Array &caps, const PackedInt32Array &hard,
 			double p_cushion, double p_swing, double p_swing_top, double p_from, bool p_best);
+	// Chain `ci`'s net slack per segment (spring_chains.gd's use_slack): judged that much further out of the soft capsules.
+	void set_slack(int ci, const PackedFloat32Array &s);
 	void set_gravity(const Vector3 &g) { gravity = g; }
 	void reset() { has_last = false; }
 	void simulate(Node3D *anchor, Skeleton3D *skel, double delta);

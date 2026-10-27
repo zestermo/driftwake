@@ -12,6 +12,19 @@ static func body() -> Node3D:
 	return Humanoid.make(CharacterLook.default_look())
 
 
+## The captain in a row, one body per value of look `field` (over the default look with `over`), 0.9 m apart.
+static func outfit_row(field: String, values: Array, over := {}) -> Node3D:
+	var row := Node3D.new()
+	for i in range(values.size()):
+		var lk: Dictionary = CharacterLook.default_look()
+		lk.merge(over, true)
+		lk[field] = values[i]
+		var b := Humanoid.make(lk)
+		b.position.x = i * 0.9
+		row.add_child(b)
+	return row
+
+
 ## Look i of t/world/one_skin_same's range, built with BodyBuilder.one_skin `one`, held in that test's seeded pose
 ## (seed `pose_i`; -1 = as built). `how`: "" | "<weapon> hand" | "<weapon> hip" | "peril" (the grunt's red overlay).
 ## For old-vs-new sheets: render with one false, then true, and diff.

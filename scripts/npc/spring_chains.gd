@@ -33,7 +33,7 @@ const NET_SHEET := 0.012
 const NET_MID := 0.12
 ## Modes "a0" and "a" step in native code (native/src/chain_solver.cpp, ChainSolver) when its library is loaded and
 ## built from these sources' API; this file's solver is the fallback and the reference the native one is tested against.
-const NATIVE_API := 3
+const NATIVE_API := 4
 static var native_ok: bool = ClassDB.class_exists("ChainSolver") and ClassDB.class_has_method("ChainSolver", "api") and ClassDB.class_call_static("ChainSolver", "api") == NATIVE_API
 
 var skel: Skeleton3D
@@ -197,6 +197,29 @@ func use_net(soft: Array, hard: Array, cush: float, most: float, top: float) -> 
 	net = true
 
 
+## The net's slack (mode "n"): cloth is built round the legs inside their capsules' clearance and cushion, and a net
+## judging it from there swung every coat tail and skirt panel out into a stiff A on a body standing still. Each segment
+## is judged that much closer (as built against the legs at `bind`: collider name -> the collider's node in this anchor's
+## space, the body unposed; at most `most`), so the net acts only on a leg come further in than the cloth was cut for.
+func use_slack(bind: Dictionary, most: float) -> void:
+	var caps: Array = []
+	for key in net_soft:
+		var cd: Dictionary = colliders[key]
+		var t: Transform3D = bind[key]
+		var a: Vector3 = t * (cd["a"] as Vector3)
+		var b: Vector3 = t * (cd["b"] as Vector3)
+		var r: float = float(cd["r"]) * t.basis.get_scale().x
+		caps.append([a, b, r, a.min(b) - Vector3.ONE * (r + cushion), a.max(b) + Vector3.ONE * (r + cushion), false])
+	for c in _chains:
+		var p: PackedVector3Array = c["p"]
+		var slack := PackedFloat32Array()
+		for j in range(p.size() - 1):
+			var g := _net_gap(p[j], p[j + 1] - p[j], (p[j + 1] - p[j]).normalized(), c["probe"], caps, j > 0)
+			slack.append(clampf(cushion - g.x, 0.0, most))
+		c["slack"] = slack
+	_nat = null
+
+
 ## Commit the skinned mesh and bind it to the skeleton.
 func finalize() -> void:
 	if _chains.is_empty() or mb.is_empty():
@@ -277,13 +300,16 @@ func _nat_build() -> void:
 		cr.append(cd["r"])
 	_nat.set_colliders(nodes, ca, cb, cr)
 	_nat.set_gravity(gravity)
-	for c in _chains:
+	for ci in range(_chains.size()):
+		var c: Dictionary = _chains[ci]
 		var col := PackedInt32Array()
 		for key in c["col"]:
 			if names.has(key):
 				col.append(names.find(key))
 		_nat.add_chain(c["p"], c["bones"], c["k"], c["d"], c["g"], col, c["probe"], c.get("side_of", -1), c.get("side", 0.0),
 			c.get("axis", Vector3.RIGHT))
+		if c.has("slack"):
+			_nat.set_slack(ci, c["slack"])
 	if mode != "a0":
 		var caps := PackedInt32Array()
 		var hard := PackedInt32Array()
@@ -516,8 +542,10 @@ func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array, delta: floa
 	else:
 		turns.resize(p.size() - 1)
 	var axis_c: Vector3 = c.get("axis", Vector3.RIGHT)
+	var slack: PackedFloat32Array = c.get("slack", PackedFloat32Array())
 	var a := loc[0]
 	for j in range(loc.size() - 1):
+		var sh := Vector3(slack[j], 0.0, 0.0) if j < slack.size() else Vector3.ZERO
 		var rest := (p[j + 1] - p[j]).normalized()
 		var d := loc[j + 1] - loc[j]
 		# (the bone is posed at its rest length along the drawn direction: judged so, its end is where the skin is)
@@ -530,7 +558,7 @@ func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array, delta: floa
 			full = (rest.rotated(axis.normalized(), most) if axis.length_squared() > 1e-10 else rest) * full.length()
 			d = full
 			_net_acted = true
-		var g0 := _net_gap(a, full, rest, probes, caps, j > 0)
+		var g0 := _net_gap(a, full, rest, probes, caps, j > 0) + sh
 		var target := 0.0
 		# (a point the step left on the back's plane comes back a hair in front of it)
 		if g0.x < cushion or g0.y < 0.0 or g0.z < -0.0001:
@@ -538,15 +566,15 @@ func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array, delta: floa
 			# edge); off the hips and the back's plane, only out of them
 			var want := Vector3(cushion * exp((g0.x - cushion) / cushion) if g0.x < cushion else g0.x, 0.0, 0.0)
 			var hi := NET_TURN
-			if not _net_ok(_net_gap(a, full.rotated(axis_c, -hi), rest, probes, caps, j > 0), want):
+			if not _net_ok(_net_gap(a, full.rotated(axis_c, -hi), rest, probes, caps, j > 0) + sh, want):
 				want.x = minf(want.x, 0.0)
 			# (no turn about the root clears it, a root already in the cushion: the cape's is left as it is, popping helps
 			# no one; `net_best` turns it as far as helps most)
-			if _net_ok(_net_gap(a, full.rotated(axis_c, -hi), rest, probes, caps, j > 0), want):
+			if _net_ok(_net_gap(a, full.rotated(axis_c, -hi), rest, probes, caps, j > 0) + sh, want):
 				var lo := 0.0
 				for k in range(8):
 					var mid := (lo + hi) * 0.5
-					if _net_ok(_net_gap(a, full.rotated(axis_c, -mid), rest, probes, caps, j > 0), want):
+					if _net_ok(_net_gap(a, full.rotated(axis_c, -mid), rest, probes, caps, j > 0) + sh, want):
 						hi = mid
 					else:
 						lo = mid
@@ -555,7 +583,7 @@ func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array, delta: floa
 				var best := _net_score(g0)
 				for k in range(1, 5):
 					var tk := NET_TURN * k / 4.0
-					var sc := _net_score(_net_gap(a, full.rotated(axis_c, -tk), rest, probes, caps, j > 0))
+					var sc := _net_score(_net_gap(a, full.rotated(axis_c, -tk), rest, probes, caps, j > 0) + sh)
 					# (by a millimetre or more: near-ties flipping frame to frame shook the hem)
 					if sc > best + 0.001:
 						best = sc

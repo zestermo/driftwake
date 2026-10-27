@@ -246,7 +246,7 @@ func _skin_one(node: Node3D, mb: MeshBuilder) -> bool:
 
 ## The cape's net on the other sets (1.24): the head's (hair, a bandana's tails) eased off the torso and shoulders and
 ## kept from flipping over; the hips' and torso's (coat tails, skirts, the apron, a sash's tail) eased off the legs,
-## out of the hips, held from flaring up.
+## out of the hips, held from flaring up, with the slack they were cut with round the legs.
 func _nets() -> void:
 	for key in _sims:
 		var s: SpringChains = _sims[key]
@@ -256,6 +256,19 @@ func _nets() -> void:
 			s.use_net(["torso", "hair_sh"], [], 0.012, 1.4, 1.0)
 		else:
 			s.use_net(SpringChains.NET_LEGS, ["hips"], 0.02, 1.2, 0.9)
+			var bind := {}
+			for k in SpringChains.NET_LEGS:
+				bind[k] = _unposed(key).affine_inverse() * _unposed(colliders[k]["node"])
+			s.use_slack(bind, 0.025)
+
+
+## A joint in the humanoid's space with the body unposed (its rest offsets, no rotations).
+func _unposed(n: Node3D) -> Transform3D:
+	var t := Transform3D()
+	while n != h:
+		t = Transform3D(Basis.from_scale(n.scale), n.position) * t
+		n = n.get_parent()
+	return t
 
 
 ## Physics chains anchored on a joint (created on first use).

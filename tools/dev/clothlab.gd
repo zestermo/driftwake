@@ -5,7 +5,8 @@ extends SceneTree
 ## (BodyBuilder.cloth_net false: the plain chains) and on, filmed at the PSX pixel grid at the key moments. Run it at a
 ## fixed frame rate so the two runs line up frame for frame:
 ##   & $env:GODOT --path . --fixed-fps 144 --script res://tools/dev/clothlab.gd
-## Args: [out_dir=res://tools/dev/out/clothlab] [looks=hair,twin,coat,ties]
+## Args: [out_dir=res://tools/dev/out/clothlab] [looks=hair,twin,coat,ties] (also duster, skirt). Env CL_NEAR: a close
+## look; CL_GD: the GDScript solver instead of the native one.
 ## Writes sheet_<look>.png (net off on top, on below; a column a moment) and metrics.txt (also printed): for every
 ## frame drawn, the chains' segments (as the bones draw them) inside the legs', hips' and torso's capsules, and the
 ## most any segment swung off its rest direction.
@@ -20,6 +21,8 @@ const LOOKS := {
 	"hair": {"body": "fem", "hair": "cascade", "coat": "none"},
 	"twin": {"body": "fem", "hair": "twintails", "legs": "skirt", "coat": "none"},
 	"coat": {"hair": "long", "coat": "longcoat", "belt": "sash"},
+	"duster": {"hair": "short", "coat": "duster", "belt": "wide_belt"},
+	"skirt": {"body": "fem", "hair": "short", "legs": "skirt", "coat": "none"},
 	"ties": {"hair": "braid", "hat": "bandana", "apron": true, "coat": "none"},
 }
 
@@ -37,6 +40,9 @@ var pending := ""
 var shots := {}
 var rec := {}
 var report: Array = []
+## Env CL_NEAR: a close look (half the field of view, no pixel grid, shots twice the size) for judging the cloth's shape.
+var near := OS.get_environment("CL_NEAR") != ""
+var out_crop := CROP * 2 if near else CROP
 
 
 func _initialize() -> void:
@@ -62,7 +68,7 @@ func _process(_d: float) -> bool:
 		return false
 	if run < 0:
 		var st = root.get_node("Settings")
-		st.set_value("video", "pixelate", true, false)
+		st.set_value("video", "pixelate", not near, false)
 		st.set_value("video", "dither", true, false)
 		p = stage.player
 		p.health_component.max_health = 99999.0
@@ -70,7 +76,7 @@ func _process(_d: float) -> bool:
 		var rig := Node3D.new()
 		var arm := Node3D.new()
 		cam = Camera3D.new()
-		cam.fov = 50.0
+		cam.fov = 34.0 if near else 50.0
 		cam.far = 300.0
 		cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 		# (in a rig and an arm at yaw 0: the player's states read the move direction off the camera's grandparent)
@@ -122,6 +128,9 @@ func _next() -> void:
 	lk.merge(LOOKS[r[0]], true)
 	p.body_model.apply_look(lk)
 	var hm = p.body_model
+	if OS.get_environment("CL_GD") != "":
+		for s in hm._sims:
+			s.native = false
 	hm._rng.seed = 4242
 	hm._t = 0.0
 	hm._phase = 0.0
@@ -132,7 +141,7 @@ func _next() -> void:
 	t0 = Engine.get_physics_frames()
 	ev = 0
 	mo = 0
-	rec = {"frames": 0, "pen_frames": 0, "pen_n": 0, "pen_worst": 0.0, "swing": 0.0}
+	rec = {"by": {}, "frames": 0, "pen_frames": 0, "pen_n": 0, "pen_worst": 0.0, "swing": 0.0}
 	print("RUN %s net %s" % r)
 
 
@@ -161,6 +170,7 @@ func _event(e: String) -> void:
 			var r: Array = runs[run]
 			report.append("%-5s net %-5s frames %4d  segments inside the body: %4d in %3d frames (worst %.1f cm)  most swing %.0f deg" % [
 				r[0], "on" if r[1] else "off", rec["frames"], rec["pen_n"], rec["pen_frames"], rec["pen_worst"] * 100.0, rad_to_deg(rec["swing"])])
+			report.append("      by set > capsule: " + str(rec["by"]))
 			_next()
 
 
@@ -196,7 +206,7 @@ func _measure() -> void:
 		var cd: Dictionary = cols[key]
 		var tt: Transform3D = (cd["node"] as Node3D).get_global_transform_interpolated()
 		# (less the capsules' clearance over the limb, as capelab measures: inside that is inside the body)
-		caps.append([tt * (cd["a"] as Vector3), tt * (cd["b"] as Vector3), float(cd["r"]) * tt.basis.get_scale().x - 0.03])
+		caps.append([tt * (cd["a"] as Vector3), tt * (cd["b"] as Vector3), float(cd["r"]) * tt.basis.get_scale().x - 0.03, key])
 	var n := 0
 	for s in hm._sims:
 		if s.name == "Cape":
@@ -221,6 +231,8 @@ func _measure() -> void:
 					var depth: float = float(cap[2]) - (st[0] as Vector3).distance_to(st[1])
 					if depth > 0.0:
 						n += 1
+						var bk := "%s>%s" % [s.get_parent().name, cap[3]]
+						rec["by"][bk] = int(rec["by"].get(bk, 0)) + 1
 						rec["pen_worst"] = maxf(rec["pen_worst"], depth)
 	rec["frames"] += 1
 	if n > 0:
@@ -233,17 +245,17 @@ func _grab() -> void:
 		return
 	var img := root.get_texture().get_image()
 	var sz := img.get_size()
-	var w := mini(CROP.x * sz.y / 360, sz.x)
-	var h := mini(CROP.y * sz.y / 360, sz.y)
+	var w := mini(int(CROP.x * sz.y / 360 * (1.4 if near else 1.0)), sz.x)
+	var h := mini(int(CROP.y * sz.y / 360 * (1.4 if near else 1.0)), sz.y)
 	var cut := img.get_region(Rect2i((sz.x - w) / 2, (sz.y - h) / 2, w, h))
-	cut.resize(CROP.x, CROP.y, Image.INTERPOLATE_NEAREST)
+	cut.resize(out_crop.x, out_crop.y, Image.INTERPOLATE_NEAREST)
 	shots["%d/%s" % [run, pending]] = cut
 	pending = ""
 
 
 func _sheets() -> void:
 	for lk in looks:
-		var sheet := Image.create(CROP.x * MOMENTS.size(), CROP.y * 2, false, Image.FORMAT_RGBA8)
+		var sheet := Image.create(out_crop.x * MOMENTS.size(), out_crop.y * 2, false, Image.FORMAT_RGBA8)
 		sheet.fill(Color(0.1, 0.1, 0.12))
 		for ri in range(runs.size()):
 			var r: Array = runs[ri]
@@ -253,7 +265,7 @@ func _sheets() -> void:
 				var key := "%d/%s" % [ri, MOMENTS[mi][0]]
 				if shots.has(key):
 					var im: Image = shots[key]
-					sheet.blit_rect(im.duplicate() if im.get_format() == Image.FORMAT_RGBA8 else _rgba(im), Rect2i(Vector2i.ZERO, CROP), Vector2i(mi * CROP.x, (1 if r[1] else 0) * CROP.y))
+					sheet.blit_rect(im.duplicate() if im.get_format() == Image.FORMAT_RGBA8 else _rgba(im), Rect2i(Vector2i.ZERO, out_crop), Vector2i(mi * out_crop.x, (1 if r[1] else 0) * out_crop.y))
 		sheet.save_png(out_dir + "/sheet_%s.png" % lk)
 
 

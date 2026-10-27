@@ -6999,3 +6999,25 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Tests: t/player/chains_net_clear (new), chains_native_same (now all but 1% of frame-bones within 4 mm, worst under
   3 cm: the net's thresholds can flip a frame's turn on a float), chains_fallback. Renders: tools/dev/out/clothlab/
   sheet_{hair,twin,coat,ties}.png (off top, on below).
+
+## 2026-10-27: 1.24 clothing fixes, piece 1: the net's slack (coat tails splayed out)
+- **Cause** (Zach's 1.23 playtest captures 003819-003835: coat tails in a stiff A, standing and running): the net on
+  the hips' and torso's sets. Coat-tail and skirt panels are cut round the legs *inside* the thigh capsules' clearance
+  (r 0.13 for a ~0.10 thigh) plus the 2 cm cushion, so the net judged every panel too close on a body standing still and
+  turned it out about its root: idle, the hems stood 5 cm (up to 9) further out than built, every long coat and the
+  skirt. Measured with t/player/coat_tails_hang; switching the net's leg capsules off removed it (hard hips: no
+  effect), the plain chains (net off) hang as built. Tighter cushion / net_best off don't help: the radius is the bite.
+- **What didn't work:** judging the legs at their skin (r - 3 cm) or a lower thigh top, more and narrower sectors
+  (ribbons), skipping the root segment (clips twice as much), tighter flare (the plain chains' own point collisions
+  then push it out instead).
+- **Fix:** `SpringChains.use_slack(bind, most)`: each segment's gap to the soft capsules as built (BodyBuilder._nets
+  passes the legs' capsules on the unposed body, `_unposed`), and the net judges it that much further out (the slack,
+  up to `most`, 2.5 cm): it acts only on a leg come further in than the cloth was cut for. Natively too: ChainSolver
+  `set_slack(ci, s)` (API 4; rebuild the DLL), every net_gap in net_clear + slack.
+- **Numbers:** idle hems out from built 5.0/4.9/2.1/5.3/5.4 cm (longcoat, captain, greatcoat, duster, admiral) and 5.2
+  (skirt) -> 1.8/1.4/0.3/2.6/2.8 and 2.7. The cost: more chain segments in the legs while running (clothlab, net on:
+  coat 758 -> 952, duster 184 -> 394, twin+skirt 774 -> 993 of ~1727 frames; net off 1210/595/971); chains_net_clear's
+  synthetic kicks unchanged (24 frames, was 23). A 4 cm slack cleared more at idle but failed chains_net_clear (57).
+- Per frame: nothing new (one float add per gap test).
+- Tests: t/player/coat_tails_hang (new), chains_native_same, chains_net_clear, chains_fallback. clothlab gained the
+  duster and skirt looks, CL_NEAR (a close look) and CL_GD, and a split of its count by set > capsule.

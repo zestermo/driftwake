@@ -26,6 +26,7 @@ void ChainSolver::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_colliders", "nodes", "a", "b", "r"), &ChainSolver::set_colliders);
 	ClassDB::bind_method(D_METHOD("add_chain", "rest", "bones", "k", "d", "g", "col", "probes", "side_of", "side", "axis"), &ChainSolver::add_chain);
 	ClassDB::bind_method(D_METHOD("set_drawn", "tuned", "back", "passes", "net", "caps", "hard", "cushion", "swing", "swing_top", "from", "best"), &ChainSolver::set_drawn);
+	ClassDB::bind_method(D_METHOD("set_slack", "ci", "s"), &ChainSolver::set_slack);
 	ClassDB::bind_method(D_METHOD("set_gravity", "g"), &ChainSolver::set_gravity);
 	ClassDB::bind_method(D_METHOD("reset"), &ChainSolver::reset);
 	ClassDB::bind_method(D_METHOD("simulate", "anchor", "skel", "delta"), &ChainSolver::simulate);
@@ -90,6 +91,10 @@ void ChainSolver::add_chain(const PackedVector3Array &rest, const PackedInt32Arr
 	c.lc = c.p;
 	chains.push_back(c);
 	drawn.resize(chains.size());
+}
+
+void ChainSolver::set_slack(int ci, const PackedFloat32Array &s) {
+	chains[ci].slack.assign(s.ptr(), s.ptr() + s.size());
 }
 
 void ChainSolver::set_drawn(bool p_tuned, double back, int passes, bool p_net, const PackedInt32Array &caps,
@@ -441,19 +446,20 @@ void ChainSolver::net_clear(Chain &c, std::vector<Vector3> &loc, const std::vect
 			net_acted = true;
 		}
 		const bool below = j > 0;
-		const Vector3 g0 = net_gap(a, full, rest, c.probe, caps, below);
+		const Vector3 sh(j < c.slack.size() ? c.slack[j] : 0.0, 0.0, 0.0);
+		const Vector3 g0 = net_gap(a, full, rest, c.probe, caps, below) + sh;
 		double target = 0.0;
 		if (g0.x < cushion || g0.y < 0.0 || g0.z < -0.0001) {
 			Vector3 want(g0.x < cushion ? cushion * std::exp((g0.x - cushion) / cushion) : g0.x, 0.0, 0.0);
 			double hi = NET_TURN;
-			if (!net_ok(net_gap(a, full.rotated(right, -hi), rest, c.probe, caps, below), want)) {
+			if (!net_ok(net_gap(a, full.rotated(right, -hi), rest, c.probe, caps, below) + sh, want)) {
 				want.x = std::min<double>(want.x, 0.0);
 			}
-			if (net_ok(net_gap(a, full.rotated(right, -hi), rest, c.probe, caps, below), want)) {
+			if (net_ok(net_gap(a, full.rotated(right, -hi), rest, c.probe, caps, below) + sh, want)) {
 				double lo = 0.0;
 				for (int k = 0; k < 8; k++) {
 					const double mid = (lo + hi) * 0.5;
-					if (net_ok(net_gap(a, full.rotated(right, -mid), rest, c.probe, caps, below), want)) {
+					if (net_ok(net_gap(a, full.rotated(right, -mid), rest, c.probe, caps, below) + sh, want)) {
 						hi = mid;
 					} else {
 						lo = mid;
@@ -464,7 +470,7 @@ void ChainSolver::net_clear(Chain &c, std::vector<Vector3> &loc, const std::vect
 				double best = net_score(g0);
 				for (int k = 1; k < 5; k++) {
 					const double tk = NET_TURN * k / 4.0;
-					const double sc = net_score(net_gap(a, full.rotated(right, -tk), rest, c.probe, caps, below));
+					const double sc = net_score(net_gap(a, full.rotated(right, -tk), rest, c.probe, caps, below) + sh);
 					if (sc > best + 0.001) {
 						best = sc;
 						target = tk;
