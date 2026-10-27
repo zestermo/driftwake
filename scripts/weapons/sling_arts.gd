@@ -69,6 +69,16 @@ static func loose(p: Player, kind: String, base: float, trick := "", to := Vecto
 	_net().fx("sfx", ["slap", from, -12.0, 0.1, 1.6])
 
 
+## Sling Launch's throw (CrewTechniqueState): the crewmate (or you, Slingshot Hop) flung along `v` off the band.
+static func crew_throw(p: Player, at: Vector3, v: Vector3) -> void:
+	var from := at + Vector3(0, 0.8, 0)
+	_net().fx("ring", [from, v.normalized(), 1.6, _col(p, FXS.EDGE), 0.3, 0.16])
+	if _elem(p):
+		_net().fx("element", ["slingshot", from, v.normalized(), 12, 6.0])
+	_net().fx("sfx", ["slap", from, -2.0, 0.05, 0.9])
+	_net().fx("sfx", ["whoosh_big", from, -3.0, 0.05, 1.3])
+
+
 # --------------------------------------------------------------------------
 # The stone (ShootState)
 # --------------------------------------------------------------------------

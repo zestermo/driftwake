@@ -25,13 +25,16 @@ const LAUNCH := {
 	"pole_vault": [0.42, 0.9, 14.0, 13.0, "", false],
 	"anvil": [0.42, 0.9, 4.0, 22.0, "", false],
 	"human_cannonball": [0.35, 0.75, 24.0, 6.0, "", true],
+	"cannon_ride": [0.27, 0.9, 18.0, 9.0, "slam", false],
+	"sling_launch": [0.5, 1.0, 11.0, 17.0, "", false],
 }
 ## Where a partner stands on the lead (m ahead, up, to the lead's right).
 const PERCH := {"skyward_kick": Vector3(0.75, 0.62, 0.0), "crossed_blades": Vector3(0.55, 1.25, 0.0), "pole_vault": Vector3(0.9, 1.7, 0.0),
-	"anvil": Vector3(0.9, 0.35, -0.3), "human_cannonball": Vector3(0.7, 0.45, 0.0)}
+	"anvil": Vector3(0.9, 0.35, -0.3), "human_cannonball": Vector3(0.7, 0.45, 0.0), "cannon_ride": Vector3(0.55, 1.55, 0.25),
+	"sling_launch": Vector3(0.9, 0.3, 0.0)}
 ## The lead's pose per launch move (Crossed Blades: its guard, then the cut at the throw, by style).
 const LEAD_POSE := {"skyward_kick": "ct_kick_launch", "hurl": "ct_hurl", "pole_vault": "pole_land", "anvil": "ham_upper",
-	"human_cannonball": "ct_cup"}
+	"human_cannonball": "ct_cup", "cannon_ride": "cn_fire", "sling_launch": "sl_shot"}
 ## Hurl: the crewmate swung round once at this radius and height before the throw.
 const HURL_R := 1.4
 const HURL_Y := 0.6
@@ -45,6 +48,8 @@ const SOLO := {
 	"pole_vault": [0.2, 0.36, 11.0, 12.0, "", false, "pole_vault", 0.9],
 	"anvil": [0.42, 0.6, 3.0, 16.0, "", false, "ham_smash", 0.8],
 	"human_cannonball": [0.16, 0.32, 18.0, 5.0, "", true, "ct_wall_kick", 0.55],
+	"cannon_ride": [0.2, 0.36, 6.0, 15.0, "slam", false, "cn_air", 0.8],
+	"sling_launch": [0.22, 0.38, 10.0, 12.0, "", false, "sl_skid", 0.6],
 }
 ## Wall Kick: a wall this close ahead (m) kicks you up it: [forward, up].
 const WALL_REACH := 2.2
@@ -268,6 +273,8 @@ func _throw() -> void:
 			Net.fx("debris", [player.global_position + _dir * 0.9, Vector3.UP, 5, Color(0.42, 0.36, 0.3), 4.0])
 		"human_cannonball":
 			Net.fx("punch_wind", [at, v.normalized(), 1.6, _col(), true])
+		"cannon_ride", "sling_launch":
+			GunKinds.art(player.style()).crew_throw(player, at, v)
 	player.squash(-4.0)
 	player.cam_shake(0.18)
 	player.cam_kick(0.2, 0.35)
@@ -303,6 +310,8 @@ func _self_launch(so: Array) -> void:
 		_ring(3.0, REBOUND_DAMAGE, 6.0, false, false)
 		Net.fx("ground_crack", [player.global_position + _dir * 1.0, _dir, 2.5, Color(0, 0, 0, 0), randi() % 1000, 0.12])
 		Net.fx("sfx", ["rock_crash", player.global_position, -4.0, 0.06, 1.0])
+	if id in ["cannon_ride", "sling_launch"]:
+		GunKinds.art(player.style()).crew_throw(player, player.global_position, v)
 	_launch(v, str(so[4]), bool(so[5]), "pole_vault" if id == "pole_vault" else "ct_launched")
 	Net.fx("ring", [at, normal, 1.6, _col(), 0.3, 0.14])
 	Net.fx("puff_ring", [at + Vector3(0, 0.05, 0), "dust_low", 6, 0.3, 0.9, 0.7, Color(0.85, 0.8, 0.7, 0.85), 4.5])
@@ -578,7 +587,7 @@ func _volley_update(delta: float) -> void:
 
 func _volley_shot() -> void:
 	var left := player.style() == "sword_pistol" or (player.style() == "dual_pistol" and _shots % 2 == 0)
-	player.body_model.play("shoot_l" if left else "shoot_r", VOLLEY_EVERY + 0.1)
+	player.body_model.play("lg_fire" if player.style() == "long_gun" else ("shoot_l" if left else "shoot_r"), VOLLEY_EVERY + 0.1)
 	var from := player.global_position + Vector3(0, 1.35, 0) + _dir * 0.7
 	var e := _aimed(VOLLEY_REACH)
 	if e == null:

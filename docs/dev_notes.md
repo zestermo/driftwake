@@ -7303,6 +7303,18 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   its HOST_CALLS forward, effects through Net.fx. **Per frame**: the band on slingshot bodies (two transforms); a stone
   in flight a shape query and a ray a tick.
 - Tests: t/weapons sling_fire, sling_tricks, sling_tree, sling_loot. Renders: tools/dev/out/sl/.
+
+## 2026-10-27: 1.24 ranged weapon kinds, piece 4: their crew techniques (docs/v1_24_plan.md table)
+- Entries only in the crew technique registry (CrewTechniques.ALL, CrewTechniqueState's LAUNCH / PERCH / LEAD_POSE /
+  SOLO): **long guns** share the pistols' **Covering Fire** (its volley plays lg_fire for them); the **cannon**'s **Cannon
+  Ride** (a launch: the crewmate perched on the barrel at the shoulder, thrown at 0.27 s on cn_fire's kick, 18 on / 9
+  up, landing "slam"; alone **Recoil Jump**: cn_air, 6 on / 15 up, the slam on landing); the **slingshot**'s **Sling
+  Launch** (a launch: crouched in the pouch ahead, flung at 0.5 s of sl_shot, 11 on / 17 up, a free plunge; alone
+  **Slingshot Hop** off a skid). Their throw's show is the arts file's `crew_throw` (the cannon's blast, the band's
+  snap), called from `_throw` / `_self_launch`. Nothing new on the wire (launches already sync as the others).
+- Tests: t/crew cannon_ride, sling_launch (also: a long gun's technique is Covering Fire); covering_fire still passes.
+- Where each kind is found: piece 1-3's notes (long guns and slingshots in the islands' pools and Haldor's; cannons
+  rarer: a chest's weapon now and then, Haldor, the merchants; all three on the Shift+F10 rack).
 ## 2026-10-26: 1.24 crew techniques, piece 3: the training yard's sparring partner
 - What: single player, alone within 14 m of a training dummy (Brinehollow's yard, every KitCamps.training_yard), a
   crew technique that throws a crewmate (the six launches) is played with a sparring partner instead of the self

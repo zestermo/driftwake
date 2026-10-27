@@ -197,6 +197,15 @@ static func explode(p: Player, at: Vector3, normal: Vector3, radius: float, dire
 	return hit
 
 
+## Cannon Ride's throw (CrewTechniqueState): the crewmate on the barrel (or you, Recoil Jump) rides the blast along `v`.
+static func crew_throw(p: Player, at: Vector3, v: Vector3) -> void:
+	var mz := muzzle(p)
+	_net().fx("cannon_fire", [mz, v.normalized()])
+	_net().fx("cannon_blast", [at, 0.7, _col(p, FXS.ACCENT) if _elem(p) else Color(0, 0, 0, 0)])
+	_net().fx("sfx", ["cannon", mz, 0.0, 0.05, 1.15])
+	p.cam_shake(0.3)
+
+
 # --------------------------------------------------------------------------
 # Cannon Ram (attacked at a sprint): the muzzle driven into them at the run
 # --------------------------------------------------------------------------

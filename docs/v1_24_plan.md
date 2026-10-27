@@ -28,6 +28,9 @@ pieces decided while 1.23 was building: new Will paths and crew techniques.
 | Dual blades / daggers | **Pincer**: mark a foe | the crewmate's next hit on it and yours strike together for a crit |
 | Pistol / corsair | **Covering Fire**: you suppress an area | crewmates inside take less damage and reload faster |
 | Fists | **Human Cannonball**: cup your hands | they launch from your grip (shorter, faster than the kick) |
+| Long gun | **Covering Fire** (the pistols'): a volley from the shoulder | as the pistols' |
+| Cannon | **Cannon Ride**: climb on and fire | they ride the shot far along your aim, landing in a slam (alone: Recoil Jump) |
+| Slingshot | **Sling Launch**: the band drawn with them in the pouch | flung high over everything ahead, a free plunge (alone: Slingshot Hop) |
 | Driftfruit | the fruit's own (a vine bridge, a flame dash a crewmate rides) | per fruit |
 
 ## Previews approved (Zach, 2026-10-26)

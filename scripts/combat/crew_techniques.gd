@@ -65,12 +65,18 @@ const ALL := {
 	"pincer": {"name": "Pincer", "styles": ["dagger", "dual_dagger"], "quick": true, "solo": "Marked Prey",
 		"desc": "Mark a foe: your crewmate's next hit on it and yours strike together for a crit.",
 		"solo_desc": "Mark a foe: your next three hits on it crit."},
-	"covering_fire": {"name": "Covering Fire", "styles": ["pistol", "dual_pistol", "sword_pistol"], "quick": true, "solo": "Suppress",
+	"covering_fire": {"name": "Covering Fire", "styles": ["pistol", "dual_pistol", "sword_pistol", "long_gun"], "quick": true, "solo": "Suppress",
 		"desc": "Pin down the foes ahead with a volley: crewmates in the fight take less damage and reload faster.",
 		"solo_desc": "A volley that pins down the foes ahead, then a fast reload."},
 	"human_cannonball": {"name": "Human Cannonball", "styles": ["fist", "claw"], "launch": true, "solo": "Cannonball",
 		"desc": "Cup your hands: your crewmate launches from your grip, shorter and faster than the kick, through anything in the way.",
 		"solo_desc": "Launch yourself low and fast through the foes ahead."},
+	"cannon_ride": {"name": "Cannon Ride", "styles": ["cannon"], "launch": true, "solo": "Recoil Jump",
+		"desc": "Your crewmate climbs onto the barrel and you fire: they ride the blast far along your aim and land in a slam that floors the crowd.",
+		"solo_desc": "Fire the cannon into the ground at your feet and ride the blast high, coming down in a slam."},
+	"sling_launch": {"name": "Sling Launch", "styles": ["slingshot"], "launch": true, "solo": "Slingshot Hop",
+		"desc": "Plant the fork and draw the band right back with your crewmate in the pouch: they're flung high over everything ahead, coming down with a free plunge.",
+		"solo_desc": "A slide and a spring: you fling yourself up and on over the foes ahead."},
 }
 
 const FX_SCRIPT := preload("res://scripts/game/fx.gd")
