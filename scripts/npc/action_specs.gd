@@ -417,6 +417,11 @@ const SPECS := {
 		"variants": [{"armed": true}]},
 	"sky_leap_charge": {"len": 1.2, "stance": "sword", "weapon": "", "extras": {"armed": false}},
 	"sky_leap": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 20.0}},
+	# crew techniques (CrewPoses, CrewTechniqueState)
+	"ct_kick_launch": {"len": 0.9, "hit": [0.44, 0.52], "sharp": 45.0, "stance": "black_leg", "weapon": ""},
+	"ct_perch": {"len": 0.12, "hold": true, "stance": "sword", "weapon": "cutlass"},
+	"ct_launched": {"len": 0.6, "stance": "sword", "weapon": "cutlass", "extras": {"grounded": false}},
+	"ct_wall_kick": {"len": 0.55, "sharp": 45.0, "stance": "black_leg", "weapon": ""},
 	# Defense's moves (MovePoses)
 	"parry_disarm": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass"},
 	"parry_shove": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass", "variants": [{"stance": "fist"}]},

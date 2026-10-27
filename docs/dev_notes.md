@@ -7050,3 +7050,29 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   pass), the floor moved while walking. Ship: two subtractions.
 - **Tests:** t/will/tide. Co-op for nettest: a guest's Call the Wind on the host's ship, a guest helmsman's Helm Sense
   on the host's hull, a guest's Swell throwing the host's boarders.
+## 2026-10-26: 1.24 crew techniques, piece 1: the framework and Skyward Kick (docs/v1_24_plan.md, v1_24_previews.md 3)
+- What: every weapon kind gets a two-person crew technique on the crouch key while the weapon is out (C; out of stance
+  C still sneaks). Alone (single player, or no captain within `MATE_NEAR` 14 m) the weapon's self version plays at once.
+  With a crewmate near, C opens a join zone (3 m, 6 s) drawn on every screen (a ring in the weapon tree's colour and an
+  inner one shrinking with the time left); you stay free to fight. A crewmate inside it gets "F: join <name>'s <move>"
+  on the HUD; F asks the host, the host gives the zone to the first to ask (`Net.crew_join` -> `_crew_try` ->
+  `everyone("_all_crew_go")`), and each captain's own machine runs its side. C again while waiting goes alone; nobody
+  joining costs nothing. Cooldown 90 s (60 s for Pincer and Covering Fire), on game time, a badge over the energy orb.
+- Where: `scripts/combat/crew_techniques.gd` (CrewTechniques: the table, one per captain as Player.crew_tech "CrewTech",
+  puppets too for their zone; trigger, zone, join prompt, `signal_in` for a crewmate's cues), `scripts/player_states/
+  crew_technique_state.gd` (state CrewTechnique, extends TechniqueState for its helpers; roles lead / partner / solo and
+  a "flight" phase after any launch: a little steering, attack = a free plunge, the landing a Sky Leap crater with no
+  fall damage), `scripts/npc/crew_poses.gd` (CrewPoses, "ct_" names), Net `_all_crew_offer/_close/_go/_signal`,
+  `crew_join`, `_crew_ask`, `crew_signal`. Player edits: the crouch path, creating crew_tech. Skill bar: `_draw_crew`.
+- Skyward Kick (black leg): the lead raises the right foot (`ct_kick_launch`, 0.9 s), the partner perches on it
+  (`ct_perch`, 0.75 m ahead, 0.62 m up, its own machine placing it on the lead's puppet), the kick at 0.42 s sends
+  `Net.crew_signal(mate, "launch", [v])` with v at 22 m/s along the lead's aim, the elevation 60 deg at the camera's
+  rest pitch, steeper looking up / flatter looking down (42-80 deg): ~10 m up, ~15 m along. Self version Wall Kick:
+  off a wall within 2.2 m ahead (18 up, 3 forward) or the ground (15 up, 6.5 forward).
+- Per tick: CrewTechniques._physics_process on each captain (cooldown, the zone's countdown; the local captain scans
+  the open zones, a list that's empty unless someone's offering). Two ring meshes per captain, made on first use,
+  70 m visibility range, no shadow.
+- Co-op paths nettest should cover (not run here): a guest opening a zone the host joins and the other way round; two
+  joiners at once (the host takes the first); the launch signal reaching the partner's machine.
+- Tests: t/crew (stance_trigger, cooldown, join_expiry, join_prompt, skyward_kick: the lead with a captain-style AI
+  crewmate whose side runs locally as a guest's would). Render: `abilityshot ... crew:skyward_kick black_leg`.

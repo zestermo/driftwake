@@ -152,6 +152,8 @@ var equipment: EquipmentComponent
 var power: PowerComponent
 ## Level, experience and the skill map.
 var progression: Progression
+## The weapon kind's crew technique (C in combat stance): cooldown, the join zone, marks.
+var crew_tech: CrewTechniques
 ## Off-hand weapon (dual wielding: a second sword or pistol), or null.
 var offhand_weapon: ItemData
 ## Zoan: in hybrid beast form.
@@ -290,6 +292,10 @@ func _ready() -> void:
 	fish_rod.name = "Rod"
 	fish_rod.player = self
 	add_child(fish_rod)
+	crew_tech = CrewTechniques.new()
+	crew_tech.name = "CrewTech"
+	crew_tech.player = self
+	add_child(crew_tech)
 	if not is_local:
 		_setup_puppet()
 		return
@@ -1718,11 +1724,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()
 		return
-	# C: sneak (CrouchState), C again to stand
+	# C: sneak (CrouchState), C again to stand; in combat stance the weapon's crew technique (CrewTechniques)
 	if event.is_action_pressed("crouch"):
 		var st := current_state_name()
 		if st == "Crouch":
 			state_machine.force_state("Idle", {})
+		elif armed and context == Context.ON_FOOT:
+			crew_tech.trigger()
 		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():
 			state_machine.force_state("Crouch", {})
 		get_viewport().set_input_as_handled()

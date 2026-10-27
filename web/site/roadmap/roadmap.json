@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.22",
+	"here": "1.23",
 	"versions": [
 		{
 			"v": "0.1",
@@ -763,19 +763,36 @@
 		},
 		{
 			"v": "1.23",
-			"name": "Combat and Gear",
-			"status": "building",
-			"headline": "Every weapon polished, new weapon kinds, and armour and clothes with stats.",
+			"name": "Bounties and Beasts",
+			"date": "2026-10-26",
+			"status": "shipped",
+			"headline": "The playtest pass: poise and juggles instead of knockdown spam, beast bosses that escalate, a bounty you can see, Marine outposts and livelier villages.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",
-			"plan": [
-				["A weapon pass", "Animation and skill polish for every weapon, and a redesigned drawn-effects pass."],
-				["New weapons", "Polearms, dual axes, a hammer and more."],
-				["New armour and clothes", "With a stat system for armour and clothing."]
+			"github": true,
+			"added": [
+				["Combat core", "Poise, launchers and air-step juggles; grunts that stop spamming block."],
+				["Beast bosses", "Three phases that escalate, breakable parts, roamers with a temper."],
+				["Wanted", "Your poster, a bounty log and heat; Marine outposts to raid."],
+				["Villages and the ship", "Vendors, a tea-house master, a galley table, ship storage tabs, a tutorial."]
 			]
 		},
 		{
 			"v": "1.24",
+			"name": "Combat and Gear",
+			"status": "building",
+			"headline": "Crew techniques, new Will paths, armour and clothes with stats, ranged weapons and native cloth physics.",
+			"img": "clips/combo",
+			"alt": "A twin-dagger combo in a jungle clearing (current build)",
+			"plan": [
+				["Crew techniques", "A two-person move for every weapon."],
+				["Will paths", "Tide, Tempo, Fury and Bond."],
+				["Gear with stats", "Weight and stats on every piece, and sets."],
+				["New weapons", "Long guns, the cannon and the slingshot."]
+			]
+		},
+		{
+			"v": "1.25",
 			"name": "Strongholds and Driftfruits",
 			"status": "planned",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",

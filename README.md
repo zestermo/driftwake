@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.22-e0b040" alt="Version 1.22">
+  <img src="https://img.shields.io/badge/version-1.23-e0b040" alt="Version 1.23">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,18 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.22); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.23); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.23: Bounties and Beasts (October 26, 2026)
+The playtest pass. Combat runs on poise: hits wear it down and a break staggers or floors, so knockdowns are earned,
+not spammed; launchers and the air-step chase make juggles; grunts block about a quarter of front hits instead of
+holding guard. Black leg's Cartwheel Crescent and Mule Kick are replaced and Flambe Dash is shorter. The Silverback,
+Sand King and Bear King escalate over three phases with new moves, part breaks and a phase-change moment; roamers
+are fewer, each with a temper. Your bounty shows: a Wanted poster and log, heat that brings hunters, enemy ships that chase and ram, Admiralty blockades, Marine outposts
+to raid. Villages get vendors (tailor, smith, armourer, luthier, apothecary), market shapes and quest markers; the
+tea house's master teaches black leg. A galley table for meals, ship storage with personal and shared tabs, rest and
+respec at any bunk or inn. Cutscenes wait for you and take replies; Vey's drills and a menu walkthrough teach the
+controls. Fixes: falling under islands, bosses resetting outside their arena, cleared quests coming back.
 
 ### v1.22: Crews and Parties (October 25, 2026)
 Crews of up to five captains. A named crew saved in the host's world with a roster of everyone who's sailed with it
