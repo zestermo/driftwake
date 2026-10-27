@@ -49,7 +49,7 @@ func _process(_d: float) -> bool:
 			check("the prompt went", not stage.hud._prompt.visible)
 			var d: Vector3 = p.global_position - mate.global_position
 			check("perched on their raised foot (%.2f up, %.2f out)" % [d.y, Vector2(d.x, d.z).length()], d.y > 0.4 and Vector2(d.x, d.z).length() < 1.2)
-			root.get_node("/root/Net").crew_signal(p, "launch", [Vector3(0, 18, -7), ""])
+			root.get_node("/root/Net").crew_signal(p, "launch", [Vector3(0, 18, -7), "", false])
 			until = TK.wait_ticks(2)
 		3:
 			check("the kick launches you", p.velocity.y > 10.0)
