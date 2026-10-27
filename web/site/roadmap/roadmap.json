@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.23",
+	"here": "1.24",
 	"versions": [
 		{
 			"v": "0.1",
@@ -780,21 +780,24 @@
 		{
 			"v": "1.24",
 			"name": "Combat and Gear",
-			"status": "building",
+			"date": "2026-10-27",
+			"status": "shipped",
 			"headline": "Crew techniques, new Will paths, armour and clothes with stats, ranged weapons and native cloth physics.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",
-			"plan": [
-				["Crew techniques", "A two-person move for every weapon."],
-				["Will paths", "Tide, Tempo, Fury and Bond."],
+			"github": true,
+			"added": [
+				["Crew techniques", "C in combat stance: a two-person move for every weapon."],
+				["Will paths", "Tide, Tempo, Fury and Bond, with upgrades."],
 				["Gear with stats", "Weight and stats on every piece, and sets."],
+				["Cloth", "A native solver: coat tails hang as cut, layers stop clipping."],
 				["New weapons", "Long guns, the cannon and the slingshot."]
 			]
 		},
 		{
 			"v": "1.25",
 			"name": "Strongholds and Driftfruits",
-			"status": "planned",
+			"status": "building",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",

@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.23-e0b040" alt="Version 1.23">
+  <img src="https://img.shields.io/badge/version-1.24-e0b040" alt="Version 1.24">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,17 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.23); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.24); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.24: Combat and Gear (October 27, 2026)
+Crew techniques: C in combat stance does a two-person move for your weapon with the nearest crewmate (alone, your
+ship or a solo version stands in). Four Will paths: Tempo, Fury, Tide (Wave Walk across deep water, Swell) and Bond
+(Twin Finisher, Shelter), with upgrades. Every armour and clothing piece has weight and stats by rarity, with set
+bonuses; heavy armour is capped so full gold blocks about half the damage. Three ranged kinds with their own trees:
+long guns (tap to fire, hold to steady a piercing shot; blunderbuss and fowler spreads), cannons (a bursting ball,
+recoil and a long reload, Recoil Leap) and slingshots (rapid stones, a power draw, trick pellets). Cloth runs in a
+native solver with a body net: capes, coats, skirts and hair stay off the body, coat tails hang as cut, layers under
+coats and stout seats no longer poke through, and vests have armholes and a proper top edge.
 
 ### v1.23: Bounties and Beasts (October 26, 2026)
 The playtest pass. Combat runs on poise: hits wear it down and a break staggers or floors, so knockdowns are earned,

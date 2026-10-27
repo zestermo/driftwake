@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Poise and juggles", "Hits wear down a foe's poise; a break staggers or floors them, so knockdowns are earned. Launchers throw foes up and the air step chases them. Grunts block some front hits instead of holding guard. Black leg has new moves."],
-	["Beasts that escalate", "The Silverback, Sand King and Bear King change over three phases with new moves. Break their parts for trophies and weaker attacks. Roamers posture, stalk or bolt: back off and some settle."],
-	["Wanted", "Your poster and bounty log are in the menu. Heat brings hunters and rivals and cools over days. Enemy ships chase and ram; the Admiralty blockades and hunts your wake. Marine outposts guard some islands: raid them, or sneak past."],
-	["Villages and the ship", "Tailors, smiths, luthiers and more in the villages; a ! or ? over people with quests. The tea house's master teaches black leg. Meals go on the galley table; ship storage has personal and shared tabs; rest and respec at any bunk or inn."],
-	["Story and help", "Cutscenes wait for you and let you reply. Vey's drills teach the controls, and a walkthrough explains each menu the first time. Drop quests and pick which one to track in the journal."],
+	["Crew techniques", "In combat stance, C does a two-person move for your weapon with the nearest crewmate: launches, throws, covering fire, a shield wall. Alone, a solo version or your ship stands in."],
+	["Will paths", "Four new paths: Tempo, Fury, Tide and Bond. Walk across deep water, raise a swell, finish a foe with a crewmate, shelter the crew. Each has upgrades."],
+	["Gear with stats", "Armour and clothes carry weight and stats by rarity, with set bonuses. Heavy gear blocks more but slows you; full gold heavy blocks about half."],
+	["Ranged weapons", "Long guns (hold to steady a piercing shot), cannons (a bursting ball and a hard kick) and slingshots (rapid stones and trick pellets), each with its own tree."],
+	["Cloth", "Capes, coats, skirts and hair move in a faster cloth solver and stay off the body. Coat tails hang as cut, layers stop poking through, vests fit."],
 ]
 
 
