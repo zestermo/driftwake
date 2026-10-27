@@ -33,6 +33,7 @@ tools/dev/t/crew/*                      t/crew
 scripts/combat/crew_techniques.gd       t/crew techtest net
 scripts/player_states/crew_technique_state.gd  t/crew techtest net
 scripts/npc/crew_poses.gd               t/crew
+scripts/combat/sparring_partner.gd      t/crew/yard_partner
 tools/dev/t/items/*                     t/items
 tools/dev/t/fishing/*                   t/fishing
 scripts/fishing/*                       t/fishing
