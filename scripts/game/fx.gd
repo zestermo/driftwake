@@ -1353,6 +1353,8 @@ const TREE_FX := {
 	"long_gun": [Color(1.0, 1.0, 1.0), Color(0.72, 0.84, 1.0), Color(0.38, 0.4, 0.9)],
 	# the cannon: brimstone - a sulphur-white core, sulphur-yellow edge, a violet accent; violet smoke, burning shrapnel
 	"cannon": [Color(1.0, 0.97, 0.75), Color(1.0, 0.8, 0.22), Color(0.62, 0.3, 0.88)],
+	# the slingshot: the trickster's spark - a pale pink core, hot-pink edge, a tangerine accent
+	"slingshot": [Color(1.0, 0.96, 0.96), Color(1.0, 0.38, 0.72), Color(1.0, 0.62, 0.2)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1494,6 +1496,9 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			starlight(pos, dir, amount, speed)
 		"cannon":
 			brimstone(pos, dir, amount, speed)
+		"slingshot":
+			muzzle_sparks(pos, dir, amount, tree_col(tree, EDGE))
+			motes(pos, dir, maxi(amount / 2, 2), c, speed * 0.8)
 		_:
 			spray(pos, dir, amount, c, speed)
 
@@ -2920,6 +2925,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"cannon":
 			brimstone(pos, dir + Vector3.UP * 0.3, 8, 4.0)
 			ring(pos, dir, 1.0, edge, 0.18, 0.2)
+		"slingshot":
+			muzzle_sparks(pos, dir + Vector3.UP * 0.3, 6, edge)
+			motes(pos, dir + Vector3.UP * 0.3, 4, accent, 3.0)
+			ring(pos, dir, 0.6, edge, 0.14, 0.14)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

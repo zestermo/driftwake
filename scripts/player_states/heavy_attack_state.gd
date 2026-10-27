@@ -107,6 +107,10 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.13, "shake": 0.26, "knockback": 14.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.8, "impact_fx": false, "reach": "cannon",
 		"color": Color(1.0, 0.9, 0.7), "tree": "cannon", "breaker": true},
+	# the slingshot (the power draw): held, drawn back in two levels; let go, a heavy stone (SlingArts runs it: "arts")
+	"power_draw": {"anim": "sl_draw", "impulse": 0.0,
+		"damage": 14.0, "hitstop": 0.0, "shake": 0.0, "knockback": 0.0, "stagger": 0.0,
+		"trail": "", "trail_len": 0.0, "sfx": "", "pitch": 1.0, "impact_fx": false, "tree": "slingshot", "arts": true},
 	"whip": {"anim": "pistol_whip", "impulse": 5.0,
 		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
 		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
@@ -212,6 +216,10 @@ func enter(data: Dictionary) -> void:
 			cfg = STYLES["butt_stroke"]
 		"cannon":
 			cfg = STYLES["barrel_bash"]
+		"slingshot":
+			cfg = STYLES["power_draw"]
+			SlingArts.heavy_enter(self)
+			return
 		_:
 			cfg = STYLES[style_for(model)]
 	player.set_reach(str(cfg.get("reach", "sword")))
@@ -262,6 +270,9 @@ func enter(data: Dictionary) -> void:
 
 
 func physics_update(delta: float) -> void:
+	if cfg.get("arts", false):
+		SlingArts.heavy_update(self, delta)
+		return
 	apply_gravity(delta)
 	if _charging:
 		_charge_update(delta)

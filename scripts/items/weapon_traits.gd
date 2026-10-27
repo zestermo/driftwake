@@ -26,7 +26,7 @@ const TRAITS := {
 		"desc": "A clean parry ripostes at once: a free cut that staggers them."},
 	"venomous": {"name": "Venomous", "move": "Every hit", "kinds": ["cutlass", "dagger"],
 		"desc": "Every hit poisons them for 4 s."},
-	"hair_trigger": {"name": "Hair-trigger", "move": "Shot", "kinds": ["pistol", "longgun"],
+	"hair_trigger": {"name": "Hair-trigger", "move": "Shot", "kinds": ["pistol", "longgun", "slingshot"],
 		"desc": "A shot within a second of a roll always crits and knocks them down."},
 	"blasting": {"name": "Blasting", "move": "Shot", "kinds": ["pistol", "longgun"],
 		"desc": "The last ball of each load bursts where it hits, knocking down everyone within 2.5 m."},

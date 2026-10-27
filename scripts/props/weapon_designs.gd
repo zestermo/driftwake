@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon"}
+	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -217,6 +217,19 @@ const DESIGNS := {
 		"bombard": {"id": "bombard", "name": "Bombard", "desc": "A siege gun no sane sailor would carry. One shot and a long breath, and the deck is clear.",
 			"dmg": 1.25, "worth": 2.4, "len": 1.12, "r": 0.11, "blast": 1.35, "reload": 1.25, "rare": true, "barrel": Color(0.28, 0.28, 0.3),
 			"fit": Color(0.5, 0.48, 0.46)},
+	},
+	# (the base is a wooden fork and a leather band; GunModels.slingshot). Slingshots add "w" (the fork's half-width),
+	# "speed" (x how fast a stone's drawn and loosed), "trick" (x the trick ammo's strength); "rare" drops less often
+	"slingshot": {
+		"bone": {"id": "bone_slingshot", "name": "Bone Slingshot", "desc": "A fork of whalebone and a band of sinew. It sings when it lets go.",
+			"dmg": 1.06, "worth": 1.4, "wood": Color(1.0, 0.94, 0.8), "tex": "bark", "band": Color(0.55, 0.3, 0.2)},
+		"vine": {"id": "vine_slingshot", "name": "Vine Slingshot", "desc": "A green-wood fork bound in jungle vine. Light, springy and quick as a blink.",
+			"dmg": 0.92, "worth": 1.1, "speed": 1.15, "wood": Color(0.5, 0.7, 0.32), "band": Color(0.3, 0.5, 0.2)},
+		"iron": {"id": "iron_slingshot", "name": "Iron Slingshot", "desc": "A forged fork and a doubled band. Heavier to draw; what it throws, stays thrown.",
+			"dmg": 1.12, "worth": 1.6, "speed": 0.92, "tex": "metal", "wood": Color(0.45, 0.45, 0.48)},
+		# (rare: kept a third of the times it's rolled)
+		"beetle": {"id": "beetle_slingshot", "name": "Beetle Slingshot", "desc": "A great horned fork lacquered like a beetle's shell. Its tricks hit like a thunderclap.",
+			"dmg": 1.2, "worth": 2.4, "w": 0.075, "horn": true, "trick": 1.3, "rare": true, "wood": Color(0.16, 0.3, 0.2), "fit": Color(0.85, 0.7, 0.2)},
 	},
 }
 
@@ -449,6 +462,8 @@ static func build(model: String) -> ArrayMesh:
 			GunModels.longgun(mb, p, tier)
 		"cannon":
 			GunModels.cannon(mb, p, tier)
+		"slingshot":
+			GunModels.slingshot(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()

@@ -41,7 +41,7 @@ class_name ActionSpecs
 const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
 	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"],
-	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"]}
+	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"], "slingshot": ["sl_parry", "sl_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -295,6 +295,16 @@ const SPECS := {
 	"cn_brace": {"len": 0.2, "hold": true, "stance": "cannon", "weapon": "cannon"},
 	"cn_lob": {"len": 1.2, "stance": "cannon", "weapon": "cannon"},
 	"cn_back": {"len": 1.0, "stance": "cannon", "weapon": "cannon"},
+	# --- the slingshot (GunMoves): the draw and loose, the held power draw, the slide, the hail ---
+	"sl_stance": {"len": 1.0, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_shot": {"len": 0.36, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
+	"sl_draw": {"len": 0.18, "hold": true, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_release": {"len": 0.35, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
+	"sl_skid": {"len": 0.6, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_air": {"len": 0.6, "stance": "slingshot", "weapon": "slingshot", "extras": {"grounded": false}},
+	"sl_parry": {"len": 0.66, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_deflect": {"len": 0.42, "stance": "slingshot", "weapon": "slingshot"},
+	"sl_block": {"len": 0.24, "hold": true, "stance": "slingshot", "weapon": "slingshot"},
 	# --- black-leg (BlackLegMoves): kicks low, mid, high, the handstand spin; "legs": which leg's trail is drawn ---
 	"bl_stance": {"len": 1.0, "stance": "black_leg", "weapon": ""},
 	"bl_1": {"len": 0.42, "hit": [0.26, 0.5], "chain": 0.3, "swoosh": [0.2, 0.5], "legs": "l", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},

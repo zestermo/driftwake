@@ -7,7 +7,7 @@ class_name GunMoves
 ## (No game classes here: the body's code reads this in --script tools before the autoloads exist.)
 
 ## A held weapon's kind -> the stance it's held in (GunKinds.STYLE, for the body's side).
-const STANCE := {"longgun": "long_gun", "cannon": "cannon"}
+const STANCE := {"longgun": "long_gun", "cannon": "cannon", "slingshot": "slingshot"}
 
 # --------------------------------------------------------------------------
 # Long guns (stance "long_gun")
@@ -117,7 +117,135 @@ static func _cn_kick(a: Dictionary, k: float) -> Dictionary:
 
 
 static func pose(h, n: String, u: float) -> Array:
+	if n.begins_with("sl_"):
+		return _sling(h, n, u)
 	return PoleMoves.take_grip(h, _pose(h, n, u))
+
+
+# --------------------------------------------------------------------------
+# The slingshot (stance "slingshot"): keyed arms, the fork in the right hand held out at the target, the left drawing
+# the pouch back to the cheek; the band is stretched between them each frame (sling_band)
+# --------------------------------------------------------------------------
+## The guard: side on the other way, the right shoulder leading; the fork low ahead, the pouch pinched in the left hand
+## close behind it.
+const SL_GUARD := {"hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.08, 0.22, 0), "head": Vector3(0.06, -0.38, 0),
+	"arm_r": Vector3(0.95, 0.0, 0.3), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(0.25, 0, 0),
+	"arm_l": Vector3(0.95, -0.35, -0.05), "fore_l": Vector3(1.55, 0, 0), "hand_l": Vector3.ZERO}
+## The stance's feet: the right foot forward, light on them.
+const SL_LEGS := {"leg_l": Vector3(-0.25, 0, -0.18), "leg_r": Vector3(0.35, 0, 0.18), "shin_l": Vector3(-0.45, 0, 0), "shin_r": Vector3(-0.55, 0, 0),
+	"_lift": Vector3(0, -0.1, 0)}
+const SL_SET := {"leg_l": Vector3(-0.25, 0, -0.18), "shin_l": Vector3(-0.45, 0, 0), "leg_r": Vector3(0.35, 0, 0.18), "shin_r": Vector3(-0.55, 0, 0)}
+const SL_BLOCK := {"torso": Vector3(-0.15, 0.2, 0), "head": Vector3(0.2, -0.2, 0),
+	"arm_r": Vector3(1.4, 0.3, 0.2), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(0.5, 0, 0),
+	"arm_l": Vector3(1.4, -0.3, -0.2), "fore_l": Vector3(1.8, 0, 0)}
+
+
+static func _sg() -> Dictionary:
+	return _full(PoleMoves._p([SL_GUARD, SL_SET, {"_lift": Vector3(0, -0.1, 0)}]))
+
+
+## Drawn at `pitch`: the fork arm straight out at the target past the turned chest, the fork upright, the pouch drawn back
+## to the left cheek.
+static func _drawn(pitch: float) -> Dictionary:
+	return _sg().merged({"hips": Vector3(0, 0.45, 0), "torso": Vector3(pitch * 0.5 - 0.04, 0.4, 0.02), "head": Vector3(-0.08 - pitch * 0.3, -0.48, 0.06),
+		"arm_r": Vector3(1.5 + pitch * 0.6, 0.0, 0.5), "fore_r": Vector3(0.08, 0, 0), "hand_r": Vector3(0.0, 0, 0),
+		"arm_l": Vector3(1.35, -0.55, 0.15), "fore_l": Vector3(2.35, 0, 0)}, true)
+
+
+## The loose: the pouch let go, the left hand flung back open past the ear, the fork hand snapping forward.
+static func _loosed(pitch: float) -> Dictionary:
+	var d := _drawn(pitch)
+	return d.merged({"arm_l": Vector3(1.0, -0.4, 0.5), "fore_l": Vector3(1.9, 0, 0), "arm_r": (d["arm_r"] as Vector3) + Vector3(0.12, 0, 0),
+		"torso": (d["torso"] as Vector3) + Vector3(0.04, -0.04, 0), "_scale": Vector3(1.0, 1.0, 1.03)}, true)
+
+
+## [pose, mask, lift] for a slingshot move (keyed arms: no grip channels).
+static func _sling(h, n: String, u: float) -> Array:
+	var g := _sg()
+	var ap: float = clampf(h.aim_pitch, -0.6, 0.6)
+	match n:
+		"sl_stance":
+			return [g, "full", Vector3.ZERO]
+		"sl_shot":
+			# drawn back to the cheek in one pull, loosed: the left hand flung back open, the fork hand snapping on
+			return [h._keys(u, [[0.0, g], [0.42, _drawn(ap), "out"], [0.52, _drawn(ap)], [0.58, _loosed(ap), "out"], [1.0, g]]), "upper", Vector3.ZERO]
+		"sl_draw":
+			# (held) the power draw: drawn right back past the ear, the chest turned further, the fork arm locked out
+			var d := _drawn(ap).merged({"torso": Vector3(ap * 0.5 - 0.02, 0.5, 0.04), "arm_l": Vector3(1.3, -0.65, 0.3), "fore_l": Vector3(2.45, 0, 0),
+				"_scale": Vector3(1.0, 1.02, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [1.0, d, "out"]]), "upper", Vector3.ZERO]
+		"sl_release":
+			return [h._keys(u, [[0.0, _drawn(ap)], [0.14, _loosed(ap), "out"], [0.5, _loosed(ap)], [1.0, g]]), "upper", Vector3.ZERO]
+		"sl_skid":
+			# Skid Shot: down into a slide on the left hip, the right leg out ahead, drawn and loosed from the ground
+			var slide := {"pivot": Vector3(0.25, 0, 0), "leg_l": Vector3(0.6, 0, -0.25), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(1.45, 0, 0.15),
+				"shin_r": Vector3(-0.15, 0, 0), "_lift": Vector3(0, -0.55, 0)}
+			var a := _drawn(0.0).merged(slide, true)
+			var b := _loosed(0.0).merged(slide, true)
+			return [h._keys(u, [[0.0, g], [0.2, a, "out"], [0.36, a], [0.42, b, "out"], [0.78, b], [1.0, g]]), "full", Vector3.ZERO]
+		"sl_air":
+			# Hail Shot: knees drawn up, drawn and aimed down, the three loosed at once
+			var tuck := {"leg_l": TUCK["leg_l"], "shin_l": TUCK["shin_l"], "leg_r": TUCK["leg_r"], "shin_r": TUCK["shin_r"], "_lift": Vector3.ZERO}
+			var a := _drawn(minf(ap, -0.3)).merged(tuck, true)
+			var b := _loosed(minf(ap, -0.3)).merged(tuck, true)
+			return [h._keys(u, [[0.0, g], [0.35, a, "out"], [0.46, a], [0.52, b, "out"], [1.0, b]]), "full", Vector3.ZERO]
+		"sl_block":
+			return [_sg().merged(SL_BLOCK, true), "upper", Vector3.ZERO]
+		"sl_parry":
+			# both hands up crossed before the face, the blow taken on the fork
+			var b := _sg().merged(SL_BLOCK, true)
+			return [h._keys(u, [[0.0, g], [0.14, b, "out"], [0.5, b], [1.0, g]]), "full", Vector3.ZERO]
+		"sl_deflect":
+			# and the fork flicked out into them with a hop back
+			var b := _sg().merged(SL_BLOCK, true)
+			var flick := b.merged({"arm_r": Vector3(1.6, 0.0, 0.4), "fore_r": Vector3(0.2, 0, 0), "torso": Vector3(-0.05, 0.4, 0), "pivot": Vector3(0.12, 0, 0)}, true)
+			return [h._keys(u, [[0.0, b], [0.25, flick, "out"], [0.55, flick], [1.0, g]]), "full", Vector3.ZERO]
+	return []
+
+
+## The band's two strands (a shared box stretched along each), made on demand per body.
+static var _band_mesh: BoxMesh
+static var _band_mat: Material
+
+
+## Each frame on a slingshot body (Humanoid._process, after posing): the band stretched from each prong tip to the pouch
+## in the left hand while the slingshot's out; hidden put away (the mesh's own slack band shows then).
+static func sling_band(h) -> void:
+	var w: MeshInstance3D = h.weapon
+	var on: bool = h.armed and h.weapon_in_hand and w != null and is_instance_valid(w) and w.get_parent() == h.hand_r and h.ragdoll == null \
+		and str(w.mesh.get_meta("model", "")).begins_with("slingshot")
+	var band: Array = h.get_meta("sling_band", [])
+	if band.is_empty():
+		if not on:
+			return
+		if _band_mesh == null:
+			_band_mesh = BoxMesh.new()
+			_band_mesh.size = Vector3(0.012, 0.008, 1.0)
+			_band_mat = PSXMat.lit("leather", Color(0.35, 0.22, 0.14))
+		for i in 2:
+			var mi := MeshInstance3D.new()
+			mi.mesh = _band_mesh
+			mi.material_override = _band_mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.visibility_range_end = 40.0
+			mi.top_level = true
+			h.add_child(mi)
+			band.append(mi)
+		h.set_meta("sling_band", band)
+	for mi in band:
+		(mi as Node3D).visible = on
+	if not on:
+		return
+	var design := str(w.mesh.get_meta("model", "")).get_slice(":", 1)
+	var pouch: Vector3 = h.hand_l.global_position
+	for i in 2:
+		var t: Vector3 = w.global_transform * Vector3((1.0 if i == 0 else -1.0) * GunModels.sl_w(design), 0, -GunModels.SL_TIP)
+		var d := pouch - t
+		var mi := band[i] as Node3D
+		if d.length() < 0.01:
+			mi.visible = false
+			continue
+		mi.global_transform = Transform3D(Basis.looking_at(d, Vector3.UP if absf(d.normalized().y) < 0.95 else Vector3.RIGHT) * Basis.from_scale(Vector3(1, 1, d.length())), t + d * 0.5)
 
 
 static func _pose(h, n: String, u: float) -> Array:

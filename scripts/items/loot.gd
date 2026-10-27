@@ -167,7 +167,7 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 		elif generic(it):
 			if arms_rng.randf() < float(ARMS_BY_KIND[kind_of_chest]):
 				var kind := it.weapon_model
-				if kind not in ["pistol", "longgun"] and rng_for(key + "|great").randf() < (GREAT_HOARD if hoard else GREAT_CHANCE):
+				if kind not in ["pistol", "longgun", "slingshot"] and rng_for(key + "|great").randf() < (GREAT_HOARD if hoard else GREAT_CHANCE):
 					kind = "greatsword"
 				elif rng_for(key + "|cannon").randf() < (CANNON_HOARD if hoard else CANNON_CHANCE):
 					kind = "cannon"

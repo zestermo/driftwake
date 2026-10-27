@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "slingshot"
+display_name = "Slingshot"
+description = "A forked stick and a strong band. Stones as fast as you can pull, and a pouch for nastier things: fire, smoke, black powder, tar."
+value = 12
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "slingshot"
+damage_mult = 1.0

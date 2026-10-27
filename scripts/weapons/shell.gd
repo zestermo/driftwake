@@ -12,6 +12,8 @@ const KINDS := {
 	"mortar": [0.1, 18.0, 4.0, "cannon"],
 	"giant": [0.28, 6.0, 4.0, "cannon"],
 	"chain": [0.22, 0.0, 1.0, "cannon"],
+	"pellet": [0.035, 7.0, 2.5, "sling"],
+	"pellet_big": [0.06, 6.0, 2.5, "sling"],
 }
 
 var kind := "ball"
@@ -147,7 +149,7 @@ func _end(at: Vector3, normal: Vector3, hb: Hurtbox) -> void:
 
 
 func _art() -> Variant:
-	return CannonArts
+	return CannonArts if str(KINDS[kind][3]) == "cannon" else SlingArts
 
 
 ## A smoke wake behind a cannonball (each screen its own, a puff every 0.05 s).
@@ -170,6 +172,13 @@ static func _mesh_of(k: String, ex: String) -> Mesh:
 			for s in [-1.0, 1.0]:
 				mb.add_blob(iron, Transform3D(Basis(), Vector3(s * 0.22, 0, 0)), Vector3(0.08, 0.08, 0.08), RandomNumberGenerator.new(), 0.0, 3, 6, 1.0)
 			mb.add_box(iron, Transform3D(Basis(), Vector3.ZERO), Vector3(0.44, 0.02, 0.02), 2.0)
+		"pellet", "pellet_big":
+			# a stone, or a trick pellet in its colour (a fire pellet glows)
+			var trick := ex.get_slice("@", 0) if k == "pellet" else ""
+			var col: Color = SlingArts.TRICK_COL.get(trick, SlingArts.TRICK_COL[""])
+			var mat: Material = PSXMat.glow(col, 2.0) if trick == "fire" else PSXMat.lit("metal", col)
+			var r := float(KINDS[k][0])
+			mb.add_blob(mat, Transform3D(), Vector3(r, r, r), RandomNumberGenerator.new(), 0.1, 3, 6, 1.0)
 		_:
 			var r := float(KINDS[k][0])
 			mb.add_blob(iron, Transform3D(), Vector3(r, r, r), RandomNumberGenerator.new(), 0.0, 4, 8, 1.0)

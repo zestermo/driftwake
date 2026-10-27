@@ -5,9 +5,9 @@ class_name GunKinds
 ## which model makes which style, its load and reload, aiming at the reticle, the hitscan line and a blast's splash.
 
 ## weapon_model -> fighting style.
-const STYLE := {"longgun": "long_gun", "cannon": "cannon"}
+const STYLE := {"longgun": "long_gun", "cannon": "cannon", "slingshot": "slingshot"}
 ## Every style these kinds fight in (Player.style()).
-const OWN := ["long_gun", "cannon"]
+const OWN := ["long_gun", "cannon", "slingshot"]
 
 
 ## A design's number for any of these kinds ("reload", "range", "shots"...; `def` for the base item).
@@ -22,6 +22,8 @@ static func art(style: String) -> Variant:
 			return LongGunArts
 		"cannon":
 			return CannonArts
+		"slingshot":
+			return SlingArts
 	return null
 
 
@@ -57,6 +59,9 @@ static func stats(it: ItemData) -> Dictionary:
 		"cannon":
 			var rate: float = 1.0 / (CannonArts.FIRE_LEN + CannonArts.RELOAD * design(it, "reload"))
 			return {"gun": true, "damage": CannonArts.DIRECT * it.power(), "rate": rate, "range": CannonArts.RANGE * design(it, "range")}
+		"slingshot":
+			var rate: float = design(it, "speed") / SlingArts.SHOT_LEN
+			return {"gun": true, "damage": SlingArts.DAMAGE * it.power(), "rate": rate, "range": SlingArts.RANGE}
 	return {}
 
 
@@ -71,6 +76,11 @@ static func notes(it: ItemData) -> Array:
 			var out := ["Bursts where it lands: knocks them all down", "Right-click: the barrel like a club"]
 			if design(it, "burn", 0.0) > 0.0:
 				out.append("Its shells set them burning")
+			return out
+		"slingshot":
+			var out := ["No reload; hold right-click for a power draw", "Its techniques are trick ammo"]
+			if design(it, "trick") > 1.0:
+				out.append("Its tricks hit harder")
 			return out
 	return []
 

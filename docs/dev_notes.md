@@ -7269,6 +7269,40 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   smoke puff every 0.05 s; nothing on idle bodies beyond the long gun's grip solve.
 - Gotcha: a test must not name `Shell` as a type (it compiles before the autoloads exist): filter "projectiles" by kind.
 - Tests: t/weapons cannon_fire, cannon_moves, cannon_tree, cannon_loot. Renders: tools/dev/out/cn/ (posebench a_/b_/c_*).
+
+## 2026-10-27: 1.24 ranged weapon kinds, piece 3: the slingshot and its trick ammo (docs/weapons_plan.md "Slingshot")
+- **Item and models** (WeaponDesigns kind "slingshot", base resources/items/slingshot.tres; GunModels.slingshot): a
+  handle in the fist, the fork's prongs up out of the top of it to the band's ends (SL_TIP, "w"), a slack band and
+  pouch. Designs: bone, vine (speed x1.15), iron (dmg x1.12, speed x0.92), beetle (RARE: a horn, wider fork, tricks
+  x1.3). Style "slingshot" (two-handed: the fork in the right hand, the pouch in the left), at the hip put away.
+- **The stance** (GunMoves "sl_*", keyed arms, no grip channels): side on with the right shoulder leading, the fork low
+  ahead, the pouch pinched behind it; drawn, the fork arm straight out at the target and the pouch at the left cheek.
+  **The band** (GunMoves.sling_band, each frame on a slingshot body after posing): two stretched strands from the prong
+  tips to the left hand while it's out (one shared box mesh, two transforms a frame), hidden put away.
+- **The stone** (scripts/weapons/sling_arts.gd through ShootState): left click draws and looses (sl_shot, 0.36 s x
+  speed; the stone leaves at 0.2 s): Shell "pellet" at 46 m/s on the low arc to the reticle, 9 damage, a 0.25 s
+  stagger, no reload ever (the HUD shows no loads). Right click held is the power draw (HeavyAttackState
+  "power_draw", cfg "arts": SlingArts.heavy_enter / heavy_update): two levels at 0.4 / 0.9 s (Quick Draw sooner), let
+  go (or 1.6 s) a "pellet_big": 14 / 24 / 36, the full draw knocks down. Skid Shot at a sprint (a slide, three stones
+  fanned); Hail Shot in the air (three fanned down at the reticle); parry/block with the hands up crossed.
+- **Trick ammo** (a round's `extra`: "fire" / "smoke" / "blast" / "sticky", "@k" its strength x the design's "trick" and
+  trick_ stats; SlingArts.burst where it lands): fire (a 2.2 m burst, 10, burning 4 s), smoke (a 4 m cloud: everyone in
+  it staggered 2 s "Blinded", you slip out of sight if you're in it), blast (2.6 m, 20, knockdown), sticky (3 m: rooted
+  3 s via `root_enemy`, "Stuck!"). Each is a technique (Fire / Smoke / Blast / Sticky Pellet); Bag of Tricks (ult,
+  untouchable) fires five at the foes ahead, a trick each at x1.6. Trick Pouch: every fifth stone a random trick at half.
+- **Tree** (SkillTrees "slingshot": Tricks / Aim / Pouch, element "sl" the trickster's spark): Fire Pellet 4 · Smoke
+  Pellet 8 · Trick Pouch 14 · Nasty Surprises 20 (trick_ +30%); Blast Pellet 5 · Sticky Pellet 10 · Bag of Tricks 30;
+  Skid Shot 2 · Quick Draw 4 (draw_) · Hail Shot 6 · Sharpshooter 13 (passive) · Trickster's Way 22 (Prankster / Sure
+  Shot). Steps 30. New keys: trick_, draw_, pouch_.
+- **FX**: TREE_FX "slingshot" (pale pink core, hot-pink edge, tangerine accent); element / elem_hit pink sparks and
+  tangerine motes. Pellets wear their trick's colour (a fire pellet glows). Sounds: whoosh + slap on the loose, rope
+  creaking on the draw, the tricks' own (fire_burst, thud, cannon_hit, splash).
+- **Sources**: IslandContent.LOOT_WEAPONS and IslandEncounters.LOOT "slingshot"; never turned into a greatsword by a
+  chest; Shops.RARE_KINDS; Haldor's pool slingshot / vine / bone / iron@1; the Shift+F10 rack. Trait: hair-trigger.
+- **Co-op**: stones are Shells (harmless copies on the other screens), hits through Hurtbox.take_hit, `rooted` through
+  its HOST_CALLS forward, effects through Net.fx. **Per frame**: the band on slingshot bodies (two transforms); a stone
+  in flight a shape query and a ray a tick.
+- Tests: t/weapons sling_fire, sling_tricks, sling_tree, sling_loot. Renders: tools/dev/out/sl/.
 ## 2026-10-26: 1.24 crew techniques, piece 3: the training yard's sparring partner
 - What: single player, alone within 14 m of a training dummy (Brinehollow's yard, every KitCamps.training_yard), a
   crew technique that throws a crewmate (the six launches) is played with a sparring partner instead of the self

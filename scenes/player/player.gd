@@ -1624,7 +1624,7 @@ func try_summon() -> String:
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
 ## a pair for the twin axes). Each new kind adds its line (1.24: the ranged kinds). It also teaches black-leg (no item: learned).
-const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1}
+const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1, "slingshot": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2323,7 +2323,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy", "slingshot": "punch"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`

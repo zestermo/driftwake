@@ -121,3 +121,39 @@ static func cannon(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 			mb.add_box(PSXMat.glow(Color(1.0, 0.25, 0.1), 2.5), Transform3D(Basis(), head + Vector3(s * r * 0.75, r * 1.1, -0.04)), Vector3(0.012, 0.016, 0.016), 2.0)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0.0, y + r * 1.15, z0 - ln * 0.42)), Vector3(0.03, 0.02, 0.03), 2.0)
+
+
+## A slingshot's fork: its prong tips (the band's ends) this far up out of the fist and out to each side.
+const SL_TIP := 0.17
+const SL_W := 0.05
+
+
+static func sl_w(design: String) -> float:
+	return float((WeaponDesigns.DESIGNS["slingshot"] as Dictionary).get(design, {}).get("w", SL_W))
+
+
+## Slingshots: a handle in the fist (along +Z), the fork's two prongs up out of the top of it to the band's ends, a
+## leather pouch hanging between them (the drawn band is GunMoves.sling_band's); the beetle slingshot wears a horn.
+static func slingshot(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := WeaponDesigns._mats(p, tier, Color(1.0, 0.78, 0.4), Color(0.4, 0.28, 0.18), "leather")
+	var wood := PSXMat.lit(str(p.get("tex", "planks")), WeaponDesigns._c(p, "wood", Color(0.62, 0.44, 0.26)))
+	var fit: Material = m["fit"]
+	var w := WeaponDesigns._f(p, "w", SL_W)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0, 0.03)), Vector3(0.03, 0.03, 0.17), 2.0)
+	mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, 0.02)), Vector3(0.034, 0.034, 0.1), 2.0)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0, -0.065)), Vector3(0.04, 0.032, 0.04), 2.0)
+	var base := Vector3(0, 0, -0.07)
+	for s in [-1.0, 1.0]:
+		var end := Vector3(s * w, 0, -SL_TIP)
+		var d := end - base
+		mb.add_box(wood, Transform3D(Basis(Vector3.UP, -atan2(d.x, -d.z)), (base + end) * 0.5), Vector3(0.022, 0.024, d.length() + 0.02), 2.0)
+		mb.add_box(fit, Transform3D(Basis(), end + Vector3(0, 0, -0.008)), Vector3(0.026, 0.028, 0.018), 2.0)
+	# the band slack between the tips, the pouch in the middle of it
+	mb.add_box(PSXMat.lit("leather", WeaponDesigns._c(p, "band", Color(0.35, 0.22, 0.14))), Transform3D(Basis(), Vector3(0, 0.03, -SL_TIP + 0.01)), Vector3(w * 2.0, 0.008, 0.012), 2.0)
+	mb.add_box(PSXMat.lit("leather", Color(0.45, 0.3, 0.18)), Transform3D(Basis(), Vector3(0, 0.05, -SL_TIP + 0.01)), Vector3(0.04, 0.02, 0.03), 2.0)
+	if bool(p.get("horn", false)):
+		# the beetle's: a horn swept up off the fork's crotch and a shell plate on the handle
+		mb.add_cone(fit, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, -0.015, -0.08)), 0.02, 0.2, 5)
+		mb.add_box(fit, Transform3D(Basis(), Vector3(0, -0.02, 0.0)), Vector3(0.04, 0.02, 0.12), 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, -0.02, -0.065)), Vector3(0.02, 0.02, 0.02), 2.0)

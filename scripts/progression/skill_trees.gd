@@ -37,6 +37,7 @@ const HEADERS := {
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"long_gun": ["Long Gun", "combat", Color(0.74, 0.84, 1.0), 30],
 	"cannon": ["Cannon", "combat", Color(1.0, 0.82, 0.34), 30],
+	"slingshot": ["Slingshot", "combat", Color(1.0, 0.55, 0.78), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
 	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
 	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 30],
@@ -75,6 +76,7 @@ const ELEMENTS := {
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"long_gun": ["lg", "Starlit Sights", "Falling Star", "starlight: silver shots with a moon-blue edge, star glints where they land, and Hawkeye's shots fall like shooting stars"],
 	"cannon": ["cn", "Brimstone", "Hellfire Shells", "brimstone: sulphur-yellow blasts, violet smoke and burning shrapnel, and the Leviathan Shell leaves the ground burning"],
+	"slingshot": ["sl", "Trickster's Spark", "Wild Card", "the trickster's spark: hot-pink and tangerine sparks off every pellet, and the tricks burst in bright colours"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 	"black_leg": ["bl", "Searing Heel", "Red-Hot Leg", "heat: the kicking leg glows red-hot, crimson flames burst off the big kicks and white-hot sparks off every one, and Last Course sets the ground burning"],
 }
@@ -211,6 +213,7 @@ static func _build() -> void:
 	_build_pistol()
 	_build_long_gun()
 	_build_cannon()
+	_build_slingshot()
 	_build_unarmed()
 	_build_black_leg()
 	_build_ember()
@@ -1104,6 +1107,42 @@ static func _build_cannon() -> void:
 	_step("cn_heft", "Heft", "cn_leap", 3, {"heavy_cannon": 0.08}, "The barrel (right-click) hits 8% harder a step.")
 	_step("cn_draw", "Draw Breath", "cn_canister", 3, {"flow_cannon": 0.15}, "Cannon hits give 15% more energy a step.")
 	_step("cn_recover", "Recovery", "cn_bang", 3, {"cdr_cannon": 0.05}, "Cannon techniques come back 5% sooner a step.")
+
+
+## The slingshot (slingshot, bone, vine, iron, beetle): light quick stones, the power draw, and the trick ammo as its
+## techniques; the trickster's spark as the element.
+static func _build_slingshot() -> void:
+	_tree("slingshot", ["Tricks", "Aim", "Pouch"])
+	_root("sl_root", "Slingshot", {},
+		"A forked stick and a band. Left-click draws and lets a stone fly, as fast as you can pull, no reload; hold right-click to draw it right back (two levels) and let go for a heavy stone that knocks them back. Its tricks are the techniques: pellets of fire, smoke, black powder and tar. Fight with a slingshot in hand to build its mastery.")
+	_big("sl_fire", "Fire Pellet", "tech", 0, 4, {}, "", "fire_pellet")
+	_big("sl_smoke", "Smoke Pellet", "tech", 0, 8, {}, "", "smoke_pellet")
+	_big("sl_pouch", "Trick Pouch", "mech", 0, 14, {"pouch_slingshot": 1}, "Every fifth stone you loose carries a trick of its own (fire, smoke, powder or tar) at half strength.")
+	_big("sl_nasty", "Nasty Surprises", "mech", 0, 20, {"trick_slingshot": 0.3}, "Your tricks are 30% stronger: wider, longer and harder.")
+	_big("sl_blast", "Blast Pellet", "tech", 1, 5, {}, "", "blast_pellet")
+	_big("sl_sticky", "Sticky Pellet", "tech", 1, 10, {}, "", "sticky_pellet")
+	_elem(1)
+	_elem(2)
+	_big("sl_bag", "Bag of Tricks", "ult", 1, 30, {}, "", "bag_of_tricks")
+	_big("sl_skid", "Skid Shot", "move", 2, 2, {"mv_skid_shot": 1},
+		"Attack at a sprint: down into a slide, three stones fanned out ahead as you go.")
+	_big("sl_quick", "Quick Draw", "mech", 2, 4, {"draw_slingshot": 0.25}, "Your power draw (right-click) reaches its levels 25% sooner.")
+	_big("sl_hail", "Hail Shot", "move", 2, 6, {"mv_hail_shot": 1},
+		"Attack in the air: hang a beat and loose three stones fanned down at the reticle (once per jump).")
+	_big("sl_sharp", "Sharpshooter", "passive", 2, 13, {"heavy_slingshot": 0.3, "crit_slingshot": 0.05},
+		"Passive (a slot). Your power draw lands 30% harder, and 5% more of your slingshot hits are crits.")
+	_variant("sl_way", "Trickster's Way", 2, [
+		["sl_prank", "Prankster", 22, {"trick_slingshot": 0.25, "cdr_slingshot": 0.2}, "Your tricks are another 25% stronger, and slingshot techniques come back 20% sooner."],
+		["sl_sure", "Sure Shot", 22, {"exec_slingshot": 0.5, "crit_slingshot": 0.06}, "A hit that leaves them under 30% health deals 50% more on top, and 6% more of your hits are crits."]],
+		"Two ways to play it. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("sl_band", "Strong Band", "sl_root", 5, {"dmg_slingshot": 0.05}, "+5% slingshot damage a step.")
+	_step("sl_nimble", "Nimble", "sl_fire", 3, {"def_slingshot": 2.0}, "+2 defense with a slingshot in hand a step.")
+	_step("sl_keen", "Keen Eye", "sl_elem", 5, {"crit_slingshot": 0.03}, "3% more of your slingshot hits land 50% harder, a step.")
+	_step("sl_tricky", "Tricky", "sl_sticky", 5, {"skill_slingshot": 0.06}, "Your trick shots hit 6% harder a step.")
+	_step("sl_wind", "Second Wind", "sl_skid", 3, {"stam_slingshot": 0.05}, "Slingshot attacks cost 5% less stamina a step.")
+	_step("sl_pull", "Long Pull", "sl_hail", 3, {"heavy_slingshot": 0.08}, "Your power draw hits 8% harder a step.")
+	_step("sl_breath", "Draw Breath", "sl_blast", 3, {"flow_slingshot": 0.15}, "Slingshot hits give 15% more energy a step.")
+	_step("sl_recover", "Recovery", "sl_sharp", 3, {"cdr_slingshot": 0.05}, "Slingshot techniques come back 5% sooner a step.")
 
 
 static func _build_unarmed() -> void:

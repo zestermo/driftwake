@@ -254,6 +254,17 @@ const ALL := {
 		"desc": "Turn the muzzle behind you and fire: the recoil hurls you ten paces forward, ramming everyone in your path off their feet."},
 	"leviathan_shell": {"name": "Leviathan Shell", "tree": "cannon", "cost": 0.0, "cooldown": 3.0, "styles": ["cannon"], "needs_text": "a cannon", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Down on one knee, a breath, and one giant shell at the reticle: where it lands everything within eight paces is thrown down, unblockable, and the ground cracks open. Nothing touches you while you brace."},
+	# --- The slingshot (its trick ammo) ---
+	"fire_pellet": {"name": "Fire Pellet", "tree": "slingshot", "cost": 14.0, "cooldown": 6.0, "styles": ["slingshot"], "needs_text": "a slingshot", "state": "Technique",
+		"desc": "A pellet packed with fire at the reticle: it bursts into flame where it lands, setting everyone close burning."},
+	"smoke_pellet": {"name": "Smoke Pellet", "tree": "slingshot", "cost": 16.0, "cooldown": 9.0, "styles": ["slingshot"], "needs_text": "a slingshot", "state": "Technique",
+		"desc": "A pellet of smoke at the reticle: a thick cloud where it lands blinds everyone in it for a couple of seconds, and if you're in it too, you slip out of sight."},
+	"blast_pellet": {"name": "Blast Pellet", "tree": "slingshot", "cost": 18.0, "cooldown": 7.0, "styles": ["slingshot"], "needs_text": "a slingshot", "state": "Technique",
+		"desc": "A pellet of black powder at the reticle: it goes off where it lands and throws everyone round it off their feet."},
+	"sticky_pellet": {"name": "Sticky Pellet", "tree": "slingshot", "cost": 16.0, "cooldown": 8.0, "styles": ["slingshot"], "needs_text": "a slingshot", "state": "Technique",
+		"desc": "A pellet of hot tar at the reticle: everyone in the splash is stuck where they stand for three seconds."},
+	"bag_of_tricks": {"name": "Bag of Tricks", "tree": "slingshot", "cost": 0.0, "cooldown": 3.0, "styles": ["slingshot"], "needs_text": "a slingshot", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Empty the pouch: five trick pellets, one after another at the enemies ahead (fire, tar, powder, smoke and fire again), each half again as strong. Nothing touches you while you shoot."},
 	# --- Unarmed: power ---
 	"hip_toss": {"name": "Shoulder Throw", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Hands open to catch for a second: a blow caught in them is turned aside and whoever threw it goes over your shoulder, knocking down anyone they land on. A boss or a heavy gets a straight right back instead."},

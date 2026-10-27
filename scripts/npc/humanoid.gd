@@ -1023,6 +1023,8 @@ func _guard() -> Dictionary:
 			return GunMoves.LG_GUARD
 		"cannon":
 			return GunMoves.CN_GUARD
+		"slingshot":
+			return GunMoves.SL_GUARD
 		"sword":
 			return SwordMoves.guard(self)
 		"dual_pistol":
@@ -1056,6 +1058,7 @@ const STANCE_LEGS := {
 	"black_leg": BlackLegMoves.LEGS,
 	"long_gun": GunMoves.LG_LEGS,
 	"cannon": GunMoves.CN_LEGS,
+	"slingshot": GunMoves.SL_LEGS,
 }
 
 
@@ -1244,6 +1247,8 @@ func _block_pose() -> Dictionary:
 			return GunMoves.LG_BLOCK
 		"cannon":
 			return GunMoves.CN_BLOCK
+		"slingshot":
+			return GunMoves.SL_BLOCK
 		"sword":
 			return SwordMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
@@ -2379,7 +2384,7 @@ func _action_pose(n: String, u: float) -> Array:
 		return DualAxeMoves.pose(self, n, u)
 	if n.begins_with("gs_"):
 		return GreatswordMoves.pose(self, n, u)
-	if n.begins_with("lg_") or n.begins_with("cn_"):
+	if n.begins_with("lg_") or n.begins_with("cn_") or n.begins_with("sl_"):
 		return GunMoves.pose(self, n, u)
 	if n.begins_with("fs_"):
 		return FistMoves.pose(self, n, u)
@@ -3032,6 +3037,8 @@ func _pose(delta: float) -> void:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)
+	if stance == "slingshot" or has_meta("sling_band"):
+		GunMoves.sling_band(self)
 	_apply_smear()
 	_katana_hands()
 	_axe_hands()

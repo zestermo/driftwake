@@ -480,7 +480,8 @@ func _draw_xp() -> void:
 ## Pistols: loaded shots per gun over the middle of the plate.
 func _draw_ammo() -> void:
 	var blade_gun := player.style() == "sword_pistol"
-	if player.weapon_class() != "gun" and not blade_gun:
+	# (the slingshot never reloads: no loads to show)
+	if player.weapon_class() != "gun" and not blade_gun or player.style() == "slingshot":
 		return
 	var c := Vector2(W * 0.5, PLATE_Y - 6.0)
 	if player.reloading():
