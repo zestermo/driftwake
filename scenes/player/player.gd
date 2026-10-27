@@ -624,10 +624,13 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		power.buffs["riposte"] = 0.0
 		state_machine.force_state("Technique", {"id": "riposte_counter", "target": attacker})
 		return
+	# crew techniques: a Shield Wall, a guardian's guard
+	if crew_tech.blow(hit, attacker, dir):
+		return
 	if hit.knockdown and power.iron_reflex():
 		_toast("Iron Reflex!")
 	_since_hit = 0.0
-	var dmg := hit.damage * (1.0 - damage_reduction())
+	var dmg := hit.damage * (1.0 - damage_reduction()) * crew_tech.damage_k()
 	if power.buff("tekkai"):
 		dmg *= 0.3
 	if power.buff("berserk"):
@@ -2241,7 +2244,7 @@ func reloading() -> bool:
 func reload_time() -> float:
 	var st := style()
 	var t := 1.4 if st == "sword_pistol" else (1.5 if offhand_weapon else 1.1)
-	return t * (1.0 - progression.stat("reload_pct") - progression.style_stat("reload", st))
+	return t * (1.0 - progression.stat("reload_pct") - progression.style_stat("reload", st)) * crew_tech.reload_k()
 
 
 func start_reload() -> void:

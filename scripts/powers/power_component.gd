@@ -533,6 +533,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	add_ult(hit.damage)
 	player.fought()
 	TraitMoves.landed(player, target, hit)
+	player.crew_tech.on_hit(target, hit)
 	if player.is_local:
 		pr.on_hit(target, hit)
 		var leech := pr.style_stat("leech", st)

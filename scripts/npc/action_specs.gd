@@ -422,6 +422,9 @@ const SPECS := {
 	"ct_perch": {"len": 0.12, "hold": true, "stance": "sword", "weapon": "cutlass"},
 	"ct_launched": {"len": 0.6, "stance": "sword", "weapon": "cutlass", "extras": {"grounded": false}},
 	"ct_wall_kick": {"len": 0.55, "sharp": 45.0, "stance": "black_leg", "weapon": ""},
+	"ct_hurl": {"len": 1.1, "sharp": 40.0, "stance": "axe", "weapon": "boarding_axe"},
+	"ct_swung": {"len": 0.12, "hold": true, "stance": "sword", "weapon": "cutlass"},
+	"ct_cup": {"len": 0.75, "sharp": 45.0, "stance": "fist", "weapon": ""},
 	# Defense's moves (MovePoses)
 	"parry_disarm": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass"},
 	"parry_shove": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass", "variants": [{"stance": "fist"}]},

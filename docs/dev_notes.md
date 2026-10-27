@@ -7025,3 +7025,43 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   joiners at once (the host takes the first); the launch signal reaching the partner's machine.
 - Tests: t/crew (stance_trigger, cooldown, join_expiry, join_prompt, skyward_kick: the lead with a captain-style AI
   crewmate whose side runs locally as a guest's would). Render: `abilityshot ... crew:skyward_kick black_leg`.
+
+## 2026-10-26: 1.24 crew techniques, piece 2: the other nine (docs/v1_24_plan.md table)
+- The state is table-driven now (`crew_technique_state.gd`): LAUNCH (when the lead throws, length, forward/up speed,
+  the landing, plough), PERCH (where the thrown crewmate stands on the lead), SOLO (each self version's go, speeds,
+  pose). Launches all end in the shared flight (free plunge, crater landing) plus the move's landing: "slash" (ring 2.8
+  m, 30) or "slam" (3.5 m, 40, knockdown), or Human Cannonball's plough (foes within 1.4 m in flight, 25, knocked
+  down, once each).
+  - Crossed Blades (cutlass, dual blades): the guard held (riposte_guard / cross_guard), the crewmate on the blade
+    (1.25 m up), the cut at 0.5 s flings them 9 fwd / 12 up into a leaping slash. Self: Blade Vault (8 / 10, slash).
+  - Hurl (axe, twin axes): the lead turns once (ct_hurl) while the crewmate is swung round at 1.4 m on its own clock
+    (ct_swung), thrown at 0.75 s 16 / 7 into a slam. Self: Hurled Slam (9 / 10, slam).
+  - Pole Vault (polearm): pole_land planted, the crewmate at the top (1.7 m), 14 / 13 at 0.42 s. Self: the pole_vault
+    move, 11 / 12.
+  - Anvil (hammer): ham_upper's upswing bats the crewmate off the head 4 / 22 (skyward). Self: Rebound, ham_smash's
+    slam (3 m, 20) then 3 / 16.
+  - Human Cannonball (fists, claws): ct_cup, 24 / 6 at 0.35 s, ploughing. Self: Cannonball 18 / 5, ploughing.
+  - Guardian Stance (katana): marks "guarding"/"guarded" (8 s, 3 blows) set in CrewTechniques.go on every machine. A
+    melee blow on the ward (Player._on_hit_received -> `crew_tech.blow`, on the ward's machine) is turned ("Guarded!")
+    and `crew_signal(guardian, "guard_hit", [attacker])` brings the guardian out as role "counter": `_blink_side` to
+    the attacker, iai_slash, 45 unblockable at 0.11 s. The guardian must be within 10 m and standing. Self: Counter
+    Stance, the riposte buff for 3 s (the blow answered by TechniqueState's katana riposte).
+  - Shield Wall (greatsword): gs_gate held 8 s (4 alone), turning slowly with the camera; mark "wall" stops blows from
+    the front (dot > 0.3); C, an attack or a dodge drops it (C reaches it through CrewTechniques.trigger -> on_crouch).
+    The joiner's "walled" mark: within 4 m behind the lead while it still holds the wall, shots stop, blows x0.5.
+  - Pincer (daggers, 60 s): the foe ahead (14 m) marked for 10 s on both (the partner's through the "pincer" signal).
+    Each one's next hit on it (PowerComponent.on_sword_hit -> `crew_tech.on_hit`) adds a crit of 0.75x the blow; the
+    second of the pair's 1.5x ("Pincer!", the first one's hit signals "pincer_struck"). Self: Marked Prey, 3 crits.
+    No foe in reach: the cooldown is given back.
+  - Covering Fire (pistols, 60 s): a 2 s volley, a shot every 0.25 s at the foe ahead (8, a 0.35 s stagger: pinned),
+    then a fresh reload; "covered" on both for 8 s: blows x0.7 (`damage_k`), reloads x0.5 (`reload_k`).
+- Hooks outside the feature's files: Player._on_hit_received (`crew_tech.blow`, `damage_k`), Player.reload_time
+  (`reload_k`), PowerComponent.on_sword_hit (`crew_tech.on_hit`). Poses: ct_hurl, ct_swung, ct_cup (CrewPoses); the
+  rest reuse the weapons' own.
+- Per tick: nothing new beyond piece 1 (the marks count down in CrewTechniques._physics_process; `_behind_wall` runs
+  only when a blow lands).
+- Co-op paths for nettest: a guest's ward struck (the guard_hit signal reaching a host guardian and back), a guest
+  thrown by a host lead, the walled/covered marks applied on both machines from `_all_crew_go`, a guest's pincer hit
+  on a host-run enemy (the extra crit routes through Hurtbox.take_hit -> Net.route_hit).
+- Tests: t/crew (one per technique, the co-op side with a captain-style AI crewmate, and the self version). Render:
+  `AB_STRIKE=0.9 abilityshot ... crew:guardian_stance katana game,side 10 1.0 0.7`.
