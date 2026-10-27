@@ -33,7 +33,8 @@ func _process(_d: float) -> bool:
 			check("Second Step (Tempo, 1) bought first", pr.buy("w_step_v") and pr.has_will("w_step"))
 			check("...one more air step (%d jumps)" % p.max_jumps, p.max_jumps == 2)
 			check("Thick Blood waits for Red Mist (%s)" % pr.buy_why("h_blood"), pr.buy_why("h_blood") == "Needs Red Mist first")
-			check("Light on Your Feet (2), slotted: +8%% move speed (%.2f)" % p.move_speed, pr.buy("h_feet") and pr.passives.has("h_feet") and is_equal_approx(p.move_speed, p.BASE_MOVE * 1.08))
+			var mv0: float = p.move_speed
+			check("Light on Your Feet (2), slotted: +8%% move speed (%.2f -> %.2f)" % [mv0, p.move_speed], pr.buy("h_feet") and pr.passives.has("h_feet") and is_equal_approx(p.move_speed - mv0, p.BASE_MOVE * 0.08))
 			check("Rhythm waits for 4 Will spent in all (%s)" % pr.buy_why("w_cancel"), pr.buy_why("w_cancel") == "Needs 4 Will spent")
 			check("Fury is open beside it: Red Mist (1)", pr.buy("w_mist_v") and WillPaths.spent_all(pr) == 4)
 			check("...4 spent: Cancel (2)", pr.buy("w_cancel") and pr.has_flag("dash_cancel"))
