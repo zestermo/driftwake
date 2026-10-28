@@ -1012,6 +1012,16 @@ func _all_brig_gone() -> void:
 
 
 ## The rival crew's gone: a spared captain gets back up (a third of their health).
+## A pupil waiting for a spar asks its captain (on that captain's machine) whether they're ready.
+func _all_spar_ask(captain_key: String, rival_key: String, who: String) -> void:
+	ArenaBout.spar_ask(_me(), captain_key, node_of(rival_key), who)
+
+
+## A spar's beat on every screen: "bow", then 3, 2, 1, 0 (Fight!) for the captain it's for.
+func _all_spar_beat(captain_key: String, rival_key: String, beat: String) -> void:
+	ArenaBout.spar_beat(_me(), captain_key, node_of(rival_key), beat)
+
+
 func _all_rival_stand() -> void:
 	var p := _me()
 	if p and p.current_state_name() == "Downed" and p.health_component.current_health <= 0.0:
@@ -1168,12 +1178,22 @@ func _ask_arena(bout_kind: String, at_rank: int) -> void:
 
 func _start_arena(bout_kind: String, at_rank: int, by: int) -> void:
 	var c: Player = players.get(by) if active else _me()
-	# a master's test ("master:<tree>"): their pupil steps up in front of you, wherever you are
+	# a master's test ("master:<tree>"): their pupil goes out to the sparring spot (Brinehollow's "Spar" before the
+	# teahouse; else a few steps in front of you) and waits for you there
 	if bout_kind.begins_with("master:") and c != null:
-		var fwd := -c.player_model.global_basis.z
-		fwd.y = 0.0
-		fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
-		ArenaBout.start(c, bout_kind, 0, get_tree().current_scene, c.global_position + fwd * 2.0)
+		var spot := ArenaBout.spar_spot(get_tree())
+		if spot == Vector3.INF:
+			var fwd := -c.player_model.global_basis.z
+			fwd.y = 0.0
+			fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+			spot = c.global_position + fwd * 4.0
+		ArenaBout.start(c, bout_kind, 0, get_tree().current_scene, spot)
+		return
+	# ready to spar ("go"): the bow and the countdown
+	if bout_kind == "go" and c != null:
+		for b in get_tree().get_nodes_in_group("arena_bouts"):
+			if (b as ArenaBout).captain == c:
+				(b as ArenaBout).begin()
 		return
 	var cap := get_tree().get_first_node_in_group("capital") as Node3D
 	if c == null or cap == null or not cap.has_method("arena_sand"):

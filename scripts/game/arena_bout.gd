@@ -20,8 +20,9 @@ const FIGHTERS := [
 	["Aurelio Quint, Champion of the Arena", "katana", 0.95, {"coat": "frock", "coat_color": Color(0.7, 0.55, 0.2), "hat": "none"}],
 ]
 const PURSES := [40, 60, 90, 130, 180, 300]
-## A master's test (1.23, "masters teach trees"; kind "master:<tree>"): their pupil steps up wherever you stand;
-## beat them and the master teaches you the tree. [name, weapon ("": bare hands), skill, look, the style they fight in].
+## A master's test (1.23, "masters teach trees"; kind "master:<tree>"): their pupil goes out to the sparring spot and
+## drills there, waiting ("wait"); walk up and they ask if you're ready; ready, you both bow and a 3-2-1 counts you in
+## ("bow", "count"), then the fight. Beat them and the master teaches you the tree. [name, weapon ("": bare hands), skill, look, the style they fight in].
 const MASTERS := {
 	"black_leg": ["Tomo, Bao's pupil", "", 0.45, {"coat": "none", "hat": "headband", "top": "kimono", "sleeves": "long"}, "black_leg"],
 }
@@ -43,6 +44,16 @@ var rival: Player
 var kind := "ladder"            # "ladder" or "defend"
 var rank := 0                   # the ladder rank being fought for (0-5)
 var phase := "fight"
+## A master's test: the pupil's spot, whether they've asked since the captain came close, and the beat's clock.
+var spot := Vector3.ZERO
+var _asked := false
+var _beat_t := 0.0
+var _beat := 4
+## Close enough for the pupil to ask; far enough to ask again after "not yet".
+const ASK_R := 3.2
+const ASK_AGAIN_R := 6.0
+## The bow, then a beat a second.
+const BOW_SECS := 1.4
 var _leave_t := 0.0
 static var _n := 0
 
@@ -110,6 +121,9 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 	away.y = 0.0
 	away = away.normalized() if away.length() > 0.5 else Vector3.LEFT
 	var at := sand - away * APART + Vector3.UP * 0.5
+	if kind.begins_with("master:"):
+		at = sand + Vector3.UP * 0.5
+		spot = sand
 	var rname := "ArenaRival_%d" % _n
 	net.everyone("_all_spawn_rival", [net.key_of(isl), rname, lk, weapon, at, atan2(away.x, away.z), skill])
 	rival = isl.get_node_or_null(rname) as Player
@@ -122,8 +136,86 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 		rival.set_kicks(true)
 	net.everyone("_all_practice", [[captain_key, net.key_of(rival)], true])
 	var brain = rival.get_node("Brain")
+	if kind.begins_with("master:"):
+		# the pupil drills on the spot until the captain comes to them
+		phase = "wait"
+		brain.order = "rest"
+		brain.rest_at = spot
+		brain.activity = "train"
+		brain.look_node = captain
+		brain.target = captain
+		return
 	brain.order = "fight"
 	brain.target = captain
+
+
+## The captain's ready (Net "go"): both face each other and bow, then the count.
+func begin() -> void:
+	if phase != "wait" or not is_instance_valid(rival):
+		return
+	phase = "bow"
+	_beat = 4
+	_beat_t = BOW_SECS
+	var brain = rival.get_node("Brain")
+	brain.order = "hold"
+	var to := captain.global_position - rival.global_position
+	to.y = 0.0
+	if to.length() > 0.05:
+		rival.player_model.rotation.y = atan2(to.x, to.z)
+	_net().everyone("_all_spar_beat", [captain_key, _net().key_of(rival), "bow"])
+
+
+## Where a pupil spars: the "Spar" mark before Brinehollow's teahouse (INF when there's none).
+static func spar_spot(tree: SceneTree) -> Vector3:
+	for t in tree.root.find_children("Teahouse", "", true, false):
+		var m := (t as Node).get_node_or_null("Spar") as Node3D
+		if m:
+			return m.global_position
+	return Vector3.INF
+
+
+## On the captain's own machine: the pupil asks if they're ready (a talk, "spar:go" or not yet).
+static func spar_ask(me: Player, key: String, rival: Node, who: String) -> void:
+	if me == null or me.get_node("/root/Net").key_of(me) != key:
+		return
+	var dlg := me.get_node("/root/Dialogue")
+	if not dlg.dialogue_event.is_connected(_on_spar_event):
+		dlg.dialogue_event.connect(_on_spar_event)
+	dlg.define("spar", {"speaker": who.get_slice(",", 0), "voice": 1.15, "start": "ask", "nodes": {
+		"ask": {"text": ["You came. Bare hands, no blades. Bow first, then we fight. Ready?"], "choices": [
+			{"text": "Ready.", "next": "go"}, {"text": "Not yet.", "next": "later"}]},
+		"go": {"text": ["Then bow."], "event": "spar:go", "next": "end"},
+		"later": {"text": ["I'll be here. Drilling."], "next": "end"}}})
+	dlg.start("spar", rival)
+
+
+static func _on_spar_event(ev: String) -> void:
+	if ev == "spar:go":
+		var net := (Engine.get_main_loop() as SceneTree).root.get_node("Net")
+		net.request_arena("go", 0)
+
+
+## A spar's beat on every screen: both bow ("bow"), then the count on the captain's own screen (3, 2, 1, then Fight!).
+static func spar_beat(me: Player, key: String, rival: Node, beat: String) -> void:
+	var tree := (Engine.get_main_loop() as SceneTree)
+	var net := tree.root.get_node("Net")
+	var cap := net.node_of(key) as Player
+	if beat == "bow":
+		for p in [cap, rival]:
+			if p is Player and (p == me or not (p as Player).is_local or p == rival):
+				(p as Player).body_model.play("emote_bow", ActionSpecs.length("emote_bow"))
+		return
+	if me == null or net.key_of(me) != key:
+		return
+	var hud = Duel.ensure(tree)._hud()
+	var n := int(beat)
+	var at := me.global_position + Vector3(0, 1.6, 0)
+	if n > 0:
+		hud.big(str(n), "")
+		tree.root.get_node("FX").sfx("blip_high", at, -8.0, 0.0, 1.0 + 0.1 * (3 - n))
+	else:
+		hud.big("Fight!", "")
+		tree.root.get_node("FX").sfx("parry", at, -4.0, 0.0, 0.9)
 
 
 func _beaten(p: Player) -> bool:
@@ -132,6 +224,32 @@ func _beaten(p: Player) -> bool:
 
 func _physics_process(delta: float) -> void:
 	match phase:
+		"wait":
+			if not is_instance_valid(captain) or not is_instance_valid(rival):
+				_finish(false)
+				return
+			var d := captain.global_position.distance_to(rival.global_position)
+			var brain = rival.get_node("Brain")
+			brain.activity = "watch" if d < ASK_AGAIN_R else "train"
+			if d < ASK_R and not _asked:
+				_asked = true
+				_net().everyone("_all_spar_ask", [captain_key, _net().key_of(rival), str(MASTERS[kind.substr(7)][0])])
+			elif d > ASK_AGAIN_R:
+				_asked = false
+		"bow", "count":
+			if not is_instance_valid(captain) or not is_instance_valid(rival):
+				_finish(false)
+				return
+			_beat_t -= delta
+			if _beat_t <= 0.0:
+				_beat -= 1
+				_beat_t = 1.0
+				_net().everyone("_all_spar_beat", [captain_key, _net().key_of(rival), str(_beat)])
+				if _beat <= 0:
+					phase = "fight"
+					var brain = rival.get_node("Brain")
+					brain.order = "fight"
+					brain.target = captain
 		"fight":
 			if not is_instance_valid(captain):
 				_finish(false)
