@@ -33,11 +33,7 @@ const TIER_AT := {1: 0, 2: 4, 3: 8}
 const SECOND_AT := 8
 const CONQ_NEEDS := 4
 const PASSIVE_COST := 2
-## Will colours (picked once the first Will is bought; seen on every screen in the Will effects): id -> [name, colour].
-const COLORS := {"black": ["Black lightning", Color(0.42, 0.16, 0.62)], "red": ["Red crackle", Color(0.9, 0.16, 0.18)],
-	"blue": ["Blue haze", Color(0.35, 0.6, 1.0)], "gold": ["Gold", Color(1.0, 0.8, 0.3)]}
-## Before a colour is picked.
-const NO_COLOR := Color(0.79, 0.66, 1.0)
+## (The colours picked before 1.24.1 are Edy types now: EdyTypes.)
 
 ## The paths' abilities: id -> [path, tier, name, desc, versions: [[id, name, effects, desc, skill, chip label]]], in tier order.
 const ABILITIES := {
@@ -145,11 +141,11 @@ static func path_why(pr, path: String) -> String:
 		return ""
 	if path == "conq":
 		if spent_in(pr, "iron") < CONQ_NEEDS or spent_in(pr, "sense") < CONQ_NEEDS:
-			return "Needs %d Will spent in Iron Will and in Sense" % CONQ_NEEDS
+			return "Needs %d Edy spent in Iron Will and in Sense" % CONQ_NEEDS
 		return ""
 	var other := "sense" if path == "iron" else "iron"
 	if spent_in(pr, path) == 0 and spent_in(pr, other) > 0 and spent_all(pr) < SECOND_AT:
-		return "A second path opens at %d Will spent" % SECOND_AT
+		return "A second path opens at %d Edy spent" % SECOND_AT
 	return ""
 
 
@@ -158,6 +154,8 @@ static func why(pr, id: String) -> String:
 	var n := SkillTrees.node_def(id)
 	if pr.bought.has(id):
 		return "Learned"
+	if str(pr.will_color) == "":
+		return "Your Edy isn't read yet: see Hana at Brinehollow's teahouse"
 	var path := str(n["path"])
 	var pw := path_why(pr, path)
 	if pw != "":
@@ -169,15 +167,15 @@ static func why(pr, id: String) -> String:
 	elif path in OPEN:
 		var gate_all: int = TIER_AT[int(n["tier"])]
 		if spent_all(pr) < gate_all:
-			return "Needs %d Will spent" % gate_all
+			return "Needs %d Edy spent" % gate_all
 	else:
 		var gate: int = TIER_AT[int(n["tier"])] - TIER_AT[first_tier(path)]
 		if spent_in(pr, path) < gate:
-			return "Needs %d Will spent in %s" % [gate, PATH_NAMES[path]]
+			return "Needs %d Edy spent in %s" % [gate, PATH_NAMES[path]]
 	if SkillTrees.price(id) > pr.pool("will"):
-		return "Needs %d Will point%s" % [SkillTrees.price(id), "" if SkillTrees.price(id) == 1 else "s"]
+		return "Needs %d Edy point%s" % [SkillTrees.price(id), "" if SkillTrees.price(id) == 1 else "s"]
 	return ""
 
 
 static func color_of(id: String) -> Color:
-	return COLORS[id][1] if COLORS.has(id) else NO_COLOR
+	return EdyTypes.color_of(id)

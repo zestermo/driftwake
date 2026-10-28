@@ -244,7 +244,7 @@ func _chop(delta: float) -> void:
 		hit.knockback_force = 5.0
 		hit.sever = true
 		player.sword_hitbox.activate(hit)
-		Net.fx("slash", [player.player_model, "overhead", 0.26, Player.HAKI_TRAIL if player.power.buff("coat") else Color(0.45, 0.75, 1.0)])
+		Net.fx("slash", [player.player_model, "overhead", 0.26, player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else Color(0.45, 0.75, 1.0)])
 		Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.12, 1.0])
 	if _chop_t >= CHOP_OFF:
 		player.sword_hitbox.deactivate()

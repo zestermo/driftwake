@@ -14,32 +14,73 @@
 		"menu": {
 			"text": "Tea?",
 			"choices": [
-				{ "text": "Gus says you taught him to fight with his feet.", "next": "legs", "hide_if": "master_black_leg" },
-				{ "text": "Tell me about the teahouse.", "next": "house" },
-				{ "text": "Just the view, thanks.", "next": "bye" }
+				{
+					"text": "Something stirred in me in that last fight. Like a current.",
+					"next": "edy",
+					"hide_if": "edy_read"
+				},
+				{
+					"text": "Tell me about Edy again.",
+					"next": "edy_about",
+					"requires": "edy_read"
+				},
+				{
+					"text": "Bao says he cooks with his feet.",
+					"next": "bao"
+				},
+				{
+					"text": "Tell me about the teahouse.",
+					"next": "house"
+				},
+				{
+					"text": "Just the view, thanks.",
+					"next": "bye"
+				}
 			]
 		},
-		"legs": {
+		"edy": {
 			"text": [
-				"Gus? He came to me with a ladle in each hand and a temper like a stove. A cook's hands are for the pot. So we taught his legs instead.",
-				"It's the kitchen's way: low kick, high kick, the heel from above, and when they crowd you, down on your hands and sweep the floor with them.",
-				"I don't teach just anyone. Tomo, my pupil, will spar with you. Bare hands, no blades. Put him down and I'll teach you the rest."
+				"A current. Yes. Sailors call it Edy: the water turning back on itself behind a rock, round and round, never still and never gone.",
+				"Everyone has some. In most it sleeps. A hard fight wakes it, and then it wants to go somewhere.",
+				"It doesn't go the same way in everyone. Some are still water, some are fire, some are a storm. Before you spend it, you should know which you are.",
+				"Sit. Drink. Answer me honestly, and quickly. The first answer is the true one."
 			],
-			"next": "legs_ask"
+			"next": "edy_ask"
 		},
-		"legs_ask": {
+		"edy_ask": {
 			"text": "Ready?",
 			"choices": [
-				{ "text": "Bring him out.", "next": "legs_test" },
-				{ "text": "Another time.", "next": "menu" }
+				{
+					"text": "Ask.",
+					"next": "eq0"
+				},
+				{
+					"text": "Another time.",
+					"next": "menu"
+				}
 			]
 		},
-		"legs_test": {
+		"edy_after": {
 			"text": [
-				"Tomo! A guest wants to learn. Mind the teacups."
+				"There. Now it knows where to go. Spend it as you earn it: the Captain's page will show you the paths.",
+				"And drink your tea. It's getting cold."
 			],
-			"event": "master:black_leg",
-			"next": "end"
+			"set_flag": "edy_read",
+			"next": "menu"
+		},
+		"edy_about": {
+			"text": [
+				"Edy is the current in you. Spend it on the paths: Iron Will, Sense, Tide, Tempo, Fury, Bond, and the one that rules the rest.",
+				"Your kind of Edy colours all of it, and leans you a little toward one way of fighting. If you ever feel you were read wrong, there's a reader on the capital's terrace. She charges like a duchess."
+			],
+			"next": "menu"
+		},
+		"bao": {
+			"text": [
+				"Bao? He came to me with a ladle in each hand and a temper like a stove. I gave him a kitchen and he gave the kitchen legs.",
+				"He's out front. If it's kicking you want, he's your man. Mind the teacups."
+			],
+			"next": "menu"
 		},
 		"house": {
 			"text": [

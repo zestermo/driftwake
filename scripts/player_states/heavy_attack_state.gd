@@ -432,7 +432,7 @@ func physics_update(delta: float) -> void:
 ## hand's blade.
 func _trail_col(left: bool = false) -> Color:
 	if player.power.buff("coat"):
-		return Player.HAKI_TRAIL
+		return player.progression.will_tint().lightened(0.2)
 	if cfg.has("tree") and player.progression.elemental(str(cfg["tree"]), 2):
 		return FX.tree_col(str(cfg["tree"]), FX.ACCENT if left and FX.TWIN_TREES.has(cfg["tree"]) else FX.EDGE)
 	if left:

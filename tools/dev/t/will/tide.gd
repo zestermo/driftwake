@@ -60,6 +60,8 @@ func _process(_d: float) -> bool:
 			var sw = p.state_machine.get_node("Swim")
 			var b0: float = sw.breath_max()
 			pr.gift("will", 20)
+			if pr.will_color == "":
+				pr.attune("tide")
 			check("Deep Breath bought", pr.buy("w_breath_v"))
 			check("...twice the breath (%.0f -> %.0f), swimming 30%% faster" % [b0, sw.breath_max()], is_equal_approx(sw.breath_max(), b0 * 2.0) and is_equal_approx(pr.stat("swim_pct"), 0.3))
 			at_sea(stage.SHORE_X + 40.0)

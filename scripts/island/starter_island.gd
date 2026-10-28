@@ -2619,6 +2619,10 @@ func _add_arrival_zone() -> void:
 		if b.is_in_group("player"):
 			get_tree().call_group("hud", "show_banner", "Brinehollow", "A quiet fishing village"))
 	Dialogue.dialogue_event.connect(_on_dialogue_event)
+	# (Hana's Edy reading: the master's questions, built from EdyTypes)
+	var hana: Dictionary = Dialogue._load("hana")
+	if not hana.is_empty() and not (hana["nodes"] as Dictionary).has("eq0"):
+		(hana["nodes"] as Dictionary).merge(EdyTypes.quiz_nodes("e", "edy_after"))
 
 
 func _on_dialogue_event(event_name: String) -> void:

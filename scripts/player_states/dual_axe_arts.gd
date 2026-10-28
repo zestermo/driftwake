@@ -21,7 +21,7 @@ static func off_k(p: Player) -> float:
 ## 2 every blow).
 static func col(p: Player, which: int = FX.EDGE, tier: int = 1) -> Color:
 	if p.power.buff("coat"):
-		return Player.HAKI_TRAIL
+		return p.progression.will_tint().lightened(0.2)
 	return FX.tree_col("dual_axe" if p.progression.elemental("dual_axe", tier) else "plain", which)
 
 

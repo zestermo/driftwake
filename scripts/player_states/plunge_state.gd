@@ -548,7 +548,7 @@ func _saw_land() -> void:
 ## Falling Spear's colour: plain steel, its tree's once the element is on every blow.
 func _spear_col() -> Color:
 	if player.power.buff("coat"):
-		return Player.HAKI_TRAIL
+		return player.progression.will_tint().lightened(0.2)
 	return FX.tree_col("polearm", FX.EDGE) if player.progression.elemental("polearm", 2) else Color(1.0, 0.93, 0.72)
 
 
@@ -572,7 +572,7 @@ func _burst(at: Vector3, r: float, hit: HitData, already: Array) -> void:
 ## Skybreaker's colour: the axe's own, its tree's once the element is on every blow.
 func _axe_col() -> Color:
 	if player.power.buff("coat"):
-		return Player.HAKI_TRAIL
+		return player.progression.will_tint().lightened(0.2)
 	return FX.tree_col("axe", FX.EDGE) if player.progression.elemental("axe", 2) else Color(1.0, 0.78, 0.5)
 
 
@@ -723,7 +723,7 @@ func _slash_update(delta: float) -> void:
 		hit.hitstop_duration = 0.06
 		hit.camera_shake_intensity = 0.14
 		player.sword_hitbox.activate(hit)
-		var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else Color(0.85, 0.92, 1.0)
+		var col: Color = player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else Color(0.85, 0.92, 1.0)
 		var sw := ActionSpecs.swoosh_seconds("air_slash")
 		if not KatanaFx.awake(player) or player.power.buff("coat"):
 			Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, col])
@@ -746,7 +746,7 @@ func _look(tree: String, which: int) -> Color:
 
 
 func _trail(tree: String) -> Color:
-	return Player.HAKI_TRAIL if player.power.buff("coat") else _look(tree, FX.EDGE)
+	return player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else _look(tree, FX.EDGE)
 
 
 ## The enemy the camera's looking at within `reach`, out in front and not above
@@ -1258,7 +1258,7 @@ func _air_combo_update(delta: float) -> void:
 		_fired = true
 		var spike := int(player.air_uses.get("air_combo", 0)) >= AIR_COMBO_MAX
 		var anim := str(get_meta("anim"))
-		var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else FX.tree_col("plain", FX.EDGE)
+		var col: Color = player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else FX.tree_col("plain", FX.EDGE)
 		if player.style() == "black_leg":
 			BlackLegArts.swoosh(player, anim, 0.16, col)
 		else:

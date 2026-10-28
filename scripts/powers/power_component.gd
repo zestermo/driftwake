@@ -267,8 +267,7 @@ func add_buff(name_: String, secs: float) -> void:
 	if name_ in WILL_BUFFS and player and player.is_local:
 		if name_ == "foresight":
 			_fore_extra = int(player.progression.stat("foresight_charges"))
-		var tint := player.progression.will_tint()
-		Net.fx("sparkle", [player.global_position + Vector3(0, 1.1, 0), 22, tint])
+		EdyTypes.burst(player)
 		Net.fx("dust_ring", [player.global_position, 10, 0.7])
 
 
@@ -452,8 +451,8 @@ func _ryuo(target: Node3D) -> void:
 	hd.haki = true
 	var at := target.global_position
 	blast(at, 3.2, hd, 0.0, 0.0, [target])
-	Net.fx("punch_wind", [at + Vector3.UP * 1.0, Vector3.UP, 0.5, Player.HAKI_TRAIL, true])
-	Net.fx("sparkle", [at + Vector3(0, 1.0, 0), 16, Player.HAKI_SPARK])
+	Net.fx("punch_wind", [at + Vector3.UP * 1.0, Vector3.UP, 0.5, player.progression.will_tint().lightened(0.2), true])
+	Net.fx("sparkle", [at + Vector3(0, 1.0, 0), 16, player.progression.will_tint().lightened(0.3)])
 	Net.fx("dust_ring", [at, 12, 1.2])
 	player.cam_shake(0.16)
 

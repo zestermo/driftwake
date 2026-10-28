@@ -10,7 +10,7 @@ class_name BlackLegArts
 ## every kick), black with a Haki coat.
 static func col(p: Player, which: int = FX.EDGE, tier: int = 1) -> Color:
 	if p.power.buff("coat"):
-		return Player.HAKI_TRAIL
+		return p.progression.will_tint().lightened(0.2)
 	return FX.tree_col("black_leg" if p.progression.elemental("black_leg", tier) else "plain", which)
 
 

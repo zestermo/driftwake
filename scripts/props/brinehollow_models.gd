@@ -437,7 +437,8 @@ static func fruit_tree_mesh(seed_value: int) -> ArrayMesh:
 
 ## A teahouse: a long low room behind a deep veranda under one sweeping roof, its front open but for
 ## cloth hangings at the door, red-felt benches and a parasol out front, paper lanterns under the eaves.
-## Markers "Vendor" (behind the counter), "Customer", "Seat1".."Seat3" (on the benches, facing out).
+## Markers "Vendor" (behind the counter), "Customer", "Seat1".."Seat3" (on the benches, facing out), "Yard" (out front,
+## facing out) and "Spar" (further out, facing back).
 static func teahouse(seed_value: int, w := 8.0, d := 5.0) -> StaticBody3D:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
@@ -507,4 +508,7 @@ static func teahouse(seed_value: int, w := 8.0, d := 5.0) -> StaticBody3D:
 	_marker(body, "Vendor", Vector3(-w * 0.22, fl, d * 0.5 - 1.2), 0.0)
 	_marker(body, "Customer", Vector3(-w * 0.22, fl, d * 0.5 + 0.2), PI)
 	_marker(body, "Lantern", Vector3(0, fl + h - 0.35, d * 0.5 + ver - 0.1))
+	# (1.24.1: Bao the cook teaches kicks out front; his pupil spars a little further out)
+	_marker(body, "Yard", Vector3(-w * 0.3, 0.0, d * 0.5 + ver + 1.5), 0.0)
+	_marker(body, "Spar", Vector3(-w * 0.05, 0.0, d * 0.5 + ver + 4.5), PI)
 	return _done(body, mb, 300.0)

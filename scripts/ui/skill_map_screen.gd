@@ -360,7 +360,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:") or id == "respec" or id == "perks" or id.begins_with("col:") or id.begins_with("path:"):
+			elif id.begins_with("w:") or id == "respec" or id == "perks" or id.begins_with("path:"):
 				_act(id)
 			elif id != "":
 				sel = id
@@ -501,10 +501,6 @@ func _act(id: String) -> void:
 		_set_perks(not perks_open)
 	elif id.begins_with("path:"):
 		_set_path(id.substr(5))
-	elif id.begins_with("col:"):
-		if p.set_will_color(id.substr(4)):
-			menu._play("equip")
-			_say("Your Will: %s" % WillPaths.COLORS[id.substr(4)][0])
 	elif id.begins_with("w:"):
 		var t := id.substr(2)
 		if tab == "combat":
@@ -1176,7 +1172,7 @@ func _draw_ladder(r: Rect2, tint: Color) -> void:
 	_box(r, Color(WILL_DARK, 0.85), tint.darkened(0.45))
 	var why := WillPaths.path_why(p, path)
 	draw_string(_font, Vector2(r.position.x + 6.0, r.position.y + 13.0), str(WillPaths.PATH_NAMES[path]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.CREAM)
-	var rule := "TIERS AT 4 / 8 WILL SPENT · YOU %d" % WillPaths.spent_all(p) if path in WillPaths.OPEN else \
+	var rule := "TIERS AT 4 / 8 EDY SPENT · YOU %d" % WillPaths.spent_all(p) if path in WillPaths.OPEN else \
 		("TIERS AT %s IN IT · %d IN IT" % ["4 / 8" if path != "conq" else "4", WillPaths.spent_in(p, path)])
 	draw_string(SILK, Vector2(r.position.x, r.position.y + 12.0), (why if why != "" else rule).to_upper(), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 6.0, 8,
 		UIStyle.CORAL if why != "" else SkillTreeDraw.TEXT_OFF)
@@ -1403,8 +1399,9 @@ func _will_shown() -> String:
 	return "w_coat"
 
 
-## The Will card: points to spend and where they come from; the shown node (its path and tier, what it does, each
-## version with what Enter does or why not); the colour swatches once you have a Will.
+## The Edy card: points to spend and where they come from; the shown node (its path and tier, what it does, each
+## version with what Enter does or why not); your Edy type at the foot (its colour, name and edge), or where to have it
+## read.
 func _draw_will_card(panel: Rect2, nid: String) -> void:
 	var p := _pr()
 	draw_style_box(UIStyle.parchment(), panel)
@@ -1412,8 +1409,8 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 	var w := panel.size.x - 24.0
 	var y := panel.position.y + 22.0
 	var pts := p.pool("will")
-	UIStyle.draw_title(self, Vector2(x, y), "%d Will" % pts, 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
-	draw_string(SILK, Vector2(x + UIStyle.TITLE_FONT.get_string_size("%d Will" % pts, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 6.0, y), "TO SPEND", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
+	UIStyle.draw_title(self, Vector2(x, y), "%d Edy" % pts, 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
+	draw_string(SILK, Vector2(x + UIStyle.TITLE_FONT.get_string_size("%d Edy" % pts, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 6.0, y), "TO SPEND", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
 	y = _lines(Vector2(x, y + 11.0), "Big fights: a boss or villain 2, a rival captain or sergeant 1. Meditating at sea: %d%% to the next." %
 		roundi(100.0 * float(p.downtime.get("meditate_s", 0.0)) / WillPaths.MEDITATE_SECS), w, UIStyle.PARCH_DIM) + 2.0
 	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
@@ -1422,11 +1419,10 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 	var aid := str(n.get("parent", nid))
 	var an := SkillTrees.node_def(aid)
 	var path := str(an["path"])
-	var head := "%s · %s" % [WillPaths.PATH_NAMES[path], ("tier %d" % int(an["tier"])) if an["kind"] == "will" else "passive, %d Will" % WillPaths.PASSIVE_COST]
+	var head := "%s · %s" % [WillPaths.PATH_NAMES[path], ("tier %d" % int(an["tier"])) if an["kind"] == "will" else "passive, %d Edy" % WillPaths.PASSIVE_COST]
 	draw_string(SILK, Vector2(x, y), head.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, w, 8, WILL.darkened(0.55))
 	UIStyle.draw_title(self, Vector2(x, y + 17.0), str(an["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
-	var mine_any := p.bought.keys().any(func(k): return SkillTrees.node_pool(k) == "will")
-	var limit := panel.end.y - (40.0 if mine_any else 12.0)
+	var limit := panel.end.y - 40.0
 	y = _para(Vector2(x, y + 30.0), str(an["desc"]).trim_prefix("Passive (a slot). "), w, UIStyle.PARCH_INK, limit) + 2.0
 	if an["kind"] == "will":
 		for i in range(an["versions"].size()):
@@ -1436,7 +1432,7 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 			var vid := str(v["id"])
 			var mine := p.has_version(vid)
 			var why := p.buy_why(vid)
-			var state := "CARRIED" if mine and p.version_of(aid) == i else ("YOURS · ENTER AT A REST SPOT" if mine else ("ENTER: %d WILL" % SkillTrees.price(vid) if why == "" else why.to_upper()))
+			var state := "CARRIED" if mine and p.version_of(aid) == i else ("YOURS · ENTER AT A REST SPOT" if mine else ("ENTER: %d EDY" % SkillTrees.price(vid) if why == "" else why.to_upper()))
 			draw_string(_font, Vector2(x, y + 9.0), ("> " if vid == nid else "") + str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK if vid == nid or mine else UIStyle.PARCH_DIM)
 			y = _lines(Vector2(x, y + 19.0), str(v["desc"]), w, UIStyle.PARCH_DIM, 9.0, 2)
 			for l in _wrap(state, w, SILK, 8):
@@ -1447,23 +1443,20 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 		var why := p.buy_why(nid)
 		var slot := p.passives.find(nid)
 		var own := p.has_version(nid)
-		var state := ("IN PASSIVE SLOT %d" % (slot + 1)) if slot >= 0 else ("YOURS · ENTER: INTO A SLOT" if own else ("ENTER: %d WILL" % SkillTrees.price(nid) if why == "" else why.to_upper()))
+		var state := ("IN PASSIVE SLOT %d" % (slot + 1)) if slot >= 0 else ("YOURS · ENTER: INTO A SLOT" if own else ("ENTER: %d EDY" % SkillTrees.price(nid) if why == "" else why.to_upper()))
 		for l in _wrap(state, w, SILK, 8):
 			draw_string(SILK, Vector2(x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if own or why == "" else UIStyle.CORAL.darkened(0.35))
 			y += 9.0
-	if mine_any:
-		var cy := panel.end.y - 30.0
-		draw_string(SILK, Vector2(x, cy), "YOUR WILL'S COLOUR" if p.will_color != "" else "PICK YOUR WILL'S COLOUR", HORIZONTAL_ALIGNMENT_LEFT, w, 8,
-			UIStyle.PARCH_INK if p.will_color != "" else UIStyle.CORAL.darkened(0.35))
-		var sw := floorf((w - 12.0) / 4.0)
-		var i := 0
-		for cid in WillPaths.COLORS:
-			var sr := Rect2(x + i * (sw + 4.0), cy + 4.0, sw, 12)
-			_box(sr, WillPaths.COLORS[cid][1], UIStyle.BORDER_DIM)
-			if cid == p.will_color or inspected() == "col:" + cid:
-				draw_rect(sr.grow(2.0), UIStyle.INK, false, 1.0)
-			hit(sr, "col:" + cid)
-			i += 1
+	var cy := panel.end.y - 30.0
+	draw_rect(Rect2(x, cy - 6.0, w, 1), UIStyle.BORDER_DIM)
+	if p.will_color == "":
+		_lines(Vector2(x, cy + 3.0), "Your Edy isn't read yet. Hana at Brinehollow's teahouse can read it.", w, UIStyle.CORAL.darkened(0.35), 9.0, 2)
+	else:
+		var et := EdyTypes.info(p.will_color)
+		var sw := Rect2(x, cy, 14, 14)
+		_box(sw, p.will_tint(), UIStyle.INK)
+		draw_string(_font, Vector2(x + 20.0, cy + 10.0), "%s Edy" % et["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.PARCH_INK)
+		_lines(Vector2(x + 20.0, cy + 20.0), str(et["says"]), w - 20.0, UIStyle.PARCH_DIM, 9.0, 1)
 
 
 ## A node's numbers as chip texts (its effects' common keys, and the skill it gives).

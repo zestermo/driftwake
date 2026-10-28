@@ -53,6 +53,9 @@ static func _weapon_col(p: Player) -> Color:
 static func enter(s, id: String) -> bool:
 	var p: Player = s.player
 	var net := _net()
+	# (the big Edy moves flare in the captain's Edy, its type's shape)
+	if id in ["will_still_point", "will_berserk", "will_twin", "will_flag"]:
+		EdyTypes.burst(p)
 	match id:
 		"will_still_point":
 			s.dur = 0.6

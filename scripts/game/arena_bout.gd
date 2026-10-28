@@ -23,7 +23,7 @@ const PURSES := [40, 60, 90, 130, 180, 300]
 ## A master's test (1.23, "masters teach trees"; kind "master:<tree>"): their pupil steps up wherever you stand;
 ## beat them and the master teaches you the tree. [name, weapon ("": bare hands), skill, look, the style they fight in].
 const MASTERS := {
-	"black_leg": ["Tomo, Hana's pupil", "", 0.45, {"coat": "none", "hat": "headband", "top": "kimono", "sleeves": "long"}, "black_leg"],
+	"black_leg": ["Tomo, Bao's pupil", "", 0.45, {"coat": "none", "hat": "headband", "top": "kimono", "sleeves": "long"}, "black_leg"],
 }
 const DEFEND_PURSE := 80
 const DEFEND_SKILL := 0.85

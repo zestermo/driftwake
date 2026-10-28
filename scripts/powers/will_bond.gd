@@ -148,7 +148,7 @@ func landed(hit: HitData) -> void:
 	if not near:
 		return
 	var was := gauge
-	gauge = minf(gauge + hit.damage * GAUGE_PER * (1.0 if pr.has_flag("joint_gauge") else 0.5), GAUGE_MAX)
+	gauge = minf(gauge + hit.damage * GAUGE_PER * (1.0 if pr.has_flag("joint_gauge") else 0.5) * (1.0 + pr.stat("bond_gauge_pct")), GAUGE_MAX)
 	if gauge >= GAUGE_MAX and was < GAUGE_MAX:
 		player.call("_toast", "Joint gauge full: Twin Finisher")
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.4, 0), 16, COL])

@@ -406,12 +406,17 @@ static func outskirts() -> Array:
 			"Ring the bell before you sail and the sea remembers your name. Forget, and it remembers that too.",
 			{"text": "You came back from Grell's den. Whatever you prayed to, keep it up.", "after": "grell"}]},
 		"plan": [[5.8, "mark:shrine:Priest"], [12.0, "mark:teahouse:Seat1"], [13.0, "mark:shrine:Priest"], [19.6, "door:shrine"]]})
-	# (1.23: the teahouse keeper is the black-leg master: her dialogue sets Tomo's test; the barks stay for scenery)
+	# (1.24.1: the teahouse keeper reads your Edy; Bao, her cook out front, is the black-leg master and sets Tomo's test)
 	out.append({"cfg": {"name": "Hana Teal", "voice": 1.2, "look": KitLife.look_for("Hana Teal"), "dialogue": "hana", "barks": [
 			"Tea from the far east, by way of Ysolde's junk and a great deal of arguing.",
 			"Climb the stair, drink the tea, look at the sea. That's the whole teahouse. People pay for it.",
 			"The keeper takes her lunch here every day and pays every other day. It evens out at the shrine."]},
 		"plan": [[6.5, "mark:teahouse:Vendor"], [20.5, "home:UpperHouse10"]]})
+	out.append({"cfg": {"name": "Bao", "voice": 0.9, "look": KitLife.look_for("Bao"), "dialogue": "bao", "barks": [
+			"Low kick, high kick. Stir the pot. Low kick, high kick.",
+			"A cook's hands are for the pot. The legs do the rest.",
+			"Gus kicks like a chair. Don't tell him I said so. Do tell him."]},
+		"plan": [[6.0, "mark:teahouse:Yard"], [20.0, "home:UpperHouse10"]]})
 	out.append({"cfg": {"name": "Old Oda", "voice": 0.85, "look": KitLife.look_for("Old Oda"), "barks": [
 			"Sixty years I've climbed that stair. It's got longer.",
 			"I pray for my son's ship every morning. It's a good ship. It doesn't need it. I do."]},

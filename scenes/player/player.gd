@@ -953,7 +953,7 @@ func _tick_body(delta: float) -> void:
 		if _coat_fx <= 0.0:
 			_coat_fx = 0.12
 			var hand: Node3D = body_model.hand_r if randf() < 0.6 or weapon_class() not in ["fist", "claw"] else body_model.hand_l
-			Net.fx("sparkle", [hand.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, HAKI_SPARK])
+			Net.fx("sparkle", [hand.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, progression.will_tint().lightened(0.25)])
 	# buffs that change speed come and go
 	var buff_key := "%s|%s" % [power.buff("howl"), power.buff("tekkai")]
 	if buff_key != _buff_key:
@@ -973,7 +973,7 @@ const HAKI_SPARK := Color(0.75, 0.45, 1.0)
 
 ## Armament: Coat darkens the weapons (or fists) while it lasts.
 ## Armament: Coat - the weapon arm (both arms when fighting bare-handed or
-## with two blades) turns glossy black with a purple sheen, and so do the
+## with two blades) turns glossy black with a sheen of the captain's Edy colour, and so do the
 ## blades.
 func update_coat_visual() -> void:
 	var on := power.buff("coat")
@@ -982,8 +982,10 @@ func update_coat_visual() -> void:
 	var blade: Material = null
 	if on:
 		# PSX materials, so the coat snaps and warps exactly like the body under it
-		skin = PSXMat.lit("", HAKI_BLACK, {"emission": Color(0.25, 0.06, 0.45), "emission_energy": 0.35, "vertex_color": false})
-		blade = PSXMat.lit("metal", HAKI_BLACK.lightened(0.05), {"emission": Color(0.4, 0.1, 0.7), "emission_energy": 0.8})
+		# (the sheen is the captain's Edy colour)
+		var tint := progression.will_tint()
+		skin = PSXMat.lit("", HAKI_BLACK, {"emission": tint.darkened(0.45), "emission_energy": 0.35, "vertex_color": false})
+		blade = PSXMat.lit("metal", HAKI_BLACK.lightened(0.05), {"emission": tint.darkened(0.25), "emission_energy": 0.8})
 	for w in [body_model.weapon, body_model.offhand]:
 		if w and is_instance_valid(w):
 			(w as MeshInstance3D).material_override = blade
@@ -2337,7 +2339,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 	if kind in ["heavy", "finisher"]:
 		h.impact = CombatManager.HEAVY_IMPACT.get(h.impact, h.impact)
 	h.poise = {"": Poise.LIGHT, "finisher": Poise.FINISHER, "heavy": Poise.HEAVY}.get(kind, clampf(base * 1.2, Poise.LIGHT, Poise.TECH_MAX))
-	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
+	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0) + (pr.stat("heavy_pct") if kind == "heavy" else 0.0)
 	h.damage = base * damage_multiplier() * k
 	# (Sidestep: a blow slipped makes the next one a sure crit)
 	var slipped := power.buff("slipped")
@@ -2921,7 +2923,7 @@ func _puppet_process(delta: float) -> void:
 		_coat_fx -= delta
 		if _coat_fx <= 0.0:
 			_coat_fx = 0.12
-			FX.sparkle(body_model.hand_r.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, HAKI_SPARK)
+			FX.sparkle(body_model.hand_r.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, progression.will_tint().lightened(0.25))
 
 
 ## Tell the other machines our captain changed clothes / shape.

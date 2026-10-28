@@ -267,7 +267,7 @@ func enter(data: Dictionary) -> void:
 			and player.body_model.current_action() == str(cfg["anims"][combo_index - 1]):
 		_mom = int(data.get("momentum", 0)) + 1
 		_spd *= 1.0 + MOMENTUM_SPEED * _mom
-	_spd *= 1.0 + player.progression.stat("attack_speed_pct") + player.power.will.flow_k()
+	_spd *= 1.0 + player.progression.stat("attack_speed_pct") + player.power.will.flow_k() + EdyTypes.haste(player)
 	_window = ActionSpecs.hit_seconds(anim) / _spd
 	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
 	_thud_t = float(HammerMoves.THUD[anim]) * ActionSpecs.length(anim) / _spd if HammerMoves.THUD.has(anim) else -1.0
@@ -293,8 +293,8 @@ func physics_update(delta: float) -> void:
 	# a swing path's trail comes off the blade itself, from just before the strike
 	if _swoosh.x >= 0.0 and timer >= _swoosh.x and not _swooshed:
 		_swooshed = true
-		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
-		var sl: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col(true)
+		var sc: Color = player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else _trail_col()
+		var sl: Color = player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else _trail_col(true)
 		# (an awakened drawn element is its trail: the thin line of light under it went)
 		var dk := str(cfg.get("drawn", ""))
 		if cfg.get("legs", false):
@@ -365,7 +365,7 @@ func physics_update(delta: float) -> void:
 		var trail := str(cfg["trails"][combo_index])
 		var col: Color = _trail_col()
 		if player.power.buff("coat"):
-			col = Player.HAKI_TRAIL
+			col = player.progression.will_tint().lightened(0.2)
 		if _swoosh.x >= 0.0:
 			pass  # (the blade draws its own trail)
 		elif trail == "cross":

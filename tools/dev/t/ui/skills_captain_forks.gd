@@ -3,7 +3,7 @@ extends SceneTree
 ## waits (and a pip on the tab); P (or a click) opens the perks popup on the lowest fork not picked, every fork drawn;
 ## up / down walk the forks, left / right the option; Enter picks a reached fork, refuses one not reached yet and a
 ## change away from the bunk; Esc shuts it. A path tab (or A / D) shows that path; Enter buys Coat's first version and the
-## Hardening passive (slotted); every tier-3 version draws (the ids no longer hide them); a swatch picks the colour.
+## Hardening passive (slotted) once your Edy is read; every tier-3 version draws (the ids no longer hide them).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var gm
@@ -107,6 +107,8 @@ func _process(_d: float) -> bool:
 			act("ui_cancel")
 			check("Esc shuts the popup", not sm.perks_open)
 			pr.gift("will", 3)
+			check("Edy to spend but not read yet: nothing to buy", not sm.path_ready("iron") and pr.buy_why("w_coat_heavy").begins_with("Your Edy isn't read yet"))
+			pr.attune("ember")
 			for i in range(pr.passives.size()):
 				pr.equip_passive("", i)
 			until = TK.wait_ticks(3)
@@ -128,8 +130,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		7:
 			check("Captain's Will draws Clash, Rally and Plant the Flag", ["n:w_clash_v", "n:w_rally", "n:w_flag", "n:h_will"].all(func(id): return drawn(id)))
-			check("...and the colour swatches once a Will is yours", click("col:red"))
-			check("a click on red: your Will is red", pr.will_color == "red")
+			check("no colour swatches any more (a master reads your Edy)", not sm._drawn.any(func(h): return str(h[1]).begins_with("col:")))
 			TK.act("skill_map")
 			until = TK.wait_ticks(6)
 		8:

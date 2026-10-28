@@ -38,10 +38,10 @@ func _process(_d: float) -> bool:
 			var offer := false
 			for c in gus["nodes"]["menu"]["choices"]:
 				offer = offer or (c.get("next", "") == "legs" and c.get("hide_if", "") == "gus_black_leg" and c.get("after", "") == "vey_skills")
-			var hana: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue/hana.json"))
-			check("Gus (the Salted Gull's cook) tells you about it, once (after Vey's training), and sends you to Hana's teahouse",
-				offer and str(gus["nodes"]["legs_taught"]["text"]).contains("Hana"))
-			check("...where Hana's pupil tests you ('master:black_leg')", hana["nodes"]["legs_test"].get("event", "") == "master:black_leg")
+			var bao: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue/bao.json"))
+			check("Gus (the Salted Gull's cook) tells you about it, once (after Vey's training), and sends you to Bao at the teahouse",
+				offer and str(gus["nodes"]["legs_taught"]["text"]).contains("Bao"))
+			check("...where Bao's pupil tests you ('master:black_leg')", bao["nodes"]["legs_test"].get("event", "") == "master:black_leg")
 			root.get_node("/root/Dialogue").dialogue_event.emit("learn_black_leg")
 			check("taught by him: the Black Leg tree shows in Combat", p.progression.visible_trees("combat").has("black_leg"))
 			check("empty hands kick (%s), and the loadout in use keeps it (%s)" % [p.style(), str(p.loadouts[p.loadout_at])],

@@ -82,7 +82,7 @@ static func burst(p: Player, at: Vector3, r: float, hit: HitData, already: Array
 ## A shockwave's ring: dust before the element, sandstone after; black with a Haki coat.
 static func _ring_col(p: Player, elem: bool) -> Color:
 	if p.power.buff("coat"):
-		return Player.HAKI_TRAIL
+		return p.progression.will_tint().lightened(0.2)
 	return FX.tree_col("hammer", FX.EDGE) if elem else FX.tree_col("plain", FX.ACCENT)
 
 

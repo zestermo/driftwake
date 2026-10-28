@@ -83,8 +83,10 @@ static func cast() -> Array:
 			"hat_color": Color(0.1, 0.1, 0.12)}, "barks": ["A pirate? On the terrace? Whatever next.", "The palace has been shut a month. One hears things. One repeats very few of them."]},
 		{"name": "Dame Ottilie Fane", "spot": "noble2", "voice": 1.2, "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock", "coat_color": Color(0.3, 0.3, 0.46),
 			"trim_color": GOLD, "hat": "none"}, "barks": ["Have you seen the arena? Vulgar. Marvellous, but vulgar.", "My nephew went to sea. He came back with a parrot and no manners."]},
-		{"name": "Master Lucan Dray", "spot": "noble3", "voice": 0.95, "look": {"body": "masc", "coat": "longcoat", "coat_color": Color(0.36, 0.14, 0.12), "trim_color": GOLD, "hat": "none"},
-			"barks": ["I collect captains' stories. Tell me yours. No? Pity.", "Ashgrove's coats are the only thing in this city worth what they cost."]},
+		# 1.24.1: the Edy reader (EdyTypes): re-reads a captain's Edy for EdyTypes.REREAD_GOLD
+		{"name": "Ilse Varro", "spot": "noble3", "voice": 1.05, "dialogue": "reader", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
+			"coat_color": Color(0.16, 0.3, 0.36), "trim_color": GOLD, "hat": "none"},
+			"barks": ["Everyone's Edy runs one way. Some run the wrong way for years and never ask.", "Hana Teal reads well. Quickly. Sometimes too quickly."]},
 		{"name": "Guard Ellery", "spot": "terrace_guard", "voice": 0.9, "look": GUARD, "barks": ["The terrace is open to all, Captain. Behave as though it weren't.", "Keep to the paths. The duchess counts her roses."]},
 		# 1.21: the palace
 		{"name": "Queen Ilsabet", "spot": "queen", "voice": 1.0, "dialogue": "queen", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
@@ -348,6 +350,36 @@ func _talk_docks(manifest: Dictionary, invite: Dictionary) -> void:
 	quest_node.offer(invite, lmenu["choices"], lnodes)
 	lmenu["choices"].append({"text": "Good day, my lady.", "next": "end"})
 	Dialogue.define(_key("lady"), {"speaker": "Lady Corisande Halloway", "voice": 1.15, "start": "intro", "return": "menu", "nodes": lnodes})
+	_talk_reader()
+
+
+## Ilse Varro on the terrace: re-reads a captain's Edy (EdyTypes) for EdyTypes.REREAD_GOLD, by the questions again or
+## a type named outright; not before Hana's first reading, nor without the gold.
+func _talk_reader() -> void:
+	var me := func() -> Player: return get_tree().get_first_node_in_group("player") as Player if is_inside_tree() else null
+	var unread := func(): return me.call() != null and str(me.call().progression.will_color) == ""
+	var can_pay := func(): return me.call() != null and str(me.call().progression.will_color) != "" and 		me.call().inventory_component.count("gold") >= EdyTypes.REREAD_GOLD
+	var short := func(): return me.call() != null and str(me.call().progression.will_color) != "" and 		me.call().inventory_component.count("gold") < EdyTypes.REREAD_GOLD
+	var menu := {"text": "Well?", "choices": [
+		{"text": "Read my Edy again.", "next": "again", "if": can_pay},
+		{"text": "I know what I am. Attune me.", "next": "pick", "if": can_pay},
+		{"text": "What do you charge?", "next": "price", "if": short},
+		{"text": "Read my Edy?", "next": "first", "if": unread},
+		{"text": "Good day.", "next": "end"}]}
+	var nodes := {"intro": {"text": ["Ilse Varro. I read Edy, and when it's been read wrong, I turn it.",
+		"It isn't cheap. Turning a current never is."], "next": "menu"}, "menu": menu,
+		"first": {"text": ["You haven't been read at all. Go to Hana Teal at Brinehollow first. Come to me if she got it wrong."], "next": "menu"},
+		"price": {"text": ["{edy_price} gold. Come back when you have it."], "next": "menu"},
+		"again": {"text": ["{edy_price} gold, paid when it's read. Sit. The same questions; answer them as you are now, not as you were."], "next": "rq0"},
+		"pick": {"text": "Which way should it run?", "choices": []},
+		"turned": {"text": ["There. It runs the way you asked. Don't come back next week wanting it turned again."], "next": "menu"},
+		"after": {"text": ["Mm. That's you now."], "next": "menu"}}
+	for id in EdyTypes.ORDER:
+		nodes["pick"]["choices"].append({"text": "%s: %s" % [EdyTypes.name_of(id), EdyTypes.info(id)["says"]], "next": "pick_" + id})
+		nodes["pick_" + id] = {"text": ["{edy_price} gold. Hold still.", "{edy_says}"], "event": "edy:buy:" + id, "next": "turned"}
+	nodes["pick"]["choices"].append({"text": "Never mind.", "next": "menu"})
+	nodes.merge(EdyTypes.quiz_nodes("r", "after", "edy:reread"))
+	Dialogue.define(_key("reader"), {"speaker": "Ilse Varro", "voice": 1.05, "start": "intro", "return": "menu", "nodes": nodes})
 
 
 func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary, petition: Dictionary) -> void:

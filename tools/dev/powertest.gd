@@ -288,6 +288,8 @@ func _process(d: float) -> bool:
 			# --- Armament: Coat
 			p.state_machine.force_state("Idle", {})
 			p.progression.gift("will", 1)
+			if p.progression.will_color == "":
+				p.progression.attune("still")
 			p.progression.buy("w_coat_heavy")
 			check("Coat bought with a Will point (Heavy Coat)", p.progression.knows("armament_coat"))
 			pc.equip("armament_coat", 3)

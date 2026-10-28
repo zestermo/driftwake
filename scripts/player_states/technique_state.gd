@@ -275,6 +275,7 @@ func enter(data: Dictionary) -> void:
 			dur = 0.55
 			player.body_model.play("palm_strike", dur)
 		"conquerors_haki":
+			EdyTypes.burst(player, 1.3)
 			dur = 1.2
 			player.body_model.play("conqueror", dur)
 		_:

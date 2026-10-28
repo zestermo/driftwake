@@ -114,8 +114,8 @@
 		"legs_taught": {
 			"text": [
 				"Feet closer. Lighter. You're not a hammer, you're a whip. That much I can tell you.",
-				"The rest, I learned from Hana Teal, up the shrine stair at the teahouse. She taught my legs when my hands were busy with the pot.",
-				"Tell her Gus sent you. And don't kick my barrels."
+				"The rest, I learned from Bao, Hana Teal's cook, up the shrine stair at the teahouse. He taught my legs when my hands were busy with the pot.",
+				"Tell him Gus sent you. And don't kick my barrels."
 			],
 			"set_flag": "gus_black_leg",
 			"next": "menu"

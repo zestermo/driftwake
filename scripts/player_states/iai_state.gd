@@ -136,7 +136,7 @@ func _release() -> void:
 		hit.unblockable = true
 		hit.haki = true
 	player.sword_hitbox.activate(hit)
-	var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _col()
+	var col: Color = player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else _col()
 	_from = player.global_position + Vector3.UP * 1.1
 	if not KatanaFx.awake(player) or player.power.buff("coat"):
 		Net.fx("blade_swoosh", [player.body_model, 0.16, col])

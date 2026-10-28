@@ -143,9 +143,9 @@ func enter(data: Dictionary) -> void:
 			_pc.add_buff("coat", 12.0 if player.progression.skill_tier("armament_coat") >= 2 else 8.0)
 			player.body_model.play("coat", dur)
 			player.update_coat_visual()
-			Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, Player.HAKI_SPARK])
+			Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, player.progression.will_tint().lightened(0.3)])
 			Net.fx("sfx", ["haki", player.global_position, -1.0, 0.03, 1.0])
-			Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.1, Vector3.UP, 0.4, Player.HAKI_TRAIL, true])
+			Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.1, Vector3.UP, 0.4, player.progression.will_tint().lightened(0.2), true])
 			player.cam_shake(0.12)
 		"foresight":
 			dur = 0.4

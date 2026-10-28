@@ -73,6 +73,8 @@ func _process(_d: float) -> bool:
 				p.power.equip(s[0], s[1])
 			pr.equip_passive("k_clean", 0)
 			pr.gift("will", 8)
+			if pr.will_color == "":
+				pr.attune("storm")
 			for k in ["w_coat_quick", "w_coat_heavy", "h_harden"]:
 				pr.buy(k)
 			pr.set_will_color("red")
@@ -135,6 +137,8 @@ func _process(_d: float) -> bool:
 			shot("will")
 			var pw = stage.player.progression
 			pw.gift("will", 10)
+			if pw.will_color == "":
+				pw.attune("storm")
 			for k in ["w_step_v", "h_feet", "w_mist_v", "w_cancel"]:
 				pw.buy(k)
 			sm._set_path("tempo")

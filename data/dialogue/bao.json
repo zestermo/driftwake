@@ -1,0 +1,70 @@
+{
+	"speaker": "Bao",
+	"voice": 0.9,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Bao. I cook for Hana. Between the pots I kick things.",
+				"A cook's hands are for the pot. So the legs do the fighting. It's the kitchen's way."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Hungry, or here to learn?",
+			"choices": [
+				{
+					"text": "Teach me to fight with my feet.",
+					"next": "legs",
+					"hide_if": "master_black_leg"
+				},
+				{
+					"text": "Show me again how the kitchen fights.",
+					"next": "again",
+					"requires": "master_black_leg"
+				},
+				{
+					"text": "Just looking.",
+					"next": "bye"
+				}
+			]
+		},
+		"legs": {
+			"text": [
+				"Low kick, high kick, the heel from above, and when they crowd you, down on your hands and sweep the floor with them.",
+				"I don't teach just anyone. Tomo, my pupil, will spar with you out on the flat. Bare hands, no blades. Put him down and I'll teach you the rest."
+			],
+			"next": "legs_ask"
+		},
+		"legs_ask": {
+			"text": "Ready?",
+			"choices": [
+				{
+					"text": "Send him out.",
+					"next": "legs_test"
+				},
+				{
+					"text": "Another time.",
+					"next": "menu"
+				}
+			]
+		},
+		"legs_test": {
+			"text": [
+				"Tomo! A guest wants to learn. He'll wait for you out on the flat: go to him when you're ready."
+			],
+			"event": "master:black_leg",
+			"next": "end"
+		},
+		"again": {
+			"text": [
+				"Same as before: weight on the back foot, and let the floor do the work. Gus still kicks like a chair."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "The stew's on at noon. Don't be late."
+		}
+	}
+}

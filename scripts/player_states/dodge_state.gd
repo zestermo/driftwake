@@ -68,6 +68,8 @@ var _decoy_at: float = -100.0
 
 func enter(data: Dictionary) -> void:
 	timer = 0.0
+	# (Storm Edy: attacks quicken for a moment after a dodge)
+	player.set_meta("edy_dodge_tick", Engine.get_physics_frames())
 	iframes_ended = false
 	_slipped = false
 	_perfect = false

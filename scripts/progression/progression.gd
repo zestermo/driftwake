@@ -88,8 +88,8 @@ var versions: Dictionary = {}
 var passives: Array[String] = ["", ""]
 ## tree -> true once its first point is earned (it shows in the menu)
 var found: Dictionary = {}
-## Will points earned (big fights, meditation; spent ones are the Will nodes in `bought`), and the Will's colour
-## (WillPaths.COLORS; "" until picked).
+## Edy points earned (big fights, meditation; spent ones are the Will paths' nodes in `bought`), and the captain's Edy
+## type (EdyTypes; "" until a master reads it).
 var will_earned: int = 0
 var will_color: String = ""
 ## An older save was bought back on load (after_load's banner), and its weapon purchases refunded (format 7).
@@ -118,6 +118,68 @@ func _init() -> void:
 
 func _ready() -> void:
 	player = get_parent() as Player
+	# (Edy: a master's questions are answered here, on the captain's own machine)
+	if not Dialogue.dialogue_event.is_connected(_on_edy_event):
+		Dialogue.dialogue_event.connect(_on_edy_event)
+	Dialogue.register_token("edy_read", func(): return str(EdyTypes.info(_local_edy()).get("read", "")))
+	Dialogue.register_token("edy_says", func(): return "Your Edy is %s. %s" % [EdyTypes.name_of(_local_edy()), EdyTypes.info(_local_edy()).get("says", "")])
+	Dialogue.register_token("edy_price", func(): return str(EdyTypes.REREAD_GOLD))
+
+
+## The local captain's Edy type (the tokens ask whoever's talking).
+func _local_edy() -> String:
+	var lp := get_tree().get_first_node_in_group("player") if is_inside_tree() else null
+	return str(lp.progression.will_color) if lp and lp.get("progression") else will_color
+
+
+## The quiz's answers so far (type -> count) and the last answer's types.
+var _edy_counts := {}
+var _edy_last: Array = []
+
+
+## Edy events from a master's talk (EdyTypes.quiz_nodes): "edy:reset" a fresh reading, "edy:+<types>" an answer,
+## "edy:read" the type read from them; the capital's re-reading pays EdyTypes.REREAD_GOLD as it happens: "edy:reread"
+## (read from the answers) or "edy:buy:<type>" (one named outright).
+func _on_edy_event(ev: String) -> void:
+	if not ev.begins_with("edy:") or player == null or not player.is_local:
+		return
+	var what := ev.substr(4)
+	if what == "reset":
+		_edy_counts = {}
+		_edy_last = []
+	elif what.begins_with("+"):
+		_edy_last = Array(what.substr(1).split(","))
+		for id in _edy_last:
+			_edy_counts[id] = int(_edy_counts.get(id, 0)) + 1
+	elif what == "read" or what == "reread":
+		var t := EdyTypes.winner(_edy_counts, _edy_last)
+		if t != "" and (what == "read" or _pay_reread()):
+			attune(t)
+	elif what.begins_with("buy:"):
+		if EdyTypes.TYPES.has(what.substr(4)) and _pay_reread():
+			attune(what.substr(4))
+
+
+## The capital's re-reading paid (false: not enough gold, nothing taken).
+func _pay_reread() -> bool:
+	var inv := player.inventory_component
+	var gold := ItemDB.get_item("gold")
+	if gold == null or inv.count("gold") < EdyTypes.REREAD_GOLD:
+		return false
+	return inv.remove_item(gold, EdyTypes.REREAD_GOLD)
+
+
+## Attuned to Edy type `id`: its colour on every Edy effect and its edge (a burst in it for everyone to see).
+func attune(id: String) -> bool:
+	if not EdyTypes.TYPES.has(id):
+		return false
+	will_color = id
+	_dirty()
+	changed.emit()
+	if player and player.is_inside_tree():
+		EdyTypes.burst(player, 1.4)
+		get_tree().call_group("hud", "show_banner", "%s Edy" % EdyTypes.name_of(id), str(EdyTypes.info(id)["says"]), true)
+	return true
 
 
 func _physics_process(delta: float) -> void:
@@ -246,7 +308,10 @@ func will_point(n: int, why: String) -> void:
 	will_earned += n
 	_dirty()
 	if player and player.is_local and is_inside_tree():
-		get_tree().call_group("hud", "show_toast", "+%d Will (%s)  -  %d to spend  (K: Captain)" % [n, why, pool("will")])
+		if will_color == "":
+			get_tree().call_group("hud", "show_toast", "+%d Edy (%s)  -  Hana at Brinehollow's teahouse can read it" % [n, why])
+		else:
+			get_tree().call_group("hud", "show_toast", "+%d Edy (%s)  -  %d to spend  (K: Captain)" % [n, why, pool("will")])
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, will_tint()])
 
 
@@ -261,17 +326,14 @@ func meditate(secs: float) -> float:
 	return s / WillPaths.MEDITATE_SECS
 
 
-## The captain's Will colour (the Will's effects on every screen).
+## The captain's Edy colour (every Edy effect, on every screen).
 func will_tint() -> Color:
-	return WillPaths.color_of(will_color)
+	return EdyTypes.color_of(will_color)
 
 
+## Attuned (tests and tools; in play a master reads it: attune).
 func set_will_color(id: String) -> bool:
-	if not WillPaths.COLORS.has(id):
-		return false
-	will_color = id
-	changed.emit()
-	return true
+	return attune(id)
 
 
 func _second_wind() -> void:
@@ -534,7 +596,9 @@ func points_free(tree: String) -> int:
 
 
 static func pool_name(which: String) -> String:
-	if which in ["combat", "adventure", "will"]:
+	if which == "will":
+		return "Edy"
+	if which in ["combat", "adventure"]:
 		return which.capitalize()
 	return tree_name(which)
 
@@ -992,7 +1056,7 @@ func stat(key: String) -> float:
 			if e.has(key):
 				total += float(e[key]) * int(steps[k])
 		_stats[key] = total
-	var v: float = _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0) + float(gear.get(key, 0.0))
+	var v: float = _stats[key] + EdyTypes.bonus(will_color, key) + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0) + float(gear.get(key, 0.0))
 	# Sea Dog: stamina twice as fast aboard
 	if key == "stamina_regen_pct" and stat("sea_dog") > 0.0 and player and Downtime.ship_under(player) != null:
 		v += 1.0
@@ -1204,6 +1268,10 @@ func from_dict(d: Dictionary) -> void:
 	want = want.filter(func(k): return not is_will.call(k))
 	will_earned = int(d.get("will_pts", 0))
 	will_color = str(d.get("will_color", ""))
+	# (1.24.1: the colours picked before became Edy types)
+	will_color = str(EdyTypes.OLD.get(will_color, will_color))
+	if not EdyTypes.TYPES.has(will_color):
+		will_color = ""
 	if fmt < 8:
 		# (1.23: Will came free from set bosses; each one awakened comes back as a boss's Will points, to spend on a path)
 		wills = []

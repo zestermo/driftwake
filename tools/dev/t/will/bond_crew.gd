@@ -52,6 +52,8 @@ func _process(_d: float) -> bool:
 			p.health_component.max_health = 1000.0
 			p.health_component.current_health = 1000.0
 			pr.gift("will", 30)
+			if pr.will_color == "":
+				pr.attune("tide")
 			check("Link (Bond, 1) and Crew's Strength (2)", pr.buy("w_link_v") and pr.buy("h_crew") and pr.passives.has("h_crew"))
 			check("...Joint Gauge (2) at 4 spent", pr.buy("w_mist_v") and pr.buy("w_gauge"))
 			check("...Shelter (2), Twin Finisher (3) at 8: on the bar", pr.buy("w_shelter") and pr.buy("w_twin_v") and "will_twin" in p.power.loadout)
