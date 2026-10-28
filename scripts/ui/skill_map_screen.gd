@@ -205,8 +205,7 @@ func _set_perks(open: bool) -> void:
 
 ## A level fork reached and not picked yet (the Perks button's pip).
 func perk_ready() -> bool:
-	var p := _pr()
-	return _forks().any(func(k): return int(SkillTrees.node_def(k)["level"]) <= p.level and p.version_of(k) < 0)
+	return _pr().perk_waiting()
 
 
 ## Something in a Will path you can buy now (its tab's pip).
@@ -1085,8 +1084,9 @@ func _draw_captain(body: Rect2) -> void:
 		# (only the popup is clickable while it's open)
 		_hits = []
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.62))
-		var m := 44.0 if size.x < 700.0 else 90.0
-		_draw_perks(Rect2(m, 34.0, size.x - m * 2.0, size.y - UIChrome.BOARD_H - 40.0))
+		var m := 44.0 if size.x < 700.0 else roundf(size.x * 0.12)
+		var ph := minf(size.y - UIChrome.BOARD_H - 40.0, 54.0 + 40.0 * _forks().size() + 30.0 + 8.0)
+		_draw_perks(Rect2(m, roundf(34.0 + (size.y - UIChrome.BOARD_H - 40.0 - ph) * 0.5), size.x - m * 2.0, ph))
 
 
 ## Level, the XP bar and the Perks button (lit, with a pip, while a fork waits to be picked).
@@ -1182,7 +1182,8 @@ func _draw_ladder(r: Rect2, tint: Color) -> void:
 		UIStyle.CORAL if why != "" else SkillTreeDraw.TEXT_OFF)
 	var ids: Array = WillPaths.abilities_of(path)
 	var area := Rect2(r.position.x, r.position.y + 18.0, r.size.x, r.size.y - 36.0)
-	var row_h := floorf(area.size.y / maxi(ids.size(), 3))
+	# (rows no taller than their text needs on a big canvas; the ladder sits at the foot, over its passive)
+	var row_h := minf(floorf(area.size.y / maxi(ids.size(), 3)), 84.0)
 	var sx := r.position.x + 15.0
 	var lit := area.end.y
 	for k in range(ids.size()):
@@ -1297,7 +1298,7 @@ func _draw_perks(r: Rect2) -> void:
 	var miles := _captain_kind("auto")
 	var top := r.position.y + 54.0
 	var foot := 30.0
-	var rh := floorf((r.end.y - top - foot) / forks.size())
+	var rh := minf(floorf((r.end.y - top - foot) / forks.size()), 40.0)
 	var mw := 92.0
 	var ow := floorf((w - 34.0 - mw - 8.0) * 0.5)
 	var prev := 0

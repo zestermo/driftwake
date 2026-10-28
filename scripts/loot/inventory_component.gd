@@ -75,6 +75,7 @@ func add_item(item_data: ItemData, quantity: int = 1) -> bool:
 		var stack := ItemStack.new()
 		stack.item = item_data
 		stack.quantity = mini(quantity, item_data.max_stack if item_data.stackable else 1)
+		stack.fresh = true
 		quantity -= stack.quantity
 		added += stack.quantity
 		items.append(stack)

@@ -17,6 +17,7 @@ const DEFAULTS := {
 		"fov": 75.0,
 		"show_fps": false,
 		"perf_overlay": false,  # F8
+		"fine_ui": true,        # menus on a finer pixel canvas (960x540 at 1080p) where the window allows; off = 640x360
 	},
 	"audio": {
 		"master": 0.8,

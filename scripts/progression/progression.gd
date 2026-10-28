@@ -200,10 +200,8 @@ func _on_level_up() -> void:
 		var sub := "Stronger: more health, damage, stamina, energy and defense"
 		if not got.is_empty():
 			sub = ", ".join(got.map(func(k): return str(SkillTrees.node_def(k)["name"]))) + " - yours now"
-		for lv in range(5, level + 1, 5):
-			if talent_at(lv) < 0:
-				sub += "  -  a talent to pick (K)"
-				break
+		if perk_waiting():
+			sub += "  -  a perk to pick (K: Captain, Perks)"
 		get_tree().call_group("hud", "show_banner", "Level %d!" % level, sub)
 		SaveGame.save(player)
 	leveled_up.emit(level)
@@ -248,7 +246,7 @@ func will_point(n: int, why: String) -> void:
 	will_earned += n
 	_dirty()
 	if player and player.is_local and is_inside_tree():
-		get_tree().call_group("hud", "show_toast", "+%d Will (%s)  -  %d to spend (K, Captain: W)" % [n, why, pool("will")])
+		get_tree().call_group("hud", "show_toast", "+%d Will (%s)  -  %d to spend  (K: Captain)" % [n, why, pool("will")])
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, will_tint()])
 
 
@@ -548,6 +546,14 @@ func points_line(which: String) -> String:
 
 
 ## Something in a found tree of `which` (a pool) can be bought right now (remembered until something changes).
+## A level fork reached and not picked yet (the HUD's badge and the Captain page's Perks button call for it).
+func perk_waiting() -> bool:
+	for lv in range(5, level + 1, 5):
+		if talent_at(lv) < 0:
+			return true
+	return false
+
+
 func can_spend(which: String) -> bool:
 	if _spend_rev != _rev:
 		_spend_rev = _rev

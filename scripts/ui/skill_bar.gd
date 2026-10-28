@@ -55,6 +55,10 @@ var _t: float = 0.0
 var _stamina_flash: float = 0.0
 var _ready_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _fail_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+## A skill just put on a slot: a glint sweeps across it (1 -> 0), and what each slot held last frame.
+var _glint: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var _held: Array = ["", "", "", "", "", ""]
+const GLINT_S := 0.7
 var _prev_cd: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _ult_was_full: bool = false
 var _quick_fail: float = 0.0
@@ -138,6 +142,13 @@ func _process(delta: float) -> void:
 	_stamina_flash = maxf(_stamina_flash - delta, 0.0)
 	for i in range(PowerComponent.SLOTS):
 		_fail_flash[i] = maxf(_fail_flash[i] - delta, 0.0)
+		_glint[i] = maxf(_glint[i] - delta / GLINT_S, 0.0)
+		var now_id := str(pc.skill(i).get("id", ""))
+		if now_id != _held[i]:
+			# (a new skill on the slot; not the bar filling in when it first binds)
+			if now_id != "" and _t > 1.0:
+				_glint[i] = 1.0
+			_held[i] = now_id
 		_ready_flash[i] = maxf(_ready_flash[i] - delta, 0.0)
 		var cd := pc.cooldown_left(i)
 		if _prev_cd[i] > 0.0 and cd <= 0.0 and not pc.skill(i).is_empty():
@@ -347,6 +358,8 @@ func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 		_text(Vector2(r.position.x, r.get_center().y + 4.0), str(ceili(cd)), Color.WHITE, 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	if _ready_flash[i] > 0.0:
 		draw_rect(r.grow(-1.0), Color(1, 1, 1, _ready_flash[i] * 1.2))
+	if _glint[i] > 0.0:
+		_draw_glint(r.grow(-1.0), 1.0 - _glint[i])
 	# (Twin Finisher: the joint gauge along the slot's foot)
 	if str(sk["id"]) == "will_twin":
 		var gf := pc.will.bond.gauge / WillBond.GAUGE_MAX
@@ -454,6 +467,18 @@ func _draw_item(r: Rect2) -> void:
 	_text(r.position + Vector2(2, 8), "E", UIStyle.ACCENT if item else UIStyle.TEXT_DIM)
 
 
+## The glint across a slot just filled: a slanted bright band sweeping left to right (`u` 0..1), and a gold rim.
+func _draw_glint(r: Rect2, u: float) -> void:
+	draw_rect(r, Color(UIStyle.GILT, 0.9 * (1.0 - u)), false, 1.0)
+	var x := r.position.x - 6.0 + (r.size.x + 12.0) * u
+	for k in range(int(r.size.y)):
+		var px := x + (r.size.y - k) * 0.35
+		var a0 := clampf(px - 2.0, r.position.x, r.end.x)
+		var a1 := clampf(px + 2.0, r.position.x, r.end.x)
+		if a1 > a0:
+			draw_rect(Rect2(a0, r.position.y + k, a1 - a0, 1), Color(1, 1, 1, 0.55))
+
+
 ## Level badge (over the health orb) and the experience bar along the bottom
 ## of the plate; a pool's points pulse beside the level while they can buy something.
 func _draw_xp() -> void:
@@ -467,14 +492,24 @@ func _draw_xp() -> void:
 	draw_rect(Rect2(r.position, Vector2(r.size.x * frac, r.size.y)), Color(0.55, 0.45, 1.0))
 	draw_rect(Rect2(r.position, Vector2(r.size.x * frac, 1.0)), Color(0.8, 0.75, 1.0))
 	var badge := Vector2(ORB_R + 2.0, 6.0)
-	draw_circle(badge, 8.0, UIStyle.BG_DARK)
-	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
-	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
 	var spend: Array = ["combat", "adventure", "will"].filter(func(p): return pr.can_spend(p))
-	if not spend.is_empty():
+	var perk := pr.perk_waiting()
+	# (something to spend or a perk to pick: the badge glows and wears the pip, as the menu's tab does)
+	var call := perk or not spend.is_empty()
+	if call:
+		var g := 0.5 + 0.5 * sin(_t * 3.5)
+		draw_circle(badge, 11.0, Color(UIStyle.GILT, 0.12 + 0.16 * g))
+		draw_circle(badge, 9.5, Color(UIStyle.GILT, 0.2 + 0.2 * g))
+	draw_circle(badge, 8.0, UIStyle.BG_DARK)
+	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.GILT if call else UIStyle.BORDER, 1.0)
+	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
+	if call:
+		UIStyle.draw_pip(self, badge + Vector2(6, -5), _t)
 		var a := 0.6 + 0.4 * sin(_t * 5.0)
-		var line: String = " ".join(spend.map(func(p): return "+%d %s" % [pr.pool(p), Progression.pool_name(p).to_upper()]))
-		_text(badge + Vector2(11.0, 3.0), line + " [K]", Color(0.75, 0.95, 0.55, a))
+		var bits: Array = spend.map(func(p): return "+%d %s" % [pr.pool(p), Progression.pool_name(p).to_upper()])
+		if perk:
+			bits.append("A PERK")
+		_text(badge + Vector2(13.0, 3.0), " ".join(bits) + " [K]", Color(0.75, 0.95, 0.55, a))
 
 
 ## Pistols: loaded shots per gun over the middle of the plate.

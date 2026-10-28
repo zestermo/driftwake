@@ -34,6 +34,11 @@ class Slot extends Button:
 	var count: Label
 	var key: Label
 	var tag: Label
+	## The attention marks: NEW (picked up, not looked at yet) and better than what's worn in its slot (a green arrow).
+	var fresh := false
+	var better := false
+	var mark: Control
+	var _mt := 0.0
 
 	func _init(tag_text: String, d: Dictionary) -> void:
 		data = d
@@ -69,7 +74,11 @@ class Slot extends Button:
 		key.add_theme_constant_override("outline_size", 2)
 		key.position = Vector2(2, 0)
 		add_child(key)
-		for c in [tag, count, key]:
+		mark = Control.new()
+		mark.set_anchors_preset(Control.PRESET_FULL_RECT)
+		mark.draw.connect(_draw_mark)
+		add_child(mark)
+		for c in [tag, count, key, mark]:
 			(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 		mouse_entered.connect(func(): tex.position.y = 1)
 		mouse_exited.connect(func(): tex.position.y = 2)
@@ -96,6 +105,30 @@ class Slot extends Button:
 			bg = UIStyle.BG_DARK.lerp(rc.darkened(0.3), 0.3)
 			border = rc.darkened(0.15)
 		add_theme_stylebox_override("normal", InventoryScreen.slot_box(bg, border, false))
+
+	## NEW or better: set from the bag's refresh.
+	func set_marks(is_fresh: bool, is_better: bool) -> void:
+		fresh = is_fresh
+		better = is_better
+		set_process(fresh)
+		mark.queue_redraw()
+
+	func _process(delta: float) -> void:
+		_mt += delta
+		mark.queue_redraw()
+
+	func _draw_mark() -> void:
+		if fresh:
+			var a := 0.5 + 0.5 * sin(_mt * 3.5)
+			mark.draw_rect(Rect2(Vector2.ZERO, size).grow(-0.5), Color(UIStyle.GILT, 0.55 + 0.45 * a), false, 1.0)
+			var w := UIStyle.SILK.get_string_size("NEW", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 3.0
+			mark.draw_rect(Rect2(0, 0, w, 7), UIStyle.GILT)
+			mark.draw_string(UIStyle.SILK, Vector2(1.5, 6.5), "NEW", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.INK)
+		if better:
+			var c := Vector2(size.x - 5.0, size.y - 11.0)
+			var tri := PackedVector2Array([c + Vector2(-4, 3), c + Vector2(4, 3), c + Vector2(0, -3)])
+			mark.draw_colored_polygon(tri, UIStyle.OUTLINE)
+			mark.draw_colored_polygon(PackedVector2Array([c + Vector2(-3, 2), c + Vector2(3, 2), c + Vector2(0, -2)]), UIStyle.GOOD)
 
 	func bounce() -> void:
 		tex.scale = Vector2(1.4, 1.4)
@@ -630,8 +663,10 @@ func refresh() -> void:
 			var st := inv.items[_view[k]]
 			# (the bait on the hook is marked B)
 			_bag[k].show_item(st.item, st.quantity, "B" if Bait.is_bait(st.item) and st.item.id == inv.bait_on() else "")
+			_bag[k].set_marks(st.fresh, better_than_worn(st.item))
 		else:
 			_bag[k].show_item(null, 0)
+			_bag[k].set_marks(false, false)
 		_bag[k].visible = k < cells
 	for slot in _doll.keys():
 		var it := pl.equipment.get_item(slot)
@@ -666,8 +701,28 @@ func _resolve(data: Dictionary) -> Dictionary:
 	return data
 
 
-## The mouse over a slot: its tooltip (after a moment) and its hints.
+## A piece of gear that would defend better than what's worn in its slot (or the slot's empty), or a weapon of the
+## same kind as the one in hand that hits harder: the bag marks it with a green arrow.
+func better_than_worn(it: ItemData) -> bool:
+	var pl := _player()
+	if it == null or pl == null:
+		return false
+	if it.item_type == ItemData.ItemType.GEAR and it.gear_slot != "" and it.armor() > 0.0:
+		var worn := pl.equipment.get_item(it.gear_slot)
+		return worn == null or it.armor() > worn.armor() + 0.01
+	if it.item_type == ItemData.ItemType.WEAPON and pl.equipped_weapon and it.weapon_model == pl.equipped_weapon.weapon_model:
+		return it.power() > pl.equipped_weapon.power() + 0.001
+	return false
+
+
+## The mouse over a slot: its tooltip (after a moment) and its hints. A NEW mark is seen now.
 func _on_hover(s: Slot) -> void:
+	if s.fresh and str(s.data.get("src", "")) == "bag":
+		var d := _resolve(s.data)
+		var items: Array = _player().inventory_component.items
+		if int(d.get("idx", -1)) >= 0 and int(d["idx"]) < items.size():
+			(items[int(d["idx"])] as ItemStack).fresh = false
+		s.set_marks(false, s.better)
 	_hover = s
 	_tip_t = 0.0
 	_tip.visible = false

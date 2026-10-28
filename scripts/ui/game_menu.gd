@@ -468,6 +468,7 @@ func _build_options() -> Control:
 	_toggle_row(list, "Fullscreen", "video", "fullscreen")
 	_toggle_row(list, "Pixelation", "video", "pixelate")
 	_toggle_row(list, "Dithering", "video", "dither")
+	_toggle_row(list, "Finer menus", "video", "fine_ui")
 	_slider_row(list, "Vertex wobble", "video", "wobble", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Texture warp", "video", "warp", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Field of view", "video", "fov", 60.0, 100.0, 1.0, "%d", 1.0)
