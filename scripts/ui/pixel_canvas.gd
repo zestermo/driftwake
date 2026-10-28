@@ -38,7 +38,8 @@ func _init() -> void:
 
 func _ready() -> void:
 	get_tree().root.size_changed.connect(fit)
-	Settings.changed.connect(func(sec, key, _v):
+	# (by path: chartest and uitest compile this before the autoloads exist)
+	get_node("/root/Settings").changed.connect(func(sec, key, _v):
 		if sec == "video" and key == "fine_ui":
 			fit())
 	fit()
@@ -55,7 +56,7 @@ func fit() -> void:
 	var win := get_tree().root
 	var px := Vector2(win.size)
 	var k := maxi(1, floori(px.y / MIN_H))
-	if Settings.get_value("video", "fine_ui") and floori(px.y / FINE_H) >= 2:
+	if win.get_node("Settings").get_value("video", "fine_ui") and floori(px.y / FINE_H) >= 2:
 		k = floori(px.y / FINE_H)
 	canvas = (px / k).floor()
 	stretch_shrink = k
