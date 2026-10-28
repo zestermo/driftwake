@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.24-e0b040" alt="Version 1.24">
+  <img src="https://img.shields.io/badge/version-1.25-e0b040" alt="Version 1.25">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,19 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.24); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.25); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.25: Edy (October 28, 2026)
+Edy, Driftwake's word for the force the Will paths train. Hana Teal at Brinehollow's teahouse reads yours with five
+questions: Still, Ember, Crown, Storm or Tide, each its own colour, aura and small edge (Ilse Varro on the capital's
+terrace re-reads it for 2,000 gold). Coat becomes Infuse (your Edy down your forearms into the blade) and Hardening
+becomes Reinforce, a skill that wraps your whole body (+10% speed, a quarter less stamina, +8 defence, light blows don't
+rock you). Auras flare only when it matters: a flame round you, a glowing outline, a circle on the ground, a wind blast
+as you power up, a hum while it burns. The Captain page is one page now (the Edy paths, your perks in a popup, gold pips
+on anything waiting), menus are crisper at 1080p and up, vendors wear a sign of their trade, weapon trees show their
+crew technique. Bao the cook teaches kicks out front, and his pupil bows before you spar. New: the banjo and a shanty,
+the Bulwark armour set and three more pieces, four weapon designs, two faces, two eye types, dreads and a mohawk, hair
+dyes and two-tone and tipped finishes.
 
 ### v1.24: Combat and Gear (October 27, 2026)
 Crew techniques: C in combat stance does a two-person move for your weapon with the nearest crewmate (alone, your

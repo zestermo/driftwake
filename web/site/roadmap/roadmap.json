@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.24",
+	"here": "1.25",
 	"versions": [
 		{
 			"v": "0.1",
@@ -799,11 +799,14 @@
 		{
 			"v": "1.25",
 			"name": "Edy",
-			"status": "building",
+			"date": "2026-10-28",
+			"status": "shipped",
 			"headline": "The force behind the Will paths gets a name and a shape: your Edy read by a master, auras that flare when it matters, a cleaner Captain page, and more to wear, play and look like.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",
-			"plan": [
+			"news": "/news/v1-25-edy/",
+			"github": true,
+			"added": [
 				["Edy", "Five types read at Brinehollow's teahouse, each a colour, an aura and a small edge."],
 				["Infuse and Reinforce", "Coat and Hardening reworked: Edy into the blade, or through the whole body."],
 				["The Captain page", "Edy paths and perks on one page, and pips that show you what's waiting."],
@@ -813,7 +816,7 @@
 		{
 			"v": "1.26",
 			"name": "Strongholds and Driftfruits",
-			"status": "planned",
+			"status": "building",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",

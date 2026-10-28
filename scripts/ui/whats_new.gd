@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Crew techniques", "In combat stance, C does a two-person move for your weapon with the nearest crewmate: launches, throws, covering fire, a shield wall. Alone, a solo version or your ship stands in."],
-	["Will paths", "Four new paths: Tempo, Fury, Tide and Bond. Walk across deep water, raise a swell, finish a foe with a crewmate, shelter the crew. Each has upgrades."],
-	["Gear with stats", "Armour and clothes carry weight and stats by rarity, with set bonuses. Heavy gear blocks more but slows you; full gold heavy blocks about half."],
-	["Ranged weapons", "Long guns (hold to steady a piercing shot), cannons (a bursting ball and a hard kick) and slingshots (rapid stones and trick pellets), each with its own tree."],
-	["Cloth", "Capes, coats, skirts and hair move in a faster cloth solver and stay off the body. Coat tails hang as cut, layers stop poking through, vests fit."],
+	["Edy", "Hana at Brinehollow's teahouse reads your Edy: Still, Ember, Crown, Storm or Tide, each with its own colour, aura and small edge. Spend Edy on the Captain page."],
+	["Infuse and Reinforce", "Coat is Infuse, your Edy poured into the blade. Hardening is Reinforce: a skill that wraps your body, quicker and harder for 15 s. Auras flare when you use them."],
+	["One Captain page", "The Edy paths and your perks (P) on one page, gold pips on anything waiting, crisper menus, NEW loot tags, vendor signs, and each weapon's crew technique on its tree."],
+	["The teahouse", "Bao the cook teaches kicks out front now; his pupil Tomo waits on the flat, bows, and counts you in."],
+	["New things", "The banjo and a new shanty, the Bulwark set and more gear, four new weapons, new faces and eyes, dreads, a mohawk and hair dyes."],
 ]
 
 
