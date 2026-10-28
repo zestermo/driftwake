@@ -275,7 +275,7 @@ func _show_tab(t: String) -> void:
 			_colors("Skin", "skin")
 			_cycle("Head", "head", CharacterLook.HEADS)
 		"Face":
-			_cycle("Eyes", "eyes", range(CharacterLook.EYE_STYLES), ["Plain", "Narrow", "Wide", "Hooded", "Sharp", "Round"])
+			_cycle("Eyes", "eyes", range(CharacterLook.EYE_STYLES), CharacterLook.EYE_NAMES)
 			_colors("Eye color", "eye_color")
 			_cycle("Brows", "brows", range(CharacterLook.BROW_STYLES), ["Natural", "Thick", "Arched", "Stern", "Worried"])
 			_cycle("Nose", "nose", CharacterLook.NOSES)

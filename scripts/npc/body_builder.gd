@@ -1217,17 +1217,26 @@ func _head() -> void:
 	var shape := str(lk.get("head", "round"))
 	var wk := 1.0
 	var jaw := 1.0
+	# (the new shapes change only the face below the temples, so hats and hair fit them as they are)
+	var chin := 1.0
+	var cheek := 1.0
 	yk = 1.0
 	match shape:
 		"square":
 			jaw = 1.15
 		"long":
 			wk = 0.95; yk = 1.08; jaw = 0.95
+		"heart":
+			jaw = 0.84; chin = 0.7; cheek = 1.05
+		"broad":
+			jaw = 1.24; chin = 1.12; cheek = 1.06
 	var R := P_HEAD()
 	var cs := P_CHIN_V() if fem else P_JAW()
-	if shape == "square":
+	if shape in ["square", "broad"]:
 		cs = P_JAW()
-	var c0 := 0.02 * jaw if fem else 0.055 * jaw
+	elif shape == "heart":
+		cs = P_CHIN_V()
+	var c0 := (0.02 * jaw if fem else 0.055 * jaw) * chin
 	var c1 := 0.06 * jaw if fem else 0.09 * jaw
 	var c2 := 0.102 * jaw if fem else 0.128 * jaw
 	head_rings = [
@@ -1235,8 +1244,8 @@ func _head() -> void:
 		# the back of the skull comes down to jaw level (only the profile's back
 		# half is pushed out, so the face is unchanged)
 		[0.035, c1, 0.065 if fem else 0.07, -0.075 if fem else -0.068, 0.0, _back_ext(cs, 2.0 if fem else 1.85, 1.35 if fem else 1.3)],
-		[0.085, c2 * wk, 0.1 if fem else 0.106, -0.04 if fem else -0.036, 0.0, _back_ext(cs, 1.4 if fem else 1.33, 1.15 if fem else 1.12)],
-		[0.135, (0.136 if fem else 0.148) * wk, 0.13, -0.015, 0.0, _back_ext(R, 1.05 if fem else 1.08, 1.0)],
+		[0.085, c2 * wk * lerpf(1.0, cheek, 0.5), 0.1 if fem else 0.106, -0.04 if fem else -0.036, 0.0, _back_ext(cs, 1.4 if fem else 1.33, 1.15 if fem else 1.12)],
+		[0.135, (0.136 if fem else 0.148) * wk * cheek, 0.13, -0.015, 0.0, _back_ext(R, 1.05 if fem else 1.08, 1.0)],
 		[0.195, (0.153 if fem else 0.158) * wk, 0.148, -0.004, 0.0, R],
 		[0.235, (0.162 if fem else 0.164) * wk, 0.156, 0.0, 0.0, R],
 		[0.268, (0.16 if fem else 0.162) * wk, 0.158, 0.004, 0.0, R]]

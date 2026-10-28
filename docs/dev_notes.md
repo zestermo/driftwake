@@ -7455,3 +7455,17 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - jamshot closes the first-launch character creator (it opens in a window when user:// has no look and hung the
   render). Tests: t/jam/stems (new: every kind a whole instrument, every tune a stem per kind, one length),
   t/items/instruments (counts from KINDS now). Renders: tools/dev/out/jam/js_banjo_*.png.
+## 2026-10-28: 1.25 customization, piece 1: two face shapes, two eye types
+- **What** (halved scope: 2 faces, 2 eyes): `CharacterLook.HEADS` + "heart" (cheekbones out 5%, jaw in, a pointed
+  chin) and "broad" (a wide, square brawler's jaw); `EYE_STYLES` 8 with `EYE_NAMES` (the creator's names) + 6 "Glare"
+  (small irises in a lot of white under a hard slanted lid) and 7 "Cat" (almond, an upswept wing, a slit pupil;
+  `FacePainter._eye_more`).
+- **Where:** BodyBuilder._head's new `chin` and `cheek` factors only touch the rings below the temples (0.135 and
+  down), so hats, the hair shell and every hairline fit the new faces unchanged.
+- **Random looks:** heads stay one `_pick` over HEADS (2 of 5); the eyes keep `rng.randi() % 6` and
+  `CharacterLook._add_1_25` turns 30% to a new type from an rng seeded by the look itself: random_look draws exactly as
+  many numbers from the caller's rng as before, so the islands' people and places that share that rng don't move.
+- Saved looks: the keys are the old ones (old values unchanged); co-op sends the whole look dict, nothing new to sync.
+- Tests: t/player/look_options (new; round trips, jaws narrower/wider, eyes paint differently, random rates and
+  determinism, an old saved look); chartest. Render: `tools/dev/lookshot.gd` (new) faces ->
+  tools/dev/out/looks/faces_{0..3}.png.

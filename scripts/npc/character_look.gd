@@ -7,8 +7,8 @@ extends RefCounted
 ##   name                      String
 ##   body      "masc"|"fem"    build "slim"|"average"|"broad"|"stout"
 ##   height    float (scale)   skin Color
-##   head      "round"|"square"|"long"       nose "small"|"straight"|"broad"|"hooked"
-##   eyes int, eye_color Color, brows int, mouth int, marks "none"|"freckles"|...
+##   head      (see HEADS)                   nose "small"|"straight"|"broad"|"hooked"
+##   eyes int (EYE_NAMES), eye_color Color, brows int, mouth int, marks (see MARKS)
 ##   hair (see HAIR), hair_color, facial_hair (see FACIAL_HAIR)
 ##   hat (see HATS), hat_color
 ##   top (see TOPS), top_color, sleeves "long"|"short"|"none"
@@ -30,9 +30,10 @@ static var save_path := "user://character.cfg"
 const BODIES := ["masc", "fem"]
 const BUILDS := ["slim", "average", "broad", "stout"]
 const HEIGHTS := [0.92, 0.96, 1.0, 1.04, 1.08]
-const HEADS := ["round", "square", "long"]
+const HEADS := ["round", "square", "long", "heart", "broad"]
 const NOSES := ["small", "straight", "broad", "hooked"]
-const EYE_STYLES := 6
+const EYE_STYLES := 8
+const EYE_NAMES := ["Plain", "Narrow", "Wide", "Hooded", "Sharp", "Round", "Glare", "Cat"]
 const BROW_STYLES := 5
 const MOUTH_STYLES := 6
 const MARKS := ["none", "freckles", "scar", "blush", "war_paint", "age_lines"]
@@ -204,7 +205,7 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["skin"] = _pick(rng, SKIN_TONES)
 	lk["head"] = _pick(rng, HEADS)
 	lk["nose"] = _pick(rng, NOSES)
-	lk["eyes"] = rng.randi() % EYE_STYLES
+	lk["eyes"] = rng.randi() % 6
 	lk["eye_color"] = _pick(rng, EYE_COLORS)
 	lk["brows"] = rng.randi() % BROW_STYLES
 	lk["mouth"] = rng.randi() % MOUTH_STYLES
@@ -237,7 +238,17 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["scarf_color"] = _pick(rng, CLOTH)
 	lk["pauldron"] = false
 	lk["pouch"] = rng.randf() < 0.3
+	_add_1_25(lk)
 	return lk
+
+
+## The 1.25 face options, drawn from the look so far rather than the caller's rng (which then goes on to place the
+## islands' people: one more draw would move them).
+static func _add_1_25(lk: Dictionary) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(str(lk))
+	if r.randf() < 0.3:
+		lk["eyes"] = 6 + r.randi() % (EYE_STYLES - 6)
 
 
 static func _pick(rng: RandomNumberGenerator, arr: Array) -> Variant:

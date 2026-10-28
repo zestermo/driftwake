@@ -95,7 +95,7 @@ func paint(lk: Dictionary, eye_scale: float) -> void:
 	if str(lk.get("facial_hair", "none")) == "stubble":
 		_stubble(hair)
 	var es := eye_scale * (1.12 if fem else 1.0)
-	var eye_style := int(lk.get("eyes", 0)) % 6
+	var eye_style := int(lk.get("eyes", 0)) % CharacterLook.EYE_STYLES
 	for side in [-1, 1]:
 		var c := px(23.0 * side, 0.165)
 		_eye(c, side, eye_style, es, fem, lk.get("eye_color", Color(0.3, 0.2, 0.1)))
@@ -156,6 +156,9 @@ func _eye(c: Vector2, side: int, style: int, s: float, fem: bool, iris: Color) -
 			w *= 1.08
 		3:  # hooded / sleepy
 			hgt *= 0.9
+		6, 7:
+			_eye_more(c, side, style, w, hgt, iris, fem)
+			return
 	# sclera
 	_ellipse(c, w, hgt, WHITE)
 	# iris (darker toward the top, anime-style) + pupil + highlights
@@ -183,6 +186,44 @@ func _eye(c: Vector2, side: int, style: int, s: float, fem: bool, iris: Color) -
 	if fem:
 		_line(Vector2(outer - side * 0.5, c.y - hgt * 0.4), Vector2(outer - side * 2.0, c.y - hgt * 0.9), LASH)
 	_line(Vector2(outer + side * 0.5, c.y + hgt * 0.75), Vector2(c.x + side * w * 0.3, c.y + hgt + 0.3), Color(LASH, 0.45))
+
+
+## The 1.25 eyes: glare (small irises in a lot of white under a hard slanted lid) and cat (almond, an upswept wing,
+## a slit pupil).
+func _eye_more(c: Vector2, side: int, style: int, w: float, hgt: float, iris: Color, fem: bool) -> void:
+	var outer := c.x - side * w
+	var inner := c.x + side * w * 0.9
+	var pupil := Color(0.04, 0.03, 0.03)
+	match style:
+		6:
+			hgt *= 1.1
+			_ellipse(c, w, hgt, WHITE)
+			var ic := c + Vector2(side * 0.3, hgt * 0.05)
+			_ellipse(ic, maxf(w * 0.32, 1.6), hgt * 0.55, iris)
+			_ellipse(ic, 0.8, 0.9, pupil)
+			_put(int(ic.x - 1.0), int(ic.y - hgt * 0.35), WHITE)
+			var y_out := c.y - hgt * 0.85
+			var y_in := c.y - hgt * 0.3
+			_clear_tri(Vector2(inner + side, y_in), Vector2(outer - side * 2, y_out), Vector2(outer - side * 2, c.y - hgt - 2))
+			_clear_tri(Vector2(inner + side, y_in), Vector2(inner + side, c.y - hgt - 2), Vector2(outer - side * 2, c.y - hgt - 2))
+			_line(Vector2(outer - side, y_out), Vector2(inner, y_in), LASH, 2)
+			_line(Vector2(outer + side * 0.5, c.y + hgt * 0.8), Vector2(inner, c.y + hgt * 0.7), Color(LASH, 0.6))
+		7:
+			hgt *= 0.72
+			w *= 1.05
+			outer = c.x - side * w
+			_ellipse(c, w, hgt, WHITE)
+			_ellipse(c, w * 0.5, hgt * 1.0, iris)
+			_ellipse(c + Vector2(0, -hgt * 0.5), w * 0.5, hgt * 0.45, iris.darkened(0.4))
+			_line(c + Vector2(0, -hgt * 0.85), c + Vector2(0, hgt * 0.85), pupil)
+			_put(int(c.x - w * 0.3), int(c.y - hgt * 0.4), WHITE)
+			# almond: the inner corner low, the outer swept up into a wing
+			_clear_tri(Vector2(inner + side, c.y + 0.5), Vector2(inner + side, c.y - hgt - 2), Vector2(c.x, c.y - hgt - 2))
+			_line(Vector2(inner, c.y - hgt * 0.1), Vector2(c.x, c.y - hgt - 0.5), LASH, 2)
+			_line(Vector2(c.x, c.y - hgt - 0.5), Vector2(outer - side * 2.0, c.y - hgt * 1.6), LASH, 2)
+			_line(Vector2(outer, c.y + hgt * 0.2), Vector2(inner, c.y + hgt * 0.7), Color(LASH, 0.7))
+	if fem:
+		_line(Vector2(outer - side * 0.5, c.y - hgt * 0.4), Vector2(outer - side * 2.0, c.y - hgt * 0.9), LASH)
 
 
 func _clear_rect(a: Vector2, b: Vector2) -> void:
