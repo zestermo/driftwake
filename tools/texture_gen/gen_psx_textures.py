@@ -2948,7 +2948,169 @@ def gen_will_icons():
         _icon("skill_" + name, fn)
 
 
+
+def gen_perk_icons():
+    """The Captain's perks (the level forks, skill_perk_<version id>) and Iron Will's Reinforce (skill_edy_reinforce)."""
+    W_ = (255, 255, 245, 255)
+    RED = hexc("e8322a") + (255,)
+    RED_D = hexc("8a1810") + (255,)
+    GREEN = hexc("7ae07a") + (255,)
+    GREEN_D = hexc("2e8a3a") + (255,)
+    GOLD = hexc("f0c040") + (255,)
+    GOLD_D = hexc("9a6a18") + (255,)
+    SEA = hexc("4aa8e8") + (255,)
+    SEA_L = hexc("bfe8ff") + (255,)
+    STEEL = hexc("c8d0d8") + (255,)
+    STEEL_D = hexc("7a8490") + (255,)
+    WOOD = hexc("6a4628") + (255,)
+    SKIN = hexc("e0b088") + (255,)
+    BROWN = hexc("8a5a30") + (255,)
+    VIOLET = hexc("b48af0") + (255,)
+    BLACK = (24, 18, 22, 255)
+
+    def heart(d, x, y, c, c2):
+        d.ellipse([x, y, x + 6, y + 6], fill=c)
+        d.ellipse([x + 5, y, x + 11, y + 6], fill=c)
+        d.polygon([(x, y + 4), (x + 11, y + 4), (x + 5.5, y + 11)], fill=c)
+        d.point((x + 2, y + 2), fill=c2)
+
+    def mend(d):
+        heart(d, 6, 6, RED, W_)
+        d.rectangle([16, 3, 18, 11], fill=GREEN)
+        d.rectangle([13, 6, 21, 8], fill=GREEN)
+
+    def stomach(d):
+        # a bowl, steam and a plus
+        d.pieslice([3, 8, 21, 24], 0, 180, fill=BROWN)
+        d.rectangle([3, 15, 21, 16], fill=hexc("c08048") + (255,))
+        for x in (8, 12, 16):
+            d.line([(x, 12), (x - 1, 8), (x + 1, 5)], fill=SEA_L, width=1)
+        d.rectangle([18, 2, 20, 8], fill=GREEN)
+        d.rectangle([16, 4, 22, 6], fill=GREEN)
+
+    def hands(d):
+        # a bottle tipped to the lips, speed lines
+        d.rectangle([10, 4, 15, 18], fill=GREEN_D)
+        d.rectangle([11, 1, 14, 4], fill=hexc("c8b088") + (255,))
+        d.rectangle([11, 9, 14, 13], fill=hexc("e8e0c8") + (255,))
+        for y in (7, 12, 17):
+            d.line([(2, y), (7, y)], fill=W_, width=1)
+
+    def seadog(d):
+        # an anchor over a wave
+        d.ellipse([9, 2, 15, 8], outline=STEEL, width=2)
+        d.line([(12, 7), (12, 19)], fill=STEEL, width=2)
+        d.line([(8, 10), (16, 10)], fill=STEEL, width=2)
+        d.arc([5, 11, 19, 21], 20, 160, fill=STEEL, width=2)
+        d.line([(2, 21), (6, 19), (10, 21), (14, 19), (18, 21), (22, 19)], fill=SEA, width=2)
+
+    def adren(d):
+        # a cracked heart, the crack glowing
+        heart(d, 6, 6, RED_D, RED)
+        d.line([(12, 6), (10, 10), (13, 12), (11, 17)], fill=GOLD, width=1)
+        for a, b in (((3, 3), (5, 5)), ((21, 3), (19, 5))):
+            d.line([a, b], fill=W_, width=1)
+
+    def wind(d):
+        # three gusts curling back on themselves
+        for y, w in ((6, 16), (12, 19), (18, 13)):
+            d.line([(3, y), (3 + w, y)], fill=SEA_L, width=2)
+            d.arc([w - 1, y - 4, w + 5, y + 2], 270, 90, fill=SEA_L, width=1)
+
+    def focus(d):
+        # a crosshair round a star
+        d.ellipse([3, 3, 21, 21], outline=GOLD_D, width=1)
+        for a, b in (((12, 1), (12, 6)), ((12, 18), (12, 23)), ((1, 12), (6, 12)), ((18, 12), (23, 12))):
+            d.line([a, b], fill=GOLD, width=1)
+        d.polygon([(12, 7), (13, 11), (17, 12), (13, 13), (12, 17), (11, 13), (7, 12), (11, 11)], fill=GOLD)
+
+    def bounty(d):
+        # a wanted poster with a skull
+        d.rectangle([4, 2, 20, 22], fill=hexc("e8d8a8") + (255,))
+        d.rectangle([7, 4, 17, 5], fill=BROWN)
+        d.ellipse([8, 8, 16, 15], fill=BLACK)
+        d.rectangle([10, 14, 14, 16], fill=BLACK)
+        d.point((10, 11), fill=W_)
+        d.point((14, 11), fill=W_)
+        d.rectangle([7, 18, 17, 19], fill=BROWN)
+
+    def rally(d):
+        # a raised hand pulling another up
+        d.rectangle([4, 12, 9, 20], fill=SKIN)
+        d.rectangle([15, 4, 20, 12], fill=SKIN)
+        d.rectangle([8, 11, 16, 14], fill=SKIN)
+        d.line([(12, 2), (12, 6)], fill=GOLD, width=1)
+        d.line([(2, 6), (5, 8)], fill=GOLD, width=1)
+
+    def treasure(d):
+        # a chest with a compass needle over it
+        d.rectangle([3, 11, 21, 21], fill=WOOD)
+        d.rectangle([3, 9, 21, 12], fill=BROWN)
+        d.rectangle([11, 12, 13, 15], fill=GOLD)
+        d.polygon([(12, 1), (14, 6), (12, 8), (10, 6)], fill=RED)
+
+    def last(d):
+        # a sword planted, one heart pip left
+        d.line([(12, 2), (12, 18)], fill=STEEL, width=2)
+        d.line([(8, 14), (16, 14)], fill=GOLD_D, width=2)
+        d.rectangle([11, 18, 13, 22], fill=WOOD)
+        heart(d, 15, 2, RED, W_)
+
+    def presence(d):
+        # a tricorn with rings spreading
+        d.arc([2, 4, 22, 22], 200, 340, fill=GOLD_D, width=1)
+        d.arc([5, 7, 19, 19], 200, 340, fill=GOLD, width=1)
+        d.polygon([(4, 18), (12, 11), (20, 18), (12, 16)], fill=BLACK)
+        d.rectangle([9, 13, 15, 16], fill=BLACK)
+
+    def learner(d):
+        # an open book with a spark
+        d.polygon([(2, 7), (12, 9), (12, 21), (2, 19)], fill=hexc("e8e0c8") + (255,))
+        d.polygon([(22, 7), (12, 9), (12, 21), (22, 19)], fill=hexc("d8d0b8") + (255,))
+        for y in (12, 15):
+            d.line([(4, y), (10, y + 1)], fill=STEEL_D, width=1)
+        d.polygon([(17, 1), (18, 4), (21, 5), (18, 6), (17, 9), (16, 6), (13, 5), (16, 4)], fill=GOLD)
+
+    def hide(d):
+        # a shield of studded hide
+        d.polygon([(4, 3), (20, 3), (20, 12), (12, 22), (4, 12)], fill=BROWN)
+        d.polygon([(6, 5), (18, 5), (18, 11), (12, 19), (6, 11)], outline=hexc("c08048") + (255,))
+        for x, y in ((8, 7), (16, 7), (12, 12), (9, 11), (15, 11)):
+            d.point((x, y), fill=STEEL)
+
+    def warlord(d):
+        # crossed blades under a crown
+        d.line([(4, 22), (18, 8)], fill=STEEL, width=2)
+        d.line([(20, 22), (6, 8)], fill=STEEL, width=2)
+        d.polygon([(6, 7), (6, 2), (9, 5), (12, 1), (15, 5), (18, 2), (18, 7)], fill=GOLD)
+
+    def legend(d):
+        # a laurel round a star
+        d.arc([2, 3, 22, 23], 100, 260, fill=GREEN, width=2)
+        d.arc([2, 3, 22, 23], 280, 80, fill=GREEN, width=2)
+        d.polygon([(12, 5), (14, 10), (19, 11), (15, 14), (16, 19), (12, 16), (8, 19), (9, 14), (5, 11), (10, 10)], fill=GOLD)
+
+    def reinforce(d):
+        # a figure wrapped in an aura's flame, its shoulders squared
+        d.polygon([(12, 0), (19, 8), (21, 16), (17, 23), (7, 23), (3, 16), (5, 8)], fill=VIOLET)
+        d.polygon([(12, 3), (17, 9), (18, 16), (15, 21), (9, 21), (6, 16), (7, 9)], fill=hexc("e0ccff") + (255,))
+        d.ellipse([10, 6, 14, 10], fill=BLACK)
+        d.rectangle([8, 11, 16, 17], fill=BLACK)
+        d.rectangle([9, 17, 11, 21], fill=BLACK)
+        d.rectangle([13, 17, 15, 21], fill=BLACK)
+
+    for name, fn in (("v_mend", mend), ("v_stomach", stomach), ("t_hands", hands), ("t_seadog", seadog),
+            ("v_adren", adren), ("t_wind", wind), ("c_focus", focus), ("t_bounty", bounty), ("t_rally", rally),
+            ("t_treasure", treasure), ("v_last", last), ("t_presence", presence), ("t_learner", learner),
+            ("t_hide", hide), ("t_warlord", warlord), ("t_legend", legend)):
+        _icon("skill_perk_" + name, fn)
+    _icon("skill_edy_reinforce", reinforce)
+
+
 def main():
+    if "perk_icons" in sys.argv[1:]:
+        gen_perk_icons()
+        return
     if "will_icons" in sys.argv[1:]:
         gen_will_icons()
         return
@@ -3009,6 +3171,7 @@ def main():
     gen_skill_icons()
     gen_technique_icons()
     gen_will_icons()
+    gen_perk_icons()
     gen_move_icons()
     gen_fruit_skins()
     gen_thornbrush()
