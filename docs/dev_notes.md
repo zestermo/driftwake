@@ -7469,3 +7469,19 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Tests: t/player/look_options (new; round trips, jaws narrower/wider, eyes paint differently, random rates and
   determinism, an old saved look); chartest. Render: `tools/dev/lookshot.gd` (new) faces ->
   tools/dev/out/looks/faces_{0..3}.png.
+## 2026-10-28 - 1.25 gear: the Bulwark set and three singles
+
+- **What:** six new wearable pieces, all cut from garments body_builder already has (no body changes). A piece's
+  style (its `icon_kind`: stats, weight, name, set) can now differ from the garment its look carries:
+  `Gear.SHAPE_OF` (style -> garment, used for its icon), `Gear.LOOKS` (style -> [slot, look]: the one place the
+  colourways live; shops, RARE_GEAR and PLUNDER index it in their consts), `Gear.NAMED_PIECES` (no colour or pattern
+  before the name). Saves already keep the style apart from the look (SaveGame.item_ref), so nothing else changed.
+- **Bulwark set** (heavy, front rank; `GearStats.SETS["bulwark"]`): Bulwark Helm (helm, steel), Bulwark Brigandine
+  (brigandine in oxblood), Bulwark Gauntlets (gauntlets over oxblood leather). All three: +20% block (cheaper guard)
+  and +8 stamina on a parry (`parry_stamina`, flat). No defence in the bonus, so the heavy cap stands (a full gold heavy
+  kit with it: 0.50 reduction). Sold by Vey's armoury (green) and village armourers; plundered at sea; the brigandine
+  is a treasure merchant's rare piece.
+- **Singles:** Bosun's Coat (navy longcoat with white piping, medium; Sela's green, plunder, treasure merchants),
+  Powder Belt (belt and sash, +5% reload), Shark's Tooth (necklace, +8% swim speed, its own icon); Sela's pool.
+- Tests: t/gear/new_pieces (new); t/gear, t/items, t/economy green. Render: tools/dev/out/gear125_front.png
+  (modelshot of `S.dressed(Gear.LOOKS...)`).

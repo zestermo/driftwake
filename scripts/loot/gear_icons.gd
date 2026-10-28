@@ -30,7 +30,7 @@ static func icon(it: ItemData) -> Texture2D:
 		return _cache[key]
 	var img := Image.create(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	for layer in _shapes(it.icon_kind, it.look):
+	for layer in _shapes(str(Gear.SHAPE_OF.get(it.icon_kind, it.icon_kind)), it.look):
 		var col: Color = main
 		match str(layer[0]):
 			"b": col = second
@@ -68,7 +68,7 @@ static func _main_color(it: ItemData) -> Color:
 		"pauldron": return STEEL
 		"pouch", "bandolier", "goggles", "baldric": return LEATHER
 		"spyglass": return Color(0.82, 0.66, 0.3)
-		"necklace": return Color(0.92, 0.88, 0.76)
+		"necklace", "shark_tooth": return Color(0.92, 0.88, 0.76)
 	return Color(0.7, 0.7, 0.7)
 
 
@@ -269,6 +269,11 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 				var y := 8 + (2 if i in [1, 3] else (4 if i == 2 else 0))
 				layers.append(["m", [Vector2(x, y), Vector2(x + 2, y), Vector2(x + 1, y + 6)]])
 			return layers
+		"shark_tooth":
+			return [["k", [Vector2(2, 3), Vector2(4, 3), Vector2(12, 9), Vector2(20, 3), Vector2(22, 3), Vector2(12, 11)]],
+				["w", [Vector2(10, 9), Vector2(14, 9), Vector2(14, 12), Vector2(10, 12)]],
+				["m", [Vector2(7, 12), Vector2(17, 12), Vector2(15, 16), Vector2(12, 22), Vector2(9, 16)]],
+				["d", [Vector2(12, 13), Vector2(17, 12), Vector2(15, 16), Vector2(12, 22)]]]
 		"goggles":
 			return [["m", [Vector2(1, 9), Vector2(23, 9), Vector2(23, 13), Vector2(1, 13)]],
 				["g", [Vector2(3, 7), Vector2(11, 7), Vector2(11, 15), Vector2(3, 15)]],

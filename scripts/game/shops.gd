@@ -97,7 +97,10 @@ const SHOPS := {
 			["vest", "harness", {"vest": "harness", "vest_color": Color(0.24, 0.15, 0.09)}, 0, 35],
 			["legs", "slops", {"legs": "slops", "legs_color": Color(0.82, 0.76, 0.62)}, 0, 22],
 			["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.1, 0.08, 0.07)}, 1, 95],
-			["accessory", "baldric", {"baldric": true}, 1, 55]],
+			["accessory", "baldric", {"baldric": true}, 1, 55],
+			["coat", "bosun_coat", Gear.LOOKS["bosun_coat"][1], 1],
+			["belt", "powder_belt", Gear.LOOKS["powder_belt"][1], 0],
+			["accessory", "shark_tooth", Gear.LOOKS["shark_tooth"][1], 0]],
 		"buys": {"gear": 0.6},
 	},
 	"ida": {
@@ -118,7 +121,10 @@ const SHOPS := {
 			["feet", "greaves", {"feet": "greaves", "feet_color": Color(0.1, 0.08, 0.07)}, 1, 150],
 			["head", "coif", {"hat": "coif"}, 0, 85],
 			["vest", "scale", {"vest": "scale", "vest_color": Color(0.24, 0.15, 0.09)}, 1, 170],
-			["head", "helm", {"hat": "helm"}, 1, 150]],
+			["head", "helm", {"hat": "helm"}, 1, 150],
+			["head", "bulwark_helm", Gear.LOOKS["bulwark_helm"][1], 1],
+			["vest", "bulwark_brigandine", Gear.LOOKS["bulwark_brigandine"][1], 1],
+			["hands", "bulwark_gauntlets", Gear.LOOKS["bulwark_gauntlets"][1], 1]],
 		"buys": {"gear": 0.5},
 	},
 }
@@ -141,6 +147,8 @@ const RARE_GEAR := [
 	["vest", "cuirass", {"vest": "cuirass", "vest_color": Color(0.7, 0.6, 0.3)}],
 	["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.24, 0.12, 0.08)}],
 	["accessory", "cloak", {"cloak": true, "cloak_color": Color(0.3, 0.08, 0.1)}],
+	["coat", "bosun_coat", Gear.LOOKS["bosun_coat"][1]],
+	["vest", "bulwark_brigandine", Gear.LOOKS["bulwark_brigandine"][1]],
 ]
 const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword", "longgun", "cannon", "slingshot"]
 ## The chance a treasure merchant also has a piece of rare gear on a given day.

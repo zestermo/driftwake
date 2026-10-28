@@ -39,7 +39,25 @@ const ACC_TATTER := {"cape": "cape_tatter", "cloak": "cloak_tatter"}
 ## Tailors' skins (1.24): a pattern woven into a piece's cloth ("<slot>_pattern": BodyBuilder._cloth), named first.
 const PATTERN_NAMES := {"stripes": "Striped", "check": "Check", "brocade": "Brocade", "patched": "Patched"}
 ## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
-const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm"]
+const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm",
+	"bulwark_helm", "bulwark_gauntlets"]
+## (1.25) Pieces cut from another style's garment: style -> the garment it's drawn as (its look carries that garment;
+## its icon is that garment's). Their stats, names and sets go by their own style.
+const SHAPE_OF := {
+	"bulwark_helm": "helm", "bulwark_brigandine": "brigandine", "bulwark_gauntlets": "gauntlets",
+	"bosun_coat": "longcoat", "powder_belt": "belt_sash",
+}
+## Named plainly, with no colour or pattern before it (a set's pieces).
+const NAMED_PIECES := ["bulwark_brigandine", "bosun_coat"]
+## (1.25) The new pieces' looks, as the shops, the treasure merchants and plunder make them.
+const LOOKS := {
+	"bulwark_helm": ["head", {"hat": "helm"}],
+	"bulwark_brigandine": ["vest", {"vest": "brigandine", "vest_color": Color(0.36, 0.12, 0.1)}],
+	"bulwark_gauntlets": ["hands", {"gloves": true, "gloves_color": Color(0.36, 0.12, 0.1), "gauntlets": true}],
+	"bosun_coat": ["coat", {"coat": "longcoat", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.92, 0.9, 0.84)}],
+	"powder_belt": ["belt", {"belt": "belt_sash", "belt_color": Color(0.1, 0.08, 0.07), "sash_color": Color(0.28, 0.28, 0.3)}],
+	"shark_tooth": ["accessory", {"necklace": true}],
+}
 
 const NAMES := {
 	"tricorn": "Tricorn", "bicorne": "Bicorne", "bandana": "Bandana", "cap": "Sailor's Cap",
@@ -69,6 +87,8 @@ const NAMES := {
 	"slouch": "Slouch Hat", "helm": "Boarding Helm", "striped": "Striped Shirt", "harness": "Leather Harness",
 	"admiral": "Admiral's Coat", "slops": "Slops", "cavalier_boots": "Cavalier Boots", "baldric": "Sword Baldric", "spyglass": "Spyglass",
 	"cloak": "Cloak",
+	"bulwark_helm": "Bulwark Helm", "bulwark_brigandine": "Bulwark Brigandine", "bulwark_gauntlets": "Bulwark Gauntlets",
+	"bosun_coat": "Bosun's Coat", "powder_belt": "Powder Belt", "shark_tooth": "Shark's Tooth",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -147,6 +167,12 @@ const DESCRIPTIONS := {
 	"cavalier_boots": "Tall boots turned down in a wide bucket cuff, a gilt buckle over the instep. For the deck and the duel.",
 	"baldric": "A broad strap from shoulder to hip, a gilt buckle on the chest. It carries the sword and the look.",
 	"spyglass": "A brass spyglass tucked in the belt. Sails on the horizon are a lot less surprising.",
+	"bulwark_helm": "A boarding helm with its plates doubled. Made for the man who goes over the rail first and holds the gap.",
+	"bulwark_brigandine": "Oxblood leather over close-set steel plates. The front rank's coat: it means to be hit.",
+	"bulwark_gauntlets": "Plate over oxblood leather, the knuckles ridged. A guard that doesn't give.",
+	"bosun_coat": "A long navy coat with white piping and a whistle on a lanyard. Every hand on deck knows who's wearing it.",
+	"powder_belt": "A belt hung with powder flasks and a priming horn over a grey sash. Reloading is half the fight.",
+	"shark_tooth": "One great tooth on a cord. Sailors swear the sea gives back a man who wears it.",
 }
 const DEFENSE := {
 	"tricorn": 2.0, "bicorne": 2.0, "bandana": 1.0, "cap": 1.0, "knit": 1.0, "straw": 0.0, "hood": 1.0,
@@ -174,6 +200,8 @@ const DEFENSE := {
 	"slouch": 2.0, "helm": 5.0, "striped": 1.0, "harness": 2.0, "admiral": 6.0, "slops": 2.0, "cavalier_boots": 3.0,
 	"baldric": 1.0, "spyglass": 1.0,
 	"cloak": 2.0,
+	"bulwark_helm": 5.0, "bulwark_brigandine": 5.0, "bulwark_gauntlets": 3.0, "bosun_coat": 4.0,
+	"powder_belt": 1.0, "shark_tooth": 0.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -214,6 +242,11 @@ const PLUNDER := [
 	["head", "slouch", {"hat": "slouch", "hat_color": Color(0.1, 0.09, 0.09)}],
 	["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.36, 0.12, 0.1)}],
 	["accessory", "spyglass", {"spyglass": true}],
+	["head", "bulwark_helm", LOOKS["bulwark_helm"][1]],
+	["vest", "bulwark_brigandine", LOOKS["bulwark_brigandine"][1]],
+	["hands", "bulwark_gauntlets", LOOKS["bulwark_gauntlets"][1]],
+	["coat", "bosun_coat", LOOKS["bosun_coat"][1]],
+	["accessory", "shark_tooth", LOOKS["shark_tooth"][1]],
 ]
 
 
@@ -269,9 +302,9 @@ static func make(kind: String, style: String, look: Dictionary, display: String 
 		if kind == "torso" and style == "shirt":
 			nm = {"long": "Shirt", "short": "Short-sleeved Shirt", "none": "Sleeveless Shirt"}.get(str(look.get("sleeves", "long")), "Shirt")
 		var ck := _main_color_key(kind, style)
-		if ck != "" and look.has(ck) and style != "straw" and not style in STEEL_PIECES:
+		if ck != "" and look.has(ck) and style != "straw" and not style in STEEL_PIECES and not style in NAMED_PIECES:
 			nm = color_name(look[ck]) + " " + nm
-		var pat := str(look.get(ck.trim_suffix("_color") + "_pattern", "")) if ck != "" else ""
+		var pat := str(look.get(ck.trim_suffix("_color") + "_pattern", "")) if ck != "" and not style in NAMED_PIECES else ""
 		if pat != "":
 			nm = str(PATTERN_NAMES[pat]) + " " + nm
 	it.display_name = nm

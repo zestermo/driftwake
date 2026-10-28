@@ -25,6 +25,8 @@ const WEIGHT := {
 	"boots": MEDIUM, "tall_boots": MEDIUM, "cavalier_boots": MEDIUM, "greaves": HEAVY, "sabatons": HEAVY,
 	"wide_belt": MEDIUM,
 	"mantle": MEDIUM, "cloak": MEDIUM, "pauldron": HEAVY,
+	"bulwark_helm": HEAVY, "bulwark_brigandine": HEAVY, "bulwark_gauntlets": HEAVY,
+	"bosun_coat": MEDIUM,
 }
 
 ## Slot row -> [light, medium, heavy] stats (the approved table). Vests share the torso's row, feet the legs'.
@@ -45,6 +47,7 @@ const TRAITS := {
 	"necklace": {"damage_pct": 0.02}, "goggles": {"breath_pct": 0.10}, "mantle": {"stamina_regen_pct": 0.05},
 	"baldric": {"attack_speed_pct": 0.03}, "spyglass": {"xp_pct": 0.03},
 	"belt": {"max_stamina": 3.0}, "sash": {"max_stamina": 5.0}, "belt_sash": {"max_stamina": 4.0}, "wide_belt": {"defense": 4.0},
+	"powder_belt": {"reload_pct": 0.05}, "shark_tooth": {"swim_pct": 0.08},
 }
 
 ## Purple and up: the second stat, rolled from these (one the piece hasn't got).
@@ -59,16 +62,19 @@ const RARITY_SCALE := [1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.3]
 const SETS := {
 	"admiralty": {"name": "Admiralty set", "pieces": ["bicorne", "admiral", "cavalier_boots"], "bonus": {"vs_admiralty_pct": 0.10}},
 	"corsair": {"name": "Corsair set", "pieces": ["tricorn", "captain", "tall_boots"], "bonus": {"air_jumps": 1.0}},
+	# (1.25) heavy, for the front rank: a cheaper guard and stamina back on a parry (no defence: the heavy cap stands)
+	"bulwark": {"name": "Bulwark set", "pieces": ["bulwark_helm", "bulwark_brigandine", "bulwark_gauntlets"], "bonus": {"block_cost_pct": 0.2, "parry_stamina": 8.0}},
 }
 
 ## Flat stats (the rest are fractions shown as percentages).
-const FLAT := ["defense", "max_stamina", "air_jumps"]
+const FLAT := ["defense", "max_stamina", "air_jumps", "parry_stamina"]
 const LABELS := {
 	"crit_all": "crit", "defense": "defence", "stamina_regen_pct": "stamina regen", "max_stamina": "max stamina",
 	"damage_pct": "damage", "poise_pct": "poise", "energy_regen_pct": "energy regen", "swim_pct": "swim speed",
 	"move_pct": "move speed", "attack_speed_pct": "attack speed", "block_cost_pct": "block", "dodge_dist_pct": "dodge distance",
 	"gold_pct": "gold", "use_speed_pct": "item use speed", "regen_pct": "health regen", "reload_pct": "reload speed",
 	"breath_pct": "breath", "xp_pct": "experience", "vs_admiralty_pct": "damage vs the Admiralty", "air_jumps": "air step",
+	"parry_stamina": "stamina on a parry",
 }
 
 ## The load (what all of it weighs: a medium piece 1, a heavy 2): light at 0 (nothing but cloth), heavy from
