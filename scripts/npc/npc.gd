@@ -126,6 +126,7 @@ func _quest_mark(delta: float, dist: float) -> void:
 	if _mark_t > 0.0:
 		return
 	_mark_t = 1.0
+	_vendor_mark(dist)
 	var j := get_node_or_null("/root/Journal")
 	var m: String = j.marker_for(npc_name) if j and dist < MARK_R else ""
 	if m == "" and _mark == null:
@@ -146,6 +147,37 @@ func _quest_mark(delta: float, dist: float) -> void:
 		add_child(_mark)
 	_mark.text = m
 	_mark.visible = m != "" and not _in_dialogue
+	# (a vendor's badge sits where the mark would: the mark goes over it)
+	_mark.position.y = name_tag.position.y + (0.95 if _vendor and _vendor.visible else 0.45)
+
+
+## A vendor's badge over their head (VendorMarks: their trade's sign) within SHOW_R, and their place on the held map,
+## kept up to date once a second with the quest mark.
+var _vendor: Node3D
+## The shop they sell from ("" none; "?" not looked up yet): their own, or one their talk opens.
+var _sells := "?"
+
+
+func _vendor_mark(dist: float) -> void:
+	if _sells == "?":
+		_sells = VendorMarks.shop_of(self)
+	if _sells == "":
+		return
+	if _vendor == null:
+		_vendor = VendorMarks.make_badge(_sells)
+		_vendor.position = name_tag.position + Vector3(0, 0.55, 0)
+		add_child(_vendor)
+	_vendor.visible = dist < VendorMarks.SHOW_R and not _in_dialogue
+	VendorMarks.map_put(_map_key(), global_position, _sells)
+
+
+func _map_key() -> String:
+	return "vendor:%s:%s" % [_sells, npc_name]
+
+
+func _exit_tree() -> void:
+	if _sells != "" and _sells != "?":
+		MapMarks.clear(_map_key())
 
 
 func _short_name() -> String:

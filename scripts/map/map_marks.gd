@@ -3,10 +3,11 @@ extends RefCounted
 ## Marks other systems put on the held map (the tracked quest's goal, ...), on this screen only: call it
 ## on every machine that should show one. Drawn on the island page and on the sea chart (pinned to the
 ## chart's edge off it), in ink by kind:
-##   "quest" - a red ring round a star (the tracked quest), "spot" - a small ring, "x" - an X.
+##   "quest" - a red ring round a star (the tracked quest), "spot" - a small ring, "x" - an X, "shop" - a vendor's
+##   gold badge with their trade's sign (VendorMarks; no label, it'd crowd a town).
 ## MapMarks.put("quest", world_position, "quest", "Find Morrow's ring"); MapMarks.clear("quest").
 
-const KINDS := ["quest", "spot", "x"]
+const KINDS := ["quest", "spot", "x", "shop"]
 ## id -> {"at": Vector2 (world x/z), "kind", "label"}
 static var marks := {}
 
@@ -49,5 +50,11 @@ static func draw_all(ci: CanvasItem, to_page: Callable, font: Font) -> void:
 			"x":
 				ci.draw_line(c + Vector2(-4, -4), c + Vector2(4, 4), red, 2.0)
 				ci.draw_line(c + Vector2(-4, 4), c + Vector2(4, -4), red, 2.0)
+			"shop":
+				ci.draw_texture_rect(VendorMarks.badge(), Rect2(c - Vector2(7, 7), Vector2(14, 14)), false)
+				var sg := VendorMarks.sign_for(str(m.get("trade", "")))
+				if sg:
+					ci.draw_texture_rect(sg, Rect2(c - Vector2(5, 5), Vector2(10, 10)), false)
+				continue
 		if str(m["label"]) != "":
 			ci.draw_string(font, c + Vector2(9, 3), str(m["label"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, red)
