@@ -798,8 +798,22 @@
 		},
 		{
 			"v": "1.25",
-			"name": "Strongholds and Driftfruits",
+			"name": "Edy",
 			"status": "building",
+			"headline": "The force behind the Will paths gets a name and a shape: your Edy read by a master, auras that flare when it matters, a cleaner Captain page, and more to wear, play and look like.",
+			"img": "clips/combo",
+			"alt": "A twin-dagger combo in a jungle clearing (current build)",
+			"plan": [
+				["Edy", "Five types read at Brinehollow's teahouse, each a colour, an aura and a small edge."],
+				["Infuse and Reinforce", "Coat and Hardening reworked: Edy into the blade, or through the whole body."],
+				["The Captain page", "Edy paths and perks on one page, and pips that show you what's waiting."],
+				["More of everything", "New instruments and songs, gear and weapons, faces, eyes and hair."]
+			]
+		},
+		{
+			"v": "1.26",
+			"name": "Strongholds and Driftfruits",
+			"status": "planned",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",
