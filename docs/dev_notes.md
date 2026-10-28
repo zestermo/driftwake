@@ -7491,3 +7491,16 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   bar 1's D, so the loop turns over the bar line. Bodhran on 1 and 3 with a ghost before 4, the gurdy's dog
   doubled on the last eighth. Stems for all six at the usual levels (-20, bodhran -22, banjo -21), seams <= 0.0054,
   1.61 MB. `Instruments.TUNES` row `["wake", "Roll the Wake Down", 4, 32, 2]`. Render: `gen_psx_music.py jam wake`.
+
+## 2026-10-28 - 1.25 weapons: four new designs
+
+- **What** (`WeaponDesigns.DESIGNS`, numbers only beyond the harpoon's head): Sharkfin Cutlass (cutlass: broad,
+  clipped back like a fin, sharkskin grip; x1.06), Marlinspike (dagger: a rigger's iron spike, no guard, pale wood
+  grip; x0.97, cheap), Whaler's Harpoon (polearm: a new "harpoon" head in `_polearm`, an iron shank, a pointed head
+  with two barbs swept back and a coil of line at the socket; x1.06, reach 1.08, speed 0.96), Musketoon (long gun: a
+  short brass barrel with a modest flare; 4 pellets in a 0.1 rad cone, range 0.55, reload 0.9; between the carbine and
+  the blunderbuss).
+- **Where they turn up:** every design is in `item_ids`, so chests, encounters, enemy ships' prizes and the treasure
+  merchants roll them by kind; Haldor's forge pool (and so village smiths) has all four (the harpoon green).
+- Tests: t/weapons/new_designs (new); polearm_loot and long_gun_loot's design lists updated (seven each). Renders:
+  tools/dev/out/weapons125_side.png, harpoon125_side.png.

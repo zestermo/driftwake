@@ -1,11 +1,11 @@
 extends SceneTree
 ## Long guns are found and sold like cutlasses: every design is an item (sea musket, long rifle, blunderbuss, boarding
-## carbine, double fowler, jezail) with its model and icon; the jezail is the rarest roll; the islands' chest pools and
+## carbine, double fowler, jezail, musketoon) with its model and icon; the jezail is the rarest roll; the islands' chest pools and
 ## the encounters' loot list the musket (and a chest's long gun never becomes a greatsword, though now and then a
 ## cannon); Haldor's forge, the treasure
 ## merchants and the Shift+F10 rack carry them; a purple one rolls a trait long guns can have; the bag shows its range.
 const TK := preload("res://tools/dev/test_kit.gd")
-const DESIGNS := ["musket", "long_rifle", "blunderbuss", "boarding_carbine", "fowling_piece", "jezail"]
+const DESIGNS := ["musket", "long_rifle", "blunderbuss", "boarding_carbine", "fowling_piece", "jezail", "musketoon"]
 var stage
 var step := 0
 var until := 0
@@ -32,7 +32,7 @@ func _process(_d: float) -> bool:
 		var it = ItemDB.get_item(id)
 		ok = ok and it != null and it.weapon_model == "longgun" and it.icon != null and Props.weapon_mesh(it.model()).get_meta("model", "") == it.model()
 	check("every long gun design is an item with its model and icon", ok)
-	check("the ids are the six designs %s" % str(WD.item_ids("longgun")), WD.item_ids("longgun").size() == 6 and DESIGNS.all(func(x): return x in WD.item_ids("longgun")))
+	check("the ids are the seven designs %s" % str(WD.item_ids("longgun")), WD.item_ids("longgun").size() == 7 and DESIGNS.all(func(x): return x in WD.item_ids("longgun")))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var seen := {}
@@ -41,7 +41,7 @@ func _process(_d: float) -> bool:
 		seen[id] = int(seen.get(id, 0)) + 1
 	print("   rolled: %s" % str(seen))
 	check("every design turns up, the jezail the rarest (%d against the musket's %d)" % [seen.get("jezail", 0), seen.get("musket", 0)],
-		seen.size() == 6 and seen["jezail"] * 2 < seen["musket"])
+		seen.size() == 7 and seen["jezail"] * 2 < seen["musket"])
 	check("the islands' chests and the encounters list the musket", "musket" in load("res://scripts/island/island_content.gd").LOOT_WEAPONS
 		and "musket" in load("res://scripts/quests/island_encounters.gd").LOOT)
 	var found := 0

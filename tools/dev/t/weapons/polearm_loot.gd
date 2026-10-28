@@ -1,9 +1,9 @@
 extends SceneTree
-## Polearms are found and sold: every design is an item (spear, trident, naginata, bisento, halberd, pitchfork) with
+## Polearms are found and sold: every design is an item (spear, trident, naginata, bisento, halberd, pitchfork, harpoon) with
 ## its model and icon; the loot pools, Haldor's forge and the treasure merchants' kinds carry them; a rolled one is
 ## mostly common designs with the bisento rarer; a purple one rolls a trait (1.22: loot traits from purple up) polearms can have.
 const TK := preload("res://tools/dev/test_kit.gd")
-const DESIGNS := ["spear", "trident", "naginata", "bisento", "halberd", "pitchfork"]
+const DESIGNS := ["spear", "trident", "naginata", "bisento", "halberd", "pitchfork", "whalers_harpoon"]
 var stage
 var step := 0
 var until := 0
@@ -30,7 +30,7 @@ func _process(_d: float) -> bool:
 		var it = ItemDB.get_item(id)
 		ok = ok and it != null and it.weapon_model == "polearm" and it.icon != null and Props.weapon_mesh(it.model()).get_meta("model", "") == it.model()
 	check("every polearm design is an item with its model and icon", ok)
-	check("the ids are the six designs %s" % str(WD.item_ids("polearm")), WD.item_ids("polearm").size() == 6 and DESIGNS.all(func(x): return x in WD.item_ids("polearm")))
+	check("the ids are the seven designs %s" % str(WD.item_ids("polearm")), WD.item_ids("polearm").size() == 7 and DESIGNS.all(func(x): return x in WD.item_ids("polearm")))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var seen := {}
@@ -38,7 +38,7 @@ func _process(_d: float) -> bool:
 		var id: String = WD.pick_id("polearm", rng)
 		seen[id] = int(seen.get(id, 0)) + 1
 	print("   rolled: %s" % str(seen))
-	check("every design turns up", seen.size() == 6)
+	check("every design turns up", seen.size() == 7)
 	check("the bisento is the rarest (%d against the spear's %d)" % [seen["bisento"], seen["spear"]], seen["bisento"] * 2 < seen["spear"])
 	check("a cutlass rolls as it always did (one draw)", WD.pick_id("cutlass", rng) in WD.item_ids("cutlass"))
 	check("in the islands' loot and the encounters' and the treasure merchants' kinds",

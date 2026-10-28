@@ -37,6 +37,9 @@ const DESIGNS := {
 		"dao": {"id": "dao", "name": "Dao", "desc": "A broad single-edged sabre from far-off waters, a red tassel at the ring.",
 			"dmg": 1.05, "worth": 1.6, "len": 0.46, "tip": 0.24, "w": 0.07, "taper": 1.3, "curve": 0.3, "guard": "disc",
 			"fit": Color(1.0, 0.78, 0.4), "grip": Color(0.14, 0.12, 0.12), "grip_tex": "fabric", "pommel": "ring", "tassel": Color(0.8, 0.12, 0.1)},
+		"sharkfin": {"id": "sharkfin_cutlass", "name": "Sharkfin Cutlass", "desc": "A broad blade whose clipped back rises like a fin, its grip bound in sharkskin. Heavy at the point; it bites deep.",
+			"dmg": 1.06, "worth": 1.5, "len": 0.5, "tip": 0.22, "w": 0.085, "taper": 1.3, "curve": 0.28, "clip": true,
+			"fit": Color(0.34, 0.34, 0.36), "grip": Color(0.5, 0.56, 0.6), "grip_tex": "fabric", "pommel": "cap"},
 		# (unique: only the brood queen's hoard has it)
 		"chitin": {"id": "queens_fang", "name": "Queen's Fang", "desc": "A blade of the brood queen's own chitin, its edge still weeping venom. Every cut poisons.",
 			"dmg": 1.15, "worth": 3.0, "len": 0.5, "tip": 0.34, "w": 0.08, "taper": 1.25, "curve": 0.45, "guard": "cross", "guard_size": 0.17,
@@ -118,6 +121,9 @@ const DESIGNS := {
 		"sharktooth": {"id": "sharktooth_knife", "name": "Sharktooth Knife", "desc": "A bone grip and a blade set with shark's teeth. It doesn't cut, it tears.",
 			"dmg": 1.08, "worth": 1.3, "len": 0.2, "tip": 0.07, "w": 0.046, "taper": 0.85, "teeth": true, "guard": "none",
 			"fit": Color(0.9, 0.86, 0.74), "grip": Color(0.95, 0.9, 0.78), "grip_tex": "bark", "pommel": "cap"},
+		"marlinspike": {"id": "marlinspike", "name": "Marlinspike", "desc": "A rigger's iron spike for splicing rope, a ring at its head. In a crowd below decks it goes where a blade won't.",
+			"dmg": 0.97, "worth": 0.8, "len": 0.25, "tip": 0.06, "w": 0.022, "th": 0.022, "taper": 0.3, "guard": "none",
+			"blade": Color(0.62, 0.6, 0.58), "fit": Color(0.42, 0.4, 0.38), "grip": Color(0.74, 0.6, 0.42), "grip_tex": "planks", "pommel": "ball"},
 		"jewelled": {"id": "jewelled_dirk", "name": "Jewelled Dirk", "desc": "A sailor's dirk with a gilt guard and a grip bound in violet silk. Worth more than the man carrying it.",
 			"dmg": 1.0, "worth": 2.2, "fit": Color(1.15, 0.9, 0.4), "grip": Color(0.4, 0.18, 0.5), "grip_tex": "fabric", "skin": true},
 	},
@@ -137,6 +143,9 @@ const DESIGNS := {
 			"dmg": 1.12, "worth": 1.8, "head": "halberd", "speed": 0.92, "reach": 1.05, "fit": Color(0.55, 0.55, 0.58), "wood": Color(0.36, 0.25, 0.16)},
 		"pitchfork": {"id": "pitchfork", "name": "Pitchfork", "desc": "A farmer's fork, three tines and an ash handle. It's held a village gate before.",
 			"dmg": 0.88, "worth": 0.5, "head": "fork", "reach": 0.95, "fit": Color(0.45, 0.42, 0.4), "wood": Color(0.72, 0.56, 0.38)},
+		"harpoon": {"id": "whalers_harpoon", "name": "Whaler's Harpoon", "desc": "A barbed iron head on a long shank, a coil of line lashed below it. Built to reach a whale; a man is easier.",
+			"dmg": 1.06, "worth": 1.5, "head": "harpoon", "reach": 1.08, "speed": 0.96, "fit": Color(0.4, 0.39, 0.38), "wood": Color(0.32, 0.24, 0.17),
+			"line": Color(0.78, 0.68, 0.48)},
 		"lacquered": {"id": "lacquered_spear", "name": "Lacquered Spear", "desc": "A boarding spear on a shaft lacquered oxblood red, its socket in brass.",
 			"dmg": 1.0, "worth": 2.0, "wood": Color(0.42, 0.08, 0.08), "fit": Color(1.0, 0.78, 0.4), "skin": true},
 	},
@@ -198,6 +207,9 @@ const DESIGNS := {
 		"fowler": {"id": "fowling_piece", "name": "Double Fowler", "desc": "Two long barrels side by side. Two loads of birdshot before you need the ramrod.",
 			"dmg": 0.9, "worth": 1.6, "barrel": 0.95, "barrels": 2, "r": 0.015, "shots": 2, "spread": 4, "cone": 0.07, "range": 0.65,
 			"wood": Color(0.66, 0.44, 0.26)},
+		"musketoon": {"id": "musketoon", "name": "Musketoon", "desc": "A short brass-barrelled gun with a modest flare. Less spread than a blunderbuss, more reach, and quick to swing across a deck.",
+			"dmg": 0.96, "worth": 1.3, "barrel": 0.82, "r": 0.019, "flare": 0.038, "brass_barrel": true, "spread": 4, "cone": 0.1, "range": 0.55,
+			"reload": 0.9, "wood": Color(0.44, 0.27, 0.15)},
 		# (rare: kept a third of the times it's rolled)
 		"jezail": {"id": "jezail", "name": "Jezail", "desc": "A mountain gun with a barrel as long as a man, its curved stock inlaid with bone. Patient, and it never misses twice.",
 			"dmg": 1.24, "worth": 2.4, "barrel": 1.3, "range": 1.45, "reload": 1.25, "curve": true, "rare": true,
@@ -700,6 +712,16 @@ static func _polearm(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.35), Vector3(0, -0.17, h - 0.05)), Vector3(0.02, 0.06, 0.12), 2.0)
 			mb.add_box(edge, Transform3D(Basis(), Vector3(0, -0.19, h - 0.1)), Vector3(0.016, 0.022, 0.26), 2.0)
 			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 0.08, h - 0.06)), Vector3(0.02, 0.14, 0.03), 2.0)
+		"harpoon":
+			# an iron shank, a flat arrowhead with two barbs swept back, and the line coiled round the socket
+			mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, h + 0.01)), 0.011, 0.011, 0.3, 6, 2.0)
+			var tip := h - 0.29
+			_blade(mb, m, Vector3(0, 0, tip), 0.08, 0.075, 0.016, 0.0, 0.45, 2, false)
+			for s in [-1.0, 1.0]:
+				mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -s * 0.6), Vector3(0, s * 0.052, tip + 0.03)), Vector3(0.014, 0.016, 0.08), 2.0)
+			var line := PSXMat.lit("fabric", _c(p, "line", Color(0.78, 0.68, 0.48)))
+			for k in range(3):
+				mb.add_cylinder(line, Transform3D(along, Vector3(0, 0, z0 + 0.3 - k * 0.035)), 0.034, 0.034, 0.03, 6, 2.0)
 		"fork":
 			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, h)), Vector3(0.028, 0.17, 0.026), 2.0)
 			for y in [-0.07, 0.0, 0.07]:
