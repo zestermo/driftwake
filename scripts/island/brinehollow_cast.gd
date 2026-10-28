@@ -268,7 +268,7 @@ static func corin() -> Dictionary:
 	return {
 		"name": "Corin", "voice": 1.08, "shop": "corin",
 		"barks": [
-			"Whistle, drum, squeezebox, fiddle. The hurdy-gurdy's for people who hate their neighbours.",
+			"Whistle, drum, squeezebox, fiddle, banjo. The hurdy-gurdy's for people who hate their neighbours.",
 			"Every crew needs a tune at the capstan. Haul to the beat and the anchor weighs half.",
 			"Gus used to sell these behind the bar. Kept getting rum in the bellows. So now there's me.",
 			"Play it badly in a tavern and they'll pay you to stop. That's still getting paid.",

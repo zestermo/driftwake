@@ -521,6 +521,7 @@ const SPECS := {
 	"music_whistle": {"len": 0.35, "stance": "sword", "weapon": ""},
 	"music_bodhran": {"len": 0.35, "stance": "sword", "weapon": ""},
 	"music_gurdy": {"len": 0.35, "stance": "sword", "weapon": ""},
+	"music_banjo": {"len": 0.35, "stance": "sword", "weapon": ""},
 	# --- talk and interact gestures (EmotePoses) ---
 	"gesture_talk_a": {"len": 1.4, "stance": "sword", "weapon": ""},
 	"gesture_talk_b": {"len": 1.6, "stance": "sword", "weapon": ""},

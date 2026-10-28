@@ -2,7 +2,7 @@ class_name Instruments
 extends RefCounted
 ## The captains' instruments: items (gear for the equipment slot, one carried at a time; the look key
 ## "instrument" names the kind, so crewmates' screens know it too), their models (built in code, held
-## and played by Jam) and their icons. Nobody starts with one: Corin's music shop on Brinehollow's market street sells all five, a chain
+## and played by Jam) and their icons. Nobody starts with one: Corin's music shop on Brinehollow's market street sells them all, a chain
 ## island's trader sometimes has one (trader_stock). The tunes they play are gen_psx_music.py's JAM_TUNES.
 
 ## kind -> [item id, name, price at a shop, worth, description]
@@ -12,8 +12,9 @@ const ITEMS := {
 	"whistle": ["tin_whistle", "Tin Whistle", 35, 14, "A brass whistle with six holes. It fits in the belt and carries over a gale."],
 	"bodhran": ["bodhran", "Bodhran", 60, 24, "A goatskin frame drum and its tipper. Keeps the crew in time at the capstan."],
 	"gurdy": ["hurdy_gurdy", "Hurdy-Gurdy", 175, 70, "A wheel, a crank, a box of keys and strings that drone like a hive. Nobody sleeps through it."],
+	"banjo": ["banjo", "Banjo", 120, 48, "Five steel strings over a drum head. Bright enough to cut through a crowded deck, quick enough to keep up with the fiddle."],
 }
-const KINDS := ["concertina", "fiddle", "whistle", "bodhran", "gurdy"]
+const KINDS := ["concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo"]
 ## [id, title, beats in a bar, bars, sub-beats (strokes a beat)]: the stems res://assets/audio/jam/<id>_<kind>.ogg.
 const TUNES := [["lass", "The Brinehollow Lass", 2, 32, 3], ["haul", "Haul Away the Morrow", 4, 16, 2],
 	["bell", "The Drowned Bell", 3, 32, 2], ["rum", "Rum and Rigging", 2, 32, 2]]
@@ -31,7 +32,7 @@ static func item_id(kind: String) -> String:
 	return str(ITEMS[kind][0])
 
 
-## (ItemDB._load_all) the five instruments into the item table.
+## (ItemDB._load_all) the instruments into the item table.
 static func make_items(items: Dictionary) -> void:
 	for kind in KINDS:
 		var e: Array = ITEMS[kind]
@@ -84,6 +85,7 @@ static func tune_path(tune: int, kind: String) -> String:
 #   whistle: mouthpiece at the origin, foot along -Z, holes up (+Y)
 #   bodhran: centred, the skin facing +Z; "tipper": its middle at the origin, along Z
 #   gurdy: the body centred, length along X (crank +X), keybox up, keys out on -Z; "crank": axle along +X
+#   banjo: the pot centred at the origin, its head facing +Y, the neck along -Z
 # --------------------------------------------------------------------------
 ## The instrument whole (the icon; carried on the back), or one of its moving parts.
 static func mesh(kind: String, part: String = "") -> ArrayMesh:
@@ -121,6 +123,8 @@ static func mesh(kind: String, part: String = "") -> ArrayMesh:
 			_gurdy(mb, o)
 		"gurdy:crank":
 			_crank(mb, o)
+		"banjo:":
+			_banjo(mb, o)
 		_:
 			push_error("Instruments.mesh: no model \"%s\"" % key)
 	var m := mb.commit()
@@ -136,6 +140,7 @@ const ICON_VIEW := {
 	"whistle": [Vector3(0, 0, 0), -PI * 0.25],
 	"bodhran": [Vector3(0, PI * 0.5, 0), 0.0],
 	"gurdy": [Vector3(0, 0, -PI * 0.5), PI * 0.2],
+	"banjo": [Vector3(0, 0, -PI * 0.5), -PI * 0.25],
 }
 static var _icons: Dictionary = {}
 
@@ -387,3 +392,53 @@ static func _crank(mb: MeshBuilder, xf: Transform3D) -> void:
 	mb.add_cylinder(iron, Transform3D(xf.basis * ALONG_X, xf.origin), 0.007, 0.007, 0.034, 6, 2.0, Color.WHITE, true)
 	mb.add_box(iron, Transform3D(xf.basis, xf * Vector3(0.034, CRANK_ARM * 0.5, 0)), Vector3(0.01, CRANK_ARM + 0.014, 0.012), 2.0, Color.WHITE, false)
 	mb.add_cylinder(wood, Transform3D(xf.basis * ALONG_X, xf * Vector3(0.038, CRANK_ARM, 0)), 0.0095, 0.0095, 0.05, 6, 2.0, Color.WHITE, true)
+
+
+# ---- banjo ----
+const POT_R := 0.14
+const POT_H := 0.035
+const NUT_Z := -0.64
+const BRIDGE_Z := 0.065
+## Where the right hand picks and the left hand stops the strings (banjo frame).
+const BANJO_PICK := Vector3(0, 0.06, 0.0)
+const BANJO_STOP := Vector3(0, -0.012, -0.44)
+
+
+static func _banjo(mb: MeshBuilder, xf: Transform3D) -> void:
+	var wood := _wood(Color(0.6, 0.32, 0.16))
+	var metal := PSXMat.flat(Color(0.7, 0.68, 0.62))
+	var skin := PSXMat.flat(Color(0.9, 0.86, 0.74))
+	var ebony := PSXMat.flat(Color(0.08, 0.07, 0.07))
+	var pale := PSXMat.flat(Color(0.86, 0.84, 0.78))
+	var n := 16
+	# the pot: a resonator behind, the metal rim and its hooks, the head on top
+	mb.add_cylinder(wood, Transform3D(xf.basis, xf * Vector3(0, -POT_H - 0.03, 0)), POT_R + 0.012, POT_R + 0.016, 0.034, n, 2.0, Color(0.85, 0.85, 0.85), false, true)
+	mb.add_cylinder(metal, Transform3D(xf.basis, xf * Vector3(0, -POT_H, 0)), POT_R, POT_R, POT_H * 2.0, n, 2.0, Color.WHITE, false, false)
+	mb.add_cylinder(skin, Transform3D(xf.basis, xf * Vector3(0, POT_H - 0.004, 0)), POT_R - 0.002, POT_R - 0.002, 0.006, n, 1.5, Color.WHITE, true, false)
+	mb.add_cylinder(metal, Transform3D(xf.basis, xf * Vector3(0, POT_H - 0.003, 0)), POT_R + 0.004, POT_R + 0.004, 0.008, n, 2.0, Color(0.8, 0.8, 0.8), false, false)
+	for i in range(n):
+		var a := TAU * (i + 0.5) / n
+		mb.add_box(metal, Transform3D(xf.basis * Basis(Vector3.UP, -a), xf * Vector3(cos(a) * (POT_R + 0.006), 0.0, sin(a) * (POT_R + 0.006))), Vector3(0.008, POT_H * 1.6, 0.006), 2.0, Color(0.7, 0.7, 0.7), false)
+	# neck, fingerboard, frets, nut, peghead and its four pegs, the short fifth string's peg halfway up
+	_bar(mb, wood, xf, Vector3(0, 0.012, -POT_R + 0.01), Vector3(0, 0.012, NUT_Z - 0.01), 0.04, 0.03)
+	_bar(mb, ebony, xf, Vector3(0, 0.03, -POT_R + 0.03), Vector3(0, 0.03, NUT_Z), 0.044, 0.006)
+	var scale_len := BRIDGE_Z - NUT_Z
+	for f in range(1, 13):
+		var z := NUT_Z + scale_len * (1.0 - pow(2.0, -f / 12.0))
+		mb.add_box(pale, Transform3D(xf.basis, xf * Vector3(0, 0.034, z)), Vector3(0.044, 0.002, 0.003), 2.0, Color.WHITE)
+	mb.add_box(pale, Transform3D(xf.basis, xf * Vector3(0, 0.036, NUT_Z)), Vector3(0.046, 0.008, 0.006), 2.0, Color.WHITE, false)
+	var head := Transform3D(xf.basis * Basis(Vector3.RIGHT, 0.2), xf * Vector3(0, 0.02, NUT_Z - 0.06))
+	mb.add_box(wood, head, Vector3(0.075, 0.018, 0.12), 2.0, Color(0.85, 0.85, 0.85), false)
+	for i in range(4):
+		var s := -1.0 if i < 2 else 1.0
+		var z := -0.025 + (i % 2) * 0.045
+		mb.add_cylinder(ebony, Transform3D(head.basis * Basis(Vector3.BACK, -s * PI * 0.5), head * Vector3(s * 0.035, 0, z)), 0.005, 0.005, 0.03, 5, 2.0, Color.WHITE, true, false)
+	mb.add_cylinder(ebony, Transform3D(xf.basis * Basis(Vector3.BACK, -PI * 0.5), xf * Vector3(0.02, 0.018, -0.42)), 0.005, 0.005, 0.028, 5, 2.0, Color.WHITE, true, false)
+	# bridge, tailpiece, strings
+	mb.add_box(pale, Transform3D(xf.basis, xf * Vector3(0, POT_H + 0.008, BRIDGE_Z)), Vector3(0.06, 0.016, 0.005), 2.0)
+	_bar(mb, metal, xf, Vector3(0, POT_H + 0.006, 0.1), Vector3(0, POT_H - 0.004, POT_R + 0.012), 0.022, 0.004)
+	for i in range(5):
+		var x := (i - 2) * 0.009
+		var nut := NUT_Z if i > 0 else -0.42
+		_bar(mb, pale, xf, Vector3(x * 1.4, POT_H + 0.017, BRIDGE_Z), Vector3(x if i > 0 else 0.018, 0.041, nut), 0.0016, 0.0016)
+		_bar(mb, pale, xf, Vector3(x * 1.4, POT_H + 0.017, BRIDGE_Z), Vector3(x * 0.6, POT_H + 0.007, 0.1), 0.0016, 0.0016)

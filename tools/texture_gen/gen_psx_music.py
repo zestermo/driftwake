@@ -22,7 +22,7 @@ Usage (from the project root):
     py tools/texture_gen/gen_psx_music.py                      # all tracks
     py tools/texture_gen/gen_psx_music.py sea sea_night        # only some
     py tools/texture_gen/gen_psx_music.py samples              # style samples to listen to
-    py tools/texture_gen/gen_psx_music.py jam [lass haul ...]  # the instruments' stems (assets/audio/jam/)
+    py tools/texture_gen/gen_psx_music.py jam [lass haul ...] [banjo ...]  # the instruments' stems (assets/audio/jam/)
 Output: assets/audio/music_*.ogg (or .wav if ffmpeg is not installed); samples go to
 tools/dev/out/music_samples/. The calm tracks are levelled to -18 LU (audio_report's measure).
 """
@@ -649,6 +649,22 @@ def inst_bodhran_rim(m, n):
     return normpeak(out * np.minimum(1, t / 0.001))
 
 
+def inst_banjo(m, n):
+    """Banjo (1.25): a steel string picked near the bridge over a drum head, so it's bright, twangy and quick
+    to fade; the head's honk (a wide bump near 1 kHz) and the nail's click on the attack."""
+    f = mtof(m)
+    rng = seeded("banjo", m, n)
+    r_n = int(0.05 * SR)
+    L = n + r_n
+    y = normpeak(_ks(f, L, 0.78, 0.75, rng, pick=0.07))
+    y += 0.9 * normpeak(sosfilt(butter(2, [700, 1500], "band", fs=SR, output="sos"), y))
+    t = np.arange(L) / SR
+    y += bandnoise(rng, L, 2500, 6500) * np.exp(-t / 0.004) * 0.35
+    y[n:] *= np.exp(-np.arange(r_n) / (r_n / 5.0)) * np.linspace(1, 0, r_n)
+    y[:20] *= np.linspace(0, 1, 20)
+    return normpeak(y) * 0.85
+
+
 # --- the desert and the snow (2026-10-15): ney, mizmar, oud, the darbuka's dum and tek,
 # finger cymbals, sleigh bells ---
 
@@ -756,7 +772,7 @@ INSTRUMENTS = {
     "ocarina": inst_ocarina, "steel": inst_steel, "bassoon": inst_bassoon, "tamb": inst_tamb,
     "clave": inst_clave, "celesta": inst_celesta, "swellstr": inst_swellstr,
     "whistle": inst_whistle, "gurdy": inst_gurdy, "trompette": inst_trompette,
-    "bodhran": inst_bodhran, "bodhran_rim": inst_bodhran_rim,
+    "bodhran": inst_bodhran, "bodhran_rim": inst_bodhran_rim, "banjo": inst_banjo,
     "ney": inst_ney, "mizmar": inst_mizmar, "oud": inst_oud, "dum": inst_dum, "tek": inst_tek,
     "zill": inst_zill, "sleigh": inst_sleigh,
 }
@@ -2645,10 +2661,12 @@ SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 # from one shared clock). Everyone plays the tune, as at a session: whistle,
 # fiddle (double stops on the long notes), concertina (the tune over a left
 # hand's bass and chords), hurdy-gurdy (the tune over its drones and buzzing
-# bridge); the bodhran keeps time, its open strokes tuned to the chord.
+# bridge), banjo (the tune picked, its long notes rolled); the bodhran keeps time, its open strokes tuned to the chord.
 # --------------------------------------------------------------------------
 JAM_OUT = os.path.join(OUT, "jam")
-JAM_INSTRUMENTS = ("concertina", "fiddle", "whistle", "bodhran", "gurdy")
+JAM_INSTRUMENTS = ("concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo")
+# the stems' level (integrated); the picked and struck ones sit lower, their attacks carry
+JAM_LU = {"bodhran": -22.0, "banjo": -21.0}
 
 # The Brinehollow Lass: a jig, 6/8, G major, eighth ticks.
 LASS_A = ("G4/1 B4/1 D5/1 G5/2 D5/1 | E5/1 G5/1 E5/1 D5/1 B4/1 G4/1 | A4/2 B4/1 C5/2 E5/1 | D5/1 C5/1 B4/1 A4/3 | "
@@ -2738,7 +2756,8 @@ def jam_song(key):
     s = Song("jam_" + key, spec["tick"], tpb, bars, spec["title"], seed=zlib.crc32(key.encode()))
     for b, g, v in (("whistle", 1.0, 0.14), ("fiddle", 1.0, 0.16), ("concertina", 1.0, 0.12), ("concertina:lh", 0.42, 0.1),
                     ("gurdy", 1.0, 0.12), ("gurdy:drone", 0.24, 0.12), ("gurdy:dog", 0.26, 0.08),
-                    ("bodhran", 1.0, 0.08), ("bodhran:rim", 0.55, 0.08)):
+                    ("bodhran", 1.0, 0.08), ("bodhran:rim", 0.55, 0.08),
+                    ("banjo", 1.0, 0.1), ("banjo:roll", 0.55, 0.1)):
         s.bus(b, g, verb=v)
     ch = split_chords(chords)
     sc = scale(*spec["scale"])
@@ -2801,7 +2820,29 @@ def jam_song(key):
         for i, c in enumerate(spec["dog"]):
             if c in levels:
                 s.note("gurdy:dog", "trompette", nn(spec["drone"][0]) + 12, b * tpb + i * step, step, levels[c], 1.0, human=0.1)
+    _jam_banjo(s, spec, melody, ch)
     return s, spec
+
+
+def _jam_banjo(s, spec, melody, ch):
+    """The banjo (1.25), sequenced after everyone else so the song's rng gives the older stems the same
+    notes as before: the tune picked, a long note rolled out a tick at a time (a chord tone under it,
+    then the high fifth-string drone, in turn)."""
+    tpb = s.tpb
+    fifth = nn(spec["drone"][0]) + 24
+    bar = 0
+    for text in melody:
+        tick = bar * tpb
+        for midi, dur in parse_line(text):
+            if midi is not None:
+                s.note("banjo", "banjo", midi, tick, dur, 0.85, 0.95)
+                pcs = chord_pcs(chord_at(ch, int(tick // tpb), (tick % tpb) / tpb))[1]
+                under = [x for x in range(midi - 9, midi - 2) if x % 12 in pcs]
+                for i in range(1, int(dur)):
+                    m = fifth if i % 2 == 0 or not under else max(under)
+                    s.note("banjo:roll", "banjo", m, tick + i, 1, 0.5 if m == fifth else 0.6, 1.0, human=0.12)
+            tick += dur
+        bar += len(text.split("|"))
 
 
 class _Stem:
@@ -2812,7 +2853,7 @@ class _Stem:
         self.buses = {k: song.buses[k] for k in names}
 
 
-def build_jam(key):
+def build_jam(key, insts=JAM_INSTRUMENTS):
     song, spec = jam_song(key)
     buses = song.render()
     buses["gurdy:drone"] = buses["gurdy:drone"] + drone_layer(song.length, spec["drone"])
@@ -2820,10 +2861,10 @@ def build_jam(key):
     bar_sec = song.tpb * song.tick_sec
     print(f"  {key}: {spec['title']} - {song.bars} bars x {bar_sec:.4f}s = {song.length / SR:.3f}s ({song.length} samples)")
     total = 0
-    for inst in JAM_INSTRUMENTS:
-        names = [b for b in song.buses if b.split(":")[0] == inst]
+    for inst in insts:
+        names =[b for b in song.buses if b.split(":")[0] == inst]
         stem = _Stem(song, names)
-        mix = mixdown(stem, {k: buses[k] for k in names}, verb_t60=1.1, target_lu=-22.0 if inst == "bodhran" else -20.0)
+        mix = mixdown(stem, {k: buses[k] for k in names}, verb_t60=1.1, target_lu=JAM_LU.get(inst, -20.0))
         assert len(mix) == song.length
         wav = os.path.join(JAM_OUT, f"{key}_{inst}.wav")
         write_wav(wav, mix)
@@ -2914,12 +2955,13 @@ def main(argv=None):
         print("done.")
         return
     if wanted[0] == "jam":
-        # the instrument stems: `jam` (all four tunes) or `jam lass bell`
+        # the instrument stems: `jam` (every tune), `jam lass bell`, `jam banjo` (that instrument's, every tune)
         print("Generating jam stems ->", os.path.relpath(JAM_OUT, ROOT))
         total = 0
-        for k in wanted[1:] or list(JAM_TUNES):
+        insts = [w for w in wanted[1:] if w in JAM_INSTRUMENTS] or list(JAM_INSTRUMENTS)
+        for k in [w for w in wanted[1:] if w not in JAM_INSTRUMENTS] or list(JAM_TUNES):
             _cache.clear()
-            total += build_jam(k)
+            total += build_jam(k, insts)
         print(f"done: {total / 1048576:.2f} MB")
         return
     bad = [w for w in wanted if w not in TRACKS]

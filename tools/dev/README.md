@@ -118,7 +118,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `t/combat/rival_rest`: a rival crew waits its turn at the side of the duel: a corner off to one side, settled and staying put, each at their own side work (never two the same) or watching, their captain watching, the watchers' heads on the duel; a knockdown on the captain isn't a loss; the next one gets up from their work and walks in.
 - `t/combat/undead`: the fog isle's dead: a drowned sailor takes a share of a shot's damage and isn't knocked down by it, carries no gun, gets back up once when cut down and stays down the second time; a ghost takes no harm from shot, a blade still finds it, it glows and doesn't rise.
 - `t/combat/rival_duel`: a captain-style AI (RivalDuel / CaptainBrain) on the enemies' side and out of the captains' groups draws, closes and hurts the captain with the player's own states; a sharp one answers attacks; the captain's blows reach a rookie; beaten it stays down (defeated).
-- `t/jam/`: play_solo (Play on the wheel, the stem on the clock, the hands on it, ducking, moving or a hit stops it, a random tune alone), join (a stand-in crewmate playing: same tune, same start, a fade over two beats; 30 m off plays alone).
+- `t/jam/`: play_solo (Play on the wheel, the stem on the clock, the hands on it, ducking, moving or a hit stops it, a random tune alone), join (a stand-in crewmate playing: same tune, same start, a fade over two beats; 30 m off plays alone), stems (every kind an item with an icon, a model, carried and played; every tune a stem per kind, all one length).
 
 ## Test suites (run_tests.ps1)
 

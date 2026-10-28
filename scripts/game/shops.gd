@@ -26,7 +26,7 @@ const SHOPS := {
 	},
 	"corin": {
 		"name": "Corin's Strings and Skins", "line": "Strings, skins and bellows. All in tune, give or take a gale.", "trade": "luthier",
-		"stock": [["tin_whistle", 35], ["bodhran", 60], ["concertina", 110], ["fiddle", 140], ["hurdy_gurdy", 175]],
+		"stock": [["tin_whistle", 35], ["bodhran", 60], ["concertina", 110], ["banjo", 120], ["fiddle", 140], ["hurdy_gurdy", 175]],
 		"buys": {},
 	},
 	"haldor": {

@@ -31,6 +31,7 @@ const BACK := {
 	"whistle": [Vector3(0.085, 0.15, -0.135), Basis(Vector3.BACK, 0.35) * Basis(Vector3.RIGHT, -PI * 0.5)],
 	"bodhran": [Vector3(0.0, 0.34, 0.185), Basis(Vector3.BACK, 0.2)],
 	"gurdy": [Vector3(0.02, 0.24, 0.185), Basis(Vector3.BACK, 0.5) * Basis(Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0))],
+	"banjo": [Vector3(0.06, 0.12, 0.21), Basis(Vector3.BACK, -0.45) * Basis(Vector3.RIGHT, PI * 0.5)],
 }
 
 var player
@@ -298,7 +299,7 @@ func _models(b: Humanoid, k: String) -> void:
 	_back.mesh = Instruments.mesh(k)
 	b.torso.add_child(_back)
 	var names: Dictionary = {"concertina": {"end_r": "end", "end_l": "end", "bellows": "bellows"}, "fiddle": {"body": "", "bow": "bow"},
-		"whistle": {"body": ""}, "bodhran": {"body": "", "tipper": "tipper"}, "gurdy": {"body": "body", "crank": "crank"}}[k]
+		"whistle": {"body": ""}, "bodhran": {"body": "", "tipper": "tipper"}, "gurdy": {"body": "body", "crank": "crank"}, "banjo": {"body": ""}}[k]
 	for pn in names.keys():
 		var mi := MeshInstance3D.new()
 		mi.name = "Played_" + pn
@@ -389,6 +390,17 @@ func _play_pose(b: Humanoid) -> void:
 			_reach(b, true, tg * (gx * (Instruments.CRANK_AT + Basis(Vector3.RIGHT, turn) * Vector3(0.062, Instruments.CRANK_ARM, 0))), pole_r)
 			var key := 0.035 * sin(PI * floorf(bt * sub) * 1.3)
 			_reach(b, false, tg * (gx * (Instruments.KEYS_AT + Vector3(key, -0.01, -0.03))), body_b * Vector3(-0.6, -1.0, -0.4))
+		"banjo":
+			# slung across the belly, the neck up to the left, the head facing out
+			var nb := Basis.looking_at(Vector3(-0.8, 0.5, -0.33).normalized(), Vector3(0.1, 0.25, -1.0))
+			var nx := Transform3D(nb, Vector3(0.1, 0.1, -0.24))
+			_put("body", nx)
+			# the picking hand bounces a stroke a sub-beat, the fretting hand shifts up and down the neck
+			var sp := fposmod(bt * sub, 1.0)
+			var pick := Vector3(0.012 * sin(PI * floorf(bt * sub) * 1.7), 0.012 * (1.0 - sp) * (1.0 - sp), 0.0)
+			_reach(b, true, tg * (nx * (Instruments.BANJO_PICK + pick)), pole_r)
+			var shift := 0.05 * sin(PI * floorf(bt * sub * 0.5) * 1.3)
+			_reach(b, false, tg * (nx * (Instruments.BANJO_STOP + Vector3(0, 0, shift))), pole_l)
 
 
 func _put(part: String, xf: Transform3D) -> void:

@@ -1,5 +1,5 @@
 extends SceneTree
-## Instruments as items: none in a new captain's kit; five with icons; Corin's music shop sells all five (and a chain
+## Instruments as items: none in a new captain's kit; every kind with an icon; Corin's music shop sells them all (and a chain
 ## island's trader now and then, the same on every machine); carried in the equipment slot one at a time (a second
 ## swaps the first back into the bag), named in the look; carried on the back; saved by id.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -37,13 +37,16 @@ func _process(_d: float) -> bool:
 			for k in Instruments.KINDS:
 				var it: ItemData = ItemDB.get_item(Instruments.item_id(k))
 				ok = ok and it != null and it.is_gear() and it.gear_slot == "equipment" and it.icon != null and Instruments.kind_of(it) == k and it.worth() > 0
-			check("five instruments, each gear for the equipment slot with an icon", ok)
+			check("%d instruments, each gear for the equipment slot with an icon" % Instruments.KINDS.size(), ok and Instruments.KINDS.size() == Instruments.ITEMS.size())
 			var music: Array = []
 			for e in SHOPS.SHOPS["corin"]["stock"]:
 				var it: ItemData = SHOPS.item_of(e)
 				if Instruments.kind_of(it) != "":
 					music.append(Instruments.kind_of(it))
-			check("Corin's music shop sells all five instruments (%s)" % str(music), music.size() == 5)
+			music.sort()
+			var kinds: Array = Instruments.KINDS.duplicate()
+			kinds.sort()
+			check("Corin's music shop sells every instrument (%s)" % str(music), music == kinds)
 			var others := 0
 			for id in SHOPS.SHOPS.keys():
 				if id != "corin":

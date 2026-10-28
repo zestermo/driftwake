@@ -34,6 +34,10 @@ static func pose(h, n: String, u: float) -> Array:
 			# leant over the keys, the crank turning at the right hip
 			up = {"torso": Vector3(-0.14, 0.0, 0.04 * sw), "head": Vector3(-0.3, 0.05, 0.0),
 				"arm_l": Vector3(0.75, 0.2, -0.3), "fore_l": Vector3(1.25, 0, 0), "arm_r": Vector3(0.55, 0.0, 0.4), "fore_r": Vector3(1.1, 0, 0)}
+		"music_banjo":
+			# a little hunched over the pot, eyes down the neck to the left
+			up = {"torso": Vector3(-0.08, 0.1, 0.04 * sw), "head": Vector3(-0.28, 0.25, 0.0),
+				"arm_l": Vector3(1.0, 0.3, -0.35), "fore_l": Vector3(1.2, 0, 0), "arm_r": Vector3(0.45, -0.1, 0.35), "fore_r": Vector3(1.55, 0, 0)}
 	for k in up.keys():
 		p[k] = up[k]
 	return [h._keys(minf(u, 1.0), [[0.0, {}], [1.0, p]]), "full", Vector3.ZERO]

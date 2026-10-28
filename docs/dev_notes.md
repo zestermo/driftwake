@@ -7431,3 +7431,27 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   greatcoat's cape still meets its inner edge (the cape is on the torso, the pauldron on the arm); left open.
 - Tests: t/gear/skins (new). Renders: tools/dev/out/gear/skins/{clothes,stripes,check,patched,mail4,pauldron3,
   weapons,weapons2}_*.png (modelshot with `S.dressed({...})`, model_samples.gd).
+
+## 2026-10-28: the banjo, a sixth instrument (v1.25)
+
+- **Why a banjo:** the five were a reed (concertina), a bow (fiddle), a flute (whistle), a drum (bodhran) and a
+  wheel drone (gurdy); nothing was picked. The banjo is the bright, quick-fading plucked voice the band lacked and a
+  sailors' instrument. (A cornet was built alongside and dropped when 1.25 was trimmed to one instrument.)
+- **Item:** `Instruments.ITEMS["banjo"]` (id `banjo`, 120 at Corin's, worth 48), in KINDS, so chain traders roll
+  it too. Corin's stock (`shops.gd`) and his bark name it.
+- **Model** (`Instruments._banjo`, ~5 surfaces): pot centred at the origin, head +Y, neck -Z; resonator, metal rim
+  and 16 hooks, the head recessed in a rim ring, neck and fingerboard with 12 frets on the real scale, nut, a
+  tilted peghead and four pegs, the short fifth string's peg halfway up, bridge, tailpiece, five strings.
+  `BANJO_PICK` / `BANJO_STOP` are where the hands go. Icon from the mesh (fiddle's view).
+- **Played** (Jam `"banjo"`, InstrumentPoses `music_banjo`, ActionSpecs): slung across the belly, neck up to the
+  left, head out; the right hand bounces a stroke a sub-beat over the head, the left shifts along the neck every
+  two. Carried on the back, neck up over the left shoulder.
+- **Stems** (`gen_psx_music.py`): `inst_banjo` (bright KS picked near the bridge, the head's honk as a 0.7-1.5 kHz
+  band mixed in, a nail click). `_jam_banjo`: the tune picked, each long note rolled a tick at a time (a chord tone
+  under it, then the high fifth-string drone, the drone root two octaves up). Sequenced after every other voice so
+  the song's rng gives the old stems the same notes (they weren't rewritten). Levelled at -21 LU (`JAM_LU`; the
+  picks' attacks carry, loudest 400 ms ~-15 to -18 vs the others' ~-17.5), seams <= 0.003.
+  `gen_psx_music.py jam banjo` renders one instrument's stems for every tune.
+- jamshot closes the first-launch character creator (it opens in a window when user:// has no look and hung the
+  render). Tests: t/jam/stems (new: every kind a whole instrument, every tune a stem per kind, one length),
+  t/items/instruments (counts from KINDS now). Renders: tools/dev/out/jam/js_banjo_*.png.

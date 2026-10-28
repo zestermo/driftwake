@@ -9,7 +9,7 @@ var out := ""
 var stage
 var p
 var cam: Camera3D
-var kinds: Array = ["concertina", "fiddle", "whistle", "bodhran", "gurdy"]
+var kinds: Array = Instruments.KINDS.duplicate()
 var shots: Array = []
 var step := 0
 var until := 0
@@ -39,6 +39,8 @@ func _initialize() -> void:
 
 
 func _process(_d: float) -> bool:
+	for c in root.find_children("*", "CharacterCreator", true, false):
+		c._finish(true)
 	if not stage.up or TK.ticking(until):
 		return false
 	if cam == null:
