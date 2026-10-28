@@ -271,7 +271,8 @@ func _process(d: float) -> bool:
 				p.equipment.clear()
 				p.equipment.equip(it)
 				p.refresh_look()
-				if it.icon != null and it.armor() > it.defense:
+				# (a charm with no defence, the shark's tooth, has none to improve)
+				if it.icon != null and (it.armor() > it.defense or gear.DEFENSE.get(str(e[1]), 0.0) == 0.0):
 					built += 1
 			check("every new piece wears, has an icon, and a blue one guards better than its base (%d)" % built, built == gear.PLUNDER.size() + 4)
 			var g = gear.make("hands", "gauntlets", {"gloves": true, "gauntlets": true}, "", 0)
