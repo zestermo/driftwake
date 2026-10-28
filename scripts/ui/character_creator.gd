@@ -285,6 +285,8 @@ func _show_tab(t: String) -> void:
 		"Hair":
 			_cycle("Hair", "hair", CharacterLook.HAIR)
 			_colors("Hair color", "hair_color")
+			_cycle("Finish", "hair_finish", CharacterLook.HAIR_FINISHES, CharacterLook.HAIR_FINISH_NAMES)
+			_colors("Second color", "hair_color2")
 			if first_time:
 				_cycle("Hat", "hat", CharacterLook.CREATOR_HATS)
 				_colors("Hat color", "hat_color")

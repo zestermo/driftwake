@@ -7504,3 +7504,29 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   merchants roll them by kind; Haldor's forge pool (and so village smiths) has all four (the harpoon green).
 - Tests: t/weapons/new_designs (new); polearm_loot and long_gun_loot's design lists updated (seven each). Renders:
   tools/dev/out/weapons125_side.png, harpoon125_side.png.
+## 2026-10-28: 1.25 customization, piece 2: dreads and mohawk, dye colours, two-tone and tipped hair
+- **Styles** (`CharacterLook.HAIR` + "dreads", "mohawk"; random pools: both for masc, dreads for fem):
+  - dreads (BodyBuilder._dreads/_dread): 7 roped locks on chains down the back (4 x ~9 cm), 4 short ones at the sides
+    (2 x ~7 cm, ending at the jaw: longer ones swung onto the shoulders), two short static locks framing the face. The
+    rope look is rings alternating thick/thin per segment. Chains collide with head, torso and HairFlow's `hair_sh`
+    shoulder capsule (added to the colliders the same way). Hides the ears. 11 chains, 30 bones.
+  - mohawk (_mohawk): the crop's shell, the strip off the midline (|x| > 4.5 cm) moved to a "shaved" tint (the hair
+    colour 40% toward the skin, darker), and one sawtooth fin along the midline brow to nape (`add_extrude`, 2.6 cm
+    thick, teeth up to ~17 cm at the crown). Separate blades fanned and left a V gap at the crown. Under a hat only
+    the shaved head is left (like the topknot).
+- **Colours:** HAIR_COLORS + crimson, pink, green, blue, platinum (indices 10-14; the first `NATURAL_HAIR` 10 are the
+  born colours: random looks pick from those, then 8% get a dye).
+- **Finishes:** look keys `hair_finish` ("plain" | "two_tone" | "tipped", HAIR_FINISHES) and `hair_color2` (HAIR_COLORS;
+  old looks get plain from base_look). BodyBuilder._hair_finish moves triangles onto `m_hair2` (the hair texture in the
+  second colour; fold_tints keeps it one draw) with the new `MeshBuilder.move_tris(from, to, pick(centre, bones))`:
+  two_tone the character's right half (x > 0; the scalp and the face texture's band above the hairline follow it,
+  FacePainter's cache key includes it), tipped each chain's last segment (all three vertices on its last bone) and on
+  the rigid hair what hangs 3.5 cm below the hairline, rises 3 cm over the crown or stands 3.5 cm out off the shell.
+  HairFlow's lock styles stay plain (they have their own `hair_tip` ombre). 10% of random looks get a finish.
+- Creator: Hair tab: Hair, Hair color, Finish, Second color. Co-op: the look dict carries the keys as it is.
+- Per frame: the dreads' 11 chains on the head's SpringChains (the long style has 6, HairFlow's 31-86 bones); nothing
+  else new runs per frame.
+- Tests: t/player/look_options (extended), t/player/hair_off_body (new: torso 8-13 frames vs long's 12-20, the
+  shoulder capsule 115-123 vs long's 184-192 under the kit's script), cliptest, chartest, t/player/flow_hair.
+  Renders: lookshot hair (yaw 15/90/180) -> tools/dev/out/looks/hair_{front,side,back}_{0,1}.png, finishes ->
+  finish_{0,1} (two-tone, tipped on short/long/dreads/mohawk), finish_2..3 (the dyes on spiky).

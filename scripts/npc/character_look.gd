@@ -9,7 +9,7 @@ extends RefCounted
 ##   height    float (scale)   skin Color
 ##   head      (see HEADS)                   nose "small"|"straight"|"broad"|"hooked"
 ##   eyes int (EYE_NAMES), eye_color Color, brows int, mouth int, marks (see MARKS)
-##   hair (see HAIR), hair_color, facial_hair (see FACIAL_HAIR)
+##   hair (see HAIR), hair_color, facial_hair (see FACIAL_HAIR), hair_finish (see HAIR_FINISHES), hair_color2
 ##   hat (see HATS), hat_color
 ##   top (see TOPS), top_color, sleeves "long"|"short"|"none"
 ##   vest (see VESTS), vest_color
@@ -39,12 +39,17 @@ const MOUTH_STYLES := 6
 const MARKS := ["none", "freckles", "scar", "blush", "war_paint", "age_lines"]
 const HAIR := ["bald", "crop", "short", "long", "ponytail", "bun", "braids", "wild",
 	"swept", "messy", "slick", "topknot", "hime", "twintails", "bob", "side_pony",
-	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid"]
+	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid", "dreads", "mohawk"]
 ## Styles the random looks give each body (any style can still be picked for either).
 const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept", "messy", "slick", "topknot",
-	"quiff", "curtains", "spiky", "shag", "swoop"]
+	"quiff", "curtains", "spiky", "shag", "swoop", "dreads", "mohawk"]
 const HAIR_FEM := ["long", "ponytail", "bun", "braids", "short", "wild", "hime", "twintails", "bob", "side_pony", "swept",
-	"low_pony", "layered", "lob", "braid", "curtains", "shag"]
+	"low_pony", "layered", "lob", "braid", "curtains", "shag", "dreads"]
+## How the hair takes its second colour (hair_color2): none, split down the middle, or the ends dipped in it.
+const HAIR_FINISHES := ["plain", "two_tone", "tipped"]
+const HAIR_FINISH_NAMES := ["Plain", "Two-tone", "Tipped"]
+## The first NATURAL_HAIR hair colours are the ones people are born with; the rest are dyes.
+const NATURAL_HAIR := 10
 const FACIAL_HAIR := ["none", "stubble", "moustache", "goatee", "chops", "beard", "long_beard"]
 const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood", "cavalier", "morion", "turban",
 	"kettle", "fez", "headband", "crown", "coif", "slouch", "helm"]
@@ -70,7 +75,8 @@ const SKIN_TONES := [
 const HAIR_COLORS := [
 	Color(0.08, 0.06, 0.05), Color(0.18, 0.11, 0.07), Color(0.32, 0.20, 0.11), Color(0.45, 0.20, 0.10),
 	Color(0.70, 0.34, 0.14), Color(0.82, 0.66, 0.38), Color(0.62, 0.56, 0.48), Color(0.55, 0.55, 0.56),
-	Color(0.88, 0.87, 0.84), Color(0.20, 0.24, 0.42)]
+	Color(0.88, 0.87, 0.84), Color(0.20, 0.24, 0.42),
+	Color(0.70, 0.10, 0.10), Color(0.90, 0.46, 0.60), Color(0.16, 0.48, 0.28), Color(0.26, 0.50, 0.86), Color(0.96, 0.92, 0.70)]
 const EYE_COLORS := [
 	Color(0.30, 0.18, 0.10), Color(0.48, 0.34, 0.16), Color(0.25, 0.45, 0.25), Color(0.25, 0.42, 0.68),
 	Color(0.48, 0.52, 0.56), Color(0.72, 0.52, 0.16)]
@@ -89,7 +95,7 @@ const TRIM := [
 
 ## Which palette each color key uses (for the creator's swatches).
 const COLOR_PALETTES := {
-	"skin": "SKIN_TONES", "hair_color": "HAIR_COLORS", "eye_color": "EYE_COLORS",
+	"skin": "SKIN_TONES", "hair_color": "HAIR_COLORS", "hair_color2": "HAIR_COLORS", "eye_color": "EYE_COLORS",
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
 	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH",
@@ -114,6 +120,7 @@ static func base_look() -> Dictionary:
 		"head": "round", "nose": "straight", "eyes": 0, "eye_color": EYE_COLORS[0], "brows": 0, "mouth": 0,
 		"marks": "none",
 		"hair": "short", "hair_color": HAIR_COLORS[2], "facial_hair": "none",
+		"hair_finish": "plain", "hair_color2": HAIR_COLORS[8],
 		"hat": "none", "hat_color": CLOTH[3],
 		"top": "shirt", "top_color": CLOTH[0], "sleeves": "long",
 		"vest": "none", "vest_color": CLOTH[3],
@@ -211,7 +218,7 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["mouth"] = rng.randi() % MOUTH_STYLES
 	lk["marks"] = "none" if rng.randf() < 0.55 else _pick(rng, MARKS)
 	lk["hair"] = _pick(rng, HAIR_FEM if fem else HAIR_MASC)
-	lk["hair_color"] = _pick(rng, HAIR_COLORS)
+	lk["hair_color"] = _pick(rng, HAIR_COLORS.slice(0, NATURAL_HAIR))
 	lk["facial_hair"] = "none" if fem or rng.randf() < 0.3 else _pick(rng, FACIAL_HAIR)
 	lk["hat"] = _pick(rng, CREATOR_HATS)
 	lk["hat_color"] = _pick(rng, CLOTH)
@@ -249,6 +256,11 @@ static func _add_1_25(lk: Dictionary) -> void:
 	r.seed = hash(str(lk))
 	if r.randf() < 0.3:
 		lk["eyes"] = 6 + r.randi() % (EYE_STYLES - 6)
+	if r.randf() < 0.08:
+		lk["hair_color"] = HAIR_COLORS[NATURAL_HAIR + r.randi() % (HAIR_COLORS.size() - NATURAL_HAIR)]
+	if r.randf() < 0.1:
+		lk["hair_finish"] = HAIR_FINISHES[1 + r.randi() % (HAIR_FINISHES.size() - 1)]
+		lk["hair_color2"] = _pick(r, HAIR_COLORS)
 
 
 static func _pick(rng: RandomNumberGenerator, arr: Array) -> Variant:

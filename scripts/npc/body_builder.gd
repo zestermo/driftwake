@@ -84,6 +84,9 @@ var Fk := 1.0      # foot size
 var yk := 1.0      # head vertical stretch
 var m_skin: Material
 var m_hair: Material
+## The hair finish's second colour (CharacterLook.HAIR_FINISHES; HairFlow's lock styles stay plain).
+var m_hair2: Material
+var finish := "plain"
 var head_rings: Array = []
 var hair_off := 0.018
 var colliders: Dictionary = {}
@@ -133,6 +136,10 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	var hk := 1.25
 	var hc := _col("hair_color")
 	m_hair = PSXMat.lit("hair", Color(minf(hc.r * hk, 1.0), minf(hc.g * hk, 1.0), minf(hc.b * hk, 1.0)), {"pull": 0.01})
+	var hc2 := _col("hair_color2")
+	m_hair2 = PSXMat.lit("hair", Color(minf(hc2.r * hk, 1.0), minf(hc2.g * hk, 1.0), minf(hc2.b * hk, 1.0)), {"pull": 0.01})
+	var hs := str(lk.get("hair", "short"))
+	finish = "plain" if hs == "bald" or HairFlow.has(hs) else str(lk.get("hair_finish", "plain"))
 	_skeleton()
 	_colliders()
 	_legs()
@@ -1265,15 +1272,17 @@ func _head() -> void:
 	var scalp: Material = null
 	var hstyle := str(lk.get("hair", "short"))
 	var hline: Array = []
+	var scalp2: Material = null
 	if hstyle != "bald":
 		scalp = PSXMat.flat(_col("hair_color").darkened(0.15))
+		scalp2 = PSXMat.flat(_col("hair_color2").darkened(0.15)) if finish == "two_tone" else scalp
 		hline = hairline_for(hstyle)
 	var hy := yk
 	var pick := func(c: Vector3):
 		if FacePainter.pick(c, hy):
 			return true
 		if scalp != null and c.y / hy > BodyBuilder._hairline(hline, atan2(c.x, -c.z)) + 0.015:
-			return scalp
+			return scalp2 if c.x > 0.0 else scalp
 		return false
 	mb.add_loft(m_skin, Transform3D.IDENTITY, head_rings, R, 3.0, Color.WHITE, true, true, true, false, false,
 		PackedInt32Array(), face, Callable(FacePainter, "uv").bind(yk), pick)
@@ -1288,6 +1297,7 @@ func _head() -> void:
 	_mesh(h.head, mb)
 	var hmb := MeshBuilder.new()
 	_hair(hmb)
+	_hair_finish(hmb)
 	_press_under_hat(hmb)
 	if _sims.has(h.head):
 		_press_under_hat((_sims[h.head] as SpringChains).mb)
@@ -1329,7 +1339,7 @@ func _press_under_hat(mb: MeshBuilder) -> void:
 	# a centimetre toward the camera, so anything closer to the hat shows through
 	var flat := 0.004
 	var edge := hair_off + 0.004
-	mb.map_vertices(m_hair, func(p: Vector3) -> Vector3:
+	var press := func(p: Vector3) -> Vector3:
 		if p.y <= cut:
 			return p
 		var y := minf(p.y, top + flat)
@@ -1340,7 +1350,41 @@ func _press_under_hat(mb: MeshBuilder) -> void:
 		var lim := _surf_r(r, atan2(d.x, -d.y)) + lerpf(edge, flat, smoothstep(cut, cut + 0.014, y))
 		if d.length() > lim:
 			d = d.normalized() * lim
-		return Vector3(cx + d.x, y, cz + d.y))
+		return Vector3(cx + d.x, y, cz + d.y)
+	mb.map_vertices(m_hair, press)
+	mb.map_vertices(m_hair2, press)
+
+
+## The hair finish (1.25): the hair's triangles that take the second colour move onto m_hair2 (the same texture,
+## so folding the tints keeps it one draw). two_tone: the character's right half. tipped: on the chains each chain's
+## last segment, on the rigid hair what hangs a few cm below the hairline or stands out off the head.
+func _hair_finish(mb: MeshBuilder) -> void:
+	if finish == "plain":
+		return
+	var sim: SpringChains = _sims.get(h.head)
+	if finish == "two_tone":
+		var right := func(c: Vector3, _b: PackedInt32Array) -> bool: return c.x > 0.0
+		mb.move_tris(m_hair, m_hair2, right)
+		if sim:
+			sim.mb.move_tris(m_hair, m_hair2, right)
+		return
+	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+	var line := hairline_for(str(lk.get("hair", "short")))
+	mb.move_tris(m_hair, m_hair2, func(c: Vector3, _b: PackedInt32Array) -> bool:
+		var a := atan2(c.x, -c.z)
+		if c.y < _hairline(line, a) * yk - 0.035:
+			return true
+		if c.y > top + 0.03:
+			return true
+		var r := _at(head_rings, clampf(c.y, 0.0, top - 0.001))
+		return Vector2(c.x - float(r[4]), c.z - float(r[3])).length() - _surf_r(r, a) > hair_off + 0.035)
+	if sim:
+		var tips := {}
+		for i in range(sim.chain_count()):
+			var bones: PackedInt32Array = sim.chain(i)["bones"]
+			tips[bones[bones.size() - 1]] = true
+		sim.mb.move_tris(m_hair, m_hair2, func(_c: Vector3, b: PackedInt32Array) -> bool:
+			return tips.has(b[0]) and tips.has(b[1]) and tips.has(b[2]))
 
 
 func _nose(mb: MeshBuilder) -> void:
@@ -1399,7 +1443,7 @@ const HAIRLINE_OF := {"bun": "ponytail", "swept": "short", "messy": "wild", "sli
 	"quiff": "short", "curtains": "short", "spiky": "wild", "shag": "long", "swoop": "crop",
 	"layered": "long", "lob": "long", "braid": "ponytail", "low_pony": "ponytail",
 	"cascade": "long", "waves": "long", "princess": "long", "court_bun": "long", "half_bun": "long",
-	"high_tail": "ponytail", "twin_low": "braids", "mane": "wild"}
+	"high_tail": "ponytail", "twin_low": "braids", "mane": "wild", "dreads": "long", "mohawk": "crop"}
 
 
 static func hairline_for(style: String) -> Array:
@@ -1419,7 +1463,7 @@ static func _hairline(line: Array, a: float) -> float:
 
 ## Whether a hair style covers the ears (they're left off the head then).
 static func hair_hides_ears(style: String) -> bool:
-	return style in ["long", "braids", "hime", "bob", "shag", "layered", "lob"] or HairFlow.hides_ears(style)
+	return style in ["long", "braids", "hime", "bob", "shag", "layered", "lob", "dreads"] or HairFlow.hides_ears(style)
 
 
 ## Distance from the ring center to the head surface along angle a (actual
@@ -1475,8 +1519,10 @@ func _hair(mb: MeshBuilder) -> void:
 		return
 	var off := 0.018
 	match style:
-		"crop", "topknot", "swoop":
+		"crop", "topknot", "swoop", "mohawk":
 			off = 0.009
+		"dreads":
+			off = 0.02
 		"wild":
 			off = 0.024
 		"messy", "bob", "shag", "spiky", "layered", "lob":
@@ -1563,6 +1609,10 @@ func _hair(mb: MeshBuilder) -> void:
 			_low_pony(hair_cols)
 		"braid":
 			_single_braid(hair_cols)
+		"dreads":
+			_dreads(mb, hat)
+		"mohawk" when hat == "none":
+			_mohawk(mb)
 		"twintails":
 			_tails([-1.0, 1.0], hat, hair_cols)
 		"side_pony":
@@ -1711,6 +1761,87 @@ func _single_braid(cols: Array) -> void:
 		tie.append(tip + Vector3(0, 0.02, 0) + dd * 0.02)
 		tie2.append(tip + Vector3(0, -0.004, 0) + dd * 0.021)
 	_hair_tie(sim.mb, [tie, tie2], b_end)
+
+
+## Dreadlocks (1.25): roped locks on chains, long down the back, shorter at the sides ending above the shoulders, two
+## short ones framing the face. The shoulders' capsule (as HairFlow's) keeps the side locks off them.
+func _dreads(mb: MeshBuilder, hat: String) -> void:
+	var sim := _sim(h.head)
+	var arm: Vector3 = h.arm_r.position
+	colliders["hair_sh"] = {"node": h.torso, "a": h.arm_l.position + Vector3(0, 0.05, 0), "b": arm + Vector3(0, 0.05, 0), "r": 0.075}
+	var cols := ["head", "torso", "hair_sh"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("dreads" + str(lk.get("name", "")))
+	var low := 0.0 if hat == "none" else -0.02
+	for ang in [118.0, 140.0, 161.0, 180.0, 199.0, 220.0, 242.0]:
+		_dread(sim, deg_to_rad(ang), (0.22 + low) * yk, 4, rng.randf_range(0.082, 0.094), 0.017, 0.016, cols)
+	for ang in [-94.0, -74.0, 74.0, 94.0]:
+		_dread(sim, deg_to_rad(ang), (0.235 + low) * yk, 2, rng.randf_range(0.068, 0.076), 0.015, 0.008, cols)
+	if hat == "none":
+		for s in [-1.0, 1.0]:
+			for ad in [26.0, 46.0]:
+				var a := deg_to_rad(ad * s)
+				var pts := PackedVector3Array([_hair_pt(a, 0.296 * yk, hair_off - 0.006), _hair_pt(a + s * 0.08, 0.255 * yk, hair_off + 0.006),
+					_hair_pt(a + s * 0.12, 0.215 * yk, hair_off + 0.012)])
+				mb.add_tube(m_hair, pts, 0.015, 0.011, 5, 3.0, Color.WHITE, false, true)
+
+
+## One roped lock from angle a on the head: `segs` chain segments of `seg` m hanging down and a little out, ringed
+## thick-thin so it reads as twisted.
+func _dread(sim: SpringChains, a: float, y: float, segs: int, seg: float, r: float, out: float, cols: Array) -> void:
+	var root := _hair_pt(a, y, hair_off - 0.006)
+	var dir := Vector3(sin(a), 0, -cos(a))
+	var pts := PackedVector3Array([root])
+	for i in range(1, segs + 1):
+		pts.append(root + Vector3(0, -seg * i, 0) + dir * out * i)
+	var bones := sim.add_chain(pts, 0.1, 0.07, 1.0, cols)
+	var rr := []
+	var rb := PackedInt32Array()
+	for i in range(segs):
+		var taper := lerpf(1.0, 0.75, float(i) / segs)
+		for j in range(2):
+			var p := pts[i].lerp(pts[i + 1], j / 2.0)
+			var k := (r if j == 0 else r * 0.78) * taper
+			rr.append([p.y, k, k, p.z, p.x])
+			rb.append(bones[i])
+	var tip := pts[segs]
+	rr.append([tip.y + 0.01, r * 0.7, r * 0.7, tip.z, tip.x])
+	rb.append(bones[segs])
+	rr.append([tip.y - 0.004, r * 0.25, r * 0.25, tip.z, tip.x])
+	rb.append(bones[segs])
+	sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true, true, false, false, rb)
+
+
+## A mohawk (1.25): shaved short all round (the crop's shell) under a crest of blades from the brow over the crown to
+## the nape, thin side to side and swept back. Under a hat only the shaved head is left.
+func _mohawk(mb: MeshBuilder) -> void:
+	# the shaved sides: the shell off the crest's strip in the hair colour gone toward the skin
+	var hc := _col("hair_color").lerp(_col("skin"), 0.4).darkened(0.25)
+	var shaved := PSXMat.lit("hair", Color(minf(hc.r * 1.25, 1.0), minf(hc.g * 1.25, 1.0), minf(hc.b * 1.25, 1.0)), {"pull": 0.01})
+	mb.move_tris(m_hair, shaved, func(c: Vector3, _b: PackedInt32Array) -> bool: return absf(c.x) > 0.045)
+	# one sawtooth fin along the midline (z, y), from the brow over the crown to the nape, 2.6 cm thick
+	var c0 := Vector3(0, 0.14 * yk, 0)
+	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+	var n := 9
+	var base := PackedVector2Array()
+	var lifts := []
+	for i in range(n + 1):
+		var t := float(i) / n
+		var y := lerpf(0.29 * yk, top - 0.004, t * 2.0) if t <= 0.5 else lerpf(top - 0.004, 0.22 * yk, (t - 0.5) * 2.0)
+		var p := _hair_pt(0.0 if t <= 0.5 else PI, y, hair_off - 0.012)
+		base.append(Vector2(p.z, p.y))
+		lifts.append((p - c0).normalized())
+	var outline := base.duplicate()
+	for i in range(n - 1, -1, -1):
+		var mid := (base[i] + base[i + 1]) * 0.5
+		var nrm: Vector3 = ((lifts[i] as Vector3) + (lifts[i + 1] as Vector3)).normalized()
+		var dir := (nrm + Vector3(0, 0.1, 0.15)).normalized()
+		var ln := 0.15 * sin(PI * lerpf(0.25, 0.92, float(i) / (n - 1))) + 0.02
+		outline.append(mid + Vector2(dir.z, dir.y) * ln)
+		if i > 0:
+			var vn: Vector3 = lifts[i]
+			outline.append(base[i] + Vector2(vn.z, vn.y) * ln * 0.3)
+	mb.add_extrude(m_hair, Transform3D(Basis(Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(-1, 0, 0)), Vector3.ZERO), outline, 0.026, 3.0)
 
 
 func _hair_tie(smb: MeshBuilder, rings: Array, bone_i: int) -> void:

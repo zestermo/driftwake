@@ -41,6 +41,8 @@ func _initialize() -> void:
 			h.rotation.y = PI + yaw
 			models.append(h)
 	cam = Camera3D.new()
+	# (interpolated, a moved camera lags a physics tick behind and the shot catches it on its way)
+	cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	root.add_child(cam)
 	cam.current = true
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -68,6 +70,24 @@ func _rows(which: String) -> Array:
 					eyes.append(_look({"eyes": i, "body": body, "hair": "crop" if body == "masc" else "ponytail",
 						"eye_color": CharacterLook.EYE_COLORS[[3, 0, 2, 5][eyes.size()]]}))
 				out_rows.append(eyes)
+		"hair":
+			for st in ["dreads", "mohawk"]:
+				var row: Array = []
+				for body in ["masc", "fem"]:
+					for hat in ["none", "tricorn"]:
+						row.append(_look({"hair": st, "body": body, "hat": hat, "hair_color": CharacterLook.HAIR_COLORS[0 if st == "dreads" else 10]}))
+				out_rows.append(row)
+		"finishes":
+			for fin in ["two_tone", "tipped"]:
+				var row: Array = []
+				for st in ["short", "long", "dreads", "mohawk"]:
+					row.append(_look({"hair": st, "body": "fem" if st == "long" else "masc", "hair_finish": fin,
+						"hair_color": CharacterLook.HAIR_COLORS[0], "hair_color2": CharacterLook.HAIR_COLORS[8 if fin == "two_tone" else 10]}))
+				out_rows.append(row)
+			var cols: Array = []
+			for i in range(CharacterLook.NATURAL_HAIR, CharacterLook.HAIR_COLORS.size()):
+				cols.append(_look({"hair": "spiky", "hair_color": CharacterLook.HAIR_COLORS[i]}))
+			out_rows.append(cols)
 	var cut: Array = []
 	for row in out_rows:
 		for i in range(0, (row as Array).size(), PER):

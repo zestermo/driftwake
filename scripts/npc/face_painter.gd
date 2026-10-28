@@ -51,6 +51,8 @@ static func material(lk: Dictionary, eye_scale: float, hairline: Array = []) -> 
 		lk.get("marks", "none"), lk.get("facial_hair", "none"), lk.get("eyepatch", false), lk.get("body", "masc"),
 		(lk.get("eye_color", Color.BROWN) as Color).to_html(), (lk.get("hair_color", Color.BLACK) as Color).to_html(),
 		(lk.get("skin", Color.WHITE) as Color).to_html(), lk.get("head", "round"), lk.get("style", ""), eye_scale]
+	if str(lk.get("hair_finish", "plain")) == "two_tone":
+		key += "|two|" + (lk.get("hair_color2", Color.WHITE) as Color).to_html()
 	_lock.lock()
 	var hit: Material = _cache.get(key)
 	_lock.unlock()
@@ -83,10 +85,12 @@ func paint(lk: Dictionary, eye_scale: float) -> void:
 	var skin: Color = lk.get("skin", Color(0.85, 0.65, 0.5))
 	var marks := str(lk.get("marks", "none"))
 	if not hairline.is_empty():
-		var hc := hair.darkened(0.15)
+		var two := str(lk.get("hair_finish", "plain")) == "two_tone"
 		for x in range(SIZE):
 			var a := ((float(x) + 0.5) / SIZE - 0.5) * 2.0 * SPAN
 			var hl := BodyBuilder._hairline(hairline, a) + 0.015
+			# (two-tone: the character's right half, u > 0.5, in the second colour, as the hair over it)
+			var hc: Color = (lk.get("hair_color2", hair) if two and x >= SIZE / 2 else hair).darkened(0.15)
 			for y in range(SIZE):
 				var hy := Y_TOP - (float(y) + 0.5) / SIZE * (Y_TOP - Y_BOT)
 				if hy > hl:

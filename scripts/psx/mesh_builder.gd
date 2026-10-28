@@ -864,6 +864,28 @@ func cut(drop: Callable) -> void:
 		_surfaces[mat] = keep
 
 
+## Move every triangle of `from` that `pick`(centre, its three vertices' first bones) says to onto `to`.
+func move_tris(from: Material, to: Material, pick: Callable) -> void:
+	if not _surfaces.has(from):
+		return
+	var s: Dictionary = _surfaces[from]
+	var keep := {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(),
+		"b": PackedInt32Array(), "w": PackedFloat32Array()}
+	var dst := _surf(to)
+	var v: PackedVector3Array = s["v"]
+	var bb: PackedInt32Array = s["b"]
+	for i in range(0, v.size(), 3):
+		var out: Dictionary = dst if pick.call((v[i] + v[i + 1] + v[i + 2]) / 3.0, PackedInt32Array([bb[i * 4], bb[i * 4 + 4], bb[i * 4 + 8]])) else keep
+		for k in range(3):
+			out["v"].append(v[i + k])
+			out["n"].append(s["n"][i + k])
+			out["uv"].append(s["uv"][i + k])
+			out["c"].append(s["c"][i + k])
+		out["b"].append_array(bb.slice(i * 4, i * 4 + 12))
+		out["w"].append_array((s["w"] as PackedFloat32Array).slice(i * 4, i * 4 + 12))
+	_surfaces[from] = keep
+
+
 ## A shaded inside face behind every triangle of `mat` (a shell seen through a hole).
 func add_backfaces(mat: Material, shade: float = 0.6) -> void:
 	if not _surfaces.has(mat):
