@@ -520,6 +520,8 @@ func _act(id: String) -> void:
 			equip_skill(lid, PowerComponent.ULT if Skills.is_ult(lid) else (free if free >= 0 else PowerComponent.KEYS[0]))
 	elif id.begins_with("bar:") or id.begins_with("pas:"):
 		_say("Pick something in the library, then its key")
+	elif id.begins_with("crew:"):
+		_say("Weapon out, press C (a crewmate joins with F)")
 	elif id == "respec":
 		_respec()
 
@@ -771,7 +773,48 @@ func _draw_tree_page(body: Rect2, rail: bool) -> void:
 	var h := page.size.y - (RAIL_H + 4.0 if rail else 0.0)
 	var card := Rect2(page.end.x - CARD_W, page.position.y, CARD_W, h - 2.0)
 	SkillTreeDraw.draw_tree(self, tree, Rect2(page.position, Vector2(page.size.x - CARD_W - 8.0, h)), _pr(), _t)
+	if tab == "combat":
+		_draw_crew_node(Rect2(page.position + Vector2(4, 4), Vector2(128, 30)))
 	_draw_card(card)
+
+
+## The weapon's crew technique (CrewTechniques: C in combat stance), off to the side of its tree: always yours once
+## the tree is, so it's told rather than bought; the card says what it does with a crewmate and alone.
+func _crew_of(tree_id: String) -> String:
+	for id in CrewTechniques.ALL:
+		for st in CrewTechniques.ALL[id]["styles"]:
+			if SkillTree.style_tree(str(st)) == tree_id:
+				return id
+	return ""
+
+
+func _draw_crew_node(r: Rect2) -> void:
+	var tid := _crew_of(tree)
+	if tid == "":
+		return
+	var col := CrewTechniques.tree_col(tid, 1)
+	var on := inspected() == "crew:" + tid
+	_box(r, SkillTreeDraw.NODE_BG, Color.WHITE if on else col)
+	_key_cap(Vector2(r.position.x + 5.0, r.position.y + 5.0), "C", false)
+	draw_string(SILK, Vector2(r.position.x + 18.0, r.position.y + 11.0), "CREW TECHNIQUE", HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 22.0, 8, SkillTreeDraw.TEXT_OFF)
+	draw_string(_font, Vector2(r.position.x + 5.0, r.position.y + 25.0), CrewTechniques.name_of(tid), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 10.0, 12, UIStyle.CREAM)
+	hit(r, "crew:" + tid)
+	if on:
+		draw_rect(r.grow(1.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
+
+
+## The crew technique on the card: what it does, how it's started and joined, its solo version and its wait.
+func _crew_info(tid: String, x: float, y: float, w: float, limit: float) -> void:
+	var e: Dictionary = CrewTechniques.ALL[tid]
+	draw_string(SILK, Vector2(x, y), "CREW TECHNIQUE · YOURS", HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
+	UIStyle.draw_title(self, Vector2(x, y + 17.0), str(e["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
+	y = _para(Vector2(x, y + 30.0), str(e["desc"]), w, UIStyle.PARCH_INK, limit) + 4.0
+	y = _lines(Vector2(x, y), "Weapon out, press C. A crewmate within %d m presses F in the ring to join." % int(CrewTechniques.MATE_NEAR), w, UIStyle.PARCH_DIM) + 6.0
+	if y < limit - 20.0:
+		draw_string(_font, Vector2(x, y + 2.0), "Alone: %s" % e["solo"], HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK)
+		y = _lines(Vector2(x, y + 13.0), str(e["solo_desc"]), w, UIStyle.PARCH_DIM) + 4.0
+	if y < limit - 8.0:
+		_lines(Vector2(x, y), "Ready again after %d s." % int(CrewTechniques.cooldown_of(tid)), w, UIStyle.PARCH_DIM)
 
 
 ## The one plate over a page: the open tree's icon, name and mastery with its bar (the chart's: how many weapons),
@@ -862,6 +905,8 @@ func _draw_card(card: Rect2) -> void:
 	var ins := inspected()
 	if ins.begins_with("n:") and SkillTrees.node_def(ins.substr(2)).get("tree", "") == tree:
 		_node_info(ins.substr(2), x, y, w, limit - (30.0 if respec else 0.0), col)
+	elif ins.begins_with("crew:"):
+		_crew_info(ins.substr(5), x, y, w, limit - (30.0 if respec else 0.0))
 	else:
 		_para(Vector2(x, y), "Pick a node to see what it does, what it needs and what it costs.", w, UIStyle.PARCH_DIM, limit)
 	if respec:
