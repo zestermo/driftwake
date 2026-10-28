@@ -213,7 +213,7 @@ main { width: min(1100px, 100%); margin: 0 auto; padding: 32px 16px 8px; }
 }
 .clips figure:last-child:nth-child(odd) { grid-column: 1 / -1; }
 figure { margin: 0; }
-.shots img, .clips img, .art img, .post-card img {
+.shots img, .clips img, .art img, .post-card > a img {
 	display: block; width: 100%; height: auto;
 	aspect-ratio: 16 / 9;
 	background: var(--deep);
@@ -319,9 +319,17 @@ footer .credit { margin-top: 6px; font-size: 12px; opacity: 0.85; }
 .toc { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 24px; padding: 0; list-style: none; font-size: 15px; }
 .toc-unstable { margin-bottom: 8px; }
 .toc-label { font: 400 11px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); align-self: center; }
-/* the releases page: unstable builds above the stable line, each with its own download */
+/* the releases page: the stable line first; unstable builds folded away below it, each with its own download */
 .rel-group { margin: 28px 0 6px; font: 400 13px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--teal-light); }
 .rel-note { margin: 0 0 14px; max-width: 680px; color: var(--dim); }
+.rel-fold { margin-top: 36px; }
+.rel-fold > summary { list-style: none; cursor: pointer; }
+.rel-fold > summary::-webkit-details-marker { display: none; }
+.rel-fold > summary .rel-group { display: inline-block; margin: 0 0 14px; }
+.rel-fold > summary .rel-group::before { content: "\25B8"; display: inline-block; width: 1.2em; transition: transform 0.15s; }
+.rel-fold[open] > summary .rel-group::before { transform: rotate(90deg); }
+.rel-fold > summary .rel-group small { font-size: 11px; color: var(--dim); }
+.rel-fold > summary:hover .rel-group, .rel-fold > summary:focus-visible .rel-group { color: var(--text); }
 .version .badge { display: inline-block; margin-left: 8px; padding: 1px 6px; font: 400 10px "Silkscreen", monospace; letter-spacing: 1px; vertical-align: middle; color: var(--ink); background: var(--coral); border-radius: 3px; }
 .version.unstable { opacity: 0.94; }
 

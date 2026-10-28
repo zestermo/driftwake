@@ -769,6 +769,7 @@
 			"headline": "The playtest pass: poise and juggles instead of knockdown spam, beast bosses that escalate, a bounty you can see, Marine outposts and livelier villages.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",
+			"news": "/news/v1-23-bounties-and-beasts/",
 			"github": true,
 			"added": [
 				["Combat core", "Poise, launchers and air-step juggles; grunts that stop spamming block."],
@@ -785,6 +786,7 @@
 			"headline": "Crew techniques, new Will paths, armour and clothes with stats, ranged weapons and native cloth physics.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",
+			"news": "/news/v1-24-combat-and-gear/",
 			"github": true,
 			"added": [
 				["Crew techniques", "C in combat stance: a two-person move for every weapon."],

@@ -94,7 +94,8 @@ function buildReleases() {
 			unstable: Boolean(unstable),
 			post: post ? post[1] : null,
 		};
-	});
+	// newest first whatever the page's order (the unstable builds are folded below the stable line there)
+	}).sort((a, b) => b.version.split('.').map(Number).reduce((d, n, i) => d || n - (a.version.split('.').map(Number)[i] || 0), 0) || b.version.length - a.version.length);
 }
 
 function buildPosts(releases) {
