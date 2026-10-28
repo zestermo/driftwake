@@ -59,7 +59,7 @@ func _process(_d: float) -> bool:
 		4:
 			var j = p.jam
 			check("letting go of T plays it (%s)" % p.body_model.current_action(), j.playing and p.body_model.current_action() == "music_concertina")
-			check("a tune of the four, started now", j.tune >= 0 and j.tune < Instruments.TUNES.size() and absf(j.where() - (root.get_node("Net").time() - j.t0)) < 0.01 and j.where() < 0.5)
+			check("one of the tunes, started now", j.tune >= 0 and j.tune < Instruments.TUNES.size() and absf(j.where() - (root.get_node("Net").time() - j.t0)) < 0.01 and j.where() < 0.5)
 			check("its concertina stem (%s)" % str(j._audio.stream.resource_path), j._audio.stream.resource_path == Instruments.tune_path(j.tune, "concertina") and j._audio.bus == "SFX")
 			check("all of a tune's stems are one length", _same_lengths(j.tune))
 			until = TK.wait_secs(1.2)

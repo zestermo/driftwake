@@ -17,7 +17,7 @@ const ITEMS := {
 const KINDS := ["concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo"]
 ## [id, title, beats in a bar, bars, sub-beats (strokes a beat)]: the stems res://assets/audio/jam/<id>_<kind>.ogg.
 const TUNES := [["lass", "The Brinehollow Lass", 2, 32, 3], ["haul", "Haul Away the Morrow", 4, 16, 2],
-	["bell", "The Drowned Bell", 3, 32, 2], ["rum", "Rum and Rigging", 2, 32, 2]]
+	["bell", "The Drowned Bell", 3, 32, 2], ["rum", "Rum and Rigging", 2, 32, 2], ["wake", "Roll the Wake Down", 4, 32, 2]]
 ## A chain island's trader carries an instrument this often (seeded per island).
 const TRADER_CHANCE := 0.45
 

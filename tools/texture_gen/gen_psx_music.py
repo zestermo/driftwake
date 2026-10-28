@@ -2655,7 +2655,7 @@ SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 
 
 # --------------------------------------------------------------------------
-# the jam (`jam`): four shanties the captains play on their own instruments.
+# the jam (`jam`): the shanties the captains play on their own instruments.
 # One stem per instrument per tune, every stem of a tune the same tempo, bars
 # and length, so any mix of them is one band (scripts/items/jam.gd plays them
 # from one shared clock). Everyone plays the tune, as at a session: whistle,
@@ -2688,6 +2688,14 @@ RUM_A = ("A4/1 C#5/1 E5/1 C#5/1 | D5/1 F#5/1 E5/2 | C#5/1 E5/1 A5/1 E5/1 | F#5/2
          "A4/1 C#5/1 E5/1 C#5/1 | D5/1 F#5/1 A5/1 F#5/1 | E5/1 D5/1 C#5/1 B4/1 | A4/2 -/1 E4/1")
 RUM_B = ("A5/1 G#5/1 A5/1 E5/1 | F#5/1 E5/1 D5/1 B4/1 | E5/1 D#5/1 E5/1 B4/1 | C#5/1 B4/1 A4/1 E4/1 | "
          "A5/1 G#5/1 A5/1 E5/1 | F#5/1 A5/1 D6/1 F#5/1 | E5/1 G#5/1 B5/1 G#5/1 | A5/2 A5/1 -/1")
+# Roll the Wake Down (1.25): a rousing capstan shanty, 4/4, D dorian, eighth ticks; a call (V), the chorus
+# up high (C), a second verse that answers lower (B), the chorus again.
+WAKE_V = ("D5/2 D5/1 E5/1 F5/2 D5/2 | A5/3 G5/1 F5/2 E5/2 | D5/2 F5/2 A5/2 C6/2 | B5/4 A5/2 -/2 | "
+          "A5/2 A5/1 G5/1 F5/2 D5/2 | C5/3 D5/1 E5/2 C5/2 | D5/2 F5/2 E5/2 C5/2 | D5/6 -/2")
+WAKE_C = ("A5/4 A5/2 C6/2 | D6/4 C6/2 A5/2 | G5/2 G5/1 A5/1 B5/2 G5/2 | A5/6 -/2 | "
+          "A5/4 A5/2 C6/2 | D6/3 C6/1 A5/2 F5/2 | E5/2 F5/1 G5/1 A5/2 C5/2 | D5/4 -/2 A4/2")
+WAKE_B = ("F5/2 F5/1 G5/1 A5/2 F5/2 | G5/3 F5/1 E5/2 C5/2 | D5/2 E5/1 F5/1 G5/2 A5/2 | B5/2 A5/2 G5/4 | "
+          "A5/2 C6/2 A5/2 F5/2 | G5/2 E5/2 C5/4 | D5/2 F5/1 E5/1 D5/2 C5/2 | D5/6 -/2")
 
 # Per tune: tick (s), ticks per bar and per beat, scale, parts {name: (melody, chords per bar)}, form,
 # the whistle's octave, the gurdy's drones, the concertina's left hand [(tick, dur, Bass root / Fifth / Chord)],
@@ -2717,6 +2725,13 @@ JAM_TUNES = {
                 form="AABB", whistle=12, drone=["A2", "E3"],
                 lh=[(0, 1, "B"), (1, 1, "C"), (2, 1, "F"), (3, 1, "C")],
                 lo="X.x.", rim=".x.x", dog=".x.x"),
+    "wake": dict(title="Roll the Wake Down", tick=60 / 126 / 2, tpb=8, beat=2, scale=("D", "dorian"),
+                 parts={"V": (WAKE_V, ["Dm", "C", "F", "G", "Dm", "C", "Dm C", "Dm"]),
+                        "C": (WAKE_C, ["F", "Dm", "G", "Am", "F", "Dm", "C", "Dm"]),
+                        "B": (WAKE_B, ["F", "C", "Dm", "G", "F", "C", "Dm C", "Dm"])},
+                 form="VCBC", whistle=0, drone=["D3", "A3"],
+                 lh=[(0, 2, "B"), (2, 2, "C"), (4, 2, "F"), (6, 2, "C")],
+                 lo="X...X.o.", rim="..x...x.", dog="..x...xx"),
 }
 
 

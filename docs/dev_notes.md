@@ -7485,3 +7485,9 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   Powder Belt (belt and sash, +5% reload), Shark's Tooth (necklace, +8% swim speed, its own icon); Sela's pool.
 - Tests: t/gear/new_pieces (new); t/gear, t/items, t/economy green. Render: tools/dev/out/gear125_front.png
   (modelshot of `S.dressed(Gear.LOOKS...)`).
+- **A fifth tune, "Roll the Wake Down"** (`wake`; picked over a sea ballad because the banjo wants a driving
+  tune): a rousing capstan shanty, 4/4 at 126, D dorian, form VCBC (a call, the chorus up high to D6, a second
+  verse answering lower, the chorus again), 32 bars = 60.95 s. The chorus's last bar ends on an A4 pickup into
+  bar 1's D, so the loop turns over the bar line. Bodhran on 1 and 3 with a ghost before 4, the gurdy's dog
+  doubled on the last eighth. Stems for all six at the usual levels (-20, bodhran -22, banjo -21), seams <= 0.0054,
+  1.61 MB. `Instruments.TUNES` row `["wake", "Roll the Wake Down", 4, 32, 2]`. Render: `gen_psx_music.py jam wake`.
