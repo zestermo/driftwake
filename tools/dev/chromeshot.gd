@@ -76,7 +76,7 @@ func _draw_sheet() -> void:
 	var s := sheet.size
 	UIStyle.draw_sky(sheet, Rect2(Vector2.ZERO, s), t)
 	var tabs := [["Captain", UIStyle.tab_icon("crown")], ["Combat", UIStyle.tab_icon("swords")], ["Adventure", UIStyle.tab_icon("compass")],
-		["Loadout", UIStyle.tab_icon("chest")], ["Driftfruit", UIStyle.tab_icon("fruit")]]
+		["Loadout", UIStyle.tab_icon("chest")], ["Powers", UIStyle.tab_icon("fruit")]]
 	UIStyle.draw_topbar(sheet, s.x, tabs, 1, t, 12, 0.28)
 	var x := 360.0
 	var y := 44.0

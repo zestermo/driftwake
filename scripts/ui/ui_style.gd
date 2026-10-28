@@ -562,6 +562,17 @@ static func make_sound_players(host: Node) -> void:
 
 ## Play a menu sound (SOUNDS). A "move" right after another sound is dropped (the focus
 ## landing on a screen's first button as it opens, a click focusing what it pressed).
+## The attention pip: a small gold square with a slow pulse, centred on `c`, on anything there's something new to do in
+## (a menu tab, the Perks button, a Will path, the level badge, a new item). The same mark everywhere, so it's learned once.
+static func draw_pip(ci: CanvasItem, c: Vector2, t: float) -> void:
+	var a := 0.5 + 0.5 * sin(t * 4.0)
+	c = c.round()
+	ci.draw_rect(Rect2(c - Vector2(5, 5), Vector2(10, 10)), Color(GILT, 0.12 + 0.2 * a))
+	ci.draw_rect(Rect2(c - Vector2(3, 3), Vector2(6, 6)), OUTLINE)
+	ci.draw_rect(Rect2(c - Vector2(2, 2), Vector2(4, 4)), GILT.lerp(CREAM, 0.25 * a))
+	ci.draw_rect(Rect2(c - Vector2(2, 2), Vector2(1, 1)), CREAM)
+
+
 static func sfx(what: String) -> void:
 	var now := Time.get_ticks_msec()
 	if what == "move" and now - _last_ms < 150:

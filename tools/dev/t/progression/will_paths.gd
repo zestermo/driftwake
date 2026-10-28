@@ -47,7 +47,7 @@ func _process(_d: float) -> bool:
 			check("Captain's Will needs 4 in each (%s)" % pr.buy_why("w_roar_king"), pr.buy_why("w_roar_king") == "Needs 4 Will spent in Iron Will and in Sense")
 			check("...Quick Coat and Hardening: 4 in Iron Will", pr.buy("w_coat_quick") and pr.buy("h_harden"))
 			check("...Roar opens (2), the ultimate", pr.buy("w_roar_king") and pr.knows("conquerors_haki"))
-			check("Clash waits for 4 in Captain's Will (%s)" % pr.buy_why("w_clash"), pr.buy_why("w_clash") == "Needs 4 Will spent in Captain's Will")
+			check("Clash waits for 4 in Captain's Will (%s)" % pr.buy_why("w_clash_v"), pr.buy_why("w_clash_v") == "Needs 4 Will spent in Captain's Will")
 			check("bought once", pr.buy_why("w_coat_heavy") == "Learned" and not pr.buy("w_coat_heavy"))
 			print("   spent %d left %d" % [pr.spent("will"), pr.pool("will")])
 			check("the points add up: 15 spent, 15 left", pr.spent("will") == 15 and pr.pool("will") == 15)

@@ -3,8 +3,8 @@ extends SceneTree
 ## bought, cutlass 7 and pistol 6, Swimming and Sailing found, the Vine Fruit eaten, katana and pistol loadouts, three
 ## katana skills on the bar and a katana passive slotted. Saves <out>_captain, _combat (the katana tree, Wind Severer
 ## inspected), _variant (the iai upgrade hovered: its tip and card), _chart, _adventure, _loadout, _fruit, _pistol PNGs, then
-## the Captain's Will page (_will), a level-40 captain with every fork picked (_captain40, scrolled down: _captain40_low) and
-## a level-1 one (_captain1).
+## the Captain page at level 15 with a fork waiting (_will: Iron Will; _will2: Tempo with Will to spend, Flow picked;
+## _will_sense: four versions in a row), the perks popup (_perks), a level-40 captain's (_perks40) and a level-1 page (_captain1).
 ## Args: <out_prefix> [WxH] (default tools/dev/out/skillmap at 1280x720, the 640x360 canvas; 800x450 renders the 800x450
 ## canvas 1:1, as 1600x900 would on a screen big enough for that window).
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -123,22 +123,34 @@ func _process(_d: float) -> bool:
 			until = 20
 		8:
 			shot("pistol")
+			# level 15 with a fork waiting, 4 Will to spend
+			var pr = stage.player.progression
+			var xp := 0
+			for lv in range(pr.level, 15):
+				xp += pr.xp_to_next(lv)
+			pr.add_xp(xp)
 			sm.set_tab("captain")
-			sm._set_page(true)
 			until = 20
 		9:
 			shot("will")
 			var pw = stage.player.progression
-			pw.gift("will", 6)
+			pw.gift("will", 10)
 			for k in ["w_step_v", "h_feet", "w_mist_v", "w_cancel"]:
 				pw.buy(k)
-			sm._set_will_set(1)
-			sm.sel = "n:w_cancel"
+			sm._set_path("tempo")
+			sm.sel = "n:w_flow"
 			until = 20
 		10:
 			shot("will2")
-			sm._set_will_set(0)
-			sm._set_page(false)
+			sm._set_path("sense")
+			until = 20
+		11:
+			shot("will_sense")
+			sm._set_perks(true)
+			until = 20
+		12:
+			shot("perks")
+			sm._set_perks(false)
 			var pr = stage.player.progression
 			var xp := 0
 			for lv in range(pr.level, 40):
@@ -147,14 +159,11 @@ func _process(_d: float) -> bool:
 			for lv in [15, 20, 25, 30, 35, 40]:
 				pr.pick_talent(lv, lv / 5 % 2)
 			sm.set_tab("captain")
+			sm._set_perks(true)
 			until = 20
-		11:
-			shot("captain40")
-			for i in range(5):
-				sm._fork_nav(Vector2.DOWN)
-			until = 10
-		12:
-			shot("captain40_low")
+		13:
+			shot("perks40")
+			sm._set_perks(false)
 			var pr = stage.player.progression
 			pr.level = 1
 			pr.xp = 0
@@ -166,7 +175,7 @@ func _process(_d: float) -> bool:
 				pr.owned.erase(k)
 			sm.set_tab("captain")
 			until = 20
-		13:
+		14:
 			shot("captain1")
 			quit()
 	step += 1

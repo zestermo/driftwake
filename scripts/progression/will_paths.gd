@@ -50,7 +50,7 @@ const ABILITIES := {
 		["w_emit_ring", "Emission: Ring", {"emission": 2}, "A coated heavy bursts a ring of Will 4 m round you.", "", "Ring"],
 		["w_emit_stomp", "Stomp", {"emission": 3}, "A coated heavy stamps Will into the ground: a 3.5 m quake round you that knocks shields and guards aside.", "", "Stomp"]]],
 	"w_inner": ["iron", 3, "Inner Strike", "Through guards and armour: your heavy attacks can't be blocked, hit 8% harder and stagger.", [
-		["w_inner", "Inner Strike", {"armament": 1, "damage_pct": 0.08, "inner_strike": 1}, "Your heavy attacks can't be blocked, hit 8% harder and stagger what they hit.", "", "Strike"],
+		["w_inner_v", "Inner Strike", {"armament": 1, "damage_pct": 0.08, "inner_strike": 1}, "Your heavy attacks can't be blocked, hit 8% harder and stagger what they hit.", "", "Strike"],
 		["w_mirror", "Mirror Guard", {"mirror_guard": 1}, "A perfect block (a parry) sends the blow back: the attacker takes it, through any guard.", "", "Mirror"]]],
 	"w_flash": ["sense", 1, "Flash", "Sense intent: foes flash red as they start an attack, and your parry window is a little wider.", [
 		["w_flash_long", "Long Warning", {"observation": 1, "flash_early": 1}, "The flash comes earlier: more time to answer.", "", "Early"],
@@ -62,14 +62,14 @@ const ABILITIES := {
 		["w_fore_slow", "Slow Sight", {"foresight_slow": 0.6}, "A perfect dodge (a blow passing through you as you dodge) slows time for 0.6 s.", "foresight", "Slow"],
 		["w_glimpse", "Glimpse", {}, "Glimpse (the skill, in Foresight's place): for 3 s you see foes and closed chests within 40 m through walls.", "will_glimpse", "Glimpse"]]],
 	"w_crowd": ["sense", 3, "Crowd Read", "Read a whole crowd: every foe round you shows its next move.", [
-		["w_crowd", "Crowd Read", {"crowd_read": 1, "observation": 1}, "Every foe within 20 m flashes as it starts an attack, and for 4 s after a perfect dodge you see them all.", "", "Read"],
+		["w_crowd_v", "Crowd Read", {"crowd_read": 1, "observation": 1}, "Every foe within 20 m flashes as it starts an attack, and for 4 s after a perfect dodge you see them all.", "", "Read"],
 		["w_weak", "Weak Point", {"weak_point": 1, "observation": 1}, "A boss's breakable parts are marked through everything while you're within 40 m of it.", "", "Weak"]]],
 	"w_roar": ["conq", 2, "Roar", "A king's will (the ultimate): weak foes round you drop; everyone else is thrown back, reeling.", [
 		["w_roar_king", "King's Roar", {}, "Weak foes faint on the spot.", "conquerors_haki", "King"],
 		["w_roar_far", "Far Roar", {"roar_reach": 0.5}, "The roar reaches half again as far.", "conquerors_haki", "Far"],
 		["w_roar_fear", "Intimidate", {"intimidate": 1}, "Weak foes don't faint: they throw down their arms and run. No loot from them, but your bounty rises.", "conquerors_haki", "Fear"]]],
 	"w_clash": ["conq", 3, "Clash", "When two great wills meet, they clash: timed presses decide who breaks.", [
-		["w_clash", "Clash", {"will_clash": 1}, "Two big Will attacks meeting (a boss's, a rival's or a crewmate's in a duel) start a clash won by timed presses.", "", "Clash"],
+		["w_clash_v", "Clash", {"will_clash": 1}, "Two big Will attacks meeting (a boss's, a rival's or a crewmate's in a duel) start a clash won by timed presses.", "", "Clash"],
 		["w_rally", "Rally", {"will_rally": 0.1}, "While you fight, you and every crewmate within 12 m deal 10% more damage.", "", "Rally"],
 		["w_flag", "Plant the Flag", {}, "Plant the Flag (the skill): for 20 s every captain within 6 m of it mends 3% of their health a second.", "will_flag", "Flag"]]],
 	"w_breath": ["tide", 1, "Deep Breath", "The sea's own lungs: you hold your breath longer and swim faster.", [

@@ -1,8 +1,10 @@
 class_name SkillMapScreen
 extends Control
 ## The skills menu (K), as docs/media/progression_mock: a night sky under a wooden beam with a hanging sign per tab.
-##   Captain     two pages (C / W, Tab, pad Y): the talent forks as rows up a level spine (both options' cards side by
-##               side, milestones on the spine; scrolls, up/down a fork, left/right an option), and the Will paths
+##   Captain     one page: your level and XP with the Perks button over the Will paths (a row of the seven paths, A/D;
+##               the open one as a ladder, T1 at the foot, its versions as cards side by side, its passive under them).
+##               Perks (P, Tab, pad Y) is a popup over it: every level fork in one list (up/down a fork, left/right an
+##               option). Gold pips lead to anything to spend: the tab, the Perks button, a path, the fork.
 ##   Combat      a found weapon's tree (three branches up from its root, bought with its own points), or the chart of them all
 ## Trees show icons and names; the card has the picked node in full (gate, price, what it does, why not yet), the hover
 ## a one-line tip (its price and what Enter does or why not), one plate over the page the tree's mastery and its own
@@ -10,16 +12,16 @@ extends Control
 ## Only found trees show anywhere (no Adventure sign before one is found). At the bunk the card refunds the tree for gold.
 ##   Adventure   the found Adventure trees beside the open one
 ##   Loadout     the weapon loadouts, the one skill bar (1-5 + R), the passive slots, the library of what you know
-##   Driftfruit  the eaten fruit's tree (once there is one)
+##   Powers      the eaten fruit's tree (once there is one)
 ## Keys: Q / E (shoulder buttons) change tab; arrows / d-pad move between nodes; Enter / F (pad A) buys a node,
-## switches a version or picks a talent (versions and changed talents only at the ship's bunk); A / D change weapon,
-## Tab the chart; C / W (or Tab) the Captain's page; W / S change Adventure tree; 1-5 / R put the picked skill on the bar, 1-4 the picked passive in
+## switches a version or picks a talent (versions and changed talents only at the ship's bunk); A / D change weapon
+## (the Captain page: the Will path), Tab the chart (the Captain page: the perks); W / S change Adventure tree; 1-5 / R put the picked skill on the bar, 1-4 the picked passive in
 ## its slot. Mouse: hover inspects, click picks, click again acts, right-click clears a bar or passive slot.
 ## Everything is drawn here; clickable things register a hit (id, rect) as they're drawn.
 
 const SILK := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const TABS := [["captain", "Captain", "crown"], ["combat", "Combat", "swords"], ["adventure", "Adventure", "compass"],
-	["loadout", "Loadout", "chest"], ["fruit", "Driftfruit", "fruit"]]
+	["loadout", "Loadout", "chest"], ["fruit", "Powers", "fruit"]]
 const CARD_W := 152.0
 const RAIL_H := 14.0
 const HEAD_H := 32.0
@@ -47,13 +49,21 @@ var menu: Node
 var tab := "combat"
 ## Combat: the chart of every weapon instead of one tree.
 var chart := false
-## Captain: the Will page instead of the talent forks.
-var will_page := false
-## Which of WillPaths.PAGES the Will page shows.
-var will_set := 0
-## Captain: the lowest fork row in view, and how many rows the canvas fits (4 at 640x360, 6 at 800x450).
-var _first := 0
-var _rows := 4
+## Captain: the perks popup (the level forks) open over the Will paths.
+var perks_open := false
+## Captain: the Will path shown (WillPaths.PATHS).
+var will_path := "iron"
+## Borrowed icons for the Will versions and passives with no skill of their own, and each path's emblem (stand-ins until
+## they get their own).
+const WILL_ICONS := {"w_emit_line": "flying_slash", "w_emit_ring": "fire_ring", "w_emit_stomp": "move_crash", "w_inner_v": "palm_strike",
+	"w_mirror": "windmill_guard", "w_flash_long": "foresight", "w_flash_shots": "deadeye", "w_flash_boss": "guardbreaker",
+	"w_flash_ambush": "smoke_bomb", "w_crowd_v": "will_glimpse", "w_weak": "pin_shot", "w_clash_v": "cross_counter", "w_rally": "howl",
+	"w_breath_v": "move_dolphin", "w_wave": "move_glide", "w_step_v": "move_moonstep", "w_cancel": "side_step", "w_flow": "phantom_step",
+	"w_mist_v": "red_eclipse", "w_unbowed_v": "tekkai", "w_link_v": "parley", "w_gauge": "twin_waves", "w_shelter": "move_rolling_guard",
+	"h_harden": "tekkai", "h_instinct": "move_sidestep", "h_will": "conquerors_haki", "h_helm": "broadside", "h_feet": "flame_dash",
+	"h_crew": "howl", "h_blood": "bleeding_edge"}
+const PATH_ICONS := {"iron": "armament_coat", "sense": "will_glimpse", "conq": "conquerors_haki", "tide": "will_swell",
+	"tempo": "will_still_point", "fury": "will_berserk", "bond": "will_twin"}
 ## The open tree (Combat, Adventure, Driftfruit).
 var tree := ""
 ## The picked hit: "n:<node>", "w:<tree>", "bar:<slot>", "pas:<i>", "lib:<skill or passive>".
@@ -138,47 +148,89 @@ func _captain_kind(kind: String) -> Array:
 	return out
 
 
-## The Captain page's pick: the lowest fork not picked yet (else the top one), scrolled into view; the Will page's: the
-## first Will ability you have (else Coat).
+## The Captain page's pick. Perks open: the lowest fork not picked yet (else the top one). The Will paths: a path with
+## something to buy now (else the one of your first Will ability, else Iron Will), on its first card.
 func _captain_home() -> void:
 	var p := _pr()
-	if will_page:
-		var won := WillPaths.ABILITIES.keys().filter(func(k): return p.has_will(k))
-		var first := str(won[0] if not won.is_empty() else "w_coat")
-		sel = "n:" + first
-		for i in range(WillPaths.PAGES.size()):
-			if WillPaths.ABILITIES[first][0] in WillPaths.PAGES[i]:
-				will_set = i
+	if perks_open:
+		var f := _forks()
+		var k := f.size() - 1
+		for i in range(f.size() - 1, -1, -1):
+			if p.version_of(f[i]) < 0:
+				k = i
+		sel = "f:%s:%d" % [f[k], maxi(p.version_of(f[k]), 0)]
 		return
-	var f := _forks()
-	var k := f.size() - 1
-	for i in range(f.size() - 1, -1, -1):
-		if p.version_of(f[i]) < 0:
-			k = i
-	sel = "f:%s:%d" % [f[k], maxi(p.version_of(f[k]), 0)]
-	_first = clampi(k - _rows / 2, 0, maxi(f.size() - _rows, 0))
+	var won := WillPaths.ABILITIES.keys().filter(func(k): return p.has_will(k))
+	var path := str(WillPaths.ABILITIES[won[0]][0]) if not won.is_empty() else "iron"
+	for k in WillPaths.PATHS:
+		if path_ready(k):
+			path = k
+			break
+	will_path = path
+	sel = _path_first(path)
 
 
-## The Will page's set of path columns (WillPaths.PAGES): the pick moves to its first path's first ability.
-func _set_will_set(i: int) -> void:
-	if will_set == i:
+## The first card of a path's ladder: its lowest version to buy now, else its lowest one you carry, else its first.
+func _path_first(path: String) -> String:
+	var p := _pr()
+	var all: Array = []
+	for aid in WillPaths.abilities_of(path):
+		for v in SkillTrees.node_def(aid)["versions"]:
+			all.append(str(v["id"]))
+	for vid in all:
+		if not p.has_version(vid) and p.buy_why(vid) == "":
+			return "n:" + vid
+	return "n:" + str(all[0])
+
+
+## The Will path shown: the pick moves to its first card.
+func _set_path(path: String) -> void:
+	if will_path == path:
 		return
-	will_set = i
+	will_path = path
 	hover = ""
-	sel = "n:" + str(WillPaths.abilities_of(WillPaths.PAGES[i][0])[0])
+	sel = _path_first(path)
 	menu._play("select")
 
 
-func _set_page(w: bool) -> void:
-	if will_page == w:
+## The perks popup open or shut.
+func _set_perks(open: bool) -> void:
+	if perks_open == open:
 		return
-	will_page = w
+	perks_open = open
 	hover = ""
 	_captain_home()
 	menu._play("select")
 
 
-## Up / down a fork, left / right its option; keeps the fork in view.
+## A level fork reached and not picked yet (the Perks button's pip).
+func perk_ready() -> bool:
+	var p := _pr()
+	return _forks().any(func(k): return int(SkillTrees.node_def(k)["level"]) <= p.level and p.version_of(k) < 0)
+
+
+## Something in a Will path you can buy now (its tab's pip).
+func path_ready(path: String) -> bool:
+	var p := _pr()
+	if p.pool("will") <= 0:
+		return false
+	for aid in WillPaths.abilities_of(path):
+		for v in SkillTrees.node_def(aid)["versions"]:
+			if not p.has_version(str(v["id"])) and p.buy_why(str(v["id"])) == "":
+				return true
+	for pid in WillPaths.PASSIVES:
+		if WillPaths.PASSIVES[pid][0] == path and not p.has_version(pid) and p.buy_why(pid) == "":
+			return true
+	return false
+
+
+## Anything to spend on the Captain tab (its pip). (A path's own pip shows only once you've started it, so Will to
+## spend doesn't light all seven.)
+func captain_ready() -> bool:
+	return perk_ready() or WillPaths.PATHS.any(func(k): return path_ready(k))
+
+
+## Up / down a fork, left / right its option.
 func _fork_nav(d: Vector2) -> void:
 	var f := _forks()
 	var k := f.find(sel.get_slice(":", 1))
@@ -195,7 +247,6 @@ func _fork_nav(d: Vector2) -> void:
 		sel = to
 		hover = ""
 		UIStyle.sfx("move")
-	_first = clampi(clampi(_first, k - _rows + 1, k), 0, maxi(f.size() - _rows, 0))
 
 
 func _pick_root() -> void:
@@ -294,9 +345,11 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed:
 		var mb := event as InputEventMouseButton
 		accept_event()
-		if tab == "captain" and not will_page and mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			_first = clampi(_first + (1 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else -1), 0, maxi(_forks().size() - _rows, 0))
-		elif mb.button_index == MOUSE_BUTTON_LEFT:
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if tab == "captain" and perks_open and _hit_at(mb.position) == "":
+				# (a click off the popup shuts it)
+				_set_perks(false)
+				return
 			for i in range(_tab_rects.size()):
 				if (_tab_rects[i] as Rect2).has_point(mb.position):
 					set_tab(tabs()[i][0])
@@ -308,7 +361,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:") or id == "respec" or id.begins_with("page:") or id.begins_with("col:") or id.begins_with("wset:"):
+			elif id.begins_with("w:") or id == "respec" or id == "perks" or id.begins_with("col:") or id.begins_with("path:"):
 				_act(id)
 			elif id != "":
 				sel = id
@@ -333,17 +386,21 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if jb.button_index == JOY_BUTTON_Y and tab == "captain":
-			_set_page(not will_page)
+			_set_perks(not perks_open)
 			get_viewport().set_input_as_handled()
 			return
 	for d in [["ui_left", Vector2.LEFT], ["ui_right", Vector2.RIGHT], ["ui_up", Vector2.UP], ["ui_down", Vector2.DOWN]]:
 		if event.is_action_pressed(d[0], true) and not (event is InputEventKey and (event as InputEventKey).keycode in [KEY_A, KEY_D, KEY_W, KEY_S]):
-			if tab == "captain" and not will_page:
+			if tab == "captain" and perks_open:
 				_fork_nav(d[1])
 			else:
 				_nav(d[1])
 			get_viewport().set_input_as_handled()
 			return
+	if tab == "captain" and perks_open and event.is_action_pressed("ui_cancel"):
+		_set_perks(false)
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_accept") and not (event is InputEventKey and (event as InputEventKey).keycode == KEY_SPACE):
 		_act(sel)
 		get_viewport().set_input_as_handled()
@@ -356,8 +413,8 @@ func _input(event: InputEvent) -> void:
 		_cycle_tab(-1 if k == KEY_Q else 1)
 	elif k == KEY_F:
 		_act(sel)
-	elif (k == KEY_C or k == KEY_W or k == KEY_TAB) and tab == "captain":
-		_set_page(not will_page if k == KEY_TAB else k == KEY_W)
+	elif (k == KEY_P or k == KEY_TAB) and tab == "captain":
+		_set_perks(not perks_open)
 	elif k == KEY_TAB and tab == "combat":
 		chart = not chart
 		if chart:
@@ -365,8 +422,8 @@ func _input(event: InputEvent) -> void:
 		else:
 			_pick_root()
 		menu._play("select")
-	elif (k == KEY_A or k == KEY_D) and tab == "captain" and will_page:
-		_set_will_set(wrapi(will_set + (-1 if k == KEY_A else 1), 0, WillPaths.PAGES.size()))
+	elif (k == KEY_A or k == KEY_D) and tab == "captain" and not perks_open:
+		_set_path(WillPaths.PATHS[wrapi(WillPaths.PATHS.find(will_path) + (-1 if k == KEY_A else 1), 0, WillPaths.PATHS.size())])
 	elif (k == KEY_A or k == KEY_D) and tab == "combat":
 		_cycle_tree(-1 if k == KEY_A else 1)
 	elif (k == KEY_W or k == KEY_S) and tab == "adventure":
@@ -441,10 +498,10 @@ func _act(id: String) -> void:
 			_say("1-5 or R puts it on the bar")
 	elif id.begins_with("f:"):
 		_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
-	elif id.begins_with("page:"):
-		_set_page(id == "page:w")
-	elif id.begins_with("wset:"):
-		_set_will_set(int(id.substr(5)))
+	elif id == "perks":
+		_set_perks(not perks_open)
+	elif id.begins_with("path:"):
+		_set_path(id.substr(5))
 	elif id.begins_with("col:"):
 		if p.set_will_color(id.substr(4)):
 			menu._play("equip")
@@ -605,6 +662,10 @@ func _draw() -> void:
 	var tl := tabs()
 	var frac := float(p.xp) / maxf(Progression.xp_to_next(p.level), 1.0) if p.level < Progression.MAX_LEVEL else 1.0
 	_tab_rects = UIStyle.draw_topbar(self, size.x, tl.map(func(x): return [x[1], UIStyle.tab_icon(x[2])]), tl.map(func(x): return x[0]).find(tab), _t, p.level, frac)
+	var ci := tl.map(func(x): return x[0]).find("captain")
+	if ci >= 0 and ci < _tab_rects.size() and captain_ready():
+		var tr: Rect2 = _tab_rects[ci]
+		UIStyle.draw_pip(self, Vector2(tr.end.x - 2.0, tr.position.y + 2.0), _t)
 	UIStyle.draw_board(self, bottom, size.x, _hints())
 	_draw_tip()
 	if _msg_t > 0.0:
@@ -624,9 +685,9 @@ func _hints() -> Array:
 		"adventure":
 			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
 		"captain":
-			if will_page:
-				return [["Q/E", "TAB"], ["C/W", "PAGE"], ["A/D", "PATHS"], ["ARROWS", "INSPECT"], ["ENTER", "BUY / CARRY"], ["K", "CLOSE"]]
-			return [["Q/E", "TAB"], ["C/W", "PAGE"], ["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["K", "CLOSE"]]
+			if perks_open:
+				return [["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["P/ESC", "BACK"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["P", "PERKS"], ["A/D", "PATH"], ["ARROWS", "PICK"], ["ENTER", "BUY / CARRY"], ["K", "CLOSE"]]
 		"loadout":
 			return [["Q/E", "TAB"], ["ENTER", "PUT ON BAR"], ["1-5/R", "SLOT"], ["RMB", "CLEAR"], ["K", "CLOSE"]]
 	return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
@@ -1008,25 +1069,310 @@ func _draw_adventure(whole: Rect2) -> void:
 	_draw_card(card)
 
 
-# --------------------------------------------------------------------------
-# Captain: the talent forks up the level spine (page C), the Will star chart (page W)
-# --------------------------------------------------------------------------
+## The Captain page: the level strip (level, XP, the Perks button) and the Will paths' row over the open path's ladder,
+## the Will card on the right; the perks popup over it all when open.
 func _draw_captain(body: Rect2) -> void:
-	var x := body.position.x + 20.0
-	var y := body.position.y + 2.0
-	for pg in [["page:c", "C · CAPTAIN", false], ["page:w", "W · WILL", true]]:
-		var w := SILK.get_string_size(pg[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 20.0
-		var r := Rect2(x, y, w, 13)
-		var on: bool = pg[2] == will_page
-		_box(r, SkillTreeDraw.NODE_BG, UIStyle.GILT if on else SkillTreeDraw.DIM_RIM)
-		draw_string(SILK, Vector2(x, y + 10.0), pg[1], HORIZONTAL_ALIGNMENT_CENTER, w, 8, UIStyle.GILT if on else SkillTreeDraw.TEXT_OFF)
-		hit(r, pg[0], false)
-		x += w + 4.0
-	var rest := Rect2(body.position.x, y + 17.0, body.size.x, body.end.y - y - 17.0)
-	if will_page:
-		_draw_will(rest)
+	var p := _pr()
+	var pw := 236.0 if body.size.x > 700.0 else 200.0
+	var top := body.position.y + 2.0
+	var panel := Rect2(body.end.x - pw, top, pw, body.end.y - top)
+	var field := Rect2(body.position.x, top, panel.position.x - body.position.x - 8.0, body.end.y - top)
+	_draw_capbar(Rect2(field.position, Vector2(field.size.x, 16)))
+	_draw_path_row(Rect2(field.position.x, top + 20.0, field.size.x, 32))
+	_draw_ladder(Rect2(field.position.x, top + 58.0, field.size.x, field.end.y - top - 58.0), p.will_tint())
+	_draw_will_card(panel, _will_shown())
+	if perks_open:
+		# (only the popup is clickable while it's open)
+		_hits = []
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.62))
+		var m := 44.0 if size.x < 700.0 else 90.0
+		_draw_perks(Rect2(m, 34.0, size.x - m * 2.0, size.y - UIChrome.BOARD_H - 40.0))
+
+
+## Level, the XP bar and the Perks button (lit, with a pip, while a fork waits to be picked).
+func _draw_capbar(r: Rect2) -> void:
+	var p := _pr()
+	_box(r, SkillTreeDraw.NODE_BG, SkillTreeDraw.DIM_RIM)
+	var lv := "Level %d" % p.level
+	draw_string(_font, Vector2(r.position.x + 6.0, r.position.y + 12.0), lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.CREAM)
+	var x := r.position.x + 10.0 + _font.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	draw_string(SILK, Vector2(x, r.position.y + 11.0), "OF %d" % Progression.MAX_LEVEL, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SkillTreeDraw.TEXT_OFF)
+	x += 34.0
+	var ready := perk_ready()
+	var label := "PERKS · %s" % ("PICK ONE" if ready else "%d / %d" % [_forks().filter(func(k): return p.version_of(k) >= 0).size(), _forks().size()])
+	var bw := SILK.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 26.0
+	var b := Rect2(r.end.x - bw - 3.0, r.position.y + 2.0, bw, 12)
+	var xp := "%d / %d XP" % [p.xp, Progression.xp_to_next(p.level)] if p.level < Progression.MAX_LEVEL else "MAX"
+	var xw := SILK.get_string_size(xp, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	_bar(Rect2(x, r.position.y + 6.0, b.position.x - x - xw - 12.0, 4), _frac("captain"), UIStyle.TEAL_LIGHT, false)
+	draw_string(SILK, Vector2(b.position.x - xw - 6.0, r.position.y + 11.0), xp, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SkillTreeDraw.TEXT_OFF)
+	var on := inspected() == "perks"
+	if ready:
+		_glow(b, UIStyle.GILT)
+	_box(b, UIStyle.GILT if ready else SkillTreeDraw.ROOT_BG, Color.WHITE if on else (UIStyle.BORDER_DIM if ready else UIStyle.GILT))
+	_key_cap(Vector2(b.position.x + 3.0, b.position.y + 2.0), "P", ready)
+	draw_string(SILK, Vector2(b.position.x + 16.0, b.position.y + 9.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.INK if ready else UIStyle.GILT)
+	if ready:
+		UIStyle.draw_pip(self, b.end - Vector2(1, b.size.y - 1), _t)
+	hit(b, "perks", false)
+
+
+## A small key cap ("P") in a button.
+func _key_cap(pos: Vector2, k: String, dark: bool) -> void:
+	var w := SILK.get_string_size(k, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 4.0
+	draw_rect(Rect2(pos, Vector2(w, 8)), UIStyle.INK if dark else UIStyle.CREAM)
+	draw_string(SILK, pos + Vector2(2, 7), k, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.CREAM if dark else UIStyle.INK)
+
+
+## A soft breathing glow round `r` (something to act on now).
+func _glow(r: Rect2, col: Color) -> void:
+	var a := 0.5 + 0.5 * sin(_t * 3.5)
+	draw_rect(r.grow(3.0), Color(col, 0.10 + 0.14 * a))
+	draw_rect(r.grow(1.5), Color(col, 0.18 + 0.22 * a))
+
+
+## A dashed rim (a card not open yet).
+func _dashed(r: Rect2, col: Color) -> void:
+	for e in [[r.position, Vector2(r.end.x, r.position.y)], [Vector2(r.end.x, r.position.y), r.end], [r.end, Vector2(r.position.x, r.end.y)], [Vector2(r.position.x, r.end.y), r.position]]:
+		draw_dashed_line(e[0], e[1], col, 1.0, 3.0)
+
+
+## The seven Will paths in a row: emblem, name, Will spent (or why it's shut); the open one lit with a notch under it,
+## a pip on any with something to buy now.
+func _draw_path_row(r: Rect2) -> void:
+	var p := _pr()
+	var tint := p.will_tint()
+	var n := WillPaths.PATHS.size()
+	var cw := floorf((r.size.x - 3.0 * (n - 1)) / n)
+	for i in range(n):
+		var path: String = WillPaths.PATHS[i]
+		var c := Rect2(r.position.x + i * (cw + 3.0), r.position.y, cw, r.size.y)
+		var open := path == will_path
+		var why := WillPaths.path_why(p, path)
+		var spent := WillPaths.spent_in(p, path)
+		var on := inspected() == "path:" + path
+		_box(c, tint.darkened(0.7) if open else SkillTreeDraw.NODE_BG, Color.WHITE if on else (tint if open else (SkillTreeDraw.DIM_RIM if why == "" else SkillTreeDraw.DIM_LINK)))
+		var ic := Skills.icon(PATH_ICONS[path])
+		if ic:
+			draw_texture_rect(ic, Rect2(c.get_center().x - 7.0, c.position.y + 3.0, 14, 14), false, Color.WHITE if why == "" else Color(0.5, 0.5, 0.5, 0.6))
+		var name_s := "CAPTAIN'S" if path == "conq" else str(WillPaths.PATH_NAMES[path]).to_upper()
+		draw_string(SILK, Vector2(c.position.x, c.position.y + 22.0), name_s, HORIZONTAL_ALIGNMENT_CENTER, c.size.x, 8,
+			UIStyle.CREAM if open or spent > 0 else (SkillTreeDraw.TEXT_OFF if why == "" else SkillTreeDraw.TAG_OFF))
+		draw_string(SILK, Vector2(c.position.x, c.position.y + 29.5), ("%d SPENT" % spent) if why == "" else "SHUT", HORIZONTAL_ALIGNMENT_CENTER, c.size.x, 8,
+			UIStyle.TEAL_LIGHT if spent > 0 else SkillTreeDraw.TAG_OFF)
+		if open:
+			var cx := c.get_center().x
+			draw_colored_polygon(PackedVector2Array([Vector2(cx - 4, c.end.y), Vector2(cx + 4, c.end.y), Vector2(cx, c.end.y + 4)]), tint)
+		if spent > 0 and path_ready(path):
+			UIStyle.draw_pip(self, Vector2(c.end.x - 1.0, c.position.y + 1.0), _t)
+		hit(c, "path:" + path, false)
+
+
+## The open path as a ladder: its tiers from T1 at the foot up, each ability's versions as cards side by side, the
+## spine lit up to the highest tier you have; its passive along the bottom.
+func _draw_ladder(r: Rect2, tint: Color) -> void:
+	var p := _pr()
+	var path := will_path
+	_box(r, Color(WILL_DARK, 0.85), tint.darkened(0.45))
+	var why := WillPaths.path_why(p, path)
+	draw_string(_font, Vector2(r.position.x + 6.0, r.position.y + 13.0), str(WillPaths.PATH_NAMES[path]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.CREAM)
+	var rule := "TIERS AT 4 / 8 WILL SPENT · YOU %d" % WillPaths.spent_all(p) if path in WillPaths.OPEN else \
+		("TIERS AT %s IN IT · %d IN IT" % ["4 / 8" if path != "conq" else "4", WillPaths.spent_in(p, path)])
+	draw_string(SILK, Vector2(r.position.x, r.position.y + 12.0), (why if why != "" else rule).to_upper(), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 6.0, 8,
+		UIStyle.CORAL if why != "" else SkillTreeDraw.TEXT_OFF)
+	var ids: Array = WillPaths.abilities_of(path)
+	var area := Rect2(r.position.x, r.position.y + 18.0, r.size.x, r.size.y - 36.0)
+	var row_h := floorf(area.size.y / maxi(ids.size(), 3))
+	var sx := r.position.x + 15.0
+	var lit := area.end.y
+	for k in range(ids.size()):
+		if p.has_will(ids[k]):
+			lit = area.end.y - row_h * (k + 1) + row_h * 0.5
+	draw_rect(Rect2(sx - 1.0, area.end.y - row_h * ids.size() + row_h * 0.5, 2, row_h * (ids.size() - 1) + row_h * 0.5), WILL_DIM)
+	draw_rect(Rect2(sx - 1.0, lit, 2, area.end.y - lit), tint)
+	for k in range(ids.size()):
+		var aid: String = ids[k]
+		var an := SkillTrees.node_def(aid)
+		var ry := area.end.y - row_h * (k + 1)
+		var tb := Rect2(sx - 10.0, roundf(ry + row_h * 0.5 - 8.0), 20, 16)
+		var opened := WillPaths.why(p, str(an["versions"][0]["id"])) in ["", "Learned"] or p.has_will(aid)
+		_box(tb, WILL_DARK, tint if p.has_will(aid) or opened else WILL_DIM)
+		draw_string(SILK, Vector2(tb.position.x, tb.position.y + 11.0), "T%d" % int(an["tier"]), HORIZONTAL_ALIGNMENT_CENTER, tb.size.x, 8, UIStyle.CREAM if opened else WILL_DIM)
+		var vs: Array = an["versions"]
+		var x0 := sx + 16.0
+		var w := r.end.x - 5.0 - x0
+		var cw := floorf((w - 4.0 * (vs.size() - 1)) / vs.size())
+		for i in range(vs.size()):
+			_will_card(Rect2(x0 + i * (cw + 4.0), ry + 3.0, cw, row_h - 6.0), aid, i, tint, vs.size() >= 3)
+	for pid in WillPaths.PASSIVES:
+		if WillPaths.PASSIVES[pid][0] == path:
+			_will_passive_row(Rect2(r.position.x + 4.0, r.end.y - 16.0, r.size.x - 8.0, 13), pid, tint)
+
+
+## One version of a Will ability as a card. Carried: filled in your Will colour with a tick; yours: rimmed; to buy now:
+## a gold breathing rim and its price; not open yet: dashed and grey. `compact` (3+ versions in a row): name and state only.
+func _will_card(r: Rect2, aid: String, i: int, tint: Color, compact: bool) -> void:
+	var p := _pr()
+	var an := SkillTrees.node_def(aid)
+	var v: Dictionary = an["versions"][i]
+	var vid := str(v["id"])
+	var mine := p.has_version(vid)
+	var carried := mine and p.version_of(aid) == i
+	var why := "" if mine else p.buy_why(vid)
+	var can := not mine and why == ""
+	var on := inspected() == "n:" + vid
+	if can:
+		_glow(r, UIStyle.GILT)
+	_box(r, tint.darkened(0.62) if carried else (tint.darkened(0.78) if mine else WILL_DARK), tint if carried else (tint.darkened(0.2) if mine else (UIStyle.GILT if can else WILL_DARK)))
+	if not mine and not can:
+		_dashed(r.grow(-0.5), WILL_DIM)
+	var ib := Rect2(r.position + Vector2(4, 4), Vector2(18, 18))
+	_box(ib, UIStyle.OUTLINE, tint if mine else (UIStyle.GILT if can else WILL_DIM))
+	var ic := Skills.icon(str(v["skill"]) if str(v["skill"]) != "" else str(WILL_ICONS.get(vid, "")))
+	if ic:
+		draw_texture_rect(ic, ib.grow(-1.0), false, Color.WHITE if mine or can else Color(0.55, 0.55, 0.6, 0.7))
+	var name_col := UIStyle.CREAM if mine or can else Color("8b80b0")
+	draw_string(_font, Vector2(r.position.x + 26.0, r.position.y + 13.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28.0, 12, name_col)
+	var tag := "CARRIED" if carried else ("YOURS" if mine else ("BUY · %d" % SkillTrees.price(vid) if can else "SHUT"))
+	var tag_col := tint.lightened(0.35) if mine else (UIStyle.GILT if can else WILL_DIM)
+	if compact:
+		draw_string(SILK, Vector2(r.position.x + 26.0, r.position.y + 22.0), tag, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28.0, 8, tag_col)
+		if r.size.y >= 40.0:
+			_lines(Vector2(r.position.x + 4.0, r.position.y + 33.0), str(v["desc"]), r.size.x - 8.0,
+				Color("b9a9c9") if mine or can else Color("6b6890"), 9.0, int((r.size.y - 28.0) / 9.0))
 	else:
-		_draw_forks(rest)
+		var tw := SILK.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + (14.0 if carried else 6.0)
+		var tr := Rect2(r.end.x - tw - 3.0, r.position.y + 3.0, tw, 10)
+		if carried or can:
+			draw_rect(tr, tint if carried else UIStyle.GILT)
+		if carried:
+			draw_polyline(PackedVector2Array([tr.position + Vector2(3, 5), tr.position + Vector2(5, 7), tr.position + Vector2(9, 2)]), UIStyle.CREAM, 1.0)
+		draw_string(SILK, Vector2(tr.end.x - SILK.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x - 3.0, tr.position.y + 8.0), tag,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.CREAM if carried else (UIStyle.INK if can else tag_col))
+		if r.size.y >= 32.0:
+			_lines(Vector2(r.position.x + 26.0, r.position.y + 23.0), str(v["desc"]), r.size.x - 30.0,
+				Color("b9a9c9") if mine or can else Color("6b6890"), 9.0, int((r.size.y - 18.0) / 9.0))
+	hit(r, "n:" + vid)
+	if on:
+		draw_rect(r.grow(1.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
+
+
+## The path's passive along the ladder's foot: its icon, name and where it stands.
+func _will_passive_row(r: Rect2, pid: String, tint: Color) -> void:
+	var p := _pr()
+	var mine := p.has_version(pid)
+	var why := "" if mine else p.buy_why(pid)
+	var can := not mine and why == ""
+	var on := inspected() == "n:" + pid
+	if can:
+		_glow(r, UIStyle.GILT)
+	draw_rect(Rect2(r.position.x, r.position.y - 2.0, r.size.x, 1), WILL_DIM)
+	var ic := Skills.icon(str(WILL_ICONS.get(pid, "")))
+	if ic:
+		draw_texture_rect(ic, Rect2(r.position + Vector2(2, 0), Vector2(12, 12)), false, Color.WHITE if mine or can else Color(0.55, 0.55, 0.6, 0.7))
+	draw_string(SILK, Vector2(r.position.x + 18.0, r.position.y + 9.0), "PASSIVE ·", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SkillTreeDraw.TAG_OFF)
+	draw_string(_font, Vector2(r.position.x + 70.0, r.position.y + 10.0), str(SkillTrees.node_def(pid)["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12,
+		UIStyle.CREAM if mine or can else Color("8b80b0"))
+	var slot := p.passives.find(pid)
+	var state := ("IN SLOT %d" % (slot + 1)) if slot >= 0 else ("YOURS · ENTER: INTO A SLOT" if mine else ("BUY · %d" % SkillTrees.price(pid) if can else why.to_upper()))
+	draw_string(SILK, Vector2(r.position.x, r.position.y + 9.0), state, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 4.0, 8,
+		UIStyle.GOOD if mine else (UIStyle.GILT if can else WILL_DIM))
+	hit(r, "n:" + pid)
+	if on:
+		draw_rect(r.grow(1.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
+
+
+## The perks popup: every level fork in one list (its level, its two options, the milestones that come with it), the
+## fork to pick now lit with a pip, those ahead dashed; the inspected option in full at the foot.
+func _draw_perks(r: Rect2) -> void:
+	var p := _pr()
+	draw_style_box(UIStyle.panel(), r)
+	var x := r.position.x + 12.0
+	var w := r.size.x - 24.0
+	UIStyle.draw_title(self, Vector2(x, r.position.y + 22.0), "Captain's Perks", 18)
+	var g := SkillTrees.GROWTH
+	_lines(Vector2(x, r.position.y + 34.0), "Every 5 levels pick one of two. Change a pick at a rest spot (the bunk, an inn, your camp). Every level: +%s HP, +%d%% dmg, +%s stamina and energy, +%s def." %
+		[g["max_hp"], roundi(g["damage_pct"] * 100.0), g["max_stamina"], g["defense"]], w, SkillTreeDraw.TEXT_OFF, 9.0, 2)
+	var forks := _forks()
+	var miles := _captain_kind("auto")
+	var top := r.position.y + 54.0
+	var foot := 30.0
+	var rh := floorf((r.end.y - top - foot) / forks.size())
+	var mw := 92.0
+	var ow := floorf((w - 34.0 - mw - 8.0) * 0.5)
+	var prev := 0
+	for k in range(forks.size()):
+		var nid: String = forks[k]
+		var lv := int(SkillTrees.node_def(nid)["level"])
+		var y := top + k * rh
+		var reached := lv <= p.level
+		var pick := p.version_of(nid)
+		var ready := reached and pick < 0
+		var lb := Rect2(x, y, 30, rh - 3.0)
+		_box(lb, UIStyle.GILT if ready else SkillTreeDraw.NODE_BG, UIStyle.GILT if reached else SkillTreeDraw.DIM_LINK)
+		draw_string(SILK, Vector2(lb.position.x, lb.position.y + lb.size.y * 0.5 + 4.0), "LV%d" % lv, HORIZONTAL_ALIGNMENT_CENTER, lb.size.x, 8,
+			UIStyle.INK if ready else (UIStyle.GILT if reached else SkillTreeDraw.TAG_OFF))
+		if ready:
+			UIStyle.draw_pip(self, Vector2(lb.end.x - 1.0, lb.position.y + 1.0), _t)
+		var vs: Array = SkillTrees.node_def(nid)["versions"]
+		for i in range(2):
+			_perk_card(Rect2(x + 34.0 + i * (ow + 4.0), y, ow, rh - 3.0), nid, i, vs[i], reached, pick)
+		var here := miles.filter(func(m): return int(SkillTrees.node_def(m)["level"]) > prev and int(SkillTrees.node_def(m)["level"]) <= lv)
+		var my := y + 8.0
+		for m in here:
+			var own := p.owns_node(m)
+			draw_string(SILK, Vector2(x + w - mw, my), str(SkillTrees.node_def(m)["name"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, mw, 8,
+				UIStyle.GOOD if own else SkillTreeDraw.TAG_OFF)
+			my += 9.0
+		if here.is_empty() and ready:
+			draw_string(SILK, Vector2(x + w - mw, y + 8.0), "PICK ONE", HORIZONTAL_ALIGNMENT_LEFT, mw, 8, UIStyle.GILT)
+		prev = lv
+	# the inspected option in full
+	var shown := inspected() if inspected().begins_with("f:") else sel
+	if shown.begins_with("f:"):
+		var n := SkillTrees.node_def(shown.get_slice(":", 1))
+		var v: Dictionary = n["versions"][int(shown.get_slice(":", 2))]
+		var fy := r.end.y - foot + 6.0
+		draw_rect(Rect2(x, fy - 4.0, w, 1), SkillTreeDraw.DIM_RIM)
+		draw_string(_font, Vector2(x, fy + 9.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.GILT)
+		var nw := _font.get_string_size(str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 8.0
+		_lines(Vector2(x + nw, fy + 8.0), str(v["desc"]), w - nw, UIStyle.CREAM, 9.0, 2)
+
+
+## One option of a fork in the popup: icon, name, the first line of what it does. Picked: gold with a tick, its sibling
+## faded; the fork to pick now: a gold breathing rim; ahead: dashed.
+func _perk_card(r: Rect2, nid: String, i: int, v: Dictionary, reached: bool, pick: int) -> void:
+	var id := "f:%s:%d" % [nid, i]
+	var picked := pick == i
+	var other := pick >= 0 and not picked
+	var open := reached and pick < 0
+	if open:
+		_glow(r, UIStyle.GILT)
+	_box(r, SkillTreeDraw.NODE_BG.lerp(UIStyle.GILT, 0.18) if picked else SkillTreeDraw.NODE_BG,
+		UIStyle.GILT if picked or open else (SkillTreeDraw.DIM_RIM if reached else SkillTreeDraw.NODE_BG))
+	if not reached:
+		_dashed(r.grow(-0.5), SkillTreeDraw.DIM_RIM)
+	var ib := Rect2(r.position + Vector2(3, (r.size.y - 16.0) * 0.5), Vector2(16, 16))
+	_box(ib, UIStyle.OUTLINE, UIStyle.GILT if picked else SkillTreeDraw.DIM_RIM)
+	var ic := Skills.icon(str(v["skill"]) if str(v["skill"]) != "" else "perk_" + str(v["id"]))
+	if ic:
+		draw_texture_rect(ic, ib.grow(-1.0), false, Color.WHITE if not other else Color(1, 1, 1, 0.45))
+	else:
+		draw_string(SILK, Vector2(ib.position.x, ib.position.y + 11.0), SkillTreeDraw.glyph(str(v["name"])), HORIZONTAL_ALIGNMENT_CENTER, 16, 8,
+			UIStyle.GILT if picked else SkillTreeDraw.TEXT_OFF)
+	var fade := other or not reached
+	draw_string(_font, Vector2(r.position.x + 23.0, r.position.y + 11.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 36.0, 12,
+		UIStyle.GILT if picked else (Color("7d918d") if fade else UIStyle.CREAM))
+	var ls := _wrap(str(v["desc"]).to_upper(), r.size.x - 27.0, SILK, 8)
+	if r.size.y >= 22.0 and not ls.is_empty():
+		draw_string(SILK, Vector2(r.position.x + 23.0, r.position.y + 20.0), str(ls[0]) + (".." if ls.size() > 1 else ""), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 27.0, 8,
+			Color("6e8285") if fade else Color("a9bfc0"))
+	if picked:
+		var c := Vector2(r.end.x - 9.0, r.position.y + 4.0)
+		draw_polyline(PackedVector2Array([c + Vector2(0, 3), c + Vector2(2, 5), c + Vector2(6, 0)]), UIStyle.GILT, 1.5)
+	hit(r, id)
+	if inspected() == id:
+		draw_rect(r.grow(1.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
 
 
 func _box(r: Rect2, fill: Color, rim: Color) -> void:
@@ -1045,251 +1391,6 @@ func _lines(pos: Vector2, text: String, w: float, col: Color, step: float = 9.0,
 		draw_string(SILK, Vector2(pos.x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
 		y += step
 	return y
-
-
-## The level card: level, next fork, what a level gives, talents and milestones so far.
-func _draw_level_card(card: Rect2, forks: Array, miles: Array) -> void:
-	var p := _pr()
-	draw_style_box(UIStyle.parchment(), card)
-	var x := card.position.x + 10.0
-	var w := card.size.x - 20.0
-	var y := card.position.y + 22.0
-	UIStyle.draw_title(self, Vector2(x, y), "Level %d" % p.level, 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
-	var lw := UIStyle.TITLE_FONT.get_string_size("Level %d" % p.level, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-	draw_string(SILK, Vector2(x + lw + 5.0, y), "OF %d" % Progression.MAX_LEVEL, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
-	var next := forks.filter(func(k): return int(SkillTrees.node_def(k)["level"]) > p.level)
-	y += 11.0
-	if not next.is_empty():
-		draw_string(SILK, Vector2(x, y), "NEXT FORK AT LV %d" % int(SkillTrees.node_def(next[0])["level"]), HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
-	y += 6.0
-	_bar(Rect2(x, y, w, 3), _frac("captain"), UIStyle.BORDER_DIM)
-	y += 13.0
-	if p.level < Progression.MAX_LEVEL:
-		draw_string(SILK, Vector2(x, y), "%d / %d XP" % [p.xp, Progression.xp_to_next(p.level)], HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
-	y += 6.0
-	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
-	y += 20.0
-	var g := SkillTrees.GROWTH
-	y = _lines(Vector2(x, y), "Every level: +%s HP, +%d%% dmg, +%s stamina and energy, +%s def." % [g["max_hp"], roundi(g["damage_pct"] * 100.0),
-		g["max_stamina"], g["defense"]], w, UIStyle.PARCH_DIM, 10.0) + 8.0
-	y = _lines(Vector2(x, y), "Every 5 levels pick one of two talents. Change it at a rest spot (the bunk, an inn, your camp).", w, UIStyle.PARCH_DIM, 10.0) + 8.0
-	for row in [["TALENTS", forks.filter(func(k): return p.version_of(k) >= 0).size(), forks.size()],
-			["MILESTONES", miles.filter(func(k): return p.owns_node(k)).size(), miles.size()]]:
-		draw_string(SILK, Vector2(x, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_INK)
-		draw_string(SILK, Vector2(x, y), "%d / %d" % [row[1], row[2]], HORIZONTAL_ALIGNMENT_RIGHT, w, 8, UIStyle.PARCH_INK)
-		y += 10.0
-
-
-## The forks as rows up a spine (levels rising), as many as fit from `_first`; the milestones and you in the gaps.
-## Cards size to the canvas (640x360 at 1280x720, 800x450 at 1600x900): as tall as the longest description needs.
-func _draw_forks(r: Rect2) -> void:
-	var p := _pr()
-	var forks := _forks()
-	var miles := _captain_kind("auto")
-	var lw := 148.0 if r.size.x > 700.0 else 124.0
-	_draw_level_card(Rect2(r.position, Vector2(lw, r.size.y)), forks, miles)
-	var area := Rect2(r.position.x + lw + 8.0, r.position.y, r.size.x - lw - 8.0, r.size.y)
-	var cx := roundf(area.get_center().x)
-	var fw := floorf(area.size.x * 0.5 - 18.0)
-	var most := 1
-	for k in forks:
-		for v in SkillTrees.node_def(k)["versions"]:
-			most = maxi(most, _wrap(str(v["desc"]).to_upper(), fw - 40.0, SILK, 8).size())
-	var fh := 25.0 + 9.0 * most
-	var pitch := fh + 13.0
-	_rows = clampi(int((area.size.y - 16.0 - fh) / pitch) + 1, 1, forks.size())
-	_first = clampi(_first, 0, maxi(forks.size() - _rows, 0))
-	var last := mini(_first + _rows, forks.size()) - 1
-	var top := area.end.y - 14.0 - fh - (last - _first) * pitch
-	var lv: Array = forks.map(func(k): return int(SkillTrees.node_def(k)["level"]))
-	var gap := (pitch - fh) * 0.5
-	# (gap g is between fork g and fork g + 1; -1 is under the first)
-	var you_g := -1
-	for g in range(lv.size()):
-		if p.level >= lv[g]:
-			you_g = g
-	var you_y := area.end.y if you_g < _first - 1 else (area.position.y - 12.0 if you_g > last else roundf(top + (last - you_g) * pitch - gap))
-	draw_rect(Rect2(cx - 1.0, area.position.y - 12.0, 2, area.size.y + 12.0), SkillTreeDraw.DIM_LINK)
-	draw_rect(Rect2(cx - 1.0, you_y, 2, area.end.y - you_y), UIStyle.GILT)
-	for k in range(_first, last + 1):
-		var ty := top + (last - k) * pitch
-		var vs: Array = SkillTrees.node_def(forks[k])["versions"]
-		var reached: bool = lv[k] <= p.level
-		for i in range(2):
-			_fork_card(Rect2(cx - 18.0 - fw if i == 0 else cx + 18.0, ty, fw, fh), forks[k], i, vs[i], reached, p.version_of(forks[k]))
-		var b := Rect2(cx - 15.0, roundf(ty + fh * 0.5 - 12.0), 30, 16)
-		_box(b, SkillTreeDraw.NODE_BG.lerp(UIStyle.GILT, 0.2) if reached else SkillTreeDraw.NODE_BG, UIStyle.GILT if reached else SkillTreeDraw.DIM_RIM)
-		draw_string(SILK, Vector2(b.position.x, b.position.y + 12.0), "LV%d" % lv[k], HORIZONTAL_ALIGNMENT_CENTER, 30, 8, UIStyle.GILT if reached else SkillTreeDraw.TEXT_OFF)
-		draw_string(SILK, Vector2(b.position.x, b.end.y + 11.0), "OR", HORIZONTAL_ALIGNMENT_CENTER, 30, 8, SkillTreeDraw.TAG_OFF)
-	for g in range(_first - 1, last + 1):
-		var lo: int = 1 if g < 0 else lv[g]
-		var hi: int = Progression.MAX_LEVEL + 1 if g >= lv.size() - 1 else lv[g + 1]
-		var here := miles.filter(func(m): return int(SkillTrees.node_def(m)["level"]) > lo and int(SkillTrees.node_def(m)["level"]) <= hi)
-		if here.is_empty() and g != you_g:
-			continue
-		here.reverse()
-		var gy := roundf(top + (last - g) * pitch - gap)
-		var tags: Array = []
-		for m in here:
-			var mn := SkillTrees.node_def(m)
-			var own := p.owns_node(m)
-			tags.append(["LV%d %s%s" % [int(mn["level"]), str(mn["name"]).to_upper(), " · GOT IT" if own else ""], UIStyle.GILT if own else SkillTreeDraw.TEXT_OFF])
-		if here.is_empty():
-			draw_circle(Vector2(cx, gy), 3.0, UIStyle.GILT)
-		else:
-			var got := here.all(func(m): return p.owns_node(m))
-			draw_circle(Vector2(cx, gy), 6.0, UIStyle.GILT if got else SkillTreeDraw.DIM_RIM)
-			draw_circle(Vector2(cx, gy), 5.0, UIStyle.GILT if got else SkillTreeDraw.NODE_BG)
-		var left: Array = ["YOU · LV %d >" % p.level, UIStyle.GILT] if g == you_g else (tags.pop_front() if tags.size() > 1 else [])
-		if not left.is_empty():
-			_out(Vector2(cx - 212.0, gy + 3.0), left[0], left[1], HORIZONTAL_ALIGNMENT_RIGHT, 200.0)
-		var tx := cx + 12.0
-		for t in tags:
-			_out(Vector2(tx, gy + 3.0), t[0], t[1])
-			tx += SILK.get_string_size(t[0] + "   ", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	if last < forks.size() - 1:
-		var s := ", ".join(lv.slice(last + 1).map(func(l): return str(l)))
-		_more(Vector2(cx + 18.0 + fw - SILK.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x - 9.0, area.position.y - 3.0), s, true)
-	if _first > 0:
-		_more(Vector2(cx - 18.0 - fw, area.end.y - 1.0), ", ".join(lv.slice(0, _first).map(func(l): return str(l))), false)
-
-
-## The forks out of view above (`up`) or below: an arrow and their levels.
-func _more(pos: Vector2, levels: String, up: bool) -> void:
-	var a := PackedVector2Array([pos + Vector2(0, -1), pos + Vector2(6, -1), pos + Vector2(3, -6)]) if up else \
-		PackedVector2Array([pos + Vector2(0, -6), pos + Vector2(6, -6), pos + Vector2(3, -1)])
-	draw_colored_polygon(a, SkillTreeDraw.TEXT_OFF)
-	_out(pos + Vector2(9, 0), levels, SkillTreeDraw.TEXT_OFF)
-
-
-## One option of a fork: icon box, name, what it does. Picked: lit gold; its sibling dimmed; one you can pick now: a dot.
-func _fork_card(r: Rect2, nid: String, i: int, v: Dictionary, reached: bool, pick: int) -> void:
-	var id := "f:%s:%d" % [nid, i]
-	var picked := pick == i
-	var other := pick >= 0 and not picked
-	var open := reached and pick < 0
-	_box(r, SkillTreeDraw.NODE_BG.lerp(UIStyle.GILT, 0.14) if picked else SkillTreeDraw.NODE_BG,
-		UIStyle.GILT if picked else (UIStyle.BORDER_DIM if open else SkillTreeDraw.DIM_LINK))
-	var ib := Rect2(r.position + Vector2(6, 6), Vector2(20, 20))
-	_box(ib, UIStyle.OUTLINE, UIStyle.GILT if picked else SkillTreeDraw.DIM_RIM)
-	if str(v["skill"]) != "":
-		draw_texture_rect(Skills.icon(str(v["skill"])), ib.grow(-1.0), false)
-	else:
-		draw_string(SILK, Vector2(ib.position.x, ib.position.y + 13.0), SkillTreeDraw.glyph(str(v["name"])), HORIZONTAL_ALIGNMENT_CENTER, 20, 8,
-			UIStyle.GILT if picked else SkillTreeDraw.TEXT_OFF)
-	var name_col := UIStyle.GILT if picked else (UIStyle.CREAM if open else (Color("7d918d") if other else Color("b5c7c6")))
-	var text_col := UIStyle.TEXT_DIM if picked else (Color("a9bfc0") if open else (Color("6e8285") if other else Color("7f9aa0")))
-	draw_string(_font, Vector2(r.position.x + 32.0, r.position.y + 16.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 84.0, 12, name_col)
-	_lines(Vector2(r.position.x + 32.0, r.position.y + 27.0), str(v["desc"]), r.size.x - 40.0, text_col)
-	if picked:
-		var tag := Rect2(r.end.x - 48.0, r.position.y + 4.0, 44, 11)
-		draw_rect(tag, UIStyle.GILT)
-		draw_string(SILK, Vector2(tag.position.x, tag.position.y + 9.0), "PICKED", HORIZONTAL_ALIGNMENT_CENTER, 44, 8, UIStyle.INK)
-	elif open:
-		draw_circle(Vector2(r.end.x - 7.0, r.position.y + 7.0), 2.0, UIStyle.CORAL)
-	hit(r, id, false)
-	if inspected() == id:
-		draw_rect(r.grow(2.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
-
-
-## The Will page: the three paths as columns climbing tier by tier (each ability a box with its versions as chips under
-## it, the path's passive beside its first ability, the path's lock said over it), and the parchment card: your Will
-## points and where they come from, the inspected ability or passive in full, and your Will's colour.
-func _draw_will(r: Rect2) -> void:
-	var p := _pr()
-	var pw := 236.0 if r.size.x > 700.0 else 200.0
-	var panel := Rect2(r.end.x - pw, r.position.y - 4.0, pw, r.size.y + 4.0)
-	var field := Rect2(r.position, Vector2(panel.position.x - r.position.x - 8.0, r.size.y))
-	var tint := p.will_tint()
-	var tx := field.position.x
-	for i in range(WillPaths.PAGES.size()):
-		var label := " · ".join(WillPaths.PAGES[i].map(func(k): return str(WillPaths.PATH_NAMES[k]).to_upper()))
-		var tw := SILK.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 12.0
-		var tr := Rect2(tx, field.position.y, tw, 12)
-		_box(tr, WILL_DARK, WILL if i == will_set else WILL_DIM)
-		draw_string(SILK, Vector2(tx, tr.position.y + 9.0), label, HORIZONTAL_ALIGNMENT_CENTER, tw, 8, UIStyle.CREAM if i == will_set else Color("8b80b0"))
-		hit(tr, "wset:%d" % i, false)
-		tx += tw + 4.0
-	field = Rect2(field.position + Vector2(0, 16), field.size - Vector2(0, 16))
-	var paths: Array = WillPaths.PAGES[will_set]
-	var cw := floorf(field.size.x / paths.size())
-	for c in range(paths.size()):
-		var path: String = paths[c]
-		var col := Rect2(field.position.x + c * cw, field.position.y, cw - 6.0, field.size.y)
-		var why := WillPaths.path_why(p, path)
-		var spent := WillPaths.spent_in(p, path)
-		_box(col, Color(WILL_DARK, 0.75), WILL if spent > 0 else WILL_DIM)
-		_out(Vector2(col.position.x, col.position.y + 12.0), WillPaths.PATH_NAMES[path].to_upper(), WILL if why == "" else Color("8b80b0"), HORIZONTAL_ALIGNMENT_CENTER, col.size.x)
-		var ls := _wrap(("%d WILL IN IT" % spent) if why == "" else why.to_upper(), col.size.x - 8.0, SILK, 8)
-		for i in range(mini(ls.size(), 2)):
-			draw_string(SILK, Vector2(col.position.x, col.position.y + 22.0 + 9.0 * i), ls[i], HORIZONTAL_ALIGNMENT_CENTER, col.size.x, 8,
-				Color("6b6890") if why == "" else UIStyle.CORAL)
-		var row_h := (col.size.y - 44.0) / 3.0
-		var prev := Vector2.INF
-		for id in WillPaths.abilities_of(path):
-			var tier := int(WillPaths.ABILITIES[id][1])
-			var box := Rect2(col.position.x + 6.0, col.end.y - 12.0 - row_h * tier, col.size.x - 12.0, 16)
-			if prev != Vector2.INF:
-				if p.has_will(id):
-					draw_line(prev, Vector2(box.get_center().x, box.end.y), WILL, 1.0)
-				else:
-					draw_dashed_line(prev, Vector2(box.get_center().x, box.end.y), WILL_DIM, 1.0, 3.0)
-			prev = Vector2(box.get_center().x, box.position.y)
-			_will_box(box, id, tint)
-			var vy := box.end.y + 3.0
-			var vs: Array = SkillTrees.node_def(id)["versions"]
-			var vw := floorf((box.size.x - 3.0 * (vs.size() - 1)) / vs.size())
-			for i in range(vs.size()):
-				_will_chip(Rect2(box.position.x + i * (vw + 3.0), vy, vw, 12), id, i, tint)
-			if tier == WillPaths.first_tier(path):
-				for pid in WillPaths.PASSIVES:
-					if WillPaths.PASSIVES[pid][0] == path:
-						_will_passive_chip(Rect2(box.position.x, vy + 15.0, box.size.x, 12), pid, tint)
-		var foot := "4 IN EACH OTHER PATH" if path == "conq" else ("TIERS AT 4 / 8 SPENT" if path in WillPaths.OPEN else "TIERS AT 0 / 4 / 8 IN IT")
-		draw_string(SILK, Vector2(col.position.x, col.end.y - 3.0), foot, HORIZONTAL_ALIGNMENT_CENTER, col.size.x, 8, WILL_DIM)
-	_draw_will_card(panel, _will_shown())
-
-
-## An ability's box: lit once one of its versions is yours, with its tier.
-func _will_box(box: Rect2, id: String, tint: Color) -> void:
-	var p := _pr()
-	var n := SkillTrees.node_def(id)
-	var own := p.has_will(id)
-	var on := inspected() == "n:" + id
-	_box(box, tint.darkened(0.55) if own else WILL_DARK, Color.WHITE if on else (tint if own else WILL_DIM))
-	draw_string(SILK, Vector2(box.position.x + 4.0, box.position.y + 11.0), str(n["name"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 26.0, 8, UIStyle.CREAM if own else Color("b7aedc"))
-	draw_string(SILK, Vector2(box.position.x, box.position.y + 11.0), "T%d" % int(n["tier"]), HORIZONTAL_ALIGNMENT_RIGHT, box.size.x - 4.0, 8, WILL if own else WILL_DIM)
-	hit(box, "n:" + id)
-
-
-## A version under its ability: carried (filled), yours (rimmed), buyable now (a coral rim), or not yet (dim).
-func _will_chip(r: Rect2, aid: String, i: int, tint: Color) -> void:
-	var p := _pr()
-	var an := SkillTrees.node_def(aid)
-	var v: Dictionary = an["versions"][i]
-	var vid := str(v["id"])
-	var mine := p.has_version(vid)
-	var active := mine and p.version_of(aid) == i
-	var can := not mine and p.buy_why(vid) == ""
-	var on := inspected() == "n:" + vid
-	_box(r, tint if active else (tint.darkened(0.6) if mine else WILL_DARK), Color.WHITE if on else (tint if mine else (UIStyle.CORAL if can else WILL_DIM)))
-	var label := str(v["tag"]).to_upper()
-	draw_string(SILK, Vector2(r.position.x, r.position.y + 9.0), label, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 8,
-		UIStyle.INK if active else (UIStyle.CREAM if mine or can else Color("6b6890")))
-	hit(r, "n:" + vid)
-
-
-func _will_passive_chip(r: Rect2, pid: String, tint: Color) -> void:
-	var p := _pr()
-	var mine := p.has_version(pid)
-	var can := not mine and p.buy_why(pid) == ""
-	var on := inspected() == "n:" + pid
-	_box(r, tint.darkened(0.6) if mine else WILL_DARK, Color.WHITE if on else (SkillTreeDraw.PASSIVE if mine else (UIStyle.CORAL if can else WILL_DIM)))
-	_diamond(r.position + Vector2(7, 6), 4.0, SkillTreeDraw.PASSIVE if mine else WILL_DIM)
-	var slot := p.passives.find(pid)
-	draw_string(SILK, Vector2(r.position.x + 13.0, r.position.y + 9.0), str(SkillTrees.node_def(pid)["name"]).to_upper() + ("  · SLOT %d" % (slot + 1) if slot >= 0 else ""),
-		HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 15.0, 8, UIStyle.CREAM if mine or can else Color("6b6890"))
-	hit(r, "n:" + pid)
 
 
 ## The Will node the card shows: the inspected one, else the pick, else Coat.
@@ -1328,7 +1429,7 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 	y = _para(Vector2(x, y + 30.0), str(an["desc"]).trim_prefix("Passive (a slot). "), w, UIStyle.PARCH_INK, limit) + 2.0
 	if an["kind"] == "will":
 		for i in range(an["versions"].size()):
-			if y > limit:
+			if y + 30.0 > limit:
 				break
 			var v: Dictionary = an["versions"][i]
 			var vid := str(v["id"])

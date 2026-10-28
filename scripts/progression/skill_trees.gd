@@ -87,7 +87,9 @@ const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_ene
 ## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
 ## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
 ## wrestling moves went in 1.18.4; black-leg's Mule Kick and Cartwheel Crescent in 1.23.
-const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist", "bl_mule": "bl_rise", "bl_wheel": "bl_sky"}
+## (1.24.1: the tier-3 Will abilities' first versions had their ability's own id, which hid the ability's other versions)
+const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist", "bl_mule": "bl_rise", "bl_wheel": "bl_sky",
+	"w_inner": "w_inner_v", "w_crowd": "w_crowd_v", "w_clash": "w_clash_v"}
 const PRICE := {"move": 2, "mech": 2, "tech": 3, "passive": 3, "variant": 4, "elem": 5, "ult": 8}
 const PRICE_ADVENTURE := {"move": 1, "mech": 1, "tech": 2, "passive": 2, "variant": 2, "elem": 3, "ult": 4}
 
