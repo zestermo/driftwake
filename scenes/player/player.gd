@@ -494,8 +494,20 @@ func attribute(name_: String) -> int:
 	return int(attributes.get(name_, 5))
 
 
+## What stamina costs now (Reinforce: a quarter less).
+func stamina_k() -> float:
+	return REINFORCE_STAMINA if power and power.buff("reinforce") else 1.0
+
+
+## Reinforce's share of stamina costs, and the defence it holds (Hardening's, folded in).
+const REINFORCE_STAMINA := 0.75
+const REINFORCE_DEF := 8.0
+
+
 func defense() -> float:
 	var d := equipment.defense() if equipment else 0.0
+	if power and power.buff("reinforce"):
+		d += REINFORCE_DEF
 	if progression:
 		d += progression.stat("defense") + progression.style_stat("def", style())
 		if hybrid:
@@ -535,6 +547,10 @@ func _recalc_stats() -> void:
 	if power and power.buff("howl"):
 		move_k *= 1.15
 		sprint_k *= 1.15
+	# Reinforce: Edy through the body, a step quicker
+	if power and power.buff("reinforce"):
+		move_k *= 1.1
+		sprint_k *= 1.1
 	if power and power.buff("tekkai"):
 		var tk := 0.6 if pr.skill_tier("tekkai") >= 2 else 0.3
 		move_k *= tk
@@ -701,6 +717,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		state_machine.force_state("Stagger", {"stagger_duration": 0.45, "knockback_dir": dir,
 			"knockback_force": minf(hit.knockback_force * 0.6, 4.0), "flinch": false})
 		return
+	if power.buff("reinforce"):
+		# Reinforce: the blow doesn't rock you, and the aura flares where everyone can see it hold
+		Net.fx("edy_flash", [body_model])
+		return
 	if progression.has_flag("steadfast"):
 		return  # Steadfast: light hits don't make you flinch
 	# heavy armour's poise (GearStats): now and then a blow doesn't rock you (rolled only when worn: the draws stay put)
@@ -714,6 +734,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 ## Foresight: you saw it coming - an instant sidestep with an afterimage and
 ## a beat of slow motion.
 func _foresight_dodge(dir: Vector3, label: String = "Foresight!") -> void:
+	Net.fx("edy_sense", [body_model])
 	var side := Vector3.UP.cross(dir).normalized() * (1.0 if randf() < 0.5 else -1.0)
 	Net.fx("afterimage", [body_model, Color(0.95, 0.5, 0.8)])
 	global_position += side * 1.6
@@ -955,7 +976,7 @@ func _tick_body(delta: float) -> void:
 			var hand: Node3D = body_model.hand_r if randf() < 0.6 or weapon_class() not in ["fist", "claw"] else body_model.hand_l
 			Net.fx("sparkle", [hand.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, progression.will_tint().lightened(0.25)])
 	# buffs that change speed come and go
-	var buff_key := "%s|%s" % [power.buff("howl"), power.buff("tekkai")]
+	var buff_key := "%s|%s|%s" % [power.buff("howl"), power.buff("tekkai"), power.buff("reinforce")]
 	if buff_key != _buff_key:
 		_buff_key = buff_key
 		_recalc_stats()
@@ -1342,6 +1363,7 @@ func start_climb(data: Dictionary) -> void:
 ## Spend stamina for an action. Needs at least half the cost in the bar (the
 ## action may then drain it to empty); otherwise it's refused.
 func spend_stamina(cost: float) -> bool:
+	cost *= stamina_k()
 	if stamina < cost * 0.5:
 		stamina_denied.emit()
 		return false
@@ -1374,7 +1396,7 @@ func can_sprint() -> bool:
 ## Called every physics tick while sprinting.
 func drain_sprint(delta: float) -> void:
 	_sprint_seen = PlayerState.now_s()
-	stamina = maxf(stamina - SPRINT_DRAIN * (1.0 - progression.stat("sprint_cost_pct")) * delta, 0.0)
+	stamina = maxf(stamina - SPRINT_DRAIN * (1.0 - progression.stat("sprint_cost_pct")) * stamina_k() * delta, 0.0)
 	_stamina_delay = STAMINA_REGEN_DELAY * 0.6
 	if stamina <= 0.0:
 		winded = true

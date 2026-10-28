@@ -3,7 +3,8 @@ extends SceneTree
 ## waits (and a pip on the tab); P (or a click) opens the perks popup on the lowest fork not picked, every fork drawn;
 ## up / down walk the forks, left / right the option; Enter picks a reached fork, refuses one not reached yet and a
 ## change away from the bunk; Esc shuts it. A path tab (or A / D) shows that path; Enter buys Coat's first version and the
-## Hardening passive (slotted) once your Edy is read; every tier-3 version draws (the ids no longer hide them).
+## once your Edy is read; Reinforce (was the Hardening passive) waits on its tier; every tier-3 version draws (the ids no longer
+## hide them).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var gm
@@ -119,13 +120,11 @@ func _process(_d: float) -> bool:
 			check("a click on Iron Will's tab, on its first version to buy (Heavy Coat)", click("path:iron") and sm.will_path == "iron" and sm.sel == "n:w_coat_heavy")
 			act("ui_accept")
 			check("Enter buys Heavy Coat for 1 Will", pr.has_version("w_coat_heavy") and pr.knows("armament_coat") and pr.pool("will") == 2)
-			sm.sel = "n:h_harden"
-			act("ui_accept")
-			check("Enter on Hardening buys it for 2 and slots it", pr.has_version("h_harden") and pr.passives.has("h_harden") and pr.pool("will") == 0)
+			check("Reinforce (Hardening's place, tier 1) is open for 1 Edy", pr.buy_why("w_reinforce_v") == "")
 			until = TK.wait_ticks(3)
 		6:
-			check("Iron Will's ladder draws its versions, both tier-3 ones and its passive",
-				["n:w_coat_heavy", "n:w_emit_stomp", "n:w_inner_v", "n:w_mirror", "n:h_harden"].all(func(id): return drawn(id)))
+			check("Iron Will's ladder draws its versions, Reinforce, both tier-3 ones, and no passive",
+				["n:w_coat_heavy", "n:w_emit_stomp", "n:w_reinforce_v", "n:w_inner_v", "n:w_mirror"].all(func(id): return drawn(id)) and not drawn("n:h_harden"))
 			sm._set_path("conq")
 			until = TK.wait_ticks(3)
 		7:

@@ -39,11 +39,13 @@ const ALL := {
 	"bullet_storm": {"name": "Bullet Storm", "tree": "pistol", "cost": 24.0, "cooldown": 9.0, "needs": "gun", "fruit": "",
 		"desc": "Fan the hammer: seven shots swept across everything in front of you. Doesn't use your loaded shots."},
 	# --- Haki ---
-	"armament_coat": {"name": "Iron Will: Coat", "tree": "base", "cost": 30.0, "cooldown": 20.0, "needs": "", "fruit": "",
-		"desc": "Coat your weapon (or fists) in Iron Will for 8 s: +30% damage, nothing can block it, and your heavy attacks break guards.",
+	"edy_reinforce": {"name": "Reinforce", "tree": "base", "cost": 25.0, "cooldown": 60.0, "needs": "", "fruit": "",
+		"desc": "Iron Will. Edy through your whole body for 15 s: +10% speed, a quarter less stamina, +8 defense, and light blows don't make you flinch."},
+	"armament_coat": {"name": "Infuse", "tree": "base", "cost": 30.0, "cooldown": 20.0, "needs": "", "fruit": "",
+		"desc": "Iron Will. Pour your Edy into your weapon (or fists) for 8 s: +30% damage, nothing can block it, and your heavy attacks break guards.",
 		"tiers": [
-			{"uses": 12, "cost": 2, "name": "Hardened", "desc": "The coat holds for 12 s."},
-			{"uses": 40, "cost": 3, "name": "Outflow", "desc": "Mastered: Will flows out of the blade. Every coated heavy hit bursts outward, striking everyone around the target."},
+			{"uses": 12, "cost": 2, "name": "Hardened", "desc": "Infuse holds for 12 s."},
+			{"uses": 40, "cost": 3, "name": "Outflow", "desc": "Mastered: Edy flows out of the blade. Every infused heavy hit bursts outward, striking everyone around the target."},
 		]},
 	"foresight": {"name": "Foresight", "tree": "base", "cost": 25.0, "cooldown": 18.0, "needs": "", "fruit": "",
 		"desc": "Sense what's coming for 5 s: the next attack that would hit you is dodged automatically, and time slows for a moment.",

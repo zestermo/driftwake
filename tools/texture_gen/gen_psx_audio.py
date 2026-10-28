@@ -813,6 +813,110 @@ def _thump(t, f_hi, f_lo, tau, decay, atk=0.002):
     f = f_lo + (f_hi - f_lo) * np.exp(-t / tau)
     return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * decay) * np.minimum(1, t / atk)
 
+# --------------------------------------------------------------------------
+# Edy (1.24.1): the aura's channelling hum per type, its flash, the sense pulse
+# --------------------------------------------------------------------------
+_EDY_HUM = {
+    # type: (base Hz, wub rate Hz, fuzz brightness, crackle count, crackle brightness, character)
+    "still": (78.0, 0.75, 0.05, 6, 0.35, "soft"),
+    "ember": (92.0, 1.5, 0.12, 40, 0.75, "fire"),
+    "crown": (110.0, 1.0, 0.08, 18, 0.95, "ring"),
+    "storm": (68.0, 2.25, 0.16, 55, 1.0, "zap"),
+    "tide": (84.0, 0.5, 0.06, 10, 0.4, "swirl"),
+}
+EDY_LOOP_S = 4.0
+
+
+def _edy_loop_noise(rng, n, x):
+    """Noise that loops: n + x samples, the tail crossfaded into the head."""
+    w = rng.standard_normal(n + x)
+    k = np.linspace(0, 1, x)
+    w[:x] = w[:x] * k + w[n:n + x] * (1 - k)
+    return w[:n]
+
+
+def edy_hum_sounds():
+    """The Edy aura's channelling (EdyAura): a low wubby hum, a fuzz flickering over it and a little crackle, per
+    type: Still soft and slow, Ember quicker with fire crackle, Crown a ringing shimmer, Storm a buzzing wub with
+    sparks, Tide a slow swirling wash. Loops of EDY_LOOP_S, every modulation a whole number of cycles."""
+    for typ, (f0, wub, fuzz, cracks, bright, kind) in _EDY_HUM.items():
+        rng = np.random.default_rng(311 + len(typ) * 7)
+        n = int(SR * EDY_LOOP_S)
+        t = np.arange(n) / SR
+        x = int(SR * 0.25)
+        # the wub: a low tone (and its fifth) swelling at a whole number of cycles a loop
+        wr = round(wub * EDY_LOOP_S) / EDY_LOOP_S
+        am = 0.55 + 0.45 * np.sin(2 * np.pi * wr * t) ** 2
+        f = round(f0 * EDY_LOOP_S) / EDY_LOOP_S
+        tone = np.sin(2 * np.pi * f * t) + 0.35 * np.sin(2 * np.pi * f * 1.5 * t) + 0.2 * np.sin(2 * np.pi * f * 2 * t)
+        hum = np.tanh(tone * 1.6) * am
+        # the fuzz: band-limited noise flickering
+        w = _edy_loop_noise(rng, n, x)
+        band = lpf(w, fuzz) - lpf(w, fuzz * 0.25)
+        fl = 0.6 + 0.4 * np.sin(2 * np.pi * (round(wub * 3 * EDY_LOOP_S) / EDY_LOOP_S) * t + 1.3)
+        fz = band * fl * 3.0
+        out = hum * 0.8 + fz * 0.55
+        # character
+        if kind == "ring":
+            for r, a in ((4.0, 0.12), (6.03, 0.07), (8.1, 0.04)):
+                out += np.sin(2 * np.pi * f * r * t) * a * (0.5 + 0.5 * np.sin(2 * np.pi * (2 / EDY_LOOP_S) * t))
+        elif kind == "swirl":
+            sw = 0.5 + 0.5 * np.sin(2 * np.pi * (1 / EDY_LOOP_S) * t)
+            # (a swirling wash: the dark band and the bright one traded slowly round the loop)
+            out += (lpf(w, 0.02) * (1 - sw) + lpf(w, 0.1) * sw) * 4.0 * 0.35
+        elif kind == "fire":
+            out += lpf(w, 0.2) * 0.25
+        # crackle on top: short bright ticks scattered round the loop
+        hp = w - lpf(w, 0.4)
+        crack = np.zeros(n)
+        for _ in range(cracks):
+            p0 = int(rng.integers(0, n - 200))
+            L = int(rng.integers(15, 70 if kind != "zap" else 140))
+            env = np.exp(-np.arange(L) / (10.0 if kind != "zap" else 25.0))
+            crack[p0:p0 + L] += hp[p0:p0 + L] * env * rng.uniform(0.4, 1.0)
+        out += crack * bright * 0.6
+        out = lpf(out, 0.6)
+        _write_loop(f"edy_hum_{typ}", out, lufs=-24.0)
+
+
+def edy_flash_sound():
+    """An Edy aura flaring (a big move, a blow shrugged off): a short woosh up into a soft thump and a shimmer."""
+    rng = np.random.default_rng(331)
+    n = int(SR * 0.55)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    hit = 0.12
+    rise = np.clip(t / hit, 0, 1) ** 2 * (t < hit) + np.exp(-np.clip(t - hit, 0, None) * 9.0) * (t >= hit)
+    a = 0.02 + 0.25 * np.clip(t / hit, 0, 1)
+    whoosh = np.zeros(n)
+    acc = 0.0
+    for i in range(n):
+        acc += a[i] * (w[i] - acc)
+        whoosh[i] = acc
+    out = whoosh * rise * 3.0
+    tb = np.clip(t - hit, 0, None)
+    out += _thump(tb, 140, 55, 0.05, 9.0) * (t >= hit) * 0.7
+    for r, amp in ((1.0, 0.18), (1.5, 0.1)):
+        out += np.sin(2 * np.pi * 880 * r * tb) * amp * np.exp(-tb * 10.0) * (t >= hit)
+    _write_shot("edy_flash", out, lufs=-18.0)
+
+
+def edy_sense_sound():
+    """Sensing a blow and slipping it (Instinct, Foresight): a soft low pulse with a bright glint ringing over it."""
+    rng = np.random.default_rng(337)
+    n = int(SR * 0.7)
+    t = np.arange(n) / SR
+    pulse = np.sin(2 * np.pi * (70 + 40 * np.exp(-t * 18)) * t) * np.exp(-t * 7.0) * np.minimum(1, t / 0.004)
+    ting = np.zeros(n)
+    for r, amp in ((1.0, 0.5), (2.01, 0.22), (3.02, 0.1)):
+        ting += np.sin(2 * np.pi * 1320 * r * t + rng.uniform(0, 6)) * amp
+    ting *= np.exp(-t * 6.0) * np.minimum(1, t / 0.01)
+    sw = rng.standard_normal(n)
+    air = (sw - lpf(sw, 0.3)) * np.exp(-t * 14.0) * 0.15
+    out = pulse * 1.0 + ting * 0.45 + air
+    _write_shot("edy_sense", out, lufs=-21.0)
+
+
 
 def _modes(t, rng, modes, atk=0.0008):
     """Damped resonances (freq, amp, decay) struck at once: planks, a boot heel, steel."""
@@ -2409,6 +2513,9 @@ SOUNDS = [
     ("sizzle", sizzle_sound),
     ("howl", howl_sound),
     ("haki", haki_sound),
+    ("edy_hum", edy_hum_sounds),
+    ("edy_flash", edy_flash_sound),
+    ("edy_sense", edy_sense_sound),
     ("block", block_takes),
     ("peril", peril_sound),
     ("fin_sting", fin_sting_sound),

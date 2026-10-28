@@ -56,6 +56,7 @@ static func enter(s, id: String) -> bool:
 	# (the big Edy moves flare in the captain's Edy, its type's shape)
 	if id in ["will_still_point", "will_berserk", "will_twin", "will_flag"]:
 		EdyTypes.burst(p)
+		EdyTypes.aura(p, "body", 1.6)
 	match id:
 		"will_still_point":
 			s.dur = 0.6

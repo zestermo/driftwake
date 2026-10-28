@@ -9,7 +9,7 @@ const SLASH_SHADER := preload("res://shaders/psx/slash_trail.gdshader")
 const SOUNDS := [
 	"whoosh", "whoosh_big", "hit", "jump", "land", "chitter", "bug_hiss", "thud", "coin",
 	"splash", "blip", "blip_high", "blip_low", "gunshot", "parry", "fire_burst", "fire_blast", "crunch",
-	"howl", "haki", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "rope",
+	"howl", "haki", "edy_flash", "edy_sense", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "rope",
 	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke", "hull_wave", "wave_break", "rock_crash",
 	"gull_cry", "jungle_bird",
 	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water", "step_snow", "step_ice",
@@ -2593,6 +2593,29 @@ func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), widt
 
 
 ## A star of light (a blade's edge catching it before a strike, a hit landing).
+## An Edy aura on a captain's body (EdyAura): `part` "arms" (Infuse) or "body" (Reinforce, a big move's flare).
+func edy_aura(body: Node3D, part: String, secs: float, color: Color, look: String) -> void:
+	EdyAura.show_on(body, part, secs, color, look)
+
+
+## The Edy aura on a body flares for a moment (Reinforce shrugging off a blow).
+func edy_flash(body: Node3D) -> void:
+	EdyAura.flash_on(body)
+	sfx("edy_flash", body.global_position + Vector3(0, 1.0, 0), -6.0, 0.08)
+
+
+## A blow sensed and slipped (Instinct, Foresight): a small red glint in each eye and a soft pulse.
+func edy_sense(body: Node3D) -> void:
+	var head = body.get("head")
+	var at: Vector3 = (head as Node3D).global_position if head is Node3D else body.global_position + Vector3(0, 1.6, 0)
+	var cam := get_viewport().get_camera_3d()
+	var side := cam.global_transform.basis.x if cam else Vector3.RIGHT
+	var fwd := -(body.global_transform.basis.z)
+	for s in [-1.0, 1.0]:
+		glint(at + fwd * 0.12 + side * 0.04 * s + Vector3(0, 0.02, 0), Color(1.0, 0.15, 0.12), 0.22)
+	sfx("edy_sense", at, -4.0, 0.05)
+
+
 func glint(pos: Vector3, color: Color = Color.WHITE, size: float = 0.8) -> void:
 	if flipbooks:
 		flash(pos, size * 1.8, color, "glint", 0.2)

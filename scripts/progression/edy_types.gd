@@ -113,14 +113,15 @@ static func quiz_nodes(prefix: String, after: String, read_event: String = "edy:
 
 ## A burst of the captain's Edy round them, in its type's colour and shape (an Edy buff starting, a big Edy move, the
 ## reading itself), on every screen: Still a haze rising, Ember sparks crackling up, Crown a gold shimmer and glint,
-## Storm forked bolts, Tide a ring turning underfoot. `k` scales it.
-static func burst(p: Node3D, k: float = 1.0) -> void:
+## Storm forked bolts, Tide a ring turning underfoot. `k` scales it; `at_pos` puts it somewhere else (an infused blow
+## landing on its target).
+static func burst(p: Node3D, k: float = 1.0, at_pos := Vector3.INF) -> void:
 	var net := p.get_node_or_null("/root/Net")
 	if net == null:
 		return
 	var id: String = str(p.progression.will_color) if p.get("progression") else ""
 	var col := color_of(id)
-	var at := p.global_position + Vector3(0, 1.1, 0)
+	var at := p.global_position + Vector3(0, 1.1, 0) if at_pos == Vector3.INF else at_pos
 	match str(TYPES.get(id, {}).get("look", "")):
 		"haze":
 			net.fx("puff", [at - Vector3(0, 0.6, 0), "mist", int(4 * k), 1.0 * k, 0.9, Color(col, 0.55), 0.8])
@@ -143,3 +144,31 @@ static func burst(p: Node3D, k: float = 1.0) -> void:
 			net.fx("sparkle", [at, int(10 * k), col])
 		_:
 			net.fx("sparkle", [at, int(18 * k), col])
+
+
+## The captain's Edy aura on their body for `secs` (EdyAura, on every screen): "arms" for Infuse, "body" for Reinforce
+## and a big move's flare.
+static func aura(p: Node3D, part: String, secs: float) -> void:
+	var net := p.get_node_or_null("/root/Net")
+	var body = p.get("body_model")
+	if net == null or body == null or p.get("progression") == null:
+		return
+	var id := str(p.progression.will_color)
+	net.fx("edy_aura", [body, part, secs, color_of(id), str(TYPES.get(id, {}).get("look", "haze"))])
+
+
+## Powering up (Infuse, Reinforce): a wind blast off the captain, a shockwave ring and dust thrown out, in their Edy's
+## colour, with a punch of the camera on their own screen.
+static func blast(p: Node3D, k: float = 1.0) -> void:
+	var net := p.get_node_or_null("/root/Net")
+	if net == null:
+		return
+	var col := color_of(str(p.progression.will_color)) if p.get("progression") else UNREAD
+	var at := p.global_position
+	net.fx("ring", [at + Vector3(0, 0.15, 0), Vector3.UP, 3.2 * k, col, 0.35, 0.2])
+	net.fx("ring", [at + Vector3(0, 1.0, 0), Vector3.UP, 2.0 * k, col.lightened(0.4), 0.25, 0.1])
+	net.fx("dust_ring", [at, int(16 * k), 1.3 * k])
+	net.fx("puff_ring", [at + Vector3(0, 0.1, 0), "dust_low", 10, 0.4, 1.2, 0.6, Color(1, 1, 1, 0.8), 7.0 * k])
+	burst(p, k)
+	if p.has_method("cam_shake"):
+		p.call("cam_shake", 0.18 * k)

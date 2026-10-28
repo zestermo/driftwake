@@ -576,6 +576,9 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	if hit.haki and buff("coat") and _ryuo_cd <= 0.0 and target is Node3D and player.is_local \
 			and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"] and (player.progression.skill_tier("armament_coat") >= 3 or player.progression.has_flag("coat_burst")):
 		_ryuo(target as Node3D)
+	# an infused heavy blow leaves a burst of the captain's Edy on what it hits
+	if buff("coat") and player.is_local and target is Node3D and not hit.dot and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"]:
+		EdyTypes.burst(player, 0.6, (target as Node3D).global_position + Vector3(0, 1.1, 0))
 	# the element on every blow (the tree's second mastery passive): combo and heavy hits throw it
 	var tree := SkillTree.style_tree(st)
 	if player.is_local and tree != "" and target is Node3D and player.progression.elemental(tree, 2) \

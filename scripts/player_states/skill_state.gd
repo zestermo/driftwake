@@ -36,6 +36,10 @@ var _rope: VineRope
 var _wraps: Array = []
 
 
+## Reinforce lasts this long, and shoves foes back a step within this reach as it starts.
+const REINFORCE_SECS := 15.0
+const REINFORCE_PUSH := 3.5
+
 func enter(data: Dictionary) -> void:
 	id = str(data.get("id", ""))
 	_pc = player.power
@@ -139,14 +143,34 @@ func enter(data: Dictionary) -> void:
 			face_direction(_dir, 1.0)
 			player.body_model.play("bullet_storm", dur)
 		"armament_coat":
+			# Infuse (was Coat): Edy poured down the forearms into the weapon, its aura on them while it lasts
 			dur = 0.45
-			_pc.add_buff("coat", 12.0 if player.progression.skill_tier("armament_coat") >= 2 else 8.0)
+			var secs := 12.0 if player.progression.skill_tier("armament_coat") >= 2 else 8.0
+			_pc.add_buff("coat", secs)
 			player.body_model.play("coat", dur)
 			player.update_coat_visual()
-			Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, player.progression.will_tint().lightened(0.3)])
+			EdyTypes.aura(player, "arms", secs)
+			EdyTypes.blast(player, 0.7)
 			Net.fx("sfx", ["haki", player.global_position, -1.0, 0.03, 1.0])
 			Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.1, Vector3.UP, 0.4, player.progression.will_tint().lightened(0.2), true])
-			player.cam_shake(0.12)
+		"edy_reinforce":
+			# Reinforce (was Hardening): Edy through the whole body: faster, lighter on stamina, harder, unshaken by light
+			# blows (Player reads the buff), the aura all over while it lasts
+			dur = 0.5
+			_pc.add_buff("reinforce", REINFORCE_SECS)
+			player.body_model.play("coat", dur)
+			EdyTypes.aura(player, "reinforce", REINFORCE_SECS)
+			EdyTypes.blast(player, 1.0)
+			# the wind of it shoves the foes round you back a step (no damage)
+			var push := HitData.new()
+			push.damage = 1.0
+			push.knockback_force = 6.0
+			push.stagger_duration = 0.3
+			# (a breaker: no guard holds it, and it rocks them back a step whatever they were doing)
+			push.unblockable = true
+			push.breaker = true
+			_pc.blast(player.global_position, REINFORCE_PUSH, push)
+			Net.fx("sfx", ["haki", player.global_position, 0.0, 0.03, 0.8])
 		"foresight":
 			dur = 0.4
 			var ft := player.progression.skill_tier("foresight")

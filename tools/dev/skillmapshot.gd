@@ -75,7 +75,7 @@ func _process(_d: float) -> bool:
 			pr.gift("will", 8)
 			if pr.will_color == "":
 				pr.attune("storm")
-			for k in ["w_coat_quick", "w_coat_heavy", "h_harden"]:
+			for k in ["w_coat_quick", "w_coat_heavy"]:
 				pr.buy(k)
 			pr.set_will_color("red")
 			pr.buy("w_coat_heavy")

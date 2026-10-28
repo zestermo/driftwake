@@ -60,7 +60,7 @@ const WILL_ICONS := {"w_emit_line": "flying_slash", "w_emit_ring": "fire_ring", 
 	"w_flash_ambush": "smoke_bomb", "w_crowd_v": "will_glimpse", "w_weak": "pin_shot", "w_clash_v": "cross_counter", "w_rally": "howl",
 	"w_breath_v": "move_dolphin", "w_wave": "move_glide", "w_step_v": "move_moonstep", "w_cancel": "side_step", "w_flow": "phantom_step",
 	"w_mist_v": "red_eclipse", "w_unbowed_v": "tekkai", "w_link_v": "parley", "w_gauge": "twin_waves", "w_shelter": "move_rolling_guard",
-	"h_harden": "tekkai", "h_instinct": "move_sidestep", "h_will": "conquerors_haki", "h_helm": "broadside", "h_feet": "flame_dash",
+	"h_instinct": "move_sidestep", "h_will": "conquerors_haki", "h_helm": "broadside", "h_feet": "flame_dash",
 	"h_crew": "howl", "h_blood": "bleeding_edge"}
 const PATH_ICONS := {"iron": "armament_coat", "sense": "will_glimpse", "conq": "conquerors_haki", "tide": "will_swell",
 	"tempo": "will_still_point", "fury": "will_berserk", "bond": "will_twin"}

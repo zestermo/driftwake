@@ -2,7 +2,8 @@ class_name WillPaths
 extends RefCounted
 ## Will (1.23, docs/v1_23_previews.md section 2): points from big fights and meditation, spent on three paths. No
 ## Will is tied to a boss or a theme. Each captain's own (Progression.will_earned, saved with the captain).
-##   iron   Iron Will: Coat (tier 1), Emission (2), Inner Strike (3); its passive Hardening
+##   iron   Iron Will: Infuse (tier 1, was Coat) and Reinforce (1, was the passive Hardening), Emission (2),
+##          Inner Strike (3); no passive
 ##   sense  Sense: Flash (1), Foresight (2), Crowd Read (3); its passive Instinct
 ##   conq   Captain's Will: Roar (2), Clash (3); its passive King's Will (needs 4 Will spent in each of the others)
 ## 1.24 (docs/v1_24_previews.md section 2), always open, tiers by all the Will spent (OPEN); at work in WillPowers / WillArts:
@@ -37,11 +38,13 @@ const PASSIVE_COST := 2
 
 ## The paths' abilities: id -> [path, tier, name, desc, versions: [[id, name, effects, desc, skill, chip label]]], in tier order.
 const ABILITIES := {
-	"w_coat": ["iron", 1, "Coat", "Coat your weapon or fists in Will (the skill): coated blows can't be blocked and land 30% harder.", [
-		["w_coat_heavy", "Heavy Coat", {"coat_dmg": 0.15}, "Coated blows land another 15% harder.", "armament_coat", "Heavy"],
-		["w_coat_quick", "Quick Coat", {"cdr_armament_coat": 0.3}, "The coat comes back 30% sooner, for a faster rhythm.", "armament_coat", "Quick"],
-		["w_coat_break", "Breaking Coat", {"coat_burst": 1}, "A coated heavy blow bursts out round the one it hits, through their guards.", "armament_coat", "Break"]]],
-	"w_emit": ["iron", 2, "Emission", "Will leaves the blade: while coated, a heavy attack strikes 6 m ahead too.", [
+	"w_coat": ["iron", 1, "Infuse", "Pour your Edy down your arms into your weapon or fists (the skill): infused blows can't be blocked and land 30% harder.", [
+		["w_coat_heavy", "Heavy Infuse", {"coat_dmg": 0.15}, "Infused blows land another 15% harder.", "armament_coat", "Heavy"],
+		["w_coat_quick", "Quick Infuse", {"cdr_armament_coat": 0.3}, "Infuse comes back 30% sooner, for a faster rhythm.", "armament_coat", "Quick"],
+		["w_coat_break", "Breaking Infuse", {"coat_burst": 1}, "An infused heavy blow bursts out round the one it hits, through their guards.", "armament_coat", "Break"]]],
+	"w_reinforce": ["iron", 1, "Reinforce", "Edy through your whole body (the skill): quicker, lighter on stamina, harder, and light blows don't rock you.", [
+		["w_reinforce_v", "Reinforce", {}, "For 15 s: +10% speed, a quarter less stamina, +8 defense, and light blows don't make you flinch. Every minute.", "edy_reinforce", "Body"]]],
+	"w_emit": ["iron", 2, "Emission", "Edy leaves the blade: while infused, a heavy attack strikes 6 m ahead too.", [
 		["w_emit_line", "Emission: Line", {"emission": 1}, "A coated heavy throws a line of Will 6 m straight ahead.", "", "Line"],
 		["w_emit_ring", "Emission: Ring", {"emission": 2}, "A coated heavy bursts a ring of Will 4 m round you.", "", "Ring"],
 		["w_emit_stomp", "Stomp", {"emission": 3}, "A coated heavy stamps Will into the ground: a 3.5 m quake round you that knocks shields and guards aside.", "", "Stomp"]]],
@@ -98,7 +101,6 @@ const ABILITIES := {
 }
 ## Each path's passive: id -> [path, name, effects, desc] (bought for PASSIVE_COST once the path's first ability is yours).
 const PASSIVES := {
-	"h_harden": ["iron", "Hardening", {"defense": 8.0, "energy_regen_pct": 0.2}, "Passive (a slot). Will under the skin: +8 defense, and energy refills 20% faster."],
 	"h_instinct": ["sense", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider."],
 	"h_will": ["conq", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."],
 	"h_helm": ["tide", "Helm Sense", {"helm_sense": 0.2}, "Passive (a slot). While you steer, your ship's hull takes 20% less damage."],
