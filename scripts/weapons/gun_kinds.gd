@@ -73,7 +73,7 @@ static func notes(it: ItemData) -> Array:
 				return ["Scatters a cone of shot; hold to tighten it", "Right-click: the butt stroke"]
 			return ["Hold to aim: a steady shot pierces", "Right-click: the butt stroke"]
 		"cannon":
-			var out := ["Bursts where it lands: knocks them all down", "Right-click: the barrel like a club"]
+			var out := ["Bursts where it lands: staggers them all, floors point-blank", "Right-click: the barrel like a club"]
 			if design(it, "burn", 0.0) > 0.0:
 				out.append("Its shells set them burning")
 			return out

@@ -13,6 +13,8 @@ const GRAVITY := 9.0
 const DIRECT := 45.0
 const SPLASH := 28.0
 const BLAST := 3.2
+## A plain shot floors the one it hits only this close (m); further out it staggers and drains poise.
+const CLOSE_DOWN := 4.0
 const RELOAD := 2.4
 ## The shot leaves FIRE_AT s into cn_fire (the brace), the move's length, the shove back (m/s; Braced halves it).
 const FIRE_AT := 0.25
@@ -130,7 +132,7 @@ static func shell_hit(sh: Shell, at: Vector3, normal: Vector3, hb: Hurtbox) -> v
 	var p := sh.source as Player
 	match sh.kind:
 		"ball":
-			explode(p, at, normal, blast_r(p), sh.damage, SPLASH, hb, 1.0)
+			explode(p, at, normal, blast_r(p), sh.damage, SPLASH, hb, 1.0, "", false, true)
 		"mortar":
 			explode(p, at, normal, blast_r(p, MORTAR_R), sh.damage, sh.damage, hb, 0.8, "skill")
 		"giant":
@@ -157,16 +159,19 @@ static func shell_hit(sh: Shell, at: Vector3, normal: Vector3, hb: Hurtbox) -> v
 
 
 ## A burst at `at`: the one struck (`hb`) takes `direct`, everyone within `radius` the splash (half at the rim), all
-## knocked down and thrown out; `size` scales the show, `kind` the hit's (a technique's: "skill"). With the design's
+## knocked down and thrown out (a plain shot: staggered, floored only point-blank); `size` scales the show, `kind` the hit's (a technique's: "skill"). With the design's
 ## "burn" (the dragon cannon) or the element on every blow they burn.
-static func explode(p: Player, at: Vector3, normal: Vector3, radius: float, direct: float, splash: float, hb: Hurtbox, size: float, kind := "", unblock := false) -> Array:
+static func explode(p: Player, at: Vector3, normal: Vector3, radius: float, direct: float, splash: float, hb: Hurtbox, size: float, kind := "", unblock := false, plain := false) -> Array:
 	var hit: Array = []
+	# (1.26) a plain shot staggers: it floors only point-blank (CLOSE_DOWN); poise does the rest. Techniques, the ram and the
+	# leap still throw everyone down.
+	var floors := not plain or p.global_position.distance_to(at) <= CLOSE_DOWN
 	if hb:
 		var hd := GunKinds.shot_hit(p, direct, kind)
-		hd.knockdown = true
+		hd.knockdown = floors
 		hd.breaker = true
 		hd.unblockable = unblock
-		hd.knockback_force = 13.0
+		hd.knockback_force = 13.0 if floors else 6.0
 		hd.stagger_duration = 0.8
 		hd.hitstop_duration = 0.08
 		hd.camera_shake_intensity = 0.0
@@ -174,10 +179,10 @@ static func explode(p: Player, at: Vector3, normal: Vector3, radius: float, dire
 		GunKinds.strike(p, hb, hd)
 		hit.append(hb.owner)
 	var sp := GunKinds.shot_hit(p, splash, kind)
-	sp.knockdown = true
+	sp.knockdown = not plain
 	sp.breaker = true
 	sp.unblockable = unblock
-	sp.knockback_force = 11.0
+	sp.knockback_force = 4.0 if plain else 11.0
 	sp.stagger_duration = 0.7
 	sp.hitstop_duration = 0.0
 	sp.camera_shake_intensity = 0.0

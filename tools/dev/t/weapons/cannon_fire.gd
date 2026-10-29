@@ -62,8 +62,8 @@ func _process(_d: float) -> bool:
 			check("the kick shoved you back (%.2f m)" % (p.global_position.z - from.z), p.global_position.z - from.z > 0.4)
 			until = TK.wait_secs(1.0)
 		4:
-			check("it burst on the dummy and knocked it down (%d)" % hits, hits >= 1 and last.knockdown and last.ranged)
-			check("the splash threw the grunt beside it down", ghit != null and ghit.knockdown)
+			check("it burst on the dummy 12 m off: staggered, not floored (1.26: plain shots floor only point-blank) (%d)" % hits, hits >= 1 and not last.knockdown and last.breaker and last.ranged)
+			check("the splash staggers the grunt beside it", ghit != null and not ghit.knockdown and ghit.breaker)
 			check("empty: a long reload (%s, %.1f s)" % [p.body_model.current_action(), p.reload_time()], p.reloading() and p.reload_time() >= 2.0)
 			until = TK.wait_secs(2.6)
 		5:
