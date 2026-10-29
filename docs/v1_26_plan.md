@@ -116,6 +116,7 @@ Today:
 | Connected weapon branches | Bridge nodes (stats and passives) between each weapon tree's three branches, like the Edy tree's, so a build can cross over without going back to the root | Zach | Preview |
 | Two ultimates | The top of each weapon tree splits into two ultimate branches, each with its own lead-up nodes. You can buy into one or both, but only one ultimate is equipped at a time, swapped out of a fight | Zach | Preview: the second ultimate per weapon |
 | Crew technique variants | Each weapon gets a second crew technique bought with weapon points, not a launch. Kinds: **setups** (one pins, trips or holds a foe, the other lands a big finisher), **combined attacks** (one merged attack with both weapons) and **rescue/support** (haul a downed crewmate out, a shared shield, trading energy). The weapon's solo version as today | Zach: "something different and interesting other than just launching your friend" | Preview: the move per weapon |
+| Aerial heavy (Zach, 2026-10-29) | Air light = the weapon's aerial attack (the slam until it's unlocked); air heavy = a new unlockable aerial heavy per weapon at mastery 10 (the slam on heavy until then) | The aerial fired on either button | With the weapons |
 | Scope across 17 weapons | Design every weapon's new content (second ultimate, crew variant, 3 alternates) now. 1.26 builds the most-played weapons first (cutlass, katana, black leg, pistol, polearm, greatsword); the other 11 follow in a 1.26.x patch through the updater | Animation volume | After wave 1 |
 
 ### Round 5 (2026-10-29): enemies, pirates, outposts
@@ -154,7 +155,7 @@ Built here in the main session one piece at a time; each 1.25.x (Zach: the unsta
 | 1.25.3 | The round Edy tree and the Infusion branch | Mock OK |
 | 1.25.4 | The Brinehollow opening (unarmed start, Vey's rack, the shrine reading, Tomo on the terrace) | Step list |
 | 1.25.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows), enterable dressed shops for every vendor, more lines per role | Previews |
-| 1.25.x (any) | The internal id rename with its save migration (sea_king, devil_fruits, log_pose, the haki ids) and the GitHub notes for v1.8-v1.17 | - |
+| 1.25.x (any) | The internal id rename with its save migration (sea_king, devil_fruits, log_pose, the haki ids). (The GitHub notes needed nothing: every release body is an auto "Full Changelog" link, and no title uses the old words; checked 2026-10-29.) | - |
 | 1.25.6 | Wave-1 weapons (bridges, two ultimates, crew variants, alternates, launchers) | Weapon sheet |
 | 1.25.7+ | The other 11 weapons, then 1.26 stable | Weapon sheet |
 
@@ -171,7 +172,7 @@ Built without the previews the build order asked for: each row is **assumed** un
 | Showdown | Open any time (the elder's "now", or the villain brought down early) | **assumed** |
 | Fewer bug burrows | The lair site: bug burrows 20%, a smugglers' hideout 50%, an Admiralty picket 30% (four men and a named leader, a notice on the board); the Poisoned Well arc only with the burrows | **assumed** |
 | Shops | Each village trader (VillageVendors) gets a room of their own dressed for the trade, the trader at the counter day and night; the market stalls stay for the rest | **assumed** (layout) |
-| Unique places | Pool of 8: library (Edy point once), onsen (20 gold: heal + 30 min buff), restaurant (feasts shop), swordsmith (tier+2 blades), sea shrine (10 gold: 20 min blessing), cartographer (40 gold: island charted, a treasure chart once), dojo (50 gold: 2 quests' XP once), curio shop; no repeats along 8 islands of a chain; the elder tells of the next island's | **assumed** |
+| Unique places | Pool of 8: library (Edy point once), onsen (20 gold: heal + 30 min buff), restaurant (feasts shop), swordsmith (tier+2 blades), sea shrine (10 gold: 20 min blessing), cartographer (40 gold: island charted, a treasure chart once), dojo (1.26: a free spar with its master, the first win 2 quests' XP, rematches practice), curio shop; no repeats along 8 islands of a chain; the elder tells of the next island's | **assumed** |
 | Tavern games | Dice (best of three, 10/25/50 gold) and arm wrestling (timed press, 25 gold); 3 wins running = 10% off at the store and cookhouse for the crew | **assumed** |
 | Pirate-held villages | 1 island in 6; the ruins layout with 3 roof decks (ladders, crates), 5 guards + 3 roof riflemen, 4 captives (each a lead), a player-AI captain (hp x2.9 x tier, slow pace; his fall is a lead and frees the village) | **assumed** |
 | Completion reward | Turn-in: 120 + 60/tier gold and 4x a quest's XP (1 level at XP_SHARE 0.25) to every captain; the arc chest +15 + 5/tier gold a lead and a tonic; bounty 400 and the Admiralty's answer as before | **assumed** |
@@ -204,6 +205,7 @@ Built without the previews the build order asked for: each row is **assumed** un
     (project.godot, scripts/ui/whats_new.gd, web/site/roadmap/roadmap.json): update them to cover all of the above.
 - **Release check still to run** (world suites, expected to need test updates for deliberate changes): storytest,
   savetest, villagetest, lifetest, isletest, chaintest/fidelity, smoketest, nettest. Then tag v1.25.2 (UNSTABLE stays).
+- **At 1.26 stable (Zach):** every Download button on the site points at Driftwake-Setup.exe (the .zip only as a small "or the .zip" link); push players to the installer.
 - **Left for 1.26:** wave-1 weapons (two ultimates, crew variants, alternates, a launcher each), the internal id rename +
   old release notes, then the other 11 weapons and 1.26 stable (delete tools/release/UNSTABLE, point the site's
   Download at Driftwake-Setup.exe).

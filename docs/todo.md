@@ -264,3 +264,12 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 - Forest follow-ups (2026-10-17): a pinkish streak at the gorge waterfall's foot (render lm5/cliff foot); the Elder Treant reads grey-brown under the canopy; the huntsman's hounds use their own distance check, not ActorSleep; fidelity.gd misses buildings named 'Tall' (themed two-storey houses); the forest town is thin on street props (0.6x Brinehollow), lit windows (0.4-0.5x) and lights; misty mornings are an all-day haze (Weather has no fog by hour); falling_leaves style key waits for the weather pass.
 - BUG (all big quadruped beasts, found by the forest agent): one walking into a standing captain can lift them onto its back. Fix before v1.17.
 - Brinehollow layout follow-ups (2026-10-17): perf watch for the v1.17 gate (bench 14.83 -> 15.55 ms mean, +5%; plaza 16.1 -> 18.1, quay 14.8 -> 18.5 ms; noisy, 4 Godots running); no test yet for the falls pool's swimming (it reuses KitLandmarks' waterfall + InlandPool); savetest's treasure X spots move with LAND_R 400.
+
+## After 1.26 stable: Godot 4.8 trial (Zach, 2026-10-29)
+At 4.8 RC/stable, on its own branch: switch the engine, fix the stricter GDScript (no `self.free()`, no bare strings
+as comments: addons/godot_mcp has ~50; physics results' `collider` field deprecated), full test run, then
+`bench_compare.ps1` against 4.7.2. Wins expected: CharacterBody3D BVH fix (#124315), property access 1.6x (#122596),
+Dictionary/Array speed-ups (#123788, #123531), GDScript VM refcounts (#118813), Jolt 5.6 + lockless contacts,
+non-allocating physics queries (#113970), faster child removal/duplication, built-in Trail3D (#117107).
+Then export templates, installer and updater CI on 4.8. Until then stay on 4.7.x (the ENet bandwidth fix #124620 is
+backported there).

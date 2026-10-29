@@ -28,6 +28,7 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(_update_pixelate)
 	Settings.changed.connect(_on_setting_changed)
 	_apply_preset()
+	_apply_frames()
 	if Settings.tool_run():
 		_tool_window()
 	elif Settings.get_value("video", "fullscreen"):
@@ -75,6 +76,8 @@ func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
 			_apply_window_mode()
 		"pixelate", "dither", "wobble", "warp":
 			_apply_preset()
+		"vsync", "max_fps":
+			_apply_frames()
 
 
 ## A test or render tool's window (`--script`): never fullscreen whatever the player's saved setting says,
@@ -181,3 +184,11 @@ func _show_toast(text: String) -> void:
 	_toast_tween = create_tween()
 	_toast_tween.tween_interval(1.2)
 	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.5)
+
+
+## (1.26) Vsync and the frame cap (never in a test or render run: those keep the engine's own).
+func _apply_frames() -> void:
+	if Settings.tool_run():
+		return
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if Settings.get_value("video", "vsync") else DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = int(Settings.get_value("video", "max_fps"))

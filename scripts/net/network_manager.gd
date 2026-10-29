@@ -1030,8 +1030,8 @@ func _all_brig_gone() -> void:
 
 ## The rival crew's gone: a spared captain gets back up (a third of their health).
 ## A pupil waiting for a spar asks its captain (on that captain's machine) whether they're ready.
-func _all_spar_ask(captain_key: String, rival_key: String, who: String) -> void:
-	ArenaBout.spar_ask(_me(), captain_key, node_of(rival_key), who)
+func _all_spar_ask(captain_key: String, rival_key: String, who: String, line: String) -> void:
+	ArenaBout.spar_ask(_me(), captain_key, node_of(rival_key), who, line)
 
 
 ## A spar's beat on every screen: "bow", then 3, 2, 1, 0 (Fight!) for the captain it's for.
@@ -1205,6 +1205,12 @@ func _start_arena(bout_kind: String, at_rank: int, by: int) -> void:
 			fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
 			spot = c.global_position + fwd * 4.0
 		ArenaBout.start(c, bout_kind, 0, get_tree().current_scene, spot)
+		return
+	# (1.26) a chain village's dojo ("dojo:<village key>"): its master steps out in front of it
+	if bout_kind.begins_with("dojo:") and c != null:
+		var v := node_of(bout_kind.substr(5))
+		if v:
+			ArenaBout.start(c, bout_kind, 0, v.isl, v.dojo_spot())
 		return
 	# ready to spar ("go"): the bow and the countdown
 	if bout_kind == "go" and c != null:

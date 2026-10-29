@@ -312,7 +312,8 @@ func _make(b: Dictionary) -> Dictionary:
 			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": ctx.style["inn"]["wall"], "wall2": mat["weave"], "roof_tex": mat["thatch"],
 				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}.merged(frame), p, face, raised)
 		"vshop", "unique" when own.has("trade") and raised == INF:
-			n = ctx.place(KitStyle.model(own["trade"], rng, maxf(w, d)), p, yaw, r, 0.0, false)
+			# (the theme's store, dressed for the trade or the place: its "<trade model>_<kind>")
+			n = ctx.place(KitStyle.model("%s_%s" % [own["trade"], b["trade"]], rng, maxf(w, d)), p, yaw, r, 0.0, false)
 			n.name = _uniq("Shop" if kind == "vshop" else "Place")
 		"trade", "cook", "home", "elder", "vshop", "unique":
 			var spec := {"kind": str(b["trade"]) if b.has("trade") else ("home" if kind == "elder" else kind), "w": w, "d": d, "found": found, "seed": rng.randi(),
@@ -333,7 +334,7 @@ func _make(b: Dictionary) -> Dictionary:
 		"storehouse":
 			n = ctx.place(KitHouses.storehouse({"seed": rng.randi(), "found": found, "roof_tex": str(ctx.style["mat"]["thatch"])}), p, yaw, r, 0.0, false)
 		"ruin":
-			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin")}), p, yaw, r, 0.0, false)
+			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin"), "sapling": not _roofed(p)}), p, yaw, r, 0.0, false)
 		"tall":
 			var upper: Array = ctx.style["row_upper"]
 			n = _house({"w": w, "d": d, "h": 2.4, "floors": 2, "h2": 2.2, "jetty": 0.3, "roof": ["hip", "gable", "gable_front"][rng.randi() % 3],
@@ -365,6 +366,11 @@ func _make(b: Dictionary) -> Dictionary:
 		work_spots.append({"kind": e[1], "at": ctx.marker_point(n, e[0]), "face": ctx.marker_face(n, e[0]),
 			"y": ctx.marker_y(n, e[0]) if ROOMS.has(kind) else INF, "taken": false})
 	return info
+
+
+## A ruin a pirate-held village has decked over (PirateHeld: no sapling up through it).
+func _roofed(p: Vector2) -> bool:
+	return (isl.village_plan["extra"].get("held", {}).get("roofs", []) as Array).any(func(r): return (r["p"] as Vector2).is_equal_approx(p))
 
 
 ## A Buildings.house on stilts: on its posts as the ground allows, or (raised) with its
@@ -408,10 +414,59 @@ func _unique_keeper() -> void:
 		Shops.extra[sid] = UniquePlaces.shop(unique, sid, keeper.get_slice(" ", keeper.get_slice_count(" ") - 1), IslandContent.tier(isl))
 	Dialogue.register_token(id + "_said", func(): return _said)
 	UniquePlaces.define(id, unique, keeper, isl.island_name, sid)
-	_npc({"name": keeper, "dialogue": id, "voice": 0.95, "look": lk}, ctx.marker_point(n, "Vendor"), ctx.marker_face(n, "Vendor"), ctx.marker_y(n, "Vendor"))
+	keeper_npc = _npc({"name": keeper, "dialogue": id, "voice": 0.95, "look": lk}, ctx.marker_point(n, "Vendor"), ctx.marker_face(n, "Vendor"), ctx.marker_y(n, "Vendor"))
 	Dialogue.dialogue_event.connect(func(ev: String):
 		if ev.begins_with("unique:%s:" % id):
 			_said = UniquePlaces.act(isl, unique, ev.get_slice(":", 2), get_tree().get_first_node_in_group("player")))
+	Dialogue.dialogue_ended.connect(func(did: String):
+		if did == id and spar_asked:
+			spar_asked = false
+			Net.request_arena("dojo:" + Net.key_of(self), 0))
+
+
+## (1.26) The dojo's master spars for real (ArenaBout "dojo:<this village>"): asked in the talk, they step out once it
+## ends, the keeper's body hidden on every screen while their fighting self (a RivalDuel) is out.
+var keeper_npc: NPC
+var spar_asked := false
+const DOJO_WEAPONS := ["", "katana", "spear", "cutlass", "", "boarding_axe"]
+
+
+## (host) Who the dojo's master fights as: the keeper's look, a weapon by the island's seed ("": bare hands and kicks),
+## their skill by the island's tier.
+func dojo_master() -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(isl.node["seed"]), 5142])
+	return {"look": (extra_looks(isl)[2] as Dictionary).duplicate(), "weapon": DOJO_WEAPONS[rng.randi() % DOJO_WEAPONS.size()],
+		"skill": clampf(0.45 + 0.1 * IslandContent.tier(isl), 0.45, 0.9)}
+
+
+## (host) The ground the master spars on (world): a few steps out of the dojo's door, or the village's heart when that's
+## over water (stilts).
+func dojo_spot() -> Vector3:
+	var info: Dictionary = buildings.filter(func(b): return b["kind"] == "unique")[0]
+	var out: Vector2 = info["door"] + (info["face"] as Vector2) * 3.5
+	for p in [out, plaza["c"]]:
+		var hit := _floor_at(p)
+		if hit != Vector3.INF:
+			return hit
+	return isl.to_global(Vector3(out.x, isl.hv(out), out.y))
+
+
+func _floor_at(p: Vector2) -> Vector3:
+	# (under the eaves: from just over a deck's height, not the roofs')
+	var top := isl.to_global(Vector3(p.x, maxf(isl.hv(p), 0.0) + 3.5, p.y))
+	var q := PhysicsRayQueryParameters3D.create(top, top + Vector3.DOWN * 20.0, 1)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or (hit["position"] as Vector3).y < isl.global_position.y + 0.4:
+		return Vector3.INF
+	return hit["position"]
+
+
+## Net._all_arc: the dojo's master out on the street ("master_out" [true]) or back at the counter.
+func apply(op: String, args: Array) -> void:
+	match op:
+		"master_out":
+			keeper_npc.set_away(bool(args[0]))
 
 
 ## "House", then "House2", "House3"... (a node's name is how co-op and the tools find it).

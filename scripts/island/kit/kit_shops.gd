@@ -16,10 +16,12 @@ static func _xf(p: Vector3, yaw := 0.0) -> Transform3D:
 	return Transform3D(Basis(Vector3.UP, yaw), p)
 
 
-## The room's inside for `kind` (into mb; colliders on body). `h` the wall height.
-static func inside(kind: String, body: Node3D, mb: MeshBuilder, w: float, d: float, fl: float, h: float, rng: RandomNumberGenerator) -> void:
+## The room's inside for `kind` (into mb; colliders on body). `h` the wall height. `look`: a theme's own counter
+## ({"counter": [material, colour], "top": [material, colour]}; timber by default).
+static func inside(kind: String, body: Node3D, mb: MeshBuilder, w: float, d: float, fl: float, h: float, rng: RandomNumberGenerator, look := {}) -> void:
 	var r := {"x0": -w * 0.5 + KitHouses.WALL_T, "x1": w * 0.5 - KitHouses.WALL_T, "z0": -d * 0.5 + KitHouses.WALL_T,
-		"z1": d * 0.5 - KitHouses.WALL_T, "fl": fl, "w": w, "d": d, "h": h}
+		"z1": d * 0.5 - KitHouses.WALL_T, "fl": fl, "w": w, "d": d, "h": h,
+		"counter": look.get("counter", [PSXMat.lit("planks"), Color.WHITE]), "top": look.get("top", [PSXMat.lit("planks_dark"), Color.WHITE])}
 	match kind:
 		"onsen":
 			_onsen(body, mb, r, rng)
@@ -55,8 +57,8 @@ static func _counter(body: Node3D, mb: MeshBuilder, r: Dictionary, cloth: bool) 
 	var cx0: float = float(r["x0"]) + 0.3
 	var cx1: float = float(r["x1"]) - 1.0
 	var cw := cx1 - cx0
-	mb.add_box(PSXMat.lit("planks"), _xf(Vector3((cx0 + cx1) * 0.5, fl + 0.5, cz)), Vector3(cw, 1.0, 0.56), 1.0)
-	mb.add_box(PSXMat.lit("planks_dark"), _xf(Vector3((cx0 + cx1) * 0.5, fl + 1.04, cz)), Vector3(cw + 0.1, 0.08, 0.72), 1.0, Color.WHITE, false)
+	mb.add_box(r["counter"][0], _xf(Vector3((cx0 + cx1) * 0.5, fl + 0.5, cz)), Vector3(cw, 1.0, 0.56), 1.0, r["counter"][1])
+	mb.add_box(r["top"][0], _xf(Vector3((cx0 + cx1) * 0.5, fl + 1.04, cz)), Vector3(cw + 0.1, 0.08, 0.72), 1.0, r["top"][1], false)
 	if cloth:
 		mb.add_box(PSXMat.lit("fabric", Color(0.5, 0.2, 0.25)), _xf(Vector3((cx0 + cx1) * 0.5, fl + 0.85, cz + 0.29)), Vector3(cw * 0.8, 0.3, 0.02), 1.0)
 	KitHouses._box(body, Vector3(cw, 1.08, 0.6), Vector3((cx0 + cx1) * 0.5, fl + 0.54, cz))

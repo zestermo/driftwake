@@ -4,7 +4,7 @@ extends SceneTree
 ## a home; captioned, then a contact sheet (<out>_sheet.png). Reads the village's own
 ## data (plaza, lanes, buildings, market) for its cameras.
 ## Args: <out_prefix> [chain seed | -] [node id | -] [layout: town, hamlets, post, stilts, ruins]
-## (env VSHOT_HOUR=21: at that hour, 11 by default)
+## (env VSHOT_HOUR=21: at that hour, 11 by default; VSHOT_THEME=desert: the island in that theme)
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -47,6 +47,12 @@ func _process(d: float) -> bool:
 	if want < 0:
 		want = int(w.chain().start_next[0])
 	if gm.chain_at != want:
+		# (VSHOT_THEME=desert: the island in that theme, its beasts from the theme's pools)
+		if OS.get_environment("VSHOT_THEME") != "":
+			var th := OS.get_environment("VSHOT_THEME")
+			var td = load("res://scripts/island/themes/island_themes.gd").of(th)
+			w.chain().node(want).merge({"theme": th, "beast": td.bosses[0], "beast_look": 0, "minis": [td.minis[0]], "roamer": td.roamers[0]}, true)
+			load("res://scripts/island/island_theme.gd").meshes(th)
 		gm.apply_chain(want, false, root.get_node("Weather").world_time())
 		var wx = root.get_node("Weather")
 		var hour := float(OS.get_environment("VSHOT_HOUR")) if OS.get_environment("VSHOT_HOUR") != "" else 11.0
@@ -156,9 +162,8 @@ func _setup(island) -> void:
 				var look: Vector3 = isl.to_local(n.to_global(Vector3(-0.3, fl + 0.9, -2.0)))
 				shots.append([nm, "inside: %s" % nm, eye, look, 0.0])
 	for d in isl.find_children("RoofDeck*", "", true, false).slice(0, 2):
-		var dp: Vector3 = isl.to_local(d.global_position)
-		var away: Vector2 = (Vector2(dp.x, dp.z) - site).normalized()
-		shots.append(["roof_" + str(d.name), "held: a roof deck and its ladder", _g(Vector2(dp.x, dp.z) + away * 9.0 + Vector2(-away.y, away.x) * 4.0, 3.0), dp + Vector3(0, 2.5, 0), 0.0])
+		# (from its open front: the ladder and the crate stair)
+		shots.append(["roof_" + str(d.name), "held: a roof deck, its ladder and crates", isl.to_local(d.to_global(Vector3(-1.0, 3.2, 8.5))), isl.to_local(d.to_global(Vector3(0, 1.6, 0))), 0.0])
 	if vil.has_node("Held"):
 		shots.append(["held_square", "held: the square", _g(site + sd * 14.0 + td * 6.0, 6.0), _g(site, 1.0), 0.0])
 	_aim()

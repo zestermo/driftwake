@@ -374,10 +374,13 @@ static func room(kind: String, seed_value: int, size: float) -> StaticBody3D:
 			KitHouses._trade_inside(body, imb, w, d, fl, rng)
 		"cook":
 			KitHouses._cook_inside(body, imb, w, d, fl, fl + h + 0.7, rng)
-		_:
+		"home":
 			KitHouses._home_inside(body, imb, w, d, fl, rng)
-	imb.add_quad(PSXMat.lit("rug_kilim"), Vector3(-0.9, fl + 0.02, -0.4), Vector3(0.9, fl + 0.02, -0.4), Vector3(0.9, fl + 0.02, 0.9), Vector3(-0.9, fl + 0.02, 0.9),
-		Vector2.ZERO, Vector2(1, 0), Vector2(1, 0.7), Vector2(0, 0.7), Color.WHITE, Vector3.UP)
+		_:
+			KitShops.inside(kind, body, imb, w, d, fl, h, rng, {"counter": [adobe, col], "top": [stone, STONE_COL]})
+	if kind in ["trade", "cook", "home"]:
+		imb.add_quad(PSXMat.lit("rug_kilim"), Vector3(-0.9, fl + 0.02, -0.4), Vector3(0.9, fl + 0.02, -0.4), Vector3(0.9, fl + 0.02, 0.9), Vector3(-0.9, fl + 0.02, 0.9),
+			Vector2.ZERO, Vector2(1, 0), Vector2(1, 0.7), Vector2(0, 0.7), Color.WHITE, Vector3.UP)
 	var inside := imb.to_instance("Furnishing")
 	inside.visibility_range_end = 45.0
 	body.add_child(inside)

@@ -14,6 +14,7 @@ const CHANCE := 1.0 / 6.0
 const ROOFS := 3
 const CAPTIVES := 4
 const DECK_H := 2.9
+const CRATE_REACH := 1.1
 ## A captain this close (m) to the square brings their captain out; everyone this far off for GONE_S sends him back in.
 const WAKE_R := 26.0
 const GONE_R := 90.0
@@ -63,8 +64,10 @@ static func plan_for(L, ruins: Array) -> Dictionary:
 		var s := Vector2(-f.y, f.x)
 		if roofs.size() < ROOFS:
 			roofs.append({"p": b["p"], "face": f, "w": float(b["w"]) + 0.6, "d": float(b["d"]) + 0.6, "r": maxf(float(b["w"]), float(b["d"])) * 0.6})
+			# (by the deck's open front, across from its ladder: the sides are railed)
 			if stacks.size() < 2:
-				stacks.append({"p": (b["p"] as Vector2) + s * (float(b["w"]) * 0.5 + 0.95) + f * 0.6, "yaw": KitContext.face_yaw(f), "along": -f, "seed": rng.randi()})
+				stacks.append({"p": (b["p"] as Vector2) + f * ((float(b["d"]) + 0.6) * 0.5 + 0.5) + s * (float(b["w"]) * 0.25), "yaw": KitContext.face_yaw(f),
+					"out": f, "roof": roofs.size() - 1, "seed": rng.randi()})
 		elif posts.size() < CAPTIVES:
 			var lk := IslandVillage._villager_look(rng)
 			var firsts: Array = LifePools.of(L.gi.theme)["first"]
@@ -122,14 +125,18 @@ static func build(v, ctx: KitContext, p: Dictionary) -> PirateHeld:
 		var post := deck.to_global(Vector3(0, y - low, -0.3))
 		h.garrison.add_grunt(IslandContent.undead(v.isl, {"post": h.garrison_local(post), "yaw": KitContext.face_yaw(c - (r["p"] as Vector2)), "mode": "stand",
 			"seed": hash([int(p["seed"]), "roof", i]), "role": "rifle"}, 40 + i))
-	# crates stacked by the first decks' sides: a scramble up besides the ladder
+	# crates stacked against the first decks' fronts, a step out from them: a scramble up besides the ladder (a jump
+	# clears CRATE_REACH m)
 	for i in range(p["stacks"].size()):
 		var s: Dictionary = p["stacks"][i]
 		var srng := KitVillage._seeded(int(s["seed"]))
-		var along: Vector2 = s["along"]
-		for k in range(3):
-			var cr := KitStyle.prop(st, "crate", srng, 0.9)
-			ctx.place(cr, (s["p"] as Vector2) + along * (0.0 if k == 0 else 0.95), float(s["yaw"]), 0.0, 0.9 if k == 2 else 0.0, false)
+		var r: Dictionary = p["roofs"][int(s["roof"])]
+		var top := ctx.ground_max(r["p"], r["r"]) + DECK_H
+		var n := clampi(ceili((top - ctx.hv(s["p"]) - CRATE_REACH) / 0.9), 1, 3)
+		# (a stair of columns, n high at the deck down to one)
+		for j in range(n):
+			for k in range(n - j):
+				ctx.place(KitStyle.prop(st, "crate", srng, 0.9), (s["p"] as Vector2) + (s["out"] as Vector2) * 0.95 * j, float(s["yaw"]), 0.0, 0.9 * k, false)
 	for i in range(p["guards"].size()):
 		var g: Vector2 = p["guards"][i]
 		var gp := h.garrison_local(Vector3(g.x, ctx.hv(g), g.y), true)
@@ -257,8 +264,10 @@ func _process(delta: float) -> void:
 	_t = TICK
 	for k in range(captives.size()):
 		var npc := captives[k] as NPC
-		if is_freed(k) and npc.visible:
-			npc.visible = false
+		if _walk.has(k):
+			_walk_on(k, npc)
+		elif is_freed(k) and not npc.away:
+			npc.set_away(true)
 			(npc.get_node("Free") as Interactable).enabled = false
 	if Net.is_host():
 		_host()
@@ -317,6 +326,60 @@ func _spawn_captain(near: Player, c: Vector3) -> void:
 	Net.everyone("_all_arc", [Net.key_of(self), "captain_out", [str(lk["name"])]])
 
 
+## (every machine, 1.26) A freed captive thanks you over their head and hurries off towards the survivors' hamlet:
+## across the square and on until they're past its edge (WALK_OFF m), then they're gone for good
+## (the world flag keeps them gone on a reload or for a late joiner).
+const THANKS := ["Thank you! I won't forget this!", "Bless you, captain. I'm going home!", "Free... I'm free! Thank you!",
+	"I owe you my life. The others are by the shore, I'll tell them!"]
+const WALK_OFF := 30.0
+const WALK_SPEED := 2.2
+const WALK_MAX_S := 40.0
+var _walk := {}
+
+
+func _go_home(k: int, npc: NPC) -> void:
+	if _walk.has(k):
+		return
+	# (a guest's world flag can land a tick before this: they were put away unseen)
+	npc.set_away(false)
+	(npc.get_node("Free") as Interactable).enabled = false
+	FX.speech(npc, THANKS[k % THANKS.size()], npc.voice)
+	var v = get_parent()
+	var c: Vector2 = plan["c"]
+	var home: Vector2 = c + Vector2(0, 1)
+	for hm in v.hamlets:
+		if hm["kind"] == "survivors":
+			home = hm["c"]
+	var dir := (home - c).normalized()
+	npc.reparent(isl)
+	var route: Array = [c + dir * 8.0, c + dir * WALK_OFF]
+	npc.walk_speed = WALK_SPEED
+	npc.set("_player", null)
+	_walk[k] = {"route": route.map(func(p: Vector2): return Vector3(p.x, isl.hv(p), p.y)), "t": 0.0}
+	_next_leg(npc, _walk[k])
+
+
+func _next_leg(npc: NPC, w: Dictionary) -> void:
+	npc.waypoints = [w["route"].pop_front()]
+	npc.set("_wp_index", 0)
+	npc.set("_pause", 0.0)
+
+
+func _walk_on(k: int, npc: NPC) -> void:
+	var w: Dictionary = _walk[k]
+	w["t"] += TICK
+	npc.set("_player", null)
+	var to: Vector3 = npc.waypoints[0]
+	if Vector2(to.x - npc.position.x, to.z - npc.position.z).length() > 0.6 and w["t"] < WALK_MAX_S:
+		return
+	if not (w["route"] as Array).is_empty() and w["t"] < WALK_MAX_S:
+		_next_leg(npc, w)
+		return
+	_walk.erase(k)
+	npc.waypoints = []
+	npc.set_away(true)
+
+
 ## (host) A captive's freeing asked for.
 func decide(op: String, args: Array, _by: int) -> void:
 	if op == "free" and not is_freed(int(args[0])):
@@ -331,6 +394,7 @@ func apply(op: String, args: Array) -> void:
 			var npc := captives[int(args[0])] as NPC
 			get_tree().call_group("hud", "show_toast", "%s is free! (%d of %d)" % [npc.npc_name.trim_prefix("Captive "),
 				range(captives.size()).filter(func(k): return is_freed(k)).size(), captives.size()])
+			_go_home(int(args[0]), npc)
 		"captain_out":
 			get_tree().call_group("hud", "show_banner", str(args[0]), "\"Who let you into MY village?\"", true)
 		"captain_down":

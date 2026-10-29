@@ -233,6 +233,26 @@ func sleep_ok() -> bool:
 	return not _in_dialogue
 
 
+## Out of the scene for a while (a dojo's master sparring outside, IslandVillage): no body, no talk, nothing to bump.
+## Not `visible` (ActorSleep owns that).
+var away := false
+var _talk_was := true
+
+
+func set_away(on: bool) -> void:
+	if on == away:
+		return
+	away = on
+	humanoid.visible = not on
+	if on:
+		_talk_was = interactable.enabled
+	interactable.enabled = false if on else _talk_was
+	(get_node("Body") as StaticBody3D).collision_layer = 0 if on else 1
+	for m in [_mark, _vendor]:
+		if m and on:
+			m.visible = false
+
+
 ## Called by the dialogue manager while text is typing for this speaker.
 func set_talking(v: bool) -> void:
 	humanoid.talking = v and _in_dialogue
@@ -248,7 +268,7 @@ func _process(frame_delta: float) -> void:
 		return
 	var delta := _far_acc
 	_far_acc = 0.0
-	name_tag.visible = dist_to_player < 7.0 and not _in_dialogue and Settings.get_value("gameplay", "name_tags")
+	name_tag.visible = dist_to_player < 7.0 and not _in_dialogue and not away and Settings.get_value("gameplay", "name_tags")
 	_quest_mark(delta, dist_to_player)
 
 	# (1.26: everyone used to turn bodily to a captain walking by, seated or not) close by they stop and look with their

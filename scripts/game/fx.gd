@@ -2959,6 +2959,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 
 ## A flash over the whole screen (an ultimate's moment), for a camera near `at`.
 func screen_flash(at: Vector3, color: Color = Color(1, 1, 1, 0.5), secs: float = 0.25) -> void:
+	# (1.26) Reduce flashing: a third as strong
+	if Settings.get_value("gameplay", "reduce_flashing"):
+		color.a *= 0.33
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or cam.global_position.distance_to(at) > 35.0:
 		return

@@ -90,6 +90,7 @@ func _ready() -> void:
 			else:
 				open.call_deferred(str(next[0])))
 	_load = SaveSlotList.new()
+	_load.allow_new = false
 	_load.chosen.connect(_load_slot)
 	_load.cancelled.connect(func(): open("pause"))
 	_screens["load"] = _load
@@ -473,6 +474,8 @@ func _build_options() -> Control:
 	_slider_row(list, "Texture warp", "video", "warp", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Field of view", "video", "fov", 60.0, 100.0, 1.0, "%d", 1.0)
 	_toggle_row(list, "Show FPS", "video", "show_fps")
+	_toggle_row(list, "Vsync", "video", "vsync")
+	_slider_row(list, "Frame cap (0: none)", "video", "max_fps", 0.0, 240.0, 30.0, "%d", 1.0)
 	_section(list, "Audio")
 	_slider_row(list, "Master", "audio", "master", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Effects", "audio", "sfx", 0.0, 1.0, 0.05, "%d%%", 100.0)
@@ -490,6 +493,7 @@ func _build_options() -> Control:
 	_slider_row(list, "Camera shake", "gameplay", "camera_shake", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_toggle_row(list, "NPC name tags", "gameplay", "name_tags")
 	_toggle_row(list, "Reticle", "gameplay", "reticle")
+	_toggle_row(list, "Reduce flashing", "gameplay", "reduce_flashing")
 	_toggle_row(list, "Get unstable updates", "gameplay", "beta_updates")
 
 	var buttons := HBoxContainer.new()

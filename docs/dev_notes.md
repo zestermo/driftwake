@@ -7895,3 +7895,51 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   The per-tree tests now expect two ultimates. Expected to need a look at the release check: techtest, airtest
   (right-click in the air is now the plunge), progtest, stamtest, balancetest, nettest (crew duets over the wire).
   Renders: `abilityshot plus:<move> <style>`, the second ultimates by skill id, `crew:<id>`.
+## 1.26: the island loop's loose ends (2026-10-29)
+- **The dojo spars for real.** "Spar with me" (no fee now) ends the keeper's talk and the host runs an ArenaBout
+  "dojo:<village key>" (Net._start_arena): the master (the keeper's look, a weapon by the island's seed from
+  IslandVillage.DOJO_WEAPONS, "" = bare hands and kicks; skill 0.45 + 0.1/tier, max 0.9) steps out 3.5 m from the door
+  (IslandVillage.dojo_spot: a ray for the floor, the plaza when that's water), the keeper's body put away on every
+  screen meanwhile (Net._all_arc -> IslandVillage.apply "master_out" -> NPC.set_away). Then the master's-test flow:
+  wait, ask (ArenaBout.ask_line; `_all_spar_ask` gained a line argument), bow, 3-2-1, the fight, held to its ground.
+  First win per captain: two quests' XP (GameManager.opened `unique_spar`, UniquePlaces.spar_result on the captain's own
+  machine); rematches are practice. Walking 60 m off before the bow calls it off quietly. **Assumed:** no fee, the XP.
+- **NPC.set_away(on)**: no body, no talk, no collider, no marks, without touching `visible` (ActorSleep owns that).
+- **Freed captives walk home** (PirateHeld._go_home, every machine on "freed"): a thank-you over their head
+  (FX.speech), reparented to the island, walk (NPC waypoints, 2.2 m/s) across the square and 30 m on towards the
+  survivors' hamlet, then set_away; 40 s at most. One already freed when the village builds (reload, late joiner) is
+  put away on the first tick.
+- **Roof decks reachable.** Every ladder already worked; the crate stacks stood by the decks' railed sides and led
+  nowhere. Now a crate stair at each of the first two decks' open fronts, across from the ladder: columns n high at the
+  deck down to one (n by the deck's height over the ground there: a jump clears CRATE_REACH 1.1 m). Decked ruins grow
+  no sapling up through the boards (KitHouses.ruin "sapling", IslandVillage._roofed).
+- **Themed shops.** Only the desert has its own store model; its trader shops and unique place are now
+  `desert_trade_<kind>` (DesertTheme.props, one per KitShops.KINDS): DesertTown.room with KitShops.inside, the counter
+  plastered with a stone top (KitShops.inside `look`). Snow, forest, fog and the jungle build KitHouses.room, which was
+  already dressed per trade.
+- Hana's Brinehollow cast note no longer says she reads Edy (Master Isao does). Still saying Hana reads it, outside
+  this brief's files: progression.gd's Edy toast, will_paths.gd, skill_map_screen.gd, capital_life.gd (Kade's bark and
+  the first reading's line), edy_types.gd's doc.
+- Per frame/tick: nothing new except a walking captive (PirateHeld's 0.5 s tick, NPC's own wander while it walks)
+  and the dojo bout (ArenaBout's physics tick, like the master's test, only while a bout runs).
+- Tests: `t/island/dojo_spar`, `t/island/captive_walks_home`, `t/island/roof_deck_climb`, `t/island/desert_shops`;
+  `t/island/pirate_held` updated (a freed captive walks off rather than vanishing). Renders: villageshot
+  VSHOT_PLACE=dojo VSHOT_THEME=desert (shop interiors), VSHOT_HELD=1 (decks from their fronts).
+## 1.25.x: saves without a limit (2026-10-29)
+- `SaveGame`: any number of saves (`slots()` scans for save_N.dat, newest first; `first_free_slot()` is one past the
+  highest, so a new game never overwrites). Each save's meta adds game_version, format, `place_of` (an island's name
+  ashore, "At sea, near X" off it) and `crew_of` (every other captain who's sailed in it, accumulated). A thumbnail
+  save_N.png (256x144, the viewport when saved; not headless) beside it; `delete_slot` removes both. `slot_info` adds
+  those plus `compatible` (format not newer, build not newer than this one: Updater.newer).
+- `SaveSlotList`: a scrolling list of rows (picture, name/level, fruit/played/saved, place, crew, version with ✓ / ⚠;
+  a newer build's save is greyed out), "+ New captain" on top (allow_new; off in the pause menu's Load). Title: New Game
+  starts the next free save directly; Host / Join open the list (its new row runs the creator on arrival, so a guest
+  needs no save first).
+- Test: savetest (the list, the next number, the build, the place).
+
+## 2026-10-29: save backups and small settings (1.26)
+- SaveGame keeps the last 3 copies of each save (`save_N.bak1..3`, rotated before every write); a save that won't
+  read loads its newest readable backup with a toast. Deleting a save removes its backups and picture.
+- Options: Vsync, a frame cap (0 = none, 30-step slider), Reduce flashing (screen flashes x0.33, calmer Edy arcs).
+  PSXSettings._apply_frames applies vsync/max_fps (skipped on tool runs).
+- Test: t/progression/save_backups.
