@@ -117,7 +117,8 @@ func _build_menu() -> void:
 	_update_btn.visible = false
 	_update_btn.add_theme_color_override("font_color", UIStyle.GILT)
 	_continue = _item("Continue", func(): _start(_continue_slot, false))
-	_item("New Game", func(): _open_slots("new"))
+	# (1.26: saves are unlimited: a new game is a new save, never one overwritten)
+	_item("New Game", func(): _start(SaveGame.first_free_slot(), true))
 	_item("Load Game", func(): _open_slots("load"))
 	var coop := _item("Co-op", func(): _open_coop())
 	_item("What's New", func(): _open_whats_new())
@@ -237,7 +238,7 @@ func _build_coop() -> void:
 	var host := UIStyle.button("Host a game (pick your save)", 260)
 	host.pressed.connect(func():
 		_slot_purpose = "host"
-		_open_slots("load" if SaveGame.latest_slot() > 0 else "new")
+		_open_slots("load")
 		_slot_purpose = "host")
 	vb.add_child(host)
 	# (1.22) the crews sailed with before: one click to rejoin
@@ -250,7 +251,7 @@ func _build_coop() -> void:
 			rb.pressed.connect(func():
 				_ip_edit.text = addr
 				_slot_purpose = "join"
-				_open_slots("load" if SaveGame.latest_slot() > 0 else "new")
+				_open_slots("load")
 				_slot_purpose = "join")
 			vb.add_child(rb)
 	var row := HBoxContainer.new()
@@ -267,7 +268,7 @@ func _build_coop() -> void:
 			_coop_status.text = "Type the host's address first"
 			return
 		_slot_purpose = "join"
-		_open_slots("load" if SaveGame.latest_slot() > 0 else "new")
+		_open_slots("load")
 		_slot_purpose = "join")
 	row.add_child(join)
 	_coop_status = UIStyle.label("Port %d (the host may need to forward it)" % Net.DEFAULT_PORT, 12, UIStyle.TEXT_DIM)

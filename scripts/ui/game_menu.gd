@@ -90,6 +90,7 @@ func _ready() -> void:
 			else:
 				open.call_deferred(str(next[0])))
 	_load = SaveSlotList.new()
+	_load.allow_new = false
 	_load.chosen.connect(_load_slot)
 	_load.cancelled.connect(func(): open("pause"))
 	_screens["load"] = _load

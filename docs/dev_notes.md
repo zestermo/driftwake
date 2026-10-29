@@ -7860,3 +7860,15 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   each (240 m). The keepers, regulars and captives' bodies are built on the worker (IslandVillage.extra_looks, plan_for).
 - Tests: `t/island/village_places`, `t/island/pirate_held`. Renders: villageshot (VSHOT_PLACE=<place>, VSHOT_HELD=1;
   interiors of every shop and the place, the held square and its roof decks).
+
+## 1.25.x: saves without a limit (2026-10-29)
+- `SaveGame`: any number of saves (`slots()` scans for save_N.dat, newest first; `first_free_slot()` is one past the
+  highest, so a new game never overwrites). Each save's meta adds game_version, format, `place_of` (an island's name
+  ashore, "At sea, near X" off it) and `crew_of` (every other captain who's sailed in it, accumulated). A thumbnail
+  save_N.png (256x144, the viewport when saved; not headless) beside it; `delete_slot` removes both. `slot_info` adds
+  those plus `compatible` (format not newer, build not newer than this one: Updater.newer).
+- `SaveSlotList`: a scrolling list of rows (picture, name/level, fruit/played/saved, place, crew, version with ✓ / ⚠;
+  a newer build's save is greyed out), "+ New captain" on top (allow_new; off in the pause menu's Load). Title: New Game
+  starts the next free save directly; Host / Join open the list (its new row runs the creator on arrival, so a guest
+  needs no save first).
+- Test: savetest (the list, the next number, the build, the place).

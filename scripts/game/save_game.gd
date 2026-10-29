@@ -69,8 +69,9 @@ static func delete() -> void:
 
 
 static func delete_slot(i: int) -> void:
-	if FileAccess.file_exists(slot_path(i)):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_path(i)))
+	for p in [slot_path(i), shot_path(i)]:
+		if FileAccess.file_exists(p):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
 
 
 ## The old single save becomes slot 1.
@@ -114,14 +115,37 @@ static func slot_info(i: int) -> Dictionary:
 		"fruit": str(meta.get("fruit", pw.get("fruit", ""))),
 		"play_time": float(meta.get("play_time", d.get("play_time", 0.0))),
 		"saved_at": int(meta.get("saved_at", FileAccess.get_modified_time(slot_path(i)))),
+		"game_version": str(meta.get("game_version", "")),
+		"format": int(d.get("version", 1)),
+		"place": str(meta.get("place", "")),
+		"crew": meta.get("crew", []),
+		"shot": shot_path(i) if FileAccess.file_exists(shot_path(i)) else "",
+		"compatible": int(d.get("version", 1)) <= VERSION and not Updater.newer(str(meta.get("game_version", "0")), str(ProjectSettings.get_setting("application/config/version", ""))),
 	}
+
+
+## (1.26: as many saves as you like) every save on disk, newest first.
+static func slots() -> Array:
+	var dir := _test_dir if _test_dir != "" else "user://"
+	var out: Array = []
+	var d := DirAccess.open(dir)
+	if d == null:
+		return out
+	for fn in d.get_files():
+		if fn.begins_with("save_") and fn.ends_with(".dat") and fn.trim_prefix("save_").trim_suffix(".dat").is_valid_int():
+			out.append(int(fn.trim_prefix("save_").trim_suffix(".dat")))
+	var t := {}
+	for i in out:
+		t[i] = int(slot_info(i).get("saved_at", 0))
+	out.sort_custom(func(a, b): return t[a] > t[b])
+	return out
 
 
 ## The most recently saved slot (0 = no saves).
 static func latest_slot() -> int:
 	var best := 0
 	var best_t := -1
-	for i in range(1, SLOTS + 1):
+	for i in slots():
 		var info := slot_info(i)
 		if not info.is_empty() and int(info["saved_at"]) > best_t:
 			best_t = int(info["saved_at"])
@@ -129,11 +153,12 @@ static func latest_slot() -> int:
 	return best
 
 
+## A new save's number: one past the highest on disk (never 0).
 static func first_free_slot() -> int:
-	for i in range(1, SLOTS + 1):
-		if slot_info(i).is_empty():
-			return i
-	return 0
+	var top := 0
+	for i in slots():
+		top = maxi(top, int(i))
+	return top + 1
 
 
 ## Choose the slot before loading the world. fresh: a new game (the slot is
@@ -250,6 +275,11 @@ static func save(player: Player) -> bool:
 			"fruit": player.power.fruit,
 			"play_time": play_time,
 			"saved_at": int(Time.get_unix_time_from_system()),
+			# (1.26) the save list's line: the build it was made in, where you were, who you've sailed with
+			"game_version": str(ProjectSettings.get_setting("application/config/version", "")),
+			"format": VERSION,
+			"place": place_of(player),
+			"crew": crew_of(player),
 		},
 		"look": player.appearance.duplicate(true),
 		"play_time": play_time,
@@ -317,6 +347,7 @@ static func save(player: Player) -> bool:
 		return false
 	f.store_var(data)
 	f.close()
+	_thumb(player)
 	new_game = false
 	return true
 
@@ -483,3 +514,59 @@ static func load_into(player: Player) -> bool:
 		player.reset_physics_interpolation()
 	_loading = false
 	return true
+
+
+## (1.26) The save's picture: the screen when it was saved, small (save_N.png beside save_N.dat).
+static func shot_path(i: int) -> String:
+	return slot_path(i).trim_suffix(".dat") + ".png"
+
+
+const SHOT := Vector2i(256, 144)
+
+
+static func _thumb(player: Node) -> void:
+	if DisplayServer.get_name() == "headless" or not player.is_inside_tree():
+		return
+	var img := player.get_viewport().get_texture().get_image()
+	if img == null or img.is_empty():
+		return
+	img.resize(SHOT.x, SHOT.y, Image.INTERPOLATE_BILINEAR)
+	img.save_png(ProjectSettings.globalize_path(shot_path(slot if slot > 0 else 1)))
+
+
+## Where the captain is, for the save list: an island's name ashore (or just off it), else at sea near the closest.
+static func place_of(player: Node3D) -> String:
+	var best := ""
+	var bd := INF
+	var on := false
+	var w := player.get_tree().get_first_node_in_group("world_gen")
+	var isles: Array = []
+	if w and "chain_islands" in w:
+		isles.append_array((w.chain_islands as Dictionary).values())
+	if w and w.get("starter_island") != null and is_instance_valid(w.starter_island):
+		isles.append(w.starter_island)
+	for isl in isles:
+		if not (isl is Node3D) or not is_instance_valid(isl):
+			continue
+		var nm := str(isl.get("island_name")) if isl.get("island_name") != null else "Brinehollow"
+		var r := float(isl.get("radius")) if isl.get("radius") != null else 260.0
+		var d := Vector2(player.global_position.x - (isl as Node3D).global_position.x, player.global_position.z - (isl as Node3D).global_position.z).length()
+		if d - r < bd:
+			bd = d - r
+			best = nm
+			on = d < r + 30.0
+	if best == "":
+		return "At sea"
+	return best if on else "At sea, near %s" % best
+
+
+## The other captains who've sailed in this save (this session's crew added to the save's own list).
+static func crew_of(player: Node) -> Array:
+	var names: Array = (_read(path()).get("meta", {}) as Dictionary).get("crew", []).duplicate()
+	for c in player.get_tree().get_nodes_in_group("players"):
+		if c == player or c.get("is_ai") == true:
+			continue
+		var nm := str(c.get("net_profile").get("name", "")) if c.get("net_profile") is Dictionary else ""
+		if nm != "" and not names.has(nm):
+			names.append(nm)
+	return names
