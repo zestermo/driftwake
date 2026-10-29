@@ -48,6 +48,8 @@ var rank := 0                   # the ladder rank being fought for (0-5)
 var phase := "fight"
 ## A master's test: the pupil's spot, whether they've asked since the captain came close, and the beat's clock.
 var spot := Vector3.ZERO
+var who := ""
+var ask_line := "You came. Bare hands, no blades. Bow first, then we fight. Ready?"
 var _asked := false
 var _beat_t := 0.0
 var _beat := 4
@@ -64,6 +66,8 @@ const LEASH_R := 7.0
 const LEASH_SECS := 1.5
 const FORFEIT_R := 30.0
 const APART_STUCK := 4.0
+## A dojo's master goes back in when the captain who asked is this far off before the bow.
+const DOJO_GIVE_UP_R := 60.0
 static var _n := 0
 
 
@@ -85,7 +89,7 @@ static func start(c: Player, bout_kind: String, at_rank: int, isl: Node3D, sand:
 
 
 static func purse(bout_kind: String, at_rank: int) -> int:
-	if bout_kind.begins_with("master:"):
+	if bout_kind.begins_with("master:") or bout_kind.begins_with("dojo:"):
 		return 0
 	return DEFEND_PURSE if bout_kind == "defend" else int(PURSES[clampi(at_rank, 0, PURSES.size() - 1)])
 
@@ -112,9 +116,18 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 		var m: Array = MASTERS[kind.substr(7)]
 		lk.merge(m[3], true)
 		lk["name"] = str(m[0]).get_slice(",", 0)
+		who = str(m[0])
 		weapon = m[1]
 		skill = m[2]
 		kicks = str(m[4]) == "black_leg"
+	elif kind.begins_with("dojo:"):
+		var d: Dictionary = net.node_of(kind.substr(5)).dojo_master()
+		lk = d["look"]
+		weapon = d["weapon"]
+		skill = d["skill"]
+		kicks = weapon == ""
+		who = str(lk["name"])
+		ask_line = "Here, then. %s Bow first, then we fight. Ready?" % ("Bare hands, as I teach." if kicks else "Practice edges, real footwork.")
 	elif kind == "brawl":
 		lk.merge(BRAWLER[1], true)
 		lk["name"] = str(BRAWLER[0])
@@ -136,7 +149,7 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 	away = away.normalized() if away.length() > 0.5 else Vector3.LEFT
 	var at := sand - away * APART + Vector3.UP * 0.5
 	spot = sand
-	if kind.begins_with("master:") or kind == "brawl":
+	if _spar() or kind == "brawl":
 		at = sand + Vector3.UP * 0.5
 	var rname := "ArenaRival_%d" % _n
 	net.everyone("_all_spawn_rival", [net.key_of(isl), rname, lk, weapon, at, atan2(away.x, away.z), skill])
@@ -149,8 +162,10 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 		rival.learn_black_leg()
 		rival.set_kicks(true)
 	net.everyone("_all_practice", [[captain_key, net.key_of(rival)], true])
+	if kind.begins_with("dojo:"):
+		net.everyone("_all_arc", [kind.substr(5), "master_out", [true]])
 	var brain = rival.get_node("Brain")
-	if kind.begins_with("master:"):
+	if _spar():
 		# the pupil drills on the spot until the captain comes to them
 		phase = "wait"
 		brain.order = "rest"
@@ -189,14 +204,14 @@ static func spar_spot(tree: SceneTree, bout_kind: String) -> Vector3:
 
 
 ## On the captain's own machine: the pupil asks if they're ready (a talk, "spar:go" or not yet).
-static func spar_ask(me: Player, key: String, rival: Node, who: String) -> void:
+static func spar_ask(me: Player, key: String, rival: Node, by: String, line: String) -> void:
 	if me == null or me.get_node("/root/Net").key_of(me) != key:
 		return
 	var dlg := me.get_node("/root/Dialogue")
 	if not dlg.dialogue_event.is_connected(_on_spar_event):
 		dlg.dialogue_event.connect(_on_spar_event)
-	dlg.define("spar", {"speaker": who.get_slice(",", 0), "voice": 1.15, "start": "ask", "nodes": {
-		"ask": {"text": ["You came. Bare hands, no blades. Bow first, then we fight. Ready?"], "choices": [
+	dlg.define("spar", {"speaker": by.get_slice(",", 0), "voice": 1.15, "start": "ask", "nodes": {
+		"ask": {"text": [line], "choices": [
 			{"text": "Ready.", "next": "go"}, {"text": "Not yet.", "next": "later"}]},
 		"go": {"text": ["Then bow."], "event": "spar:go", "next": "end"},
 		"later": {"text": ["I'll be here. Drilling."], "next": "end"}}})
@@ -243,11 +258,14 @@ func _physics_process(delta: float) -> void:
 				_finish(false)
 				return
 			var d := captain.global_position.distance_to(rival.global_position)
+			if kind.begins_with("dojo:") and d > DOJO_GIVE_UP_R:
+				_finish(false, false)
+				return
 			var brain = rival.get_node("Brain")
 			brain.activity = "watch" if d < ASK_AGAIN_R else "train"
 			if d < ASK_R and not _asked:
 				_asked = true
-				_net().everyone("_all_spar_ask", [captain_key, _net().key_of(rival), str(MASTERS[kind.substr(7)][0])])
+				_net().everyone("_all_spar_ask", [captain_key, _net().key_of(rival), who, ask_line])
 			elif d > ASK_AGAIN_R:
 				_asked = false
 		"bow", "count":
@@ -279,12 +297,19 @@ func _physics_process(delta: float) -> void:
 				phase = "done"
 				if is_instance_valid(rival):
 					_net().everyone("_all_rival_gone", [_net().key_of(rival)])
+				if kind.begins_with("dojo:"):
+					_net().everyone("_all_arc", [kind.substr(5), "master_out", [false]])
 				queue_free()
 
 
 ## A spar or the quay brawl: fought on its ground, not wherever a blow carries them.
 func _held() -> bool:
-	return kind.begins_with("master:") or kind == "brawl"
+	return _spar() or kind == "brawl"
+
+
+## A master's test or a dojo's master: they wait on the ground, ask, bow and count in.
+func _spar() -> bool:
+	return kind.begins_with("master:") or kind.begins_with("dojo:")
 
 
 ## The 1.25.4 spar fix: a rival knocked off the ground (into a wall, between buildings, down the flank) for LEASH_SECS
@@ -307,7 +332,8 @@ func _leash(delta: float) -> void:
 	_net().fx("puff", [rival.global_position, "dust_low", 6, 0.5, 0.6, Color(1, 1, 1, 0.8), 0.6])
 
 
-func _finish(won: bool) -> void:
+## `told` false: called off without a result (a dojo's captain who walked away before the bow).
+func _finish(won: bool, told := true) -> void:
 	phase = "leave"
 	_leave_t = LEAVE_AFTER
 	if is_instance_valid(rival):
@@ -315,10 +341,11 @@ func _finish(won: bool) -> void:
 			Duel.stand_up(rival, rival.health_component.max_health * 0.3, 0.0)
 		rival.get_node("Brain").order = "hold"
 	var net := _net()
-	if not won:
+	if not won and told:
 		net.everyone("_all_rival_stand", [])
 	net.everyone("_all_practice", [[captain_key], false])
-	net.everyone("_all_arena_result", [captain_key, kind, rank, won, randi()])
+	if told:
+		net.everyone("_all_arena_result", [captain_key, kind, rank, won, randi()])
 	ended.emit(won)
 
 
@@ -326,6 +353,9 @@ func _finish(won: bool) -> void:
 ## up; everyone hears the crowd. `roll` is the host's (the same prize on every screen).
 static func result(me: Player, key: String, bout_kind: String, at_rank: int, won: bool, roll: int) -> void:
 	if me == null or me.get_node("/root/Net").key_of(me) != key:
+		return
+	if bout_kind.begins_with("dojo:"):
+		UniquePlaces.spar_result(me.get_node("/root/Net").node_of(bout_kind.substr(5)).isl, me, won)
 		return
 	if bout_kind == "brawl":
 		me.get_tree().call_group("hud", "show_toast", "Harl stays down. Word gets round the quay fast." if won else "Flat on the stones. Harl laughs. Get up and try him again.")

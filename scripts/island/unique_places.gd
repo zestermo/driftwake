@@ -12,7 +12,6 @@ const Shops := preload("res://scripts/game/shops.gd")
 const SOAK := 20
 const PRAY := 10
 const CHART := 40
-const LESSON := 50
 ## Each place: its name, the keeper's title, the rumour told on the island before, the keeper's intro and the menu's
 ## choices ([text, op]; op "shop" opens its shop).
 const PLACES := {
@@ -34,9 +33,9 @@ const PLACES := {
 	"cartographer": {"title": "the old cartographer's", "keeper": "Old cartographer", "rumour": "The old cartographer on {name} has walked every path of it. Her charts aren't cheap, and they aren't wrong.",
 		"intro": ["Every island is a puzzle. I've solved this one, and I'll sell you the answer.", "%d gold for the whole island on your map, every place on it marked. And if I've a treasure chart spare, it's yours." % CHART],
 		"choices": [["Sell me the island's chart. (%d gold)" % CHART, "chart"]]},
-	"dojo": {"title": "the fighting school", "keeper": "Sparring master", "rumour": "There's a fighting school on {name}. The master spars with any captain who pays, and they come out sharper.",
-		"intro": ["Feet. Everything starts with the feet.", "%d gold for a lesson. One lesson is all most of you can take." % LESSON],
-		"choices": [["Spar with me. (%d gold)" % LESSON, "spar"]]},
+	"dojo": {"title": "the fighting school", "keeper": "Sparring master", "rumour": "There's a fighting school on {name}. The master spars with any captain who asks. Beat them once and they'll teach you something.",
+		"intro": ["Feet. Everything starts with the feet.", "Spar with me outside. Beat me once and you've earned a lesson. After that, come back to practise."],
+		"choices": [["Spar with me.", "spar"]]},
 	"curio": {"title": "the curio shop", "keeper": "Curio dealer", "rumour": "A curio shop on {name} sells things from every sea. Half of it's junk. The other half isn't.",
 		"intro": ["Shells, skulls, bottled ships, a fish that sings. Probably.", "Everything has a story. The stories are free."],
 		"choices": [["Let me see your curios.", "shop"]]},
@@ -84,7 +83,7 @@ static func define(id: String, place: String, keeper: String, isl_name: String, 
 		if c[1] == "shop":
 			nodes["do_shop"] = {"text": ["Have a look."], "event": "shop:" + sid, "next": "end"}
 		else:
-			nodes["do_" + str(c[1])] = {"text": ["{%s_said}" % id], "event": "unique:%s:%s" % [id, c[1]], "next": "menu"}
+			nodes["do_" + str(c[1])] = {"text": ["{%s_said}" % id], "event": "unique:%s:%s" % [id, c[1]], "next": "end" if c[1] == "spar" else "menu"}
 	Engine.get_main_loop().root.get_node("Dialogue").define(id, {"speaker": keeper, "voice": 0.95, "start": "intro", "return": "menu", "nodes": nodes})
 
 
@@ -117,10 +116,13 @@ static func act(isl, place: String, op: String, p: Player) -> String:
 			gm.opened[once] = true
 			p.progression.will_point(1, "the old library's logs")
 			return "Between the lines of a dead captain's log, something of your own Edy."
-		"soak", "pray", "chart", "spar":
-			var cost: int = {"soak": SOAK, "pray": PRAY, "chart": CHART, "spar": LESSON}[op]
-			if op == "spar" and gm.opened.has(once):
-				return "\"You've had your lesson. Go and use it.\""
+		"spar":
+			IslandVillage._of(isl).spar_asked = true
+			if gm.opened.has(once):
+				return "Practice, then. Outside. Show me you still remember."
+			return "Outside, then. I'll be waiting in the street."
+		"soak", "pray", "chart":
+			var cost: int = {"soak": SOAK, "pray": PRAY, "chart": CHART}[op]
 			if inv.count("gold") < cost:
 				return "Not enough gold (%d)." % cost
 			inv.remove_item(ItemDB.get_item("gold"), cost)
@@ -149,9 +151,20 @@ static func act(isl, place: String, op: String, p: Player) -> String:
 						gm.opened[once] = true
 						return "The whole island on your map (M), and a treasure chart besides (your sea chart)."
 					return "The whole island on your map (M)."
-				"spar":
-					gm.opened[once] = true
-					var xp := QuestRewards.xp_for(p) * 2
-					p.progression.add_xp(xp)
-					return "Bruised, and sharper for it. %d XP." % xp
 	return ""
+
+
+## (this captain's machine, ArenaBout.result) A spar with the dojo's master over: the first win is the lesson (two
+## quests' XP), every bout after is practice.
+static func spar_result(isl, p: Player, won: bool) -> void:
+	var gm := p.get_node("/root/GameManager")
+	var once: String = isl.save_key("unique_spar")
+	if not won:
+		p.get_tree().call_group("hud", "show_toast", "\"Feet first. Come back when they listen to you.\"")
+	elif gm.opened.has(once):
+		p.get_tree().call_group("hud", "show_toast", "\"Good. Still sharp. Again whenever you like.\"")
+	else:
+		gm.opened[once] = true
+		var xp := QuestRewards.xp_for(p) * 2
+		p.progression.add_xp(xp)
+		p.get_tree().call_group("hud", "show_banner", "The master bows!", "You've earned your lesson: %d XP. Come back to spar any time." % xp, true)
