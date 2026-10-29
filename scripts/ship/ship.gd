@@ -289,8 +289,10 @@ func _physics_process(delta: float) -> void:
 					if cm:
 						cm.apply_camera_shake(0.25)
 					Net.fx("sfx", ["thud", global_position + fwd * (BOW_Z * -1.0), 2.0, 0.05, 0.6])
+				var was := absf(speed)
 				speed *= lerpf(1.0, -0.15, head_on)
 				_yaw_rate *= 0.5
+				_brought_up(col.get_collider(), was)
 	pos += motion
 	# a whirlpool drags her round and in (the same on every screen)
 	var sf := get_tree().get_first_node_in_group("sea_features")
@@ -415,6 +417,23 @@ func deck_delta() -> Transform3D:
 
 ## Knocked hard (a ram, a Sea King's tail): `push` (world) throws her over
 ## and rocks her bow; the hull's springs bring her back.
+## (1.26) Run into another ship or a blockade's boom and brought nearly to a stop (from STOP_FROM m/s to under
+## STOP_UNDER): she furls her sails, so a captain thrown off or fighting on the other deck isn't left watching her sail
+## away. Raise them again at the helm. (On whoever sails her; `sail` goes out with her state.)
+const STOP_FROM := 2.5
+const STOP_UNDER := 1.2
+
+
+func _brought_up(by: Object, was: float) -> void:
+	if sail <= 0.0 or was < STOP_FROM or absf(speed) >= STOP_UNDER:
+		return
+	if not (by is EnemyShip or by is AdmiraltyBoom or (by is Node and (by as Node).is_in_group("enemy_ships"))):
+		return
+	sail = 0.0
+	sail_shown = 0.0
+	Net.fx("sfx", ["flap", global_position + Vector3(0, 6.0, 0), 0.0, 0.05, 0.8])
+
+
 func jolt(push: Vector3) -> void:
 	var l := global_basis.inverse() * push
 	_vroll += clampf(-l.x * 0.06, -0.5, 0.5)

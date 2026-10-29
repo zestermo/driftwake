@@ -188,7 +188,7 @@ scripts/props/*                         qoltest
 
 # --- ship and sea ---
 scripts/ship/hull_builder.gd            shiptest seatest riggingtest r8test swimtest decktest looptest
-scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yardtest looptest decktest r8test net
+scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yardtest looptest decktest r8test net t/ship/blocked_furls
 scripts/ship/ship_kit.gd                yardtest t/ship
 scripts/ship/ship_lines.gd              yardtest t/ship
 scripts/ship/ship_parts.gd              yardtest t/ship
@@ -395,7 +395,7 @@ scripts/ship/*                          t/ship
 scripts/world/weather.gd                lighttest
 scripts/world/night_light.gd            lighttest villagetest harbourtest
 scripts/ship/ship_lights.gd             lighttest shiptest
-scripts/ship/ship.gd                    lighttest
+scripts/ship/ship.gd                    lighttest t/ship/blocked_furls
 scripts/ship/enemy_ship.gd              lighttest
 scripts/npc/belt_lantern.gd             lighttest
 scripts/npc/humanoid.gd                 lighttest
@@ -623,7 +623,7 @@ scripts/powers/will_sight.gd              t/will/upgrades
 scripts/powers/war_flag.gd                t/will/upgrades
 scripts/enemies/pirate_grunt.gd           t/will/upgrades
 scripts/player_states/technique_state.gd  t/will/upgrades t/will/bond_crew
-scripts/ship/ship.gd                      t/will/tide
+scripts/ship/ship.gd                      t/will/tide t/ship/blocked_furls
 scripts/progression/will_paths.gd         t/will t/progression/will_paths
 scripts/player_states/light_attack_state.gd t/will/tempo
 tools/dev/t/gear/*                      t/gear

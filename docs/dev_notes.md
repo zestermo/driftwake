@@ -7574,3 +7574,7 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - **Tests:** new `t/ship/marine_chaser`, `t/ship/hunt_holds`; `t/ship/admiralty_hunt` (Wanted has no patrols; the
   quiet after an escape), `t/ship/admiralty_patrol` (1,000), `t/combat/rival_placement` (crew before officer).
   Expect `legtest`/`seatest` to see different leg layouts at prepush.
+- **Brought up short (Zach, same day):** `Ship._brought_up`, from the hull's collision step: run head-on into an
+  EnemyShip or an AdmiraltyBoom from STOP_FROM 2.5 m/s to under STOP_UNDER 1.2, she furls (`sail` and `sail_shown` 0,
+  a flap). Land, docks and slow bumps don't. Captains knocked off or fighting on the other deck find her where they
+  left her; raise sail at the helm. Test: `t/ship/blocked_furls`.
