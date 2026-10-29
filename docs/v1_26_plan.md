@@ -45,9 +45,38 @@ What the playtest found:
 | Sea and bounty pacing | The table proposed after the playtest: patrol ship 1,000; patrols none/420/300/240 s by tier; 5 min quiet after a patrol is beaten or lost; pursuers at the crew's top speed +1 for a 90 s chase; the hunt holds while a captain is on or near either deck (no false "Escaped"); MAX_ATTACKERS counts only pirates; leg zones ~180 m off the route and two per leg more often; the rival crew gets its island before an officer | Diagnosed from the code and Zach's save | **assumed**, tune in play |
 | Combat knockback | The table proposed after the playtest: grunt poise 50, elite 80; a break is a 1.3 s stagger, with a ragdoll only from 25+ weight blows, ultimates or crumples; knockdown throw 2.5-4.5 m/s; hitstun shove at most 2.5; grunt rush and sweep stagger players, and only the red-glow attack and big hits floor them; players get 60 poise and 4 s immunity after going down; enemies circle close and wait by a downed captain; rivals and officers are launched and juggled once their poise breaks | Diagnosed from the code | **assumed**, tune in play |
 
+### Round 2 (2026-10-29): villages, healing, juggles, the rename
+
+Zach's further notes:
+- The Edy infuse in the kicking stance shows on the hands and arms, not the feet and shins.
+- Only one black-leg ability juggles.
+- Villages:
+  - they all look alike: the same square every time and a few houses, with only two interiors that have anything in them
+  - NPCs are clumped in the tavern or in a group outside
+  - smiths, ateliers and shipwrights have no icons
+- Too few names, titles and lines (Old Pell and Headmaster Pakua show up everywhere).
+- There's no consistent way to heal.
+- He wants a compass to crewmates and objectives.
+- He wants unique places that make finding a village feel like a reward.
+- He wants the One Piece rename finished.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Navigation | The existing compass strip (`scripts/ui/compass_strip.gd`) is always on and shows crewmates (name and distance), the active quest or arc objective, the village and discovered places. No minimap | Cheap, readable, PS1-fitting | - |
+| Healing | A tonic flask: 3 charges, each about 40% health over 1 s, refilled at inns, the ship's galley and campfires. Charges and strength go up through Cooking mastery or vendors. Food, meals and the 1%/s calm regen stay | No consistent heal before | Tune in play |
+| Juggles | Every weapon kind gets at least one launcher (a technique or its alternate right-click) | Only black leg's one ability juggled | - |
+| Unique places | Every village rolls one unique place from a pool of about 8-10 (library, onsen, fine restaurant, legendary swordsmith...), with no repeats along a chain until the pool runs out. Each has its own reward or mechanic, and a rumour hints at it before you arrive | Finding a village should feel like a reward | **Preview first:** the pool, with each place's mechanic and reward |
+| Talking to NPCs | (1) Gossip turns up leads for the island's arc (the villain's weak spot, the miniboss's lair, a cache). (2) Tavern games: dice, arm wrestling, a drinking contest, fishing bets, for gold and reputation | Talking had no point | **Preview first:** the games and their stakes |
+| Shops and vendors | Every vendor (store, smith, atelier, cookhouse, shipwright) has an enterable shop with an interior dressed for the trade, and stands at their counter day and night with no schedule. Market stall vendors stay at their stalls. Wandering folk keep their schedules. Every vendor has a map and compass icon | Vendors were never where they should be; interiors went unused | - |
+| Village variety | More layouts and plaza shapes, more dressed interiors, bigger name, title and line pools per theme | Villages looked copy-pasted, and the same names kept showing up | My call in the build |
+| Rename scope | Finish docs/originality_plan.md: (1) rename internal ids and files (sea_king → leviathan, devil_fruits → driftfruits, log_pose → lodestone, the haki ids → will...) with a save and co-op migration for old ids; (2) the site, README and the GitHub notes for v1.8-v1.17; (3) name the rest (the Warlords/Emperors-style powers, Admiralty ranks). No visual reskin pass | Zach: "fully rename everything" | **Preview first:** the names for (3) |
+| Public repo | Stays public for now; decide when the Steam page is near | The updater and site use GitHub Releases | Before the Steam page |
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.
+- The kicking stance's Edy infuse belongs on the feet and shins, not the hands and arms.
+- The two arc lines that still shout "Marines!", plus the site and README's "Marine" / "Grand Line".
 - A false "Escaped" while a captain boards an enemy ship or swims (DECK isn't counted as pursuing; `_crew_ship` needs a
   captain aboard).
 
