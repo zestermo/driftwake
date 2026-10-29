@@ -206,6 +206,9 @@ func equip_why(skill_id: String, slot: int) -> String:
 		return "Ultimates go on R"
 	if not Skills.is_ult(skill_id) and slot == ULT:
 		return "Only an ultimate goes on R"
+	# (1.26: one ultimate on R, swapped out of a fight)
+	if slot == ULT and loadout[ULT] != "" and loadout[ULT] != skill_id and player.in_fight():
+		return "Not mid-fight"
 	if not player.progression.knows(skill_id):
 		return "Not learned yet"
 	var sk := Skills.get_skill(skill_id)

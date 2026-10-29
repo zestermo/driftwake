@@ -645,6 +645,8 @@ func steps_of(node: String) -> int:
 func _free(n: Dictionary) -> bool:
 	if n.get("pool", "") == "will" or n["kind"] == "will":
 		return false
+	if n.get("free", false):
+		return true
 	return n["kind"] in ["root", "version"] or SkillTrees.pool_of(str(n["tree"])) == "" or (SkillTrees.section_of(str(n["tree"])) == "fruit" and int(n["level"]) <= 1 and n["kind"] != "step")
 
 
@@ -675,7 +677,9 @@ func buy_why(id: String) -> String:
 		return "Needs %s %d" % [tree_name(tree), int(n["level"])]
 	if not _visible(tree):
 		return "Eat the fruit first" if SkillTrees.section_of(tree) == "fruit" else "Not found yet"
-	var on := str(n["links"][0]) if not n["links"].is_empty() else ""
+	if n.has("needs") and not (n["needs"] as Array).any(func(k): return owns(k)):
+		return "Needs %s first" % " or ".join((n["needs"] as Array).map(func(k): return str(SkillTrees.node_def(k)["name"])))
+	var on :=str(n["links"][0]) if not n["links"].is_empty() else ""
 	if kind == "step" and SkillTrees.node_def(on)["kind"] != "root" and not owns(on):
 		return "Needs %s first" % SkillTrees.node_def(on)["name"]
 	if kind == "elem":
@@ -821,7 +825,7 @@ func set_version(node: String, i: int) -> bool:
 		return false
 	if i == version_of(node):
 		return true
-	if not can_respec():
+	if not can_respec() and not n.get("anywhere", false):
 		return false
 	_switch(node, i)
 	return true

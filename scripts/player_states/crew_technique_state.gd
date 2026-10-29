@@ -78,6 +78,27 @@ const VOLLEY_EVERY := 0.25
 const VOLLEY_REACH := 18.0
 const VOLLEY_DAMAGE := 8.0
 
+## (1.26, WeaponPlus) The second crew techniques (CrewTechniques.ALL "kind"):
+##   setup     lead: up to the foe aimed at and its pinning blow ("flags"), then the cue; partner: waiting, then out
+##             beside it in a blink and the finisher ("burst", "fin" flags). solo: the lead plays both.
+##   combined  lead: up to the foe, the cue, a blow ("dmg") as the partner's lands from its far side, and the merged
+##             burst on everyone round it ("burst", "flags"). solo: a blow from each side, the burst at SOLO_K.
+##   support   CrewTechniques.support on both captains (the partner's from go()).
+## [pose, length, when its blow lands (s)] for the lead's side and the partner's (the solo's second half).
+const DUETS := {
+	"crossed_cutlass": {"lead": ["riposte_cut", 0.5, 0.16], "mate": ["riposte_cut", 0.5, 0.16], "dmg": 26.0, "burst": 30.0, "flags": "down unblock"},
+	"blade_sheath": {"lead": ["iai_slash", 0.5, 0.14], "mate": ["iai_slash", 0.5, 0.12], "dmg": 16.0, "burst": 55.0, "flags": "pin down", "fin": "down unblock sever"},
+	"double_course": {"lead": ["bl_cleave", 0.5, 0.18], "mate": ["bl_cleave", 0.5, 0.18], "dmg": 24.0, "burst": 26.0, "flags": "launch2 unblock"},
+	"ground_pin": {"lead": ["pole_legsweep", 0.6, 0.22], "mate": ["pole_vstrike", 0.6, 0.3], "dmg": 16.0, "burst": 52.0, "flags": "pin down", "fin": "down unblock"},
+	"lift_cleave": {"lead": ["gs_updraft", 0.6, 0.24], "mate": ["gs_guardbreak", 0.6, 0.3], "dmg": 18.0, "burst": 52.0, "flags": "launch2 pin", "fin": "spike down unblock"},
+	"powder_share": {"lead": ["smoke_throw", 0.5, 0.2]},
+}
+const DUET_REACH := 8.0
+const DUET_BURST_R := 2.8
+const SOLO_K := 0.75
+## The solo's second half starts this long after the first blow.
+const SOLO_GAP := 0.3
+
 var role := ""
 var mate: Node3D
 ## "" the move itself, "perch" waiting on the lead, "swung" being swung (Hurl), "flight" in the air after a launch.
@@ -119,7 +140,10 @@ func enter(data: Dictionary) -> void:
 	_from = player.global_position
 	match role:
 		"partner":
-			_partner_enter()
+			if DUETS.has(id):
+				_duet_wait()
+			else:
+				_partner_enter()
 		"counter":
 			_counter_enter()
 		_:
@@ -133,7 +157,10 @@ func enter(data: Dictionary) -> void:
 				"covering_fire":
 					_volley_enter()
 				_:
-					_launcher_enter()
+					if DUETS.has(id):
+						_duet_enter()
+					else:
+						_launcher_enter()
 
 
 func physics_update(delta: float) -> void:
@@ -146,7 +173,9 @@ func physics_update(delta: float) -> void:
 			_perch()
 		"swung":
 			_swung()
-	if role == "counter":
+	if DUETS.has(id):
+		_duet_update(delta)
+	elif role == "counter":
 		_counter_update(delta)
 	elif role != "partner":
 		match id:
@@ -177,6 +206,15 @@ func on_signal(what: String, args: Array) -> bool:
 				return false
 			_launch(args[0], str(args[1]), bool(args[2]))
 			return true
+		"duet", "finish":
+			if role != "partner" or _phase != "wait":
+				return false
+			_duet_cued(Net.node_of(str(args[0])) as Node3D, what == "finish")
+			return true
+		"duet_off":
+			if role == "partner" and _phase == "wait":
+				dur = 0.0
+			return role == "partner"
 	return false
 
 
@@ -606,3 +644,154 @@ func _volley_shot() -> void:
 	Net.fx("muzzle_sparks", [from, (to - from).normalized(), 8])
 	Net.fx("sfx", ["gunshot", from, -2.0, 0.08, 1.05])
 	player.cam_shake(0.05)
+
+
+# --------------------------------------------------------------------------
+# (1.26) The second crew techniques: setups, combined attacks, support (DUETS)
+# --------------------------------------------------------------------------
+func _duet_kind() -> String:
+	return str(CrewTechniques.def(id)["kind"])
+
+
+func _duet_enter() -> void:
+	var d: Dictionary = DUETS[id]
+	var l: Array = d["lead"]
+	if _duet_kind() == "support":
+		dur = float(l[1])
+		player.body_model.play(str(l[0]), dur)
+		player.crew_tech.support(id, role)
+		if role == "lead" and mate and is_instance_valid(mate):
+			Net.fx("streak", [_chest(), mate.global_position + Vector3(0, 1.2, 0), _col(), 0.08, 0.3])
+		return
+	_target = _aimed(DUET_REACH)
+	if _target == null:
+		_target = _nearest(DUET_REACH, true)
+	if _target == null:
+		player.crew_tech.cooldown = 0.0
+		player.call("_toast", "No foe close enough")
+		if role == "lead" and mate and is_instance_valid(mate):
+			Net.crew_signal(mate, "duet_off", [])
+		dur = 0.0
+		return
+	_dir = _flat_to(_target)
+	if _target.global_position.distance_to(player.global_position) > 2.4:
+		_duet_place(-_dir)
+	face_direction(_dir, 1.0)
+	_phase = "strike"
+	dur = float(l[1]) + (SOLO_GAP + float(d["mate"][1]) if role == "solo" else 0.05)
+	player.body_model.play(str(l[0]), float(l[1]))
+	Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.05, 1.0])
+	if role == "lead" and _duet_kind() == "combined" and mate and is_instance_valid(mate):
+		Net.crew_signal(mate, "duet", [Net.key_of(_target)])
+
+
+## The partner waits for the lead's cue.
+func _duet_wait() -> void:
+	_phase = "wait"
+	dur = PARTNER_WAIT + 1.0
+	player.call("_toast", "%s: ready" % CrewTechniques.name_of(id))
+
+
+## The cue: out beside the foe (a setup's finisher) or at its far side from the lead (combined), and our blow.
+func _duet_cued(e: Node3D, finish: bool) -> void:
+	if e == null or not is_instance_valid(e):
+		dur = 0.0
+		return
+	_target = e
+	var away := (e.global_position - mate.global_position) * Vector3(1, 0, 1) if mate and is_instance_valid(mate) else -_flat_to(e)
+	away = away.normalized() if away.length() > 0.1 else -_flat_to(e)
+	if finish:
+		away = away.cross(Vector3.UP)
+	_duet_place(away)
+	var m: Array = DUETS[id]["mate"]
+	player.body_model.play(str(m[0]), float(m[1]))
+	t = 0.0
+	_done = {}
+	dur = float(m[1]) + 0.05
+	_phase = "strike"
+
+
+## A blink to the foe's side `side` (a flat direction out from it), facing it.
+func _duet_place(side: Vector3) -> void:
+	var from := _chest()
+	Net.fx("afterimage", [player.body_model, _col(), 0.3])
+	_place(_target.global_position + side * 1.3)
+	_dir = -side
+	face_direction(_dir, 1.0)
+	Net.fx("streak", [from, _chest(), _col(), 0.1, 0.25])
+	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 5, 0.5])
+
+
+func _duet_update(delta: float) -> void:
+	_rooted(delta, 0.0)
+	if _phase != "strike" or _target == null or not is_instance_valid(_target):
+		return
+	var d: Dictionary = DUETS[id]
+	var setup := _duet_kind() == "setup"
+	var at := float((d["mate"] if role == "partner" else d["lead"])[2])
+	if _once("glint", at - 0.08):
+		Net.fx("glint", [PlusArts._tip(self), _col(FX.CORE), 0.9])
+	if _once("blow", at):
+		if role == "partner" and setup:
+			_duet_blow(float(d["burst"]), d["fin"])
+		elif role == "partner":
+			_duet_blow(float(d["dmg"]), "")
+		else:
+			_duet_blow(float(d["dmg"]), d["flags"] if setup else "")
+			if role == "lead" and mate and is_instance_valid(mate) and setup:
+				Net.crew_signal(mate, "finish", [Net.key_of(_target)])
+	if role == "lead" and not setup and _once("burst", at + 0.06):
+		_duet_burst(1.0)
+	if role != "solo":
+		return
+	var m: Array = d["mate"]
+	var two := at + SOLO_GAP
+	if _once("second", two):
+		_duet_place(_flat_to(_target).cross(Vector3.UP) if setup else _flat_to(_target))
+		player.body_model.play(str(m[0]), float(m[1]))
+	if _once("blow2", two + float(m[2])):
+		if setup:
+			_duet_blow(float(d["burst"]) * SOLO_K, d["fin"])
+		else:
+			_duet_blow(float(d["dmg"]), "")
+			_duet_burst(SOLO_K)
+
+
+func _duet_hd(base: float, knock: float, flags: String) -> HitData:
+	return PlusArts.shape(player.melee_hit(base, "skill"), base, knock, flags, false)
+
+
+func _duet_blow(base: float, flags: String) -> void:
+	_strike(_target, _duet_hd(base, 3.0, flags))
+	PlusArts._impact(self, _target, flags)
+	PlusArts._trail(self, 0.22)
+	var at := _target.global_position + Vector3(0, 1.1, 0)
+	Net.fx("ring", [at, _dir, 1.1, _col(), 0.22, 0.16])
+	Net.fx("sfx", ["whoosh_big", at, -3.0, 0.05, 1.1])
+	_spray(at, _dir + Vector3.UP * 0.5, 10, 4.0)
+	CombatManager.apply_hitstop(0.06, [player])
+	player.cam_shake(0.14 if base < 40.0 else 0.28)
+	if base >= 40.0:
+		Net.fx("impact", [at, _col(FX.CORE)])
+		Net.fx("ring", [_target.global_position + Vector3(0, 0.15, 0), Vector3.UP, 2.4, _col(), 0.35, 0.16])
+		var c := _col(FX.CORE)
+		Net.fx("screen_flash", [player.global_position, Color(c.r, c.g, c.b, 0.25), 0.25])
+
+
+## The merged blow: an X across the foe, and everyone round it struck.
+func _duet_burst(k: float) -> void:
+	var d: Dictionary = DUETS[id]
+	var c := _target.global_position + Vector3(0, 1.1, 0)
+	var right := _dir.cross(Vector3.UP).normalized()
+	for s in [-1.0, 1.0]:
+		var a: Vector3 = (right * s + Vector3.UP * 0.7).normalized() * 1.6
+		Net.fx("streak", [c - a, c + a, _col(), 0.22, 0.4])
+	Net.fx("ring", [c, _dir, 2.0, _col(), 0.3, 0.18])
+	Net.fx("impact", [c, _col(FX.CORE)])
+	Net.fx("sfx", ["thud", c, -1.0, 0.05, 0.9])
+	_spray(c, Vector3.UP, 16, 5.0)
+	for e in _pc.enemies_in(c, DUET_BURST_R):
+		_strike(e, _duet_hd(float(d["burst"]) * k, 4.0, d["flags"]))
+		PlusArts._impact(self, e, d["flags"])
+	player.cam_shake(0.25)
+	player.cam_kick(0.2, 0.35)

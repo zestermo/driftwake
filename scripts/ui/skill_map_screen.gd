@@ -962,8 +962,8 @@ func _node_info(nid: String, x: float, y: float, w: float, limit: float, col: Co
 			good = int(n["level"]) <= p.level
 			status = "PICK ONE: ENTER" if good else "AT CAPTAIN %d" % int(n["level"])
 		else:
-			status = "BOTH YOURS: SWITCH AT A REST SPOT" if kind == "variant" else "CHANGE AT A REST SPOT"
-			good = p.can_respec()
+			status = ("BOTH YOURS: SWITCH ANYWHERE" if n.get("anywhere", false) else "BOTH YOURS: SWITCH AT A REST SPOT") if kind == "variant" else "CHANGE AT A REST SPOT"
+			good = p.can_respec() or n.get("anywhere", false)
 	elif kind != "step" and p.owns_node(nid):
 		status = "YOURS" + ("  ·  1-5/R: ON THE BAR" if str(n["skill"]) != "" else "")
 		good = true

@@ -34,6 +34,10 @@ const PINCER_EXTRA := 0.75
 const PINCER_BOTH := 1.5
 const PINCER_SOLO := 3
 const PINCER_SECS := 10.0
+## Powder Share: the energy each side gets, how long both hit harder (PowerComponent buff "powder_share", +20%).
+const SHARE_ENERGY := {"lead": 0.0, "partner": 25.0, "solo": 12.0}
+const SHARE_SECS := 8.0
+const SHARE_DAMAGE := 0.2
 ## What the joiner of a move that doesn't throw them is told.
 const PARTNER_NOTE := {"guardian_stance": "you're under guard", "shield_wall": "stay behind the wall",
 	"pincer": "strike the marked foe together", "covering_fire": "you're covered"}
@@ -110,13 +114,28 @@ static func of_style(style: String) -> String:
 	return ""
 
 
+## A crew technique's entry: ALL's, or (1.26) a tree's second one (WeaponPlus.CREW: no styles, a "tree" and a
+## "kind" CrewTechniqueState plays from its DUETS).
+static func def(id: String) -> Dictionary:
+	return ALL[id] if ALL.has(id) else WeaponPlus.CREW.get(id, {})
+
+
 static func name_of(id: String) -> String:
-	return str(ALL.get(id, {}).get("name", ""))
+	return str(def(id).get("name", ""))
+
+
+## The first (1.24) crew technique of a weapon tree.
+static func of_tree(tree: String) -> String:
+	for id in ALL:
+		if (ALL[id]["styles"] as Array).any(func(st): return SkillTree.style_tree(st) == tree):
+			return id
+	return ""
 
 
 ## The weapon tree whose colours a technique wears.
 static func tree_of(id: String) -> String:
-	var tr := SkillTree.style_tree(str((ALL[id]["styles"] as Array)[0]))
+	var d := def(id)
+	var tr := str(d["tree"]) if d.has("tree") else SkillTree.style_tree(str((d["styles"] as Array)[0]))
 	return tr if FX_SCRIPT.TREE_FX.has(tr) else "unarmed"
 
 
@@ -125,11 +144,14 @@ static func tree_col(id: String, which: int) -> Color:
 
 
 static func cooldown_of(id: String) -> float:
-	return QUICK_COOLDOWN if ALL.get(id, {}).get("quick", false) else COOLDOWN
+	return QUICK_COOLDOWN if def(id).get("quick", false) else COOLDOWN
 
 
-## The crew technique of the weapon in hand ("" for none).
+## The crew technique of the weapon in hand ("" for none): its tree's second one when that's switched on.
 func id() -> String:
+	var tr := SkillTree.style_tree(player.style())
+	if tr != "" and WeaponPlus.crew_of(tr) != "" and player.progression.stat("crew2_" + tr) > 0.0:
+		return WeaponPlus.crew_of(tr)
 	return of_style(player.style())
 
 
@@ -163,7 +185,7 @@ func trigger() -> String:
 		return "busy"
 	if _mates_near().is_empty():
 		# (alone in a training yard: the sparring partner steps in for the throws)
-		var yard: Node3D = SparringPartner.at_side(player) if ALL[tid].get("launch", false) and not player.is_ai else null
+		var yard: Node3D = SparringPartner.at_side(player) if def(tid).get("launch", false) and not player.is_ai else null
 		if yard:
 			Net.everyone("_all_crew_offer", [Net.key_of(player), tid, ZONE_SECS])
 			Net.crew_join(player, yard)
@@ -241,14 +263,32 @@ func go(mate) -> void:
 		"covering_fire":
 			mark("covered", COVER_SECS, mk)
 			mate.crew_tech.mark("covered", COVER_SECS, lk)
+	var kind := str(def(tid).get("kind", ""))
 	if player.is_local:
 		_start_cooldown(tid)
 		player.state_machine.force_state("CrewTechnique", {"id": tid, "role": "lead", "mate": mate})
 	if mate.is_local:
-		if ALL[tid].get("launch", false):
+		if def(tid).get("launch", false) or kind in ["setup", "combined"]:
 			mate.state_machine.force_state("CrewTechnique", {"id": tid, "role": "partner", "mate": player})
+		elif kind == "support":
+			mate.crew_tech.support(tid, "partner")
 		else:
 			mate.call("_toast", "%s: %s" % [name_of(tid), PARTNER_NOTE[tid]])
+
+
+## (own machine) A support crew technique's gift on this captain: `role` "lead", "partner" or "solo".
+func support(tid: String, role: String) -> void:
+	match tid:
+		"powder_share":
+			player._reset_ammo()
+			player.power.add_energy(SHARE_ENERGY[role])
+			player.power.add_buff("powder_share", SHARE_SECS)
+			var at: Vector3 = player.global_position + Vector3(0, 1.4, 0)
+			Net.fx("sparkle", [at, 10, tree_col(tid, FX.CORE)])
+			Net.fx("ring", [player.global_position + Vector3(0, 0.1, 0), Vector3.UP, 1.4, tree_col(tid, FX.EDGE), 0.35, 0.12])
+			Net.fx("sfx", ["blip_high", at, -8.0, 0.0, 1.5])
+			if role == "partner":
+				player.call("_toast", "%s: reloaded, +%d energy, 20%% harder for %d s" % [name_of(tid), int(SHARE_ENERGY[role]), int(SHARE_SECS)])
 
 
 

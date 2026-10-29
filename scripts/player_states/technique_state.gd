@@ -37,7 +37,7 @@ const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "si
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
 	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
 ## Techniques that live in their own files (enter/update return false for ids not theirs).
-var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts, WillArts, LongGunArts, CannonArts, SlingArts]
+var _arts: Array = [PlusArts, DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts, WillArts, LongGunArts, CannonArts, SlingArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""
@@ -57,10 +57,13 @@ var _axe: Projectile
 var _hold := -1.0
 ## The last guard put up (riposte_counter answers it: Side Step's answer is out at their side).
 var _guard_id := ""
+## PlusArts' scratch for the move running (its marks, its foes, its ticks).
+var plus: Dictionary = {}
 
 
 func enter(data: Dictionary) -> void:
-	id = str(data.get("id", ""))
+	id = str(data.get("id", PlayerState.pending_tech))
+	PlayerState.pending_tech = ""
 	# (bare fists answer a caught blow with Shoulder Throw)
 	if id == "riposte_counter" and player.style() == "fist":
 		id = "shoulder_throw"
@@ -527,6 +530,8 @@ func _tree() -> String:
 		return "unarmed"
 	if id == "riposte_counter":
 		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair", "dagger": "dagger"}.get(player.style(), "sword")
+	if PlusArts.MOVES.has(id):
+		return str(PlusArts.MOVES[id]["tree"])
 	var tr := str(Skills.get_skill(id).get("tree", "base"))
 	return tr if FX.TREE_FX.has(tr) else "haki"
 

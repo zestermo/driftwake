@@ -20,6 +20,10 @@ static var _repeat := 0
 static var _repeat_move := ""
 static var _repeat_at := -100.0
 static var reload_until := -100.0
+## (1.26) The PlusArts move an attack input picked: TechniqueState takes it on entering with no id.
+static var pending_tech := ""
+## (1.26) Right-click in the air before the aerial heavy: PlungeState plays the plain plunge, not the tree's air move.
+static var plain_plunge := false
 
 
 static func now_s() -> float:
@@ -100,6 +104,13 @@ func combat_input() -> String:
 		return ""
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
+			# (1.26) the tree's alternate sprint attack, switched on at its variant
+			if player.sprinting and alt_move("sprint") != "":
+				if not player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
+					return ""
+				_heavy_chain = 0
+				pending_tech = alt_move("sprint")
+				return "Technique"
 			if player.weapon_class() == "gun":
 				return "Shoot" if now_s() >= reload_until else ""
 			if not player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
@@ -120,6 +131,10 @@ func combat_input() -> String:
 				return ""
 			if not player.spend_stamina(heavy_cost()):
 				return ""
+			if alt_move("heavy") != "":
+				pending_tech = alt_move("heavy")
+				_heavy_used("alt:" + pending_tech)
+				return "Technique"
 			var next := "Iai" if player.style() == "katana" else "HeavyAttack"
 			_heavy_used(next + ":" + player.style())
 			return next
@@ -142,13 +157,34 @@ func air_attack_input() -> String:
 	# too close to the ground: leave the press buffered for a landing attack
 	if player.can_attack() and player.height_above_ground() < 0.9:
 		return ""
-	if input_buffer.consume_action("light_attack") or input_buffer.consume_action("heavy_attack"):
+	var light := input_buffer.consume_action("light_attack")
+	if light or input_buffer.consume_action("heavy_attack"):
 		# (a juggled foe in reach: an air combo, whatever this jump has already used)
 		if player.can_attack() and juggled_in_reach():
 			return "Plunge" if player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()) else ""
 		if not player.can_attack():
 			player.draw_weapon()
 			return ""
+		# (1.26) right-click: the tree's aerial heavy once bought, the plain plunge till then (dual pistols: as ever)
+		if not light:
+			var ah := air_heavy()
+			if ah != "":
+				if int(player.air_uses.get(ah, 0)) >= 1 or not player.spend_stamina(player.PLUNGE_COST * 1.5 * player.attack_cost_k()):
+					return ""
+				pending_tech = ah
+				return "Technique"
+			if player.style() != "dual_pistol":
+				if not player.spend_stamina(player.PLUNGE_COST * player.attack_cost_k()):
+					return ""
+				plain_plunge = true
+				return "Plunge"
+		# (1.26) the tree's alternate aerial, once a jump
+		var alt := alt_move("air") if light else ""
+		if alt != "":
+			if int(player.air_uses.get(alt, 0)) >= 1 or not player.spend_stamina(player.PLUNGE_COST * player.attack_cost_k()):
+				return ""
+			pending_tech = alt
+			return "Technique"
 		var pr := player.progression
 		if player.style() == "dual_pistol" and (not pr.has_move("gun_rain") or player.gun_rains >= 1 + int(pr.stat("gun_rain_uses"))):
 			return ""
@@ -179,6 +215,23 @@ const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_
 ## The 1.24 ranged kinds' air attacks, run by their arts file (GunKinds.art: air_enter / air_update).
 const GUN_AIR := ["sky_shot", "recoil_leap", "hail_shot"]
 const METEOR_CHAIN := 3
+
+## (1.26, WeaponPlus) The weapon tree's aerial heavy (right-click in the air) once its node is bought, else "".
+func air_heavy() -> String:
+	var tr := SkillTree.style_tree(player.style())
+	if tr == "" or player.hybrid or player.progression.stat(WeaponPlus.air_heavy_key(tr)) <= 0.0:
+		return ""
+	return WeaponPlus.air_heavy(tr)
+
+
+## (1.26, WeaponPlus) The PlusArts move a weapon tree's alternate puts on `slot` ("air", "sprint", "heavy") when its
+## variant is switched to it, else "".
+func alt_move(slot: String) -> String:
+	var tr := SkillTree.style_tree(player.style())
+	if tr == "" or player.hybrid or player.progression.stat(WeaponPlus.alt_key(tr, slot)) <= 0.0:
+		return ""
+	return WeaponPlus.alt_id(tr, slot)
+
 
 func air_move() -> String:
 	# (the katana's air attack is a variant: Crescent Arc or Falling Moon)

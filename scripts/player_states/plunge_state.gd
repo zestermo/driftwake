@@ -163,7 +163,8 @@ func enter(_data: Dictionary) -> void:
 	_ticks = 0
 	_struck = []
 	_target = null
-	_mode = "rain" if player.style() == "dual_pistol" else air_move()
+	_mode = "" if plain_plunge else ("rain" if player.style() == "dual_pistol" else air_move())
+	plain_plunge = false
 	var jf := juggled_in_reach()
 	if jf:
 		_air_combo_enter(jf)

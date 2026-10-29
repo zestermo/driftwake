@@ -283,6 +283,19 @@ const ALL := {
 		"desc": "Drive an open palm forward: a burst of air hurls everything in a cone in front of you."},
 	"sea_king_fist": {"name": "Leviathan Fist", "tree": "unarmed", "cost": 0.0, "cooldown": 3.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Your fist takes the power and glows: for 8 s move as you like, then attack (or R) to let it go. On the ground a punch that tears 16 m ahead and blows up where it lands; in the air a dive onto the ground, harder the further you fall; right after a parry it hits the attacker first; out of a dash it carries your speed. Unused, it fades and half the ultimate comes back."},
+	# --- (1.26, WeaponPlus) the second ultimates, run by PlusArts; "icon": another skill's picture until they have their own ---
+	"undertow": {"name": "Undertow", "tree": "sword", "cost": 0.0, "cooldown": 3.0, "styles": ["sword"], "needs_text": "a cutlass", "state": "Technique", "ult": true, "icon": "kraken_wake",
+		"desc": "Ultimate. Plant the blade: a whirlpool drags every foe within 8 m in to you, cut as they come; one rising cut flings them all up, and the sea comes down on every one of them."},
+	"moonlit_severance": {"name": "Moonlit Severance", "tree": "katana", "cost": 0.0, "cooldown": 3.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique", "ult": true, "icon": "petal_storm",
+		"desc": "Ultimate. Sheathe, a breath, and one draw along a 14 m line: the world goes pale, and a beat later everything on the line splits and falls. Nothing blocks it."},
+	"volcano_course": {"name": "Volcano Course", "tree": "black_leg", "cost": 0.0, "cooldown": 3.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique", "ult": true, "icon": "last_course",
+		"desc": "Ultimate. Stamp the ground five times: it erupts under up to five foes within 8 m and throws each one high, and you chase the last up with a burning heel that spikes it into the ground."},
+	"golden_ricochet": {"name": "Golden Ricochet", "tree": "pistol", "cost": 0.0, "cooldown": 3.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique", "ult": true, "icon": "deaths_waltz",
+		"desc": "Ultimate. Time slows; one gilded ball bounces between every foe within 16 m (up to eight), harder at every bounce, and ends in a gold burst that knocks them down."},
+	"heavens_pike": {"name": "Heaven's Pike", "tree": "polearm", "cost": 0.0, "cooldown": 3.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique", "ult": true, "icon": "raijin_wheel",
+		"desc": "Ultimate. Hurl the spear straight up: it comes down on the reticle as a bolt, and for a second a storm 6 m round it strikes everyone in it again and again, the last bolt throwing them down."},
+	"eye_of_storm": {"name": "Eye of the Storm", "tree": "greatsword", "cost": 0.0, "cooldown": 3.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique", "ult": true, "icon": "skysplitter",
+		"desc": "Ultimate. The blade held out at arm's length: a cyclone 7 m round you drags them in for two seconds, one full turn throws them all up, and a downdraft slams them into the ground."},
 	# --- Haki ---
 	"conquerors_haki": {"name": "Captain's Will", "tree": "base", "cost": 0.0, "cooldown": 3.0, "state": "Technique", "ult": true,
 		"desc": "Ultimate. Unleash the will of a king: weak foes around you (common pirates and bugs below 40% health) faint on the spot; everyone else is thrown back, reeling."},
@@ -315,7 +328,7 @@ static var _icon_cache: Dictionary = {}
 static func icon(id: String) -> Texture2D:
 	if _icon_cache.has(id):
 		return _icon_cache[id]
-	var path := ICON_DIR + "skill_" + id + ".png"
+	var path := ICON_DIR + "skill_" + str(get_skill(id).get("icon", id)) + ".png"
 	var tex: Texture2D = null
 	if ResourceLoader.exists(path):
 		tex = load(path) as Texture2D

@@ -58,7 +58,8 @@ func shape(t: String) -> void:
 		var free: Array = STS.nodes_of(t).filter(func(k): return not (STS.node_def(k)["kind"] in ["root", "version"]) and STS.price(k) <= 0)
 		check("%s: every node past the root has a price %s (%d steps)" % [t, str(free), steps], free.is_empty())
 	if STS.section_of(t) == "combat":
-		check("%s: one ultimate, at the top" % t, ults == 1 and STS.nodes_of(t).any(func(k): return STS.node_def(k)["kind"] == "ult" and int(STS.node_def(k)["level"]) == top))
+		var want := 2 if WeaponPlus.has(t) else 1
+		check("%s: %d ultimate(s), at the top" % [t, want], ults == want and STS.nodes_of(t).all(func(k): return STS.node_def(k)["kind"] != "ult" or int(STS.node_def(k)["level"]) == top))
 
 
 func _process(_d: float) -> bool:

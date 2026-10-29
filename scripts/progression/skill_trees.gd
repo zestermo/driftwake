@@ -221,6 +221,9 @@ static func _build() -> void:
 	_build_ember()
 	_build_wolf()
 	_build_vine()
+	for t in WeaponPlus.TREES.keys():
+		_t = t
+		_plus()
 
 
 static func _tree(id: String, branch_names: Array) -> void:
@@ -234,6 +237,7 @@ static func _node(id: String, name_: String, kind: String, branch: int, level: i
 		desc = str(Skills.get_skill(skill).get("desc", ""))
 	var n := {"id": id, "name": name_, "kind": kind, "tree": _t, "branch": branch, "level": level, "pos": pos, "links": links,
 		"skill": skill, "desc": desc, "max_steps": 0, "versions": [], "effects": effects}
+	assert(not _nodes.has(id), "SkillTrees: two nodes called " + id)
 	_nodes[id] = n
 	return n
 
@@ -565,6 +569,78 @@ static func _elem(tier: int) -> void:
 		_big(e[0] + "_elem", e[1], "elem", 1, 16, {"elem_" + _t: 1}, "Mastery. Your %s skills awaken: %s." % [w, e[3]])
 	else:
 		_big(e[0] + "_elem2", e[2], "elem", 1, 25, {"elem2_" + _t: 1}, "Mastery. The element follows every blow: your %s combo and heavy attack carry it too." % w)
+
+
+## (1.26, WeaponPlus) A weapon tree's additions: the middle branch split after its second element into two ultimates
+## (today's on the left, the new one on the right behind its lead-up), the second crew technique, the three alternates
+## and the four bridges. Nodes with "needs" are bought once you own one of them.
+static func _plus() -> void:
+	var d: Dictionary = WeaponPlus.TREES[_t]
+	var pre: String = ELEMENTS[_t][0]
+	var bigs: Array = []
+	for b in 3:
+		bigs.append((_trees[_t]["branches"][b]["nodes"] as Array).filter(func(k): return _nodes[k]["kind"] != "step"))
+	var e2: Dictionary = _nodes[pre + "_elem2"]
+	var mid: Array = _trees[_t]["branches"][1]["nodes"]
+	var ult_a: String = mid.filter(func(k): return _nodes[k]["kind"] == "ult")[0]
+	var lb: Array = d["lead_b"]
+	_lead(d["lead_a"], -1.0, e2)
+	_lead(lb, 1.0, e2)
+	_nodes[ult_a]["links"] = [d["lead_a"][0]]
+	_nodes[ult_a]["pos"] = e2["pos"] + Vector2(-WeaponPlus.ULT_OFF.x, WeaponPlus.ULT_OFF.y)
+	var ub: Array = d["ult_b"]
+	var u := _node(ub[0], str(Skills.get_skill(ub[1])["name"]), "ult", 1, 30, {}, "", ub[1], [lb[0]], e2["pos"] + WeaponPlus.ULT_OFF)
+	u["needs"] = [lb[0]]
+	mid.append(ub[0])
+	var first: Array = WeaponPlus.CREW_FIRST[_t]
+	var crew: Dictionary = WeaponPlus.CREW[d["crew"]]
+	var lv := WeaponPlus.CREW_LEVEL
+	_variant(pre + "_crew", "Crew Technique", 0, [
+		[pre + "_crew_a", first[0], lv, {}, first[1]],
+		[pre + "_crew_b", crew["name"], lv, {"crew2_" + _t: 1}, crew["desc"]]],
+		"Two crew techniques for C with the weapon out. Both are yours once bought; switch which one you play here, anywhere.")["anywhere"] = true
+	var ah: Dictionary = PlusMoves.MOVES[d["air_heavy"]]
+	_big(pre + "_airheavy", ah["name"], "move", 2, WeaponPlus.AIR_HEAVY_LEVEL, {WeaponPlus.air_heavy_key(_t): 1}, ah["desc"])
+	for i in 3:
+		var slot: String = WeaponPlus.ALT_SLOTS[i]
+		var m: Dictionary = PlusMoves.MOVES[d["alts"][i]]
+		var alv: int = WeaponPlus.ALT_LEVELS[slot]
+		var v := _variant("%s_alt_%s" % [pre, slot], WeaponPlus.ALT_NAMES[slot], 2, [
+			["%s_%s_std" % [pre, slot], "Standard", alv, {}, WeaponPlus.ALT_STANDARD[slot]],
+			["%s_%s_alt" % [pre, slot], m["name"], alv, {WeaponPlus.alt_key(_t, slot): 1}, m["desc"]]],
+			"An alternate %s, yours at mastery %d. Switch between it and the standard one here, anywhere." % [WeaponPlus.ALT_NAMES[slot].to_lower(), alv])
+		v["free"] = true
+		v["anywhere"] = true
+	# (the crew variant tops the first branch, the aerial heavy and the alternates the third, past its last node)
+	for b in [0, 2]:
+		var tip: Vector2 = _nodes[bigs[b][-1]]["pos"]
+		var added: Array = (_trees[_t]["branches"][b]["nodes"] as Array).filter(func(k): return not (k in bigs[b]) and _nodes[k]["kind"] != "step")
+		for j in added.size():
+			_park(added[j], tip + Vector2((b - 1) * 26.0 * (j + 1), -80.0 * (j + 1)))
+	for side in 2:
+		var outer: Array = bigs[0 if side == 0 else 2]
+		for j in 2:
+			var bd: Array = d["bridges"][side * 2 + j]
+			var a: String = outer[mini(1 + j * 2, outer.size() - 1)]
+			var c: String = bigs[1][mini(j * 2, bigs[1].size() - 1)]
+			var n := _node(bd[0], bd[1], "mech", 1, int(WeaponPlus.BRIDGE[j][0]), bd[2], WeaponPlus.describe(bd[2], _t) + " A bridge: reached from either side.",
+				"", [a, c], (_nodes[a]["pos"] + _nodes[c]["pos"]) * 0.5 + Vector2(0, -24))
+			n.merge({"cost": int(WeaponPlus.BRIDGE[j][1]), "needs": [a, c], "bridge": true})
+			mid.append(bd[0])
+
+
+## Move a node (and a variant's versions) to `pos`.
+static func _park(id: String, pos: Vector2) -> void:
+	_nodes[id]["pos"] = pos
+	for v in _nodes[id]["versions"]:
+		_nodes[v["id"]]["pos"] = pos
+
+
+static func _lead(l: Array, side: float, e2: Dictionary) -> void:
+	var n := _node(l[0], l[1], "mech", 1, WeaponPlus.LEAD_LEVEL, l[2], WeaponPlus.describe(l[2], _t), "", [e2["id"]],
+		e2["pos"] + Vector2(WeaponPlus.LEAD_OFF.x * side, WeaponPlus.LEAD_OFF.y))
+	n.merge({"cost": WeaponPlus.LEAD_PRICE, "needs": [e2["id"]]})
+	_trees[_t]["branches"][1]["nodes"].append(l[0])
 
 
 static func _build_cutlass() -> void:
