@@ -65,6 +65,8 @@ var _arc_mesh: ImmediateMesh
 var _arc_next: Array = []
 var _arc_live: Array = []
 var _rng := RandomNumberGenerator.new()
+## (1.26) Settings' Reduce flashing: fewer arcs, no white core.
+var _calm := false
 static var _dot_tex: Texture2D
 static var _soft_tex: Texture2D
 
@@ -180,6 +182,7 @@ func _build(body: Node3D) -> void:
 		anchor.add_child(e)
 		_emitters.append(e)
 	if look == "lightning":
+		_calm = bool(Settings.get_value("gameplay", "reduce_flashing"))
 		_arc_mesh = ImmediateMesh.new()
 		_arcs = MeshInstance3D.new()
 		_arcs.name = "EdyArcs"
@@ -407,7 +410,7 @@ func _arcs_tick(delta: float, k: float) -> void:
 	for i in range(_anchors.size()):
 		_arc_next[i] = float(_arc_next[i]) - delta * (1.0 + _flash * 2.0)
 		if _arc_next[i] <= 0.0 and k > 0.2 and is_instance_valid(_anchors[i]):
-			_arc_next[i] = _rng.randf_range(ARC_EVERY.x, ARC_EVERY.y)
+			_arc_next[i] = _rng.randf_range(ARC_EVERY.x, ARC_EVERY.y) * (2.5 if _calm else 1.0)
 			# (anywhere along the limb)
 			var from: Vector3 = _anchors[i].global_position + _anchors[i].global_basis.y.normalized() * _rng.randf_range(-0.18, 0.18)
 			# (Zach: the arcs land on the body) from one point on the limb to another on it, or to a limb near it (a hand
@@ -443,7 +446,7 @@ func _arcs_tick(delta: float, k: float) -> void:
 	for a in _arc_live:
 		var pts: Array = a[0]
 		# (a bright core and a coloured line a hair beside it: thick enough to read at a distance)
-		for pass_ in [[Color.WHITE.lerp(color.lightened(0.5), 0.3), Vector3.ZERO], [color.lightened(0.15), Vector3(0.012, 0.012, 0.0)], [color.lightened(0.15), Vector3(-0.012, -0.008, 0.01)]]:
+		for pass_ in [[color.lightened(0.3) if _calm else Color.WHITE.lerp(color.lightened(0.5), 0.3), Vector3.ZERO], [color.lightened(0.15), Vector3(0.012, 0.012, 0.0)], [color.lightened(0.15), Vector3(-0.012, -0.008, 0.01)]]:
 			for s in range(pts.size() - 1):
 				_arc_mesh.surface_set_color(pass_[0])
 				_arc_mesh.surface_add_vertex(pts[s] + pass_[1])

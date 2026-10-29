@@ -69,7 +69,7 @@ static func delete() -> void:
 
 
 static func delete_slot(i: int) -> void:
-	for p in [slot_path(i), shot_path(i)]:
+	for p in [slot_path(i), shot_path(i)] + range(1, BACKUPS + 1).map(func(k): return backup_path(i, k)):
 		if FileAccess.file_exists(p):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
 
@@ -342,6 +342,7 @@ static func save(player: Player) -> bool:
 		# (the map's found spots are our own world's too)
 		data["charted"] = (data["charted"] as Array).filter(func(k): return not str(k).begins_with("spot:")) \
 			+ (old.get("charted", []) as Array).filter(func(k): return str(k).begins_with("spot:"))
+	_rotate_backups()
 	var f := FileAccess.open(path(), FileAccess.WRITE)
 	if f == null:
 		return false
@@ -358,7 +359,11 @@ static func load_into(player: Player) -> bool:
 		return false
 	var data := _read(path())
 	if data.is_empty():
-		return false
+		# (1.26) a save that won't read: the newest backup that does
+		data = _read_backup()
+		if data.is_empty():
+			return false
+		player.get_tree().call_group("hud", "show_toast", "Your save couldn't be read: restored from its last backup")
 	_loading = true
 	var gm := player.get_node_or_null("/root/GameManager")
 	# (flags first: the look reads some, e.g. the log pose on the wrist)
@@ -570,3 +575,31 @@ static func crew_of(player: Node) -> Array:
 		if nm != "" and not names.has(nm):
 			names.append(nm)
 	return names
+
+
+## (1.26) Backups: before each save the last BACKUPS copies shift along (save_N.bak1 newest), so a save that's lost or
+## won't read (a crash mid-write, a full disk) comes back from the one before.
+const BACKUPS := 3
+
+
+static func backup_path(i: int, k: int) -> String:
+	return slot_path(i).trim_suffix(".dat") + ".bak%d" % k
+
+
+static func _rotate_backups() -> void:
+	var i := slot if slot > 0 else 1
+	if not FileAccess.file_exists(slot_path(i)) or _read(slot_path(i)).is_empty():
+		return
+	for k in range(BACKUPS, 1, -1):
+		if FileAccess.file_exists(backup_path(i, k - 1)):
+			DirAccess.copy_absolute(ProjectSettings.globalize_path(backup_path(i, k - 1)), ProjectSettings.globalize_path(backup_path(i, k)))
+	DirAccess.copy_absolute(ProjectSettings.globalize_path(slot_path(i)), ProjectSettings.globalize_path(backup_path(i, 1)))
+
+
+static func _read_backup() -> Dictionary:
+	var i := slot if slot > 0 else 1
+	for k in range(1, BACKUPS + 1):
+		var d := _read(backup_path(i, k))
+		if not d.is_empty():
+			return d
+	return {}

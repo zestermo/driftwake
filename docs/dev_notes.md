@@ -7872,3 +7872,10 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   starts the next free save directly; Host / Join open the list (its new row runs the creator on arrival, so a guest
   needs no save first).
 - Test: savetest (the list, the next number, the build, the place).
+
+## 2026-10-29: save backups and small settings (1.26)
+- SaveGame keeps the last 3 copies of each save (`save_N.bak1..3`, rotated before every write); a save that won't
+  read loads its newest readable backup with a toast. Deleting a save removes its backups and picture.
+- Options: Vsync, a frame cap (0 = none, 30-step slider), Reduce flashing (screen flashes x0.33, calmer Edy arcs).
+  PSXSettings._apply_frames applies vsync/max_fps (skipped on tool runs).
+- Test: t/progression/save_backups.
