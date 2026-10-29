@@ -44,7 +44,7 @@ const MOVES := {
 	"wind_step": {"tree": "katana", "slot": "sprint", "kind": "", "name": "Wind Step", "dur": 0.6,
 		"desc": "Attack at a sprint: a dash through the one in front with a rising draw. A light foe is thrown into the air (a launcher), and nothing blocks it.",
 		"pose": ["iai_slash", 0.55], "enter": [["through"]], "dash": [[0.0, 0.24, 15.0]],
-		"at": [[0.06, "glint"], [0.14, "cone", 2.8, 0.3, 22.0, 2.0, "launch unblock"], [0.14, "trail", 0.25],
+		"at": [[0.04, "glint"], [0.1, "cone", 2.8, 0.2, 22.0, 2.0, "launch unblock"], [0.1, "trail", 0.25],
 			[0.14, "sfx", "whoosh_big", -4.0, 1.5], [0.16, "spray", 10]]},
 	"mirror_draw": {"tree": "katana", "slot": "heavy", "kind": "heavy", "name": "Mirror Draw", "dur": 0.95,
 		"desc": "Right-click: no charge, two quick draws instead: a cut, the blade home, and a second cut that knocks them down.",

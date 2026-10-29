@@ -89,6 +89,9 @@ func _process(_d: float) -> bool:
 			if not p.is_free():
 				return false
 			g3.add_to_group("bosses")
+			# (mastered with 1.26's bridges the chops hit harder: enough health to take all three)
+			g3.health.max_health = 9999.0
+			g3.health.current_health = 9999.0
 			g3._enter_idle()
 			p.global_position = g3.global_position + Vector3(0, 0.1, 2.0)
 			p.velocity = Vector3.ZERO

@@ -8,10 +8,12 @@ const LAUNCHERS := [["sword", "cutlass", "boarding_hook", ""], ["katana", "katan
 	["hammer", "warhammer", "upheaval", ""], ["dual_axe", "boarding_axe", "rising_hooks", "same"], ["corsair", "cutlass", "rising_shot", "pistol"],
 	["long_gun", "musket", "butt_lift", ""], ["cannon", "hand_cannon", "barrel_upswing", ""], ["slingshot", "slingshot", "kick_up", ""],
 	["unarmed", "", "dragon_uppercut", ""], ["black_leg", "", "flambe_lift", "kicks"]]
-const GAP := 5.0
+const GAP := 12.0
 var stage
 var p
 var G
+## grunt -> true once a launcher's blow landed on it
+var lifted := {}
 var i := 0
 var step := 0
 var until := 0
@@ -22,8 +24,13 @@ func _initialize() -> void:
 	TK.seed_of(self)
 	var gs: Array = []
 	for k in LAUNCHERS.size():
-		gs.append({"post": Vector3(GAP * k, 0, -2.2), "role": "sword", "seed": 71 + k})
+		gs.append({"post": post(k), "role": "sword", "seed": 71 + k})
 	stage = TK.stage(self, {"hud": false, "grunts": gs})
+
+
+## Grunt k's post: a grid of rows of four across the stage's ground, GAP apart.
+func post(k: int) -> Vector3:
+	return Vector3(GAP * (k % 4) - GAP * 1.5, 0, -2.2 - GAP * int(k / 4))
 
 
 func check(what: String, cond: bool) -> void:
@@ -44,8 +51,9 @@ func _process(_d: float) -> bool:
 			stage.camera_rig.rotation.y = 0.0
 			p.hurtbox.monitorable = false
 			for g in stage.camp.grunts:
-				g.health.max_health = 999.0
-				g.health.current_health = 999.0
+				g.hurtbox.hit_received.connect(func(h, _a): if h.launch > 0.0: lifted[g] = true)
+				g.health.max_health = 99999.0
+				g.health.current_health = 99999.0
 			until = TK.wait_ticks(5)
 		1:
 			if i >= LAUNCHERS.size():
@@ -72,7 +80,11 @@ func _process(_d: float) -> bool:
 			if not p.is_free():
 				return false
 			var g = stage.camp.grunts[i]
-			g.alert()
+			# (stood idle at its post, its back to you: a grunt in a fight circles and sidesteps, and this is about the launch)
+			g._enter_idle()
+			g.global_position = post(i) + Vector3(0, g.global_position.y, 0)
+			g.velocity = Vector3.ZERO
+			g.reset_physics_interpolation()
 			g.facing.rotation.y = PI
 			p.global_position = Vector3(g.global_position.x, p.global_position.y, g.global_position.z + 2.0)
 			p.reset_physics_interpolation()
@@ -81,7 +93,8 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.5)
 		3:
 			var g = stage.camp.grunts[i]
-			check("%s: %s launches the grunt (state %d, %.2f m up)" % [LAUNCHERS[i][0], LAUNCHERS[i][2], g.state, g.global_position.y], g.state == G.S.AIR)
+			check("%s: %s lands a launcher on the grunt and throws it up (state %d, %.2f m up)" % [LAUNCHERS[i][0], LAUNCHERS[i][2], g.state, g.global_position.y],
+				lifted.has(g) and g.state == G.S.AIR)
 			i += 1
 			step = 1
 			until = TK.wait_secs(0.8)

@@ -3,7 +3,7 @@ extends SceneTree
 ## skills real (each skill a greatsword Technique), its steps 30, one ultimate at 30, wind as its element, the style
 ## mapped to it; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["skysplitter", "guardbreaker", "crescent_gale", "tempest_turns", "updraft", "gatekeeper", "eye_of_storm"]
+const TECHS := ["skysplitter", "eye_of_storm", "guardbreaker", "crescent_gale", "tempest_turns", "updraft", "gatekeeper"]
 var stage
 var p
 var taken := 0.0
