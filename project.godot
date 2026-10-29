@@ -22,6 +22,7 @@ config/windows_native_icon="res://assets/branding/icon.ico"
 
 [autoload]
 
+Patcher="*res://scripts/game/patcher.gd"
 Settings="*res://scripts/game/settings.gd"
 Pad="*res://scripts/input/pad.gd"
 FX="*res://scripts/game/fx.gd"

@@ -7530,3 +7530,23 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   shoulder capsule 115-123 vs long's 184-192 under the kit's script), cliptest, chartest, t/player/flow_hair.
   Renders: lookshot hair (yaw 15/90/180) -> tools/dev/out/looks/hair_{front,side,back}_{0,1}.png, finishes ->
   finish_{0,1} (two-tone, tipped on short/long/dreads/mohawk), finish_2..3 (the dyes on spiky).
+
+## 2026-10-28: in-game updates and the installer
+
+- **Patcher** (`scripts/game/patcher.gd`, the FIRST autoload): at start-up, before any other game script loads, it
+  promotes a waiting download (`user://update/next.pck` + `next.json`, checksum checked) to `patch.pck` and loads it
+  with `ProjectSettings.load_resource_pack(..., true)` when its base is the version the build was exported as; then
+  sets `application/config/version` to the patch's. Exported games only. It can never be patched itself: keep it tiny
+  and free of game classes.
+- **Updater** (`scripts/game/updater.gd`, the title screen's): GitHub's latest stable release -> its `update.json`;
+  a patch for this base is a menu button "Update to vX (N MB)" (download, checksum, "restart to play it"); otherwise
+  "vX is out: get it" opens the release page (the installer).
+- **The preset** no longer embeds the pack (`Driftwake.pck` beside the exe) and delta-encodes patches.
+- **CI** (`build-windows.yml`): every build makes `Driftwake-Setup.exe` (Inno Setup, `tools/release/driftwake.iss`,
+  per-user install, no admin); a stable tag runs `tools/release/make_update.ps1`: a cumulative patch against the base
+  the last release names, or a new base (full) when the native library, project settings or Godot changed, the patch
+  is over 40% of the base, there's no earlier `update.json`, or `tools/release/NEW_BASE` exists.
+- **Test:** `tools/release/update_test.ps1` exports a base, changes a script and an autoload, exports a patch, installs
+  it as a waiting download and checks the base build promotes, loads and runs it (first run: 28 KB patch on a 46 MB
+  pack). Project-setting changes (autoloads, input, shader globals) can't ride a patch: those make a new base.
+- The first release with this is a new base (full download once); 1.25 and earlier have no Patcher.

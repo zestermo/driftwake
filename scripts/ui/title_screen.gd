@@ -27,6 +27,10 @@ const IP_FILE := "user://last_host.txt"
 const WHATS_NEW := preload("res://scripts/ui/whats_new.gd")
 const RIBBON := Rect2(318, 58, 66, 26)
 var _whats_new: PanelContainer
+## In-game updates (Updater): a menu button that appears when GitHub has something newer.
+var _updater: Updater
+var _update_btn: Button
+var _update_kind := ""
 
 
 func _ready() -> void:
@@ -71,6 +75,36 @@ func _ready() -> void:
 		gm.title_message = ""
 	elif WHATS_NEW.unseen():
 		_open_whats_new()
+	_updater = Updater.new()
+	add_child(_updater)
+	_updater.found.connect(_on_update_found)
+	_updater.progress.connect(func(f: float): _update_btn.text = "Downloading... %d%%" % roundi(f * 100.0))
+	_updater.finished.connect(_on_update_finished)
+	_updater.check()
+
+
+## Something newer on GitHub: a patch to download here, or a new full version (the release page).
+func _on_update_found(kind: String, version: String, size_mb: float) -> void:
+	_update_kind = kind
+	_update_btn.visible = true
+	_update_btn.text = ("Update to v%s (%.1f MB)" % [version, maxf(size_mb, 0.1)]) if kind == "patch" else "v%s is out: get it" % version
+
+
+func _on_update_pressed() -> void:
+	match _update_kind:
+		"patch":
+			_update_kind = "downloading"
+			_update_btn.text = "Downloading..."
+			_updater.download()
+		"ready":
+			_updater.restart()
+		"full":
+			Updater.open_page()
+
+
+func _on_update_finished(ok: bool, message: String) -> void:
+	_update_kind = "ready" if ok else "patch"
+	_update_btn.text = ("%s: restart to play it" % message) if ok else message
 
 
 func _build_menu() -> void:
@@ -79,6 +113,9 @@ func _build_menu() -> void:
 	_menu.position = Vector2(44, 150)
 	_menu.custom_minimum_size = Vector2(190, 0)
 	add_child(_menu)
+	_update_btn = _item("Update", func(): _on_update_pressed())
+	_update_btn.visible = false
+	_update_btn.add_theme_color_override("font_color", UIStyle.GILT)
 	_continue = _item("Continue", func(): _start(_continue_slot, false))
 	_item("New Game", func(): _open_slots("new"))
 	_item("Load Game", func(): _open_slots("load"))
