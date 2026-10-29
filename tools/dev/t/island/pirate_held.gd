@@ -66,7 +66,7 @@ func _process(_d: float) -> bool:
 			h.decide("free", [0], 1)
 			until = TK.wait_secs(1.0)
 		2:
-			check("a captive freed: gone from the post, a lead", h.is_freed(0) and not h.captives[0].visible and (isl.life.arc == null or isl.life.arc.lead_sources() == leads0 + 1))
+			check("a captive freed: untied, a lead", h.is_freed(0) and not h.captives[0].get_node("Free").enabled and (isl.life.arc == null or isl.life.arc.lead_sources() == leads0 + 1))
 			var c: Vector2 = h.plan["c"]
 			stage.player.global_position = isl.to_global(Vector3(c.x, isl.hv(c) + 1.0, c.y + 12.0))
 			stage.player.reset_physics_interpolation()

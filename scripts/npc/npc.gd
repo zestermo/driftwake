@@ -236,12 +236,17 @@ func sleep_ok() -> bool:
 ## Out of the scene for a while (a dojo's master sparring outside, IslandVillage): no body, no talk, nothing to bump.
 ## Not `visible` (ActorSleep owns that).
 var away := false
+var _talk_was := true
 
 
 func set_away(on: bool) -> void:
+	if on == away:
+		return
 	away = on
 	humanoid.visible = not on
-	interactable.enabled = not on
+	if on:
+		_talk_was = interactable.enabled
+	interactable.enabled = false if on else _talk_was
 	(get_node("Body") as StaticBody3D).collision_layer = 0 if on else 1
 	for m in [_mark, _vendor]:
 		if m and on:
