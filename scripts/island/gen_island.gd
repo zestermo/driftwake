@@ -161,7 +161,7 @@ func prepare(n: Dictionary) -> void:
 	_scatter_vegetation()
 	# the villagers' bodies, ready for their NPCs (Humanoid.make picks them up)
 	t0 = Time.get_ticks_usec()
-	for lk in IslandVillage.looks(self) + BeastPool.stock_looks(n) + Artisans.looks(self) + HarbourVendor.looks(self):
+	for lk in IslandVillage.looks(self) + IslandVillage.extra_looks(self) + BeastPool.stock_looks(n) + Artisans.looks(self) + HarbourVendor.looks(self):
 		var h := Humanoid.new()
 		h.setup(lk)
 		Humanoid.stock(h, lk)
@@ -398,7 +398,7 @@ func _notification(what: int) -> void:
 			for lk in BeastPool.stock_looks(node):
 				Humanoid.unstock(lk)
 		if not build_ms.has("village people"):
-			for lk in IslandVillage.looks(self):
+			for lk in IslandVillage.looks(self) + IslandVillage.extra_looks(self):
 				Humanoid.unstock(lk)
 		if not build_ms.has("artisan"):
 			for lk in Artisans.looks(self):

@@ -50,6 +50,11 @@ const MEALS := {
 	"sea_legend": {"name": "Sea Legend's Platter", "desc": "Two fine fish, kelp and spice, the way the old sea cooks did it for a captain's table.",
 		"heal": 70.0, "min": 25.0, "buff": {"max_hp": 30.0, "damage_pct": 0.06, "crit_all": 0.05, "swim_pct": 0.1},
 		"recipe": {"fish": 2, "greens": 1, "spice": 1}, "taught": true, "icon": "fish_stew"},
+	# (1.25.5 unique places: services, not dishes; never in ORDER, never cooked) a village's hot spring and its sea shrine
+	"hot_spring": {"name": "Hot Spring Soak", "desc": "Warm to the bone.", "heal": 0.0, "min": 30.0,
+		"buff": {"max_hp": 25.0, "regen_pct": 1.0, "stamina_regen_pct": 0.2}, "recipe": {}, "taught": true, "icon": "fish_stew"},
+	"sea_blessing": {"name": "The Sea's Blessing", "desc": "The tide is on your side.", "heal": 0.0, "min": 20.0,
+		"buff": {"swim_pct": 0.2, "defense": 3.0, "energy_regen_pct": 0.15}, "recipe": {}, "taught": true, "icon": "fish_stew"},
 }
 ## The order the galley lists them.
 const ORDER := ["fish_stew", "peppered_boar", "porridge", "citrus_tart", "island_skewers", "reef_salad", "forest_curry", "captains_feast", "sea_legend"]

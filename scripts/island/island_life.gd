@@ -339,6 +339,8 @@ func _village_spots(v: IslandVillage) -> Array:
 	for s in v.work_spots:
 		if not s["taken"] and VILLAGE_KIND.has(s["kind"]):
 			out.append(_at_y({"kind": VILLAGE_KIND[s["kind"]], "at": s["at"], "face": s["face"]}, s["y"]))
+		elif str(s["kind"]).begins_with("vshop_"):
+			out.append(_at_y({"kind": s["kind"], "at": s["at"], "face": s["face"]}, s["y"]))
 	for s in v.seats:
 		var f: Vector2 = s["face"]
 		out.append(_at_y({"kind": "bench", "at": s["at"] + f * 0.9, "face": -f}, s["y"]))
@@ -425,7 +427,7 @@ func _work_kind(f: Dictionary, hub: Vector2) -> String:
 		return f["pref"]
 	var work: Array = []
 	for s in spots:
-		if not s.get("poi", false) and s["hub"] == hub and not s["kind"] in ["plaza", "inn", "home", "bench"] and not work.has(s["kind"]):
+		if not s.get("poi", false) and s["hub"] == hub and not s["kind"] in ["plaza", "inn", "home", "bench"] and not str(s["kind"]).begins_with("vshop_") and not work.has(s["kind"]):
 			work.append(s["kind"])
 	return work[int(f["wpick"] * work.size())] if not work.is_empty() else "plaza"
 
@@ -446,6 +448,11 @@ func _routine(i: int) -> void:
 	var j: Array = f["jit"]
 	var hub: Vector2 = hubs[i % hubs.size()]
 	var work := _spot(hub, [_work_kind(f, hub), "plaza"], i)
+	# (1.25.5) a trader with a shop of their own keeps it, whichever hamlet it's in
+	var own := spots.filter(func(s): return s["kind"] == "vshop_" + str(f["role"]).trim_prefix("vendor:"))
+	if str(f["role"]).begins_with("vendor:") and not own.is_empty():
+		work = own[0]
+		hub = work["hub"]
 	var plan := [[5.9 + j[0], work, ACT.get(work["kind"], "stand")],
 		[12.0 + j[1] * 0.6, _spot(hub, ["bench", "plaza", "market"] if i % 2 == 0 else ["market", "plaza"], i), "talk"],
 		[13.4 + j[2] * 0.6, work, ACT.get(work["kind"], "stand")], [18.0 + j[3], _spot(hub, [f["eve"], "inn", "plaza"], i), "talk"]]

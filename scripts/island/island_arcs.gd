@@ -862,12 +862,10 @@ func lead_sources() -> int:
 	return n + freed()
 
 
-## Townsfolk freed from a pirate-held village (PirateHeld sets the flags).
+## A pirate-held village's townsfolk freed and its captain down (PirateHeld).
 func freed() -> int:
-	var n := 0
-	while flag("freed%d" % n):
-		n += 1
-	return n
+	var h := village.get_node_or_null("Held") as PirateHeld
+	return h.leads() if h else 0
 
 
 ## The leads given so far, each its kind (intel, lieutenant, wound, ally).

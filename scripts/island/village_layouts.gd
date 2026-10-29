@@ -76,9 +76,11 @@ static func plan(isl: GenIsland) -> Dictionary:
 	L.dock = isl.sites["dock"]
 	L.to_dock = (L.dock - L.c).normalized()
 	L.dock_a = L.to_dock.angle()
-	var kind := force if force != "" else L._pick()
+	# (1.25.5) a village the pirates took is the ruins layout, held (PirateHeld)
+	var kind := force if force != "" else ("ruins" if PirateHeld.rolls(isl) and L._survivors_at() != Vector2.INF else L._pick())
 	L.layout = kind
 	L.call("_" + kind)
+	L._convert()
 	L._reserve()
 	return {"layout": kind, "c": L.c, "heart_y": L.heart_y, "plaza_r": L.plaza_r, "to_dock": (L.dock - L.c).normalized(), "lanes": L.lanes,
 		"streets": L.streets, "market": L.market, "buildings": L.blds, "items": L.items, "bunting": {"poles": L.bunting, "seed": L.rng.randi()},
@@ -465,6 +467,8 @@ func _ruins() -> void:
 		if caches.size() < 3 and (rng.randf() < 0.45 or caches.is_empty()):
 			caches.append({"p": b["p"], "face": b["face"], "key": "village_cache_%d" % (caches.size() + 1)})
 	extra["caches"] = caches
+	if PirateHeld.rolls(gi):
+		extra["held"] = PirateHeld.plan_for(self, blds.slice(old))
 	for b in blds.slice(old):
 		for k in range(2):
 			var q: Vector2 = b["p"] + Vector2.from_angle(rng.randf() * TAU) * (float(b["w"]) * 0.5 + 1.6)
@@ -901,10 +905,24 @@ func _worn_fronts(prng: RandomNumberGenerator) -> void:
 		KitPaving.plan_disk(kc, worn, b["p"] + f * (float(b["d"]) * 0.5 + float(b["ext"]) * 0.5), maxf(float(b["ext"]) * 0.5, 1.0) + 2.0, prng)
 
 
+## (1.25.5) The island's unique place (UniquePlaces) and the village traders' own shops (VillageVendors): the houses
+## nearest the heart become them, their plots as they were (no draws: the layout's stream doesn't move). "trade" is
+## the trader's or the place's kind (KitShops dresses its room).
+func _convert() -> void:
+	var want: Array = [["unique", UniquePlaces.of(gi)]]
+	for t in VillageVendors.roll(int(gi.node["seed"]), IslandContent.tier(gi)):
+		want.append(["vshop", t])
+	var cands := blds.filter(func(b): return str(b["kind"]) in ["hut", "tall", "home"])
+	cands.sort_custom(func(a, b): return (a["p"] as Vector2).distance_to(c) < (b["p"] as Vector2).distance_to(c))
+	for i in range(mini(want.size(), cands.size())):
+		cands[i]["kind"] = want[i][0]
+		cands[i]["trade"] = want[i][1]
+
+
 ## How far a raised building's front reaches past its wall (the walkway meets it there).
 static func _deck_ext(kind: String) -> float:
 	match kind:
-		"trade", "cook", "home", "elder":
+		"trade", "cook", "home", "elder", "vshop", "unique":
 			return 1.5
 		"inn":
 			return 2.0

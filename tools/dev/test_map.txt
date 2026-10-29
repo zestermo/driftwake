@@ -98,6 +98,11 @@ scripts/island/island_village.gd        t/quests isletest
 scripts/island/island_arcs.gd           t/quests/arc_leads t/quests/arc_beats t/quests/arc_hidden t/quests/arc_reply t/quests/arc_templates t/quests/arc_roll lifetest
 scripts/island/island_life.gd           t/quests lifetest
 scripts/island/island_content.gd        t/island/lair_kinds isletest
+scripts/island/kit/kit_shops.gd         t/island/village_places villagetest
+scripts/island/unique_places.gd         t/island/village_places
+scripts/island/tavern_games.gd          t/island/village_places
+scripts/island/pirate_held.gd           t/island/pirate_held villagetest
+scripts/island/village_layouts.gd       t/island/village_places t/island/pirate_held villagetest
 tools/dev/t/swim/*                      t/swim
 scripts/swim/*                          t/swim swimtest
 scenes/ocean/ocean.gdshader             t/swim

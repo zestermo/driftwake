@@ -88,7 +88,7 @@ static func _wall_window(mb: MeshBuilder, xf: Transform3D, t: float, frame: Mate
 
 
 ## A raised room on a timber deck with a veranda and steps up to it (a ramp under them).
-## spec: kind "home" / "trade" / "cook", w, d, h, fl (the floor over the origin),
+## spec: kind "home" / "trade" / "cook" (or one of KitShops.KINDS: a trader's shop, a unique place), w, d, h, fl (the floor over the origin),
 ## found, veranda, roof "hip" / "gable", wall, roof_tex, seed, name, steps (false: a walkway meets
 ## the veranda instead). Markers: Door (at the foot
 ## of the steps, facing out), Inside, and the kind's own: Bed, Table, Hearth (home);
@@ -224,6 +224,8 @@ static func room(spec: Dictionary) -> StaticBody3D:
 			_trade_inside(body, imb, w, d, fl, rng)
 		"cook":
 			_cook_inside(body, imb, w, d, fl, top, rng)
+		_ when KitShops.KINDS.has(kind):
+			KitShops.inside(kind, body, imb, w, d, fl, h, rng)
 		_:
 			_home_inside(body, imb, w, d, fl, rng)
 	var inside := imb.to_instance("Furnishing")

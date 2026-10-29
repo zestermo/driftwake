@@ -22,7 +22,7 @@ const CORE := ["inn"]
 const SHOPS := ["trade", "cook"]
 ## Palisade logs built a step.
 const PALISADE_LOGS := 120
-const ROOMS := ["trade", "cook", "home", "elder"]
+const ROOMS := ["trade", "cook", "home", "elder", "vshop", "unique"]
 
 var isl: GenIsland
 var ctx: KitContext
@@ -105,6 +105,8 @@ static func steps(gi: GenIsland) -> Array:
 	var rest: Array = p["buildings"].filter(func(b): return not CORE.has(b["kind"]) and not SHOPS.has(b["kind"]))
 	for b in rest:
 		out.append(["village houses", func(): _of(gi)._make(b)])
+		if b["kind"] == "unique":
+			out.append(["village houses", func(): _of(gi)._unique_keeper()])
 	var ex: Dictionary = p["extra"]
 	if ex.has("palisade"):
 		var logs := KitHouses.palisade_angles(ex["palisade"]["r"], ex["palisade"]["arcs"])
@@ -119,6 +121,8 @@ static func steps(gi: GenIsland) -> Array:
 		out.append(["village walks", func(): _of(gi)._walks()])
 	if ex.has("nest"):
 		out.append(["village ruins", func(): _of(gi)._ruins()])
+	if ex.has("held"):
+		out += PirateHeld.steps(gi)
 	out += _market_steps(gi)
 	var items: Array = p["items"].filter(func(it): return it["k"] != "cargo")
 	var at := [0]
@@ -237,6 +241,7 @@ func _build_people(rng: RandomNumberGenerator) -> void:
 	_npc({"name": elder_name, "dialogue": _key("elder"), "voice": 0.8, "look": lks[0]}, c - to_dock * 3.0 + side * 3.0, to_dock, hy)
 	_npc({"name": "Innkeeper " + str(firsts[rng.randi() % firsts.size()]), "voice": 1.1, "look": lks[1], "barks": deck.deal("inn", serve["inn"], 2)},
 		inn_door + Vector2(-inn["face"].y, inn["face"].x) * 1.2, inn["face"], inn.get("floor_y", INF))
+	TavernGames.make(self, inn_door, inn["face"], inn.get("floor_y", INF))
 	_keepers = {"trade": {"name": str(Shops.extra[trade_id]["name"]).trim_suffix("'s Trade Goods"), "voice": 0.95, "shop": trade_id, "look": lks[2],
 		"barks": deck.deal("trade", serve["trade"], 2)},
 		"cook": {"name": str(Shops.extra[food_id]["name"]).trim_suffix("'s Cookpot"), "voice": 1.15, "shop": food_id, "look": lks[3],
@@ -306,16 +311,19 @@ func _make(b: Dictionary) -> Dictionary:
 		"inn":
 			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": ctx.style["inn"]["wall"], "wall2": mat["weave"], "roof_tex": mat["thatch"],
 				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}.merged(frame), p, face, raised)
-		"trade", "cook", "home", "elder":
-			var spec := {"kind": "home" if kind == "elder" else kind, "w": w, "d": d, "found": found, "seed": rng.randi(),
+		"vshop", "unique" when own.has("trade") and raised == INF:
+			n = ctx.place(KitStyle.model(own["trade"], rng, maxf(w, d)), p, yaw, r, 0.0, false)
+			n.name = _uniq("Shop" if kind == "vshop" else "Place")
+		"trade", "cook", "home", "elder", "vshop", "unique":
+			var spec := {"kind": str(b["trade"]) if b.has("trade") else ("home" if kind == "elder" else kind), "w": w, "d": d, "found": found, "seed": rng.randi(),
 				"roof": ["hip", "gable"][rng.randi() % 2], "wall": walls[rng.randi() % walls.size()], "roof_tex": mat["thatch"],
-				"name": _uniq("Shop" if SHOPS.has(kind) else "Home")}
+				"name": _uniq("Shop" if SHOPS.has(kind) or kind == "vshop" else ("Place" if kind == "unique" else "Home"))}
 			if raised != INF:
 				spec.merge({"fl": raised - top, "steps": false}, true)
 			n = ctx.place(KitHouses.room(spec), p, yaw, r, 0.0, false)
 			# every room's lantern lights it: the shops' all day, the homes' after dark
 			var nl := KitLights.light(ctx, n, Vector3(0, float(spec.get("fl", 0.6)) + 1.7, 0.0), 0.9, 6.5)
-			if nl and SHOPS.has(kind):
+			if nl and (SHOPS.has(kind) or kind in ["vshop", "unique"]):
 				nl.always = true
 		"workshop":
 			n = ctx.place(KitHouses.workshop({"seed": rng.randi(), "found": found, "roof_tex": str(ctx.style["mat"]["thatch"])}), p, yaw, r, 0.0, false)
@@ -339,7 +347,7 @@ func _make(b: Dictionary) -> Dictionary:
 				"porch": 1.2 if raised != INF or rng.randf() < 0.5 else 0.0, "lean_to": ["", "", "left", "right"][rng.randi() % 4],
 				"flowers": rng.randf() < 0.4, "trim": trim, "seed": rng.randi(), "name": _uniq("House"),
 				"pitch": rng.randf_range(hs["pitch"][0], hs["pitch"][1])}.merged(frame), p, face, raised)
-	var info := {"kind": kind, "node": n, "p": p, "face": face, "enterable": ROOMS.has(kind), "door": p + face * (d * 0.5 + float(b["ext"]))}
+	var info := {"kind": kind, "node": n, "p": p, "face": face, "enterable": ROOMS.has(kind), "door": p + face * (d * 0.5 + float(b["ext"])), "trade": b.get("trade", "")}
 	if raised != INF:
 		info["door"] = p + face * (d * 0.5 + VillageLayouts._deck_ext(kind))
 		info["floor_y"] = raised
@@ -351,7 +359,8 @@ func _make(b: Dictionary) -> Dictionary:
 	taken.append([p, maxf(w, d) * 0.5 + 0.5])
 	var spots := {"trade": [["Vendor", "shop"], ["Customer", "customer"]], "cook": [["Vendor", "shop"], ["Customer", "customer"]],
 		"home": [["Hearth", "home"], ["Table", "home"], ["Bed", "home"]], "elder": [["Hearth", "home"], ["Table", "home"]],
-		"workshop": [["Worker", "workshop"], ["Bench", "workshop"]], "shrine": [["Keeper", "shrine"], ["Pray", "pray"]]}
+		"workshop": [["Worker", "workshop"], ["Bench", "workshop"]], "shrine": [["Keeper", "shrine"], ["Pray", "pray"]],
+		"vshop": [["Vendor", "vshop_%s" % b.get("trade", "")], ["Customer", "customer"]], "unique": [["Customer", "customer"]]}
 	for e in spots.get(kind, []):
 		work_spots.append({"kind": e[1], "at": ctx.marker_point(n, e[0]), "face": ctx.marker_face(n, e[0]),
 			"y": ctx.marker_y(n, e[0]) if ROOMS.has(kind) else INF, "taken": false})
@@ -379,6 +388,30 @@ func _keeper(b: Dictionary, n: Node3D) -> void:
 	for s in work_spots:
 		if s["kind"] == "shop":
 			s["taken"] = true
+
+
+## (1.25.5) The unique place's keeper inside it, their talk and (restaurant, swordsmith, curio) their shop. What the
+## talk gives is this captain's own (UniquePlaces.act), its result read back by the talk's token.
+var unique := ""
+var _said := ""
+
+
+func _unique_keeper() -> void:
+	var info: Dictionary = buildings.filter(func(b): return b["kind"] == "unique")[0]
+	unique = str(info["trade"])
+	var n: Node3D = info["node"]
+	var lk: Dictionary = extra_looks(isl)[2]
+	var keeper := str(lk["name"])
+	var id := _key("unique")
+	var sid := _key("unique_shop")
+	if unique in ["restaurant", "swordsmith", "curio"]:
+		Shops.extra[sid] = UniquePlaces.shop(unique, sid, keeper.get_slice(" ", keeper.get_slice_count(" ") - 1), IslandContent.tier(isl))
+	Dialogue.register_token(id + "_said", func(): return _said)
+	UniquePlaces.define(id, unique, keeper, isl.island_name, sid)
+	_npc({"name": keeper, "dialogue": id, "voice": 0.95, "look": lk}, ctx.marker_point(n, "Vendor"), ctx.marker_face(n, "Vendor"), ctx.marker_y(n, "Vendor"))
+	Dialogue.dialogue_event.connect(func(ev: String):
+		if ev.begins_with("unique:%s:" % id):
+			_said = UniquePlaces.act(isl, unique, ev.get_slice(":", 2), get_tree().get_first_node_in_group("player")))
 
 
 ## "House", then "House2", "House3"... (a node's name is how co-op and the tools find it).
@@ -438,7 +471,8 @@ func _ruins() -> void:
 	nest.name = "Burrows"
 	nest.level = IslandContent.level(isl)
 	site.add_child(nest)
-	for e in nest_plan["burrows"]:
+	# (1.25.5) held by pirates: their garrison, roof decks and captives instead of the bugs (PirateHeld.steps)
+	for e in ([] if ex.has("held") else nest_plan["burrows"]):
 		var bp: Vector2 = e[0]
 		var burrow := Props.burrow(int(absf(bp.x * 13.0 + bp.y * 7.0)))
 		ctx.place(burrow, bp, KitContext.face_yaw(c - bp) + PI, 0.0, -0.08)
@@ -513,6 +547,21 @@ static func looks(gi: GenIsland) -> Array:
 	return out
 
 
+## (1.25.5) The inn's two regulars (TavernGames) and the unique place's keeper (named), built ahead the same way.
+static func extra_looks(gi: GenIsland) -> Array:
+	if not gi.village_plan.has("layout"):
+		return []
+	var out := TavernGames.looks(gi)
+	var place: Array = (gi.village_plan.get("buildings", []) as Array).filter(func(b): return b["kind"] == "unique")
+	if not place.is_empty():
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([int(gi.node["seed"]), 5141])
+		var lk := KitStyle.folk_look(KitStyle.of(gi.theme), rng)
+		lk["name"] = "%s %s" % [UniquePlaces.PLACES[place[0]["trade"]]["keeper"], _folk_name(gi, rng)]
+		out.append(lk)
+	return out
+
+
 static func _villager_look(rng: RandomNumberGenerator) -> Dictionary:
 	var lk := CharacterLook.random_look(rng)
 	lk.merge({"coat": "none", "hat": ["straw", "none", "none", "bandana"][rng.randi() % 4], "feet": "barefoot" if rng.randf() < 0.5 else "shoes",
@@ -559,7 +608,7 @@ func _define_elder(notices: Array, qn: KitQuests) -> void:
 			"I'm %s. The board by the path has work, if you're the sort who takes it." % elder_name], "next": "menu"},
 		"menu": menu,
 		"about": {"text": LifePools.of(isl.theme)["elder_about"], "next": "menu"},
-		"beyond": {"text": [beyond, "Your needle needs time on an island before it sets on the next, or something to happen here worth remembering."], "next": "menu"},
+		"beyond": {"text": [beyond] + ahead.map(func(n): return UniquePlaces.rumour(n)) + ["Your needle needs time on an island before it sets on the next, or something to happen here worth remembering."], "next": "menu"},
 	}
 	for q in notices:
 		qn.report(q, menu["choices"], nodes)

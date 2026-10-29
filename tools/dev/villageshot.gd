@@ -28,6 +28,11 @@ func _initialize():
 	if a.size() > 3:
 		load("res://scripts/island/village_layouts.gd").force = a[3]
 	# (env VSHOT_MARKET=rows: every market that shape, KitMarket.SHAPES)
+	# (VSHOT_PLACE=library: every village's unique place that one; VSHOT_HELD=1: held by pirates, the ruins layout)
+	if OS.get_environment("VSHOT_PLACE") != "":
+		load("res://scripts/island/unique_places.gd").force = OS.get_environment("VSHOT_PLACE")
+	if OS.get_environment("VSHOT_HELD") == "1":
+		load("res://scripts/island/pirate_held.gd").force = true
 	if OS.get_environment("VSHOT_MARKET") != "":
 		load("res://scripts/island/kit/kit_market.gd").force_shape = OS.get_environment("VSHOT_MARKET")
 	change_scene_to_file("res://scenes/world/world.tscn")
@@ -142,13 +147,20 @@ func _setup(island) -> void:
 		match str(b["kind"]):
 			"shrine", "workshop", "storehouse":
 				shots.append([b["kind"], "the %s" % b["kind"], _g(p + f * 9.0 + s * 4.0, 2.2), _g(p, 1.2), 0.0])
-			"trade", "home", "elder", "cook":
-				if shots.any(func(sh): return sh[0] == b["kind"]):
+			"trade", "home", "elder", "cook", "vshop", "unique":
+				var nm: String = str(b["trade"]) if str(b.get("trade", "")) != "" else str(b["kind"])
+				if shots.any(func(sh): return sh[0] == nm):
 					continue
 				var fl: float = (n.get_node("Inside") as Node3D).position.y
 				var eye: Vector3 = isl.to_local(n.to_global(Vector3(0.6, fl + 1.65, 1.9)))
 				var look: Vector3 = isl.to_local(n.to_global(Vector3(-0.3, fl + 0.9, -2.0)))
-				shots.append([b["kind"], "inside: %s" % b["kind"], eye, look, 0.0])
+				shots.append([nm, "inside: %s" % nm, eye, look, 0.0])
+	for d in isl.find_children("RoofDeck*", "", true, false).slice(0, 2):
+		var dp: Vector3 = isl.to_local(d.global_position)
+		var away: Vector2 = (Vector2(dp.x, dp.z) - site).normalized()
+		shots.append(["roof_" + str(d.name), "held: a roof deck and its ladder", _g(Vector2(dp.x, dp.z) + away * 9.0 + Vector2(-away.y, away.x) * 4.0, 3.0), dp + Vector3(0, 2.5, 0), 0.0])
+	if vil.has_node("Held"):
+		shots.append(["held_square", "held: the square", _g(site + sd * 14.0 + td * 6.0, 6.0), _g(site, 1.0), 0.0])
 	_aim()
 
 

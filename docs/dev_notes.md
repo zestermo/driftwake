@@ -7826,3 +7826,37 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   Emitters keep the names EdyHand / EdyFoot; `_emitters`, `_shells` for tests.
 - Renders: abilityshot edy_reinforce with AB_EDY per type (tools/dev/out/edy2). Tests: `t/will/reinforce`,
   `t/will/infuse_legs` updated.
+## 1.25.5, pieces 3-6: shops, unique places, tavern games, pirate-held villages (2026-10-29)
+- **Shops you walk into.** `VillageLayouts._convert` (after the layout, no draws) turns the huts / tall houses / homes
+  nearest the heart into the village traders' own shops (kind "vshop", `trade` = the VillageVendors trade) and the
+  unique place (kind "unique", `trade` = its id). IslandVillage builds them as `KitHouses.room` with the trade as the
+  room's kind (a theme with its own trade model uses that); `KitShops.inside` dresses smith (forge, anvil, quench tub,
+  blades), armourer (shields, two armour stands), tailor (bolts, dress form, a rail of garments), luthier (lutes, drums),
+  apothecary (bottles, herbs, mortar, scales) behind a counter (Vendor/Customer markers). The trader's routine is their
+  shop's Vendor spot (`vshop_<trade>`, IslandLife._routine), any hamlet, all day and night. The store and cookhouse
+  were already dressed rooms.
+- **Unique places** (`UniquePlaces`, pool and rewards **assumed**): library (an Edy point once per character, will_point),
+  onsen (20 gold: full heal and the "hot_spring" buff, 30 min), restaurant (a shop of feasts), swordsmith (a shop of
+  tier+2 blades with traits), sea shrine (10 gold: "sea_blessing", 20 min), cartographer (40 gold: the whole island
+  charted; a treasure chart once), dojo (50 gold: 2 quests' XP once), curio shop (oddities). The two buffs are Food.MEALS
+  entries never cooked (not in ORDER). Rolled from the chain's seed shuffled, taken in chain island order (no repeat in 8);
+  the keeper (`IslandVillage._unique_keeper`, a step after the building) inside; what an action gives shows through a
+  Dialogue token (`<key>_said`). The elder's "lodestone" talk tells of the next islands' places (only the elder: unique_lines).
+- **Tavern games** (`TavernGames`, the node "Tavern" under the village; games and stakes **assumed**): the dicer and the
+  wrestler by the inn's door. Dice: best of three 2d6 throws for 10/25/50 (tokens show the throws). Arm wrestling: an
+  overlay (`TavernGames.Wrestle`, PixelCanvas, the Talk state): Attack while the sweeping marker's in the band pushes,
+  they push back by tier, 14 s, 25 gold. Three wins running: the host gives the crew 10% at the store and the cookhouse
+  (Journal.perks, every machine through Net._all_arc on the node). Each captain plays with their own gold.
+- **Pirate-held villages** (`PirateHeld`, ~1 island in 6 **assumed**): the village rolls "ruins" (when the survivors
+  have a spot) and `_ruins` plans a held village (worker: roof decks over the 3 ruins nearest the old square, crates
+  stacked by two, captives' posts by four more with their bodies stocked, five guards); built in steps ("village held":
+  decks with Ladders and a GruntCamp "Garrison" with riflemen on the decks, the square's fire/flags/barrels, a captive a
+  step). Freeing a captive (host, world flag `held_freed<k>`) and the captain's fall (`held_captain`) are leads
+  (IslandArcs.freed). The captain: Net._all_spawn_rival "HeldCaptain" when a captain is within 26 m of the square (host),
+  CaptainBrain pace 1.6, hp_k 2.9 x tier; his fall clears the garrison on every machine; nobody within 90 m for 20 s
+  sends him back in.
+- Per frame/tick: PirateHeld and TavernGames tick at 0.5 s (PirateHeld) / not at all (TavernGames, but the Wrestle
+  overlay while it's open); the shops' rooms are one furnishing mesh each (visibility 45 m), the roof decks one mesh
+  each (240 m). The keepers, regulars and captives' bodies are built on the worker (IslandVillage.extra_looks, plan_for).
+- Tests: `t/island/village_places`, `t/island/pirate_held`. Renders: villageshot (VSHOT_PLACE=<place>, VSHOT_HELD=1;
+  interiors of every shop and the place, the held square and its roof decks).
