@@ -189,3 +189,21 @@ Built without the previews the build order asked for: each row is **assumed** un
 - Preview the new Brinehollow step list (places, order, what each step teaches) before building it.
 - Preview the island-completion reward and what each kind of lead does to a showdown, with numbers.
 - Zach may still have more playtest notes to add.
+
+## Status (2026-10-29, evening)
+- **Released:** v1.25.1 (unstable, the first update base: installer + update.json).
+- **On main, not yet released** (the next test build, to be tagged **1.25.2** after the release check):
+  - 1.25.2 work: compass always up; tonic flask; vendor badges for shipwrights/masters; traders keep their stalls;
+    island-named elders and keepers; NPCs glance instead of spinning; the site/README rename wording.
+  - 1.25.4 Brinehollow opening (agent, 4 pieces): 21 steps (assumed), unarmed start + quay brawl, Vey's rack, Master
+    Isao's Edy reading at the shrine, Tomo on the terrace, lighthouse/ruins/forest steps.
+  - 1.25.3 Edy tree (round, 8 branches + bridges, ranks by use, switches, Infusion) and the new subtle Edy looks.
+  - 1.25.5 island loop (agent, 6 pieces): leads against the villain, rarer burrows (hideouts, pickets), dressed trader
+    shops, unique places, tavern games, pirate-held villages. Its pools/rules/numbers are **assumed** (see its table).
+  - The version bump to 1.25.2, its What's new notes and roadmap entry sit uncommitted in the main checkout
+    (project.godot, scripts/ui/whats_new.gd, web/site/roadmap/roadmap.json): update them to cover all of the above.
+- **Release check still to run** (world suites, expected to need test updates for deliberate changes): storytest,
+  savetest, villagetest, lifetest, isletest, chaintest/fidelity, smoketest, nettest. Then tag v1.25.2 (UNSTABLE stays).
+- **Left for 1.26:** wave-1 weapons (two ultimates, crew variants, alternates, a launcher each), the internal id rename +
+  old release notes, then the other 11 weapons and 1.26 stable (delete tools/release/UNSTABLE, point the site's
+  Download at Driftwake-Setup.exe).
