@@ -1,7 +1,7 @@
 # A release's update (CI, build-windows.yml, after the export; Updater and Patcher read what it writes):
 #   build/update.json       {"version", "base", "full_required", "patch", "size", "sha256"}
 #   build/Driftwake-patch.pck   one cumulative patch against the base release's pack (Godot --export-patch, delta-encoded)
-# The base is the one the last stable release names in its update.json. This release is a new base instead (full
+# The base is the one the newest earlier release (stable or not) names in its update.json. This release is a new base instead (full
 # download, no patch; full_required) when:
 #   - the last release has no update.json (the first release with the updater), or there's no last release
 #   - tools/release/NEW_BASE exists (delete it after the release)
@@ -31,8 +31,10 @@ function Write-Update([string]$base, [bool]$full, [string]$why, [string]$patch =
 	"update.json: " + ($info | ConvertTo-Json -Compress)
 }
 
-# the last stable release and the base it names
-$prev = (gh release view --repo $Repo --json tagName --jq .tagName 2>$null)
+# the newest earlier release (1.26: stable or unstable: an unstable one's update chains on for beta players) and the
+# base it names
+$prev = (gh release list --repo $Repo --exclude-drafts --limit 10 --json tagName --jq '.[].tagName' 2>$null) |
+	Where-Object { $_ -ne "v$Version" } | Select-Object -First 1
 $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "driftwake_update_$Version"
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $tmp | Out-Null

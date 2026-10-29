@@ -7,15 +7,19 @@ extends Node
 ##   full   a new base (the engine or the native library changed, or the patches grew too big), or no patch for this
 ##          base: the release page opens for the installer
 ## update.json (CI, tools/release/make_update.ps1): {"version", "base", "full_required", "patch": asset name, "size",
-## "sha256"}. Pre-releases (unstable builds) are never offered: GitHub's "latest" skips them. Exported games only.
+## "sha256"}. Pre-releases (unstable builds) are offered only with Settings gameplay/beta_updates on (1.26: the newest
+## release of any kind, from the releases list); otherwise GitHub's "latest", which skips them. Exported games only.
 
 signal found(kind: String, version: String, size_mb: float)
 signal progress(frac: float)
 signal finished(ok: bool, message: String)
 
 const LATEST := "https://api.github.com/repos/zestermo/driftwake/releases/latest"
+const RELEASES := "https://api.github.com/repos/zestermo/driftwake/releases?per_page=20"
 const PAGE := "https://github.com/zestermo/driftwake/releases/latest"
 const DIR := "user://update/"
+## The page a full update opens: the release found (an unstable one's own page), else the latest stable.
+static var page := PAGE
 
 var latest := ""
 var _info := {}
@@ -33,7 +37,10 @@ func _ready() -> void:
 func check(force := false) -> void:
 	if not force and not OS.has_feature("template"):
 		return
-	_fetch(LATEST, _on_release)
+	if bool(Settings.get_value("gameplay", "beta_updates")):
+		_fetch(RELEASES, _on_releases)
+	else:
+		_fetch(LATEST, _on_release)
 
 
 func _fetch(url: String, then: Callable) -> void:
@@ -55,8 +62,32 @@ func _on_done(result: int, code: int, _h: PackedStringArray, body: PackedByteArr
 
 func _on_release(body) -> void:
 	var rel = JSON.parse_string(body.get_string_from_utf8()) if body else null
-	if not (rel is Dictionary):
-		return
+	if rel is Dictionary:
+		_use(rel)
+
+
+## (beta updates) The newest release in the list, stable or not (drafts never).
+func _on_releases(body) -> void:
+	var list = JSON.parse_string(body.get_string_from_utf8()) if body else null
+	if list is Array:
+		var best = newest(list)
+		if best is Dictionary:
+			_use(best)
+
+
+## The newest non-draft release of a GitHub releases list (null if none).
+static func newest(list: Array):
+	var best = null
+	for r in list:
+		if not (r is Dictionary) or bool(r.get("draft", false)):
+			continue
+		if best == null or newer(str(r.get("tag_name", "")).trim_prefix("v"), str(best.get("tag_name", "")).trim_prefix("v")):
+			best = r
+	return best
+
+
+func _use(rel: Dictionary) -> void:
+	page = str(rel.get("html_url", PAGE))
 	latest = str(rel.get("tag_name", "")).trim_prefix("v")
 	if latest == "" or not newer(latest, running()):
 		return
@@ -122,7 +153,7 @@ func restart() -> void:
 
 ## The release page (the installer, for a full update).
 static func open_page() -> void:
-	OS.shell_open(PAGE)
+	OS.shell_open(page)
 
 
 static func base() -> String:

@@ -38,6 +38,7 @@ const DEFAULTS := {
 		"name_tags": true,
 		"reticle": true,
 		"pad_skills": true,    # on a pad: which skill is on which LB button, bottom left
+		"beta_updates": false,    # (1.26) the title screen also offers unstable (pre-release) builds
 	},
 }
 

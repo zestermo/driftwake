@@ -17,7 +17,8 @@
 #   exporter (driftwake_native.gdextension's windows.release.x86_64 line); the export step checks it's there.
 # - The game's pack is a file beside the exe (Driftwake.pck, not embedded): it's the base patches are built against.
 # - Every build also makes the installer (Driftwake-Setup.exe, tools/release/driftwake.iss, Inno Setup).
-# - A stable version tag also makes the in-game update (tools/release/make_update.ps1): update.json, and a small
+# - Every version tag also makes the in-game update (tools/release/make_update.ps1; 1.26: unstable ones too, for players
+#   with "Get unstable updates" on): update.json, and a small
 #   Driftwake-patch.pck against the current base release when the changes allow one (Updater offers it on the title
 #   screen; Patcher loads it). Otherwise this release is a new base: players download the installer once.
 name: Build Windows
@@ -112,8 +113,8 @@ jobs:
           if (-not (Test-Path build/Driftwake-Setup.exe)) { throw "no installer" }
           Get-Item build/Driftwake-Setup.exe | Select-Object Name, Length
 
-      - name: The in-game update (stable version tags)
-        if: startsWith(github.ref, 'refs/tags/v') && hashFiles('tools/release/UNSTABLE') == ''
+      - name: The in-game update (version tags; unstable ones reach players with "Get unstable updates" on)
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GODOT: ${{ steps.godot.outputs.bin }}

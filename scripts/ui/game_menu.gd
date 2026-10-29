@@ -490,6 +490,7 @@ func _build_options() -> Control:
 	_slider_row(list, "Camera shake", "gameplay", "camera_shake", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_toggle_row(list, "NPC name tags", "gameplay", "name_tags")
 	_toggle_row(list, "Reticle", "gameplay", "reticle")
+	_toggle_row(list, "Get unstable updates", "gameplay", "beta_updates")
 
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER

@@ -647,3 +647,4 @@ scripts/quests/quest_rewards.gd         t/progression/crew_xp t/quests/reward_ki
 scripts/powers/edy_aura.gd              t/will/infuse_legs
 scripts/player_states/skill_state.gd    t/will/infuse_legs
 scripts/island/marine_outpost.gd        t/island/outpost t/island/outpost_spots
+scripts/game/updater.gd                 t/ui/updater_beta

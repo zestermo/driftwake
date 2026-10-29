@@ -7660,3 +7660,12 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   every captain's ragdoll on every screen (puppets too) before the lock-up carries them 420 m up. Not reproduced
   here (co-op): nettest at prepush covers the arrest path; Zach to check in co-op.
 - `t/combat/arrest` and rivalshot use `RivalEncounter.walk_in = false`.
+
+## 1.26.1, piece 10: unstable updates for testers (2026-10-29)
+- Settings gameplay/beta_updates (default false; Options: "Get unstable updates"). On: `Updater.check` reads the
+  releases list (RELEASES) and takes `Updater.newest` (highest version, pre-releases in, drafts out); off: GitHub's
+  "latest" as before. `Updater.page` (static) is the found release's html_url, so a full update opens that page.
+- CI: the in-game update step runs for every version tag (was stable only); `make_update.ps1` chains off the newest
+  earlier release of any kind (`gh release list`), so an unstable patch builds on the same base. Stable players never
+  see unstable releases (latest skips pre-releases).
+- Test: `t/ui/updater_beta`.
