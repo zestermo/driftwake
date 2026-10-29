@@ -1953,7 +1953,7 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 	debris(pos + Vector3(0, 0.1, 0), Vector3.UP, 12, Color(0.35, 0.3, 0.25), 6.5)
 	dust_ring(pos, 18, 1.1 * size)
 	ring(pos, Vector3.UP, 2.6 * size, glow if hot else Color(1.0, 0.95, 0.85), 0.4, 0.14)
-	smoke(pos + Vector3(0, 0.6, 0), 9, 0.9 * size, 2.0, POWDER_SMOKE if hot else Color(0.62, 0.6, 0.58, 0.8))
+	smoke(pos + Vector3(0, 0.6, 0), 5, 0.85 * size, 1.5, POWDER_SMOKE if hot else Color(0.62, 0.6, 0.58, 0.8))  # (1.26: 9 puffs, 2 s: too much)
 	if hot:
 		_burst(pos + Vector3(0, 0.3, 0), 20, _spark_mat, 0.16, 0.6, {"radius": 0.3, "direction": Vector3.UP, "spread": 55.0,
 			"vel_min": 4.0, "vel_max": 9.0, "gravity": Vector3(0, -9.0, 0), "damping": 1.5, "grow": false,

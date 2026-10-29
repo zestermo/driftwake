@@ -333,10 +333,10 @@ static func air_update(s, delta: float) -> void:
 # Poses: cn_fire, cn_lob, cn_back, cn_brace.
 # --------------------------------------------------------------------------
 const CANISTER_AT := 0.25
-const CANISTER_REACH := 12.0
-const CANISTER_CONE := 0.4
-const CANISTER_BALLS := 12
-const CANISTER_BALL := 6.0
+const CANISTER_REACH := 14.0
+const CANISTER_CONE := 0.62
+const CANISTER_BALLS := 18
+const CANISTER_BALL := 5.0
 
 const CHAIN_AT := 0.25
 const CHAIN_SPEED := 30.0
@@ -483,7 +483,7 @@ static func _canister(s) -> void:
 		var r := CANISTER_CONE * sqrt(randf_range(0.1, 1.0))
 		var d := (dir + side * cos(a) * tan(r) + Vector3.UP * (sin(a) * tan(r) * 0.5 + 0.05)).normalized()
 		var ln := GunKinds.line(p, mz, d, CANISTER_REACH, 1)
-		if i % 2 == 0:
+		if i % 3 != 2:
 			_net().fx("tracer", [mz, ln[0], s._col(FXS.EDGE) if s._elem() else Color(1.0, 0.8, 0.5)])
 		if not (ln[1] as Array).is_empty():
 			var hb := (ln[1] as Array)[0] as Hurtbox
@@ -494,5 +494,10 @@ static func _canister(s) -> void:
 		hd.impact = "shot"
 		s._strike(hb.owner, hd)
 		_net().fx("impact", [GunKinds.center(hb), Color(1.0, 0.75, 0.45)])
+	# (1.26) the grape bursting out of the barrel: a wide spray of hot shot along the cone
+	_net().fx("muzzle_sparks", [mz + dir * 0.3, dir, 40])
+	# (1.26) the grape bursting out of the barrel: hot shot sprayed across the whole cone
+	for k in [-1.0, 0.0, 1.0]:
+		_net().fx("muzzle_sparks", [mz + dir * 0.3, dir.rotated(Vector3.UP, k * CANISTER_CONE * 0.7), 14])
 	_report(s, mz, dir, 1.3)
 	p.velocity -= dir * 4.0
