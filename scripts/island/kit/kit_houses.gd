@@ -1005,10 +1005,11 @@ static func ruin(spec: Dictionary) -> StaticBody3D:
 	for k in range(3):
 		var x := -w * 0.35 + k * w * 0.35
 		Buildings.beam_between(mb, dark, Vector3(x, fl + h * 0.6, -d * 0.5 + 0.1), Vector3(x + rng.randf_range(-0.5, 0.5), fl + 0.05, d * 0.25 + rng.randf() * 0.6), 0.12)
-	# a sapling grown up through the floor, weeds and vines
-	var tp := Vector3(w * rng.randf_range(-0.25, 0.25), fl, d * 0.2)
-	mb.add_cylinder(PSXMat.lit("bark"), _xf(tp), 0.1, 0.06, 3.4, 5, 1.0)
-	mb.add_blob(leaves, _xf(tp + Vector3(0, 3.6, 0)), Vector3(1.3, 0.9, 1.3), rng, 0.3, 3, 7)
+	# a sapling grown up through the floor (not under a pirate-held village's roof deck), weeds and vines
+	if spec.get("sapling", true):
+		var tp := Vector3(w * rng.randf_range(-0.25, 0.25), fl, d * 0.2)
+		mb.add_cylinder(PSXMat.lit("bark"), _xf(tp), 0.1, 0.06, 3.4, 5, 1.0)
+		mb.add_blob(leaves, _xf(tp + Vector3(0, 3.6, 0)), Vector3(1.3, 0.9, 1.3), rng, 0.3, 3, 7)
 	for k in range(5):
 		mb.add_blob(leaves, _xf(Vector3(rng.randf_range(-w, w) * 0.45, fl, rng.randf_range(-d, d) * 0.45)), Vector3(0.35, 0.25, 0.35), rng, 0.3, 2, 5)
 	body.add_child(mb.to_instance())

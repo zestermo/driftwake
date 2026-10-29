@@ -333,7 +333,7 @@ func _make(b: Dictionary) -> Dictionary:
 		"storehouse":
 			n = ctx.place(KitHouses.storehouse({"seed": rng.randi(), "found": found, "roof_tex": str(ctx.style["mat"]["thatch"])}), p, yaw, r, 0.0, false)
 		"ruin":
-			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin")}), p, yaw, r, 0.0, false)
+			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin"), "sapling": not _roofed(p)}), p, yaw, r, 0.0, false)
 		"tall":
 			var upper: Array = ctx.style["row_upper"]
 			n = _house({"w": w, "d": d, "h": 2.4, "floors": 2, "h2": 2.2, "jetty": 0.3, "roof": ["hip", "gable", "gable_front"][rng.randi() % 3],
@@ -365,6 +365,11 @@ func _make(b: Dictionary) -> Dictionary:
 		work_spots.append({"kind": e[1], "at": ctx.marker_point(n, e[0]), "face": ctx.marker_face(n, e[0]),
 			"y": ctx.marker_y(n, e[0]) if ROOMS.has(kind) else INF, "taken": false})
 	return info
+
+
+## A ruin a pirate-held village has decked over (PirateHeld: no sapling up through it).
+func _roofed(p: Vector2) -> bool:
+	return (isl.village_plan["extra"].get("held", {}).get("roofs", []) as Array).any(func(r): return (r["p"] as Vector2).is_equal_approx(p))
 
 
 ## A Buildings.house on stilts: on its posts as the ground allows, or (raised) with its

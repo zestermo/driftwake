@@ -14,6 +14,7 @@ const CHANCE := 1.0 / 6.0
 const ROOFS := 3
 const CAPTIVES := 4
 const DECK_H := 2.9
+const CRATE_REACH := 1.1
 ## A captain this close (m) to the square brings their captain out; everyone this far off for GONE_S sends him back in.
 const WAKE_R := 26.0
 const GONE_R := 90.0
@@ -63,8 +64,10 @@ static func plan_for(L, ruins: Array) -> Dictionary:
 		var s := Vector2(-f.y, f.x)
 		if roofs.size() < ROOFS:
 			roofs.append({"p": b["p"], "face": f, "w": float(b["w"]) + 0.6, "d": float(b["d"]) + 0.6, "r": maxf(float(b["w"]), float(b["d"])) * 0.6})
+			# (by the deck's open front, across from its ladder: the sides are railed)
 			if stacks.size() < 2:
-				stacks.append({"p": (b["p"] as Vector2) + s * (float(b["w"]) * 0.5 + 0.95) + f * 0.6, "yaw": KitContext.face_yaw(f), "along": -f, "seed": rng.randi()})
+				stacks.append({"p": (b["p"] as Vector2) + f * ((float(b["d"]) + 0.6) * 0.5 + 0.5) + s * (float(b["w"]) * 0.25), "yaw": KitContext.face_yaw(f),
+					"out": f, "roof": roofs.size() - 1, "seed": rng.randi()})
 		elif posts.size() < CAPTIVES:
 			var lk := IslandVillage._villager_look(rng)
 			var firsts: Array = LifePools.of(L.gi.theme)["first"]
@@ -122,14 +125,18 @@ static func build(v, ctx: KitContext, p: Dictionary) -> PirateHeld:
 		var post := deck.to_global(Vector3(0, y - low, -0.3))
 		h.garrison.add_grunt(IslandContent.undead(v.isl, {"post": h.garrison_local(post), "yaw": KitContext.face_yaw(c - (r["p"] as Vector2)), "mode": "stand",
 			"seed": hash([int(p["seed"]), "roof", i]), "role": "rifle"}, 40 + i))
-	# crates stacked by the first decks' sides: a scramble up besides the ladder
+	# crates stacked against the first decks' fronts, a step out from them: a scramble up besides the ladder (a jump
+	# clears CRATE_REACH m)
 	for i in range(p["stacks"].size()):
 		var s: Dictionary = p["stacks"][i]
 		var srng := KitVillage._seeded(int(s["seed"]))
-		var along: Vector2 = s["along"]
-		for k in range(3):
-			var cr := KitStyle.prop(st, "crate", srng, 0.9)
-			ctx.place(cr, (s["p"] as Vector2) + along * (0.0 if k == 0 else 0.95), float(s["yaw"]), 0.0, 0.9 if k == 2 else 0.0, false)
+		var r: Dictionary = p["roofs"][int(s["roof"])]
+		var top := ctx.ground_max(r["p"], r["r"]) + DECK_H
+		var n := clampi(ceili((top - ctx.hv(s["p"]) - CRATE_REACH) / 0.9), 1, 3)
+		# (a stair of columns, n high at the deck down to one)
+		for j in range(n):
+			for k in range(n - j):
+				ctx.place(KitStyle.prop(st, "crate", srng, 0.9), (s["p"] as Vector2) + (s["out"] as Vector2) * 0.95 * j, float(s["yaw"]), 0.0, 0.9 * k, false)
 	for i in range(p["guards"].size()):
 		var g: Vector2 = p["guards"][i]
 		var gp := h.garrison_local(Vector3(g.x, ctx.hv(g), g.y), true)
