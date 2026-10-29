@@ -86,7 +86,9 @@ static func shoot_enter(s) -> void:
 	var p: Player = s.player
 	s.steady = 0.0
 	s.face_direction(s.get_camera_forward(), 1.0)
-	if p.sprinting and p.progression.has_move("skid_shot"):
+	var ran := p.quick_draw
+	p.quick_draw = false
+	if ran and p.progression.has_move("skid_shot"):
 		s.mode = "skid"
 		s.dur = ActionSpecs.length("sl_skid")
 		p.body_model.play("sl_skid", s.dur)

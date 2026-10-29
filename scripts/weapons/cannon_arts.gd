@@ -50,7 +50,9 @@ static func shoot_enter(s) -> void:
 	var p: Player = s.player
 	s.steady = 0.0
 	s.face_direction(s.get_camera_forward(), 1.0)
-	if p.sprinting and p.progression.has_move("cannon_ram"):
+	var ran := p.quick_draw
+	p.quick_draw = false
+	if ran and p.progression.has_move("cannon_ram"):
 		_ram_enter(s)
 		return
 	if p.reloading() or p.ammo[0] <= 0:

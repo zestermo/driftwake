@@ -112,6 +112,8 @@ func combat_input() -> String:
 				pending_tech = alt_move("sprint")
 				return "Technique"
 			if player.weapon_class() == "gun":
+				# (the sprint is over by the time ShootState enters: Move's exit clears it, so the gun arts read this)
+				player.quick_draw = player.sprinting
 				return "Shoot" if now_s() >= reload_until else ""
 			if not player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
 				return ""

@@ -30,6 +30,7 @@ func enter(_data: Dictionary) -> void:
 	if art:
 		art.shoot_enter(self)
 		return
+	player.quick_draw = false
 	var dual := player.style() == "dual_pistol"
 	dur = 0.28 if dual else 0.34
 	face_direction(get_camera_forward(), 1.0)
