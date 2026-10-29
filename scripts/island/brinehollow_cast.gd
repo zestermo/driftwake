@@ -260,6 +260,13 @@ static func people(isl: StarterIsland) -> Array:
 			"belt": "belt", "belt_color": L.LEATHER[1]},
 		"waypoints": fish_route,
 	}, "at": Vector2(fish_route[0].x, fish_route[0].z), "face": Vector2(0, 1)})
+
+	# (1.25.4) the Edy master in his reading hall on the shrine terrace: the story's reading (Story "shrine")
+	var isao := KitLife.look_for("Master Isao")
+	isao.merge({"body": "masc", "build": "slim", "height": 0.97, "marks": "age_lines", "hair": "topknot", "hair_color": L.HAIR_COLORS[8],
+		"facial_hair": "long_beard", "hat": "none", "top": "kimono", "top_color": L.CLOTH[5], "sleeves": "long", "coat": "none",
+		"legs": "trousers", "legs_color": L.CLOTH[6], "feet": "sandals", "belt": "sash", "sash_color": L.CLOTH[13]}, true)
+	cast.append({"cfg": {"name": "Master Isao", "dialogue": "isao", "voice": 0.86, "look": isao}}.merged(KitLife.at_marker(kit, isl.reading_hall, "Master")))
 	return cast
 
 

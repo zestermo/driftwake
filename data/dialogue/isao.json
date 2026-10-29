@@ -1,0 +1,82 @@
+{
+	"speaker": "Master Isao",
+	"voice": 0.86,
+	"start": "intro",
+	"return": "menu",
+	"story": { "shrine": "story_read", "tomo": "story_tomo" },
+	"nodes": {
+		"story_read": {
+			"text": [
+				"Vey sent you up. He climbs that stair once a year and complains for a month. Sit. Breathe. You're still carrying the smugglers' fight in your shoulders.",
+				"In that fight something turned in you, under the strength. Sailors call it Edy: the water that curls back on itself behind a rock. Round and round, never still, never gone.",
+				"Everyone has it. In most it sleeps. Hard fights wake it, and once it's awake it grows with you: every few fights won, you'll have more of it to spend.",
+				"But it doesn't run the same way in everyone. Still water, fire, a crown, a storm, the tide. Before you spend it, you should know which you are. That's what I read.",
+				"Answer quickly. The first answer is the true one."
+			],
+			"next": "sq0"
+		},
+		"story_after": {
+			"text": [
+				"There. Now it knows where to go, and so do you.",
+				"Your Edy is spent on its tree, on the Captain's page in your skill map. Each branch is a way of using it. Your kind colours every one, and leans you a little toward one way of fighting.",
+				"Infusing is the first thing everyone learns: pour the current into your blows and they land harder, and carry your colour. Reinforce is the other side: pour it into your body and the blows that land on you do less. Both drink your energy while they're on.",
+				"One more thing. Bao's pupil, Tomo, drills on the flags east of the shrine. He's been asking for someone new to spar with. Bare hands. Go and see what your legs know."
+			],
+			"set_flag": "edy_read",
+			"event": "story:shrine",
+			"next": "end"
+		},
+		"story_tomo": {
+			"text": "Tomo's on the flagstones, east of the shrine. Bow first. He's fussy about that.",
+			"next": "menu"
+		},
+		"intro": {
+			"text": [
+				"Master Isao. I keep the shrine with Sanae and read the current in sailors who climb up here.",
+				"Most come for the view. A few come for the reading. Fewer come back to argue with it."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Well?",
+			"choices": [
+				{ "text": "Read my Edy.", "next": "edy", "hide_if": "edy_read" },
+				{ "text": "Tell me about Edy again.", "next": "edy_about", "requires": "edy_read" },
+				{ "text": "Who's Tomo?", "next": "tomo" },
+				{ "text": "Nothing. The view.", "next": "bye" }
+			]
+		},
+		"edy": {
+			"text": [
+				"The current in you. Yes. It doesn't go the same way in everyone, and before you spend it you should know which way yours runs.",
+				"Answer quickly. The first answer is the true one."
+			],
+			"next": "eq0"
+		},
+		"edy_after": {
+			"text": [
+				"There. Spend it on the tree on the Captain's page as you earn it. Infuse your blows, reinforce your body.",
+				"If you ever think I read you wrong, there's a reader on the capital's terrace. She charges like a duchess."
+			],
+			"set_flag": "edy_read",
+			"next": "menu"
+		},
+		"edy_about": {
+			"text": [
+				"Edy is the current in you. It grows as you win hard fights; you spend it on its tree, on the Captain's page.",
+				"Infuse: into your blows, harder and in your colour. Reinforce: into your body, blows do less. Both cost energy while they last. Your kind colours all of it."
+			],
+			"next": "menu"
+		},
+		"tomo": {
+			"text": [
+				"Bao's pupil. Bao cooks for Hana at the teahouse below and kicks between the pots. Tomo kicks between everything.",
+				"Beat him and Bao will teach you the kitchen's way of fighting: legs, no blades."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "The sea's the same from up here. You're not. That's why people climb."
+		}
+	}
+}

@@ -3,7 +3,24 @@
 	"voice": 0.6,
 	"start": "read",
 	"return": "read_again",
+	"story": { "ruins": "story_ruins" },
 	"nodes": {
+		"story_ruins": {
+			"text": [
+				"A black monolith, warm to the touch. Glyphs crawl across its face, glowing the color of deep water.",
+				"You can't read them. And yet, as you look, the meaning settles into you like silt:",
+				"\"WE PASSED THIS WAY AND THE WATERS FOLLOWED. SEEK THE STONE WHERE THE SUN DROWNS.\"",
+				"The glow pulses once, and the current Isao woke in you turns over with it, as if it knew the words before you did.",
+				"North-west, past the ruins, the cliffs climb toward Grell's den. Whatever this stone is, it'll keep. Grell won't."
+			],
+			"event": "driftstone_read",
+			"next": "story_ruins_done"
+		},
+		"story_ruins_done": {
+			"text": "The glyphs dim. The path to the cliffs runs on behind the ruins.",
+			"event": "story:ruins",
+			"next": "end"
+		},
 		"read": {
 			"text": [
 				"A black monolith, warm to the touch. Glyphs crawl across its face, glowing the color of deep water.",

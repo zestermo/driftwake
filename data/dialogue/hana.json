@@ -20,11 +20,6 @@
 					"hide_if": "edy_read"
 				},
 				{
-					"text": "Tell me about Edy again.",
-					"next": "edy_about",
-					"requires": "edy_read"
-				},
-				{
 					"text": "Bao says he cooks with his feet.",
 					"next": "bao"
 				},
@@ -43,35 +38,7 @@
 				"A current. Yes. Sailors call it Edy: the water turning back on itself behind a rock, round and round, never still and never gone.",
 				"Everyone has some. In most it sleeps. A hard fight wakes it, and then it wants to go somewhere.",
 				"It doesn't go the same way in everyone. Some are still water, some are fire, some are a storm. Before you spend it, you should know which you are.",
-				"Sit. Drink. Answer me honestly, and quickly. The first answer is the true one."
-			],
-			"next": "edy_ask"
-		},
-		"edy_ask": {
-			"text": "Ready?",
-			"choices": [
-				{
-					"text": "Ask.",
-					"next": "eq0"
-				},
-				{
-					"text": "Another time.",
-					"next": "menu"
-				}
-			]
-		},
-		"edy_after": {
-			"text": [
-				"There. Now it knows where to go. Spend it as you earn it: the Captain's page will show you the paths.",
-				"And drink your tea. It's getting cold."
-			],
-			"set_flag": "edy_read",
-			"next": "menu"
-		},
-		"edy_about": {
-			"text": [
-				"Edy is the current in you. Spend it on the paths: Iron Will, Sense, Tide, Tempo, Fury, Bond, and the one that rules the rest.",
-				"Your kind of Edy colours all of it, and leans you a little toward one way of fighting. If you ever feel you were read wrong, there's a reader on the capital's terrace. She charges like a duchess."
+				"Master Isao reads which you are. Up the stair, at the shrine. Drink your tea first; the stair's long."
 			],
 			"next": "menu"
 		},

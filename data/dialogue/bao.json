@@ -33,7 +33,7 @@
 		"legs": {
 			"text": [
 				"Low kick, high kick, the heel from above, and when they crowd you, down on your hands and sweep the floor with them.",
-				"I don't teach just anyone. Tomo, my pupil, will spar with you out on the flat. Bare hands, no blades. Put him down and I'll teach you the rest."
+				"I don't teach just anyone. Tomo, my pupil, will spar with you up on the shrine terrace, on the flags east of the shrine. Bare hands, no blades. Put him down and I'll teach you the rest."
 			],
 			"next": "legs_ask"
 		},
@@ -52,7 +52,7 @@
 		},
 		"legs_test": {
 			"text": [
-				"Tomo! A guest wants to learn. He'll wait for you out on the flat: go to him when you're ready."
+				"Tomo! A guest wants to learn. He'll wait for you on the terrace flags, up the stair: go to him when you're ready."
 			],
 			"event": "master:black_leg",
 			"next": "end"

@@ -57,6 +57,13 @@ const ASK_AGAIN_R := 6.0
 ## The bow, then a beat a second.
 const BOW_SECS := 1.4
 var _leave_t := 0.0
+var _off_t := 0.0
+## A held bout's ground (_leash): the rival further than LEASH_R off it for LEASH_SECS is put back, the captain
+## further than FORFEIT_R loses.
+const LEASH_R := 7.0
+const LEASH_SECS := 1.5
+const FORFEIT_R := 30.0
+const APART_STUCK := 4.0
 static var _n := 0
 
 
@@ -128,9 +135,9 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 	away.y = 0.0
 	away = away.normalized() if away.length() > 0.5 else Vector3.LEFT
 	var at := sand - away * APART + Vector3.UP * 0.5
-	if kind.begins_with("master:"):
+	spot = sand
+	if kind.begins_with("master:") or kind == "brawl":
 		at = sand + Vector3.UP * 0.5
-		spot = sand
 	var rname := "ArenaRival_%d" % _n
 	net.everyone("_all_spawn_rival", [net.key_of(isl), rname, lk, weapon, at, atan2(away.x, away.z), skill])
 	rival = isl.get_node_or_null(rname) as Player
@@ -264,6 +271,8 @@ func _physics_process(delta: float) -> void:
 				_finish(true)
 			elif _beaten(captain):
 				_finish(false)
+			elif _held():
+				_leash(delta)
 		"leave":
 			_leave_t -= delta
 			if _leave_t <= 0.0:
@@ -271,6 +280,31 @@ func _physics_process(delta: float) -> void:
 				if is_instance_valid(rival):
 					_net().everyone("_all_rival_gone", [_net().key_of(rival)])
 				queue_free()
+
+
+## A spar or the quay brawl: fought on its ground, not wherever a blow carries them.
+func _held() -> bool:
+	return kind.begins_with("master:") or kind == "brawl"
+
+
+## The 1.25.4 spar fix: a rival knocked off the ground (into a wall, between buildings, down the flank) for LEASH_SECS
+## steps back onto it; a captain who walks off forfeits.
+func _leash(delta: float) -> void:
+	if spot.distance_to(captain.global_position) > FORFEIT_R:
+		_finish(false)
+		return
+	var off := spot.distance_to(rival.global_position) > LEASH_R and rival.global_position.distance_to(captain.global_position) > APART_STUCK
+	_off_t = _off_t + delta if off else 0.0
+	if _off_t < LEASH_SECS or rival.body_model.ragdoll != null:
+		return
+	_off_t = 0.0
+	var back := captain.global_position - spot
+	back.y = 0.0
+	back = back.normalized() * 2.5 if back.length() > 0.5 else Vector3.ZERO
+	rival.global_position = spot + back + Vector3.UP * 0.3
+	rival.velocity = Vector3.ZERO
+	rival.reset_physics_interpolation()
+	_net().fx("puff", [rival.global_position, "dust_low", 6, 0.5, 0.6, Color(1, 1, 1, 0.8), 0.6])
 
 
 func _finish(won: bool) -> void:

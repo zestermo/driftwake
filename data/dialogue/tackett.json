@@ -3,7 +3,7 @@
 	"voice": 0.78,
 	"start": "intro",
 	"return": "menu",
-	"story": { "until:see_tackett": "story_busy", "see_tackett": "story_tackett", "queen": "story_queen", "tackett_ship": "story_ship" },
+	"story": { "until:see_tackett": "story_busy", "see_tackett": "story_tackett", "forest": "story_forest", "queen": "story_queen", "tackett_ship": "story_ship" },
 	"nodes": {
 		"story_busy": {
 			"text": "Busy. That sloop at the end of the dock won't plank herself. Come back when Odile says you're worth my time.",
@@ -12,11 +12,15 @@
 		"story_tackett": {
 			"text": [
 				"Odile sent you? Then you're the one who did for Grell. Huh. Thought you'd be taller.",
-				"The sloop. Aye, she could be yours. Hull's sound, rigging's new. But her keel's half rot, and oak won't do for what's out past the reef.",
-				"What I need is chitin. Brood chitin, off the queen bug nesting in the cave in the deep forest, west of the ruins. Harder than iron, and it never rots.",
-				"Bring me the queen's shell and I'll lay you a keel the Leviathan couldn't bite through. Then she's yours."
+				"The sloop. Aye, she could be yours. Hull's sound, rigging's new. But her keel's half rot, and her knees with it.",
+				"Two things. Seasoned timber first: there's deadfall in the old forest west of the ruins, ironwood the storms brought down years back. Split me three good lengths for her knees.",
+				"Then chitin. Brood chitin, off the queen bug nesting in the cave at the forest's far side. Harder than iron, and it never rots. Bring me her shell and I'll lay you a keel the Leviathan couldn't bite through. Then she's yours."
 			],
 			"event": "story:see_tackett",
+			"next": "end"
+		},
+		"story_forest": {
+			"text": "Deadfall in the old forest, west of the ruins. Three good lengths of it. Mind the spitters in the big trees.",
 			"next": "end"
 		},
 		"story_queen": {

@@ -55,7 +55,7 @@ const CAVE := Vector2(-150, 45)
 const BRAWL_S := -18.0
 const BRAWL_IN := 8.0
 const RACK := TRAINING + Vector2(-2.5, -7.0)
-const SPAR := Vector2(UP_X + 10.5, 15.5)
+const SPAR := Vector2(UP_X + 11.0, 15.0)
 ## Grell's den on a plateau off the north-west beach: flat to DEN_IN, its cliffs at
 ## DEN_OUT, its hoist and pier out toward DEN_SEA.
 const DEN := Vector2(-160, -152)
@@ -117,7 +117,8 @@ const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
-	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787}
+	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787,
+	"terrace_story": 8888, "deadfall": 8989}
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -254,6 +255,8 @@ var _last_tree: Array = []
 var woods := {"trees": [], "under": 0, "keys_before": 0, "keys_after": 0}
 ## The new town's built pieces, their meshes folded into one at the end (TownMeshes).
 var _town_parts: Array = []
+## Master Isao's reading hall on the shrine terrace (1.25.4; his place is its "Master" marker).
+var reading_hall: Node3D
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -1752,7 +1755,47 @@ func _build_shrine_terrace() -> void:
 		var lp: Vector2 = q + (Vector2(-2.2, 0.6) if q.x < 0.0 else Vector2(2.2, 0.6))
 		if not _excluded(lp, 0.4):
 			KitLights.post(kit, lp, 0.0, 0.3, 0.0)
+	_build_terrace_story()
 	KitStreet.merge_meshes(kit, _town_parts, "TownMeshes")
+
+
+## The terrace's 1.25.4 pieces (its own seed, after everything else on it): Master Isao's reading hall on the
+## west side facing the way, a basin by it; on the east side the flagged sparring ground (Tomo's spar, SPAR) with
+## striking posts round it, a rack of staves and a parapet along the terrace's east edge.
+func _build_terrace_story() -> void:
+	var rng := kit.rng(0, SEEDS["terrace_story"])
+	var top: float = _flat_zones[0][1] + UP_RISE
+	var hall := ShrineTerrace.reading_hall(rng.randi())
+	var hp := Vector2(UP_X - 10.2, 11.8)
+	kit.place(hall, hp, face_yaw(Vector2(1, 0)), 0.0)
+	kit.reserve(hp, 4.0)
+	reading_hall = hall
+	town_spots["reading_hall"] = hall
+	var parts: Array = [hall]
+	parts.append(kit.place(ShrineTerrace.basin(), Vector2(UP_X - 8.0, 17.0), face_yaw(Vector2(1, 0)), 0.0))
+	kit.reserve(Vector2(UP_X - 8.0, 17.0), 1.0)
+	var quads: Array = []
+	KitPaving.plan_disk(kit, quads, SPAR, 4.6, rng)
+	KitPaving.build(kit, quads, "SparGround", "flagstones", Color(0.9, 0.88, 0.84))
+	kit.reserve(SPAR, 4.6)
+	for k in range(4):
+		var pp := SPAR + Vector2(2.6 if k % 2 == 0 else -2.6, 5.8 if k < 2 else -5.8)
+		parts.append(kit.place(ShrineTerrace.striking_post(rng.randi()), pp, rng.randf() * TAU, 0.0))
+		kit.reserve(pp, 0.6)
+	var rp := Vector2(UP_X + 14.3, 23.2)
+	parts.append(kit.place(Props.weapon_rack(), rp, face_yaw(Vector2(-1, 0)), 0.0))
+	kit.reserve(rp, 1.2)
+	_town_parts.append_array(parts)
+	var pb := MeshBuilder.new()
+	var pbody := StaticBody3D.new()
+	pbody.name = "SparParapet"
+	var pts := PackedVector3Array()
+	var z := UP_Z1 + 1.5
+	while z < 24.5:
+		pts.append(Vector3(UP_X + 15.4, top, z))
+		z += 1.6
+	KitStreet.wall(kit, pb, pbody, pts, 0.4, 0.55)
+	_town_parts.append(KitStreet.finish(kit, pb, pbody))
 
 
 ## The windmill hamlet in the southern lands (KitFarm): a yard round a well at FARM, the windmill on its
@@ -2633,10 +2676,16 @@ func _add_arrival_zone() -> void:
 		if b.is_in_group("player"):
 			get_tree().call_group("hud", "show_banner", "Brinehollow", "A quiet fishing village"))
 	Dialogue.dialogue_event.connect(_on_dialogue_event)
-	# (Hana's Edy reading: the master's questions, built from EdyTypes)
-	var hana: Dictionary = Dialogue._load("hana")
-	if not hana.is_empty() and not (hana["nodes"] as Dictionary).has("eq0"):
-		(hana["nodes"] as Dictionary).merge(EdyTypes.quiz_nodes("e", "edy_after"))
+	edy_reading(Dialogue)
+
+
+## Master Isao's Edy reading at the shrine (1.25.4): his talk gets the master's questions, built from EdyTypes ("s" the
+## story's reading, "e" one asked for later).
+static func edy_reading(dlg: Node) -> void:
+	var isao: Dictionary = dlg._load("isao")
+	if not (isao["nodes"] as Dictionary).has("eq0"):
+		(isao["nodes"] as Dictionary).merge(EdyTypes.quiz_nodes("e", "edy_after"))
+		(isao["nodes"] as Dictionary).merge(EdyTypes.quiz_nodes("s", "story_after"))
 
 
 func _on_dialogue_event(event_name: String) -> void:
