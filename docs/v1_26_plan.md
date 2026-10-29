@@ -102,6 +102,22 @@ What he asked for:
 | Switching passives off | Every always-on passive has an on/off switch (Wave Walk, Second Step, Foresight...) | Zach | - |
 | Weapon effects and the Edy look | Every attack and ability keeps its current plain look and effects (weapon progression unchanged). The Edy tree gets an 8th branch, **Infusion** (between Bond and Iron Will), with two switchable skills: **Edy Techniques** (techniques and ultimates carry the Edy type's look and +8% damage, +2 energy each) and **Edy Strikes** (plain attacks carry it too, +5% damage, 0.5 energy a blow, going plain at 0 energy). The rest of the branch makes infusion stronger and cheaper: Deep Well +15 max energy, Steady Flow +20% energy regen, Dense Edy +6% infused damage and +2 Reinforce defense, Second Wind 0.3 energy back per infused hit, and Brimming (free infusion above 80% energy). Bridges: Shared Well / Kindred Edy (Bond), Tempered / Edy Armour (Iron Will). The goal: a captain who specs into Edy and energy can keep both infusions on all fight | Zach | Mock review; numbers tuned in play |
 
+### Round 4 (2026-10-29): the weapon trees
+
+Today:
+- 17 weapon trees (skill_trees.gd), three branches each, with element nodes at mastery 16 and 25 and one ultimate
+  (Skills "ult").
+- Crew techniques (crew_technique_state.gd, C in combat stance) are mostly launches (Skyward Kick, Hurl, Pole Vault,
+  Human Cannonball...), plus Guardian Stance, Shield Wall, Pincer and Covering Fire.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Edy tree style | The round constellation (mock v3) is the style for the Edy tree. Each weapon's existing progression stays as it is | Zach | - |
+| Connected weapon branches | Bridge nodes (stats and passives) between each weapon tree's three branches, like the Edy tree's, so a build can cross over without going back to the root | Zach | Preview |
+| Two ultimates | The top of each weapon tree splits into two ultimate branches, each with its own lead-up nodes. You can buy into one or both, but only one ultimate is equipped at a time, swapped out of a fight | Zach | Preview: the second ultimate per weapon |
+| Crew technique variants | Each weapon gets a second crew technique bought with weapon points, not a launch. Kinds: **setups** (one pins, trips or holds a foe, the other lands a big finisher), **combined attacks** (one merged attack with both weapons) and **rescue/support** (haul a downed crewmate out, a shared shield, trading energy). The weapon's solo version as today | Zach: "something different and interesting other than just launching your friend" | Preview: the move per weapon |
+| Scope across 17 weapons | Design every weapon's new content (second ultimate, crew variant, 3 alternates) now. 1.26 builds the most-played weapons first (cutlass, katana, black leg, pistol, polearm, greatsword); the other 11 follow in a 1.26.x patch through the updater | Animation volume | After wave 1 |
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.
