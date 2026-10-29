@@ -75,7 +75,9 @@ func _process(_d: float) -> bool:
 			for t in STS.HEADERS.keys():
 				if STS.converted(t):
 					shape(t)
-			var untaught: Array = load("res://scripts/progression/skills.gd").ALL.keys().filter(func(s): return ST.node_for_skill(s) == "")
+			# (1.25.3) the Edy tree teaches its own abilities; Foresight is its auto node now (foresight_auto), not a cast
+			var ET = load("res://scripts/progression/edy_tree.gd")
+			var untaught: Array = load("res://scripts/progression/skills.gd").ALL.keys().filter(func(s): return ST.node_for_skill(s) == "" and ET.of_skill(s) == "" and s != "foresight")
 			check("every active skill is taught by a node %s" % str(untaught), untaught.is_empty())
 			var moves := {}
 			for k in ST.nodes().keys():

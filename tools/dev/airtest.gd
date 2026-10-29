@@ -16,6 +16,7 @@ var fails := 0
 var saw := {}
 var hp0 := 0.0
 var downed := false
+var reeled := false
 var drops := 0
 var last_hp := 0.0
 var bounced := false
@@ -85,6 +86,7 @@ func target_grunt(at: Vector3) -> void:
 	last_hp = 400.0
 	drops = 0
 	downed = false
+	reeled = false
 
 
 func item(id: String):
@@ -137,6 +139,8 @@ func _physics_process(_d: float) -> bool:
 	if g and is_instance_valid(g):
 		if g.state == DOWN:
 			downed = true
+		if g.state == STAGGER:
+			reeled = true
 		if g.health.current_health < last_hp - 0.5:
 			drops += 1
 		last_hp = g.health.current_health
@@ -237,9 +241,9 @@ func _process(d: float) -> bool:
 			match c["anim"]:
 				"twin_cyclone":
 					check("...cuts on the way down and a burst on landing (%d hits, %.0f -> %.0f)" % [drops, hp0, g.health.current_health], drops >= 2)
-					check("...the landing burst knocks them flat", downed)
+					check("...the landing burst floors or reels them (1.25.1 poise: a burst floors only on a break)", downed or reeled)
 				"fs_dive":
-					check("...punches them flat (%.0f -> %.0f)" % [hp0, g.health.current_health], downed and g.health.current_health < hp0)
+					check("...punches them flat or reels them (1.25.1 poise) (%.0f -> %.0f)" % [hp0, g.health.current_health], (downed or reeled) and g.health.current_health < hp0)
 					check("...and bounces you back up (%s)" % str(saw.keys()), bounced and saw.has("vault_back"))
 					# another kick off the bounce
 					p.input_buffer.buffer_action("light_attack")
@@ -247,7 +251,7 @@ func _process(d: float) -> bool:
 					step = 15
 					return false
 				"hang_shot":
-					check("...one heavy shot knocks them flat (%.0f -> %.0f)" % [hp0, g.health.current_health], downed and g.health.current_health < hp0)
+					check("...one heavy shot floors or reels them (1.25.1 poise) (%.0f -> %.0f)" % [hp0, g.health.current_health], (downed or reeled) and g.health.current_health < hp0)
 					check("...using a ball (%s)" % str(p.ammo), p.ammo[0] < p.max_ammo() or p.reloading())
 				"boarding_dive":
 					check("...the point lands (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)

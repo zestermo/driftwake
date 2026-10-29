@@ -79,7 +79,7 @@ func _process(_d: float) -> bool:
 			check("cast again", p.power.try_cast(0))
 			until = TK.wait_secs(1.3)
 		6:
-			check("nobody hits: the guard times out (%s)" % p.current_state_name(), p.current_state_name() != "Technique" and not p.power.buff("riposte"))
+			check("the guard ends: timed out, or a grunt's blow caught and thrown (%s %s)" % [p.current_state_name(), p.state_machine.get_node("Technique").id], (p.current_state_name() != "Technique" and not p.power.buff("riposte")) or p.state_machine.get_node("Technique").id == "shoulder_throw")
 			return TK.done(fails)
 	step += 1
 	return false

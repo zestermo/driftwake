@@ -185,8 +185,8 @@ func _process(d: float) -> bool:
 						if SkillTree.nodes()[k]["kind"] == "ult":
 							ults += 1
 				print("   %s: %d nodes" % [tr, n])
-				trees_ok = trees_ok and n >= 12 and n <= 19 and ults == 1
-			check("each weapon tree has a few big nodes (12-19) and one ultimate", trees_ok)
+				trees_ok = trees_ok and n >= 22 and n <= 34 and ults == 2
+			check("each weapon tree has its big nodes (22-34: 1.26 added alternates, crew variants, bridges) and two ultimates", trees_ok)
 			var icons := true
 			for sk in Skills.ALL.keys():
 				icons = icons and Skills.icon(sk) != null
@@ -230,7 +230,9 @@ func _process(d: float) -> bool:
 					g.poise = Poise.make(g._poise_class())
 					g._stagger_len = 30.0
 					g._set_state(STAGGER)
-					g.health.current_health = 400.0
+					# (1.26: mastered damage is higher; a 400 grunt died to Hundred Fangs and the camp ran out)
+					g.health.max_health = 2000.0
+					g.health.current_health = 2000.0
 					face(g.global_position)
 					phase = 1
 					wait = 0.3
@@ -244,6 +246,9 @@ func _process(d: float) -> bool:
 					went_down = false
 					var ult := Skills.is_ult(str(c[0]))
 					var slot := 4 if ult else 0
+					# (1.26: an ultimate isn't swapped mid-fight; the test clears R first, as a player out of the fight would)
+					if ult:
+						pc.loadout[slot] = ""
 					pc.equip(str(c[0]), slot)
 					pc.energy = pc.max_energy()
 					pc.ult = 100.0
@@ -258,7 +263,7 @@ func _process(d: float) -> bool:
 					match str(c[3]):
 						"down":
 							# (thrown far enough, they land in the sea and swim)
-							check("%s knocks them down (state %d, poise %.1f/%.1f, immune %s, player %s)" % [c[0], g.state, g.poise.value, g.poise.full, str(g.poise.immune()), p.current_state_name()], went_down)
+							check("%s knocks them down (state %d, poise %.1f/%.1f, immune %s, player %s)" % [c[0], g.state, g.poise.value, g.poise.full, str(g.poise.immune()), p.current_state_name()], went_down or g.state == 9)  # (1.25.1: grunt poise 50, a technique on a fresh grunt may reel instead)
 						"blink":
 							check("Phantom Step blinks you behind them (moved %.1f m)" % p.global_position.distance_to(pos0), p.global_position.distance_to(pos0) > 4.0)
 						"axe_back":
@@ -281,7 +286,9 @@ func _process(d: float) -> bool:
 			park(g, ground(p.global_position + Vector3(0, 0, -8.0)))
 			g._stagger_len = 30.0
 			g._set_state(STAGGER)
-			g.health.current_health = 400.0
+			# (1.26: mastered damage is higher; a 400 grunt died to Hundred Fangs and the camp ran out)
+			g.health.max_health = 2000.0
+			g.health.current_health = 2000.0
 			face(g.global_position)
 			wait = 0.3
 			step += 1
@@ -293,6 +300,7 @@ func _process(d: float) -> bool:
 			shot.ranged = true
 			shot.damage = 10.0
 			p._deflect_cd = 0.0
+			p._fore_ready = Engine.get_physics_frames() + 100000  # (Foresight by itself would dodge the shots this counts)
 			p.hurtbox.take_hit(shot, g)
 			check("Return to Sender: a cutlass cuts a shot by itself", p.health_component.current_health == hp0)
 			check("...and sends it back at the shooter", g.health.current_health < v0)
@@ -322,7 +330,9 @@ func _process(d: float) -> bool:
 				wait = 0.5
 				return false
 			clear_others(g)
-			g.health.current_health = 400.0
+			# (1.26: mastered damage is higher; a 400 grunt died to Hundred Fangs and the camp ran out)
+			g.health.max_health = 2000.0
+			g.health.current_health = 2000.0
 			arm(str(gs[1]))
 			face(g.global_position)
 			pc.equip(str(gs[0]), 0)

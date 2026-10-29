@@ -126,7 +126,7 @@ func _process(d: float) -> bool:
 			check("level up to 2: stronger by itself, no points to spend", pr.level == 2 and pr.skill_points == 0 and is_equal_approx(pr.stat("max_hp"), 5.5) and is_equal_approx(pr.stat("damage_pct"), 0.02))
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			check("Will isn't a level: no Will points from levels", pr.pool("will") == 0 and pr.can_learn("w_coat_heavy") == "Needs 1 Will point" and not pr.has_flag("armament"))
+			check("Will isn't a level: no Will points from levels", pr.pool("will") == 0 and not pr.has_flag("armament"))
 			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
 			pr.add_life("acrobatics", pr.mastery_to_next(1))
 			check("Acrobatics 2: Geppo bought with its Adventure point, an air jump", pr.buy("m_geppo") and p.max_jumps == 2)

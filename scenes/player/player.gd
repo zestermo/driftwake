@@ -642,6 +642,14 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 			if not Duel.beaten(self, hit.damage * 0.5 * (1.0 - damage_reduction())):
 				health_component.take_damage(hit.damage * 0.5 * (1.0 - damage_reduction()))
 			return
+	# Riposte: the guard is up - turn the blow aside and answer it (before any dodge by itself: a guard put up on purpose
+	# wins over Foresight, which would otherwise dodge the very blow the counter waits for)
+	if power.buff("riposte") and not hit.ranged and not hit.dot and not hit.unblockable:
+		power.buffs["riposte"] = 0.0
+		state_machine.force_state("Technique", {"id": "riposte_counter", "target": attacker})
+		return
+	if hit.ranged and _try_deflect(hit, dir, attacker):
+		return
 	# Observation Haki: Foresight dodges by itself
 	if not hit.dot and power.use_foresight():
 		_foresight_dodge(dir)
@@ -658,13 +666,6 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if progression.stat("foresight_slow") > 0.0:
 			CombatManager.apply_hitstop(progression.stat("foresight_slow"), [self])
 		EdyTree.use(self, "e_sense_3")
-		return
-	if hit.ranged and _try_deflect(hit, dir, attacker):
-		return
-	# Riposte: the guard is up - turn the blow aside and answer it
-	if power.buff("riposte") and not hit.ranged and not hit.dot and not hit.unblockable:
-		power.buffs["riposte"] = 0.0
-		state_machine.force_state("Technique", {"id": "riposte_counter", "target": attacker})
 		return
 	# crew techniques: a Shield Wall, a guardian's guard
 	if crew_tech.blow(hit, attacker, dir):
