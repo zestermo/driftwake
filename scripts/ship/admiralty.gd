@@ -28,9 +28,16 @@ const RING_N := [0, 2, 3, 4, 5]
 const BLOCK_FROM := 2
 const DEED_EVERY := 480.0
 const RING_R := 135.0
-## The blockade: how far past the island's no-go edge its ships hold station, and their spread.
-const BLOCK_OUT := 30.0
-const BLOCK_SPREAD := 46.0
+## The blockade (1.26): BLOCK_N ships holding station on an arc BLOCK_R round the crew's ship where she lies (seaward,
+## away from the island), BLOCK_ARC rad apart, booms between them and from each end ship
+## BLOCK_WING rad on toward the shore, so there's no sailing round it. They fire from station; sink or cripple any one
+## (or get past the line) and the booms tied to her part and the rest give chase.
+const BLOCK_N := 3
+const BLOCK_R := 95.0
+const BLOCK_ARC := 0.75
+const BLOCK_WING := 0.7
+## A boom's ends stop this short of a ship's side.
+const BLOCK_GAP := 9.0
 ## Patrols by heat tier: seconds at sea between them (0: none; 1.26: none while only Wanted), and what sails.
 const PATROL_EVERY := [0.0, 0.0, 420.0, 300.0, 240.0]
 ## After a hunt ends (the patrol beaten or the crew escaped), no patrol for this long (game s).
@@ -61,6 +68,10 @@ var _n: int = 0
 var _deed_t: float = -1.0
 ## No patrols before this (clock): QUIET after the last hunt ended.
 var _quiet_until: float = 0.0
+## (host) The blockade line: its ships' names, the circle's centre, and each boom's ships (boom name -> [names]).
+var _line: Array = []
+var _line_c := Vector3.ZERO
+var _boom_ships: Dictionary = {}
 
 
 static func of(tree: SceneTree) -> Admiralty:
@@ -130,6 +141,7 @@ func _physics_process(delta: float) -> void:
 			_close_ring(ship)
 			ring_due = {}
 		_patrol_tick(ship)
+	_line_tick()
 	var life := WAKE_LIFE * lerpf(1.0, 0.5, clampf(Weather.storm, 0.0, 1.0))
 	while not wake.is_empty() and clock - float(wake[0][1]) > life:
 		wake.pop_front()
@@ -214,17 +226,73 @@ func _blockade(at: Vector3) -> void:
 	if out.length() < 1.0:
 		out = Vector3.FORWARD
 	out = out.normalized()
-	var mouth := c + out * (float(isle[1]) + EnemyShip.STANDOFF + BLOCK_OUT)
-	var across := Vector3.UP.cross(out)
-	var heading := atan2(-across.x, -across.z)
+	# round her where she lies (seaward of her, away from the island)
+	var centre := Vector3(from.x, 0.0, from.z) if ship else c + out * (float(isle[1]) + EnemyShip.STANDOFF)
+	_line_c = centre
+	var ang := atan2(out.z, out.x)
+	var on_arc := func(a: float) -> Vector3: return centre + Vector3(cos(a), 0.0, sin(a)) * BLOCK_R
 	var lv := _level()
+	_line = []
+	var spots: Array = []
+	for i in range(BLOCK_N):
+		var a := ang + (float(i) - (BLOCK_N - 1) * 0.5) * BLOCK_ARC
+		var p: Vector3 = on_arc.call(a)
+		var tangent := Vector3(-sin(a), 0.0, cos(a))
+		# (broadside to her, the middle one the heavy ship once the crew's Infamous)
+		var es := _spawn("frigate" if i == BLOCK_N / 2 and _tier() >= 3 else "marine", p, atan2(-tangent.x, -tangent.z), lv, "block")
+		_line.append(String(es.name))
+		spots.append(p)
+	for i in range(BLOCK_N - 1):
+		var d: Vector3 = (spots[i + 1] - spots[i]).normalized()
+		_add_boom(spots[i] + d * BLOCK_GAP, spots[i + 1] - d * BLOCK_GAP, [_line[i], _line[i + 1]])
+	# the wings: on from each end ship toward the shore
+	var half := (BLOCK_N - 1) * 0.5 * BLOCK_ARC
 	for s in [-1.0, 1.0]:
-		_spawn("marine", mouth + across * s * BLOCK_SPREAD, heading, lv, "block")
+		var end: Vector3 = spots[0] if s < 0.0 else spots[-1]
+		var tip: Vector3 = on_arc.call(ang + s * (half + BLOCK_WING))
+		_add_boom(end + (tip - end).normalized() * BLOCK_GAP, tip, [_line[0] if s < 0.0 else _line[-1]])
+	Net.spawned(self, net_gen())
+
+
+func _add_boom(from: Vector3, to: Vector3, ships: Array) -> void:
 	_n += 1
 	var bname := "Boom_%d" % _n
-	booms[bname] = [mouth - across * (BLOCK_SPREAD - 9.0), mouth + across * (BLOCK_SPREAD - 9.0)]
+	booms[bname] = [from, to]
+	_boom_ships[bname] = ships
 	_make_boom(bname)
-	Net.spawned(self, net_gen())
+
+
+## (host) The blockade line, each tick: a ship of it sunk, struck, fled or driven off station parts her booms and
+## sends the rest after the crew; the crew's ship past the line sends them all.
+func _line_tick() -> void:
+	if _line.is_empty():
+		return
+	var ship := get_tree().get_first_node_in_group("ship") as Node3D
+	var past := ship != null and Vector2(ship.global_position.x - _line_c.x, ship.global_position.z - _line_c.z).length() > BLOCK_R + 25.0
+	var broken := past
+	for nm in _line:
+		var es := get_node_or_null(NodePath(str(nm))) as EnemyShip
+		if es and not es.is_dead() and es.state == EnemyShip.S.BLOCK:
+			continue
+		broken = true
+		for b in _boom_ships.keys():
+			if nm in _boom_ships[b] and booms.has(b):
+				var bn := get_node_or_null(NodePath(str(b))) as AdmiraltyBoom
+				if bn and not bn.broken:
+					bn._break()
+	if not broken:
+		return
+	# (the ships leave station: nothing holds the rest of the chain either)
+	for b in _boom_ships.keys():
+		var bn := get_node_or_null(NodePath(str(b))) as AdmiraltyBoom
+		if bn and not bn.broken:
+			bn._break()
+	for nm in _line:
+		var es := get_node_or_null(NodePath(str(nm))) as EnemyShip
+		if es and not es.is_dead() and es.state == EnemyShip.S.BLOCK:
+			es.break_line()
+	_line = []
+	_say(["The line is broken!", "The blockade gives chase.", true])
 
 
 func _close_ring(ship: Ship) -> void:
@@ -405,6 +473,7 @@ func _make_boom(nm: String) -> void:
 
 func boom_broken(nm: String) -> void:
 	booms.erase(nm)
+	_boom_ships.erase(nm)
 	Net.spawned(self, net_gen())
 
 

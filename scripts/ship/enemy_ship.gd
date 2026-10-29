@@ -210,6 +210,8 @@ var _chaser: ShipCannon
 var _chaser_cd: float = 2.0
 var _chaser_warn: float = -1.0
 var _chaser_chain: bool = false
+## (the blockade) She's seen the crew and called it (once).
+var _block_seen: bool = false
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -613,13 +615,16 @@ func _physics_process(delta: float) -> void:
 				want_heading = atan2(-to_w.x, -to_w.z)
 				want_speed = _max_speed()
 		S.BLOCK:
-			# holding station across an island's mouth, broadside to the way out, until the crew comes by
+			# (1.26) holding station in the line round the crew, broadside to her, firing as she bears; the line's
+			# broken (Admiralty._line_tick -> break_line) before she leaves it
 			want_heading = _heading
-			if tgt and dist < NOTICE and _huntable(tgt):
-				_set_state(S.HUNT)
-				_volley_cd = maxf(_volley_cd, 1.5)
-				bark("Close the harbour! Fire as she bears!", 2.5)
-				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
+			if tgt and dist < FIRE_MAX:
+				if not _block_seen:
+					_block_seen = true
+					_volley_cd = maxf(_volley_cd, 1.5)
+					bark("Hold the line! Fire as she bears!", 2.5)
+					Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
+				_try_volley(tgt, to_t, dist)
 		S.FLEE:
 			if tgt == null or dist > LOSE:
 				_set_state(S.PATROL)
@@ -780,6 +785,16 @@ func _crew_ship() -> Node3D:
 	return null
 
 
+## (Admiralty, the blockade line broken) Off station and after the crew.
+func break_line() -> void:
+	if state != S.BLOCK:
+		return
+	_set_state(S.HUNT)
+	_volley_cd = maxf(_volley_cd, 1.5)
+	bark("The line's broken! After her!", 2.5)
+	Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
+
+
 ## (a chaser) Still running her down rather than turning broadside: the crew's making way and she's not yet close.
 func _keeps_chasing(tgt: Node3D, dist: float) -> bool:
 	return _chaser != null and dist > BROADSIDE_IN and _speed_of(tgt) >= CHASE_SLOW
@@ -864,7 +879,7 @@ func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 	if _warn_t < 0.0:
 		return
 	# alongside to board (or ramming): a volley still on its way would land on her own men
-	if state not in [S.HUNT, S.BROADSIDE]:
+	if state not in [S.HUNT, S.BROADSIDE, S.BLOCK]:
 		_warn_t = -1.0
 		_second = false
 		return

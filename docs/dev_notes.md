@@ -7578,3 +7578,14 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   EnemyShip or an AdmiraltyBoom from STOP_FROM 2.5 m/s to under STOP_UNDER 1.2, she furls (`sail` and `sail_shown` 0,
   a flap). Land, docks and slow bumps don't. Captains knocked off or fighting on the other deck find her where they
   left her; raise sail at the helm. Test: `t/ship/blocked_furls`.
+
+## 1.26.1, piece 2: the blockade (2026-10-29)
+- `Admiralty._blockade`: BLOCK_N 3 ships (the middle a frigate from Infamous) on an arc BLOCK_R 95 m round the crew's
+  ship, seaward (away from the island), BLOCK_ARC 0.75 rad apart, broadside to her; booms between neighbours and a wing
+  boom off each end ship BLOCK_WING 0.7 rad on round the arc toward the shore (`_add_boom`, `_boom_ships` boom -> its
+  ships, host only). Ships in BLOCK hold station and fire as she bears (`_try_volley` from BLOCK; `_warn_update` allows
+  BLOCK). `_line_tick` (host, each CHECK): a line ship sunk, struck, fled or off station, or the crew's ship more than
+  BLOCK_R + 25 from the centre, breaks the line: every boom of it parts, the rest `break_line()` to HUNT, banner "The
+  line is broken!". Booms take melee too (their hurtbox is layer 32, which player hitboxes mask).
+- Gotcha: a freshly spawned EnemyShip reads global_position (0,0,0) until its first physics tick (sync_to_physics
+  places it from `_pos`); check positions a tick later (`t/ship/admiralty_ring` did by luck before).
