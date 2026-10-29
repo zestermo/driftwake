@@ -7860,3 +7860,34 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   each (240 m). The keepers, regulars and captives' bodies are built on the worker (IslandVillage.extra_looks, plan_for).
 - Tests: `t/island/village_places`, `t/island/pirate_held`. Renders: villageshot (VSHOT_PLACE=<place>, VSHOT_HELD=1;
   interiors of every shop and the place, the held square and its roof decks).
+
+## 1.26: the island loop's loose ends (2026-10-29)
+- **The dojo spars for real.** "Spar with me" (no fee now) ends the keeper's talk and the host runs an ArenaBout
+  "dojo:<village key>" (Net._start_arena): the master (the keeper's look, a weapon by the island's seed from
+  IslandVillage.DOJO_WEAPONS, "" = bare hands and kicks; skill 0.45 + 0.1/tier, max 0.9) steps out 3.5 m from the door
+  (IslandVillage.dojo_spot: a ray for the floor, the plaza when that's water), the keeper's body put away on every
+  screen meanwhile (Net._all_arc -> IslandVillage.apply "master_out" -> NPC.set_away). Then the master's-test flow:
+  wait, ask (ArenaBout.ask_line; `_all_spar_ask` gained a line argument), bow, 3-2-1, the fight, held to its ground.
+  First win per captain: two quests' XP (GameManager.opened `unique_spar`, UniquePlaces.spar_result on the captain's own
+  machine); rematches are practice. Walking 60 m off before the bow calls it off quietly. **Assumed:** no fee, the XP.
+- **NPC.set_away(on)**: no body, no talk, no collider, no marks, without touching `visible` (ActorSleep owns that).
+- **Freed captives walk home** (PirateHeld._go_home, every machine on "freed"): a thank-you over their head
+  (FX.speech), reparented to the island, walk (NPC waypoints, 2.2 m/s) across the square and 30 m on towards the
+  survivors' hamlet, then set_away; 40 s at most. One already freed when the village builds (reload, late joiner) is
+  put away on the first tick.
+- **Roof decks reachable.** Every ladder already worked; the crate stacks stood by the decks' railed sides and led
+  nowhere. Now a crate stair at each of the first two decks' open fronts, across from the ladder: columns n high at the
+  deck down to one (n by the deck's height over the ground there: a jump clears CRATE_REACH 1.1 m). Decked ruins grow
+  no sapling up through the boards (KitHouses.ruin "sapling", IslandVillage._roofed).
+- **Themed shops.** Only the desert has its own store model; its trader shops and unique place are now
+  `desert_trade_<kind>` (DesertTheme.props, one per KitShops.KINDS): DesertTown.room with KitShops.inside, the counter
+  plastered with a stone top (KitShops.inside `look`). Snow, forest, fog and the jungle build KitHouses.room, which was
+  already dressed per trade.
+- Hana's Brinehollow cast note no longer says she reads Edy (Master Isao does). Still saying Hana reads it, outside
+  this brief's files: progression.gd's Edy toast, will_paths.gd, skill_map_screen.gd, capital_life.gd (Kade's bark and
+  the first reading's line), edy_types.gd's doc.
+- Per frame/tick: nothing new except a walking captive (PirateHeld's 0.5 s tick, NPC's own wander while it walks)
+  and the dojo bout (ArenaBout's physics tick, like the master's test, only while a bout runs).
+- Tests: `t/island/dojo_spar`, `t/island/captive_walks_home`, `t/island/roof_deck_climb`, `t/island/desert_shops`;
+  `t/island/pirate_held` updated (a freed captive walks off rather than vanishing). Renders: villageshot
+  VSHOT_PLACE=dojo VSHOT_THEME=desert (shop interiors), VSHOT_HELD=1 (decks from their fronts).
