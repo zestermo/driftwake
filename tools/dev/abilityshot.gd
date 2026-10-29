@@ -8,7 +8,7 @@ extends SceneTree
 ## skill_id may also be "heavy" (the right-click), "combo" (the light combo, clicked
 ## through every 0.2 s), "air" (the jump attack from 2.5 m up), "riposte_counter" or "sea_king_unleash" (Sea King
 ## Fist let go on the ground, armed for it).
-## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
+## Writes <out_prefix>_<skill>.png. Env AB_EDY=<type> sets the captain's Edy; AB_HOUR=21 films it at night; AB_TIER=0/1/2
 ## with no weapon element awakened / on skills only / on every blow (default 2); AB_HOLD=s holds a held
 ## technique's key that long; AB_STRIKE=s lands the nearest grunt's blow on you at that time.
 ## skill_id "crew:<id>" films a crew technique (CrewTechniques) with a captain-style crewmate (an AI, its side run here)
@@ -143,6 +143,9 @@ func _process(d: float) -> bool:
 			for k in pr.owned.keys():
 				if (tier < 1 and str(k).ends_with("_elem")) or (tier < 2 and str(k).ends_with("_elem2")):
 					pr.owned.erase(k)
+			# AB_EDY=<type>: the captain's Edy (still, ember, crown, storm, tide): its colour and look on every aura
+			if OS.get_environment("AB_EDY") != "":
+				pr.will_color = OS.get_environment("AB_EDY")
 			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol", "dagger", "dagger"]:
 				p.inventory_component.add_item(item(id), 1)
 			var hud = root.get_tree().get_first_node_in_group("hud")
