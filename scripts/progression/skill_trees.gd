@@ -336,35 +336,20 @@ static func _talent(lv: int, a: Array, b: Array) -> void:
 		n["versions"].append({"id": v[0], "name": v[1], "desc": v[3], "level": lv, "effects": v[2], "skill": ""})
 
 
-## The Will branch (WillPaths): each path's abilities up a column, tier by tier, with their versions (bought with
-## Will points, pool "will", the tier's price each) and the path's passive beside its first ability.
+## The Will branch: the Edy tree (1.26, EdyTree): every node of the round constellation, laid out round the core in tree
+## space, bought with Edy points (pool "will"). The old Will paths' nodes (WillPaths) are gone; a save that had them
+## gets its Edy back to spend here (Progression drops unknown nodes).
 static func _build_will() -> void:
 	var list: Array = _trees[_t]["branches"][2]["nodes"]
-	for path in WillPaths.PATHS:
-		var x := 120.0 * (WillPaths.PATHS.find(path) - 1)
-		var prev := ""
-		for id in WillPaths.abilities_of(path):
-			var a: Array = WillPaths.ABILITIES[id]
-			# (a second ability in the same tier, Iron Will's Reinforce beside Infuse, stands off to the side)
-			var same := WillPaths.abilities_of(path).filter(func(o): return int(WillPaths.ABILITIES[o][1]) == int(a[1]))
-			var at := Vector2(x + 60.0 * same.find(id), -90.0 * int(a[1]))
-			var n := _node(id, a[2], "will", 2, 1, {}, a[3], "", [prev] if prev != "" else [], at)
-			n["path"] = path
-			n["tier"] = int(a[1])
-			list.append(id)
-			for v in a[4]:
-				var vid: String = v[0]
-				var vn := _node(vid, v[1], "version", 2, 1, v[2], v[3], v[4], [id], at)
-				vn.merge({"parent": id, "pool": "will", "path": path, "tier": int(a[1]), "cost": int(a[1])})
-				n["versions"].append({"id": vid, "name": v[1], "desc": vn["desc"], "level": 1, "effects": v[2], "skill": v[4], "tag": v[5]})
-			prev = id
-		for pid in WillPaths.PASSIVES:
-			var pd: Array = WillPaths.PASSIVES[pid]
-			if pd[0] == path:
-				var first: String = WillPaths.abilities_of(path)[0]
-				var p := _node(pid, pd[1], "passive", 2, 1, pd[2], pd[3], "", [first], _nodes[first]["pos"] + Vector2(48, -30))
-				p.merge({"will": path, "pool": "will", "path": path, "cost": WillPaths.PASSIVE_COST})
-				list.append(pid)
+	var all := EdyTree.all()
+	for id in all.keys():
+		if id == EdyTree.CORE:
+			continue
+		var e: Dictionary = all[id]
+		var links: Array = (e["links"] as Array).filter(func(l): return l != EdyTree.CORE)
+		var n := _node(id, e["name"], EdyTree.KIND[e["kind"]], 2, 1, e["effects"], e["desc"], e["skill"], links, e["pos"])
+		n.merge({"pool": "will", "path": e["branch"], "cost": int(e["cost"]), "edy": e["kind"], "switch": e["switch"], "bridge": e["bridge"]})
+		list.append(id)
 
 
 # --------------------------------------------------------------------------

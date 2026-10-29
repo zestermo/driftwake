@@ -62,8 +62,8 @@ func _process(_d: float) -> bool:
 			pr.gift("will", 20)
 			if pr.will_color == "":
 				pr.attune("tide")
-			check("Deep Breath bought", pr.buy("w_breath_v"))
-			check("...twice the breath (%.0f -> %.0f), swimming 30%% faster" % [b0, sw.breath_max()], is_equal_approx(sw.breath_max(), b0 * 2.0) and is_equal_approx(pr.stat("swim_pct"), 0.3))
+			check("Deep Lungs and Strong Stroke bought (1.26: the Edy tree)", EdyTree.learn_path(pr, "e_tide_0") and EdyTree.learn_path(pr, "e_tide_2"))
+			check("...half again the breath (%.0f -> %.0f), swimming 30%% faster" % [b0, sw.breath_max()], is_equal_approx(sw.breath_max(), b0 * 1.5) and is_equal_approx(pr.stat("swim_pct"), 0.3))
 			at_sea(stage.SHORE_X + 40.0)
 			p.velocity = Vector3(2.0, 0, 0)
 			p.state_machine.force_state("Fall", {})

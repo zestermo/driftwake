@@ -160,14 +160,12 @@ func _captain_home() -> void:
 				k = i
 		sel = "f:%s:%d" % [f[k], maxi(p.version_of(f[k]), 0)]
 		return
-	var won := WillPaths.ABILITIES.keys().filter(func(k): return p.has_will(k))
-	var path := str(WillPaths.ABILITIES[won[0]][0]) if not won.is_empty() else "iron"
-	for k in WillPaths.PATHS:
-		if path_ready(k):
-			path = k
+	# (1.26) the Edy tree: a node you can buy now, else the first
+	sel = "n:e_iron_0"
+	for id in EdyTree.all().keys():
+		if id != EdyTree.CORE and not p.bought.has(id) and p.buy_why(id) == "":
+			sel = "n:" + id
 			break
-	will_path = path
-	sel = _path_first(path)
 
 
 ## The first card of a path's ladder: its lowest version to buy now, else its lowest one you carry, else its first.
@@ -226,7 +224,10 @@ func path_ready(path: String) -> bool:
 ## Anything to spend on the Captain tab (its pip). (A path's own pip shows only once you've started it, so Will to
 ## spend doesn't light all seven.)
 func captain_ready() -> bool:
-	return perk_ready() or WillPaths.PATHS.any(func(k): return path_ready(k))
+	if perk_ready():
+		return true
+	var p := _pr()
+	return p.pool("will") > 0 and EdyTree.all().keys().any(func(id): return id != EdyTree.CORE and not p.bought.has(id) and p.buy_why(id) == "")
 
 
 ## Up / down a fork, left / right its option.
@@ -421,8 +422,6 @@ func _input(event: InputEvent) -> void:
 		else:
 			_pick_root()
 		menu._play("select")
-	elif (k == KEY_A or k == KEY_D) and tab == "captain" and not perks_open:
-		_set_path(WillPaths.PATHS[wrapi(WillPaths.PATHS.find(will_path) + (-1 if k == KEY_A else 1), 0, WillPaths.PATHS.size())])
 	elif (k == KEY_A or k == KEY_D) and tab == "combat":
 		_cycle_tree(-1 if k == KEY_A else 1)
 	elif (k == KEY_W or k == KEY_S) and tab == "adventure":
@@ -487,7 +486,9 @@ func _act(id: String) -> void:
 	if id.begins_with("n:"):
 		var nid := id.substr(2)
 		var n := SkillTrees.node_def(nid)
-		if n["kind"] == "will" or n.get("pool", "") == "will":
+		if EdyTree.is_edy(nid):
+			_act_edy(nid)
+		elif n["kind"] == "will" or n.get("pool", "") == "will":
 			_act_will(nid)
 		elif n["kind"] == "talent" or (n["kind"] == "variant" and p.owns(nid)):
 			_act_split(nid, (maxi(p.version_of(nid), 0) + (1 if p.version_of(nid) >= 0 else 0)) % n["versions"].size())
@@ -684,7 +685,7 @@ func _hints() -> Array:
 		"captain":
 			if perks_open:
 				return [["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["P/ESC", "BACK"], ["K", "CLOSE"]]
-			return [["Q/E", "TAB"], ["P", "PERKS"], ["A/D", "PATH"], ["ARROWS", "PICK"], ["ENTER", "BUY / CARRY"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["P", "PERKS"], ["ARROWS", "PICK"], ["ENTER", "BUY / SWITCH"], ["K", "CLOSE"]]
 		"loadout":
 			return [["Q/E", "TAB"], ["ENTER", "PUT ON BAR"], ["1-5/R", "SLOT"], ["RMB", "CLEAR"], ["K", "CLOSE"]]
 	return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
@@ -1118,8 +1119,8 @@ func _draw_captain(body: Rect2) -> void:
 	var panel := Rect2(body.end.x - pw, top, pw, body.end.y - top)
 	var field := Rect2(body.position.x, top, panel.position.x - body.position.x - 8.0, body.end.y - top)
 	_draw_capbar(Rect2(field.position, Vector2(field.size.x, 16)))
-	_draw_path_row(Rect2(field.position.x, top + 20.0, field.size.x, 32))
-	_draw_ladder(Rect2(field.position.x, top + 58.0, field.size.x, field.end.y - top - 58.0), p.will_tint())
+	# (1.26) the Edy tree: one round constellation in place of the Will paths' row and ladder
+	_draw_edy_tree(Rect2(field.position.x, top + 20.0, field.size.x, field.end.y - top - 20.0), p.will_tint())
 	_draw_will_card(panel, _will_shown())
 	if perks_open:
 		# (only the popup is clickable while it's open)
@@ -1176,6 +1177,103 @@ func _glow(r: Rect2, col: Color) -> void:
 func _dashed(r: Rect2, col: Color) -> void:
 	for e in [[r.position, Vector2(r.end.x, r.position.y)], [Vector2(r.end.x, r.position.y), r.end], [r.end, Vector2(r.position.x, r.end.y)], [Vector2(r.position.x, r.end.y), r.position]]:
 		draw_dashed_line(e[0], e[1], col, 1.0, 3.0)
+
+
+## (1.26) The Edy tree (EdyTree): the core in your Edy's colour, the eight branches round it with their names at the
+## rim, every link (lit between two you own), and each node by its kind: a stat a square, a passive that works by itself a
+## circle, a passive you slot a diamond, an ability a hexagon. Yours: filled in your colour; to buy now: a gold rim; switched
+## off: dashed; ranked: pips under it. Each is a hit ("n:<id>"): Enter buys, switches, or slots it (_act_edy).
+func _draw_edy_tree(r: Rect2, tint: Color) -> void:
+	var p := _pr()
+	_box(r, Color(WILL_DARK, 0.85), tint.darkened(0.45))
+	var c := r.get_center() + Vector2(0, 4)
+	# (an oval: the wide panel stretches it sideways; the branch names sit out past the capstones)
+	var kv := Vector2((r.size.x - 140.0) / (2.0 * 560.0), (r.size.y - 30.0) / (2.0 * 560.0))
+	var k := minf(kv.x, kv.y)
+	var all := EdyTree.all()
+	var at := func(id: String) -> Vector2: return c + (all[id]["pos"] as Vector2) * kv
+	for i in range(EdyTree.BRANCHES.size()):
+		var b: String = EdyTree.BRANCHES[i]
+		var lp: Vector2 = c + EdyTree.pos_of(i, 520.0, 0.0) * kv
+		var side := EdyTree.pos_of(i, 1.0, 0.0).x
+		# (the side ones grow outward, off the capstone)
+		var al := HORIZONTAL_ALIGNMENT_LEFT if side > 0.4 else (HORIZONTAL_ALIGNMENT_RIGHT if side < -0.4 else HORIZONTAL_ALIGNMENT_CENTER)
+		var lx := lp.x + 4.0 if side > 0.4 else (lp.x - 124.0 if side < -0.4 else lp.x - 60.0)
+		draw_string(SILK, Vector2(lx, lp.y + 3.0), "CAPTAIN'S" if b == "conq" else str(EdyTree.BRANCH_NAMES[b]).to_upper(), al, 120.0, 8, UIStyle.CREAM)
+	for id in all.keys():
+		for l in all[id]["links"]:
+			var a_own: bool = id == EdyTree.CORE or p.bought.has(id)
+			var b_own: bool = str(l) == EdyTree.CORE or p.bought.has(str(l))
+			draw_line(at.call(id), at.call(str(l)), tint if a_own and b_own else (tint.darkened(0.45) if a_own or b_own else WILL_DIM), 2.0 if a_own and b_own else 1.0)
+	# the core: your Edy
+	var core := at.call(EdyTree.CORE) as Vector2
+	draw_circle(core, 15.0, WILL_DARK)
+	draw_arc(core, 15.0, 0, TAU, 28, tint, 2.0)
+	draw_string(SILK, Vector2(core.x - 30.0, core.y + 3.0), EdyTypes.name_of(p.will_color).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 60.0, 8, UIStyle.CREAM)
+	var s := clampf(8.0 * k * 1.9, 5.0, 10.0)
+	for id in all.keys():
+		if id == EdyTree.CORE:
+			continue
+		var e: Dictionary = all[id]
+		var pos := at.call(id) as Vector2
+		var mine: bool = p.bought.has(id)
+		var can: bool = not mine and p.buy_why(id) == ""
+		var off: bool = mine and p.edy_off.has(id)
+		var on: bool = inspected() == "n:" + id
+		var fill := tint.darkened(0.25) if mine and not off else WILL_DARK
+		var rim := Color.WHITE if on else (tint if mine else (UIStyle.GILT if can else WILL_DIM))
+		var shape := PackedVector2Array()
+		match str(e["kind"]):
+			"stat":
+				shape = PackedVector2Array([pos + Vector2(-s, -s) * 0.8, pos + Vector2(s, -s) * 0.8, pos + Vector2(s, s) * 0.8, pos + Vector2(-s, s) * 0.8])
+			"auto":
+				for i in range(12):
+					shape.append(pos + Vector2.from_angle(TAU * i / 12.0) * s)
+			"equip":
+				shape = PackedVector2Array([pos + Vector2(0, -s * 1.15), pos + Vector2(s * 1.15, 0), pos + Vector2(0, s * 1.15), pos + Vector2(-s * 1.15, 0)])
+			_:
+				for i in range(6):
+					shape.append(pos + Vector2.from_angle(TAU * i / 6.0) * s * 1.25)
+		if can:
+			var a := 0.5 + 0.5 * sin(_t * 3.5)
+			draw_circle(pos, s * 1.9, Color(UIStyle.GILT, 0.12 + 0.12 * a))
+		draw_colored_polygon(shape, fill)
+		var loop := shape.duplicate()
+		loop.append(shape[0])
+		if off:
+			for i in range(shape.size()):
+				draw_dashed_line(loop[i], loop[i + 1], rim, 1.0, 2.0)
+		else:
+			draw_polyline(loop, rim, 2.0 if on else 1.0)
+		var tiers: Array = e["tiers"]
+		if mine and not tiers.is_empty():
+			var rk := EdyTree.rank(p, id)
+			for i in range(tiers.size() + 1):
+				draw_rect(Rect2(pos.x - (tiers.size() + 1) * 2.5 + i * 5.0, pos.y + s * 1.4, 4, 2), tint.lightened(0.3) if i < rk else WILL_DIM)
+		hit(Rect2(pos - Vector2(s, s) * 1.4, Vector2(s, s) * 2.8), "n:" + id)
+
+
+## Enter on an Edy tree node: buy it; once yours, a switchable passive flips on or off, a slotted passive goes in a free
+## slot, an ability goes on the bar from the Loadout page.
+func _act_edy(nid: String) -> void:
+	var p := _pr()
+	var e := EdyTree.info(nid)
+	sel = "n:" + nid
+	if not p.bought.has(nid):
+		_buy_will(nid)
+		return
+	if bool(e["switch"]):
+		if p.edy_off.has(nid):
+			p.edy_off.erase(nid)
+		else:
+			p.edy_off[nid] = true
+		p._dirty()
+		menu._play("equip")
+		_say("%s %s" % [e["name"], "off" if p.edy_off.has(nid) else "on"])
+	elif str(e["kind"]) == "equip":
+		_act_will(nid)
+	elif str(e["skill"]) != "":
+		_say("1-5 or R puts it on the bar")
 
 
 ## The seven Will paths in a row: emblem, name, Will spent (or why it's shut); the open one lit with a notch under it,
@@ -1441,7 +1539,7 @@ func _will_shown() -> String:
 		var n: Dictionary = SkillTrees.node_def(str(id).substr(2)) if str(id).begins_with("n:") else {}
 		if n.get("kind", "") == "will" or n.get("pool", "") == "will":
 			return n["id"]
-	return "w_coat"
+	return "e_iron_0"
 
 
 ## The Edy card: points to spend and where they come from; the shown node (its path and tier, what it does, each
@@ -1461,6 +1559,10 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
 	y += 18.0
 	var n := SkillTrees.node_def(nid)
+	if EdyTree.is_edy(nid):
+		_edy_card_body(Vector2(x, y), w, panel.end.y - 40.0, nid)
+		_edy_type_foot(panel, x, w)
+		return
 	var aid := str(n.get("parent", nid))
 	var an := SkillTrees.node_def(aid)
 	var path := str(an["path"])
@@ -1502,6 +1604,65 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 		_box(sw, p.will_tint(), UIStyle.INK)
 		draw_string(_font, Vector2(x + 20.0, cy + 10.0), "%s Edy" % et["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.PARCH_INK)
 		_lines(Vector2(x + 20.0, cy + 20.0), str(et["says"]), w - 20.0, UIStyle.PARCH_DIM, 9.0, 1)
+
+
+const EDY_KINDS := {"stat": "STAT", "auto": "PASSIVE, ALWAYS ON", "equip": "PASSIVE, SLOTTED", "ability": "ABILITY"}
+
+
+## (1.26) An Edy tree node on the card: its branch and kind, name, what it does, its ranks (each with the uses it takes and
+## how far along you are), and what Enter does or why not.
+func _edy_card_body(pos: Vector2, w: float, limit: float, nid: String) -> void:
+	var p := _pr()
+	var e := EdyTree.info(nid)
+	var x := pos.x
+	var y := pos.y
+	var where := ("BRIDGE · " if bool(e["bridge"]) else "%s · " % str(EdyTree.BRANCH_NAMES.get(e["branch"], "")).to_upper()) + str(EDY_KINDS[e["kind"]])
+	draw_string(SILK, Vector2(x, y), where, HORIZONTAL_ALIGNMENT_LEFT, w, 8, WILL.darkened(0.55))
+	UIStyle.draw_title(self, Vector2(x, y + 17.0), str(e["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
+	y = _para(Vector2(x, y + 30.0), str(e["desc"]), w, UIStyle.PARCH_INK, limit) + 2.0
+	var mine := p.bought.has(nid)
+	var tiers: Array = e["tiers"]
+	if not tiers.is_empty():
+		var rk := EdyTree.rank(p, nid) if mine else 0
+		var uses := int(p.edy_uses.get(nid, 0))
+		for i in range(tiers.size()):
+			if y + 26.0 > limit:
+				break
+			var t: Array = tiers[i]
+			var got := rk >= i + 2
+			draw_string(_font, Vector2(x, y + 9.0), "%s  %s" % [["II", "III", "IV"][i], str(t[0])], HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK if got else UIStyle.PARCH_DIM)
+			y = _lines(Vector2(x, y + 19.0), str(t[2]), w, UIStyle.PARCH_DIM, 9.0, 2)
+			var st := "REACHED" if got else ("%d / %d USES" % [mini(uses, int(t[1])), int(t[1])] if mine else "%d USES" % int(t[1]))
+			draw_string(SILK, Vector2(x, y), st, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if got else UIStyle.PARCH_DIM)
+			y += 12.0
+	var why := p.buy_why(nid)
+	var state := ""
+	if not mine:
+		state = "ENTER: %d EDY" % int(e["cost"]) if why == "" else why.to_upper()
+	elif bool(e["switch"]):
+		state = "OFF · ENTER: SWITCH IT ON" if p.edy_off.has(nid) else "ON · ENTER: SWITCH IT OFF"
+	elif str(e["kind"]) == "equip":
+		var slot := p.passives.find(nid)
+		state = ("IN PASSIVE SLOT %d" % (slot + 1)) if slot >= 0 else "YOURS · ENTER: INTO A SLOT"
+	else:
+		state = "YOURS"
+	for l in _wrap(state, w, SILK, 8):
+		draw_string(SILK, Vector2(x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if mine or why == "" else UIStyle.CORAL.darkened(0.35))
+		y += 9.0
+
+
+## The card's foot: your Edy type (its colour, name and edge), or where to have it read.
+func _edy_type_foot(panel: Rect2, x: float, w: float) -> void:
+	var p := _pr()
+	var cy := panel.end.y - 30.0
+	draw_rect(Rect2(x, cy - 6.0, w, 1), UIStyle.BORDER_DIM)
+	if p.will_color == "":
+		_lines(Vector2(x, cy + 3.0), "Your Edy isn't read yet. The master at Brinehollow's shrine can read it.", w, UIStyle.CORAL.darkened(0.35), 9.0, 2)
+		return
+	var et := EdyTypes.info(p.will_color)
+	_box(Rect2(x, cy, 14, 14), p.will_tint(), UIStyle.INK)
+	draw_string(_font, Vector2(x + 20.0, cy + 10.0), "%s Edy" % et["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.PARCH_INK)
+	_lines(Vector2(x + 20.0, cy + 20.0), str(et["says"]), w - 20.0, UIStyle.PARCH_DIM, 9.0, 1)
 
 
 ## A node's numbers as chip texts (its effects' common keys, and the skill it gives).

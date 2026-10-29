@@ -46,8 +46,9 @@ func _process(_d: float) -> bool:
 			g.reset_physics_interpolation()
 			pr.gift("will", 12)
 			pr.attune("ember")
-			for k in ["w_coat_heavy", "w_coat_quick", "w_coat_break", "w_reinforce_v"]:
-				pr.buy(k)
+			# (1.26: the Edy tree) Infuse and Reinforce, the first two of Iron Will
+			EdyTree.learn_path(pr, "e_iron_1")
+			EdyTree.learn_path(pr, "e_iron_2")
 			check("Reinforce (tier 1, 1 Edy) bought: its skill known", pr.knows("edy_reinforce") and pr.knows("armament_coat"))
 			check("...no Hardening passive any more", not pr.is_passive("h_harden"))
 			cast("armament_coat")
@@ -94,10 +95,11 @@ func _process(_d: float) -> bool:
 			check("off the ground: the disc stays where you stood (%.2f m off) and fades (%.2f)" % [a._disc.global_position.distance_to(g0), a._ground_k],
 				a._disc.global_position.distance_to(g0) < 0.05 and a._ground_k < 0.9)
 			var d: Dictionary = pr.to_dict()
-			d["bought"] = (d["bought"] as Array).filter(func(k): return k != "w_reinforce_v") + ["h_harden"]
+			var earned: int = pr.will_earned
+			d["bought"] = (d["bought"] as Array) + ["h_harden", "w_coat_heavy"]
 			d["passives"] = ["h_harden", "", ""]
 			pr.from_dict(d)
-			check("an old save's Hardening comes back as Reinforce, its passive slot empty", pr.owns("w_reinforce_v") and pr.knows("edy_reinforce") and not pr.passives.has("h_harden"))
+			check("(1.26) an old save's Will purchases are gone, their Edy back to spend on the tree, the passive slot empty", not pr.owns("h_harden") and not pr.owns("w_coat_heavy") and not pr.passives.has("h_harden") and pr.will_earned == earned)
 			return TK.done(fails)
 	step += 1
 	return false

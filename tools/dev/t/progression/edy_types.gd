@@ -38,7 +38,7 @@ func _process(_d: float) -> bool:
 			var nodes: Dictionary = ET.quiz_nodes("e", "after")
 			check("the quiz: five questions, then the reading", nodes.has("eq0") and nodes.has("eq4") and nodes.has("eread") and str(nodes["eq0"].get("event", "")) == "edy:reset")
 			pr.gift("will", 4)
-			check("unread: nothing to buy (%s)" % pr.buy_why("w_coat_heavy"), pr.will_color == "" and pr.buy_why("w_coat_heavy").begins_with("Your Edy isn't read yet") and not pr.buy("w_coat_heavy"))
+			check("unread: nothing to buy (%s)" % pr.buy_why("e_iron_0"), pr.will_color == "" and pr.buy_why("e_iron_0").begins_with("Your Edy isn't read yet") and not pr.buy("e_iron_0"))
 			for e in ["edy:reset", "edy:+storm", "edy:+still,tide", "edy:+tide", "edy:+still", "edy:+crown", "edy:read"]:
 				ev(e)
 			check("answers 1 storm, 2 still, 2 tide, 1 crown: a tie, and Tide was answered later... (%s)" % pr.will_color, pr.will_color == "still" or pr.will_color == "tide")
@@ -46,7 +46,7 @@ func _process(_d: float) -> bool:
 				ev(e)
 			check("most answers Ember: read as Ember", pr.will_color == "ember")
 			check("...its colour on every Edy effect", pr.will_tint() == ET.color_of("ember"))
-			check("...and now Coat can be bought", pr.buy("w_coat_heavy"))
+			check("...and now Coat can be bought", pr.buy("e_iron_0"))
 			var h0: float = p.melee_hit(20.0, "heavy").damage
 			var l0: float = p.melee_hit(20.0, "").damage
 			pr.attune("still")

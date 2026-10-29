@@ -91,6 +91,9 @@ var found: Dictionary = {}
 ## Edy points earned (big fights, meditation; spent ones are the Will paths' nodes in `bought`), and the captain's Edy
 ## type (EdyTypes; "" until a master reads it).
 var will_earned: int = 0
+## (1.26) The Edy tree (EdyTree): each ranked node's uses, and the switchable passives turned off (id -> true).
+var edy_uses: Dictionary = {}
+var edy_off: Dictionary = {}
 var will_color: String = ""
 ## An older save was bought back on load (after_load's banner), and its weapon purchases refunded (format 7).
 var _migrated: bool = false
@@ -654,7 +657,7 @@ func buy_why(id: String) -> String:
 	var tree := str(n["tree"])
 	var kind := str(n["kind"])
 	if n.get("pool", "") == "will":
-		return WillPaths.why(self, id)
+		return EdyTree.why(self, id) if EdyTree.is_edy(id) else WillPaths.why(self, id)
 	if kind == "will":
 		return "Buy one of its versions"
 	if _free(n):
@@ -1048,7 +1051,7 @@ func stat(key: String) -> float:
 			var n := SkillTrees.node_def(k)
 			if n.get("kind", "") == "step" or (n.get("kind", "") == "passive" and not (k in passives)):
 				continue
-			var e: Dictionary = n.get("effects", {})
+			var e: Dictionary = EdyTree.effects(self, k) if EdyTree.is_edy(k) else n.get("effects", {})
 			if e.has(key):
 				total += float(e[key])
 		for k in steps.keys():
@@ -1203,7 +1206,7 @@ func to_dict() -> Dictionary:
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
 		"steps": steps.duplicate(), "versions": versions.duplicate(), "passives": Array(passives), "found": found.keys(),
 		"will_pts": will_earned, "will_color": will_color, "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
-		"kit": kit_left, "downtime": downtime.duplicate(), "guards": guards.keys()}
+		"kit": kit_left, "downtime": downtime.duplicate(), "guards": guards.keys(), "edy_uses": edy_uses.duplicate(), "edy_off": edy_off.keys()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -1267,6 +1270,10 @@ func from_dict(d: Dictionary) -> void:
 	var wills: Array = want.filter(is_will)
 	want = want.filter(func(k): return not is_will.call(k))
 	will_earned = int(d.get("will_pts", 0))
+	edy_uses = (d.get("edy_uses", {}) as Dictionary).duplicate()
+	edy_off = {}
+	for k in d.get("edy_off", []):
+		edy_off[str(k)] = true
 	will_color = str(d.get("will_color", ""))
 	# (1.24.1: the colours picked before became Edy types)
 	will_color = str(EdyTypes.OLD.get(will_color, will_color))

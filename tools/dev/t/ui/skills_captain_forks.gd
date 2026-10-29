@@ -1,10 +1,9 @@
 extends SceneTree
-## The skills menu's Captain tab (1.24.1, one page): it opens on the Will paths with the Perks button lit while a fork
-## waits (and a pip on the tab); P (or a click) opens the perks popup on the lowest fork not picked, every fork drawn;
-## up / down walk the forks, left / right the option; Enter picks a reached fork, refuses one not reached yet and a
-## change away from the bunk; Esc shuts it. A path tab (or A / D) shows that path; Enter buys Coat's first version and the
-## once your Edy is read; Reinforce (was the Hardening passive) waits on its tier; every tier-3 version draws (the ids no longer
-## hide them).
+## The skills menu's Captain tab (1.26: the Edy tree): it opens on the tree with the Perks button lit while a fork waits;
+## P opens the perks popup on the lowest fork not picked; up / down walk the forks, left / right the option; Enter picks a
+## reached fork and refuses one not reached; Esc shuts it. Nothing to buy before the reading; then a click picks a node and
+## Enter buys it, out from the core; every branch and bridge is drawn.
+
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var gm
@@ -14,17 +13,14 @@ var step := 0
 var until := 0
 var fails := 0
 
-
 func _initialize() -> void:
 	TK.seed_of(self)
 	stage = TK.stage(self, {})
-
 
 func check(what: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + what)
 	if not cond:
 		fails += 1
-
 
 func key(k: int) -> void:
 	var ev := InputEventKey.new()
@@ -32,14 +28,12 @@ func key(k: int) -> void:
 	ev.pressed = true
 	sm._input(ev)
 
-
 func act(a: String, n: int = 1) -> void:
 	for i in range(n):
 		var ev := InputEventAction.new()
 		ev.action = a
 		ev.pressed = true
 		sm._input(ev)
-
 
 func click(id: String) -> bool:
 	var h = sm._drawn.filter(func(x): return x[1] == id)
@@ -52,10 +46,8 @@ func click(id: String) -> bool:
 	sm._gui_input(ev)
 	return true
 
-
 func drawn(id: String) -> bool:
 	return sm._drawn.any(func(h): return h[1] == id)
-
 
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
@@ -78,7 +70,7 @@ func _process(_d: float) -> bool:
 		2:
 			sm = gm._skills
 			sm.set_tab("captain")
-			check("the Captain tab opens on the Will paths (no Will yet: Iron Will, Heavy Coat)", not sm.perks_open and sm.will_path == "iron" and sm.sel == "n:w_coat_heavy")
+			check("the Captain tab opens on the Edy tree (nothing to buy yet: its first node)", not sm.perks_open and sm.sel == "n:e_iron_0")
 			check("level 12 with the fork at 10 unpicked: Perks and the tab call for it", sm.perk_ready() and sm.captain_ready())
 			until = TK.wait_ticks(3)
 		3:
@@ -104,31 +96,29 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		4:
 			check("the popup draws every fork, 5 to 40", drawn("f:talent_5:0") and drawn("f:talent_40:1"))
-			check("...and only the popup is clickable", not drawn("perks") and not drawn("path:iron"))
+			check("...and only the popup is clickable", not drawn("perks") and not drawn("n:e_iron_0"))
 			act("ui_cancel")
 			check("Esc shuts the popup", not sm.perks_open)
 			pr.gift("will", 3)
-			check("Edy to spend but not read yet: nothing to buy", not sm.path_ready("iron") and pr.buy_why("w_coat_heavy").begins_with("Your Edy isn't read yet"))
+			check("Edy to spend but not read yet: nothing to buy", not sm.captain_ready() and pr.buy_why("e_iron_0").begins_with("Your Edy isn't read yet"))
 			pr.attune("ember")
 			for i in range(pr.passives.size()):
 				pr.equip_passive("", i)
 			until = TK.wait_ticks(3)
 		5:
-			check("a click on Tempo's tab shows Tempo", click("path:tempo") and sm.will_path == "tempo")
-			key(KEY_A)
-			check("A: the path before (Tide)", sm.will_path == "tide")
-			check("a click on Iron Will's tab, on its first version to buy (Heavy Coat)", click("path:iron") and sm.will_path == "iron" and sm.sel == "n:w_coat_heavy")
+			# (1.26: the Edy tree) a click picks a node; Enter buys it, out from the core
+			check("a click on Iron Body I picks it", click("n:e_iron_0") and sm.sel == "n:e_iron_0")
 			act("ui_accept")
-			check("Enter buys Heavy Coat for 1 Will", pr.has_version("w_coat_heavy") and pr.knows("armament_coat") and pr.pool("will") == 2)
-			check("Reinforce (Hardening's place, tier 1) is open for 1 Edy", pr.buy_why("w_reinforce_v") == "")
+			check("Enter buys it for 1 Edy", pr.bought.has("e_iron_0") and pr.pool("will") == 2)
+			check("...Infuse, linked to it, can be bought now (%s); one further out can't" % pr.buy_why("e_iron_1"), pr.buy_why("e_iron_1") == "" and pr.buy_why("e_iron_5") != "")
+			click("n:e_iron_1")
+			act("ui_accept")
+			check("Enter buys Infuse: its skill known", pr.bought.has("e_iron_1") and pr.knows("armament_coat") and pr.pool("will") == 0)
 			until = TK.wait_ticks(3)
 		6:
-			check("Iron Will's ladder draws its versions, Reinforce, both tier-3 ones, and no passive",
-				["n:w_coat_heavy", "n:w_emit_stomp", "n:w_reinforce_v", "n:w_inner_v", "n:w_mirror"].all(func(id): return drawn(id)) and not drawn("n:h_harden"))
-			sm._set_path("conq")
+			check("the tree draws every branch's nodes and the bridges", ["n:e_iron_6", "n:e_sense_3", "n:e_conq_6", "n:e_tide_6", "n:e_tempo_5", "n:e_fury_6", "n:e_bond_6", "n:e_infuse_6", "n:e_br0_0", "n:e_br7_1"].all(func(id): return drawn(id)))
 			until = TK.wait_ticks(3)
 		7:
-			check("Captain's Will draws Clash, Rally and Plant the Flag", ["n:w_clash_v", "n:w_rally", "n:w_flag", "n:h_will"].all(func(id): return drawn(id)))
 			check("no colour swatches any more (a master reads your Edy)", not sm._drawn.any(func(h): return str(h[1]).begins_with("col:")))
 			TK.act("skill_map")
 			until = TK.wait_ticks(6)

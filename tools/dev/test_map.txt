@@ -632,7 +632,7 @@ scripts/powers/war_flag.gd                t/will/upgrades
 scripts/enemies/pirate_grunt.gd           t/will/upgrades
 scripts/player_states/technique_state.gd  t/will/upgrades t/will/bond_crew
 scripts/ship/ship.gd                      t/will/tide t/ship/blocked_furls
-scripts/progression/will_paths.gd         t/will t/progression/will_paths
+scripts/progression/edy_tree.gd           t/will t/progression/edy_tree t/ui/skills_captain_forks
 scripts/player_states/light_attack_state.gd t/will/tempo
 tools/dev/t/gear/*                      t/gear
 scripts/items/gear_stats.gd             t/gear t/items invtest qoltest

@@ -54,9 +54,9 @@ func _process(_d: float) -> bool:
 			pr.gift("will", 30)
 			if pr.will_color == "":
 				pr.attune("tide")
-			check("Link (Bond, 1) and Crew's Strength (2)", pr.buy("w_link_v") and pr.buy("h_crew") and pr.passives.has("h_crew"))
-			check("...Joint Gauge (2) at 4 spent", pr.buy("w_mist_v") and pr.buy("w_gauge"))
-			check("...Shelter (2), Twin Finisher (3) at 8: on the bar", pr.buy("w_shelter") and pr.buy("w_twin_v") and "will_twin" in p.power.loadout)
+			check("Link (Bond, 1) and Crew's Strength (2)", EdyTree.learn_path(pr, "e_bond_1") and EdyTree.learn_path(pr, "e_bond_4") and pr.stat("crew_strength") > 0.0)
+			check("...Joint Gauge (2) at 4 spent", EdyTree.learn_path(pr, "e_fury_1") and EdyTree.learn_path(pr, "e_bond_5"))
+			check("...Shelter (2), Twin Finisher (3) at 8: on the bar", EdyTree.learn_path(pr, "e_bond_3") and EdyTree.learn_path(pr, "e_bond_6") and "will_twin" in p.power.loadout)
 			until = TK.wait_ticks(45)
 		1:
 			var me: String = bond.me()

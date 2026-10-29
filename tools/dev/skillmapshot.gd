@@ -3,8 +3,8 @@ extends SceneTree
 ## bought, cutlass 7 and pistol 6, Swimming and Sailing found, the Vine Fruit eaten, katana and pistol loadouts, three
 ## katana skills on the bar and a katana passive slotted. Saves <out>_captain, _combat (the katana tree, Wind Severer
 ## inspected), _variant (the iai upgrade hovered: its tip and card), _chart, _adventure, _loadout, _fruit, _pistol PNGs, then
-## the Captain page at level 15 with a fork waiting (_will: Iron Will; _will2: Tempo with Will to spend, Flow picked;
-## _will_sense: four versions in a row), the perks popup (_perks), a level-40 captain's (_perks40) and a level-1 page (_captain1).
+## the Captain page at level 15 with a fork waiting (_will: the Edy tree; _will2: Tempo and Tide bought, a bridge, Wave Walk off;
+## _will_sense: Infuse's ranks on the card), the perks popup (_perks), a level-40 captain's (_perks40) and a level-1 page (_captain1).
 ## Args: <out_prefix> [WxH] (default tools/dev/out/skillmap at 1280x720, the 640x360 canvas; 800x450 renders the 800x450
 ## canvas 1:1, as 1600x900 would on a screen big enough for that window).
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -75,10 +75,10 @@ func _process(_d: float) -> bool:
 			pr.gift("will", 8)
 			if pr.will_color == "":
 				pr.attune("storm")
-			for k in ["w_coat_quick", "w_coat_heavy"]:
-				pr.buy(k)
 			pr.set_will_color("red")
-			pr.buy("w_coat_heavy")
+			# (1.26: the Edy tree) the core's first stat, Infuse, and the second stat round from it
+			for k in ["e_iron_0", "e_iron_1", "e_iron_2"]:
+				pr.buy(k)
 			pr.pick_talent(5, 0)
 			pr.pick_talent(10, 1)
 			# (closing the creator began a new game's story, which locks the menu until Vey)
@@ -139,14 +139,15 @@ func _process(_d: float) -> bool:
 			pw.gift("will", 10)
 			if pw.will_color == "":
 				pw.attune("storm")
-			for k in ["w_step_v", "h_feet", "w_mist_v", "w_cancel"]:
+			for k in ["e_tempo_0", "e_tempo_1", "e_tempo_2", "e_br3_0", "e_tide_1", "e_tempo_4"]:
 				pw.buy(k)
-			sm._set_path("tempo")
-			sm.sel = "n:w_flow"
+			pw.edy_uses["e_tempo_1"] = 1
+			pw.edy_off["e_tide_1"] = true
+			sm.sel = "n:e_tempo_3"
 			until = 20
 		10:
 			shot("will2")
-			sm._set_path("sense")
+			sm.sel = "n:e_iron_1"
 			until = 20
 		11:
 			shot("will_sense")

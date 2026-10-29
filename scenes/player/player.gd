@@ -198,6 +198,8 @@ var sparring: bool = false
 var poise: Poise
 ## (1.26) A human captain's own poise against knockdown blows (Poise "player"), made on the first one.
 var _own_poise: Poise
+## (1.26) The physics tick Foresight-by-itself is ready again from.
+var _fore_ready := 0
 var _debug_crew := 0
 ## Max health scale (an AI captain's: a rival crew's captain and their returns are tougher).
 var hp_k := 1.0
@@ -646,6 +648,16 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		return
 	if not hit.dot and randf() < progression.stat("evade_chance") + progression.style_stat("evade", style()):
 		_foresight_dodge(dir, "Instinct!")
+		return
+	# (1.26, the Edy tree) Foresight, by itself: every foresight_auto s a blow that would land is dodged, and it ranks up
+	# with the blows it dodges
+	var fa := progression.stat("foresight_auto")
+	if fa > 0.0 and not hit.dot and Engine.get_physics_frames() >= _fore_ready:
+		_fore_ready = Engine.get_physics_frames() + int(fa * Engine.physics_ticks_per_second)
+		_foresight_dodge(dir, "Foresight!")
+		if progression.stat("foresight_slow") > 0.0:
+			CombatManager.apply_hitstop(progression.stat("foresight_slow"), [self])
+		EdyTree.use(self, "e_sense_3")
 		return
 	if hit.ranged and _try_deflect(hit, dir, attacker):
 		return
@@ -2397,6 +2409,19 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 		# Armament: Coat - nothing can block it, and it breaks red wind-ups
 		h.unblockable = true
 		h.haki = true
+	# (1.26, the Edy tree's Infusion) a technique cast with Edy Techniques on, or a plain blow with Edy Strikes on (paid
+	# per blow): the Edy's weight in it, and its colour off the blow
+	var infused := false
+	if kind == "skill" and power.buff("edy_tech"):
+		h.damage *= 1.08 + pr.stat("edy_dense")
+		infused = true
+	elif kind in ["", "finisher", "heavy"] and power.edy_infuse(PowerComponent.EDY_STRIKE_COST):
+		h.damage *= 1.05 + pr.stat("edy_dense")
+		infused = true
+	if infused:
+		power.add_energy(pr.stat("edy_regain"))
+		var hand: Node3D = body_model.shin_r if style() == "black_leg" else body_model.hand_r
+		Net.fx("sparkle", [hand.global_position, 4, pr.will_tint().lightened(0.2)])
 	TraitMoves.shape(self, h, kind)
 	return h
 

@@ -7751,3 +7751,30 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   black_leg_master, t/ui/drills, t/island/brinehollow_outskirts. Expected to need updates at the release check:
   storytest (walks the old 14 steps), savetest (a new game's cutlass), probably qoltest/r-suites that assume the story's
   old order, and the islanddump/fidelity numbers for Brinehollow (the terrace, rack and deadfall).
+
+## 1.25.3, piece 1: the Edy tree (2026-10-29)
+- `scripts/progression/edy_tree.gd` (EdyTree): the round tree as data. The core (your Edy type), eight BRANCHES (Iron
+  Will, Sense, Captain's Will, Tide, Tempo, Fury, Bond, Infusion) of seven nodes each in SLOTS (ring 1 off the core, two
+  paths at rings 2-3 that meet at ring 4, a capstone at 5), and eight BRIDGES between neighbours (a stat between rings 2-3,
+  a passive between 3-4, linked to both sides). Kinds: stat and auto -> SkillTrees "auto", equip -> "passive" (slotted),
+  ability -> "tech" with its skill. `tiers`: ranks by use ([name, uses, desc, effects], each replacing the last's);
+  `switch`: Progression.edy_off turns it off. `why` (read, linked, price), `rank`, `effects`, `use(p, id, n)` (a toast at a
+  rank), `of_skill`, `learn_path` (tests and tools: buys the shortest chain to a node).
+- `SkillTrees._build_will` builds the Captain tree's Will branch from it (pool "will", pos round the core); the old Will
+  paths' nodes are gone, so an old save's Will purchases drop and their Edy comes back to spend (will_earned untouched).
+  Progression: `edy_uses`, `edy_off` (saved), `stat()` takes `EdyTree.effects` for Edy nodes, `buy_why` -> EdyTree.why.
+- New mechanics: Foresight by itself (`foresight_auto` s; Player._on_hit_received, its dodge counts toward its rank;
+  `foresight_slow` a beat of hitstop), Iron Reflex from its node (`iron_reflex`), casts counting toward their node's rank
+  (PowerComponent.try_cast -> EdyTree.use), Emission's uses. Infusion: `PowerComponent.edy_infuse(cost)` (Edy Techniques
+  +2 energy a technique and the "edy_tech" buff for its blows, Edy Strikes 0.5 a plain blow; Brimming free above 80%);
+  `Player.melee_hit` multiplies an infused blow by 1.08 / 1.05 + edy_dense and gives back edy_regain energy (per swing,
+  not per landed hit), with a spark in your Edy's colour at the hand (or shin).
+- Reinforce sits in Iron Will (slot 2). Roar, Glimpse and the rest keep their skills; the foresight *skill* isn't in the tree
+  (Foresight is the passive now).
+- Captain page (`SkillMapScreen._draw_edy_tree`): an oval constellation (the panel's width stretches it), branch names out
+  past the capstones (side ones anchored outward; Captain's Will as CAPTAIN'S), links lit between owned nodes, shapes by
+  kind, a gold rim on what you can buy, dashed when switched off, rank pips. Enter (`_act_edy`): buy / switch / slot. The
+  card (`_edy_card_body`): branch and kind, ranks with uses, what Enter does. A/D no longer flips paths.
+- Tests: new `t/progression/edy_tree`; t/will/* buy through learn_path; `t/will/reinforce` (an old save's Will
+  purchases drop), `t/progression/edy_types`, `t/ui/skills_captain_forks` rewritten for the tree; `t/progression/will_paths`
+  and `t/will/open_paths` (the old path rules) removed. skillmapshot films the tree (_will, _will2, _will_sense).

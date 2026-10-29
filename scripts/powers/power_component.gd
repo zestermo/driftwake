@@ -341,6 +341,13 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.26) the Edy tree: a cast counts toward its node's next rank; with Edy Techniques on, a technique carries your Edy
+	var en := EdyTree.of_skill(id)
+	if en != "":
+		EdyTree.use(player, en)
+	if str(sk.get("state", "")) == "Technique" and edy_infuse(EDY_TECH_COST):
+		add_buff("edy_tech", EDY_TECH_SECS)
+		EdyTypes.aura(player, "legs" if player.style() == "black_leg" else "arms", EDY_TECH_SECS)
 	var needs := str(sk.get("needs", ""))
 	if (needs != "" or not (sk.get("styles", []) as Array).is_empty()) and not player.armed:
 		player.draw_weapon(true)
@@ -421,7 +428,7 @@ func use_foresight() -> bool:
 
 ## Mastered Tekkai: a knockdown blow hardens you on the spot instead.
 func iron_reflex() -> bool:
-	if player == null or _reflex_cd > 0.0 or buff("tekkai") or player.progression.skill_tier("tekkai") < 3:
+	if player == null or _reflex_cd > 0.0 or buff("tekkai") or (player.progression.skill_tier("tekkai") < 3 and player.progression.stat("iron_reflex") <= 0.0):
 		return false
 	_reflex_cd = REFLEX_COOLDOWN
 	add_buff("tekkai", 1.5)
@@ -457,6 +464,31 @@ func _ryuo(target: Node3D) -> void:
 	player.cam_shake(0.16)
 
 
+## (1.26, the Edy tree's Infusion branch) Edy Techniques: a technique's extra energy and how long its blows carry the
+## Edy; Edy Strikes: a plain blow's. Brimming: free above BRIM of your energy.
+const EDY_TECH_COST := 2.0
+const EDY_TECH_SECS := 2.5
+const EDY_STRIKE_COST := 0.5
+const BRIM := 0.8
+
+
+## Pays for an infusion (Edy Techniques when `cost` is EDY_TECH_COST, else Edy Strikes): true if the captain has it on
+## and it's paid (Brimming: free while energy is high). The blow then carries the Edy (Player.melee_hit).
+func edy_infuse(cost: float) -> bool:
+	if player == null:
+		return false
+	var pr = player.progression
+	if pr.stat("edy_tech" if cost == EDY_TECH_COST else "edy_strikes") <= 0.0:
+		return false
+	if pr.stat("edy_brimming") > 0.0 and energy >= max_energy() * BRIM:
+		return true
+	if energy < cost:
+		return false
+	energy -= cost
+	_regen_wait = maxf(_regen_wait, 0.5)
+	return true
+
+
 ## Emission (Iron Will tier 2, while coated): EMIT_AFTER s into each heavy attack, the Will leaves the blade once.
 func _tick_emission(delta: float) -> void:
 	if player.current_state_name() != "HeavyAttack":
@@ -471,6 +503,7 @@ func _tick_emission(delta: float) -> void:
 		return
 	_emit_done = true
 	emission(kind)
+	EdyTree.use(player, "e_iron_5")
 
 
 ## Emission's strike: 1 a line EMIT_RANGE m straight ahead, 2 a ring EMIT_RING m round you, 3 Stomp's quake. Unblockable Will; the
