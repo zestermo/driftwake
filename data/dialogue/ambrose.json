@@ -3,7 +3,22 @@
 	"voice": 0.8,
 	"start": "intro",
 	"return": "menu",
+	"story": { "lighthouse": "story_parcel", "brawl": "story_quay" },
 	"nodes": {
+		"story_parcel": {
+			"text": [
+				"Footsteps, and a parcel that smells of Nessa's stall. Wicks. And the good tobacco. She remembered.",
+				"You're the one the sea gave back. I saw no wreck that night, captain. I saw a longboat. No lantern, rowing hard for the south cove, where no honest boat lands.",
+				"Smugglers. They've been camped down there a month, running cargo for Grell's lot. Grell's men drink on the quay, too, and they don't like new faces.",
+				"Sergeant Vey at the training yard, west of the plaza, is the one to tell. And he's the one to teach you to stand up to men like that. Go the quay way. Keep your head down. Or don't."
+			],
+			"event": "story:lighthouse",
+			"next": "menu"
+		},
+		"story_quay": {
+			"text": "Down to the quay and west to Vey's yard. Grell's toughs will be on the quay. Bare hands are still hands.",
+			"next": "menu"
+		},
 		"intro": {
 			"text": [
 				"Ah. Footsteps. Not many make the climb.",

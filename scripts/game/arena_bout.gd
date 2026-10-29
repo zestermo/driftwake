@@ -26,6 +26,8 @@ const PURSES := [40, 60, 90, 130, 180, 300]
 const MASTERS := {
 	"black_leg": ["Tomo, Bao's pupil", "", 0.45, {"coat": "none", "hat": "headband", "top": "kimono", "sleeves": "long"}, "black_leg"],
 }
+## The story's quay brawl (1.25.4, Story step "brawl"): a dock tough, bare-handed, who fights as soon as he's out.
+const BRAWLER := ["Harl", {"coat": "none", "hat": "bandana", "top": "shirt", "sleeves": "none", "build": "broad"}, 0.2]
 const DEFEND_PURSE := 80
 const DEFEND_SKILL := 0.85
 const DEFEND_WEAPONS := ["cutlass", "katana", "spear", "greatsword", "boarding_axe", "dagger", "warhammer"]
@@ -106,6 +108,11 @@ func _spawn(isl: Node3D, sand: Vector3) -> void:
 		weapon = m[1]
 		skill = m[2]
 		kicks = str(m[4]) == "black_leg"
+	elif kind == "brawl":
+		lk.merge(BRAWLER[1], true)
+		lk["name"] = str(BRAWLER[0])
+		weapon = ""
+		skill = BRAWLER[2]
 	elif kind == "defend":
 		lk["name"] = "Challenger"
 		weapon = str(DEFEND_WEAPONS[rng.randi() % DEFEND_WEAPONS.size()])
@@ -165,13 +172,13 @@ func begin() -> void:
 	_net().everyone("_all_spar_beat", [captain_key, _net().key_of(rival), "bow"])
 
 
-## Where a pupil spars: the "Spar" mark before Brinehollow's teahouse (INF when there's none).
-static func spar_spot(tree: SceneTree) -> Vector3:
-	for t in tree.root.find_children("Teahouse", "", true, false):
-		var m := (t as Node).get_node_or_null("Spar") as Node3D
-		if m:
-			return m.global_position
-	return Vector3.INF
+## Where a pupil spars (the flagged ground on Brinehollow's shrine terrace, 1.25.4) or the quay brawl is fought (INF
+## off Brinehollow).
+static func spar_spot(tree: SceneTree, bout_kind: String) -> Vector3:
+	var isl: StarterIsland = tree.root.get_node("Story").island()
+	if isl == null:
+		return Vector3.INF
+	return isl.ground_of("brawl" if bout_kind == "brawl" else "spar")
 
 
 ## On the captain's own machine: the pupil asks if they're ready (a talk, "spar:go" or not yet).
@@ -286,8 +293,12 @@ func _finish(won: bool) -> void:
 static func result(me: Player, key: String, bout_kind: String, at_rank: int, won: bool, roll: int) -> void:
 	if me == null or me.get_node("/root/Net").key_of(me) != key:
 		return
-	if bout_kind.begins_with("master:"):
+	if bout_kind == "brawl":
+		me.get_tree().call_group("hud", "show_toast", "Harl stays down. Word gets round the quay fast." if won else "Flat on the stones. Harl laughs. Get up and try him again.")
+	elif bout_kind.begins_with("master:"):
 		_master_result(me, bout_kind.substr(7), won)
+	if bout_kind == "brawl" or bout_kind.begins_with("master:"):
+		me.get_node("/root/Story").bout_done(bout_kind, won)
 		return
 	if not won:
 		me.get_tree().call_group("hud", "show_toast", "Beaten on the sand. The crowd groans. Try again when you're ready.")

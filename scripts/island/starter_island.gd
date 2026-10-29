@@ -50,6 +50,12 @@ const JUNGLE_STASH := Vector2(-92, 14)
 const SMUGGLERS := Vector2(46, 110)
 const FOREST := Vector2(-125, 70)
 const CAVE := Vector2(-150, 45)
+## The story's places (1.25.4): the quay brawl (KitHarbour frame: along, in from the sea wall), Vey's rack of every
+## weapon kind, the sparring ground on the shrine terrace's east side.
+const BRAWL_S := -18.0
+const BRAWL_IN := 8.0
+const RACK := TRAINING + Vector2(-2.5, -7.0)
+const SPAR := Vector2(UP_X + 10.5, 15.5)
 ## Grell's den on a plateau off the north-west beach: flat to DEN_IN, its cliffs at
 ## DEN_OUT, its hoist and pier out toward DEN_SEA.
 const DEN := Vector2(-160, -152)
@@ -896,10 +902,17 @@ func walk_height(x: float, z: float) -> float:
 	return hv(Vector2(x, z))
 
 
-## The story's fights on this island, in world space ("smugglers", "den", "cave").
+## The story's places on this island, in world space, a marker's height over the ground (the fights "smugglers",
+## "den", "cave"; the quay "brawl", Vey's "rack", the terrace's "spar", the "ruins", the old "forest").
 func place_of(place: String) -> Vector3:
-	var p: Vector2 = {"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE}[place]
-	return to_global(Vector3(p.x, hv(p) + 1.5, p.y))
+	return ground_of(place) + Vector3.UP * 1.5
+
+
+## The ground at a story place (place_of), world space.
+func ground_of(place: String) -> Vector3:
+	var p: Vector2 = harbour.quay_pt(BRAWL_S, BRAWL_IN) if place == "brawl" else \
+		{"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE, "rack": RACK, "spar": SPAR, "ruins": RUINS, "forest": FOREST}[place]
+	return to_global(Vector3(p.x, hv(p), p.y))
 
 
 ## Where the story's marker leads for `place` from `from` (world): for the den, the

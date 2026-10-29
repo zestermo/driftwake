@@ -3,20 +3,28 @@
 	"voice": 0.9,
 	"start": "intro",
 	"return": "menu",
-	"story": { "see_vey": "story_vey", "vey_drills": "story_drills", "smugglers": "story_smugglers", "vey_skills": "story_skills", "grell": "story_grell" },
+	"story": { "see_vey": "story_vey", "vey_rack": "story_rack", "vey_drills": "story_drills", "smugglers": "story_smugglers", "vey_skills": "story_skills", "shrine": "story_shrine","grell": "story_grell" },
 	"nodes": {
 		"story_vey": {
 			"text": [
-				"Nessa sent you. Of course she did. Stand up straight. Hm. Arms like a deckhand, eyes like you've lost your own name.",
-				"You have? Doesn't matter. A blade doesn't care who you were. Show me what your hands remember. The dummies, there.",
-				"Cut, lunge, roll, parry, block, strike from a jump, sheathe and draw. All of it. I'll be watching.",
-				"Do that, and there's a crew of smugglers camped on the beach south of the cove who could use the same lesson."
+				"So you're the one who put Harl on his back on the quay. The whole yard heard. Stand up straight. Hm. Arms like a deckhand, eyes like you've lost your own name.",
+				"Ambrose saw smugglers off the south cove? Then he's right, and they're Grell's. Fists won't shift a camp of them. Steel will.",
+				"That rack. Every kind of weapon a sailor's ever swung, and a few they shouldn't. Take one down, try it on the dummies, put it back, take the next. Keep the one your hands like.",
+				"Only one. The rest Haldor sells, and he'll want paying. Choose well."
 			],
 			"event": "story:see_vey",
 			"next": "menu"
 		},
+		"story_rack": {
+			"text": "The rack, by the north fence. Try them on the dummies. When one feels like yours, keep it.",
+			"next": "menu"
+		},
 		"story_drills": {
 			"text": "The dummies won't hit themselves. Every move on the list, then we talk smugglers.",
+			"next": "menu"
+		},
+		"story_shrine": {
+			"text": "Up the long stair, past the gate. Master Isao. Answer him honestly and quickly, and don't touch the bell.",
 			"next": "menu"
 		},
 		"story_smugglers": {
@@ -28,8 +36,9 @@
 				"Back already, and bleeding about the right amount. The smugglers are done? Good.",
 				"Listen. Every fight you live through teaches you something, whether you like it or not. Enough of it and you grow. And every weapon you swing learns you back: use it and it opens up, new cuts, new tricks.",
 				"Open your skill map with K and see what your hand's learned. Here, a head start: one of my drills. Again. Again. There. Feel that?",
-				"Next lesson's a hard one. Captain Grell's crew holds the old harbour on the north-west beach. A real pirate captain, not some smuggler. He's been bleeding this town for years.",
-				"Train up. Then go and put him down."
+				"Something else woke in you down there. I saw it in the last swing: a current, under the strength. Sailors call it Edy.",
+				"I can't teach that. Master Isao can. Up the long stair, at the shrine on the terrace. He'll read what kind you have and show you what it's for.",
+				"After that, Grell. His crew holds the old harbour on the north-west beach. A real pirate captain, not some smuggler. He's been bleeding this town for years."
 			],
 			"event": "story:vey_skills",
 			"next": "menu"

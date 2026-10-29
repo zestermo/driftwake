@@ -3,16 +3,21 @@
 	"voice": 1.25,
 	"start": "intro",
 	"return": "menu",
-	"story": { "see_nessa": "story_nessa" },
+	"story": { "see_nessa": "story_nessa", "lighthouse": "story_parcel" },
 	"nodes": {
 		"story_nessa": {
 			"text": [
 				"Gus sent you? Then you're the one off the west sand! Everyone's talking about you. Well. Pell's talking. Same thing.",
 				"Nothing of yours washed up, sorry, love. But here's how Brinehollow works: you find it, I buy it. Treasure, plunder, anything that glitters.",
 				"Gold buys the rest. Sela sells clothes, Ida sells jars and hardtack, Marlo sells fish, Gus sells rum. And I buy everything. Talk to any of us to trade.",
-				"Now, if you're going to go finding things, you'd better learn which end of a sword goes in the pirate. Sergeant Vey trains anyone with a pulse, in the yard past the tavern. Tell him Nessa sent you. He'll pretend to be annoyed."
+				"Now. You've got legs and no work. Ambrose up at the lighthouse wants his lamp wicks and his tobacco, and my knees won't do that hill. Take him this, would you? East, past the houses, up the hill with the light on it.",
+				"He sees everything from up there. If anyone's seen a wreck the night you washed up, it's Ambrose."
 			],
 			"event": "story:see_nessa",
+			"next": "menu"
+		},
+		"story_parcel": {
+			"text": "The lighthouse, love. East and up. He'll be glad of the wicks, and he'll pretend not to be glad of the company.",
 			"next": "menu"
 		},
 		"intro": {

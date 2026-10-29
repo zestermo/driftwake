@@ -1,9 +1,12 @@
 extends Node
 ## The story (autoload "Story"): a chain of steps from waking on the beach by
-## the quay to beating Captain Morrow. Each step names who or where to go (the
-## HUD's objective and marker) and what finishes it: a talk (a dialogue node
-## with "event": "story:<id>"; that NPC's JSON says where the talk starts while
-## the step is current, under "story"), or a fight won near you.
+## the quay to beating Captain Morrow, right across Brinehollow (1.25.4: the
+## lighthouse, the quay brawl, Vey's rack, the shrine, the ruins, the old forest).
+## Each step names who or where to go (the HUD's objective and marker) and what
+## finishes it: a talk (a dialogue node with "event": "story:<id>"; that NPC's
+## JSON says where the talk starts while the step is current, under "story"), a
+## fight won near you, or a bout (ArenaBout, asked for as you come near its
+## place: the quay brawl, Tomo's spar) won.
 ## Only a new game from the title screen plays it (begin()); every other
 ## session (tests, the editor's run) has it done with nothing locked.
 ## Per captain, saved in your slot; in co-op each captain follows their own,
@@ -15,21 +18,36 @@ const STEPS := [
 	{"id": "find_town", "goal": "Head into town: find someone who knows this place", "npc": "Old Pell", "who": "Pell"},
 	{"id": "see_gus", "goal": "Find Gus at the Salted Gull", "npc": "Gus Brannock", "who": "Gus"},
 	{"id": "see_nessa", "goal": "See Nessa at the market", "npc": "Nessa", "who": "Nessa"},
+	{"id": "lighthouse", "goal": "Take Nessa's parcel up to the lighthouse keeper", "npc": "Keeper Ambrose", "who": "Ambrose"},
+	{"id": "brawl", "goal": "Deal with the dock toughs on the quay: fists only", "place": "brawl", "bout": "brawl", "who": "The quay"},
 	{"id": "see_vey", "goal": "Find Sergeant Vey at the training yard", "npc": "Sergeant Vey", "who": "Vey"},
+	{"id": "vey_rack", "goal": "Try the blades on Vey's rack and keep one", "place": "rack", "who": "Weapon rack"},
 	{"id": "vey_drills", "goal": "Show Vey every move on the training dummies", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "smugglers", "goal": "Drive the smugglers out of the south cove", "place": "smugglers", "who": "Smugglers' camp"},
 	{"id": "vey_skills", "goal": "Report back to Sergeant Vey", "npc": "Sergeant Vey", "who": "Vey"},
+	{"id": "shrine", "goal": "Climb the long stair: Master Isao at the shrine reads your Edy", "npc": "Master Isao", "who": "Isao"},
+	{"id": "tomo", "goal": "Spar with Tomo on the shrine terrace", "place": "spar", "bout": "master:black_leg", "who": "Tomo"},
+	{"id": "ruins", "goal": "Examine the standing stone in the old ruins", "place": "ruins", "who": "The ruins"},
 	{"id": "grell", "goal": "Defeat Captain Grell at the pirate den", "place": "den", "who": "Pirate den"},
 	{"id": "see_odile", "goal": "Tell Harbormaster Odile that Grell is beaten", "npc": "Harbormaster Odile", "who": "Odile"},
 	{"id": "see_tackett", "goal": "Ask Shipwright Tackett about a ship", "npc": "Shipwright Tackett", "who": "Tackett"},
+	{"id": "forest", "goal": "Cut seasoned timber in the old forest for Tackett", "place": "forest", "who": "Old forest"},
 	{"id": "queen", "goal": "Slay the Brood Queen in the forest cave", "place": "cave", "who": "Brood cave"},
-	{"id": "tackett_ship", "goal": "Bring the queen's chitin to Tackett", "npc": "Shipwright Tackett", "who": "Tackett"},
+	{"id": "tackett_ship", "goal": "Bring the timber and the queen's chitin to Tackett", "npc": "Shipwright Tackett", "who": "Tackett"},
 	{"id": "see_gus_redtide", "goal": "Ask Gus who rules these waters", "npc": "Gus Brannock", "who": "Gus"},
 	{"id": "morrow", "goal": "Sail to Redtide Rock and defeat Captain Morrow", "place": "redtide", "who": "Redtide Rock"},
 ]
 const DONE := "done"
+## Saves before 1.25.4: every old step id is on the new list, so a captain mid-story resumes where they were (and
+## skips the new steps before it); an id the list no longer knows lands here (none so far), else the story's done.
+const OLD := {}
 ## Fights count when you're this close to them as they're won (m).
 const NEAR := {"smugglers": 70.0, "den": 90.0, "cave": 60.0, "redtide": 140.0}
+## A bout step asks for its bout this close to its place (m), again once you've been twice as far or it's lost.
+const BOUT_R := {"brawl": 13.0, "master:black_leg": 16.0}
+const REARM_SECS := 6.0
+## The old forest's timber (piece 4: StarterIsland's deadfall) Tackett wants.
+const TIMBER := 3
 
 var step: String = DONE
 ## Fights won so far (place -> true): a step whose fight you already won
@@ -37,6 +55,8 @@ var step: String = DONE
 var won: Dictionary = {}
 var _poll: float = 0.0
 var _island: Node
+var _bout_armed := true
+var _rearm_t := 0.0
 
 
 func active() -> bool:
@@ -78,11 +98,13 @@ func skills_open() -> bool:
 	return passed("vey_skills")
 
 
-## A new game: you wake on the beach with nothing but your name.
+## A new game: you wake on the beach with nothing but your name (and no blade: Vey's rack gives you one).
 func begin() -> void:
 	step = STEPS[0]["id"]
 	won.clear()
+	_bout_armed = true
 	Dialogue.set_flag("ship_not_owned")
+	_unarm(_player())
 	# (a guest's new captain doesn't take the host's ship away)
 	if not Net.is_client():
 		var gm := get_node("/root/GameManager")
@@ -90,6 +112,17 @@ func begin() -> void:
 		kit["owned"] = false
 		Net.set_ship_kit(kit)
 	changed.emit()
+
+
+## Every weapon out of the bag and the hands (a new captain's starting cutlass).
+func _unarm(p: Player) -> void:
+	if p == null:
+		return
+	var inv := p.inventory_component
+	for st in inv.get_all_items().duplicate():
+		if (st as ItemStack).item.is_weapon():
+			inv.remove_item(st.item, st.quantity)
+	p.check_equipped()
 
 
 func reset() -> void:
@@ -103,11 +136,22 @@ func to_dict() -> Dictionary:
 
 
 func from_dict(d: Dictionary) -> void:
-	step = str(d.get("step", DONE))
+	step = map_old(str(d.get("step", DONE)))
 	won.clear()
 	for k in d.get("won", []):
 		won[str(k)] = true
+	_bout_armed = true
 	changed.emit()
+
+
+## A saved step id on today's list (see OLD).
+static func map_old(id: String) -> String:
+	if id == DONE:
+		return DONE
+	for s in STEPS:
+		if s["id"] == id:
+			return id
+	return str(OLD.get(id, DONE))
 
 
 ## Finish step `id` if it's the one you're on: what it unlocks, the next
@@ -129,6 +173,7 @@ func complete(id: String) -> void:
 				Net.set_ship_kit(kit)
 	var i := index_of(id) + 1
 	step = STEPS[i]["id"] if i < STEPS.size() else DONE
+	_bout_armed = true
 	changed.emit()
 	_drills()
 	if step == DONE:
@@ -139,6 +184,17 @@ func complete(id: String) -> void:
 	if p:
 		SaveGame.save(p)
 	_check_won()
+
+
+## A bout this captain asked for is over (ArenaBout.result, on their own machine): won finishes its step, lost
+## asks again a little later.
+func bout_done(kind: String, ok: bool) -> void:
+	if str(current().get("bout", "")) != kind:
+		return
+	if ok:
+		complete(step)
+	else:
+		_rearm_t = REARM_SECS
 
 
 ## Vey's drills (Drills: the yard's checklist) while that's the step.
@@ -171,6 +227,10 @@ func dialogue_entry(_id: String, data: Dictionary) -> String:
 func _process(delta: float) -> void:
 	if not active():
 		return
+	if _rearm_t > 0.0:
+		_rearm_t -= delta
+		if _rearm_t <= 0.0:
+			_bout_armed = true
 	_poll -= delta
 	if _poll > 0.0:
 		return
@@ -182,6 +242,31 @@ func _process(delta: float) -> void:
 		if not won.has(place) and _beaten(place) and p.global_position.distance_to(place_pos(place)) < float(NEAR[place]):
 			won[place] = true
 	_check_won()
+	_bout_near(p)
+
+
+## A bout step: ask for the bout as the captain comes near its place (the host runs it: Net.request_arena).
+func _bout_near(p: Player) -> void:
+	var c := current()
+	var kind := str(c.get("bout", ""))
+	if kind == "":
+		return
+	if kind == "master:black_leg" and p.knows_black_leg():
+		complete(step)
+		return
+	var at := place_pos(str(c["place"]))
+	if at == Vector3.INF:
+		return
+	var d := p.global_position.distance_to(at)
+	var r := float(BOUT_R[kind])
+	if d < r and _bout_armed and _rearm_t <= 0.0:
+		_bout_armed = false
+		if kind == "brawl":
+			get_tree().call_group("hud", "show_banner", "\"Oi. You. Grell owes us, and you'll do.\"",
+				"A dock tough squares up. Fists only: %s to raise them, %s to punch." % [Drills.key_of("ready_weapon"), Drills.key_of("light_attack")], true)
+		Net.request_arena(kind, 0)
+	elif d > r * 2.0 and _rearm_t <= 0.0:
+		_bout_armed = true
 
 
 func _check_won() -> void:
@@ -212,7 +297,7 @@ func _beaten(place: String) -> bool:
 	return false
 
 
-## Where the objective is: the NPC to talk to, or the fight.
+## Where the objective is: the NPC to talk to, or the place.
 func target_pos() -> Vector3:
 	var c := current()
 	if c.has("npc"):

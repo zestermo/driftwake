@@ -1195,10 +1195,10 @@ func _ask_arena(bout_kind: String, at_rank: int) -> void:
 
 func _start_arena(bout_kind: String, at_rank: int, by: int) -> void:
 	var c: Player = players.get(by) if active else _me()
-	# a master's test ("master:<tree>"): their pupil goes out to the sparring spot (Brinehollow's "Spar" before the
-	# teahouse; else a few steps in front of you) and waits for you there
-	if bout_kind.begins_with("master:") and c != null:
-		var spot := ArenaBout.spar_spot(get_tree())
+	# a master's test ("master:<tree>"): their pupil goes out to the sparring spot (Brinehollow's shrine terrace; else a
+	# few steps in front of you) and waits for you there; the story's quay brawl ("brawl") is fought on the quay
+	if (bout_kind.begins_with("master:") or bout_kind == "brawl") and c != null:
+		var spot := ArenaBout.spar_spot(get_tree(), bout_kind)
 		if spot == Vector3.INF:
 			var fwd := -c.player_model.global_basis.z
 			fwd.y = 0.0

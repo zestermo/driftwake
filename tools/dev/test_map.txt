@@ -56,7 +56,10 @@ scripts/island/marine_outpost.gd        t/island/outpost
 scripts/props/breakable.gd              t/world/breakable
 scripts/ui/drills.gd                    t/ui/drills
 scripts/ui/walkthrough.gd               t/ui/drills
-scripts/game/story.gd                   t/ui/drills
+scripts/game/story.gd                   t/ui/drills t/story storytest
+tools/dev/t/story/*                     t/story
+scripts/game/arena_bout.gd              t/story t/weapons/black_leg_master
+data/dialogue/*                         t/story storytest
 scripts/quests/journal.gd               t/quests
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene t/ui/intro
