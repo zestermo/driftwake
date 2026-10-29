@@ -12,10 +12,8 @@ extends Node3D
 ## notices by IslandLife (the crew's Journal), each turned in to whoever posted it. Everyone's lines
 ## come from the theme's pools, dealt by the island's LineDeck (no two people say the same thing).
 
-const ELDERS := ["Elder Mako", "Elder Tavi", "Old Kesi", "Elder Rua", "Grandmother Ilo", "Headman Pakua"]
-const COOKS := ["Nalu", "Ama", "Big Teo", "Siri"]
-const TRADERS := ["Wiremu", "Lani", "Haku", "Moana"]
-const INNKEEPERS := ["Keala", "Pono", "Rangi", "Ulani"]
+## (1.26) The elder's title (neutral: the body is rolled apart from it), before a name from the theme's folk.
+const ELDER_TITLES := ["Elder", "Old", "Reeve", "Warden", "Chief", "Keeper", "Elder", "Old"]
 const Shops := preload("res://scripts/game/shops.gd")
 ## NightLights for the whole village (inn door, the shops' and homes' rooms, the shrine, lamps, torches).
 const LIGHTS := 16
@@ -187,13 +185,13 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	var food_id := _key("cook")
 	var w := IslandContent.LOOT_WEAPONS
 	# (the treasure merchant of the island: its staples at the island's tier, a trait on blue and up from a stream of its own)
-	Shops.extra[trade_id] = {"name": "%s's Trade Goods" % TRADERS[rng.randi() % TRADERS.size()],
+	Shops.extra[trade_id] = {"name": "%s's Trade Goods" % _folk_name(isl, rng),
 		"line": "Shells, steel and sea-gems. I'll take your loot at a fair price.", "trade": "treasure", "tier": maxi(t, 2),
 		"stock": Shops.with_traits([["rum", 9], ["biscuit", 3], ["tonic", 28 + t * 2], ["%s@%d" % [w[rng.randi() % w.size()], t], 60 + t * 40],
 			["%s@%d" % [w[rng.randi() % w.size()], maxi(t - 1, 0)], 40 + t * 25], ["pistol@%d" % maxi(t - 1, 0), 70 + t * 30]]
 			+ Instruments.trader_stock(trade_id), trade_id),
 		"buys": {"loot": 0.9, "gear": 0.5, "weapon": 0.5}}
-	Shops.extra[food_id] = {"name": "%s's Cookpot" % COOKS[rng.randi() % COOKS.size()],
+	Shops.extra[food_id] = {"name": "%s's Cookpot" % _folk_name(isl, rng),
 		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.", "trade": "grocer",
 		"stock": [["fish", 5], ["stew", 16], ["rum", 8]], "pool": Shops.THEME_GROCER.get(isl.theme, Shops.THEME_GROCER["jungle"]),
 		"size": Shops.GROCER_SIZE, "buys": {"consumable": 0.4, "ingredient": 0.5}}
@@ -233,9 +231,11 @@ func _build_people(rng: RandomNumberGenerator) -> void:
 	var deck: LineDeck = isl.life.deck
 	var serve: Dictionary = LifePools.of(isl.theme)["service"]
 	var day: Array = LifePools.of(isl.theme)["barks"]["day"]
-	elder_name = ELDERS[rng.randi() % ELDERS.size()]
+	# (1.26: six elders and four innkeepers repeated island to island) a title and a name from the theme's own folk
+	var firsts: Array = LifePools.of(isl.theme)["first"]
+	elder_name = "%s %s" % [ELDER_TITLES[rng.randi() % ELDER_TITLES.size()], firsts[rng.randi() % firsts.size()]]
 	_npc({"name": elder_name, "dialogue": _key("elder"), "voice": 0.8, "look": lks[0]}, c - to_dock * 3.0 + side * 3.0, to_dock, hy)
-	_npc({"name": "Innkeeper " + INNKEEPERS[rng.randi() % INNKEEPERS.size()], "voice": 1.1, "look": lks[1], "barks": deck.deal("inn", serve["inn"], 2)},
+	_npc({"name": "Innkeeper " + str(firsts[rng.randi() % firsts.size()]), "voice": 1.1, "look": lks[1], "barks": deck.deal("inn", serve["inn"], 2)},
 		inn_door + Vector2(-inn["face"].y, inn["face"].x) * 1.2, inn["face"], inn.get("floor_y", INF))
 	_keepers = {"trade": {"name": str(Shops.extra[trade_id]["name"]).trim_suffix("'s Trade Goods"), "voice": 0.95, "shop": trade_id, "look": lks[2],
 		"barks": deck.deal("trade", serve["trade"], 2)},
@@ -565,3 +565,9 @@ func _define_elder(notices: Array, qn: KitQuests) -> void:
 		f.call(menu["choices"], nodes)
 	menu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("elder"), {"speaker": elder_name, "voice": 0.8, "start": "intro", "return": "menu", "nodes": nodes})
+
+
+## (1.26) A first name from the island theme's own folk (LifePools "first"), for its keepers.
+static func _folk_name(isl, rng: RandomNumberGenerator) -> String:
+	var firsts: Array = LifePools.of(isl.theme)["first"]
+	return str(firsts[rng.randi() % firsts.size()])

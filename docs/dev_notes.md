@@ -7696,3 +7696,9 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   this reshuffles villagers' looks per seed, nothing saved). lifetest covers it (run at the release check).
 - Enterable, dressed shops for every vendor go with the unique places (1.25.5).
 - Test: `t/ui/vendor_marks` (a shipwright's badge and map mark).
+
+## 1.25.2, piece 4: village keepers' names from the theme (2026-10-29)
+- `IslandVillage`: the elder is ELDER_TITLES (neutral: Elder, Old, Reeve, Warden, Chief, Keeper) + a first name from the
+  theme's folk (LifePools "first"); the innkeeper, trader and cook too (`_folk_name`). The six fixed elders (Headman
+  Pakua...) and the four-name keeper lists, the same jungle names on every theme, are gone. More lines per role go
+  with the NPC hooks (1.25.5).
