@@ -21,7 +21,7 @@ func check(what: String, cond: bool) -> void:
 
 
 func _cards(n: Node, name_prefix: String) -> int:
-	return n.find_children(name_prefix + "*", "MeshInstance3D", true, false).size()
+	return n.find_children(name_prefix + "*", "GPUParticles3D", true, false).size()
 
 
 func _process(_d: float) -> bool:
@@ -40,7 +40,7 @@ func _process(_d: float) -> bool:
 		1:
 			var feet: int = _cards(body.shin_r, "EdyFoot") + _cards(body.shin_l, "EdyFoot")
 			var hands: int = _cards(body.hand_r, "EdyHand") + _cards(body.hand_l, "EdyHand")
-			check("Infuse's flames on both legs (%d)" % feet, feet == 2)
+			check("Infuse's Edy off both feet (%d)" % feet, feet == 2)
 			check("...none on the hands (%d)" % hands, hands == 0)
 			p.power.add_buff("coat", 5.0)
 			p.update_coat_visual()

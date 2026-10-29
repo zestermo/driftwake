@@ -7812,3 +7812,17 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   the map's mark too (MapIsles). The Poisoned Well arc (the brood queen) needs the burrows (`needs: ["burrows"]`).
 - Test: `t/island/lair_kinds` (the roll's shares over 400 seeds; a built hideout and picket: no burrows, five men, the
   hoard, the notice, done once they're down). isletest checks whichever the seed rolls; arc_roll's facts carry "burrows".
+
+## 1.25.3, piece 2: the Edy looks (2026-10-29)
+- Zach: the whole-body glow and the tall flame were too big and distracting (Storm's worst); he picked the Edy tree mock's
+  subtle sketches, plus "a little bit of aura" on the limbs and the whole body for Reinforce.
+- `EdyAura` rewritten: no flame card, no hand/foot flame cards. A light outline (the rim shader at RIM_K 0.45, RIM_GROW
+  0.015) on the arms (Infuse, big flares) or the whole body (Reinforce); none on the legs (one skin with the body).
+  GPUParticles3D per limb, born on a cylinder round it (EMISSION_SHAPE_RING along the bone: forearm down to the hand,
+  shin down to the foot, LIMB_R 0.08): haze (soft puffs drifting up), crackle (sparks flicking up), shimmer (gold
+  glints), swirl (motes orbiting), lightning (a few sparks) + EdyArcs: short jagged arcs from a point on a limb to another
+  on it or a limb within ARC_REACH, bowed out from the body, a bright core and two coloured strands, lit 0.07 s, one per
+  limb every 0.06-0.22 s (an ImmediateMesh rebuilt only while arcs live). Reinforce keeps its ground disc (0.7 strength).
+  Emitters keep the names EdyHand / EdyFoot; `_emitters`, `_shells` for tests.
+- Renders: abilityshot edy_reinforce with AB_EDY per type (tools/dev/out/edy2). Tests: `t/will/reinforce`,
+  `t/will/infuse_legs` updated.

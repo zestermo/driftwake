@@ -1,36 +1,32 @@
 class_name EdyAura
 extends Node
-## An Edy aura on a body (EdyTypes): three layers in the captain's type's colour and shape, faded in, burning for
-## `secs`, faded out.
-##   rim     every mesh of the part gets a thin additive shell (the same mesh pushed out along its normals): a glowing
-##           outline, Storm's veins crawling over it (shaders/psx/edy_aura.gdshader)
-##   flame   a camera-facing card a little behind the body: the tall teardrop of rising tongues round the silhouette
-##           (shaders/psx/edy_flame.gdshader), blended so it reads in daylight
-##   ground  a disc underfoot in the type's shape (shaders/psx/edy_ground.gdshader): it sits on the ground, not on the
-##           captain: when their feet leave it, it lingers where they stood for a moment and fades; it comes back when
-##           they land
-## Parts: "arms" (Infuse: the rim on the forearms, hands and what's held), "legs" (1.26: Infuse in the kicking stance: the
-## rim on the shins and feet, tongues off the feet), "body" (a big Edy move's flare: rim and
-## flame), "reinforce" (rim, flame and ground). Shown on every screen through FX.edy_aura (Net.fx). A second call on a
-## body with one running extends it and widens it to the bigger part. `flash_on` brightens it for a moment (Reinforce
-## shrugging off a blow). A draw per shell and two cards while it lasts; the CPU only fades it. Sound: a held aura
-## (Infuse, Reinforce: HUM_MIN or longer) channels its type's hum (edy_hum_<type>, looped, faded with it); a short
-## flare whooshes once (edy_flash).
+## An Edy aura on a body (EdyTypes), in the captain's type's colour and look, faded in, burning for `secs`, faded out.
+## (1.26, docs/v1_26_plan.md: the whole-body glow and the tall flame were too big, Storm's worst; Zach picked the Edy
+## tree mock's subtle sketches) Small effects off the limbs, by look:
+##   haze       Still: soft puffs drifting up slowly off the limb
+##   crackle    Ember: quick sparks flicking up and out
+##   shimmer    Crown: brief twinkling glints round it
+##   lightning  Storm: short jagged arcs snapping off the limb (EdyArcs) and a few sparks
+##   swirl      Tide: motes orbiting the limb
+## Where: "arms" (Infuse) the hands; "legs" (Infuse in the kicking stance) the feet; "body" (a big Edy move's flare) and
+## "reinforce" hands and feet; Reinforce also lays its disc underfoot in the type's shape (shaders/psx/edy_ground.gdshader:
+## it sits on the ground; when the feet leave it, it lingers where they stood and fades). Shown on every screen through
+## FX.edy_aura (Net.fx). A second call on a body with one running extends it and widens it to the bigger part.
+## `flash_on` makes it flare a moment (Reinforce shrugging off a blow). GPU particles (an emitter a limb), the arcs a few
+## line segments a few times a second; the CPU only fades it. Sound: a held aura (Infuse, Reinforce: HUM_MIN or longer)
+## channels its type's hum (edy_hum_<type>, looped, faded with it); a short flare whooshes once (edy_flash).
 
-const RIM := preload("res://shaders/psx/edy_aura.gdshader")
-const FLAME := preload("res://shaders/psx/edy_flame.gdshader")
 const GROUND := preload("res://shaders/psx/edy_ground.gdshader")
+const RIM := preload("res://shaders/psx/edy_aura.gdshader")
+## (Zach: "a little bit of aura") the outline's strength and width: a light glow on the limbs at work (the whole body
+## for Reinforce), not the full blaze it was.
+const RIM_K := 0.45
+const RIM_GROW := 0.015
 const LOOKS := {"haze": 0, "crackle": 1, "shimmer": 2, "lightning": 3, "swirl": 4}
 const RANK := {"arms": 0, "legs": 0, "body": 1, "reinforce": 2}
 const FADE_IN := 0.18
 const FADE_OUT := 0.45
 const FLASH_DECAY := 3.0
-## The flame card (metres, round the body's feet) and the ground disc's radius.
-const CARD := Vector2(1.7, 3.0)
-## Infuse's flames off each hand (and the blade in it).
-const HAND_CARD := Vector2(0.55, 0.9)
-## (1.26) The kicking stance's: a lick from the knee down past the foot.
-const LEG_CARD := Vector2(0.55, 0.85)
 const DISC := 1.5
 ## A held aura hums; shorter ones are flares and whoosh.
 const HUM_MIN := 3.0
@@ -38,45 +34,75 @@ const HUM_DB := -10.0
 ## The ground disc: how fast it fades after the feet leave it, and comes back on landing.
 const GROUND_OUT := 4.0
 const GROUND_IN := 7.0
+## A foot's emitter sits this far down the shin from the knee.
+const FOOT_DOWN := 0.45
+## The cylinder round a limb the particles are born on (m).
+const LIMB_R := 0.08
+## Storm's arcs: one every ARC_EVERY s a limb (random within), lit ARC_LIFE s, from a point on the limb to another on it or a limb within ARC_REACH.
+const ARC_EVERY := Vector2(0.06, 0.22)
+## How far an arc reaches to another limb (m).
+const ARC_REACH := 0.9
+const ARC_LIFE := 0.07
 
 var part := "body"
 var left := 0.0
+var look := "haze"
+var color := Color.WHITE
 var _t := 0.0
 var _flash := 0.0
-var _rim: ShaderMaterial
-var _flame: ShaderMaterial
 var _ground: ShaderMaterial
-var _hand: ShaderMaterial
+var _rim: ShaderMaterial
 var _shells: Array[MeshInstance3D] = []
-var _cards: Array[MeshInstance3D] = []
+var _emitters: Array[GPUParticles3D] = []
+var _anchors: Array[Node3D] = []
 var _disc: MeshInstance3D
 var _mover: CharacterBody3D
 var _ground_k := 0.0
 var _last_y := 0.0
 var _hum: AudioStreamPlayer3D
+var _arcs: MeshInstance3D
+var _arc_mesh: ImmediateMesh
+var _arc_next: Array = []
+var _arc_live: Array = []
+var _rng := RandomNumberGenerator.new()
+static var _dot_tex: Texture2D
+static var _soft_tex: Texture2D
 
 
 ## The aura on `body` (a Humanoid) for `secs`, in `color` and `look` (EdyTypes' look name).
-static func show_on(body: Node3D, which: String, secs: float, color: Color, look: String) -> EdyAura:
+static func show_on(body: Node3D, which: String, secs: float, color_: Color, look_: String) -> EdyAura:
 	if body == null or not is_instance_valid(body):
 		return null
 	var a := body.get_node_or_null("EdyAura") as EdyAura
+	var rebuild := false
 	if a == null:
 		a = EdyAura.new()
 		a.name = "EdyAura"
 		a.part = which
-		a._make_mats()
+		a._ground = ShaderMaterial.new()
+		a._ground.shader = GROUND
+		a._ground.set_shader_parameter("strength", 0.0)
+		a._rim = ShaderMaterial.new()
+		a._rim.shader = RIM
+		a._rim.set_shader_parameter("strength", 0.0)
+		a._rim.set_shader_parameter("grow", RIM_GROW)
 		body.add_child(a)
+		rebuild = true
 	elif int(RANK.get(which, 1)) > int(RANK.get(a.part, 1)):
 		a.part = which
+		rebuild = true
+	rebuild = rebuild or a.look != look_ or a.color != color_
 	a.left = maxf(a.left, secs)
-	for m in [a._rim, a._flame, a._ground, a._hand]:
-		m.set_shader_parameter("color", color)
-		m.set_shader_parameter("look", int(LOOKS.get(look, 0)))
-	a._rim.set_shader_parameter("grow", 0.03)
-	a._build(body)
+	a.look = look_
+	a.color = color_
+	a._ground.set_shader_parameter("color", color_)
+	a._ground.set_shader_parameter("look", int(LOOKS.get(look_, 0)))
+	a._rim.set_shader_parameter("color", color_)
+	a._rim.set_shader_parameter("look", int(LOOKS.get(look_, 0)))
+	if rebuild:
+		a._build(body)
 	if secs >= HUM_MIN:
-		a._start_hum(body, look)
+		a._start_hum(body, look_)
 	else:
 		var fx := body.get_node_or_null("/root/FX")
 		if fx:
@@ -85,10 +111,10 @@ static func show_on(body: Node3D, which: String, secs: float, color: Color, look
 
 
 ## The type's channelling hum, looped on the body while the aura's held (its type from the look name).
-func _start_hum(body: Node3D, look: String) -> void:
+func _start_hum(body: Node3D, look_: String) -> void:
 	var typ := ""
 	for id in EdyTypes.TYPES:
-		if str(EdyTypes.TYPES[id]["look"]) == look:
+		if str(EdyTypes.TYPES[id]["look"]) == look_:
 			typ = id
 	var path := "res://assets/audio/edy_hum_%s.wav" % typ
 	if typ == "" or not ResourceLoader.exists(path):
@@ -110,30 +136,17 @@ func _start_hum(body: Node3D, look: String) -> void:
 	_hum.play()
 
 
-## The aura on `body` brightens for a moment.
+## The aura on `body` flares for a moment.
 static func flash_on(body: Node3D) -> void:
 	var a := body.get_node_or_null("EdyAura") as EdyAura if body else null
 	if a:
 		a._flash = 1.0
 
 
-func _make_mats() -> void:
-	_rim = ShaderMaterial.new()
-	_rim.shader = RIM
-	_flame = ShaderMaterial.new()
-	_flame.shader = FLAME
-	_ground = ShaderMaterial.new()
-	_ground.shader = GROUND
-	_hand = ShaderMaterial.new()
-	_hand.shader = FLAME
-	_hand.set_shader_parameter("behind", 0.05)
-	_hand.set_shader_parameter("girth", 1.3)
-	for m in [_rim, _flame, _ground, _hand]:
-		m.set_shader_parameter("strength", 0.0)
-
-
 func _build(body: Node3D) -> void:
 	_clear()
+	_rng.seed = body.get_instance_id()
+	# a light glowing outline on the limbs at work, the whole body for Reinforce
 	for mi in _meshes(body):
 		var s := MeshInstance3D.new()
 		s.name = "EdyShell"
@@ -145,36 +158,56 @@ func _build(body: Node3D) -> void:
 			s.skeleton = NodePath("../" + str(mi.skeleton))
 		mi.add_child(s)
 		_shells.append(s)
-	if part == "arms":
-		# Infuse: small tongues off each hand and up what it holds
-		for k in ["hand_r", "hand_l"]:
-			var h = body.get(k)
-			if h is Node3D:
-				var hq := QuadMesh.new()
-				hq.size = HAND_CARD
-				hq.center_offset = Vector3(0, HAND_CARD.y * 0.5 - 0.25, 0)
-				_card(h, hq, _hand, "EdyHand")
-		return
-	if part == "legs":
-		# Infuse in the kicking stance: tongues from the knee down past the foot (the legs are one skinned body with
-		# the rest, so there's no shin mesh to rim: the cards carry it)
-		for k in ["shin_r", "shin_l"]:
-			var sh = body.get(k)
-			if sh is Node3D:
-				var fq := QuadMesh.new()
-				fq.size = LEG_CARD
-				fq.center_offset = Vector3(0, LEG_CARD.y * 0.5 - 0.6, 0)
-				_card(sh, fq, _hand, "EdyFoot")
-		return
-	var q := QuadMesh.new()
-	q.size = CARD
-	q.center_offset = Vector3(0, CARD.y * 0.5 - 0.15, 0)
-	_card(body, q, _flame, "EdyFlame")
+	# (Zach: wrapped round the limbs like the mock) a cylinder of emission along each forearm (down to the hand) and
+	# each shin (down to the foot): the anchor at its middle, the length from the bone below it
+	var limbs: Array = []
+	if part in ["arms", "body", "reinforce"]:
+		limbs.append_array([["fore_r", "hand_r", "EdyHand"], ["fore_l", "hand_l", "EdyHand"]])
+	if part in ["legs", "body", "reinforce"]:
+		limbs.append_array([["shin_r", "", "EdyFoot"], ["shin_l", "", "EdyFoot"]])
+	for l in limbs:
+		var bone = body.get(l[0])
+		if not (bone is Node3D):
+			continue
+		var tip = body.get(l[1]) if str(l[1]) != "" else null
+		var length := absf((tip as Node3D).position.y) if tip is Node3D else FOOT_DOWN
+		var anchor := Node3D.new()
+		anchor.name = str(l[2]) + "At"
+		(bone as Node3D).add_child(anchor)
+		anchor.position = Vector3(0, -length * 0.5, 0)
+		_anchors.append(anchor)
+		var e := _emitter(str(l[2]), length)
+		anchor.add_child(e)
+		_emitters.append(e)
+	if look == "lightning":
+		_arc_mesh = ImmediateMesh.new()
+		_arcs = MeshInstance3D.new()
+		_arcs.name = "EdyArcs"
+		_arcs.mesh = _arc_mesh
+		_arcs.top_level = true
+		_arcs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_arcs.extra_cull_margin = 4.0
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.vertex_color_use_as_albedo = true
+		m.no_depth_test = false
+		_arcs.material_override = m
+		body.add_child(_arcs)
+		_arc_next = []
+		for i in range(_anchors.size()):
+			_arc_next.append(_rng.randf_range(0.0, ARC_EVERY.y))
 	if part == "reinforce":
 		var d := QuadMesh.new()
 		d.size = Vector2.ONE * DISC * 2.0
 		d.orientation = PlaneMesh.FACE_Y
-		_disc = _card(body, d, _ground, "EdyGround")
+		_disc = MeshInstance3D.new()
+		_disc.name = "EdyGround"
+		_disc.mesh = d
+		_disc.material_override = _ground
+		_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_disc.extra_cull_margin = 2.0
+		body.add_child(_disc)
 		_disc.top_level = true
 		_disc.global_position = body.global_position + Vector3(0, 0.04, 0)
 		var n: Node = body
@@ -183,57 +216,155 @@ func _build(body: Node3D) -> void:
 		_mover = n as CharacterBody3D
 
 
-func _card(body: Node3D, mesh: Mesh, mat: Material, n: String) -> MeshInstance3D:
-	var c := MeshInstance3D.new()
-	c.name = n
-	c.mesh = mesh
-	c.material_override = mat
-	c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# (the card is turned to the camera in its shader: keep it from being culled at its own bounds)
-	c.extra_cull_margin = 2.0
-	body.add_child(c)
-	_cards.append(c)
-	return c
+## One limb's particles in the look (world-space trails as the limb moves).
+func _emitter(n: String, length: float) -> GPUParticles3D:
+	var p := GPUParticles3D.new()
+	p.name = n
+	p.local_coords = false
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.visibility_aabb = AABB(Vector3(-1.5, -1.5, -1.5), Vector3(3, 3, 3))
+	var pm := ParticleProcessMaterial.new()
+	# round the limb: a ring stretched along it (the bone's Y), particles born on its skin
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_RING
+	pm.emission_ring_axis = Vector3.UP
+	pm.emission_ring_height = length
+	pm.emission_ring_radius = LIMB_R
+	pm.emission_ring_inner_radius = LIMB_R * 0.8
+	pm.gravity = Vector3.ZERO
+	var hot := color.lightened(0.45)
+	var ramp := Gradient.new()
+	var size := 0.05
+	var soft := false
+	match look:
+		"haze":
+			p.amount = 18
+			p.lifetime = 1.1
+			pm.direction = Vector3.UP
+			pm.spread = 25.0
+			pm.initial_velocity_min = 0.15
+			pm.initial_velocity_max = 0.35
+			pm.scale_min = 1.0
+			pm.scale_max = 1.8
+			size = 0.14
+			soft = true
+			ramp.set_color(0, Color(color.lightened(0.3), 0.0))
+			ramp.add_point(0.3, Color(color.lightened(0.3), 0.45))
+			ramp.set_color(ramp.get_point_count() - 1, Color(color, 0.0))
+		"crackle":
+			p.amount = 30
+			p.lifetime = 0.5
+			pm.direction = Vector3.UP
+			pm.spread = 55.0
+			pm.initial_velocity_min = 0.8
+			pm.initial_velocity_max = 1.8
+			pm.gravity = Vector3(0, 1.2, 0)
+			pm.damping_min = 1.0
+			pm.damping_max = 2.0
+			size = 0.035
+			ramp.set_color(0, Color(1.0, 0.95, 0.7, 1.0))
+			ramp.add_point(0.35, Color(hot, 1.0))
+			ramp.set_color(ramp.get_point_count() - 1, Color(color.darkened(0.3), 0.0))
+		"shimmer":
+			p.amount = 14
+			p.lifetime = 0.55
+			pm.initial_velocity_min = 0.02
+			pm.initial_velocity_max = 0.08
+			pm.scale_min = 0.6
+			pm.scale_max = 1.4
+			size = 0.06
+			ramp.set_color(0, Color(hot, 0.0))
+			# (gold glints that twinkle, a hint of white at their peaks: white wash would lose the colour)
+			ramp.add_point(0.2, Color(hot.lerp(Color.WHITE, 0.25), 0.9))
+			ramp.add_point(0.45, Color(color, 0.25))
+			ramp.add_point(0.65, Color(hot.lerp(Color.WHITE, 0.2), 0.8))
+			ramp.set_color(ramp.get_point_count() - 1, Color(color, 0.0))
+		"swirl":
+			p.amount = 22
+			p.lifetime = 0.9
+			pm.orbit_velocity_min = 0.9
+			pm.orbit_velocity_max = 1.3
+			pm.direction = Vector3.UP
+			pm.spread = 10.0
+			pm.initial_velocity_min = 0.1
+			pm.initial_velocity_max = 0.25
+			size = 0.04
+			ramp.set_color(0, Color(hot, 0.0))
+			ramp.add_point(0.2, Color(hot, 1.0))
+			ramp.set_color(ramp.get_point_count() - 1, Color(color, 0.0))
+		_:
+			# lightning: a few white-violet sparks; the arcs do the rest
+			p.amount = 12
+			p.lifetime = 0.25
+			pm.direction = Vector3.UP
+			pm.spread = 180.0
+			pm.initial_velocity_min = 0.6
+			pm.initial_velocity_max = 1.4
+			size = 0.03
+			ramp.set_color(0, Color(Color.WHITE, 1.0))
+			ramp.set_color(ramp.get_point_count() - 1, Color(hot, 0.0))
+	var gt := GradientTexture1D.new()
+	gt.gradient = ramp
+	pm.color_ramp = gt
+	p.process_material = pm
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE * size
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if not soft else BaseMaterial3D.BLEND_MODE_MIX
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _soft() if soft else _dot()
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	q.material = m
+	p.draw_pass_1 = q
+	p.amount_ratio = 0.0
+	return p
+
+
+## A hard little pixel dot (sparks, glints, motes) and a soft round puff (haze), made once.
+static func _dot() -> Texture2D:
+	if _dot_tex == null:
+		var img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+		img.fill(Color.WHITE)
+		for c in [Vector2i(0, 0), Vector2i(3, 0), Vector2i(0, 3), Vector2i(3, 3)]:
+			img.set_pixelv(c, Color(1, 1, 1, 0))
+		_dot_tex = ImageTexture.create_from_image(img)
+	return _dot_tex
+
+
+static func _soft() -> Texture2D:
+	if _soft_tex == null:
+		var n := 8
+		var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+		for y in range(n):
+			for x in range(n):
+				var d := Vector2(x - 3.5, y - 3.5).length() / 3.5
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(1.0 - d, 0.0, 1.0)))
+		_soft_tex = ImageTexture.create_from_image(img)
+	return _soft_tex
 
 
 func _clear() -> void:
-	for s in _shells + _cards:
+	for s in _shells:
 		if is_instance_valid(s):
 			s.queue_free()
 	_shells.clear()
-	_cards.clear()
+	for a in _anchors:
+		if is_instance_valid(a):
+			a.queue_free()
+	_anchors.clear()
+	_emitters.clear()
+	if is_instance_valid(_arcs):
+		_arcs.queue_free()
+	_arcs = null
+	_arc_live.clear()
+	if is_instance_valid(_disc):
+		_disc.queue_free()
 	_disc = null
 
 
-## The part's meshes: arms (the forearms, hands, the arm skin and what's held) or every mesh on the body.
-func _meshes(body: Node3D) -> Array[MeshInstance3D]:
-	var out: Array[MeshInstance3D] = []
-	var roots: Array = [body]
-	if part == "arms":
-		roots = []
-		for k in ["fore_r", "hand_r", "fore_l", "hand_l"]:
-			var b = body.get(k)
-			if b is Node3D:
-				roots.append(b)
-		var torso = body.get("torso")
-		if torso is Node3D and (torso as Node3D).get_node_or_null("ArmBody") is MeshInstance3D:
-			out.append((torso as Node3D).get_node("ArmBody"))
-	elif part == "legs":
-		roots = []
-		for k in ["shin_r", "shin_l"]:
-			var b = body.get(k)
-			if b is Node3D:
-				roots.append(b)
-	for r in roots:
-		if r is MeshInstance3D and not str(r.name).begins_with("Edy"):
-			out.append(r)
-		for c in (r as Node).find_children("*", "MeshInstance3D", true, false):
-			if not str(c.name).begins_with("Edy") and (c as MeshInstance3D).mesh != null and (c as MeshInstance3D).visible:
-				out.append(c)
-	return out
-
-
-## (the shells hang off the body's meshes: they go with the aura however it's removed)
+## (the emitters hang off the body's bones: they go with the aura however it's removed)
 func _exit_tree() -> void:
 	_clear()
 	if _hum and is_instance_valid(_hum):
@@ -245,12 +376,15 @@ func _process(delta: float) -> void:
 	left -= delta
 	_flash = maxf(_flash - delta * FLASH_DECAY, 0.0)
 	var k := minf(_t / FADE_IN, 1.0) if left > 0.0 else clampf(1.0 + left / FADE_OUT, 0.0, 1.0)
-	_rim.set_shader_parameter("strength", k * (1.0 + _flash))
+	for e in _emitters:
+		if is_instance_valid(e):
+			e.amount_ratio = clampf(k * (0.75 + 0.25 * _flash), 0.0, 1.0)
+			e.speed_scale = 1.0 + _flash
+			e.emitting = k > 0.02
 	if _hum and is_instance_valid(_hum):
 		_hum.volume_db = HUM_DB + linear_to_db(maxf(k, 0.001))
-	_flame.set_shader_parameter("strength", k)
-	_flame.set_shader_parameter("flash", _flash)
-	_ground.set_shader_parameter("strength", k * _ground_k)
+	_rim.set_shader_parameter("strength", k * RIM_K * (1.0 + _flash))
+	_ground.set_shader_parameter("strength", k * _ground_k * 0.7)
 	if is_instance_valid(_disc):
 		var body := get_parent() as Node3D
 		# on the ground: under the feet; off it, left where they stood, fading
@@ -262,6 +396,83 @@ func _process(delta: float) -> void:
 		if grounded:
 			_disc.global_position = body.global_position + Vector3(0, 0.04, 0)
 		_ground_k = move_toward(_ground_k, 1.0 if grounded else 0.0, delta * (GROUND_IN if grounded else GROUND_OUT))
-	_hand.set_shader_parameter("strength", k)
+	if is_instance_valid(_arcs):
+		_arcs_tick(delta, k)
 	if left <= -FADE_OUT:
 		queue_free()
+
+
+## Storm: short jagged arcs snapping off each limb, a few a second, lit a moment each (world space).
+func _arcs_tick(delta: float, k: float) -> void:
+	for i in range(_anchors.size()):
+		_arc_next[i] = float(_arc_next[i]) - delta * (1.0 + _flash * 2.0)
+		if _arc_next[i] <= 0.0 and k > 0.2 and is_instance_valid(_anchors[i]):
+			_arc_next[i] = _rng.randf_range(ARC_EVERY.x, ARC_EVERY.y)
+			# (anywhere along the limb)
+			var from: Vector3 = _anchors[i].global_position + _anchors[i].global_basis.y.normalized() * _rng.randf_range(-0.18, 0.18)
+			# (Zach: the arcs land on the body) from one point on the limb to another on it, or to a limb near it (a hand
+			# to the other, a foot to a hand), bowing out a little and jagged between
+			var to: Vector3 = _anchors[i].global_position + _anchors[i].global_basis.y.normalized() * _rng.randf_range(-0.2, 0.2)
+			var j := _rng.randi() % _anchors.size()
+			if j != i and is_instance_valid(_anchors[j]) and _rng.randf() < 0.4 and _anchors[j].global_position.distance_to(from) < ARC_REACH:
+				to = _anchors[j].global_position + _anchors[j].global_basis.y.normalized() * _rng.randf_range(-0.15, 0.15)
+			elif to.distance_to(from) < 0.12:
+				to = from - _anchors[i].global_basis.y.normalized() * 0.25
+			var body_c: Vector3 = (get_parent() as Node3D).global_position + Vector3(0, 1.0, 0)
+			var out := ((from + to) * 0.5 - body_c)
+			out = out.normalized() if out.length() > 0.01 else Vector3.UP
+			var bow := _rng.randf_range(0.05, 0.16) * k
+			var pts: Array = [from]
+			var n := 5
+			for s in range(1, n):
+				var u := float(s) / n
+				var mid := from.lerp(to, u) + out * bow * sin(u * PI)
+				pts.append(mid + Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * 0.035)
+			pts.append(to)
+			_arc_live.append([pts, ARC_LIFE])
+	var keep: Array = []
+	for a in _arc_live:
+		a[1] = float(a[1]) - delta
+		if a[1] > 0.0:
+			keep.append(a)
+	_arc_live = keep
+	_arc_mesh.clear_surfaces()
+	if _arc_live.is_empty():
+		return
+	_arc_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	for a in _arc_live:
+		var pts: Array = a[0]
+		# (a bright core and a coloured line a hair beside it: thick enough to read at a distance)
+		for pass_ in [[Color.WHITE.lerp(color.lightened(0.5), 0.3), Vector3.ZERO], [color.lightened(0.15), Vector3(0.012, 0.012, 0.0)], [color.lightened(0.15), Vector3(-0.012, -0.008, 0.01)]]:
+			for s in range(pts.size() - 1):
+				_arc_mesh.surface_set_color(pass_[0])
+				_arc_mesh.surface_add_vertex(pts[s] + pass_[1])
+				_arc_mesh.surface_set_color(pass_[0])
+				_arc_mesh.surface_add_vertex(pts[s + 1] + pass_[1])
+	_arc_mesh.surface_end()
+
+
+## The meshes the outline goes on: the whole body for Reinforce; otherwise the arms (forearms, hands, the arm skin and
+## what's held). (The legs are one skinned surface with the body, so the kicking stance's outline stays off them: its
+## feet carry the particles.)
+func _meshes(body: Node3D) -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
+	if part == "legs":
+		return out
+	var roots: Array = [body]
+	if part != "reinforce":
+		roots = []
+		for k in ["fore_r", "hand_r", "fore_l", "hand_l"]:
+			var b = body.get(k)
+			if b is Node3D:
+				roots.append(b)
+		var torso = body.get("torso")
+		if torso is Node3D and (torso as Node3D).get_node_or_null("ArmBody") is MeshInstance3D:
+			out.append((torso as Node3D).get_node("ArmBody"))
+	for r in roots:
+		if r is MeshInstance3D and not str(r.name).begins_with("Edy"):
+			out.append(r)
+		for c in (r as Node).find_children("*", "MeshInstance3D", true, false):
+			if not str(c.name).begins_with("Edy") and (c as MeshInstance3D).mesh != null and (c as MeshInstance3D).visible:
+				out.append(c)
+	return out

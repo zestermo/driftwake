@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 		1:
 			var a = p.body_model.get_node_or_null("EdyAura")
 			check("Infuse: the Edy aura on the arms", a != null and a.part == "arms")
-			check("...shells on the arm meshes and a flame off each hand", a != null and a._shells.size() >= 2 and p.body_model.find_children("EdyHand", "", true, false).size() == 2)
+			check("...(1.26) its Edy round each forearm, a light glow on the arms only", a != null and a._emitters.size() == 2 and p.body_model.find_children("EdyHand", "", true, false).size() == 2 and a._shells.size() >= 2 and a._shells.size() < p.body_model.find_children("*", "MeshInstance3D", true, false).size() / 2)
 			check("...no ground disc for Infuse", p.body_model.find_children("EdyGround", "", true, false).is_empty())
 			p.power.buffs.erase("coat")
 			if a:
@@ -73,7 +73,7 @@ func _process(_d: float) -> bool:
 			check("...+8 defense (%.1f -> %.1f)" % [def0, p.defense()], is_equal_approx(p.defense(), def0 + 8.0))
 			check("...the foe beside you shoved back (%.1f m)" % g.global_position.distance_to(g0), g.global_position.distance_to(p.global_position) > 2.3)
 			var a = p.body_model.get_node_or_null("EdyAura")
-			check("...the aura on the whole body with its flame card and ground disc", a != null and a.part == "reinforce" and a._disc != null and p.body_model.find_children("EdyFlame", "", true, false).size() == 1)
+			check("...(1.26) its Edy off hands and feet, and the ground disc; no tall flame", a != null and a.part == "reinforce" and a._disc != null and a._emitters.size() == 4 and p.body_model.find_children("EdyFlame", "", true, false).is_empty())
 			var h := HitData.new()
 			h.damage = 1.0
 			h.stagger_duration = 0.3
