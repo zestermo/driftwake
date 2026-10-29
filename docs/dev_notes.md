@@ -7679,3 +7679,20 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   target, a gold star and distance) and `_draw_village` (the current chain island's village_plan centre, a little house,
   hidden on the plaza and past 900 m). Render: coopshot (a crewmate's pip on the strip, on foot in Brinehollow).
 - Test: `t/ui/compass_on_foot`.
+
+## 1.25.2, piece 2: the tonic flask (2026-10-29)
+- `resources/items/tonic_flask.tres` (stackable 9, use_anim tonic). Player FLASK / FLASK_CHARGES 3 (+ Progression
+  "flask_charges") / FLASK_HEAL 0.4: the stack is its draughts; `_finish_use` heals 40% of max (x potion_pct) for it;
+  the shared quick-slot cooldown (HEAL_CD 8 s) as any drink. `refill_flask()` tops it up: `GameManager.rest` (inns,
+  "your flask refilled"), Downtime "sleep" (the bunk, a fire), `Food.cook` (the galley). GameManager gives it once
+  after the load or a new game (Dialogue flag "flask_given") and puts it on the quick slot.
+- Test: `t/food/tonic_flask`.
+
+## 1.25.2, piece 3: vendor badges for services, traders keep their stalls (2026-10-29)
+- `VendorMarks.SERVICES`: a talk with a "shipwright..." event is "@shipwright" (sign: timber), "master:..." or
+  "learn_black_leg" "@master" (sign: katana); badges and held-map marks as for shops. The artisan's sign is copper now.
+- `IslandLife._routine`: a village trader ("vendor:" roles) has one stay, at their stall, day and night, and a
+  one-point walk. Evenings: every villager rolls inn 35% / plaza 35% / home 30% (every named one used to go to the inn;
+  this reshuffles villagers' looks per seed, nothing saved). lifetest covers it (run at the release check).
+- Enterable, dressed shops for every vendor go with the unique places (1.25.5).
+- Test: `t/ui/vendor_marks` (a shipwright's badge and map mark).

@@ -203,4 +203,7 @@ static func cook(p, meal_id: String, portions: int) -> String:
 	var first: bool = not pr.cooked.has(meal_id)
 	pr.cooked[meal_id] = int(pr.cooked.get(meal_id, 0)) + 1
 	pr.add_life("cook", (COOK_XP + COOK_XP_PER * ingredients_in(meal_id)) * (2 if first else 1))
+	# (1.26) the galley's fire tops up the tonic flask too
+	if p.has_method("refill_flask"):
+		p.refill_flask()
 	return ""

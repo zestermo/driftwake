@@ -8,6 +8,7 @@ var p
 var smith
 var talker
 var plain
+var wright
 var step := 0
 var until := 0
 var fails := 0
@@ -41,6 +42,7 @@ func _process(_d: float) -> bool:
 			smith = npc({"name": "Haldor Test", "shop": "haldor"}, p.global_position + Vector3(-1.5, 0, -5.0))
 			talker = npc({"name": "Vey Test", "dialogue": "vey"}, p.global_position + Vector3(1.5, 0, -5.0))
 			plain = npc({"name": "Plain Test"}, p.global_position + Vector3(0, 0, -7.0))
+			wright = npc({"name": "Tackett Test", "dialogue": "tackett"}, p.global_position + Vector3(3.0, 0, -6.0))
 			stage.camera_rig.rotation.y = 0.0
 			until = TK.wait_secs(2.5)
 		1:
@@ -51,6 +53,8 @@ func _process(_d: float) -> bool:
 			var b = talker.get_node_or_null("VendorMark")
 			check("Vey (a shop opened from her talk) wears one too", b != null and b.visible)
 			check("someone with no shop has none", plain.get_node_or_null("VendorMark") == null)
+			var w = wright.get_node_or_null("VendorMark")
+			check("(1.26) a shipwright wears one, a shipwright's sign on the map", w != null and w.visible and MM.has("vendor:@shipwright:Tackett Test") and MM.marks["vendor:@shipwright:Tackett Test"]["trade"] == "shipwright")
 			# (a window to look at when run by hand; the runner's headless)
 			var img = root.get_texture().get_image()
 			if img:

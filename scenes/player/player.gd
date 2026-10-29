@@ -2511,6 +2511,28 @@ const USE_SOUNDS := {"bite": [[0.4, "crunch", -6.0, 1.1], [0.62, "crunch", -12.0
 	"tonic": [[0.34, "clack", -6.0, 1.9], [0.56, "splash", -16.0, 2.0]]}
 ## A use was refused on the shared cooldown (the HUD flashes the quick slot).
 signal quick_refused
+## (1.26, docs/v1_26_plan.md "Healing") The tonic flask: every captain's, its stack is its draughts (FLASK_CHARGES, +
+## Progression "flask_charges"), each mending FLASK_HEAL of max health; refilled by resting at an inn, sleeping (the
+## bunk, a fire) and cooking in the galley (refill_flask). On the shared quick-slot cooldown like any drink.
+const FLASK := "tonic_flask"
+const FLASK_CHARGES := 3
+const FLASK_HEAL := 0.4
+
+
+func flask_max() -> int:
+	return FLASK_CHARGES + int(progression.stat("flask_charges"))
+
+
+## Tops the flask up to flask_max (giving one to a captain who has none: older saves). Returns the draughts added.
+func refill_flask() -> int:
+	var it := ItemDB.get_item(FLASK)
+	var have := inventory_component.count(FLASK)
+	var add := maxi(flask_max() - have, 0)
+	if add > 0:
+		inventory_component.add_item(it, add)
+	if inventory_component.quick == "":
+		inventory_component.quick = FLASK
+	return add
 var heal_cd: float = 0.0
 var _use_anim := ""
 var _use_id := 0
@@ -2605,6 +2627,8 @@ func _finish_use() -> void:
 	var got: Array = []
 	if item.heal_amount > 0.0:
 		var amt := item.heal_amount * (1.0 + progression.stat("potion_pct"))
+		if item.id == FLASK:
+			amt = health_component.max_health * FLASK_HEAL * (1.0 + progression.stat("potion_pct"))
 		health_component.heal(amt)
 		Net.fx("sparkle", [global_position + Vector3(0, 1.1, 0), 10, Color(0.6, 1.0, 0.55) if item.use_anim != "tonic" else Color(0.45, 1.0, 0.85)])
 		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -12.0, 0.05, 1.25])

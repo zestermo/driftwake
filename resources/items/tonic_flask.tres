@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/tonic.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "tonic_flask"
+display_name = "Tonic Flask"
+description = "Every captain's flask: a long pull mends a good share of your wounds. Three draughts, refilled when you rest at an inn, sleep in your bunk or by a fire, or cook in the galley."
+value = 0
+rarity = 1
+stackable = true
+max_stack = 9
+item_type = 2
+icon = ExtResource("2")
+heal_amount = 1.0
+use_time = 0.9
+use_anim = "tonic"

@@ -271,6 +271,9 @@ static func reward(p, kind: String) -> void:
 		"sleep":
 			var hc = p.health_component
 			hc.heal(hc.max_health * SLEEP_HEAL)
+			# (1.26: a night's sleep, in the bunk or by a fire, fills the tonic flask)
+			if p.has_method("refill_flask") and p.refill_flask() > 0:
+				p.call("_toast", "Your flask is full again")
 		"meditate":
 			var k: float = pr.meditate(every(p, kind))
 			var n := int(pr.downtime.get("meditate_n", 0)) + 1

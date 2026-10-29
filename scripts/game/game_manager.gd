@@ -113,6 +113,12 @@ func _load_save(fresh: bool) -> void:
 	if player and is_instance_valid(player) and not fresh and SaveGame.load_into(player):
 		get_tree().call_group("hud", "show_toast", "Welcome back, captain")
 	if player and is_instance_valid(player):
+		# (1.26) every captain carries a tonic flask: given once (a flag in the save), full
+		var dm := get_node_or_null("/root/Dialogue")
+		if dm and not dm.flags.has("flask_given"):
+			dm.flags["flask_given"] = true
+			player.refill_flask()
+			player.inventory_component.quick = player.FLASK
 		Net.world_loaded()
 
 
@@ -271,8 +277,9 @@ func rest(p: Player) -> String:
 	hc.heal(hc.max_health)
 	p.stamina = p.max_stamina
 	p.power.energy = p.power.max_energy()
+	var topped: int = p.refill_flask()
 	SaveGame.save(p)
-	return "You rest a while. Fully recovered."
+	return "You rest a while. Fully recovered%s." % (", your flask refilled" if topped > 0 else "")
 
 
 ## Portions of each dish the ship's galley cooks from one set of ingredients (its Galley & bunks line;

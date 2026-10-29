@@ -7,7 +7,11 @@ extends RefCounted
 ## trade (Shops' "trade"; "" for a general store) -> the item icon that signs it ("@<kind>" an instrument's)
 const Shops := preload("res://scripts/game/shops.gd")
 const SIGNS := {"cook": "stew", "smith": "cutlass", "armourer": "iron", "tailor": "canvas", "luthier": "@fiddle",
-	"treasure": "pearl", "grocer": "flour", "artisan": "timber", "desert_trade": "pepper", "": "biscuit"}
+	"treasure": "pearl", "grocer": "flour", "artisan": "copper", "desert_trade": "pepper", "": "biscuit",
+	# (1.26) services that aren't shops: a shipwright's yard, a master's teaching (shop ids "@shipwright", "@master")
+	"shipwright": "timber", "master": "katana"}
+## Services by their talk's event: (event prefix, pseudo shop id, the map's name).
+const SERVICES := [["shipwright", "@shipwright", "Shipwright"], ["master:", "@master", "Master"], ["learn_black_leg", "@master", "Master"]]
 ## The badge's size on screen (metres over the head) and how far off it shows.
 const BADGE_SIZE := 0.62
 const SHOW_R := 30.0
@@ -30,6 +34,11 @@ static func shop_of(npc: Node) -> String:
 		var ev := str((n as Dictionary).get("event", ""))
 		if ev.begins_with("shop:") and not _shop(ev.substr(5)).is_empty():
 			return ev.substr(5)
+	for n in (data.get("nodes", {}) as Dictionary).values():
+		var ev := str((n as Dictionary).get("event", ""))
+		for s in SERVICES:
+			if ev.begins_with(str(s[0])):
+				return str(s[1])
 	return ""
 
 
@@ -39,6 +48,9 @@ static func trade_of(shop_id: String) -> String:
 
 
 static func _shop(shop_id: String) -> Dictionary:
+	for s in SERVICES:
+		if shop_id == str(s[1]):
+			return {"name": str(s[2]), "trade": shop_id.substr(1)}
 	return Shops.shop(shop_id) if Shops.SHOPS.has(shop_id) or Shops.extra.has(shop_id) else {}
 
 

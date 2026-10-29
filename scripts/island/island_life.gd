@@ -97,7 +97,7 @@ static func plan(gi: GenIsland) -> IslandLife:
 			nm = names[vrng.randi() % names.size()]
 		used.append(nm)
 		var f := L._person(vrng, "%s %s" % [VillageVendors.TRADES[t]["title"], nm], "vendor:" + str(t), "market", true)
-		f["eve"] = "inn"
+		# (a trader keeps their stall: _routine)
 		L.folk.append(f)
 	for k in _shuffled(KitQuests.KINDS, rng):
 		L.quests.append({"kind": k, "pick": rng.randf(), "pick2": rng.randf()})
@@ -135,8 +135,10 @@ func _person(rng: RandomNumberGenerator, who: String, role: String, pref: String
 	var jit: Array = []
 	for k in range(5):
 		jit.append(rng.randf_range(-0.5, 0.5))
+	# (1.26: evenings spread over the inn, the plaza and home; every named villager used to fill the tavern)
+	var ev := rng.randf()
 	return {"name": who, "look": lk, "voice": rng.randf_range(0.82, 1.2), "role": role, "pref": pref, "wpick": rng.randf(), "named": named,
-		"eve": "inn" if named or rng.randf() < 0.6 else "plaza", "owl": named or rng.randf() < 0.2, "jit": jit}
+		"eve": "inn" if ev < 0.35 else ("plaza" if ev < 0.7 else "home"), "owl": named or rng.randf() < 0.2, "jit": jit}
 
 
 ## The island's own name for something of its life in the save: its id and its seed (ids repeat across chain seeds).
@@ -448,6 +450,10 @@ func _routine(i: int) -> void:
 		[13.4 + j[2] * 0.6, work, ACT.get(work["kind"], "stand")], [18.0 + j[3], _spot(hub, [f["eve"], "inn", "plaza"], i), "talk"]]
 	if not f["owl"] and _has(hub, "home"):
 		plan.append([22.2 + j[4] * 1.5, _spot(hub, ["home"], i), "home"])
+	# (1.26, docs/v1_26_plan.md "Shops and vendors": the playtest never found a trader where they should be) a trader
+	# keeps their stall day and night: one stay, no walks
+	if str(f["role"]).begins_with("vendor:"):
+		plan = [[0.0, work, ACT.get(work["kind"], "stand")]]
 	var slots := {}
 	var stays: Array = []
 	var lanes: Array = []
@@ -464,6 +470,8 @@ func _routine(i: int) -> void:
 	var walks: Array = []
 	for k in range(stays.size()):
 		walks.append(KitLife.walk(hub, lanes[k - 1], lanes[k]))
+	if str(f["role"]).begins_with("vendor:"):
+		walks = [PackedVector2Array([stays[0]["at"]])]
 	f["hub"] = hub
 	f["work"] = work["kind"]
 	f["stays"] = stays
