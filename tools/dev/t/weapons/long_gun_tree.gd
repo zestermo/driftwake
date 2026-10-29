@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 						moves.append(str(e).trim_prefix("mv_"))
 			check("its links stay on the tree %s" % str(bad), bad.is_empty())
 			check("30 steps for its 29 points (%d)" % steps, steps == 30)
-			check("one ultimate, at 30 (%s)" % str(ults), ults == [30])
+			check("two ultimates (1.26), at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Stock Rush, Sky Shot (%s)" % str(moves), moves.size() == 2 and "stock_rush" in moves and "sky_shot" in moves)
 			var techs_ok := skills.size() == TECHS.size()
 			for sk in skills:

@@ -40,6 +40,10 @@ scripts/fishing/*                       t/fishing
 scripts/game/action_wheel.gd            t/ui t/downtime t/food
 tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
+tools/dev/t/_plus_moves.gd              t/weapons
+scripts/player_states/plus_arts.gd      t/weapons t/crew/plus_duets techtest airtest
+scripts/player_states/plus_moves.gd     t/weapons t/progression/tree_shape
+scripts/progression/weapon_plus.gd      t/weapons t/crew/plus_duets t/progression progtest
 tools/dev/t/ship/*                      t/ship
 scripts/ship/enemy_ship.gd              t/ship/admiralty_patrol t/ship/marine_chaser t/ship/hunt_holds
 scripts/enemies/pirate_grunt.gd         t/combat/grunt_roles t/combat/grunt_pressed t/combat/boss_no_heal_return

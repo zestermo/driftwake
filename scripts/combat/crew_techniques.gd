@@ -101,6 +101,8 @@ var _prompting := false
 var _refused_until := -1.0
 ## Buffs a crew technique left on this captain: kind -> {"t": secs, "by": captain key}.
 var marks: Dictionary = {}
+## (1.26) A duet's cue [what, args] that came before our side of it started (CrewTechniqueState takes it).
+var cue: Array = []
 var _ring: MeshInstance3D
 var _inner: MeshInstance3D
 var _ring_mat: StandardMaterial3D
@@ -311,6 +313,9 @@ func signal_in(what: String, args: Array) -> void:
 		"pincer_struck":
 			if marks.has("pincer"):
 				marks["pincer"]["both"] = true
+		"duet", "finish":
+			# (a duet's cue that beat the move here: the partner's side takes it as it starts)
+			cue = [what, args]
 
 
 ## A crew technique's mark on this captain: `kind` for `secs`, `by` (a node key: the guardian, the wall, the marked

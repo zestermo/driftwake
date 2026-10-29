@@ -11,8 +11,8 @@ weapons"). Wave 1 (built first): cutlass, katana, black leg, pistol, polearm, gr
   one or both; R holds one, swapped in the skills menu out of a fight ("Not mid-fight" while a foe is on you).
 - **Second crew technique.** A variant node "Crew Technique" (Guard/first branch, mastery 12, 5 points): its versions are
   today's crew technique and the new one; switch which one C plays in the menu, anywhere. Kinds:
-  - **setup:** you pin, trip or hold the foe you aim at (a long stagger, 2 s); your crewmate's next blow on it within
-    4 s is the finisher (x2.5, unblockable, knocks down). Solo: you play both halves.
+  - **setup:** you pin, trip or hold the foe you aim at (a long stagger, ~2 s); your crewmate (who joined) is beside
+    it in a blink with the finisher (about 3x a blow, unblockable, knocks down). Solo: you play both halves.
   - **combined:** both of you strike the foe you aim at from opposite sides on the same beat (the crewmate's machine
     blinks or fires); the merged hit bursts on everyone round it. Solo: one captain, both strikes, a little lighter.
   - **support:** marks on both captains (a shared shield turning the next blows, energy traded, a haul to your side).
@@ -22,10 +22,36 @@ weapons"). Wave 1 (built first): cutlass, katana, black leg, pistol, polearm, gr
   stays the default (old saves and builds play as they did).
 - **A launcher.** At least one move per weapon throws a light foe up (HitData.launch, Juggle). Weapons that had none
   get it in an alternate.
+- **The air buttons split** (Zach, 2026-10-29). In the air, **left-click** is the weapon's aerial (its tree's air
+  move once bought, its alternate when switched on, the plunge before either); **right-click** is the plunge until the
+  weapon's **aerial heavy** is bought (a move node at mastery 10), then the aerial heavy: a heavier, committal hit,
+  once a jump. Dual pistols keep Gun Rain on either button until they have their aerial heavy.
 - **Bridges.** Four nodes per tree between its branches (left/middle and middle/right): a stat inside (3 points) and a
   passive further out (slotted, 3 points). Buyable once you own a node it's linked to on either side.
 
 Milestones: 8 / 14 / 20 for the alternates (assumed; 8 is the first mid-tree technique, 20 the late passives).
+
+## Aerial heavies (right-click in the air, mastery 10)
+
+| Weapon | Aerial heavy |
+|---|---|
+| Cutlass | **Whirlpool Descent**: corkscrew down cutting all round, a wide ring of spray throws them down |
+| Katana | **Blossom Cleave**: a rise, one vertical cleave onto the foe, the cut running on along the ground |
+| Black Leg | **Comet Heels**: a somersault, both heels down together, a crater of heat |
+| Pistol | **Downward Volley**: hang and empty six shots into the foe below, the last kick drops you |
+| Polearm | **Thunder Spike**: point down onto the foe, nailed into the ground, lightning bursts round the shaft |
+| Greatsword | **Heaven's Cleave**: straight down in one cleave, a split line ahead and a crescent of air |
+| Dual Wield | **Twin Meteor**: blades crossed, a straight dive, an X shockwave |
+| Axe | **Splitting Maul**: a flip and a chop down, a fissure ahead |
+| Dagger | **Shadow Fall**: out behind the foe below, the blade driven down (a sure crit that bleeds) |
+| Twin Daggers | **Viper Dive**: corkscrew down, a ring of venom, everyone close bleeding |
+| Hammer | **Meteor Hammer**: a heavy fall, a ring of stone spikes |
+| Twin Axes | **Glacier Drop**: both axes down into an ice ring that freezes them a moment |
+| Corsair | **Broadside Drop**: a shot down to hang, then point-first with a powder blast |
+| Long Gun | **Starfall Volley**: three steady shots fanned down, a starburst where they land |
+| Cannon | **Bombard Drop**: fire straight down, the blast ring and you thrown high |
+| Slingshot | **Spark Shower**: five bright pellets fanned down |
+| Unarmed | **Hammer Fists**: both fists down, a shockwave |
 
 ## Wave 1
 
@@ -193,6 +219,6 @@ Milestones: 8 / 14 / 20 for the alternates (assumed; 8 is the first mid-tree tec
   hammer them down.
 - **Crew: Hold Him Down (setup).** Grab a foe in a full nelson (held 2 s); your crewmate's next blow lands huge. Solo:
   *Suplex*.
-- **Aerial: Hammer Fists** (a double-fist spike). **Sprint: Flying Knee** (a knee that staggers). **Right-click: Dragon
+- **Aerial: Spinning Backfist** (a turn in the air and a backfist that knocks them down). **Sprint: Flying Knee** (a knee that staggers). **Right-click: Dragon
   Uppercut** (a dipping uppercut: a launcher, like the fourth punch already is).
 - **Bridges:** *Iron Jaw*, *Breath Control*, *Heavy Hands II*, *Wind in the Fists*.

@@ -681,8 +681,6 @@ func _duet_enter() -> void:
 	dur = float(l[1]) + (SOLO_GAP + float(d["mate"][1]) if role == "solo" else 0.05)
 	player.body_model.play(str(l[0]), float(l[1]))
 	Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.05, 1.0])
-	if role == "lead" and _duet_kind() == "combined" and mate and is_instance_valid(mate):
-		Net.crew_signal(mate, "duet", [Net.key_of(_target)])
 
 
 ## The partner waits for the lead's cue.
@@ -690,6 +688,10 @@ func _duet_wait() -> void:
 	_phase = "wait"
 	dur = PARTNER_WAIT + 1.0
 	player.call("_toast", "%s: ready" % CrewTechniques.name_of(id))
+	var c: Array = player.crew_tech.cue
+	player.crew_tech.cue = []
+	if not c.is_empty():
+		_duet_cued(Net.node_of(str(c[1][0])) as Node3D, c[0] == "finish")
 
 
 ## The cue: out beside the foe (a setup's finisher) or at its far side from the lead (combined), and our blow.
@@ -729,6 +731,8 @@ func _duet_update(delta: float) -> void:
 	var d: Dictionary = DUETS[id]
 	var setup := _duet_kind() == "setup"
 	var at := float((d["mate"] if role == "partner" else d["lead"])[2])
+	if role == "lead" and not setup and _once("cue", 0.0) and mate and is_instance_valid(mate):
+		Net.crew_signal(mate, "duet", [Net.key_of(_target)])
 	if _once("glint", at - 0.08):
 		Net.fx("glint", [PlusArts._tip(self), _col(FX.CORE), 0.9])
 	if _once("blow", at):

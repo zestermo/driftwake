@@ -230,6 +230,7 @@ static func _op(s, a: Array) -> void:
 				_hit(s, [e], float(a[1]), 3.0, str(a[2]))
 				p.velocity = Vector3.DOWN * 12.0
 				_slam(s, 3.0)
+				s.dur = maxf(s.dur, s.t + 0.5)
 		"glint":
 			_net(s).fx("glint", [_tip(s), s._col(FXS.CORE), float(a[1]) if a.size() > 1 else 0.8])
 		"trail":

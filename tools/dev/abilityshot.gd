@@ -11,6 +11,7 @@ extends SceneTree
 ## Writes <out_prefix>_<skill>.png. Env AB_EDY=<type> sets the captain's Edy; AB_HOUR=21 films it at night; AB_TIER=0/1/2
 ## with no weapon element awakened / on skills only / on every blow (default 2); AB_HOLD=s holds a held
 ## technique's key that long; AB_STRIKE=s lands the nearest grunt's blow on you at that time.
+## skill_id "plus:<move>" films a 1.26 PlusArts move (an alternate or an aerial heavy) by its id.
 ## skill_id "crew:<id>" films a crew technique (CrewTechniques) with a captain-style crewmate (an AI, its side run here)
 ## joining from your right; AB_SOLO=1 films the self version instead; AB_STRIKE then lands the blow on the crewmate.
 const STAGGER := 9
@@ -222,6 +223,14 @@ func _process(d: float) -> bool:
 				p.reset_physics_interpolation()
 				p.state_machine.force_state("Plunge", {})
 				print("cast air: true (%s)" % p.state_machine.current_state.get("_mode"))
+			elif skill.begins_with("plus:"):
+				# (1.26) a PlusArts move by id (an alternate or an aerial heavy; air ones from 2.5 m up)
+				var mid := skill.trim_prefix("plus:")
+				if load("res://scripts/player_states/plus_moves.gd").MOVES[mid]["slot"] == "air":
+					p.global_position += Vector3.UP * 2.5
+					p.reset_physics_interpolation()
+				p.state_machine.force_state("Technique", {"id": mid})
+				print("cast %s: %s" % [skill, p.current_state_name()])
 			elif skill == "sea_king_unleash":
 				p.fist_armed = 1.0
 				p.state_machine.force_state("Technique", {"id": "sea_king_unleash"})
