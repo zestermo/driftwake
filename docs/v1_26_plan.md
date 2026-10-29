@@ -154,7 +154,7 @@ Built here in the main session one piece at a time; each 1.25.x (Zach: the unsta
 | 1.25.3 | The round Edy tree and the Infusion branch | Mock OK |
 | 1.25.4 | The Brinehollow opening (unarmed start, Vey's rack, the shrine reading, Tomo on the terrace) | Step list |
 | 1.25.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows), enterable dressed shops for every vendor, more lines per role | Previews |
-| 1.25.x (any) | The internal id rename with its save migration (sea_king, devil_fruits, log_pose, the haki ids) and the GitHub notes for v1.8-v1.17 | - |
+| 1.25.x (any) | The internal id rename with its save migration (sea_king, devil_fruits, log_pose, the haki ids). (The GitHub notes needed nothing: every release body is an auto "Full Changelog" link, and no title uses the old words; checked 2026-10-29.) | - |
 | 1.25.6 | Wave-1 weapons (bridges, two ultimates, crew variants, alternates, launchers) | Weapon sheet |
 | 1.25.7+ | The other 11 weapons, then 1.26 stable | Weapon sheet |
 
