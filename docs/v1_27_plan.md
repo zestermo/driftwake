@@ -40,7 +40,44 @@ Admiralty officers), the Admiralty's patrols/blockades and 1.25.5's hideouts and
 | Costs + no-fruit build | **All of docs/devil_fruits_plan.md ships:** sinking in the sea, slowed and powerless in deep standing water, co-op rescues (dive + grab, life ring, rope), solo: death with the bag washed ashore, a life buoy item; the **Seafarer tree** for captains without a fruit | Without the costs, eating is always right | - |
 | Fruit progression | **Like a weapon's tree:** mastery by use, skills, two ultimates (one equipped), a crew technique, alternates: 1.26's plumbing | Players already know it | - |
 
-## Build order (each an unstable 1.26.x step)
+## Decided: the cities pass, first in 1.27 (Zach, 2026-10-29)
+Zach's notes: the capital and canal city feel empty and vast: a few big lanes, no interiors, the market circle reused,
+wrong storefront signs, nothing to do, and no reason to meet the Queen. They get fleshed out before strongholds.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Placement | **First in 1.27**: the cities are the first unstable steps, then the stronghold and fruits | The stronghold's leads (the Queen, the informant) start in the cities | - |
+| Layout | **Fixed landmarks, rolled streets**: palace/Doge's palace, harbour, main plaza and the set pieces stay put; the street and alley network between them (varied widths, dead ends, stairs, covered passages, courtyards), the blocks and where shops, interiors and people go are rolled from the seed | Recognisable but different each world | - |
+| Market | **No market circle** in either city (it's the villages' piece); markets fit the street plan (a market street, a loggia, a bridge market) | - | - |
+| Buildings | Denser, with **second and third storeys**, balconies, arcades and sight pieces you can see across the city | Height and density instead of empty width | - |
+| Interiors | **Every shop and service, about a third of the houses**, workshops, several taverns and every set piece. Some with stairs to upper floors, balconies and roof access | Lots of places to go in and look round | - |
+| Signs | Every storefront carries **the right sign for what's sold inside** (VendorMarks' trade signs on the building) | Zach: signs didn't match the shops | - |
+| Things to do | **Investigations** (clue trails through interiors and alleys: a thief, a missing person, a smuggling ring, ending in a fight or a find), **rooftops and hidden spots** (routes, courtyards, caches), **city jobs** (deliveries, guard bounties on wanted thugs, errands), **games and dens** (gambling dens, cards and dice, arm-wrestling) | Zach picked all four | Pools sized in the preview |
+| The informant | **One recurring hooded figure** in both cities' high places (the capital's bell tower, the canal city's campanile). Sells leads to Driftfruits, legendary gear and later the stronghold, for gold or a favour. Who they are stays a mystery | A thread to pull across the chain | - |
+| The Queen | **The raid patron + royal favour**: the audience opens a royal quest line that ends at the Admiralty stronghold (she wants something from its vault: its location, a writ, a reward), and a standing with the Crown (royal shops, a title, palace access, discounts) | Zach picked both | - |
+| Canal ruler | **The Doge of the lagoon**: elected, in a palace on the grand canal, ruling with the shipwrights' and merchants' guilds (Master Grane among them). The Doge's line leads to the great-power pirate's hideout (the pirate preys on the lagoon's ships) | The canal city's purpose, mirroring the Queen's | - |
+| Capital set pieces | **Bell tower** (the informant), **cathedral with crypt**, **grand library** (lore, a hidden room), **theatre / opera house**, **royal gardens with a maze**, **the undercity** (sewers under the streets) | Zach picked all | - |
+| Canal set pieces | **Campanile** (the informant), **the Doge's palace**, **a shop-lined bridge** over the grand canal, **a working glassworks**, **a covered fish loggia**, **the undercity** (flooded cellars, smugglers' tunnels) | Zach picked all | - |
+
+### Cities build order (unstable 1.26.x steps, before the stronghold)
+C1. **Capital layout:** the rolled street/alley network round fixed landmarks, denser taller blocks, the market circle
+    gone, the right signs, shops and homes enterable (the kit's rooms, stairs and roofs).
+C2. **Capital set pieces:** bell tower + the informant, cathedral and crypt, library, theatre, gardens and maze, the
+    undercity.
+C3. **Canal city layout and set pieces:** the same treatment on the lagoon (rolled calli and bridges), the Doge's
+    palace, campanile, the bridge market, glassworks, fish loggia, flooded cellars.
+C4. **Things to do:** investigations, rooftop routes and caches, city jobs, gambling dens and games, in both cities.
+C5. **The rulers:** the Queen's royal line and Crown standing, the Doge's line (both pointing at 1.27's raids).
+Each step is rendered at eye height (day and dusk) for Zach's look before it lands, and checked against the
+2026-10-24 city detail bar (docs/v1_21_plan.md): warm, cluttered, lived in, not large and empty.
+
+### Cities: open / deferred
+- **Preview before building:** a street plan mock for each city (two seeds side by side), the interior list, the
+  investigation and job pools, the Queen's and the Doge's quest steps and rewards, the informant's prices.
+- Interior budget and streaming (many interiors in one city): built per block as you near it (**assumed**), perf
+  checked at the batch's bench.
+
+## Build order (each an unstable 1.26.x step, after the cities)
 1. **The stronghold, the place:** a fortress island per chain (walls, gates, sea gate, yards, keep, armoury vault,
    brig), its proper name, found through captured orders and rumours; garrisons on patrol routes.
 2. **The raid:** stealth vs alarm and its escalation (waves, gates shutting, the Vice Admiral coming down), the brig on
