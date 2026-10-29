@@ -72,6 +72,33 @@ Zach's further notes:
 | Rename scope | Finish docs/originality_plan.md: (1) rename internal ids and files (sea_king → leviathan, devil_fruits → driftfruits, log_pose → lodestone, the haki ids → will...) with a save and co-op migration for old ids; (2) the site, README and the GitHub notes for v1.8-v1.17; (3) name the rest (the Warlords/Emperors-style powers, Admiralty ranks). No visual reskin pass | Zach: "fully rename everything" | **Preview first:** the names for (3) |
 | Public repo | Stays public for now; decide when the Steam page is near | The updater and site use GitHub Releases | Before the Steam page |
 
+### Round 3 (2026-10-29): the Edy tree, a mock first
+
+Zach's notes on today's Edy (1.23-1.24 Will paths):
+- It's confusing: what passives are and how to get them isn't clear (he had none after a whole run).
+- Having to buy every variant to move up a tier felt bad.
+- He misses the old ranks earned by use (pre-1.23: Coat → Hardened → Ryuo, Foresight → Second Sight → Future Sight).
+- He wants Foresight to level up over time on purpose, as an ability that works by itself.
+
+What he asked for:
+- One big Edy tree with every path as a branch, points spent down each branch in order.
+- Four node kinds: stats, passive abilities, equipped passives, and equipped abilities with ranks earned by use.
+- After that, a pass on the Edy types and their effect looks.
+
+**Mock:** https://claude.ai/artifact/91LwPHU2X7A7vxbLCP6ifa (shared with Zach for iteration).
+- Seven branches (Iron Will, Sense, Captain's Will, Tide, Tempo, Fury, Bond), 7 nodes each, 105 points in all.
+- Four kinds: stat, passive (always on), passive (equipped), ability (on the bar).
+- Ranks I-III by use (e.g. Infuse → Hardened at 120 infused blows → Overflow at 400; Foresight always on → Second
+  Sight at 40 auto-dodges → Future Sight at 150).
+- No variants to buy.
+- Slots: 2 / 3 at level 15 / 4 at level 25 equipped passives; 2 / 3 at level 20 bar abilities.
+- Points: 1 a level from level 4, plus 1 a boss or arc villain (~19 at level 15, ~59 at level 40, about half the tree).
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Edy tree shape | **Not decided:** iterate on the mock with Zach first | Feel systems get a preview first | After the mock is OK'd |
+| Edy type looks | A pass after the tree; the mock sketches the five current looks on a kicking leg as a starting point | Zach: the types and looks aren't what he wants yet | Next round |
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.
