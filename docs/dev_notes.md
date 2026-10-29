@@ -7708,3 +7708,46 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   LOOK_R 6 m the head eases toward the captain's face (`NPC.head_look`: Humanoid.look_target/look_weight). Only a talk
   turns the body, and only someone standing (not seated, kneeling, or at a stay whose act isn't stand/talk/walk);
   kneeling workers keep kneeling while you pass.
+
+## 1.25.4 the Brinehollow opening (2026-10-29)
+- **What:** the story (`scripts/game/story.gd` STEPS) is 21 steps across the island: find_town, see_gus, see_nessa (she
+  sends a parcel up to the lighthouse), lighthouse (Ambrose saw the smugglers' longboat; sends you to Vey the quay way),
+  brawl (a bare-handed bout with Harl, a dock tough, on the quay), see_vey, vey_rack, vey_drills, smugglers, vey_skills
+  (Vey sends you up the long stair), shrine (Master Isao's Edy reading), tomo (his spar on the terrace), ruins (the
+  standing stone), grell, see_odile, see_tackett (timber and chitin), forest (split three ironwood deadfall), queen,
+  tackett_ship, see_gus_redtide, morrow. Zach's step list wasn't previewed: **assumed** (the plan doc's "Brinehollow
+  opening" row still says "Preview first"; the lead marks it, the doc being open in the main checkout).
+- **New game unarmed:** `Story.begin()` takes every weapon out of the bag and the hands (`_unarm`); old captains keep
+  theirs (a load restores the bag). Old saves: every pre-1.25.4 step id is still on the list, so `from_dict` (`map_old`)
+  resumes on it and skips the new steps before it; an unknown id finishes the story. `trial` (the rack) is saved too.
+- **Bout steps** (`"bout"` in a step): Story asks for the bout (`Net.request_arena`) as the captain comes within BOUT_R
+  of its place, again after twice as far or REARM_SECS after a loss (`bout_done`, from `ArenaBout.result` on the
+  captain's machine). ArenaBout kind `"brawl"` (BRAWLER: bare hands, fights at once, spawned on the spot); master
+  bouts and the brawl are fought on their ground: `ArenaBout.spar_spot(tree, kind)` reads `StarterIsland.ground_of`
+  ("brawl": KitHarbour quay_pt(BRAWL_S, BRAWL_IN); "spar": SPAR on the terrace), and `_leash` (the playtest's stuck
+  Tomo) puts a rival more than LEASH_R off the ground and APART_STUCK from the captain back on it after 1.5 s (not
+  while ragdolled); a captain more than FORFEIT_R off loses. The tomo step finishes itself if black leg is known.
+- **Vey's rack** (`scripts/game/story_rack.gd`, StoryRack, at StarterIsland.RACK by the yard's north fence): eleven
+  kinds racked (cutlass, katana, dirk, boarding axe, spear, warhammer, greatsword, pistol, musket, hand cannon,
+  slingshot); its talk (Dialogue.define "story_rack", grouped Blades / Two-handed / Guns) takes one down (bag + hands,
+  the last one put back) and keeps it (finishes vey_rack). Drills tick a gun's Shoot as the cut.
+- **The shrine terrace** (`_build_terrace_story`, its own seed `terrace_story`, after the terrace's old pieces, merged
+  into TownMeshes): Master Isao's reading hall (`scripts/props/shrine_terrace.gd`, ShrineTerrace.reading_hall: walk-in,
+  open front, the five Edy colours on the back wall, cushions, incense; marker Master) west of the way, a basin; east of
+  it the flagged sparring ground at SPAR (r 4.6, flat and open 4 m round), four striking posts, a stave rack, a parapet
+  along the terrace's east edge. Isao (data/dialogue/isao.json, cast last in BrinehollowCast.people) reads with
+  `EdyTypes.quiz_nodes` ("s" the story's reading, then what Edy, the tree, infusing and reinforcing are; "e" asked for
+  later) merged in by `StarterIsland.edy_reading`; Hana no longer reads, she points up the stair.
+- **The forest** (`scripts/game/story_deadfall.gd`, StoryDeadfall, `_build_deadfall` after the life pass, seed
+  `deadfall`): three fallen trunks 2.6 m off the forest's paths (12-50 m from FOREST, 26+ from the cave, 16 apart); on
+  that step each splits once per captain (Dialogue flag deadfall_<i>) for a timber; the marker (guide_to "forest") leads
+  to the nearest unsplit one. The ruins step is the driftstone's talk (`story` hook in driftstone.json).
+- **Co-op:** each captain's own story (local); the brawl and Tomo are host-run ArenaBouts asked for by the guest; the
+  rack and deadfall change only the captain's own bag and flags.
+- **Per frame/tick:** nothing new per frame; Story's half-second poll adds one distance check on bout steps; ArenaBout's
+  held bouts two distance checks a tick while fighting. New meshes: the hall (merged), 4 posts and a basin (merged),
+  the rack (11 weapon MeshInstances, no shadow, range 70 m), 3 deadfall (range 160 m).
+- **Tests:** t/story (opening_steps, rack_keeps_one, shrine_reading, tomo_terrace, island_steps), t/weapons/
+  black_leg_master, t/ui/drills, t/island/brinehollow_outskirts. Expected to need updates at the release check:
+  storytest (walks the old 14 steps), savetest (a new game's cutlass), probably qoltest/r-suites that assume the story's
+  old order, and the islanddump/fidelity numbers for Brinehollow (the terrace, rack and deadfall).

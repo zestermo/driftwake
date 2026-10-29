@@ -46,8 +46,6 @@ const NEAR := {"smugglers": 70.0, "den": 90.0, "cave": 60.0, "redtide": 140.0}
 ## A bout step asks for its bout this close to its place (m), again once you've been twice as far or it's lost.
 const BOUT_R := {"brawl": 13.0, "master:black_leg": 16.0}
 const REARM_SECS := 6.0
-## The old forest's timber (piece 4: StarterIsland's deadfall) Tackett wants.
-const TIMBER := 3
 
 var step: String = DONE
 ## Fights won so far (place -> true): a step whose fight you already won

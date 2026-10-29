@@ -257,6 +257,8 @@ var woods := {"trees": [], "under": 0, "keys_before": 0, "keys_after": 0}
 var _town_parts: Array = []
 ## Master Isao's reading hall on the shrine terrace (1.25.4; his place is its "Master" marker).
 var reading_hall: Node3D
+## The old forest's ironwood deadfall (StoryDeadfall), in order.
+var deadfall: Array = []
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -328,6 +330,7 @@ func build(world_seed: int) -> Dictionary:
 	# the town's life (people, smoke, harbour traffic, their lights), from its own file once it's there
 	if ResourceLoader.exists(LIFE):
 		kit.timed("life", func(): load(LIFE).build(self))
+	kit.timed("story", _build_deadfall)
 	_add_arrival_zone()
 	kit.timed("draw lod", func(): DrawLOD.apply(self))
 
@@ -922,6 +925,8 @@ func ground_of(place: String) -> Vector3:
 ## Where the story's marker leads for `place` from `from` (world): for the den, the
 ## foot of its cliff path, then the top of the path once you're on it, then the den.
 func guide_to(place: String, from: Vector3) -> Vector3:
+	if place == "forest":
+		return _next_deadfall(from)
 	if place != "den":
 		return place_of(place)
 	var l := to_local(from)
@@ -936,6 +941,46 @@ func guide_to(place: String, from: Vector3) -> Vector3:
 		var top: Vector2 = den_plan["top"]
 		return to_global(Vector3(top.x, DEN_TOP + 1.5, top.y))
 	return to_global(Vector3(start.x, hv(start) + 2.5, start.y))
+
+
+## The nearest ironwood deadfall this captain hasn't split (the forest step's marker), else the forest.
+func _next_deadfall(from: Vector3) -> Vector3:
+	var best := place_of("forest")
+	var bd := INF
+	for i in range(deadfall.size()):
+		if Dialogue.has_flag(StoryDeadfall.flag(i)):
+			continue
+		var at: Vector3 = (deadfall[i] as Node3D).global_position + Vector3.UP * 1.5
+		if at.distance_to(from) < bd:
+			bd = at.distance_to(from)
+			best = at
+	return best
+
+
+## The old forest's deadfall (Story step "forest"): StoryDeadfall.COUNT fallen trunks beside the paths through the forest,
+## a good way apart and clear of the cave's mouth, each 2.6 m off its path.
+func _build_deadfall() -> void:
+	var rng := kit.rng(0, SEEDS["deadfall"])
+	var spots: Array = []
+	for path: PackedVector2Array in paths:
+		for k in range(1, path.size()):
+			var q: Vector2 = path[k]
+			var d := q.distance_to(FOREST)
+			if d < 12.0 or d > 50.0 or q.distance_to(CAVE) < 26.0:
+				continue
+			if spots.any(func(s: Array) -> bool: return (s[0] as Vector2).distance_to(q) < 16.0):
+				continue
+			var along: Vector2 = (path[k] - path[k - 1]).normalized()
+			spots.append([q + Vector2(-along.y, along.x) * 2.6, along])
+			if spots.size() == StoryDeadfall.COUNT:
+				break
+		if spots.size() == StoryDeadfall.COUNT:
+			break
+	assert(spots.size() == StoryDeadfall.COUNT, "the old forest's paths have room for only %d deadfall" % spots.size())
+	for i in range(spots.size()):
+		var s: Array = spots[i]
+		var trunk := StoryDeadfall.build(i, rng.randi())
+		deadfall.append(kit.place(trunk, s[0], face_yaw(s[1]) + PI * 0.5, 0.0, -0.05))
 
 
 ## Where a new captain wakes: on the sand just past the quay's west end, a
