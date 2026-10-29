@@ -7669,3 +7669,5 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   earlier release of any kind (`gh release list`), so an unstable patch builds on the same base. Stable players never
   see unstable releases (latest skips pre-releases).
 - Test: `t/ui/updater_beta`.
+- **Numbering (Zach, 2026-10-29):** the unstable steps toward 1.26 are 1.25.1, 1.25.2...; 1.26 is the next stable
+  release. The "1.26.1" in the commit messages and the headings above is 1.25.1.

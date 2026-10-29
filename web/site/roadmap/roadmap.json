@@ -814,9 +814,39 @@
 			]
 		},
 		{
+			"v": "1.25.1",
+			"name": "Fair Fights",
+			"date": "2026-10-29",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The first round of playtest fixes: fairer knockdowns, chases you can lose or win, a blockade worth breaking, and visitors who walk in.",
+			"img": "post",
+			"alt": "A trading post's palisade gate and watchtower (current build)",
+			"github": true,
+			"added": [
+				["Fair fights", "Poise for captains and tougher grunts: fewer ragdolls, softer knockback, red tells on every wind-up."],
+				["The sea", "Calmer heat, cutters with bow chasers, a three-ship blockade, and pirates on your route again."],
+				["Visitors", "Rival crews, officers and hunters are warned of and walk in, slower and tougher."]
+			]
+		},
+		{
 			"v": "1.26",
-			"name": "Strongholds and Driftfruits",
+			"name": "The Playtest Overhaul",
 			"status": "building",
+			"headline": "Everything a two-hour co-op playtest turned up: villages worth finding, a new Brinehollow opening, a round Edy tree, and more from every weapon.",
+			"img": "post",
+			"alt": "A trading post's palisade gate and watchtower (current build)",
+			"plan": [
+				["Villages", "Shops you walk into, unique places to find, tavern games, and island stories your side work feeds."],
+				["A new opening", "Start unarmed, pick your weapon at Vey's rack, and learn your Edy at the shrine."],
+				["The Edy tree", "One round tree of eight branches, with abilities that rank up as you use them."],
+				["Weapons", "Two ultimates, a crew move and alternate attacks for every weapon."]
+			]
+		},
+		{
+			"v": "1.27",
+			"name": "Strongholds and Driftfruits",
+			"status": "planned",
 			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",

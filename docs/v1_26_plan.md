@@ -144,18 +144,18 @@ Today:
 
 ### Build order (2026-10-29)
 
-Built here in the main session one piece at a time; each 1.26.x is tagged as an **unstable** pre-release when done,
+Built here in the main session one piece at a time; each 1.25.x (Zach: the unstable steps are 1.25.1, 1.25.2...) is tagged as an **unstable** pre-release when done,
 1.26 stable at the end. Previews come when their version is next.
 
 | Version | What | Gate |
 |---|---|---|
-| 1.26.1 | Sea/bounty pacing, Admiralty chase and false "Escaped", marine bow chasers, the 3-ship blockade, hunter arrival and balance, pirate crew balance, combat poise and knockback, enemy tells and knockback caps, co-op jail, outpost placement, XP sharing and quest XP, the infuse on the feet; the beta updater | - |
-| 1.26.2 | Compass strip, tonic flask, vendors in shops (icons, no schedules), name/line pools, the id rename and the site | - |
-| 1.26.3 | The round Edy tree and the Infusion branch | Mock OK |
-| 1.26.4 | The Brinehollow opening (unarmed start, Vey's rack, the shrine reading, Tomo on the terrace) | Step list |
-| 1.26.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows) | Previews |
-| 1.26.6 | Wave-1 weapons (bridges, two ultimates, crew variants, alternates, launchers) | Weapon sheet |
-| 1.26.7+ | The other 11 weapons, then 1.26 stable | Weapon sheet |
+| 1.25.1 | Sea/bounty pacing, Admiralty chase and false "Escaped", marine bow chasers, the 3-ship blockade, hunter arrival and balance, pirate crew balance, combat poise and knockback, enemy tells and knockback caps, co-op jail, outpost placement, XP sharing and quest XP, the infuse on the feet; the beta updater | - |
+| 1.25.2 | Compass strip, tonic flask, vendors in shops (icons, no schedules), name/line pools, the id rename and the site | - |
+| 1.25.3 | The round Edy tree and the Infusion branch | Mock OK |
+| 1.25.4 | The Brinehollow opening (unarmed start, Vey's rack, the shrine reading, Tomo on the terrace) | Step list |
+| 1.25.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows) | Previews |
+| 1.25.6 | Wave-1 weapons (bridges, two ultimates, crew variants, alternates, launchers) | Weapon sheet |
+| 1.25.7+ | The other 11 weapons, then 1.26 stable | Weapon sheet |
 
 **Beta updates (decided):** a "Get unstable updates" setting. With it on, Updater also offers pre-releases, and CI
 builds update.json and a patch for unstable tags too (against the same base). Off by default.

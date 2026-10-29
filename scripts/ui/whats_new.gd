@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Edy", "Hana at Brinehollow's teahouse reads your Edy: Still, Ember, Crown, Storm or Tide, each with its own colour, aura and small edge. Spend Edy on the Captain page."],
-	["Infuse and Reinforce", "Coat is Infuse, your Edy poured into the blade. Hardening is Reinforce: a skill that wraps your body, quicker and harder for 15 s. Auras flare when you use them."],
-	["One Captain page", "The Edy paths and your perks (P) on one page, gold pips on anything waiting, crisper menus, NEW loot tags, vendor signs, and each weapon's crew technique on its tree."],
-	["The teahouse", "Bao the cook teaches kicks out front now; his pupil Tomo waits on the flat, bows, and counts you in."],
-	["New things", "The banjo and a new shanty, the Bulwark set and more gear, four new weapons, new faces and eyes, dreads, a mohawk and hair dyes."],
+	["Fair fights", "Captains have poise now: one heavy blow staggers you, the second floors you, then a moment of grace. Grunts take more before they fall, knockback is softer, and every creature glows red as it winds up."],
+	["The Admiralty", "Calmer heat, a quiet spell after every chase, cutters that run you down with a bow gun, and a three-ship blockade you break by sinking any one of them. Your ship furls her sails if she's rammed to a stop."],
+	["Visitors", "Rival crews, officers and bounty hunters are announced first, then land and walk in: slower, tougher fights."],
+	["The sea and the crew", "Pirates on your route again, Admiralty outposts that always stand by their villages, boss XP for the whole crew, and XP from quests."],
+	["Kicks", "Infuse in the kicking stance burns down your legs, not your arms."],
 ]
 
 
