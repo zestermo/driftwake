@@ -89,7 +89,7 @@ func _process(_d: float) -> bool:
 			p.power.energy = 999.0
 			p._reset_ammo()
 			taken = 0.0
-			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if ti == 0 else 0})
+			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if ti == 0 or TECHS[ti] == "hellfire_barrage" else 0})
 			until = TK.wait_secs(2.6)
 		2:
 			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)

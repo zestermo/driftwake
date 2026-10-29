@@ -387,8 +387,8 @@ const MOVES := {
 	# --- Cannon: brimstone ---
 	"shell_drop": {"tree": "cannon", "slot": "air", "kind": "", "name": "Shell Drop", "dur": 0.6,
 		"desc": "Attack in the air: a beat's hang and a shell fired down ahead of you: it bursts where it lands and throws everyone round it down (once per jump).",
-		"pose": ["cn_air", 0.6], "hang": [[0.0, 0.4, 0.5]],
-		"at": [[0.2, "blast", 6.0, 3.0, 26.0, 6.0, "down"], [0.2, "hop", -3.0, 2.0]],
+		"pose": ["cn_air", 0.6], "hang": [[0.0, 0.4, 0.5]], "enter": [["aim", 16.0]],
+		"at": [[0.2, "blast", -6.0, 3.0, 26.0, 6.0, "down"], [0.2, "hop", -3.0, 2.0]],
 		"land_pose": ["plunge_land", 0.3], "rec": 0.25},
 	"ram_and_fire": {"tree": "cannon", "slot": "sprint", "kind": "", "name": "Ram and Fire", "dur": 0.7,
 		"desc": "Attack at a sprint: the muzzle rammed into them at the run and fired: a point-blank blast that throws everyone in front down.",

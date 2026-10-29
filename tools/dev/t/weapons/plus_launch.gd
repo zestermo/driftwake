@@ -54,6 +54,7 @@ func _process(_d: float) -> bool:
 			var db = load("res://scripts/loot/item_db.gd")
 			p.unequip_weapon()
 			if l[1] != "":
+				p.inventory_component.add_item(db.get_item(l[1]), 2)
 				p.equip_weapon(db.get_item(l[1]), true)
 			match str(l[3]):
 				"same":
@@ -63,6 +64,7 @@ func _process(_d: float) -> bool:
 				"":
 					pass
 				_:
+					p.inventory_component.add_item(db.get_item(l[3]), 1)
 					p.set_offhand(db.get_item(l[3]))
 			p.progression.master_all()
 			until = TK.wait_secs(0.8)

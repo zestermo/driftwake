@@ -41,7 +41,9 @@ func arm() -> void:
 		"same":
 			p.set_offhand(p.equipped_weapon.duplicate())
 		_:
-			p.set_offhand(load("res://scripts/loot/item_db.gd").get_item(offhand()))
+			var it = load("res://scripts/loot/item_db.gd").get_item(offhand())
+			p.inventory_component.add_item(it, 1)
+			p.set_offhand(it)
 
 
 func _initialize() -> void:

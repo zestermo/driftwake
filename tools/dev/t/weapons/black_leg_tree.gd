@@ -96,8 +96,8 @@ func _process(_d: float) -> bool:
 			p.power.ult = p.power.ULT_MAX
 			p.power.energy = 999.0
 			taken = 0.0
-			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] == "last_course" else 0})
-			until = TK.wait_secs(2.9 if TECHS[ti] == "last_course" else 1.7)
+			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] in ["last_course", "volcano_course"] else 0})
+			until = TK.wait_secs(3.2 if TECHS[ti] in ["last_course", "volcano_course"] else 1.7)
 		2:
 			if TECHS[ti] == "sky_chase":
 				check("Sky Chase with nothing in the air does nothing and is given back", taken == 0.0 and float(p.power.cooldowns.get("sky_chase", 0.0)) <= 0.0)

@@ -90,8 +90,8 @@ func _process(_d: float) -> bool:
 			p.power.ult = p.power.ULT_MAX
 			p.power.energy = 999.0
 			taken = 0.0
-			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if ti == 0 else 0})
-			until = TK.wait_secs(2.2)
+			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if ti == 0 or TECHS[ti] == "fireworks_finale" else 0})
+			until = TK.wait_secs(3.0 if TECHS[ti] == "fireworks_finale" else 2.2)
 		2:
 			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
 			ti += 1

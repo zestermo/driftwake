@@ -15,7 +15,8 @@ extends RefCounted
 ##   cone reach cos dmg knock flags · ring reach dmg knock flags · line len width dmg knock flags · hit reach dmg knock
 ##   flags (the aimed foe) · fire reach n dmg flags (shots) · proj kind dmg · drag reach dmg (inward)
 ##   each reach n every tail op... (one op per foe round you, closest first; each_at: round the mark) · mark (the
-##   reticle's spot) · here (where you stand) · zone r dmg flags (bolts on everyone round the mark) · chase dmg flags
+##   reticle's spot) · here (where you stand) · blast d r dmg knock flags (a burst on the ground d ahead; d < 0: on
+##   the aimed foe, or -d ahead) · rain r dmg flags (streaks from the sky on everyone within r) · zone r dmg flags (bolts on everyone round the mark) · chase dmg flags
 ##   pose len (up to the last foe of the each, spiked down)
 ##   glint [size] · trail secs · spin secs · slam r · gather · vortex secs r · moment · flash a · invuln on · shake a
 ##   kick a secs · sfx name db pitch · spray n
@@ -210,7 +211,8 @@ static func _op(s, a: Array) -> void:
 		"here":
 			s.plus["at"] = p.global_position
 		"blast":
-			var c := _ground(s, p.global_position + s._dir * float(a[1]))
+			# (a distance under 0: on the aimed foe, else that far on)
+			var c := _ground(s, s._target.global_position if float(a[1]) < 0.0 and _alive(s._target) else p.global_position + s._dir * absf(float(a[1])))
 			_net(s).fx("impact", [c + Vector3(0, 0.6, 0), s._col(FXS.CORE)])
 			_net(s).fx("ring", [c + Vector3(0, 0.15, 0), Vector3.UP, float(a[2]), s._col(), 0.35, 0.18])
 			_net(s).fx("heavy_dust", [c, 10, 0.8])

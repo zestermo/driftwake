@@ -83,6 +83,7 @@ func _process(_d: float) -> bool:
 			var db = load("res://scripts/loot/item_db.gd")
 			p.unequip_weapon()
 			if k[1] != "":
+				p.inventory_component.add_item(db.get_item(k[1]), 2)
 				p.equip_weapon(db.get_item(k[1]), true)
 			match str(k[2]):
 				"same":
@@ -92,6 +93,7 @@ func _process(_d: float) -> bool:
 				"":
 					pass
 				_:
+					p.inventory_component.add_item(db.get_item(k[2]), 1)
 					p.set_offhand(db.get_item(k[2]))
 			p.progression.master_all()
 			var pre: String = load("res://scripts/progression/skill_trees.gd").ELEMENTS[k[0]][0]

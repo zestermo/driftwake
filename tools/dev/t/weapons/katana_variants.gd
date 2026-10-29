@@ -51,6 +51,8 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			pr = p.progression
 			hc = stage.dummy.get_node("HealthComponent")
+			# (mastered with 1.26's bridges and lead-ups the drawing cut can top the dummy's 200, and it heals to full)
+			hc.max_health = 5000.0
 			stage.camera_rig.rotation.y = 0.0
 			pr.master_all()
 			check("mastered, the first versions are active: Iai Counter, Wind Severer, Crescent Arc",

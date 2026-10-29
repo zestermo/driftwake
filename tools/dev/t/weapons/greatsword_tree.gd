@@ -82,8 +82,8 @@ func _process(_d: float) -> bool:
 			p.power.ult = p.power.ULT_MAX
 			p.power.energy = 999.0
 			taken = 0.0
-			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] == "skysplitter" else 0})
-			until = TK.wait_secs(2.6 if TECHS[ti] in ["skysplitter", "updraft"] else 1.9)
+			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] in ["skysplitter", "eye_of_storm"] else 0})
+			until = TK.wait_secs(3.4 if TECHS[ti] == "eye_of_storm" else (2.6 if TECHS[ti] in ["skysplitter", "updraft"] else 1.9))
 		2:
 			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
 			ti += 1
