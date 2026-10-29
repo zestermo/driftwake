@@ -116,6 +116,7 @@ Today:
 | Connected weapon branches | Bridge nodes (stats and passives) between each weapon tree's three branches, like the Edy tree's, so a build can cross over without going back to the root | Zach | Preview |
 | Two ultimates | The top of each weapon tree splits into two ultimate branches, each with its own lead-up nodes. You can buy into one or both, but only one ultimate is equipped at a time, swapped out of a fight | Zach | Preview: the second ultimate per weapon |
 | Crew technique variants | Each weapon gets a second crew technique bought with weapon points, not a launch. Kinds: **setups** (one pins, trips or holds a foe, the other lands a big finisher), **combined attacks** (one merged attack with both weapons) and **rescue/support** (haul a downed crewmate out, a shared shield, trading energy). The weapon's solo version as today | Zach: "something different and interesting other than just launching your friend" | Preview: the move per weapon |
+| Aerial heavy (Zach, 2026-10-29) | Air light = the weapon's aerial attack (the slam until it's unlocked); air heavy = a new unlockable aerial heavy per weapon at mastery 10 (the slam on heavy until then) | The aerial fired on either button | With the weapons |
 | Scope across 17 weapons | Design every weapon's new content (second ultimate, crew variant, 3 alternates) now. 1.26 builds the most-played weapons first (cutlass, katana, black leg, pistol, polearm, greatsword); the other 11 follow in a 1.26.x patch through the updater | Animation volume | After wave 1 |
 
 ### Round 5 (2026-10-29): enemies, pirates, outposts
@@ -204,6 +205,7 @@ Built without the previews the build order asked for: each row is **assumed** un
     (project.godot, scripts/ui/whats_new.gd, web/site/roadmap/roadmap.json): update them to cover all of the above.
 - **Release check still to run** (world suites, expected to need test updates for deliberate changes): storytest,
   savetest, villagetest, lifetest, isletest, chaintest/fidelity, smoketest, nettest. Then tag v1.25.2 (UNSTABLE stays).
+- **At 1.26 stable (Zach):** every Download button on the site points at Driftwake-Setup.exe (the .zip only as a small "or the .zip" link); push players to the installer.
 - **Left for 1.26:** wave-1 weapons (two ultimates, crew variants, alternates, a launcher each), the internal id rename +
   old release notes, then the other 11 weapons and 1.26 stable (delete tools/release/UNSTABLE, point the site's
   Download at Driftwake-Setup.exe).

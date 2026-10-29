@@ -119,7 +119,12 @@ func _process(d: float) -> bool:
 			check(SG.slot_info(2).is_empty(), "slot 2 deleted")
 			check(SG.format_time(3720.0) == "1h 02m", "play time format")
 			var txt = load("res://scripts/ui/save_slot_list.gd").slot_text(1, SG.slot_info(1))
-			check(txt.begins_with("Slot 1"), "slot row text: " + txt.replace("\n", " | "))
+			check("Lv" in txt and "played" in txt, "slot row text: " + txt.replace("\n", " | "))
+			# (1.26: unlimited saves) the list, newest first; a new save past the highest number; the row's new lines
+			var i1: Dictionary = SG.slot_info(1)
+			check(SG.slots().has(1) and SG.first_free_slot() > 1, "the save list has slot 1, a new save goes past it (%d)" % SG.first_free_slot())
+			check(str(i1.get("game_version", "")) == str(ProjectSettings.get_setting("application/config/version", "")) and bool(i1.get("compatible", false)), "the save knows its build, and this build can load it (%s)" % i1.get("game_version", ""))
+			check(str(i1.get("place", "")) != "", "the save knows where you were (%s)" % i1.get("place", ""))
 			for i in range(1, 4):
 				SG.delete_slot(i)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)

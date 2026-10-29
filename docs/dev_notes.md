@@ -7891,3 +7891,21 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Tests: `t/island/dojo_spar`, `t/island/captive_walks_home`, `t/island/roof_deck_climb`, `t/island/desert_shops`;
   `t/island/pirate_held` updated (a freed captive walks off rather than vanishing). Renders: villageshot
   VSHOT_PLACE=dojo VSHOT_THEME=desert (shop interiors), VSHOT_HELD=1 (decks from their fronts).
+## 1.25.x: saves without a limit (2026-10-29)
+- `SaveGame`: any number of saves (`slots()` scans for save_N.dat, newest first; `first_free_slot()` is one past the
+  highest, so a new game never overwrites). Each save's meta adds game_version, format, `place_of` (an island's name
+  ashore, "At sea, near X" off it) and `crew_of` (every other captain who's sailed in it, accumulated). A thumbnail
+  save_N.png (256x144, the viewport when saved; not headless) beside it; `delete_slot` removes both. `slot_info` adds
+  those plus `compatible` (format not newer, build not newer than this one: Updater.newer).
+- `SaveSlotList`: a scrolling list of rows (picture, name/level, fruit/played/saved, place, crew, version with ✓ / ⚠;
+  a newer build's save is greyed out), "+ New captain" on top (allow_new; off in the pause menu's Load). Title: New Game
+  starts the next free save directly; Host / Join open the list (its new row runs the creator on arrival, so a guest
+  needs no save first).
+- Test: savetest (the list, the next number, the build, the place).
+
+## 2026-10-29: save backups and small settings (1.26)
+- SaveGame keeps the last 3 copies of each save (`save_N.bak1..3`, rotated before every write); a save that won't
+  read loads its newest readable backup with a toast. Deleting a save removes its backups and picture.
+- Options: Vsync, a frame cap (0 = none, 30-step slider), Reduce flashing (screen flashes x0.33, calmer Edy arcs).
+  PSXSettings._apply_frames applies vsync/max_fps (skipped on tool runs).
+- Test: t/progression/save_backups.

@@ -16,6 +16,8 @@ const DEFAULTS := {
 		"warp": 0.0,            # affine texture warp 0..1 (off by default since v3)
 		"fov": 75.0,
 		"show_fps": false,
+		"vsync": true,          # (1.26)
+		"max_fps": 0.0,         # (1.26) a frame cap; 0 = none
 		"perf_overlay": false,  # F8
 		"fine_ui": true,        # menus on a finer pixel canvas (960x540 at 1080p) where the window allows; off = 640x360
 	},
@@ -38,6 +40,7 @@ const DEFAULTS := {
 		"name_tags": true,
 		"reticle": true,
 		"pad_skills": true,    # on a pad: which skill is on which LB button, bottom left
+		"reduce_flashing": false,    # (1.26) softer screen flashes, fewer and dimmer Edy arcs
 		"beta_updates": false,    # (1.26) the title screen also offers unstable (pre-release) builds
 	},
 }
