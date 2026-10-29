@@ -205,9 +205,10 @@ func _process(d: float) -> bool:
 			check("Gus: the story line", _talk("gus", "Gus Brannock").begins_with("Pell sent you"))
 			check("  sends you to Nessa", story().step == "see_nessa")
 			check("Nessa: the story line", _talk("nessa", "Nessa").begins_with("Gus sent you"))
-			check("  sends you to Vey", story().step == "see_vey")
-			check("Vey: the story line", _talk("vey", "Sergeant Vey").begins_with("Nessa sent you"))
-			check("  sends you after the smugglers", story().step == "smugglers")
+			# (1.25.4: the new opening; the lighthouse, the brawl, the rack and the drills are t/story's: jump over them)
+			check("  sends you to the lighthouse", story().step == "lighthouse")
+			story().step = "smugglers"
+			story().changed.emit()
 			check("  who are marked", story().target_pos().distance_to(isl.place_of("smugglers")) < 0.1)
 			check("Vey while they're still there: a reminder", _talk("vey", "Sergeant Vey").begins_with("The smugglers are still"))
 			_put(isl.place_of("smugglers") + Vector3(0, 1, 6))
@@ -225,7 +226,10 @@ func _process(d: float) -> bool:
 			root.get_node("GameMenu").open("skills")
 			check("  (K works)", root.get_node("GameMenu")._current == "skills")
 			root.get_node("GameMenu").close()
-			check("  next: Grell", story().step == "grell")
+			check("  next: the shrine (the Edy reading)", story().step == "shrine")
+			# (the reading, Tomo and the ruins stone are t/story's)
+			story().step = "grell"
+			story().changed.emit()
 			var plan: Dictionary = isl.den_plan
 			var foot: Vector2 = plan["start"]
 			var top: Vector2 = plan["top"]
@@ -273,7 +277,10 @@ func _process(d: float) -> bool:
 		66:
 			check("Odile: the story line", _talk("odile", "Harbormaster Odile").begins_with("Grell? Dead?"))
 			check("Tackett: the story line", _talk("tackett", "Shipwright Tackett").begins_with("Odile sent you"))
-			check("  next: the queen", story().step == "queen")
+			# (1.25.4: Tackett wants timber too; the forest deadfall is t/story's)
+			check("  next: the forest, for timber", story().step == "forest")
+			story().step = "queen"
+			story().changed.emit()
 			_put(isl.place_of("cave") + Vector3(0, 0, 4))
 			_kill(isl.cave.queen)
 			wait = 1.5

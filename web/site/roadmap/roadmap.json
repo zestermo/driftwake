@@ -830,6 +830,23 @@
 			]
 		},
 		{
+			"v": "1.25.2",
+			"name": "A New Beginning",
+			"date": "2026-10-29",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "A new Brinehollow opening, the round Edy tree, islands worth landing on, and a compass and flask to find your way.",
+			"img": "edy_banner",
+			"alt": "EDY over a night sea, and the five types' symbols",
+			"github": true,
+			"added": [
+				["A new opening", "Start unarmed, pick from Vey's rack, learn your Edy at the shrine."],
+				["The Edy tree", "Eight branches, ranks by use, Infusion, and subtler auras."],
+				["Islands", "Leads against the villain, shops, special places, tavern games, pirate-held villages."],
+				["Finding your way", "An always-on compass and a tonic flask."]
+			]
+		},
+		{
 			"v": "1.26",
 			"name": "The Playtest Overhaul",
 			"status": "building",

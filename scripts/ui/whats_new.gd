@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Fair fights", "Captains have poise now: one heavy blow staggers you, the second floors you, then a moment of grace. Grunts take more before they fall, knockback is softer, and every creature glows red as it winds up."],
-	["The Admiralty", "Calmer heat, a quiet spell after every chase, cutters that run you down with a bow gun, and a three-ship blockade you break by sinking any one of them. Your ship furls her sails if she's rammed to a stop."],
-	["Visitors", "Rival crews, officers and bounty hunters are announced first, then land and walk in: slower, tougher fights."],
-	["The sea and the crew", "Pirates on your route again, Admiralty outposts that always stand by their villages, boss XP for the whole crew, and XP from quests."],
-	["Kicks", "Infuse in the kicking stance burns down your legs, not your arms."],
+	["A new beginning", "New captains wake on Brinehollow with nothing. Fight with your fists, pick your weapon from Sergeant Vey's rack, have your Edy read by Master Isao at the shrine, and cross the whole island before you sail."],
+	["The Edy tree", "One round tree of eight branches round your Edy. Abilities rank up as you use them, passives can be switched off, and the Infusion branch puts your Edy into every technique and blow. Old Edy purchases come back as points to spend."],
+	["Edy that fits", "Subtler auras: haze, sparks, gold glints, swirling motes or crackling arcs round your arms and legs, a light glow on the limbs, and the whole body when you Reinforce."],
+	["Islands worth landing on", "Side jobs weaken the island's villain, traders have shops you walk into, every village has one special place, dice and arm wrestling at the inn, and now and then a village the pirates have taken."],
+	["Finding your way", "The compass stays up with your crew and your objective on it, every captain carries a tonic flask, and villagers glance at you instead of spinning round."],
 ]
 
 

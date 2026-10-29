@@ -167,7 +167,9 @@ func _process(d: float) -> bool:
 				and npcs.any(func(x): return x.shop_id == isl.save_key("trader")) and (shops.extra[isl.save_key("trader")]["stock"] as Array).any(func(e): return str(e[0]).contains("@")))
 			var dlg = root.get_node("Dialogue")
 			var bn: Dictionary = dlg._load(isl.save_key("board"))["nodes"]
-			check("a notice board: the camp's captain and the bug lair", bn.has("q_%s_notice" % isl.life.key("notice_bounty")) and bn.has("q_%s_notice" % isl.life.key("notice_lair")))
+			# (1.25.5: the burrows site rolls burrows, a smugglers' hideout or an Admiralty picket, each with its own notice)
+			var lair_n: bool = ["lair", "hideout", "picket"].any(func(k): return bn.has("q_%s_notice" % isl.life.key("notice_" + k)))
+			check("a notice board: the camp's captain and the burrows site's (lair, hideout or picket)", bn.has("q_%s_notice" % isl.life.key("notice_bounty")) and lair_n)
 			check("the elder's talk: the island, the way on, the report of the bounty posted", dlg._load(isl.save_key("elder"))["nodes"].has("beyond")
 				and dlg._load(isl.save_key("elder"))["nodes"].has("q_%s_pay" % isl.life.key("notice_bounty")))
 			# the style tables: every theme has every key the kits read (nested tables too), and its props build

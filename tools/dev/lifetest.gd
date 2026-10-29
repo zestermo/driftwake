@@ -97,7 +97,7 @@ func _routines(island, tag: String) -> Array:
 	# (a fifth keep house by day, home day and night, and an owl who works the plaza spends the evening there)
 	check(tag + "day and night most are somewhere else (%d of %d; the rest work where they spend the evening)" % [moved, vs.size()], moved == shift.size() and moved > vs.size() / 2)
 	# (1.26: evenings spread over the inn, the plaza and home; traders keep their stalls)
-	var late: Array = vs.filter(func(v): return not (v.spot_at(20.8)[3] and kind_at.call(v, 20.8) in ["inn", "plaza", "home", "market", "stall"]))
+	var late: Array = vs.filter(func(v): return not (v.spot_at(20.8)[3] and (kind_at.call(v, 20.8) in ["inn", "plaza", "home", "market", "stall"] or str(kind_at.call(v, 20.8)).begins_with("vshop"))))
 	print("   not at the inn or the fire at nine: %s" % [late.map(func(v): return "%s (%s, %s, %.0f m from %.1f h)" % [v.npc_name, kind_at.call(v, 20.8), v.spot_at(20.8)[2],
 		walk_len(v, KL.stay_at(v.stays, 20.8)[0]), float(v.stays[KL.stay_at(v.stays, 20.8)[0]]["h"])])])
 	check(tag + "at nine in the evening they're settled: the inn, the plaza's fire, home or a trader's stall (%d of %d)" % [vs.size() - late.size(), vs.size()], late.size() <= 1)
