@@ -7671,3 +7671,11 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Test: `t/ui/updater_beta`.
 - **Numbering (Zach, 2026-10-29):** the unstable steps toward 1.26 are 1.25.1, 1.25.2...; 1.26 is the next stable
   release. The "1.26.1" in the commit messages and the headings above is 1.25.1.
+
+## 1.25.2, piece 1: the compass is always up (2026-10-29)
+- `PlayerHud._update_compass`: the strip shows outside talks and cutscenes (menus pause the HUD), not only aboard / with
+  the log pose / with marks. `CompassStrip` adds `_draw_crew` (every other human captain: a pip in their crew colour,
+  their initial and distance, pinned to the nearer end when behind you: `_pin`), `_draw_objective` (the HUD Objective's
+  target, a gold star and distance) and `_draw_village` (the current chain island's village_plan centre, a little house,
+  hidden on the plaza and past 900 m). Render: coopshot (a crewmate's pip on the strip, on foot in Brinehollow).
+- Test: `t/ui/compass_on_foot`.

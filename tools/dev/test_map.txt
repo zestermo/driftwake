@@ -648,3 +648,4 @@ scripts/powers/edy_aura.gd              t/will/infuse_legs
 scripts/player_states/skill_state.gd    t/will/infuse_legs
 scripts/island/marine_outpost.gd        t/island/outpost t/island/outpost_spots
 scripts/game/updater.gd                 t/ui/updater_beta
+scripts/ui/compass_strip.gd             t/ui/compass_on_foot

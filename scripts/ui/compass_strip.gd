@@ -1,8 +1,8 @@
 extends Control
-## A compass strip across the top of the screen (at the helm, aboard, or with
-## chart marks set): the way the camera faces in the middle, the half circle
-## either side, N/E/S/W, where the wind blows from, and the crew's chart marks
-## (Net.waypoints) with how far off they are, and the log pose's needles.
+## A compass strip across the top of the screen (1.26: always up, outside menus, talks and scenes): the way the camera
+## faces in the middle, the half circle either side, N/E/S/W, where the wind blows from, the crew's chart marks
+## (Net.waypoints) with how far off they are, the log pose's needles, and (1.26) every other captain of the crew (their
+## colour and initial, pinned to the nearer end when behind you), the objective (a gold star) and the island's village.
 ## North is -z.
 
 const W := 230.0
@@ -89,9 +89,83 @@ func _draw() -> void:
 		_draw_log_pose(heading, here)
 		_draw_lookout(heading, here, me)
 		_draw_treasure(heading, here, me)
+		_draw_village(heading, here)
+		_draw_objective(heading, here)
+		_draw_crew(heading, here, me)
 	# where we're facing
 	draw_colored_polygon(PackedVector2Array([Vector2(W * 0.5, 12), Vector2(W * 0.5 - 3, 15), Vector2(W * 0.5 + 3, 15)]), UIStyle.ACCENT)
 	draw_line(Vector2(W * 0.5, 0), Vector2(W * 0.5, 12), UIStyle.ACCENT, 1.0)
+
+
+## (1.26) A point on the strip, pinned to its nearer end when it's behind you (so a crewmate behind you still shows
+## which way to turn). Returns its x.
+func _pin(heading: float, to: Vector2) -> float:
+	var off := wrapf(bearing(to) - heading, -180.0, 180.0)
+	return W * 0.5 + clampf(off / SPAN, -1.0, 1.0) * (W * 0.5 - 6.0)
+
+
+## (1.26) Every other captain of the crew: a pip in their crew colour with their initial, and how far.
+func _draw_crew(heading: float, here: Vector2, me: Node3D) -> void:
+	for c in get_tree().get_nodes_in_group("players"):
+		if c == me or not (c is Player) or (c as Player).is_ai:
+			continue
+		var cp := c as Player
+		var to := Vector2(cp.global_position.x, cp.global_position.z) - here
+		if to.length() < 4.0:
+			continue
+		var x := _pin(heading, to)
+		var col: Color = Net.crew_color(cp.net_id) if Net.active else UIStyle.ACCENT
+		draw_circle(Vector2(x, 6), 4.0, Color.BLACK)
+		draw_circle(Vector2(x, 6), 3.0, col)
+		var nm := str(cp.net_profile.get("name", cp.display_name() if cp.has_method("display_name") else "?"))
+		var txt := "%s %dm" % [nm.substr(0, 1).to_upper(), int(to.length())]
+		draw_string_outline(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
+		draw_string(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
+
+
+## (1.26) The objective (the tracked quest's or the story's: the HUD's Objective): a gold star, and how far.
+func _draw_objective(heading: float, here: Vector2) -> void:
+	var oh := get_parent().get_node_or_null("Objective")
+	if oh == null or not oh.has_method("objective") or (oh.objective() as Dictionary).is_empty():
+		return
+	var t: Vector3 = oh._target()
+	if t == Vector3.INF:
+		return
+	var to := Vector2(t.x, t.z) - here
+	var x := _pin(heading, to)
+	var gold := Color(1.0, 0.82, 0.3)
+	var pts := PackedVector2Array()
+	for i in range(10):
+		var r := 4.5 if i % 2 == 0 else 2.0
+		var a := -PI * 0.5 + i * PI / 5.0
+		pts.append(Vector2(x, 6) + Vector2(cos(a), sin(a)) * r)
+	draw_colored_polygon(pts, gold)
+	if to.length() > 6.0:
+		var txt := "%dm" % int(to.length())
+		draw_string_outline(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
+		draw_string(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, gold)
+
+
+## (1.26) The village of the chain island you're on, while you're off its plaza: a little house.
+func _draw_village(heading: float, here: Vector2) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	var w := get_tree().get_first_node_in_group("world_gen")
+	if gm == null or w == null or not ("chain_islands" in w):
+		return
+	var isl = w.chain_islands.get(int(gm.chain_at))
+	if isl == null or not is_instance_valid(isl) or not ("village_plan" in isl) or (isl.village_plan as Dictionary).is_empty():
+		return
+	var vc: Vector2 = isl.village_plan["c"]
+	var at: Vector3 = (isl as Node3D).to_global(Vector3(vc.x, 0.0, vc.y))
+	var to := Vector2(at.x, at.z) - here
+	if to.length() < float(isl.village_plan.get("plaza_r", 15.0)) + 10.0 or to.length() > 900.0:
+		return
+	var x := _x(bearing(to), heading)
+	if x == INF:
+		return
+	var c := Color(0.95, 0.85, 0.65)
+	draw_colored_polygon(PackedVector2Array([Vector2(x - 3, 5), Vector2(x, 2), Vector2(x + 3, 5)]), c)
+	draw_rect(Rect2(x - 2.5, 5, 5, 4), c)
 
 
 ## The log pose's needles on the strip, each with its island's theme icon,

@@ -349,7 +349,8 @@ func _update_compass() -> void:
 	if player == null:
 		return
 	var aboard: bool = ship != null and (player.context == Player.Context.HELM or (ship as Ship).aboard(player.global_position))
-	_compass.visible = (aboard or player.log_pose_up or not Net.waypoints.is_empty()) and not _menu_open and not _in_dialogue
+	# (1.26: always up, on foot too: crewmates, the objective and the village are on it)
+	_compass.visible = not _menu_open and not _in_dialogue and not Cutscene.active
 	# (below the boss bar while it's up)
 	_compass.offset_top = 34.0 if _boss_box.visible else 4.0
 	_compass.offset_bottom = _compass.offset_top + COMPASS.H
