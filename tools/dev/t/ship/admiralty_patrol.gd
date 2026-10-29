@@ -51,7 +51,7 @@ func _process(_d: float) -> bool:
 			check("the crew notorious: she comes about for them (%s)" % es.S.keys()[es.state], es.state != es.S.PATROL)
 			var b0: int = p.bounty
 			es._start_sink()
-			check("sunk: the captain's bounty up an Admiralty ship's (%d)" % (p.bounty - b0), p.bounty - b0 == 5000)
+			check("sunk: the captain's bounty up an Admiralty ship's (%d)" % (p.bounty - b0), p.bounty - b0 == 1000)
 			return TK.done(fails)
 	step += 1
 	return false

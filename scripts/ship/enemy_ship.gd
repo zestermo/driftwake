@@ -41,7 +41,7 @@ const KINDS := {
 		"boards": true, "rams": true, "double": true, "yields": true, "chain": true,
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
 	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
-		"boards": false, "rams": true, "double": false, "yields": false, "chain": true,
+		"boards": false, "rams": true, "double": false, "yields": false, "chain": true, "chaser": true,
 		"look": {"hull_tex": "planks_grey", "hull": Color(0.95, 0.97, 1.0), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 	# a pirate hunter: light and quick (quicker still before the wind: "downwind"), chain shot to bring you to her
 	"hunter": {"speed": 13.0, "hull": 190.0, "guns": [-4.2, 0.6], "crew": 5, "range": [30.0, 50.0], "scatter": 0.9,
@@ -49,7 +49,7 @@ const KINDS := {
 		"look": {"hull": Color(0.3, 0.32, 0.38), "deck": Color(0.7, 0.64, 0.56), "trim": Color(0.85, 0.68, 0.22), "sail": Color(0.42, 0.12, 0.1), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
 	# the Admiralty's heavy ship: slow, a double broadside, a crack gun crew
 	"frigate": {"speed": 11.0, "hull": 480.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [36.0, 60.0], "scatter": 0.6,
-		"boards": false, "rams": true, "double": true, "yields": false, "chain": true,
+		"boards": false, "rams": true, "double": true, "yields": false, "chain": true, "chaser": true,
 		"look": {"hull_tex": "planks_grey", "hull": Color(0.8, 0.83, 0.88), "deck": Color(0.78, 0.8, 0.85), "trim": Color(0.3, 0.34, 0.42), "sail": Color(0.85, 0.86, 0.9), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 }
 ## The Admiralty's kinds (group "admiralty", grey crews, an Admiralty ship's bounty).
@@ -91,8 +91,22 @@ const PARTY_AGAIN := 8.0
 const TRACK_LOSE := 2.2
 ## Chain shot is aimed this high (world): through the crew's mainsail.
 const CHAIN_AIM_Y := 10.5
-## No more than this many ships fight the crew at once (the rest keep patrolling).
+## No more than this many pirate ships fight the crew at once (the rest keep patrolling; the Admiralty's don't count).
 const MAX_ATTACKERS := 2
+## (pursuer, 1.26) For the first CHASE_SECS of a chase she can make the crew's own speed + CHASE_EDGE (every stitch of
+## canvas on): a crew under full sail is closed on slowly and one that slows is caught; after that, her own speed.
+const CHASE_SECS := 90.0
+const CHASE_EDGE := 1.0
+## Bow chasers (kinds with "chaser"): a gun in her bow, fired straight ahead on the way in (CHASER_WARN s of sparks
+## first) every CHASER_EVERY s; chain shot at a crew running with whole sails.
+const CHASER_EVERY := 4.5
+const CHASER_WARN := 0.6
+## A chaser keeps chasing (no turning broadside, which bleeds her speed) until she's this close, or the crew is
+## slower than CHASE_SLOW (m/s).
+const BROADSIDE_IN := 34.0
+const CHASE_SLOW := 6.0
+## The crew's ship counts as manned while a captain is this close to her (swimming, or fighting on a deck alongside).
+const CREW_NEAR := 70.0
 ## What a ball does to the crew's hull and to men near where it lands.
 const BALL_HULL := 14.0
 const BALL_SPLASH := 14.0
@@ -189,6 +203,13 @@ var _boats: int = 0
 ## Sent after the crew by the Admiralty (Admiralty.gd): no limit on attackers, no bounty gate, lost in fog and storm.
 var pursuer: bool = false
 var role: String = ""
+## Seconds into this chase (CHASE_SECS); 0 again once she's back on patrol.
+var _chase_t: float = 0.0
+## Her bow chaser (kinds with "chaser"), its cooldown, and the sparks before it fires (-1: not warming).
+var _chaser: ShipCannon
+var _chaser_cd: float = 2.0
+var _chaser_warn: float = -1.0
+var _chaser_chain: bool = false
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -242,7 +263,10 @@ func _max_speed() -> float:
 		var wd: Vector2 = wx.wind_dir()
 		var a := rad_to_deg(absf(Vector2(-sin(_heading), -cos(_heading)).angle_to(wd)))
 		k += dw * (1.0 - smoothstep(45.0, 100.0, a)) * lerpf(0.5, 1.0, clampf(float(wx.get("wind")), 0.0, 1.0))
-	return float(spec["speed"]) * k
+	var own := float(spec["speed"]) * k
+	if pursuer and _chase_t < CHASE_SECS and _target and is_instance_valid(_target) and state in [S.TRACK, S.HUNT, S.BROADSIDE, S.RAM]:
+		return maxf(own, _speed_of(_target) + CHASE_EDGE)
+	return own
 
 
 func _ready() -> void:
@@ -285,6 +309,19 @@ func _ready() -> void:
 			c.rotation.y = -sgn * PI * 0.5
 			model.add_child(c)
 			cannons.append(c)
+	if spec.get("chaser", false):
+		# (on the centreline, so _side_guns never counts it in a broadside)
+		_chaser = ShipCannon.new()
+		_chaser.name = "Chaser"
+		_chaser.ship = self
+		_chaser.team = "enemy"
+		_chaser.mannable = false
+		_chaser.reload_time = CHASER_EVERY - 0.5
+		_chaser.hull_damage = BALL_HULL * Levels.hull_k(level)
+		_chaser.splash_damage = BALL_SPLASH * Levels.dmg_k(level)
+		_chaser.position = Vector3(0.0, HullBuilder.DECK_Y, HullBuilder.BOW_Z + 1.6)
+		model.add_child(_chaser)
+		cannons.append(_chaser)
 	_build_crew(model)
 	_jolly = model.get_node_or_null("Jolly")
 	# rope ladders down both sides: climb aboard from the water
@@ -344,9 +381,10 @@ func sleep_ok() -> bool:
 	return state in [S.PATROL, S.BLOCK] and not _anyone_aboard()
 
 
-## After the crew's ship (closing, fighting, lashed to her): not patrolling, struck, sunk or fleeing.
+## After the crew's ship (closing, fighting, lashed to her, or with captains fighting on her own deck): not
+## patrolling, struck, sunk or fleeing.
 func pursuing() -> bool:
-	return state in [S.TRACK, S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]
+	return state in [S.TRACK, S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM, S.DECK]
 
 
 ## (Admiralty) Sent after the crew: a "ring" closing in, a "patrol" on her wake, a "block" holding station at an
@@ -436,6 +474,9 @@ func _physics_process(delta: float) -> void:
 		return
 	st_t += delta
 	_volley_cd -= delta
+	_chaser_cd -= delta
+	if state in [S.TRACK, S.HUNT, S.BROADSIDE, S.RAM]:
+		_chase_t += delta
 	_bark_t -= delta
 	if _bark_t <= 0.0:
 		_bark.visible = false
@@ -500,9 +541,10 @@ func _physics_process(delta: float) -> void:
 				var lead := tactic_at - _pos
 				want_heading = atan2(-lead.x, -lead.z)
 				want_speed = _max_speed()
-				# (a beam coming to bear on the way in is a chance not to waste)
+				# (a beam coming to bear on the way in is a chance not to waste; a chaser's bow gun fires dead ahead)
 				_try_volley(tgt, to_t, dist)
-				if dist < far_r + 15.0:
+				_try_chaser(tgt, to_t, dist)
+				if dist < far_r + 15.0 and not _keeps_chasing(tgt, dist):
 					_set_state(S.BROADSIDE)
 					_orbit = 1.0 if _right().dot(to_t) > 0.0 else -1.0
 			else:
@@ -518,7 +560,7 @@ func _physics_process(delta: float) -> void:
 				want_heading = atan2(-d.x, -d.z)
 				# (keep pace with a ship under way, not just circle a sitting one)
 				want_speed = clampf(_speed_of(tgt) + 1.5, _max_speed() * 0.75, _max_speed())
-				if dist > far_r + 30.0:
+				if dist > far_r + 30.0 or (_chaser and dist > BROADSIDE_IN + 20.0 and _keeps_chasing(tgt, dist)):
 					_set_state(S.HUNT)
 				_try_volley(tgt, to_t, dist)
 				_ram_cd -= delta
@@ -646,6 +688,7 @@ func _physics_process(delta: float) -> void:
 			_sink_update(delta)
 			return
 	_warn_update(tgt, to_t, dist)
+	_chaser_update(tgt, dist)
 	_sail(delta, want_heading, want_speed)
 
 
@@ -655,6 +698,8 @@ func _set_state(s: S) -> void:
 	_hook_t = -1.0
 	if s in [S.BOARD, S.PATROL]:
 		_fight_t = 0.0
+	if s in [S.PATROL, S.BLOCK]:
+		_chase_t = 0.0
 
 
 ## Fleet tactics (docs/v1_23_plan.md, sea pursuit), closing in: with others on the crew each takes a part by its
@@ -712,25 +757,32 @@ func _land_near(p: Vector3) -> Vector3:
 	return best
 
 
-## How many other ships are fighting the crew right now.
+## How many other pirate ships are fighting the crew right now (the Admiralty's pursuers don't count).
 func _attackers() -> int:
 	var n := 0
 	for s in get_tree().get_nodes_in_group("enemy_ships"):
-		if s != self and (s as EnemyShip).state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]:
+		if s != self and not (s as EnemyShip).pursuer and (s as EnemyShip).state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]:
 			n += 1
 	return n
 
 
-## The crew's ship, if a captain is aboard (an empty ship isn't worth a shot).
+## The crew's ship, if a captain is aboard or close by (swimming, or fighting on a deck alongside: the fight goes on);
+## an empty ship isn't worth a shot.
 func _crew_ship() -> Node3D:
 	var ship := get_tree().get_first_node_in_group("ship") as Ship
 	if ship == null:
 		return null
 	for p in Net.all_players():
-		if ship.aboard((p as Node3D).global_position):
+		var at := (p as Node3D).global_position
+		if ship.aboard(at) or at.distance_to(ship.global_position) < CREW_NEAR:
 			_target = ship
 			return ship
 	return null
+
+
+## (a chaser) Still running her down rather than turning broadside: the crew's making way and she's not yet close.
+func _keeps_chasing(tgt: Node3D, dist: float) -> bool:
+	return _chaser != null and dist > BROADSIDE_IN and _speed_of(tgt) >= CHASE_SLOW
 
 
 func _huntable(t: Node3D) -> bool:
@@ -848,6 +900,42 @@ func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 		_volleys += 1
 
 
+## (a chaser, closing in) The bow gun: the quarry in its arc ahead and in range, it warms (sparks, the shout) and
+## fires CHASER_WARN s later (_chaser_update).
+func _try_chaser(tgt: Node3D, to_t: Vector3, dist: float) -> void:
+	if _chaser == null or _chaser_cd > 0.0 or _chaser_warn >= 0.0 or dist > FIRE_MAX or dist < CLOSE or not _chaser.loaded():
+		return
+	if _fwd().dot(to_t.normalized()) < cos(ShipCannon.YAW_LIMIT * 0.9):
+		return
+	_chaser_warn = 0.0
+	_chaser_chain = _wants_chain(tgt)
+	bark(["Chase gun! Take her canvas!", "Bow chaser, fire on her sails!"][_rng.randi() % 2] if _chaser_chain else "Chase gun, fire!", 1.2)
+	Net.fx("sparkle", [_chaser.muzzle(), 6, Color(1.0, 0.5, 0.2)])
+	Net.fx("sfx", ["blip_low", global_position, -4.0, 0.02, 0.8])
+
+
+func _chaser_update(tgt: Node3D, dist: float) -> void:
+	if _chaser_warn < 0.0:
+		return
+	_chaser_warn += get_physics_process_delta_time()
+	if _chaser_warn < CHASER_WARN:
+		return
+	_chaser_warn = -1.0
+	_chaser_cd = CHASER_EVERY
+	if tgt == null or state not in [S.HUNT, S.BROADSIDE, S.TRACK]:
+		return
+	var fly := dist / ShipCannon.MUZZLE_SPEED
+	var spread := (1.5 + dist * 0.06) * float(spec["scatter"]) * (0.5 if _chaser_chain else 1.0)
+	var spot := tgt.global_position + _vel_of(tgt) * fly
+	if _chaser_chain:
+		spot = tgt.global_transform * Vector3(0, 0, HullBuilder.MAST_Z) + _vel_of(tgt) * fly
+	spot += Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
+	spot.y = CHAIN_AIM_Y if _chaser_chain else 1.0
+	_chaser.aim_at(spot)
+	_chaser.chain = _chaser_chain
+	_chaser.fire(self)
+
+
 # --------------------------------------------------------------------------
 # Ramming, running, striking
 # --------------------------------------------------------------------------
@@ -899,7 +987,8 @@ func _wants_chain(tgt: Node3D) -> bool:
 	var s := tgt as Ship
 	if s.torn.size() >= Ship.MAX_TORN or s.sail_shown < 0.3:
 		return false
-	return _speed_of(tgt) > _max_speed() - 1.0 or _volleys == 0
+	# (against her own canvas, not the chase's borrowed speed)
+	return _speed_of(tgt) > float(spec["speed"]) - 1.0 or _volleys == 0
 
 
 ## Another boarding party: off cooldown, and two men to spare besides the helmsman.

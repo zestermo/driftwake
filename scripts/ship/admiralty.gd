@@ -31,8 +31,10 @@ const RING_R := 135.0
 ## The blockade: how far past the island's no-go edge its ships hold station, and their spread.
 const BLOCK_OUT := 30.0
 const BLOCK_SPREAD := 46.0
-## Patrols by heat tier: seconds at sea between them (0: none), and what sails.
-const PATROL_EVERY := [0.0, 300.0, 200.0, 140.0, 95.0]
+## Patrols by heat tier: seconds at sea between them (0: none; 1.26: none while only Wanted), and what sails.
+const PATROL_EVERY := [0.0, 0.0, 420.0, 300.0, 240.0]
+## After a hunt ends (the patrol beaten or the crew escaped), no patrol for this long (game s).
+const QUIET := 300.0
 const PATROL_KINDS := [[], ["marine"], ["marine", "marine"], ["frigate", "marine"], ["frigate", "marine", "marine"]]
 ## They appear this far off, along the wake.
 const SPAWN_R := 330.0
@@ -57,6 +59,8 @@ var _wake_t: float = 0.0
 var _patrol_t: float = 0.0
 var _n: int = 0
 var _deed_t: float = -1.0
+## No patrols before this (clock): QUIET after the last hunt ended.
+var _quiet_until: float = 0.0
 
 
 static func of(tree: SceneTree) -> Admiralty:
@@ -255,7 +259,7 @@ func _close_ring(ship: Ship) -> void:
 func _patrol_tick(ship: Ship) -> void:
 	var tier := _tier()
 	var every: float = PATROL_EVERY[tier]
-	if every <= 0.0 or _pursuers() > 0:
+	if every <= 0.0 or _pursuers() > 0 or clock < _quiet_until:
 		_patrol_t = 0.0 if every <= 0.0 else _patrol_t
 		return
 	_patrol_t += CHECK
@@ -303,7 +307,8 @@ func _pursuers() -> int:
 	return n
 
 
-## Hunted / escaped: the word on every screen when the first pursuer starts after the crew and when the last loses them.
+## Hunted / escaped: the word on every screen when the first pursuer starts after the crew and when the hunt ends:
+## "Escaped" with ships still afloat that lost her, else they're beaten. Either way the sea goes quiet for QUIET s.
 func _hunt_note() -> void:
 	var now := _pursuers() > 0
 	if now == hunted:
@@ -312,9 +317,18 @@ func _hunt_note() -> void:
 	if now:
 		hunt_started.emit()
 		_say(["The Admiralty!", "Warships on your wake. Lose them in fog, storm or distance.", false])
-	else:
+		return
+	_quiet_until = clock + QUIET
+	_patrol_t = 0.0
+	var afloat := false
+	for s in get_children():
+		if s is EnemyShip and not (s as EnemyShip).is_dead() and (s as EnemyShip).state not in [EnemyShip.S.BLOCK, EnemyShip.S.PRIZE]:
+			afloat = true
+	if afloat:
 		escaped.emit()
 		_say(["Escaped", "The Admiralty has lost your wake.", false])
+	else:
+		_say(["The patrol is beaten", "The Admiralty's ships are done. The sea is quiet, for now.", false])
 
 
 ## A banner on every screen.

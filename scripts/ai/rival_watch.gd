@@ -61,17 +61,7 @@ func decide(n: Dictionary, id: int) -> void:
 	_ashore = 0.0
 	if str(n.get("role", "")) == "capital":
 		return
-	# an infamous crew: a named Admiralty hunter waits at the harbour (before any crew or hunters)
 	pl["officer"] = -1
-	if Bounty.tier_of(EnemyShip.crew_bounty(get_tree())) >= OFFICER_FROM:
-		var orng := RandomNumberGenerator.new()
-		orng.seed = hash(["officer", int(n.get("seed", id))])
-		if orng.randf() < OFFICER_CHANCE:
-			var ids: Array = RivalCrews.ADMIRALTY.keys()
-			pl["officer"] = id
-			pl["officer_id"] = str(ids[int(pl.get("officers_met", 0)) % ids.size()])
-			pl["hunters"] = -1
-			return
 	var come := false
 	if not bool(pl["met_first"]):
 		come = int(n.get("layer", 0)) >= 1
@@ -84,7 +74,17 @@ func decide(n: Dictionary, id: int) -> void:
 		pl["pending"] = id
 		pl["crew"] = FIRST_CREW if not bool(pl["met_first"]) else pick_crew(int(n.get("seed", id)))
 		return
-	# no crew here: bounty hunters try their luck on a notorious captain (Bounty)
+	# no crew here (1.26: the crew comes first; an officer used to take every other island from it): an infamous
+	# crew finds a named Admiralty hunter waiting at the harbour
+	if Bounty.tier_of(EnemyShip.crew_bounty(get_tree())) >= OFFICER_FROM:
+		var orng := RandomNumberGenerator.new()
+		orng.seed = hash(["officer", int(n.get("seed", id))])
+		if orng.randf() < OFFICER_CHANCE:
+			var ids: Array = RivalCrews.ADMIRALTY.keys()
+			pl["officer"] = id
+			pl["officer_id"] = str(ids[int(pl.get("officers_met", 0)) % ids.size()])
+			return
+	# no crew or officer: bounty hunters try their luck on a notorious captain (Bounty)
 	var p = _gm().player
 	var tier := Bounty.heat_tier(p) if p and is_instance_valid(p) else 0
 	if tier >= HUNTERS_FROM:

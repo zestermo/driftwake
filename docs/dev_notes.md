@@ -7550,3 +7550,27 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   it as a waiting download and checks the base build promotes, loads and runs it (first run: 28 KB patch on a 46 MB
   pack). Project-setting changes (autoloads, input, shader globals) can't ride a patch: those make a new base.
 - The first release with this is a new base (full download once); 1.25 and earlier have no Patcher.
+
+## 1.26.1, piece 1: sea pacing and the Admiralty chase (2026-10-29, docs/v1_26_plan.md)
+- **Why:** Zach's 2-hour co-op playtest. Patrols every 95 s (each Admiralty ship sunk was 5,000 bounty: heat
+  snowballed to Dreaded), cutters that never caught an upgraded ship and turned broadside mid-chase (bleeding speed),
+  "Escaped" while the crew was boarding them, and almost no pirates (zones up to 320 m off the route, the Admiralty's
+  pursuers filling MAX_ATTACKERS, an officer taking every other island from the rival crew).
+- **Bounty/heat:** `Bounty.TABLE.admiralty_ship` 5000 -> 1000. `Admiralty.PATROL_EVERY` [0, 0, 420, 300, 240] (none
+  while only Wanted). `Admiralty.QUIET` 300 s with no patrol after any hunt ends (`_quiet_until`, set in `_hunt_note`);
+  the end banner says "Escaped" only with a ship still afloat that lost her, else "The patrol is beaten".
+- **The chase (EnemyShip):** a pursuer's `_max_speed` is max(her own, the crew's live `speed` + CHASE_EDGE 1.0) for
+  CHASE_SECS 90 of a chase (`_chase_t`, reset on PATROL/BLOCK; reads the synced `speed`, so it works whoever steers).
+  Kinds with `"chaser"` (marine, frigate) carry a bow gun (`_chaser`, a ShipCannon on the centreline so `_side_guns`
+  never counts it) fired dead ahead from HUNT (`_try_chaser`: 0.6 s of sparks, then `_chaser_update` fires; chain shot
+  per `_wants_chain`, which now compares with her own canvas, not the chase's borrowed speed). A chaser stays in HUNT
+  (`_keeps_chasing`) until within BROADSIDE_IN 34 m or the crew is under CHASE_SLOW 6 m/s, and goes back to HUNT from
+  BROADSIDE when the crew runs again.
+- **The hunt holds:** `EnemyShip._crew_ship` counts a captain within CREW_NEAR 70 m of the crew's ship (swimming,
+  boarding), and `pursuing()` includes DECK (captains fighting on her deck).
+- **Pirates:** `_attackers()` skips pursuers (MAX_ATTACKERS is pirates only). Sea legs: two zones with chance
+  0.55 + lvl*0.02 (was 0.3), placed within 180 m of the route (was 320; changes every leg's layout from its seed).
+  `RivalWatch.decide`: the rival crew rolls first; an officer only takes an island no crew came to.
+- **Tests:** new `t/ship/marine_chaser`, `t/ship/hunt_holds`; `t/ship/admiralty_hunt` (Wanted has no patrols; the
+  quiet after an escape), `t/ship/admiralty_patrol` (1,000), `t/combat/rival_placement` (crew before officer).
+  Expect `legtest`/`seatest` to see different leg layouts at prepush.

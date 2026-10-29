@@ -44,8 +44,8 @@ func _process(_d: float) -> bool:
 			adm = A.ensure(self)
 			adm.hunt_started.connect(func(): started += 1)
 			adm.escaped.connect(func(): escaped += 1)
-			check("no patrols for a crew with no bounty, more and heavier as it rises",
-				A.PATROL_EVERY[0] == 0.0 and A.PATROL_KINDS[1].size() < A.PATROL_KINDS[4].size() and A.PATROL_EVERY[4] < A.PATROL_EVERY[1] and "frigate" in A.PATROL_KINDS[3])
+			check("no patrols for a crew with no bounty or only Wanted, more and heavier as it rises",
+				A.PATROL_EVERY[0] == 0.0 and A.PATROL_EVERY[1] == 0.0 and A.PATROL_KINDS[1].size() < A.PATROL_KINDS[4].size() and A.PATROL_EVERY[4] < A.PATROL_EVERY[2] and "frigate" in A.PATROL_KINDS[3])
 			var w = root.get_node("Weather")
 			var f0: float = w.fog
 			var s0: float = w.storm
@@ -88,6 +88,7 @@ func _process(_d: float) -> bool:
 		4:
 			check("lost by distance: they turn away (%s)" % [pat.filter(func(s): return is_instance_valid(s)).map(func(s): return s.S.keys()[s.state])], pat.all(func(s): return not is_instance_valid(s) or not s.pursuing()))
 			check("...the crew hears they've escaped", not adm.hunted and escaped == 1)
+			check("...and the sea goes quiet: no patrol for a while (%.0f s)" % (adm._quiet_until - adm.clock), adm._quiet_until - adm.clock > A.QUIET - 10.0)
 			check("...and out of sight they're gone (%s; the captain %.0f m from her ship)" % [adm.specs.keys(), p.global_position.distance_to(ship.global_position)], adm.specs.is_empty())
 			return TK.done(fails)
 	step += 1

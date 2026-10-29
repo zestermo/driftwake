@@ -11,7 +11,7 @@ const TABLE := {
 	"boss": 6000,            # a camp's or fort's captain, a beast boss
 	"leviathan": 4000,       # a Leviathan driven off or slain
 	"ship": 1500,            # a pirate ship sunk or taken
-	"admiralty_ship": 5000,  # an Admiralty ship sunk or taken
+	"admiralty_ship": 1000,  # an Admiralty ship sunk or taken (1.26: was 5000, which snowballed into patrols every 95 s)
 	"officer": 4000,         # an Admiralty officer beaten
 	"hunter": 12000,         # a named Admiralty hunter beaten
 	"bounty_hunter": 1500,   # a civilian bounty hunter beaten

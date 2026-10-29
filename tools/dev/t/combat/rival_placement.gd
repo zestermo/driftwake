@@ -83,11 +83,19 @@ func _process(_d: float) -> bool:
 	# an infamous crew: named Admiralty hunters wait at harbours, the officers in turn
 	stage.player.bounty = 70000
 	var officers := []
+	var crews_kept := 0
+	var both := 0
 	for i in range(20):
 		w.decide(node(2, 700 + i), 100 + i)
 		if int(pl.get("officer", -1)) >= 0:
 			officers.append(str(pl["officer_id"]))
 			pl["officers_met"] = int(pl.get("officers_met", 0)) + 1
+		if int(pl["pending"]) >= 0:
+			crews_kept += 1
+			both += 1 if int(pl.get("officer", -1)) >= 0 else 0
+	# (1.26: the crew comes first; an officer only takes an island no crew came to)
+	check("...a rival crew still comes to an infamous crew's islands, never pushed aside by an officer (%d crews, %d both)" % [crews_kept, both],
+		crews_kept >= 1 and both == 0)
 	check("an infamous crew: a named hunter waits at some harbours (%d of 20: %s)" % [officers.size(), str(officers.slice(0, 3))],
 		officers.size() >= 5 and officers.size() <= 15 and officers.slice(0, 3).size() == {officers[0]: 1, officers[1]: 1, officers[2]: 1}.size())
 	stage.player.bounty = 0

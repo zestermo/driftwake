@@ -104,9 +104,10 @@ func plan(from: int, to: int) -> Dictionary:
 		"whirls": [], "storms": [], "king": Vector2.INF, "wrecks": [], "bottles": [], "islets": []}
 	var used: Array = []
 	var kinds := _kinds(lvl)
-	for i in range(2 if rng.randf() < 0.3 + lvl * 0.02 else 1):
+	# (1.26: two zones more often, and nearer the route: the playtest met almost no pirates)
+	for i in range(2 if rng.randf() < 0.55 + lvl * 0.02 else 1):
 		var r := rng.randf_range(110.0, 130.0)
-		var p := _spot(rng, c, a, b, used, r, 320.0)
+		var p := _spot(rng, c, a, b, used, r, 180.0)
 		if p != Vector2.INF:
 			lay["zones"].append([p, r, kinds[i]])
 	# hazards on the route or lying across it
