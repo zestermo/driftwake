@@ -7620,3 +7620,11 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Enemies by a downed captain: `_lost` already keeps grunts on a Downed target; the smaller throw keeps the ragdoll
   near where they circle.
 - Tests: new `t/combat/player_poise`; `t/combat/poise_knockdown` rewritten for 50 poise and the ragdoll threshold.
+
+## 1.26.1, piece 5: creature tells (2026-10-29)
+- `Creature._set_state` (every fauna kind) on entering S.TELL while hostile, and `Scuttlebug._set_state` on S.REAR:
+  `_tell_glow()` (the body tinted up to (2.4, 0.45, 0.35) over 0.22 s, back over 0.3; the hit flash's material copy)
+  and a "tell" Net.event so guests see it. The grunts keep their own wind-up poses and the red-glow peril; beasts and
+  bosses already telegraph with FX.telegraph. Repeated knockdowns from any enemy are capped on the captain's side
+  (the player poise's 4 s grace, piece 4).
+- Test: `t/combat/creature_tell` (wolves: 17 of 17 tells glowed).

@@ -315,6 +315,10 @@ func _build_physics() -> void:
 func _set_state(s: S) -> void:
 	if state == S.RAM and s != S.RAM:
 		hitbox.deactivate()
+	# (1.26) rearing for a ram reads the same as every creature's wind-up: a red glow, on every screen
+	if s == S.REAR and state != S.REAR:
+		_tell_glow()
+		Net.event(self, "tell", [])
 	state = s
 	st_t = 0.0
 	_fx_t = 0.0
@@ -652,6 +656,15 @@ func _flash_hit() -> void:
 	_set_tint(Color(2.2, 0.8, 0.7))
 	_flash = create_tween()
 	_flash.tween_method(_set_tint, Color(2.2, 0.8, 0.7), Color.WHITE, 0.18)
+
+
+func _tell_glow() -> void:
+	if _flash:
+		_flash.kill()
+	var hot := Color(2.4, 0.45, 0.35)
+	_flash = create_tween()
+	_flash.tween_method(_set_tint, Color.WHITE, hot, 0.22)
+	_flash.tween_method(_set_tint, hot, Color.WHITE, 0.3)
 
 
 # ==========================================================================
@@ -1000,6 +1013,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"flash":
 			_flash_hit()
+		"tell":
+			_tell_glow()
 		"knock":
 			hitbox.deactivate()
 			_rear = 0.0

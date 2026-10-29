@@ -324,6 +324,10 @@ func _night() -> float:
 func _set_state(s: S) -> void:
 	if hitbox.active:
 		hitbox.deactivate()
+	# (1.26) every creature's wind-up reads the same: a red glow building on it, on every screen
+	if s == S.TELL and state != S.TELL and hostile:
+		_tell_glow()
+		Net.event(self, "tell", [])
 	state = s
 	st_t = 0.0
 
@@ -690,6 +694,23 @@ func _flash_hit(armored: bool = false) -> void:
 			mi.material_override = null)
 
 
+## The wind-up's tell (1.26): the body glows red as the blow builds, then fades (the hit's own flash takes over).
+func _tell_glow() -> void:
+	if _hit_mat == null:
+		_hit_mat = _skin().duplicate() as ShaderMaterial
+	for mi in _parts:
+		mi.material_override = _hit_mat
+	if _flash:
+		_flash.kill()
+	var hot := Color(2.4, 0.45, 0.35)
+	_flash = create_tween()
+	_flash.tween_method(_set_tint, Color.WHITE, hot, 0.22)
+	_flash.tween_method(_set_tint, hot, Color.WHITE, 0.3)
+	_flash.tween_callback(func():
+		for mi in _parts:
+			mi.material_override = null)
+
+
 # ==========================================================================
 # Death and rewards
 # ==========================================================================
@@ -855,6 +876,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"flash":
 			_flash_hit(bool(args[0]) if args.size() > 0 else false)
+		"tell":
+			_tell_glow()
 		"knock":
 			hitbox.deactivate()
 			state = S.DOWN
