@@ -129,6 +129,19 @@ Today:
 | Enemy wind-ups and knockback | Every enemy attack gets a readable wind-up and hit tell (the red flash or a pose hold), and repeated knockbacks are capped: an enemy can't knock a captain down again while they're getting up or within a few seconds of the last one (with the players' new poise). Audit every enemy kind (creatures, beasts, grunts, ship crews) | Zach: several enemy kinds hit with no tell and chain knockbacks, making melee nearly impossible | - |
 | Admiralty outposts | Keep CHANCE 0.4, but fix placement: today `MarineOutpost.build` skips the outpost silently when no flat spot fits within 16-28 m of the plaza. Add a fallback spot so a rolled outpost is always built, placed where you'll pass it (by the path from the pier) | Zach never met one in two hours | - |
 
+### Round 6 (2026-10-29): black leg and the Edy reading on Brinehollow
+
+Today:
+- Bao (the teahouse cook) is the black-leg master; his pupil Tomo's test duel is an arena bout
+  (`arena_bout.gd` "black_leg") by the teahouse on the third band below the long stair.
+- Hana at the teahouse reads your Edy (her quiz from EdyTypes) whenever you visit; it isn't part of the story.
+- The playtest: the duel was buggy, and Tomo got stuck between buildings after being hit.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Black-leg duel | Tomo's duel moves up to the shrine terrace at the top of the long stair (open, flat flagstones), and the duel's bugs are fixed there. The shrine terrace and the buildings round it get fleshed out (more dressing, enterable rooms) | He got stuck between the teahouse-band buildings | - |
+| Edy reading | The Edy master is at the shrine (temple), not the teahouse. The reading is a **mandatory story step**: after the first fights against the pirates (the smugglers) and Vey's skill-tree step, Vey sends you up to the shrine to learn about Edy, and the master's quiz is the tutorial for it (your type, the Edy tree, what infusion is) | Edy should be learned as part of the opening | Folded into the Brinehollow step-list preview |
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.
