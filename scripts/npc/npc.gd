@@ -251,12 +251,16 @@ func _process(frame_delta: float) -> void:
 	name_tag.visible = dist_to_player < 7.0 and not _in_dialogue and Settings.get_value("gameplay", "name_tags")
 	_quest_mark(delta, dist_to_player)
 
-	var want_face_player := _in_dialogue or dist_to_player < 3.5
+	# (1.26: everyone used to turn bodily to a captain walking by, seated or not) close by they stop and look with their
+	# head; only a talk turns the body, and only someone standing
+	var near := _in_dialogue or dist_to_player < 3.5
+	var turn_body := _in_dialogue and not humanoid.seated and not humanoid.kneeling
 	var moving := false
+	head_look(dist_to_player < LOOK_R or _in_dialogue, delta)
 
-	if not want_face_player and waypoints.size() > 0:
+	if not near and waypoints.size() > 0:
 		moving = _wander(delta)
-	elif want_face_player and _player:
+	elif turn_body and _player:
 		var to := _player.global_position - global_position
 		_facing = lerp_angle(_facing, atan2(-to.x, -to.z), minf(6.0 * delta, 1.0))
 	elif waypoints.is_empty():
@@ -264,6 +268,17 @@ func _process(frame_delta: float) -> void:
 
 	humanoid.rotation.y = _facing
 	humanoid.ground_speed = lerpf(humanoid.ground_speed, walk_speed if moving else 0.0, minf(8.0 * delta, 1.0))
+
+
+## Close enough to glance at a captain (m).
+const LOOK_R := 6.0
+
+
+## The head eases toward the captain's face while `on` (the neck's range, Humanoid.look_target), back again after.
+func head_look(on: bool, delta: float) -> void:
+	if on and _player and is_instance_valid(_player):
+		humanoid.look_target = _player.global_position + Vector3(0, 1.55, 0)
+	humanoid.look_weight = move_toward(humanoid.look_weight, 1.0 if on and _player else 0.0, 3.0 * delta)
 
 
 func _wander(delta: float) -> bool:

@@ -7702,3 +7702,9 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   theme's folk (LifePools "first"); the innkeeper, trader and cook too (`_folk_name`). The six fixed elders (Headman
   Pakua...) and the four-name keeper lists, the same jungle names on every theme, are gone. More lines per role go
   with the NPC hooks (1.25.5).
+
+## 1.25.2, piece 5: NPCs don't spin to face you (2026-10-29)
+- `NPC._process` / `Villager._process`: a captain within 3.5 m stops a walker but no longer turns anyone's body; within
+  LOOK_R 6 m the head eases toward the captain's face (`NPC.head_look`: Humanoid.look_target/look_weight). Only a talk
+  turns the body, and only someone standing (not seated, kneeling, or at a stay whose act isn't stand/talk/walk);
+  kneeling workers keep kneeling while you pass.

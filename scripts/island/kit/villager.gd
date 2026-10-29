@@ -110,11 +110,16 @@ func _process(delta: float) -> void:
 		visible = show
 	if not show:
 		return
-	humanoid.kneeling = w[2] == "kneel" and not hold
+	# (1.26) only a talk turns the body, and only someone up and about (not sat, kneeling or at their work); close by
+	# they hold still and glance with the head (NPC.head_look)
+	var turn_body: bool = _in_dialogue and (not arrived or w[2] in ["stand", "talk", "walk"])
+	humanoid.kneeling = w[2] == "kneel" and not turn_body
 	var face: Vector2 = w[1]
-	if hold and _player:
+	if turn_body and _player:
 		var to := _player.global_position - global_position
 		face = Vector2(to.x, to.z)
+	if near:
+		head_look(to_player < LOOK_R or _in_dialogue, dt)
 	var yaw := atan2(-face.x, -face.y)
 	var speed := 0.0
 	if not snapped and not arrived:
