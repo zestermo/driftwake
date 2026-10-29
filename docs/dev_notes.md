@@ -7651,3 +7651,12 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   from the pier's side out (SPOTS 16), each strict then looser (`_flat_ok(strict)`: slope 2.2, pad 4.5, path 2).
   The build's rng draws are unchanged, so every other seeded roll holds. A rolled outpost with no spot warns.
 - Test: `t/island/outpost_spots` (3 of 3 rolled placed, all on the pier's way).
+
+## 1.26.1, piece 9: the brig in co-op (2026-10-29)
+- Guests saw no guards: `Net.everyone` runs the call here first, then sends it; the host's `_all_arrest` spawned the
+  guards inside that local call, so `_all_spawn_rival` reached the guests before `_all_arrest` built their brig. Now
+  `spawn_guards` is deferred.
+- Guests invisible in the brig: every captain beaten by the squad was ragdolled where they fell; `_all_arrest` now ends
+  every captain's ragdoll on every screen (puppets too) before the lock-up carries them 420 m up. Not reproduced
+  here (co-op): nettest at prepush covers the arrest path; Zach to check in co-op.
+- `t/combat/arrest` and rivalshot use `RivalEncounter.walk_in = false`.

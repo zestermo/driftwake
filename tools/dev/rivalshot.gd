@@ -15,6 +15,8 @@ var until := 0
 
 
 func _initialize() -> void:
+	# (films the meeting and fight, not the 1.26 walk in)
+	load("res://scripts/ai/rival_encounter.gd").walk_in = false
 	var a := OS.get_cmdline_user_args()
 	if a.size() > 0:
 		out = a[0]

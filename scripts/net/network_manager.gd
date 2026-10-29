@@ -995,11 +995,19 @@ func _all_rival_plunder(share: float, crew_name: String) -> void:
 ## in it; they climb out back to `back_to`. The host then sets the guards at their posts.
 func _all_arrest(back_to: Vector3, officer: String) -> void:
 	var b := AdmiraltyBrig.build(get_tree(), back_to, officer)
+	# (1.26: guests were invisible in here) every captain beaten by the squad was ragdolled where they fell: on this
+	# screen too, puppets included, their bodies come back to their rigs before they're carried 420 m up to the brig
+	for c in get_tree().get_nodes_in_group("players"):
+		if c is Player and (c as Player).body_model and (c as Player).body_model.ragdoll:
+			(c as Player).body_model.end_ragdoll()
+			(c as Player).visible = true
 	var p := _me()
 	if p:
 		b.lock_up(p)
 	if is_host():
-		b.spawn_guards(2)
+		# (deferred: everyone() runs this here before it sends the arrest out, so guards spawned now would reach the
+		# guests before the brig they stand in: they never saw them)
+		b.call_deferred("spawn_guards", 2)
 
 
 ## The brig's door picked open (true) for everyone, or (false) everyone thrown back in the cell.
