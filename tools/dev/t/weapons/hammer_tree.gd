@@ -3,7 +3,7 @@ extends SceneTree
 ## real (each skill a hammer Technique), its steps 30, one ultimate at 30, earth as its element, the style mapped
 ## to it; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["titans_fall", "skullcracker", "rolling_quake", "cyclone_crusher", "cannonball_swing", "anvil_counter"]
+const TECHS := ["titans_fall", "skullcracker", "rolling_quake", "cyclone_crusher", "cannonball_swing", "anvil_counter", "mountain_breaker"]
 ## (Anvil Counter answers a blow: t/weapons/anvil_counter)
 const LANDS := ["titans_fall", "skullcracker", "rolling_quake", "cyclone_crusher", "cannonball_swing"]
 var stage
@@ -61,7 +61,7 @@ func _process(_d: float) -> bool:
 			check("two ultimates (1.26), at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Wrecking Spin, Rising Crush, Hammerfall (%s)" % str(moves),
 				moves.size() == 3 and "wrecking_spin" in moves and "rising_crush" in moves and "hammerfall" in moves)
-			var techs_ok := skills.size() == 6
+			var techs_ok := skills.size() == TECHS.size()
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["hammer"] and d.get("state", "") == "Technique" and d.get("tree", "") == "hammer"

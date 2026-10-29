@@ -7860,3 +7860,38 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   each (240 m). The keepers, regulars and captives' bodies are built on the worker (IslandVillage.extra_looks, plan_for).
 - Tests: `t/island/village_places`, `t/island/pirate_held`. Renders: villageshot (VSHOT_PLACE=<place>, VSHOT_HELD=1;
   interiors of every shop and the place, the held square and its roof decks).
+
+## 1.26 weapons: more from every weapon, all 17 kinds (2026-10-29)
+
+Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets, from `WeaponPlus.TREES`
+(scripts/progression/weapon_plus.gd, built by `SkillTrees._plus` after the trees):
+- **Two ultimates**: the middle branch splits after `<p>_elem2`: today's ultimate (moved up-left, behind a lead-up
+  "mech" node with `ult_charge_pct`, *not* gated, so old saves and t/progression/gate_and_buy are as they were) and the
+  new one up-right, gated by node `"needs"` (Progression.buy_why: owns any of them) on its lead-up, itself on elem2.
+  R holds one; `PowerComponent.equip_why` refuses swapping one ultimate for another while `Player.in_fight()`.
+- **Second crew technique**: variant `<p>_crew` (Guard branch, 12) whose second version sets `crew2_<tree>`;
+  `CrewTechniques.id()` then returns `WeaponPlus.crew_of(tree)`. Its entry is in `WeaponPlus.CREW` (`CrewTechniques.def`
+  reads ALL then CREW). Kinds in `CrewTechniqueState.DUETS`: **setup** (lead pins, cues "finish", the partner blinks
+  beside the foe for the finisher), **combined** (lead cues "duet", both strike from opposite sides, the lead's burst on
+  everyone round it), **support** (`CrewTechniques.SUPPORT`: energy, reload, the "crew_rally" buff +20% in
+  Player.damage_multiplier, a "shielded" mark turning blows in `blow()`, vanish + "slipped"). "stay" duets (long gun,
+  cannon) fire from where they stand. A cue that beats the partner's state is kept in `crew_tech.cue`.
+- **Alternates**: variants `<p>_alt_air/sprint/heavy` with `"free"` (Progression._free: they come at 8/14/20) and
+  `"anywhere"` (set_version off a rest spot); the second version sets `alt_<slot>_<tree>`. `PlayerState.alt_move(slot)`
+  picks the move; combat_input / air_attack_input put it in `PlayerState.pending_tech` and enter Technique with no id.
+- **Air buttons split** (Zach's addition): air left-click is the aerial (or its alternate), air right-click the plain
+  plunge (`PlayerState.plain_plunge`) until node `<p>_airheavy` (move, mastery 10, `airheavy_<tree>`), then the
+  aerial heavy (`PlayerState.air_heavy()`); dual pistols keep Gun Rain on either.
+- **Bridges**: four "mech" nodes per tree (stat inside 3 pts at 6, the bigger one further out 4 pts at 15), `"bridge"`,
+  `"needs"` = the two nodes they sit between (either side). Always-on (not slotted passives) so master_all's slots stay.
+- **The moves**: `PlusMoves.MOVES` (data: name, desc, slot, kind, timeline) played by `PlusArts` (first in
+  TechniqueState._arts; the op list is its header). Hits go through Player.melee_hit with the move's kind ("" sprint and
+  air, "heavy", "skill" for ultimates) so Edy infusion and the tree's bonuses hold; `PlusArts.shape` sets the flags
+  (launch / launch2 for juggles, spike, pin, unblock...). Effects through Net.fx (reached via the tree: static funcs),
+  poses mirror as any action. Every weapon has a launcher (an alternate). Second ultimates reuse the first's icon
+  (Skills "icon") until they have their own.
+- Per frame/tick: nothing new outside a move in progress (the Technique state's own update while it plays).
+- Tests: t/weapons plus_tree, plus_<weapon> x17 (on t/_plus_moves.gd), plus_launch, plus_air_buttons; t/crew/plus_duets.
+  The per-tree tests now expect two ultimates. Expected to need a look at the release check: techtest, airtest
+  (right-click in the air is now the plunge), progtest, stamtest, balancetest, nettest (crew duets over the wire).
+  Renders: `abilityshot plus:<move> <style>`, the second ultimates by skill id, `crew:<id>`.

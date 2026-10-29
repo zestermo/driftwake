@@ -54,7 +54,7 @@ static func update(s, delta: float) -> bool:
 	if not MOVES.has(s.id):
 		return false
 	var m: Dictionary = MOVES[s.id]
-	var air: bool = m["slot"] == "air" and not s.plus.has("landed")
+	var air: bool = (m["slot"] == "air" or m.get("air", false)) and not s.plus.has("landed")
 	if air:
 		_air(s, m, delta)
 	else:
@@ -67,7 +67,7 @@ static func update(s, delta: float) -> bool:
 	for i in ticks.size():
 		var tk: Array = ticks[i]
 		var n := int(s.plus.get("tk%d" % i, 0))
-		if (air or m["slot"] != "air") and s.t >= float(tk[0]) + n * float(tk[2]) and s.t < float(tk[1]):
+		if (air or not (m["slot"] == "air" or m.get("air", false))) and s.t >= float(tk[0]) + n * float(tk[2]) and s.t < float(tk[1]):
 			s.plus["tk%d" % i] = n + 1
 			_op(s, tk.slice(3))
 	var end: Array = m.get("end", [])
@@ -209,6 +209,30 @@ static func _op(s, a: Array) -> void:
 			s.plus["at"] = Vector3(at.x, p.global_position.y, at.z) if at.y > p.global_position.y + 0.5 else at
 		"here":
 			s.plus["at"] = p.global_position
+		"blast":
+			var c := _ground(s, p.global_position + s._dir * float(a[1]))
+			_net(s).fx("impact", [c + Vector3(0, 0.6, 0), s._col(FXS.CORE)])
+			_net(s).fx("ring", [c + Vector3(0, 0.15, 0), Vector3.UP, float(a[2]), s._col(), 0.35, 0.18])
+			_net(s).fx("heavy_dust", [c, 10, 0.8])
+			_net(s).fx("puff_ring", [c + Vector3(0, 0.2, 0), "dust_low", 10, float(a[2]) * 0.3, 1.8, 1.0, Color(0.32, 0.28, 0.26, 0.9), float(a[2]) * 2.0])
+			_net(s).fx("embers", [c + Vector3(0, 0.5, 0), Vector3.UP, 16, s._col(FXS.ACCENT), 7.0])
+			_net(s).fx("streak", [c, c + Vector3(0, float(a[2]) * 1.2, 0), s._col(FXS.CORE), float(a[2]) * 0.25, 0.25])
+			_net(s).fx("debris", [c + Vector3(0, 0.1, 0), Vector3.UP, 8, Color(0.36, 0.31, 0.26), 6.0])
+			_net(s).fx("flash_light", [c + Vector3(0, 1.0, 0), s._col(FXS.ACCENT), 3.0, float(a[2]) * 2.0, 0.2])
+			_net(s).fx("sfx", ["explosion", c, -2.0, 0.08, 1.0])
+			s._spray(c + Vector3(0, 0.5, 0), Vector3.UP, 10, 5.0)
+			_hit(s, s._pc.enemies_in(c + Vector3(0, 0.9, 0), float(a[2])), float(a[3]), float(a[4]), str(a[5]))
+			p.cam_shake(0.18)
+		"rain":
+			for e in s._pc.enemies_in(p.global_position + Vector3(0, 0.9, 0), float(a[1])):
+				var at: Vector3 = (e as Node3D).global_position
+				_net(s).fx("streak", [at + Vector3(randf_range(-1.5, 1.5), 7, randf_range(-1.5, 1.5)), at + Vector3(0, 1.0, 0), s._col(), 0.14, 0.25])
+				_hit(s, [e], float(a[2]), 1.0, str(a[3]))
+			var r := float(a[1]) * sqrt(randf())
+			var ang := randf() * TAU
+			var spot := _ground(s, p.global_position + Vector3(cos(ang), 0, sin(ang)) * r)
+			_net(s).fx("sparkle", [spot + Vector3(0, 1.5, 0), 10, s._col(FXS.CORE)])
+			_net(s).fx("ring", [spot + Vector3(0, 0.15, 0), Vector3.UP, 1.2, s._col(FXS.ACCENT), 0.25, 0.14])
 		"zone":
 			var c: Vector3 = s.plus["at"]
 			_net(s).fx("bolt", [c + Vector3(0, 16, 0), c, s._col(FXS.CORE), 0.16, 0.25, randi() % 10000])
@@ -413,12 +437,28 @@ static func _line(s, length: float, width: float) -> Array:
 	return out
 
 
+## The ground under `at` (a ray down from above it; `at` itself if nothing's there).
+static func _ground(s, at: Vector3) -> Vector3:
+	var p: Player = s.player
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 30.0, 1)
+	q.exclude = [p.get_rid()]
+	var h := p.get_world_3d().direct_space_state.intersect_ray(q)
+	return h["position"] if not h.is_empty() else at
+
+
+## The trees whose moves come off a gun's muzzle, and the bare-handed ones.
+const GUN_TREES := ["pistol", "long_gun", "cannon", "slingshot"]
+
+
 static func _tip(s) -> Vector3:
+	var p: Player = s.player
 	match s._tree():
 		"black_leg":
-			return BlackLegArts.foot(s.player, true)
-		"pistol":
-			return s._muzzle()
+			return BlackLegArts.foot(p, true)
+		"unarmed":
+			return p.body_model.hand_r.global_position
+	if s._tree() in GUN_TREES:
+		return s._muzzle()
 	return s._blade_tip()
 
 
@@ -427,10 +467,11 @@ static func _trail(s, secs: float) -> void:
 	match s._tree():
 		"black_leg":
 			_net(s).fx("kick_swoosh", [p.body_model, secs, s._col()])
-		"pistol":
-			pass
+		"unarmed":
+			_net(s).fx("punch_wind", [s._chest() + s._dir * 0.4, s._dir, 1.6, s._col(), true])
 		_:
-			_net(s).fx("blade_swoosh", [p.body_model, secs, s._col()])
+			if not s._tree() in GUN_TREES:
+				_net(s).fx("blade_swoosh", [p.body_model, secs, s._col()])
 
 
 ## Down into the ground: dust, stones, cracks out, a ring, a rumble.

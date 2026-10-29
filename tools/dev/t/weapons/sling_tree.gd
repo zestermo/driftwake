@@ -4,7 +4,7 @@ extends SceneTree
 ## element, the style mapped to it, its nodes bought with its own mastery points; and with it mastered each trick and
 ## the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["bag_of_tricks", "fire_pellet", "smoke_pellet", "blast_pellet", "sticky_pellet"]
+const TECHS := ["bag_of_tricks", "fire_pellet", "smoke_pellet", "blast_pellet", "sticky_pellet", "fireworks_finale"]
 const MOVES := ["skid_shot", "hail_shot"]
 var stage
 var p

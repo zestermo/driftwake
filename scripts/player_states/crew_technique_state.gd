@@ -92,6 +92,17 @@ const DUETS := {
 	"ground_pin": {"lead": ["pole_legsweep", 0.6, 0.22], "mate": ["pole_vstrike", 0.6, 0.3], "dmg": 16.0, "burst": 52.0, "flags": "pin down", "fin": "down unblock"},
 	"lift_cleave": {"lead": ["gs_updraft", 0.6, 0.24], "mate": ["gs_guardbreak", 0.6, 0.3], "dmg": 18.0, "burst": 52.0, "flags": "launch2 pin", "fin": "spike down unblock"},
 	"powder_share": {"lead": ["smoke_throw", 0.5, 0.2]},
+	"blade_wall": {"lead": ["cross_guard", 0.6, 0.2]},
+	"smoke_mirrors": {"lead": ["smoke_throw", 0.5, 0.2]},
+	"pouch_pass": {"lead": ["smoke_throw", 0.5, 0.2]},
+	"chopping_block": {"lead": ["axe_kick", 0.5, 0.18], "mate": ["axe_split", 0.6, 0.3], "dmg": 16.0, "burst": 56.0, "flags": "pin down", "fin": "down unblock"},
+	"twin_viper": {"lead": ["viper_flurry", 0.6, 0.3], "mate": ["viper_flurry", 0.6, 0.3], "dmg": 20.0, "burst": 22.0, "flags": "down bleed unblock"},
+	"hammer_anvil": {"lead": ["ham_smash", 0.6, 0.3], "mate": ["ham_upper", 0.6, 0.3], "dmg": 26.0, "burst": 32.0, "flags": "down unblock"},
+	"hook_hew": {"lead": ["dx_gallows", 0.6, 0.25], "mate": ["dx_heavy", 0.6, 0.3], "dmg": 16.0, "burst": 54.0, "flags": "pin down", "fin": "down unblock"},
+	"steady_bind": {"lead": ["sp_cut", 0.5, 0.18], "mate": ["parley_shot", 0.6, 0.3], "dmg": 16.0, "burst": 50.0, "flags": "pin", "fin": "down unblock"},
+	"pin_shoot": {"lead": ["lg_kneel_fire", 0.6, 0.25], "mate": ["lg_fire", 0.5, 0.2], "dmg": 18.0, "burst": 52.0, "flags": "pin ranged", "fin": "down unblock ranged", "stay": true},
+	"double_barrel": {"lead": ["cn_fire", 0.6, 0.25], "mate": ["cn_fire", 0.6, 0.25], "dmg": 24.0, "burst": 36.0, "flags": "down unblock", "stay": true},
+	"hold_down": {"lead": ["fs_catch", 0.5, 0.2], "mate": ["fs_hay", 0.6, 0.3], "dmg": 10.0, "burst": 56.0, "flags": "pin", "fin": "down unblock"},
 }
 const DUET_REACH := 8.0
 const DUET_BURST_R := 2.8
@@ -674,7 +685,7 @@ func _duet_enter() -> void:
 		dur = 0.0
 		return
 	_dir = _flat_to(_target)
-	if _target.global_position.distance_to(player.global_position) > 2.4:
+	if _target.global_position.distance_to(player.global_position) > 2.4 and not d.get("stay", false):
 		_duet_place(-_dir)
 	face_direction(_dir, 1.0)
 	_phase = "strike"
@@ -704,7 +715,11 @@ func _duet_cued(e: Node3D, finish: bool) -> void:
 	away = away.normalized() if away.length() > 0.1 else -_flat_to(e)
 	if finish:
 		away = away.cross(Vector3.UP)
-	_duet_place(away)
+	if DUETS[id].get("stay", false):
+		_dir = _flat_to(e)
+		face_direction(_dir, 1.0)
+	else:
+		_duet_place(away)
 	var m: Array = DUETS[id]["mate"]
 	player.body_model.play(str(m[0]), float(m[1]))
 	t = 0.0
@@ -751,7 +766,8 @@ func _duet_update(delta: float) -> void:
 	var m: Array = d["mate"]
 	var two := at + SOLO_GAP
 	if _once("second", two):
-		_duet_place(_flat_to(_target).cross(Vector3.UP) if setup else _flat_to(_target))
+		if not d.get("stay", false):
+			_duet_place(_flat_to(_target).cross(Vector3.UP) if setup else _flat_to(_target))
 		player.body_model.play(str(m[0]), float(m[1]))
 	if _once("blow2", two + float(m[2])):
 		if setup:
@@ -770,6 +786,11 @@ func _duet_blow(base: float, flags: String) -> void:
 	PlusArts._impact(self, _target, flags)
 	PlusArts._trail(self, 0.22)
 	var at := _target.global_position + Vector3(0, 1.1, 0)
+	if DUETS[id].get("stay", false):
+		var from := _muzzle()
+		Net.fx("tracer", [from, at, _col(FX.CORE)])
+		Net.fx("muzzle_sparks", [from, (at - from).normalized(), 10])
+		Net.fx("sfx", ["cannon" if _tree() == "cannon" else "gunshot", from, -2.0, 0.06, 1.0])
 	Net.fx("ring", [at, _dir, 1.1, _col(), 0.22, 0.16])
 	Net.fx("sfx", ["whoosh_big", at, -3.0, 0.05, 1.1])
 	_spray(at, _dir + Vector3.UP * 0.5, 10, 4.0)

@@ -4,8 +4,11 @@ extends SceneTree
 ## side (a setup's finisher and a combined attack's far-side blow are the crewmate's, struck on the same foe; Powder
 ## Share's energy and buff land on the crewmate).
 const TK := preload("res://tools/dev/test_kit.gd")
-## [tree, weapon item ("" black leg)]
-const KINDS := [["sword", "cutlass"], ["katana", "katana"], ["pistol", "pistol"], ["polearm", "spear"], ["greatsword", "greatsword"], ["black_leg", ""]]
+## [tree, weapon item ("" bare hands), off hand ("" none, "same" a copy, "kicks" black leg, or an item)]
+const KINDS := [["sword", "cutlass", ""], ["katana", "katana", ""], ["pistol", "pistol", ""], ["polearm", "spear", ""],
+	["greatsword", "greatsword", ""], ["dual", "cutlass", "same"], ["axe", "boarding_axe", ""], ["dagger", "dagger", ""],
+	["dual_dagger", "dagger", "same"], ["hammer", "warhammer", ""], ["dual_axe", "boarding_axe", "same"], ["corsair", "cutlass", "pistol"],
+	["long_gun", "musket", ""], ["cannon", "hand_cannon", ""], ["slingshot", "slingshot", ""], ["unarmed", "", ""], ["black_leg", "", "kicks"]]
 var stage
 var p
 var mate
@@ -30,6 +33,21 @@ func check(what: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + what)
 	if not cond:
 		fails += 1
+
+
+## A support technique's gift landed on captain `c` (CrewTechniques.SUPPORT).
+func gifted(c) -> bool:
+	var s: Dictionary = load("res://scripts/combat/crew_techniques.gd").SUPPORT[tid]
+	var ok := true
+	if s.get("rally", false):
+		ok = ok and c.power.buff("crew_rally")
+	if s.has("shield"):
+		ok = ok and c.crew_tech.marked("shielded")
+	if s.has("vanish"):
+		ok = ok and c.power.buff("slipped")
+	if c == mate and s.has("energy"):
+		ok = ok and c.power.energy > e0
+	return ok
 
 
 func home() -> void:
@@ -62,11 +80,19 @@ func _process(_d: float) -> bool:
 			if i >= KINDS.size():
 				return TK.done(fails)
 			var k: Array = KINDS[i]
-			if k[1] == "":
-				p.unequip_weapon()
-				p.learn_black_leg()
-			else:
-				p.equip_weapon(load("res://scripts/loot/item_db.gd").get_item(k[1]), true)
+			var db = load("res://scripts/loot/item_db.gd")
+			p.unequip_weapon()
+			if k[1] != "":
+				p.equip_weapon(db.get_item(k[1]), true)
+			match str(k[2]):
+				"same":
+					p.set_offhand(p.equipped_weapon.duplicate())
+				"kicks":
+					p.learn_black_leg()
+				"":
+					pass
+				_:
+					p.set_offhand(db.get_item(k[2]))
 			p.progression.master_all()
 			var pre: String = load("res://scripts/progression/skill_trees.gd").ELEMENTS[k[0]][0]
 			p.progression.set_version(pre + "_crew", 1)
@@ -80,13 +106,14 @@ func _process(_d: float) -> bool:
 			mate.global_position = p.global_position + Vector3(40, 0.1, 0)
 			mate.reset_physics_interpolation()
 			p.crew_tech.cooldown = 0.0
-			p.power.buffs.erase("powder_share")
+			p.power.buffs.clear()
+			p.crew_tech.marks.clear()
 			by_me = 0.0
 			check("%s alone: its solo version (%s)" % [tid, p.crew_tech.trigger()], p.current_state_name() == "CrewTechnique")
 			until = TK.wait_secs(1.6)
 		3:
 			if WP.CREW[tid]["kind"] == "support":
-				check("%s alone: reloaded and hitting harder" % tid, p.power.buff("powder_share"))
+				check("%s alone: its gift on you" % tid, gifted(p))
 			else:
 				check("%s alone: it lands on the foe (%.0f)" % [tid, by_me], by_me > 0.0)
 			until = TK.wait_secs(0.4)
@@ -97,7 +124,8 @@ func _process(_d: float) -> bool:
 			mate.global_position = p.global_position + Vector3(2.0, 0.1, 0)
 			mate.reset_physics_interpolation()
 			mate.velocity = Vector3.ZERO
-			mate.power.buffs.erase("powder_share")
+			mate.power.buffs.clear()
+			mate.crew_tech.marks.clear()
 			mate.power.energy = 0.0
 			e0 = 0.0
 			p.crew_tech.cooldown = 0.0
@@ -115,7 +143,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.6)
 		7:
 			if WP.CREW[tid]["kind"] == "support":
-				check("%s together: the crewmate's energy and buff (%.0f -> %.0f)" % [tid, e0, mate.power.energy], mate.power.buff("powder_share") and mate.power.energy > e0)
+				check("%s together: its gift on the crewmate (energy %.0f -> %.0f)" % [tid, e0, mate.power.energy], gifted(mate))
 			else:
 				check("%s together: your blow and the crewmate's land on the same foe (%.0f / %.0f)" % [tid, by_me, by_mate], by_me > 0.0 and by_mate > 0.0)
 			i += 1

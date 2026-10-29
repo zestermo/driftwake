@@ -3,7 +3,7 @@ extends SceneTree
 ## real (each skill a twin-axe Technique), its steps 30, one ultimate at 30, frost as its element, the style mapped
 ## to it; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["fimbulwinter", "gallows_hook", "hewing_frenzy", "axestorm", "ravens_return", "raiders_haul"]
+const TECHS := ["fimbulwinter", "gallows_hook", "hewing_frenzy", "axestorm", "ravens_return", "raiders_haul", "avalanche"]
 var stage
 var p
 var taken := 0.0
@@ -59,7 +59,7 @@ func _process(_d: float) -> bool:
 			check("two ultimates (1.26), at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Reaping Whirl, Raider's Leap, Buzzsaw (%s)" % str(moves),
 				moves.size() == 3 and "reaping_whirl" in moves and "raiders_leap" in moves and "buzzsaw" in moves)
-			var techs_ok := skills.size() == 6
+			var techs_ok := skills.size() == TECHS.size()
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["dual_axe"] and d.get("state", "") == "Technique" and d.get("tree", "") == "dual_axe"

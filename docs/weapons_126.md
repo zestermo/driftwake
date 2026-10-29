@@ -26,8 +26,9 @@ weapons"). Wave 1 (built first): cutlass, katana, black leg, pistol, polearm, gr
   move once bought, its alternate when switched on, the plunge before either); **right-click** is the plunge until the
   weapon's **aerial heavy** is bought (a move node at mastery 10), then the aerial heavy: a heavier, committal hit,
   once a jump. Dual pistols keep Gun Rain on either button until they have their aerial heavy.
-- **Bridges.** Four nodes per tree between its branches (left/middle and middle/right): a stat inside (3 points) and a
-  passive further out (slotted, 3 points). Buyable once you own a node it's linked to on either side.
+- **Bridges.** Four nodes per tree between its branches (left/middle and middle/right): a stat inside (mastery 6, 3 points)
+  and a bigger one further out (mastery 15, 4 points), both always on (not slotted, so they don't crowd the passive
+  slots). Buyable once you own a node it's linked to on either side.
 
 Milestones: 8 / 14 / 20 for the alternates (assumed; 8 is the first mid-tree technique, 20 the late passives).
 

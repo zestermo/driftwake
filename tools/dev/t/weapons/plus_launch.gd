@@ -1,10 +1,14 @@
 extends SceneTree
-## (1.26) Every wave-1 weapon can juggle: its launcher (an alternate) throws the grunt in front into the air (Juggle).
+## (1.26) Every weapon can juggle: its launcher (an alternate) throws the grunt in front into the air (Juggle).
 const TK := preload("res://tools/dev/test_kit.gd")
-## tree -> [weapon item ("" black leg), launcher move]
-const LAUNCHERS := [["sword", "cutlass", "boarding_hook"], ["katana", "katana", "wind_step"], ["pistol", "pistol", "barrel_lift"],
-	["polearm", "spear", "skyward_pike"], ["greatsword", "greatsword", "wind_shear"], ["black_leg", "", "flambe_lift"]]
-const GAP := 7.0
+## [tree, weapon item ("" bare hands), launcher move, off hand ("" none, "same" a copy, "kicks" black leg, an item)]
+const LAUNCHERS := [["sword", "cutlass", "boarding_hook", ""], ["katana", "katana", "wind_step", ""], ["pistol", "pistol", "barrel_lift", ""],
+	["polearm", "spear", "skyward_pike", ""], ["greatsword", "greatsword", "wind_shear", ""], ["dual", "cutlass", "rising_twins", "same"],
+	["axe", "boarding_axe", "uppercut_hew", ""], ["dagger", "dagger", "throat_flip", ""], ["dual_dagger", "dagger", "fang_lift", "same"],
+	["hammer", "warhammer", "upheaval", ""], ["dual_axe", "boarding_axe", "rising_hooks", "same"], ["corsair", "cutlass", "rising_shot", "pistol"],
+	["long_gun", "musket", "butt_lift", ""], ["cannon", "hand_cannon", "barrel_upswing", ""], ["slingshot", "slingshot", "kick_up", ""],
+	["unarmed", "", "dragon_uppercut", ""], ["black_leg", "", "flambe_lift", "kicks"]]
+const GAP := 5.0
 var stage
 var p
 var G
@@ -40,7 +44,6 @@ func _process(_d: float) -> bool:
 			stage.camera_rig.rotation.y = 0.0
 			p.hurtbox.monitorable = false
 			for g in stage.camp.grunts:
-				g.alert()
 				g.health.max_health = 999.0
 				g.health.current_health = 999.0
 			until = TK.wait_ticks(5)
@@ -48,17 +51,26 @@ func _process(_d: float) -> bool:
 			if i >= LAUNCHERS.size():
 				return TK.done(fails)
 			var l: Array = LAUNCHERS[i]
-			if l[1] == "":
-				p.unequip_weapon()
-				p.learn_black_leg()
-			else:
-				p.equip_weapon(load("res://scripts/loot/item_db.gd").get_item(l[1]), true)
+			var db = load("res://scripts/loot/item_db.gd")
+			p.unequip_weapon()
+			if l[1] != "":
+				p.equip_weapon(db.get_item(l[1]), true)
+			match str(l[3]):
+				"same":
+					p.set_offhand(p.equipped_weapon.duplicate())
+				"kicks":
+					p.learn_black_leg()
+				"":
+					pass
+				_:
+					p.set_offhand(db.get_item(l[3]))
 			p.progression.master_all()
 			until = TK.wait_secs(0.8)
 		2:
 			if not p.is_free():
 				return false
 			var g = stage.camp.grunts[i]
+			g.alert()
 			g.facing.rotation.y = PI
 			p.global_position = Vector3(g.global_position.x, p.global_position.y, g.global_position.z + 2.0)
 			p.reset_physics_interpolation()

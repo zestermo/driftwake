@@ -20,8 +20,28 @@ func weapon() -> String:
 	return ""
 
 
+## The off hand: an item id, "same" (a copy of the main hand's), "kicks" (no weapon: black leg), "" (none).
+func offhand() -> String:
+	return ""
+
+
 func tree_id() -> String:
 	return ""
+
+
+## The hands as the test asks (after the stage drew the main weapon).
+func arm() -> void:
+	match offhand():
+		"":
+			if weapon() == "":
+				p.unequip_weapon()
+		"kicks":
+			p.unequip_weapon()
+			p.learn_black_leg()
+		"same":
+			p.set_offhand(p.equipped_weapon.duplicate())
+		_:
+			p.set_offhand(load("res://scripts/loot/item_db.gd").get_item(offhand()))
 
 
 func _initialize() -> void:
@@ -51,9 +71,8 @@ func _process(_d: float) -> bool:
 			stage.dummy.health_component.max_health = 100000.0
 			stage.dummy.health_component.current_health = 100000.0
 			stage.dummy.get_node("Hurtbox").hit_received.connect(func(h, _a): taken += h.damage)
-			if weapon() == "":
-				p.unequip_weapon()
-				p.learn_black_leg()
+			arm()
+			check("the style trains the %s tree (%s)" % [t, p.style()], load("res://scripts/progression/skill_tree.gd").style_tree(p.style()) == t)
 			p.progression.master_all()
 			for slot in WP.ALT_SLOTS:
 				p.progression.set_version("%s_alt_%s" % [pre, slot], 1)

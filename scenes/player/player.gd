@@ -2508,7 +2508,7 @@ func damage_multiplier() -> float:
 		k += 0.25 + pr.stat("claw_pct")
 	if power.buff("berserk"):
 		k += 0.25
-	if power.buff("powder_share"):
+	if power.buff("crew_rally"):
 		k += CrewTechniques.SHARE_DAMAGE
 	# Adrenaline: hurt badly, you hit harder
 	if health_component.current_health < health_component.max_health * 0.35:

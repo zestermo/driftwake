@@ -5,7 +5,7 @@ extends SceneTree
 ## ultimate lands on the dummy (Sky Chase needs a foe in the air: t/combat/black_leg_launch), Rising Heel's heel
 ## going up high over the hips.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["last_course", "rising_heel", "hailstorm_heels", "sky_chase", "cleaver_kick", "flambe_dash"]
+const TECHS := ["last_course", "rising_heel", "hailstorm_heels", "sky_chase", "cleaver_kick", "flambe_dash", "volcano_course"]
 var stage
 var p
 var taken := 0.0
@@ -66,7 +66,7 @@ func _process(_d: float) -> bool:
 			check("two ultimates (1.26), at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Handstand Spin, Arrow Kick, Cyclone Heel (%s)" % str(moves),
 				moves.size() == 3 and "handstand_spin" in moves and "arrow_kick" in moves and "cyclone_heel" in moves)
-			var techs_ok := skills.size() == 6
+			var techs_ok := skills.size() == TECHS.size()
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["black_leg"] and d.get("state", "") == "Technique" and d.get("tree", "") == "black_leg"

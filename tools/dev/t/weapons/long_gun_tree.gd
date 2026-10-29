@@ -3,7 +3,7 @@ extends SceneTree
 ## (each skill a long gun Technique), its steps 30, one ultimate at 30, starlight as its element, the style mapped to it,
 ## its nodes buyable with long gun mastery; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["hawkeye", "pin_shot", "powder_burst", "volley_line", "stock_sweep"]
+const TECHS := ["hawkeye", "pin_shot", "powder_burst", "volley_line", "stock_sweep", "constellation"]
 var stage
 var p
 var taken := 0.0

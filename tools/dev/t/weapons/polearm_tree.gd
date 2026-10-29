@@ -3,7 +3,7 @@ extends SceneTree
 ## real (each skill a polearm Technique), its steps 30, one ultimate at 30, lightning as its element, the style
 ## mapped to it; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["raijin_wheel", "hundred_thrusts", "dragon_sweep", "vault_strike", "thunder_javelin", "windmill_guard"]
+const TECHS := ["raijin_wheel", "hundred_thrusts", "dragon_sweep", "vault_strike", "thunder_javelin", "windmill_guard", "heavens_pike"]
 var stage
 var p
 var hc
@@ -60,7 +60,7 @@ func _process(_d: float) -> bool:
 			check("two ultimates (1.26), at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Wheel Sweep, Pole Vault, Leg Sweep, Falling Spear (%s)" % str(moves),
 				moves.size() == 4 and "wheel_sweep" in moves and "pole_vault" in moves and "leg_sweep" in moves and "falling_spear" in moves)
-			var techs_ok := skills.size() == 6
+			var techs_ok := skills.size() == TECHS.size()
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["polearm"] and d.get("state", "") == "Technique" and d.get("tree", "") == "polearm"

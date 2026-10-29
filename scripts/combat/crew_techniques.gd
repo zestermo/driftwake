@@ -34,10 +34,19 @@ const PINCER_EXTRA := 0.75
 const PINCER_BOTH := 1.5
 const PINCER_SOLO := 3
 const PINCER_SECS := 10.0
-## Powder Share: the energy each side gets, how long both hit harder (PowerComponent buff "powder_share", +20%).
-const SHARE_ENERGY := {"lead": 0.0, "partner": 25.0, "solo": 12.0}
+## (1.26) The support crew techniques, on each captain (CrewTechniques.support): energy by side, reloaded, the rally
+## (PowerComponent buff "crew_rally": SHARE_DAMAGE harder for SHARE_SECS), blows turned ("shielded" mark, SHIELD_SECS),
+## out of sight (s) with the next blow a sure crit (buff "slipped", SLIP_SECS).
+const SUPPORT := {
+	"powder_share": {"energy": {"lead": 0.0, "partner": 25.0, "solo": 12.0}, "reload": true, "rally": true},
+	"pouch_pass": {"energy": {"lead": 10.0, "partner": 25.0, "solo": 12.0}, "rally": true},
+	"blade_wall": {"shield": 2},
+	"smoke_mirrors": {"vanish": 1.5},
+}
 const SHARE_SECS := 8.0
 const SHARE_DAMAGE := 0.2
+const SHIELD_SECS := 10.0
+const SLIP_SECS := 6.0
 ## What the joiner of a move that doesn't throw them is told.
 const PARTNER_NOTE := {"guardian_stance": "you're under guard", "shield_wall": "stay behind the wall",
 	"pincer": "strike the marked foe together", "covering_fire": "you're covered"}
@@ -280,17 +289,32 @@ func go(mate) -> void:
 
 ## (own machine) A support crew technique's gift on this captain: `role` "lead", "partner" or "solo".
 func support(tid: String, role: String) -> void:
-	match tid:
-		"powder_share":
-			player._reset_ammo()
-			player.power.add_energy(SHARE_ENERGY[role])
-			player.power.add_buff("powder_share", SHARE_SECS)
-			var at: Vector3 = player.global_position + Vector3(0, 1.4, 0)
-			Net.fx("sparkle", [at, 10, tree_col(tid, FX.CORE)])
-			Net.fx("ring", [player.global_position + Vector3(0, 0.1, 0), Vector3.UP, 1.4, tree_col(tid, FX.EDGE), 0.35, 0.12])
-			Net.fx("sfx", ["blip_high", at, -8.0, 0.0, 1.5])
-			if role == "partner":
-				player.call("_toast", "%s: reloaded, +%d energy, 20%% harder for %d s" % [name_of(tid), int(SHARE_ENERGY[role]), int(SHARE_SECS)])
+	var s: Dictionary = SUPPORT[tid]
+	var got: Array = []
+	if s.get("reload", false):
+		player._reset_ammo()
+		got.append("reloaded")
+	if s.has("energy") and float(s["energy"][role]) > 0.0:
+		player.power.add_energy(float(s["energy"][role]))
+		got.append("+%d energy" % int(s["energy"][role]))
+	if s.get("rally", false):
+		player.power.add_buff("crew_rally", SHARE_SECS)
+		got.append("20% harder for 8 s")
+	if s.has("shield"):
+		mark("shielded", SHIELD_SECS, "", int(s["shield"]))
+		got.append("the next %d blows turned" % int(s["shield"]))
+	if s.has("vanish"):
+		player.vanish(float(s["vanish"]))
+		player.power.add_buff("slipped", SLIP_SECS)
+		got.append("out of sight, the next blow a sure crit")
+	var at: Vector3 = player.global_position + Vector3(0, 1.4, 0)
+	Net.fx("sparkle", [at, 10, tree_col(tid, FX.CORE)])
+	Net.fx("ring", [player.global_position + Vector3(0, 0.1, 0), Vector3.UP, 1.4, tree_col(tid, FX.EDGE), 0.35, 0.12])
+	Net.fx("sfx", ["blip_high", at, -8.0, 0.0, 1.5])
+	if s.has("vanish"):
+		Net.fx("dust_ring", [player.global_position, 14, 1.2])
+	if role == "partner":
+		player.call("_toast", "%s: %s" % [name_of(tid), ", ".join(got)])
 
 
 
@@ -334,6 +358,10 @@ func blow(hit: HitData, attacker: Node, dir: Vector3) -> bool:
 	if hit.dot or attacker == null or attacker.is_in_group("players"):
 		return false
 	var fwd: Vector3 = -player.player_model.global_basis.z
+	if marked("shielded") and int(marks["shielded"]["n"]) > 0:
+		marks["shielded"]["n"] = int(marks["shielded"]["n"]) - 1
+		_turned(dir, "Turned!")
+		return true
 	if marked("wall") and Vector2(fwd.x, fwd.z).normalized().dot(Vector2(-dir.x, -dir.z).normalized()) > 0.3:
 		_turned(dir, "Walled!")
 		return true

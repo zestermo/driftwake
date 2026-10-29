@@ -3,7 +3,7 @@ extends SceneTree
 ## (each skill a cannon Technique), its steps 30, one ultimate at 30, brimstone as its element, the style mapped to it,
 ## its nodes bought with its own mastery points; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["leviathan_shell", "canister_shot", "chain_shot", "mortar_lob", "rocket_charge"]
+const TECHS := ["leviathan_shell", "canister_shot", "chain_shot", "mortar_lob", "rocket_charge", "hellfire_barrage"]
 const MOVES := ["cannon_ram", "recoil_leap"]
 var stage
 var p
