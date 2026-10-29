@@ -7642,3 +7642,12 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - `Player.update_coat_visual`: the kicking stance keeps its arms (no black sheen); the coat's sparkles crawl over the
   shins and feet instead of the hands. Render: abilityshot armament_coat black_leg (flames at the feet, arms clean).
 - Test: `t/will/infuse_legs`.
+
+## 1.26.1, piece 8: Admiralty outposts always stand (2026-10-29)
+- Why: a rolled outpost (CHANCE 0.4, unchanged) was skipped when its three rings round the plaza had no flat ground;
+  on the test seeds the pier side is the village's own houses and the harbour path, and Zach met none in two hours.
+- `MarineOutpost.spot_for(gi, rng)` (data only, after prepare; `build` uses it): first beside the way up from the pier
+  (t 0.45/0.6/0.35/0.75/0.25 along dock -> plaza, 11/15 m either side, facing the path), then rings pr+16..48 by bearing
+  from the pier's side out (SPOTS 16), each strict then looser (`_flat_ok(strict)`: slope 2.2, pad 4.5, path 2).
+  The build's rng draws are unchanged, so every other seeded roll holds. A rolled outpost with no spot warns.
+- Test: `t/island/outpost_spots` (3 of 3 rolled placed, all on the pier's way).

@@ -9,6 +9,8 @@ extends Node3D
 ## a reward. Seeded by the island: CHANCE of villages have one; never the cities.
 
 const CHANCE := 0.4
+## Bearings tried round each ring of the village (1.26: 16, from the pier's side out).
+const SPOTS := 16
 ## From the village's heart, how far a captain counts as "in the village" (past its plaza).
 const TOWN_PAD := 34.0
 ## A blade out this long after the warning (seconds) rings the alarm.
@@ -46,7 +48,7 @@ static func rolls(gi: GenIsland) -> bool:
 	return not (gi is CapitalIsland or gi.village_plan.is_empty()) and rng.randf() < CHANCE
 
 
-## The build step (IslandContent): an outpost by the village, if this island rolls one and a spot fits.
+## The build step (IslandContent): an outpost by the village, if this island rolls one (a spot always fits, 1.26).
 static func build(gi: GenIsland) -> void:
 	if gi is CapitalIsland or gi.village_plan.is_empty():
 		return
@@ -54,27 +56,47 @@ static func build(gi: GenIsland) -> void:
 	rng.seed = hash([int(gi.node["seed"]), 5109])
 	if rng.randf() >= CHANCE:
 		return
-	var p: Dictionary = gi.village_plan
-	var c: Vector2 = p["c"]
-	var pr: float = p["plaza_r"]
-	var spot := Vector2.INF
-	var face := Vector2.ZERO
-	var a0 := rng.randf() * TAU
-	for ring in [pr + 16.0, pr + 22.0, pr + 28.0]:
-		for k in range(12):
-			var q: Vector2 = c + Vector2.from_angle(a0 + k * TAU / 12.0) * float(ring)
-			if _flat_ok(gi, q):
-				spot = q
-				face = (c - q).normalized()
-				break
-		if spot != Vector2.INF:
-			break
-	if spot == Vector2.INF:
+	var at := spot_for(gi, rng)
+	if at.is_empty():
+		push_warning("MarineOutpost: rolled but no ground fits by %s's village" % gi.name)
 		return
-	var o := make(gi, c, pr + TOWN_PAD, gi.save_key("outpost"), IslandContent.tier(gi), IslandContent.level(gi), rng)
+	var spot: Vector2 = at[0]
+	var face: Vector2 = at[1]
+	var pr: float = gi.village_plan["plaza_r"]
+	var o := make(gi, gi.village_plan["c"], pr + TOWN_PAD, gi.save_key("outpost"), IslandContent.tier(gi), IslandContent.level(gi), rng)
 	o.global_position = gi.to_global(Vector3(spot.x, gi.hv(spot), spot.y))
 	o.rotation.y = atan2(face.x, face.y)
 	gi.reserve(spot, 8.0)
+
+
+## Where the blockhouse stands ([spot, facing the village], island space; [] if nowhere fits): on rings out from the
+## plaza, nearest the pier's bearing first, either side in turn (1.26: you walk in past it), strict ground then looser.
+## Data only (after prepare). `rng` is the build's (its next draw: the old random bearing, kept so the seeds hold).
+static func spot_for(gi: GenIsland, rng: RandomNumberGenerator) -> Array:
+	var c: Vector2 = gi.village_plan["c"]
+	var pr: float = gi.village_plan["plaza_r"]
+	var a0 := rng.randf() * TAU
+	if gi.sites.has("dock_end"):
+		var dock: Vector2 = gi.sites["dock_end"]
+		var to_pier: Vector2 = dock - c
+		if to_pier.length() > 1.0:
+			a0 = to_pier.angle()
+			# first: beside the way up from the pier (the village's own houses usually fill its pier side)
+			var side := Vector2(-to_pier.y, to_pier.x).normalized()
+			for strict in [true, false]:
+				for t in [0.45, 0.6, 0.35, 0.75, 0.25]:
+					for off in [11.0, -11.0, 15.0, -15.0]:
+						var q: Vector2 = c + to_pier * t + side * off
+						if q.distance_to(c) > pr + 12.0 and _flat_ok(gi, q, strict):
+							return [q, (q - (c + to_pier * t)).normalized() * -1.0]
+	for strict in [true, false]:
+		for k in range(SPOTS):
+			var j := (k + 1) / 2 * (1 if k % 2 == 1 else -1)
+			for ring in [pr + 16.0, pr + 22.0, pr + 28.0, pr + 34.0, pr + 40.0, pr + 48.0]:
+				var q: Vector2 = c + Vector2.from_angle(a0 + j * TAU / SPOTS) * float(ring)
+				if _flat_ok(gi, q, strict):
+					return [q, (c - q).normalized()]
+	return []
 
 
 ## An outpost under on (its town at 	own_ in on's space,  round it), saved as key_. Place it after.
@@ -92,12 +114,13 @@ static func make(on: Node3D, town_: Vector2, r: float, key_: String, tier_: int,
 	return o
 
 
-static func _flat_ok(gi: GenIsland, q: Vector2) -> bool:
+## Ground for the blockhouse at `q`: dry, clear, off the path, flat enough (`strict`; else a looser slope and pad).
+static func _flat_ok(gi: GenIsland, q: Vector2, strict := true) -> bool:
 	var h := gi.hv(q)
-	if h < 1.5 or gi.excluded(q, 6.0) or gi.path_dist(q) < 3.0:
+	if h < 1.5 or gi.excluded(q, 6.0 if strict else 4.5) or gi.path_dist(q) < (3.0 if strict else 2.0):
 		return false
 	for d in [Vector2(4, 0), Vector2(-4, 0), Vector2(0, 4), Vector2(0, -4)]:
-		if absf(gi.hv(q + d) - h) > 1.2:
+		if absf(gi.hv(q + d) - h) > (1.2 if strict else 2.2):
 			return false
 	return true
 
