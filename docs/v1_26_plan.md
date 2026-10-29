@@ -118,6 +118,16 @@ Today:
 | Crew technique variants | Each weapon gets a second crew technique bought with weapon points, not a launch. Kinds: **setups** (one pins, trips or holds a foe, the other lands a big finisher), **combined attacks** (one merged attack with both weapons) and **rescue/support** (haul a downed crewmate out, a shared shield, trading energy). The weapon's solo version as today | Zach: "something different and interesting other than just launching your friend" | Preview: the move per weapon |
 | Scope across 17 weapons | Design every weapon's new content (second ultimate, crew variant, 3 alternates) now. 1.26 builds the most-played weapons first (cutlass, katana, black leg, pistol, polearm, greatsword); the other 11 follow in a 1.26.x patch through the updater | Animation volume | After wave 1 |
 
+### Round 5 (2026-10-29): enemies, pirates, outposts
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Fewer bug burrows, more pirates | The bug-burrow quest (nearly every chain island, the same bugs) becomes rare. More of an island's content is pirates and the Admiralty, the fights Zach found fun | Creature fights are less fun than human ones | Play test |
+| Pirate settlements | An occasional larger pirate settlement on a chain island: a fortified camp or hold with townsfolk to free (each one freed counts toward the island's arc and reward), led by a pirate captain who is a player AI (the rival/officer kind, with poise and juggles) | More of the fun fights | Preview: how often, layout, reward |
+| Pirate crews' balance | The same change as the Admiralty's player-AI captains: more health, slower, skills on longer cooldowns, a longer fight that's easier to start | Zach expects them to be as twitchy as the hunters were | Tune in play |
+| Enemy wind-ups and knockback | Every enemy attack gets a readable wind-up and hit tell (the red flash or a pose hold), and repeated knockbacks are capped: an enemy can't knock a captain down again while they're getting up or within a few seconds of the last one (with the players' new poise). Audit every enemy kind (creatures, beasts, grunts, ship crews) | Zach: several enemy kinds hit with no tell and chain knockbacks, making melee nearly impossible | - |
+| Admiralty outposts | Keep CHANCE 0.4, but fix placement: today `MarineOutpost.build` skips the outpost silently when no flat spot fits within 16-28 m of the plaza. Add a fallback spot so a rolled outpost is always built, placed where you'll pass it (by the path from the pier) | Zach never met one in two hours | - |
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.
