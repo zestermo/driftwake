@@ -77,7 +77,8 @@ func _routines(island, tag: String) -> Array:
 	check(tag + "21-31 people on the island, traders included (%d)" % npcs.size(), npcs.size() >= 21 and npcs.size() <= 31)
 	check(tag + "each one's name is its own", npcs.all(func(x): return npcs.filter(func(y): return y.name == x.name).size() == 1))
 	var vs: Array = island.life.people
-	check(tag + "villagers on routines (%d), each with 4-5 stays" % vs.size(), vs.size() >= 11 and vs.all(func(v): return v.stays.size() >= 4 and v.walks.size() == v.stays.size()))
+	# (1.26: a trader keeps their stall, one stay; everyone else 4-5)
+	check(tag + "villagers on routines (%d), each with 4-5 stays (a trader one, at the stall)" % vs.size(), vs.size() >= 11 and vs.all(func(v): return (v.stays.size() >= 4 or (v.stays.size() == 1 and str(v.npc_name).split(" ")[0] in ["Clothier", "Smith", "Armourer", "Instrument", "Apothecary"])) and v.walks.size() == v.stays.size()))
 	var kinds := {}
 	for v in vs:
 		for s in v.stays:
@@ -95,14 +96,18 @@ func _routines(island, tag: String) -> Array:
 	print("   the same kind of place day and night: %s" % [vs.filter(func(v): return not shift.has(v)).map(func(v): return kind_at.call(v, 10.5))])
 	# (a fifth keep house by day, home day and night, and an owl who works the plaza spends the evening there)
 	check(tag + "day and night most are somewhere else (%d of %d; the rest work where they spend the evening)" % [moved, vs.size()], moved == shift.size() and moved > vs.size() / 2)
-	var late: Array = vs.filter(func(v): return not (v.spot_at(20.8)[3] and kind_at.call(v, 20.8) in ["inn", "plaza"]))
+	# (1.26: evenings spread over the inn, the plaza and home; traders keep their stalls)
+	var late: Array = vs.filter(func(v): return not (v.spot_at(20.8)[3] and kind_at.call(v, 20.8) in ["inn", "plaza", "home", "market", "stall"]))
 	print("   not at the inn or the fire at nine: %s" % [late.map(func(v): return "%s (%s, %s, %.0f m from %.1f h)" % [v.npc_name, kind_at.call(v, 20.8), v.spot_at(20.8)[2],
 		walk_len(v, KL.stay_at(v.stays, 20.8)[0]), float(v.stays[KL.stay_at(v.stays, 20.8)[0]]["h"])])])
-	check(tag + "at nine in the evening they're at the inn or round the plaza's fire (%d of %d)" % [vs.size() - late.size(), vs.size()], late.size() <= 1)
+	check(tag + "at nine in the evening they're settled: the inn, the plaza's fire, home or a trader's stall (%d of %d)" % [vs.size() - late.size(), vs.size()], late.size() <= 1)
 	var home := vs.filter(func(v): return v.spot_at(2.0)[2] == "home").size()
 	var up := vs.filter(func(v): return v.spot_at(2.0)[2] == "talk").size()
-	check(tag + "at two in the morning most are home and the rest at the inn (%d home, %d up)" % [home, up], home >= vs.size() / 2 and home + up == vs.size())
-	var goers: Array = vs.filter(func(v): return walk_len(v, 1) > 2.0)
+	# (1.26: the late ones now keep the plaza as well as the inn, and traders their stalls)
+	var stalls := vs.filter(func(v): return v.stays.size() == 1).size()
+	var astray := vs.filter(func(v): return v.stays.size() > 1 and not (v.spot_at(2.0)[2] in ["home", "talk"])).size()
+	check(tag + "at two in the morning many are home, the rest up at the inn or the plaza or a stall (%d home, %d up, %d stalls, %d astray)" % [home, up, stalls, astray], home >= vs.size() / 3 and astray == 0)
+	var goers: Array = vs.filter(func(v): return v.stays.size() > 1 and walk_len(v, 1) > 2.0)
 	var walking := goers.filter(func(v): return v.spot_at(float(v.stays[1]["h"]) + 0.02)[2] == "walk").size()
 	check(tag + "just after a stay begins they're walking to it (%d of %d)" % [walking, goers.size()], walking == goers.size() and goers.size() >= vs.size() / 2)
 	var lens: Array = []

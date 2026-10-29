@@ -150,10 +150,11 @@ Built here in the main session one piece at a time; each 1.25.x (Zach: the unsta
 | Version | What | Gate |
 |---|---|---|
 | 1.25.1 | Sea/bounty pacing, Admiralty chase and false "Escaped", marine bow chasers, the 3-ship blockade, hunter arrival and balance, pirate crew balance, combat poise and knockback, enemy tells and knockback caps, co-op jail, outpost placement, XP sharing and quest XP, the infuse on the feet; the beta updater | - |
-| 1.25.2 | Compass strip, tonic flask, vendors in shops (icons, no schedules), name/line pools, the id rename and the site | - |
+| 1.25.2 | Compass strip, tonic flask, vendor badges and fixed posts, keepers named from the theme, the site/README wording (shipped) | - |
 | 1.25.3 | The round Edy tree and the Infusion branch | Mock OK |
 | 1.25.4 | The Brinehollow opening (unarmed start, Vey's rack, the shrine reading, Tomo on the terrace) | Step list |
-| 1.25.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows) | Previews |
+| 1.25.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows), enterable dressed shops for every vendor, more lines per role | Previews |
+| 1.25.x (any) | The internal id rename with its save migration (sea_king, devil_fruits, log_pose, the haki ids) and the GitHub notes for v1.8-v1.17 | - |
 | 1.25.6 | Wave-1 weapons (bridges, two ultimates, crew variants, alternates, launchers) | Weapon sheet |
 | 1.25.7+ | The other 11 weapons, then 1.26 stable | Weapon sheet |
 

@@ -25,6 +25,8 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
+			# (1.26: every captain starts with the tonic flask on the slot; this is the rum's test)
+			p.inventory_component.quick = "rum"
 			p.health_component.take_damage(50)
 			TK.act("quick_item")
 			until = TK.wait_secs(0.2)

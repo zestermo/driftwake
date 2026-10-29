@@ -38,7 +38,7 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			w = p.item_wheel
 			p.inventory_component.add_item(ItemDB.get_item("biscuit"), 2)
-			check("the starting rum is the quick item", p.inventory_component.quick == "rum")
+			check("the starting flask is the quick item (1.26)", p.inventory_component.quick == "tonic_flask")
 			p.health_component.current_health = 30.0
 			Input.action_press("quick_item")
 			until = TK.wait_ticks(1)
@@ -47,7 +47,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.4)
 		2:
 			check("held, E opens the item wheel", w.is_open())
-			check("...with the rum and the biscuits on it (%s)" % str(w.entries), w.entries == ["rum", "biscuit"])
+			check("...with the rum, the flask and the biscuits on it (%s)" % str(w.entries), w.entries.has("rum") and w.entries.has("biscuit") and w.entries.has("tonic_flask") and w.entries.size() == 3)
 			point_at(w.entries.find("biscuit"))
 			check("pointing picks the biscuit", w._pick == w.entries.find("biscuit"))
 			Input.action_release("quick_item")
