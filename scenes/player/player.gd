@@ -196,6 +196,8 @@ var is_ai: bool = false
 var sparring: bool = false
 ## An AI captain's poise (Poise "rival"; a rival's crewmen "elite"); null for the players.
 var poise: Poise
+## (1.26) A human captain's own poise against knockdown blows (Poise "player"), made on the first one.
+var _own_poise: Poise
 var _debug_crew := 0
 ## Max health scale (an AI captain's: a rival crew's captain and their returns are tougher).
 var hp_k := 1.0
@@ -681,7 +683,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		th.damage = thorns
 		(attacker.get("hurtbox") as Hurtbox).take_hit(th, self)
 		Net.fx("sparkle", [(attacker as Node3D).global_position + Vector3(0, 1.0, 0), 4, Color(0.5, 0.9, 0.3)])
-	_last_hit_velocity = dir * maxf(hit.knockback_force, 3.0) + Vector3.UP * (3.5 if hit.knockdown else 2.0)
+	# (1.26: a softer throw; the playtest's ragdolls flew far from where the fight was)
+	_last_hit_velocity = dir * clampf(hit.knockback_force * 0.45, 2.5, 4.5) + Vector3.UP * (2.6 if hit.knockdown else 2.0)
 	if not Duel.beaten(self, dmg):
 		health_component.take_damage(dmg)
 	if _using_item and _using_item.devil_fruit == "" and not hit.dot:
@@ -704,12 +707,21 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if poise:
 		var took := poise.take(hit)
 		if took == Poise.BREAK:
-			knock_down(_last_hit_velocity)
+			# (1.26) a launcher sends a broken captain up (Juggle's throw), like a grunt
+			knock_down(Vector3.UP * hit.launch + dir * Juggle.CARRY if hit.launch > 0.0 else _last_hit_velocity)
 			return
 		if took == Poise.NONE:
 			return
-	elif hit.knockdown:
-		knock_down(_last_hit_velocity)
+	elif hit.knockdown or hit.poise >= Poise.TECH_MIN:
+		# (1.26) your own poise: knockdown blows drain it, and only a break floors you (then IMMUNE s of grace);
+		# short of that, a hard stagger
+		if _own_poise == null:
+			_own_poise = Poise.make("player")
+		if _own_poise.take(hit) == Poise.BREAK:
+			knock_down(_last_hit_velocity)
+			return
+		state_machine.force_state("Stagger", {"stagger_duration": 0.35, "knockback_dir": dir,
+			"knockback_force": minf(hit.knockback_force * 0.4, 2.5), "flinch": false})
 		return
 	# a hit while you're charging the iai breaks the charge, steadfast or not
 	if current_state_name() == "Iai" and int(state_machine.current_state.get("phase")) == 0:
@@ -728,7 +740,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if poise_k > 0.0 and randf() < poise_k:
 		return
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
-		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.5, 4.0), "flinch": true})
+		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.4, 2.5), "flinch": true})
 
 
 ## Foresight: you saw it coming - an instant sidestep with an afterimage and

@@ -17,6 +17,8 @@ var fails := 0
 
 func _initialize() -> void:
 	TK.seed_of(self)
+	# (the meeting and fight, not the walk in: t/combat/rival_walk_in)
+	load("res://scripts/ai/rival_encounter.gd").walk_in = false
 	stage = TK.stage(self, {})
 
 

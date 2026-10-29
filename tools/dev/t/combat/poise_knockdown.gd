@@ -1,6 +1,6 @@
 extends SceneTree
-## 1.23 poise (docs/v1_23_previews.md section 3): a grunt (30 poise) goes down from one kick move, takes one heavy on
-## its feet and goes down to the second, and once its poise has broken it can't be floored again for 4 s.
+## Poise (1.23, retuned 1.26: docs/v1_26_plan.md "Combat knockback"): a grunt has 50; a kick or a heavy rocks it, and
+## a break from anything under a technique is a hard stagger on its feet; a technique or ultimate floors it; 4 s immune after.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -57,31 +57,32 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.0)
 		1:
 			hit(a, blow(16.0, 30.0, true))
-			check("a kick move floors a grunt", a.state == G.S.DOWN)
+			check("a kick move rocks a fresh grunt but doesn't floor it (state %d)" % a.state, a.state != G.S.DOWN)
 			hit(b, blow(20.0, 25.0))
 			check("one heavy: the grunt reels but stays up (state %d)" % b.state, b.state != G.S.DOWN)
 			until = TK.wait_secs(0.4)
 		2:
 			hit(b, blow(20.0, 25.0))
-			check("the second heavy floors it", b.state == G.S.DOWN)
+			check("the second heavy breaks its poise: a hard stagger, still on its feet (state %d)" % b.state, b.state == G.S.STAGGER)
+			hit(a, blow(24.0, 40.0))
+			check("a technique on the kicked grunt breaks it and floors it", a.state == G.S.DOWN)
 			until = TK.wait_secs(0.2)
 		3:
-			# (a: lights empty a fresh grunt's poise into a hard stagger, standing; b is down)
 			if a.state in [G.S.DOWN, G.S.GETUP]:
 				return false
 			until = TK.wait_secs(4.5)
 		4:
-			for i in range(5):
-				hit(a, blow(9.0, 6.0))
-			check("five lights break its poise: it reels hard on its feet (state %d)" % a.state, a.state == G.S.STAGGER)
+			for i in range(9):
+				hit(a, blow(1.0, 6.0))
+			check("nine lights break its poise: it reels hard on its feet (state %d)" % a.state, a.state == G.S.STAGGER)
 			until = TK.wait_secs(1.5)
 		5:
-			hit(a, blow(16.0, 30.0, true))
-			check("a kick move inside 4 s of a break doesn't floor it", a.state != G.S.DOWN)
+			hit(a, blow(30.0, 120.0))
+			check("an ultimate inside 4 s of a break doesn't floor it", a.state != G.S.DOWN)
 			until = TK.wait_secs(3.0)
 		6:
-			hit(a, blow(16.0, 30.0, true))
-			check("past 4 s it floors it again", a.state == G.S.DOWN)
+			hit(a, blow(30.0, 120.0))
+			check("past 4 s an ultimate floors it", a.state == G.S.DOWN)
 			return TK.done(fails)
 	step += 1
 	return false

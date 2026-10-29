@@ -22,7 +22,7 @@ const CHECK_EVERY := 0.5
 ## the harbour (they come as soon as the captain is ashore a moment); the officers in turn.
 const OFFICER_FROM := 3
 const OFFICER_CHANCE := 0.5
-const OFFICER_ASHORE_S := 3.0
+const OFFICER_ASHORE_S := 20.0
 ## Bounty hunters: from this bounty tier (Notorious), this chance an island with no crew, 2 hunters (+1 a tier above),
 ## after a longer while ashore and not so far in.
 const HUNTERS_FROM := 2
@@ -30,8 +30,18 @@ const HUNTER_CHANCE := 0.35
 const HUNTER_ASHORE_S := 40.0
 const HUNTER_INLAND := 30.0
 
+## (1.26) Every visit is warned of first (a banner on every screen), and comes WARN_S later.
+const WARN_S := 35.0
+const WARNINGS := {
+	"officer": ["An Admiralty officer", "Grey coats on the pier, asking after you by name."],
+	"hunters": ["Bounty hunters", "Strangers off a black-sailed boat are asking about you."],
+	"crew": ["A pirate crew", "A strange ship has dropped anchor off the harbour."],
+}
+
 var _t := 0.0
 var _ashore := 0.0
+## Seconds until the warned visit comes (-1: none warned).
+var _warn_left := -1.0
 
 
 func _gm() -> Node:
@@ -59,6 +69,7 @@ func decide(n: Dictionary, id: int) -> void:
 	pl["since"] = int(pl["since"]) + 1
 	pl["pending"] = -1
 	_ashore = 0.0
+	_warn_left = -1.0
 	if str(n.get("role", "")) == "capital":
 		return
 	pl["officer"] = -1
@@ -151,24 +162,32 @@ func _physics_process(delta: float) -> void:
 		return
 	if Cutscene.active or _hostile_near(p):
 		return
+	var kind := ""
 	if officer_here:
-		if _ashore < OFFICER_ASHORE_S:
-			return
-		# they've been waiting at the harbour: they come at you from the land side
-		var inland := p.global_position - dock
-		inland.y = 0.0
-		var from := p.global_position + inland.normalized() * 10.0 if inland.length() > 2.0 else Vector3.INF
-		if RivalEncounter.start(p, str(plan()["officer_id"]), from) != null:
+		kind = "officer" if _ashore >= OFFICER_ASHORE_S else ""
+	elif hunters_here:
+		kind = "hunters" if _ashore >= HUNTER_ASHORE_S and flat >= HUNTER_INLAND else ""
+	elif _ashore >= ASHORE_S and flat >= INLAND:
+		kind = "crew"
+	if kind == "":
+		return
+	# (1.26) warned first; they come WARN_S later, off the dock and walking in (RivalEncounter)
+	if _warn_left < 0.0:
+		_warn_left = WARN_S
+		Net.banner(str(WARNINGS[kind][0]), str(WARNINGS[kind][1]), false)
+		return
+	_warn_left -= dt
+	if _warn_left > 0.0:
+		return
+	_warn_left = -1.0
+	if kind == "officer":
+		if RivalEncounter.start(p, str(plan()["officer_id"]), dock) != null:
 			plan()["officer"] = -1
 			plan()["officers_met"] = int(plan().get("officers_met", 0)) + 1
 		return
-	if hunters_here:
-		if _ashore < HUNTER_ASHORE_S or flat < HUNTER_INLAND:
-			return
+	if kind == "hunters":
 		if RivalEncounter.start_ambush(p, int(plan().get("hunters_n", 2)), dock) != null:
 			plan()["hunters"] = -1
-		return
-	if _ashore < ASHORE_S or flat < INLAND:
 		return
 	var crew := str(plan()["crew"])
 	if RivalEncounter.start(p, crew, dock) == null:

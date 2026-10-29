@@ -10,10 +10,13 @@ enum {NONE, FLINCH, BREAK}
 
 const REFILL_WAIT := 2.0
 const IMMUNE := 4.0
-## Per class: [poise, refill a second, flinches at damage >=, flinches at poise damage >=].
+## Per class: [poise, refill a second, flinches at damage >=, flinches at poise damage >=]. (1.26: grunt 30 -> 50, elite
+## 55 -> 80: the playtest broke them with every kick, so chains kept ending in ragdolls.)
 const CLASSES := {
-	"grunt": [30.0, 12.0, 10.0, 14.0],
-	"elite": [55.0, 15.0, INF, 25.0],
+	"grunt": [50.0, 12.0, 10.0, 14.0],
+	"elite": [80.0, 15.0, INF, 25.0],
+	# (1.26) the captains themselves: knockdown blows drain it, and only a break floors you (the light flinch stays)
+	"player": [60.0, 20.0, INF, INF],
 	"captain": [90.0, 18.0, INF, 14.0],
 	"rival": [80.0, 20.0, 0.0, 0.0],
 	"miniboss": [160.0, 25.0, INF, 25.0],

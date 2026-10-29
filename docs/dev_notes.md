@@ -7589,3 +7589,34 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   line is broken!". Booms take melee too (their hurtbox is layer 32, which player hitboxes mask).
 - Gotcha: a freshly spawned EnemyShip reads global_position (0,0,0) until its first physics tick (sync_to_physics
   places it from `_pos`); check positions a tick later (`t/ship/admiralty_ring` did by luck before).
+
+## 1.26.1, piece 3: rival crews, officers and hunters walk in, slower and tougher (2026-10-29)
+- **Warning first:** `RivalWatch` puts a banner on every screen (`Net.banner`, new: `_all_banner` -> HUD.show_banner)
+  when a visit is due (WARNINGS: officer / hunters / crew), and starts it WARN_S 35 s later. Officers wait
+  OFFICER_ASHORE_S 20 s ashore (was 3) and come from the dock like the rest (they used to appear 10 m inland of you).
+- **Walking in:** `RivalEncounter._arrive` spawns them WALK_FROM 45 m off toward their landing (then 34, 22 m),
+  on dry ground (`_ground_at`, a ray down; y >= 0.4 is dry), brains on the new order "come" (`CaptainBrain._come`:
+  weapon away, walk until `come_r`); phase "come" until the lead is within come_r + 2 or COME_GIVE_UP 30 s, then
+  `_begin()` (the meeting or the ambush's shout, as before). `RivalEncounter.walk_in = false` keeps the old
+  turn-up-close for the meeting/fight tests.
+- **Balance (rival crews, Admiralty officers and bounty hunters alike):** `CaptainBrain.pace` 1.6 (RivalEncounter.PACE)
+  stretches the gap between skills, the circling before going in, and the sprint range; health x HP_K 1.6 on top of
+  the tier and captain multipliers. Duels keep pace 1.
+- Gotcha: run_tests shares a run of the same test already in flight, so a stale stuck run (here two Godots looping on
+  the pre-walk-in expectations) hands its failure to the next caller in 1 s. Stop the old process and rerun.
+
+## 1.26.1, piece 4: poise and knockback (2026-10-29)
+- `Poise.CLASSES`: grunt 50 (was 30), elite 80 (was 55), new "player" 60.
+- Grunts (`_poise_broken`): a break ragdolls only from RAGDOLL_FROM = Poise.TECH_MIN (techniques, ultimates; plus
+  crumples and launches); lighter breaks (kicks, heavies, finishers) are the 1.3 s hard stagger with a 2 m/s shove
+  (was 3.5). Knockdown throw clamp(kb*0.45, 2.5, 4.5) + 2.6 up (was 4-8 + 3.2); hitstun shove min(kb*0.4, 2.5) (was 5).
+- Captains (`Player._on_hit_received`): human captains get `_own_poise` (Poise "player", made on the first knockdown
+  blow): knockdown blows (or poise >= TECH_MIN) drain it, a 0.35 s stagger short of a break, floored on the break,
+  then Poise.IMMUNE 4 s when nothing floors you. A grunt's red-glow blow carries poise 999 (always breaks, unless
+  immune). Throw clamp(kb*0.45, 2.5, 4.5) + 2.6 up (was max(kb, 3) + 3.5); flinch shove min(kb*0.4, 2.5).
+- AI captains (rivals, officers): a launcher that breaks their poise throws them up (Juggle.CARRY + launch), so
+  black-leg's knock-up works on them. (Full air juggling of AI captains is not done: they ragdoll up, not the grunt
+  AIR state.)
+- Enemies by a downed captain: `_lost` already keeps grunts on a Downed target; the smaller throw keeps the ragdoll
+  near where they circle.
+- Tests: new `t/combat/player_poise`; `t/combat/poise_knockdown` rewritten for 50 poise and the ragdoll threshold.

@@ -536,6 +536,8 @@ func _ready() -> void:
 	_hit_peril.camera_shake_intensity = 0.3
 	_hit_peril.knockdown = true
 	_hit_peril.unblockable = true
+	# (1.26: the red glow is the one that always floors a captain, poise or not)
+	_hit_peril.poise = 999.0
 	_hit_rush = hd.duplicate() as HitData
 	_hit_rush.damage = _dmg(18.0)
 	_hit_rush.knockback_force = 9.0
@@ -2237,7 +2239,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_set_state(S.STAGGER)
 		return
 	_stun_len = 0.28
-	_stun_vel = dir * minf(hit.knockback_force * 0.6, 5.0)
+	_stun_vel = dir * minf(hit.knockback_force * 0.4, 2.5)
 	velocity = _stun_vel
 	humanoid.react("hit", 0.32, dir)
 	_set_state(S.HITSTUN)
@@ -2376,17 +2378,20 @@ func _poise_broken(hit: HitData, dir: Vector3) -> void:
 		juggle(hit.launch, dir)
 	elif hit.crumple:
 		_crumple()
-	elif Poise.of(hit) >= Poise.FINISHER:
-		_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
+	elif Poise.of(hit) >= RAGDOLL_FROM:
+		_knock_down(dir * clampf(hit.knockback_force * 0.45, 2.5, 4.5) + Vector3.UP * 2.6)
 	else:
 		hitbox.deactivate()
-		velocity = dir * 3.5
+		velocity = dir * 2.0
 		_stagger_len = HARD_STAGGER
 		humanoid.react("stagger", HARD_STAGGER, dir)
 		_set_state(S.STAGGER)
 
 
 const HARD_STAGGER := 1.3
+## (1.26) A poise break floors (ragdolls) only on a technique-weight blow or bigger; anything lighter (lights,
+## finishers, heavies, kicks) is the hard stagger, so a chain keeps going instead of ending in a ragdoll.
+const RAGDOLL_FROM := Poise.TECH_MIN
 var _air_hits := 0
 var _spiked := false
 

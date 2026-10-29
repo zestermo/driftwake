@@ -26,6 +26,13 @@ const WATCH_CHANCE := 0.4
 ## Gold for a won fight per crew member, and the chance of a trait weapon.
 const GOLD_EACH := 18
 const WEAPON_CHANCE := 0.35
+## (1.26, docs/v1_26_plan.md: the playtest found them too quick and too frail) They turn up this far off and walk in
+## (giving up the walk after COME_GIVE_UP s), fight at this pace (CaptainBrain.pace: slower to skills and to go in)
+## with this much more health: a longer fight that's easier to start.
+const WALK_FROM := 45.0
+const COME_GIVE_UP := 30.0
+const PACE := 1.6
+const HP_K := 1.6
 
 var crew_id := ""
 var rivals: Array = []          # Player (AI), the captain last
@@ -42,6 +49,10 @@ var _t := 0.0
 var _hp_seen := {}
 var _casts_seen := {}
 var _leave_t := 0.0
+## The captain they came for.
+var _near: Player
+## Tests of the meeting and the fights: false turns them up ARRIVE_AT off and starts at once (no walk in).
+static var walk_in := true
 
 
 ## The host's start of a crew's visit near `near` (null if the crew's unknown or one's already here): they come
@@ -110,7 +121,14 @@ func _arrive(near: Player, from: Vector3) -> void:
 	fwd.y = 0.0
 	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
 	var side := fwd.cross(Vector3.UP).normalized()
+	# (1.26) they turn up well off, on dry ground their way (the dock's side), and walk in
 	var centre := near.global_position + fwd * (9.0 if ambush else ARRIVE_AT)
+	for d in ([WALK_FROM, WALK_FROM * 0.75, WALK_FROM * 0.5] if walk_in else []):
+		var g := _ground_at(near.global_position + fwd * d, near.global_position.y)
+		if g != Vector3.INF:
+			centre = g
+			break
+	_near = near
 	var parent := near.get_parent()
 	var net := get_node("/root/Net")
 	var yaw := atan2(fwd.x, fwd.z) + PI
@@ -118,15 +136,20 @@ func _arrive(near: Player, from: Vector3) -> void:
 		var m: Dictionary = info[i]
 		# the captain in the middle, a step ahead; the mates spread either side
 		var slot := 0.0 if m["captain"] else (float(i / 2 + 1) * 2.2 * (1.0 if i % 2 == 0 else -1.0))
-		var at := centre + side * slot - (fwd * 1.0 if m["captain"] else Vector3.ZERO) + Vector3.UP * 0.5
+		var at := centre + side * slot - (fwd * 1.0 if m["captain"] else Vector3.ZERO)
+		var g := _ground_at(at, centre.y)
+		at = (g if g != Vector3.INF else at) + Vector3.UP * 0.5
 		var rname := "Rival_%s_%d" % [crew_id, i]
 		net.everyone("_all_spawn_rival", [net.key_of(parent), rname, m["look"], m["weapon"], at, yaw, float(m["skill"])])
 		var r := parent.get_node_or_null(rname) as Player
 		if r == null:
 			continue
 		var brain = r.get_node("Brain")
-		brain.order = "hold"
-		var k := (1.0 + 0.15 * tier) * (1.8 if m["captain"] else 1.0)
+		brain.order = "come"
+		brain.target = near
+		brain.come_r = 9.0 if ambush else ARRIVE_AT
+		brain.pace = PACE
+		var k := (1.0 + 0.15 * tier) * HP_K * (1.8 if m["captain"] else 1.0)
 		r.hp_k = k
 		if not m["captain"]:
 			r.poise = Poise.make("elite")
@@ -135,6 +158,22 @@ func _arrive(near: Player, from: Vector3) -> void:
 		r.defeated.connect(_on_defeated.bind(r))
 		rivals.append(r)
 	rec["met"] = int(rec["met"]) + 1
+	phase = "come"
+	_t = 0.0
+	if not walk_in:
+		phase = "meet"
+		_begin()
+
+
+## (1.26) Walked in (or COME_GIVE_UP passed): the meeting, or an ambush's shout, and the fight.
+func _begin() -> void:
+	for r in rivals:
+		if is_instance_valid(r):
+			r.get_node("Brain").order = "hold"
+	var near := _near if is_instance_valid(_near) else get_tree().get_first_node_in_group("player") as Player
+	var net := get_node("/root/Net")
+	var rec := record()
+	var tier := maxi(int(rec["met"]) - 1, Bounty.tier_of(int(near.bounty)))
 	if ambush:
 		# no meeting: a shout, and they're on you
 		phase = "fight"
@@ -309,6 +348,16 @@ func _corner_spots(lead: Player, centre: Vector3, n: int) -> Array:
 	return out
 
 
+## Dry ground under `at` (a ray down from well above `y`), or INF: water, or nothing there.
+func _ground_at(at: Vector3, y: float) -> Vector3:
+	var space := get_viewport().get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(Vector3(at.x, y + 25.0, at.z), Vector3(at.x, y - 25.0, at.z), 1)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or float(hit["position"].y) < 0.4:
+		return Vector3.INF
+	return hit["position"]
+
+
 ## Solid ground under `at` within a couple of metres of `y` (the fight's footing), and room to stand and sit there
 ## (nothing within a stride of a body: crates, barrels, walls, trees).
 func _ground_ok(at: Vector3, y: float) -> bool:
@@ -329,6 +378,13 @@ func _ground_ok(at: Vector3, y: float) -> bool:
 func _physics_process(delta: float) -> void:
 	_t += delta
 	match phase:
+		"come":
+			var lead: Player = rivals[-1] if not rivals.is_empty() and is_instance_valid(rivals[-1]) else null
+			var near := _near if is_instance_valid(_near) else null
+			if lead == null or near == null or _t > COME_GIVE_UP \
+					or lead.global_position.distance_to(near.global_position) < float(lead.get_node("Brain").come_r) + 2.0:
+				phase = "meet"
+				_begin()
 		"fight":
 			_fight_tick(delta)
 		"retreat", "plunder":

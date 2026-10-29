@@ -637,3 +637,7 @@ scripts/props/weapon_designs.gd         t/gear/skins
 scripts/loot/gear_icons.gd              t/gear/skins
 scripts/npc/body_builder.gd             t/gear/skins cliptest
 scripts/ship/admiralty.gd               t/ship/admiralty_hunt t/ship/hunt_holds t/ship/admiralty_ring
+scripts/ai/rival_encounter.gd           t/combat/rival_walk_in
+scripts/ai/captain_brain.gd             t/combat/rival_walk_in
+scripts/combat/poise.gd                 t/combat/player_poise t/combat/poise_knockdown
+scenes/player/player.gd                 t/combat/player_poise

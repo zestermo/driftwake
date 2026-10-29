@@ -794,6 +794,15 @@ func everyone(method: String, args: Array = []) -> void:
 			_allr.rpc_id(id, time(), method, args)
 
 
+## A banner on every captain's screen (HUD.show_banner).
+func banner(title: String, text: String, urgent := false) -> void:
+	everyone("_all_banner", [title, text, urgent])
+
+
+func _all_banner(title: String, text: String, urgent: bool) -> void:
+	get_tree().call_group("hud", "show_banner", title, text, urgent)
+
+
 ## A Will path's doing on every machine (WillPowers.all).
 func _all_will(op: String, args: Array) -> void:
 	WillPowers.all(op, args)

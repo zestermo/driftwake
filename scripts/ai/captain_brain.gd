@@ -11,6 +11,9 @@ extends Node
 
 ## 0 = a rookie, 1 = a captain at their best.
 @export var skill := 0.5
+## (1.26) Over 1: a slower, more deliberate fighter: longer between skills, longer sizing the foe up before going in,
+## sprinting only from further off. The crew fights (RivalEncounter) set it; duels keep 1.
+var pace := 1.0
 
 var p: Player
 var foe: Node3D
@@ -36,8 +39,10 @@ var answers := {}
 var casts := 0
 ## Orders from a crew fight (RivalEncounter): "fight" (its foe: `target`, or the nearest captain), "watch" (ring the
 ## duel `watch_r` m from `watch_center`, facing it, no blows), "rest" (a waiting crewmate: walk to `rest_at`, settle
-## facing `look_node` and keep at `activity`, the head on the fight), "flee" (sprint for `flee_to`), "hold" (stand).
+## facing `look_node` and keep at `activity`, the head on the fight), "flee" (sprint for `flee_to`), "hold" (stand),
+## "come" (1.26: walk up to `target`, weapon away, and stop `come_r` m off: an encounter walking in).
 var order := "fight"
+var come_r := 12.0
 var target: Node3D
 var watch_center: Node3D
 var watch_r := 9.0
@@ -119,6 +124,9 @@ func _physics_process(_d: float) -> void:
 		"rest":
 			_rest(bi)
 			return
+		"come":
+			_come(bi)
+			return
 	foe = target if target and is_instance_valid(target) and _standing(target) else _pick_foe()
 	if foe == null:
 		return
@@ -163,6 +171,20 @@ func _watch(bi: CaptainInput.BrainInput) -> void:
 	var d := off.length()
 	var radial := clampf((d - watch_r) / 3.0, -1.0, 1.0)   # + = too far: in (stick forward faces the foe)
 	bi.move = Vector2(_strafe * 0.35, -radial).limit_length(1.0)
+
+
+## Walking in to `target` (weapon away), stopping come_r m off and facing it.
+func _come(bi: CaptainInput.BrainInput) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var to := target.global_position - p.global_position
+	to.y = 0.0
+	if to.length() > 0.01:
+		bi.yaw = atan2(-to.x, -to.z)
+	if p.armed and p.is_free():
+		p.toggle_weapon()
+	if to.length() > come_r:
+		bi.move = Vector2(0, -1)
 
 
 ## Waiting its turn: to its spot, then settled at its activity, facing the fight.
@@ -352,7 +374,7 @@ func _defend(bi: CaptainInput.BrainInput, dist: float) -> bool:
 func _cast(dist: float) -> bool:
 	if _now() < _skill_at or not p.is_free() or dist > 9.0:
 		return false
-	_skill_at = _now() + _ticks(rng.randf_range(lerpf(5.0, 2.0, skill), lerpf(9.0, 4.0, skill)))
+	_skill_at = _now() + _ticks(rng.randf_range(lerpf(5.0, 2.0, skill), lerpf(9.0, 4.0, skill)) * pace)
 	var opening := _foe_state_name() in OPENINGS or _foe_recovering()
 	if opening and p.power.can_cast(PowerComponent.ULT) == "" and p.power.try_cast(PowerComponent.ULT):
 		casts += 1
@@ -390,12 +412,12 @@ func _move_and_swing(bi: CaptainInput.BrainInput, dist: float) -> void:
 	if dist > r + 0.6:
 		mode = "approach"
 		bi.move = Vector2(0, -1)
-		bi.hold("sprint", dist > SPRINT_FROM)
+		bi.hold("sprint", dist > SPRINT_FROM * pace)
 		return
 	# at reach: circle a moment, then go in (sooner the sharper it is, and at once on an opening)
 	if mode != "circle":
 		mode = "circle"
-		_until = _now() + _ticks(rng.randf_range(lerpf(1.4, 0.6, skill), lerpf(2.6, 1.3, skill)))
+		_until = _now() + _ticks(rng.randf_range(lerpf(1.4, 0.6, skill), lerpf(2.6, 1.3, skill)) * pace)
 	var opening := _foe_recovering()
 	if _now() >= _until or opening:
 		_combo_left = rng.randi_range(2, 3 + int(skill * 2.0))
