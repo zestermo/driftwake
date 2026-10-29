@@ -127,7 +127,7 @@ static func _walk(s, delta: float, k: float) -> void:
 static func _done(s) -> void:
 	var p: Player = s.player
 	if s.input_buffer.consume_action("light_attack") and not p.reloading() and p.ammo[0] > 0:
-		shoot_enter(s)
+		GunKinds.art(p.style()).shoot_enter(s)  # (the sling and cannon end here too: their own shot, not the long gun's)
 		s.timer = 0.0
 		return
 	var next: String = s.combat_input()

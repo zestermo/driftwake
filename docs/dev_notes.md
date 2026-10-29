@@ -7943,3 +7943,16 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - Options: Vsync, a frame cap (0 = none, 30-step slider), Reduce flashing (screen flashes x0.33, calmer Edy arcs).
   PSXSettings._apply_frames applies vsync/max_fps (skipped on tool runs).
 - Test: t/progression/save_backups.
+
+## 2026-10-29: 1.26 playtest fixes (guns, AI popups)
+- **AI captains' progression stays theirs:** Progression._mine() (local, not is_ai) gates every HUD call, the level-up
+  sound and SaveGame.save; a rival's tree finds showed "Added to COMBAT" cards on the player's screen. t/progression/ai_quiet.
+- **Gun sprint attacks:** Move's exit cleared `sprinting` before ShootState entered, so Cannon Ram, Skid Shot and Stock
+  Rush never played in a game (the tests set sprinting from Idle). combat_input carries it in `quick_draw`; the arts read
+  and clear it. t/weapons/gun_sprint sprints for real through Move.
+- **The slingshot stall:** a shot queued during a shot re-entered through LongGunArts._done, which called the long gun's
+  shoot_enter: it spent a load and started a long-gun reload. _done now calls the weapon's own art. t/weapons/sling_rapid
+  mashes for 4 s (1 stone before the fix, 11 after).
+- **Cannon:** a plain shot staggers and drains poise (HEAVY), flooring only point-blank (CLOSE_DOWN 4 m); creatures and
+  bugs knocked down on any knockdown-flagged hit. Techniques, the ram and the leap still floor. Canister Shot: 18 balls,
+  0.62 rad, 14 m, sparks across the cone. FX.cannon_blast smoke 9 puffs / 2 s -> 5 / 1.5 s.
