@@ -98,6 +98,9 @@ What he asked for:
 |---|---|---|---|
 | Edy tree shape | **Not decided:** iterate on the mock with Zach first | Feel systems get a preview first | After the mock is OK'd |
 | Edy type looks | A pass after the tree; the mock sketches the five current looks on a kicking leg as a starting point | Zach: the types and looks aren't what he wants yet | Next round |
+| Tree shape (v2 mock) | A round constellation with the Edy core (the type's edge, free) in the middle and seven branches round it. Each branch splits into two paths that meet again. Shared **bridge nodes** sit between neighbours (a stat inside, a passive further out), reachable from either side. Learn anything linked to what you own | Zach: a big circular branching map, not so linear | Mock review |
+| Switching passives off | Every always-on passive has an on/off switch (Wave Walk, Second Step, Foresight...) | Zach | - |
+| Weapon effects take the Edy look | Weapon techniques, ultimates and later the plain attacks use the captain's Edy type for their effects (Storm: lightning and crackle; Ember: fire; ...), in place of each weapon's own colours (FX.TREE_FX). **Assumed:** (1) before Hana reads your Edy, weapons use a plain steel-white look; (2) techniques and ultimates have it from the start, and plain attacks gain it as weapon mastery rises (finishers first, then every blow): numbers in the preview; (3) only the look moves to the Edy, and each weapon keeps its own mastery levels, techniques and alternates | Zach: "if I was the storm edy type, my abilities, and then later attacks should have cool lightning/storm crackling effects" | With the Edy looks pass |
 
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
