@@ -7634,3 +7634,11 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   gets it wherever they are (`Net._all_xp` checks distance <= reach). Ordinary kills keep XP_RANGE 40 m.
 - `QuestRewards.give` (each captain's own share, on their machine) adds XP_SHARE 0.25 of the captain's next level
   (`xp_for`); `text()` lists "experience". Tests: `t/progression/crew_xp`; `t/quests/reward_kinds` flipped.
+
+## 1.26.1, piece 7: Infuse in the kicking stance goes to the legs (2026-10-29)
+- `EdyAura` part "legs" (RANK 0 like "arms"): LEG_CARD (0.55 x 0.85) flame cards ("EdyFoot") on shin_r/shin_l from the
+  knee down past the foot. No rim shell: the legs are one skinned surface with the body (LowerBody), so there's no
+  shin mesh to rim. `SkillState` "armament_coat" asks for "legs" when `player.style() == "black_leg"`.
+- `Player.update_coat_visual`: the kicking stance keeps its arms (no black sheen); the coat's sparkles crawl over the
+  shins and feet instead of the hands. Render: abilityshot armament_coat black_leg (flames at the feet, arms clean).
+- Test: `t/will/infuse_legs`.

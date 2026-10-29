@@ -9,7 +9,8 @@ extends Node
 ##   ground  a disc underfoot in the type's shape (shaders/psx/edy_ground.gdshader): it sits on the ground, not on the
 ##           captain: when their feet leave it, it lingers where they stood for a moment and fades; it comes back when
 ##           they land
-## Parts: "arms" (Infuse: the rim on the forearms, hands and what's held), "body" (a big Edy move's flare: rim and
+## Parts: "arms" (Infuse: the rim on the forearms, hands and what's held), "legs" (1.26: Infuse in the kicking stance: the
+## rim on the shins and feet, tongues off the feet), "body" (a big Edy move's flare: rim and
 ## flame), "reinforce" (rim, flame and ground). Shown on every screen through FX.edy_aura (Net.fx). A second call on a
 ## body with one running extends it and widens it to the bigger part. `flash_on` brightens it for a moment (Reinforce
 ## shrugging off a blow). A draw per shell and two cards while it lasts; the CPU only fades it. Sound: a held aura
@@ -20,7 +21,7 @@ const RIM := preload("res://shaders/psx/edy_aura.gdshader")
 const FLAME := preload("res://shaders/psx/edy_flame.gdshader")
 const GROUND := preload("res://shaders/psx/edy_ground.gdshader")
 const LOOKS := {"haze": 0, "crackle": 1, "shimmer": 2, "lightning": 3, "swirl": 4}
-const RANK := {"arms": 0, "body": 1, "reinforce": 2}
+const RANK := {"arms": 0, "legs": 0, "body": 1, "reinforce": 2}
 const FADE_IN := 0.18
 const FADE_OUT := 0.45
 const FLASH_DECAY := 3.0
@@ -28,6 +29,8 @@ const FLASH_DECAY := 3.0
 const CARD := Vector2(1.7, 3.0)
 ## Infuse's flames off each hand (and the blade in it).
 const HAND_CARD := Vector2(0.55, 0.9)
+## (1.26) The kicking stance's: a lick from the knee down past the foot.
+const LEG_CARD := Vector2(0.55, 0.85)
 const DISC := 1.5
 ## A held aura hums; shorter ones are flares and whoosh.
 const HUM_MIN := 3.0
@@ -152,6 +155,17 @@ func _build(body: Node3D) -> void:
 				hq.center_offset = Vector3(0, HAND_CARD.y * 0.5 - 0.25, 0)
 				_card(h, hq, _hand, "EdyHand")
 		return
+	if part == "legs":
+		# Infuse in the kicking stance: tongues from the knee down past the foot (the legs are one skinned body with
+		# the rest, so there's no shin mesh to rim: the cards carry it)
+		for k in ["shin_r", "shin_l"]:
+			var sh = body.get(k)
+			if sh is Node3D:
+				var fq := QuadMesh.new()
+				fq.size = LEG_CARD
+				fq.center_offset = Vector3(0, LEG_CARD.y * 0.5 - 0.6, 0)
+				_card(sh, fq, _hand, "EdyFoot")
+		return
 	var q := QuadMesh.new()
 	q.size = CARD
 	q.center_offset = Vector3(0, CARD.y * 0.5 - 0.15, 0)
@@ -204,6 +218,12 @@ func _meshes(body: Node3D) -> Array[MeshInstance3D]:
 		var torso = body.get("torso")
 		if torso is Node3D and (torso as Node3D).get_node_or_null("ArmBody") is MeshInstance3D:
 			out.append((torso as Node3D).get_node("ArmBody"))
+	elif part == "legs":
+		roots = []
+		for k in ["shin_r", "shin_l"]:
+			var b = body.get(k)
+			if b is Node3D:
+				roots.append(b)
 	for r in roots:
 		if r is MeshInstance3D and not str(r.name).begins_with("Edy"):
 			out.append(r)

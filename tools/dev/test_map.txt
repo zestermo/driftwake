@@ -644,3 +644,5 @@ scenes/player/player.gd                 t/combat/player_poise
 scripts/enemies/fauna/creature.gd       t/combat/creature_tell
 scripts/enemies/scuttlebug.gd           t/combat/creature_tell
 scripts/quests/quest_rewards.gd         t/progression/crew_xp t/quests/reward_kinds
+scripts/powers/edy_aura.gd              t/will/infuse_legs
+scripts/player_states/skill_state.gd    t/will/infuse_legs

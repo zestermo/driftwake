@@ -986,7 +986,12 @@ func _tick_body(delta: float) -> void:
 		if _coat_fx <= 0.0:
 			_coat_fx = 0.12
 			var hand: Node3D = body_model.hand_r if randf() < 0.6 or weapon_class() not in ["fist", "claw"] else body_model.hand_l
-			Net.fx("sparkle", [hand.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, progression.will_tint().lightened(0.25)])
+			var at := hand.global_position
+			if style() == "black_leg":
+				# (1.26: the kicking stance's Edy is in the feet)
+				var shin: Node3D = body_model.shin_r if randf() < 0.5 else body_model.shin_l
+				at = shin.global_position - shin.global_basis.y.normalized() * randf_range(0.2, 0.45)
+			Net.fx("sparkle", [at + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, progression.will_tint().lightened(0.25)])
 	# buffs that change speed come and go
 	var buff_key := "%s|%s|%s" % [power.buff("howl"), power.buff("tekkai"), power.buff("reinforce")]
 	if buff_key != _buff_key:
@@ -1026,6 +1031,11 @@ func update_coat_visual() -> void:
 	var bones: Array = [body_model.arm_r, body_model.fore_r]
 	if both:
 		bones.append_array([body_model.arm_l, body_model.fore_l])
+	# (1.26) the kicking stance keeps its arms: its Edy is in the legs (EdyAura "legs")
+	var kicking := on and style() == "black_leg"
+	if kicking:
+		skin = null
+		bones = []
 	for side in [[body_model.arm_r, body_model.fore_r], [body_model.arm_l, body_model.fore_l]]:
 		for bone in side:
 			for c in (bone as Node3D).get_children():
