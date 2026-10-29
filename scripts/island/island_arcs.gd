@@ -168,7 +168,7 @@ const TEMPLATES := {
 				"Of course, reports can be... adjusted. Everything has a price on this island. What's yours?"],
 			"replies": [
 				{"tone": "diplomatic", "text": "Two hundred gold, and you look away.", "cost": 200, "answer": "Pleasure doing business. The outpost saw nothing.", "out": ["pay:200", "settle"]},
-				{"tone": "cool", "text": "I know what's in your ledger. So will everyone.", "answer": "You little... Marines! Arrest them!", "out": ["fight"]},
+				{"tone": "cool", "text": "I know what's in your ledger. So will everyone.", "answer": "You little... Guards! Arrest them!", "out": ["fight"]},
 				{"tone": "cocky", "text": "My price is your hat. With your head still in it.", "answer": "Insolence! Cut them down!", "out": ["fight"]},
 			],
 			"default": 1},
@@ -295,7 +295,7 @@ const TEMPLATES := {
 			"lines": ["So the rabble found a pirate to hide behind.", "Lay down those muskets, all of you, and I'll only hang the pirate."],
 			"replies": [
 				{"tone": "cocky", "text": "Come and take them.", "answer": "Fire! Fire at will!", "out": ["fight"]},
-				{"tone": "cool", "text": "{village} is free. Leave.", "answer": "Free? I'll show you free. Marines!", "out": ["fight"]},
+				{"tone": "cool", "text": "{village} is free. Leave.", "answer": "Free? I'll show you free. Guards!", "out": ["fight"]},
 				{"tone": "diplomatic", "text": "Leave now and nobody dies today.", "answer": "Generous. And foolish. Take them!", "out": ["fight"]},
 			],
 			"default": 1},

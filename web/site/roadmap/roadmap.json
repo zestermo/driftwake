@@ -766,7 +766,7 @@
 			"name": "Bounties and Beasts",
 			"date": "2026-10-26",
 			"status": "shipped",
-			"headline": "The playtest pass: poise and juggles instead of knockdown spam, beast bosses that escalate, a bounty you can see, Marine outposts and livelier villages.",
+			"headline": "The playtest pass: poise and juggles instead of knockdown spam, beast bosses that escalate, a bounty you can see, Admiralty outposts and livelier villages.",
 			"img": "clips/combo",
 			"alt": "A twin-dagger combo in a jungle clearing (current build)",
 			"news": "/news/v1-23-bounties-and-beasts/",
@@ -774,7 +774,7 @@
 			"added": [
 				["Combat core", "Poise, launchers and air-step juggles; grunts that stop spamming block."],
 				["Beast bosses", "Three phases that escalate, breakable parts, roamers with a temper."],
-				["Wanted", "Your poster, a bounty log and heat; Marine outposts to raid."],
+				["Wanted", "Your poster, a bounty log and heat; Admiralty outposts to raid."],
 				["Villages and the ship", "Vendors, a tea-house master, a galley table, ship storage tabs, a tutorial."]
 			]
 		},

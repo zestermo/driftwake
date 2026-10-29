@@ -192,7 +192,7 @@ The playtest pass. Combat runs on poise: hits wear it down and a break staggers 
 not spammed; launchers and the air-step chase make juggles; grunts block about a quarter of front hits instead of
 holding guard. Black leg's Cartwheel Crescent and Mule Kick are replaced and Flambe Dash is shorter. The Silverback,
 Sand King and Bear King escalate over three phases with new moves, part breaks and a phase-change moment; roamers
-are fewer, each with a temper. Your bounty shows: a Wanted poster and log, heat that brings hunters, enemy ships that chase and ram, Admiralty blockades, Marine outposts
+are fewer, each with a temper. Your bounty shows: a Wanted poster and log, heat that brings hunters, enemy ships that chase and ram, Admiralty blockades, Admiralty outposts
 to raid. Villages get vendors (tailor, smith, armourer, luthier, apothecary), market shapes and quest markers; the
 tea house's master teaches black leg. A galley table for meals, ship storage with personal and shared tabs, rest and
 respec at any bunk or inn. Cutscenes wait for you and take replies; Vey's drills and a menu walkthrough teach the
@@ -659,7 +659,7 @@ for a properly fun, replayable game.
 - **The sea:** the sloop, swimming, and the PSX renderer.
 
 ### v0.1: Prototype (April 2026)
-- The first prototype, "Grand Line Prototype": procedural islands, an ocean, sword combat,
+- The first prototype, "First Sea Prototype": procedural islands, an ocean, sword combat,
   a ship and loot banking.
 
 ## Coming next
