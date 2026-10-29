@@ -1,8 +1,8 @@
 class_name EdyTypes
 extends RefCounted
 ## Edy (1.24.1, docs/edy_plan.md): Driftwake's own word for the inner force the Will paths train (from an eddy: the water
-## swirling round on itself). Every captain is attuned to one type of Edy, read by a master's questions (Hana at
-## Brinehollow's teahouse the first time; Ilse Varro on the capital's terrace re-reads it for gold). The type is the
+## swirling round on itself). Every captain is attuned to one type of Edy, read by a master's questions (Master Isao at
+## Brinehollow's shrine the first time; Ilse Varro on the capital's terrace re-reads it for gold). The type is the
 ## colour and shape of everything their Edy does, and a small edge for one way of fighting. Saved as
 ## Progression.will_color (the type's id; "" until read). Edy points are WillPaths' "will" pool.
 

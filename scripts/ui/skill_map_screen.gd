@@ -1597,7 +1597,7 @@ func _draw_will_card(panel: Rect2, nid: String) -> void:
 	var cy := panel.end.y - 30.0
 	draw_rect(Rect2(x, cy - 6.0, w, 1), UIStyle.BORDER_DIM)
 	if p.will_color == "":
-		_lines(Vector2(x, cy + 3.0), "Your Edy isn't read yet. Hana at Brinehollow's teahouse can read it.", w, UIStyle.CORAL.darkened(0.35), 9.0, 2)
+		_lines(Vector2(x, cy + 3.0), "Your Edy isn't read yet. Master Isao at Brinehollow's shrine can read it.", w, UIStyle.CORAL.darkened(0.35), 9.0, 2)
 	else:
 		var et := EdyTypes.info(p.will_color)
 		var sw := Rect2(x, cy, 14, 14)

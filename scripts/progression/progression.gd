@@ -181,8 +181,15 @@ func attune(id: String) -> bool:
 	changed.emit()
 	if player and player.is_inside_tree():
 		EdyTypes.burst(player, 1.4)
-		get_tree().call_group("hud", "show_banner", "%s Edy" % EdyTypes.name_of(id), str(EdyTypes.info(id)["says"]), true)
+		if _mine():
+			get_tree().call_group("hud", "show_banner", "%s Edy" % EdyTypes.name_of(id), str(EdyTypes.info(id)["says"]), true)
 	return true
+
+
+## This screen's own captain: not a co-op puppet and not an AI captain (a rival, an officer), whose level-ups, trees
+## and Edy run the same code and must never reach this player's HUD or save.
+func _mine() -> bool:
+	return player != null and player.is_local and not player.is_ai and is_inside_tree()
 
 
 func _physics_process(delta: float) -> void:
@@ -261,6 +268,7 @@ func _on_level_up() -> void:
 		player.power.energy = player.power.max_energy()
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 24, Color(1.0, 0.92, 0.5)])
 		Net.fx("dust_ring", [player.global_position, 14, 0.9])
+	if _mine():
 		UIStyle.sfx("level_up")
 		var sub := "Stronger: more health, damage, stamina, energy and defense"
 		if not got.is_empty():
@@ -310,9 +318,9 @@ func will_deed(kind: String, k: float = 1.0) -> void:
 func will_point(n: int, why: String) -> void:
 	will_earned += n
 	_dirty()
-	if player and player.is_local and is_inside_tree():
+	if _mine():
 		if will_color == "":
-			get_tree().call_group("hud", "show_toast", "+%d Edy (%s)  -  Hana at Brinehollow's teahouse can read it" % [n, why])
+			get_tree().call_group("hud", "show_toast", "+%d Edy (%s)  -  Master Isao at Brinehollow's shrine can read it" % [n, why])
 		else:
 			get_tree().call_group("hud", "show_toast", "+%d Edy (%s)  -  %d to spend  (K: Captain)" % [n, why, pool("will")])
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, will_tint()])
@@ -517,7 +525,7 @@ func _find(tree: String) -> void:
 	found[tree] = true
 	_rev += 1
 	tree_found.emit(tree)
-	if player and player.is_local and is_inside_tree():
+	if _mine():
 		get_tree().call_group("hud", "show_new_tree", tree_name(tree), "Added to %s" % SkillTrees.section_of(tree).to_upper())
 
 
@@ -1107,7 +1115,8 @@ func _tick_meal(delta: float) -> void:
 	meal_left = 0.0
 	player.call("_recalc_stats")
 	meal_changed.emit()
-	get_tree().call_group("hud", "show_toast", "Your meal's worn off")
+	if _mine():
+		get_tree().call_group("hud", "show_toast", "Your meal's worn off")
 
 
 var _stats: Dictionary = {}

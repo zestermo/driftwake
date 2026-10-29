@@ -157,7 +157,7 @@ static func why(pr, id: String) -> String:
 	if pr.bought.has(id):
 		return "Learned"
 	if str(pr.will_color) == "":
-		return "Your Edy isn't read yet: see Hana at Brinehollow's teahouse"
+		return "Your Edy isn't read yet: see Master Isao at Brinehollow's shrine"
 	var path := str(n["path"])
 	var pw := path_why(pr, path)
 	if pw != "":

@@ -86,7 +86,7 @@ static func cast() -> Array:
 		# 1.24.1: the Edy reader (EdyTypes): re-reads a captain's Edy for EdyTypes.REREAD_GOLD
 		{"name": "Ilse Varro", "spot": "noble3", "voice": 1.05, "dialogue": "reader", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
 			"coat_color": Color(0.16, 0.3, 0.36), "trim_color": GOLD, "hat": "none"},
-			"barks": ["Everyone's Edy runs one way. Some run the wrong way for years and never ask.", "Hana Teal reads well. Quickly. Sometimes too quickly."]},
+			"barks": ["Everyone's Edy runs one way. Some run the wrong way for years and never ask.", "Isao reads well. Slowly. Sometimes too slowly."]},
 		{"name": "Guard Ellery", "spot": "terrace_guard", "voice": 0.9, "look": GUARD, "barks": ["The terrace is open to all, Captain. Behave as though it weren't.", "Keep to the paths. The duchess counts her roses."]},
 		# 1.21: the palace
 		{"name": "Queen Ilsabet", "spot": "queen", "voice": 1.0, "dialogue": "queen", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
@@ -354,7 +354,7 @@ func _talk_docks(manifest: Dictionary, invite: Dictionary) -> void:
 
 
 ## Ilse Varro on the terrace: re-reads a captain's Edy (EdyTypes) for EdyTypes.REREAD_GOLD, by the questions again or
-## a type named outright; not before Hana's first reading, nor without the gold.
+## a type named outright; not before Isao's first reading, nor without the gold.
 func _talk_reader() -> void:
 	var me := func() -> Player: return get_tree().get_first_node_in_group("player") as Player if is_inside_tree() else null
 	var unread := func(): return me.call() != null and str(me.call().progression.will_color) == ""
@@ -368,7 +368,7 @@ func _talk_reader() -> void:
 		{"text": "Good day.", "next": "end"}]}
 	var nodes := {"intro": {"text": ["Ilse Varro. I read Edy, and when it's been read wrong, I turn it.",
 		"It isn't cheap. Turning a current never is."], "next": "menu"}, "menu": menu,
-		"first": {"text": ["You haven't been read at all. Go to Hana Teal at Brinehollow first. Come to me if she got it wrong."], "next": "menu"},
+		"first": {"text": ["You haven't been read at all. Go to Master Isao at Brinehollow's shrine first. Come to me if the reading was wrong."], "next": "menu"},
 		"price": {"text": ["{edy_price} gold. Come back when you have it."], "next": "menu"},
 		"again": {"text": ["{edy_price} gold, paid when it's read. Sit. The same questions; answer them as you are now, not as you were."], "next": "rq0"},
 		"pick": {"text": "Which way should it run?", "choices": []},
