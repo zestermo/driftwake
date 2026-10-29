@@ -273,3 +273,7 @@ Dictionary/Array speed-ups (#123788, #123531), GDScript VM refcounts (#118813), 
 non-allocating physics queries (#113970), faster child removal/duplication, built-in Trail3D (#117107).
 Then export templates, installer and updater CI on 4.8. Until then stay on 4.7.x (the ENet bandwidth fix #124620 is
 backported there).
+
+## Rainy day (Zach, 2026-10-29)
+- **The internal id rename** (sea_king, devil_fruits, log_pose, haki ids -> Driftwake's own, with a save migration):
+  out of 1.26, no version yet. Display text is already renamed; only ids, file names and saves are left.

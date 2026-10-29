@@ -206,6 +206,7 @@ Built without the previews the build order asked for: each row is **assumed** un
 - **Release check still to run** (world suites, expected to need test updates for deliberate changes): storytest,
   savetest, villagetest, lifetest, isletest, chaintest/fidelity, smoketest, nettest. Then tag v1.25.2 (UNSTABLE stays).
 - **At 1.26 stable (Zach):** every Download button on the site points at Driftwake-Setup.exe (the .zip only as a small "or the .zip" link); push players to the installer.
-- **Left for 1.26:** wave-1 weapons (two ultimates, crew variants, alternates, a launcher each), the internal id rename +
+- **Left for 1.26:** wave-1 weapons (two ultimates, crew variants, alternates, a launcher each), (the internal id rename
+  moved to the rainy-day list, Zach 2026-10-29) +
   old release notes, then the other 11 weapons and 1.26 stable (delete tools/release/UNSTABLE, point the site's
   Download at Driftwake-Setup.exe).
