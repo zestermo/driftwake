@@ -299,6 +299,7 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("village", func(): KitVillage.road_lamps(kit, paths[0]))
 	_build_port()
 	kit.timed("training yard", func(): KitCamps.training_yard(kit, TRAINING))
+	kit.timed("training yard", func(): kit.place(StoryRack.build(), RACK, 0.0))
 	kit.timed("lighthouse", _build_lighthouse)
 	kit.timed("ruins", func(): KitLandmarks.ruins(kit, RUINS, kit.rng(0, SEEDS["ruins"])))
 	kit.timed("cove", _build_cove)

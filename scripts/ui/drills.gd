@@ -97,6 +97,8 @@ func _physics_process(_d: float) -> void:
 			"LightAttack":
 				if not _p.is_on_floor():
 					tick("air")
+			"Shoot":
+				tick("light")
 			"HeavyAttack":
 				tick("heavy")
 			"Dodge":

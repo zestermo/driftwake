@@ -53,6 +53,8 @@ var step: String = DONE
 ## Fights won so far (place -> true): a step whose fight you already won
 ## finishes as soon as it comes up.
 var won: Dictionary = {}
+## The kind taken down from Vey's rack and not yet kept (StoryRack: the next one taken puts it back).
+var trial := ""
 var _poll: float = 0.0
 var _island: Node
 var _bout_armed := true
@@ -102,6 +104,7 @@ func skills_open() -> bool:
 func begin() -> void:
 	step = STEPS[0]["id"]
 	won.clear()
+	trial = ""
 	_bout_armed = true
 	Dialogue.set_flag("ship_not_owned")
 	_unarm(_player())
@@ -128,15 +131,17 @@ func _unarm(p: Player) -> void:
 func reset() -> void:
 	step = DONE
 	won.clear()
+	trial = ""
 	changed.emit()
 
 
 func to_dict() -> Dictionary:
-	return {"step": step, "won": won.keys()}
+	return {"step": step, "won": won.keys(), "trial": trial}
 
 
 func from_dict(d: Dictionary) -> void:
 	step = map_old(str(d.get("step", DONE)))
+	trial = str(d.get("trial", ""))
 	won.clear()
 	for k in d.get("won", []):
 		won[str(k)] = true
