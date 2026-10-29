@@ -142,6 +142,24 @@ Today:
 | Black-leg duel | Tomo's duel moves up to the shrine terrace at the top of the long stair (open, flat flagstones), and the duel's bugs are fixed there. The shrine terrace and the buildings round it get fleshed out (more dressing, enterable rooms) | He got stuck between the teahouse-band buildings | - |
 | Edy reading | The Edy master is at the shrine (temple), not the teahouse. The reading is a **mandatory story step**: after the first fights against the pirates (the smugglers) and Vey's skill-tree step, Vey sends you up to the shrine to learn about Edy, and the master's quiz is the tutorial for it (your type, the Edy tree, what infusion is) | Edy should be learned as part of the opening | Folded into the Brinehollow step-list preview |
 
+### Build order (2026-10-29)
+
+Built here in the main session one piece at a time; each 1.26.x is tagged as an **unstable** pre-release when done,
+1.26 stable at the end. Previews come when their version is next.
+
+| Version | What | Gate |
+|---|---|---|
+| 1.26.1 | Sea/bounty pacing, Admiralty chase and false "Escaped", marine bow chasers, the 3-ship blockade, hunter arrival and balance, pirate crew balance, combat poise and knockback, enemy tells and knockback caps, co-op jail, outpost placement, XP sharing and quest XP, the infuse on the feet; the beta updater | - |
+| 1.26.2 | Compass strip, tonic flask, vendors in shops (icons, no schedules), name/line pools, the id rename and the site | - |
+| 1.26.3 | The round Edy tree and the Infusion branch | Mock OK |
+| 1.26.4 | The Brinehollow opening (unarmed start, Vey's rack, the shrine reading, Tomo on the terrace) | Step list |
+| 1.26.5 | The island loop (leads, completion reward, unique places, gossip, tavern games, pirate-held villages, rarer burrows) | Previews |
+| 1.26.6 | Wave-1 weapons (bridges, two ultimates, crew variants, alternates, launchers) | Weapon sheet |
+| 1.26.7+ | The other 11 weapons, then 1.26 stable | Weapon sheet |
+
+**Beta updates (decided):** a "Get unstable updates" setting. With it on, Updater also offers pre-releases, and CI
+builds update.json and a patch for unstable tags too (against the same base). Off by default.
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.
