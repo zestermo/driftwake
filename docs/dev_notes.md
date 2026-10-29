@@ -7628,3 +7628,9 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
   bosses already telegraph with FX.telegraph. Repeated knockdowns from any enemy are capped on the captain's side
   (the player poise's 4 s grace, piece 4).
 - Test: `t/combat/creature_tell` (wolves: 17 of 17 tells glowed).
+
+## 1.26.1, piece 6: XP for the whole crew, and from quests (2026-10-29)
+- Bosses (jungle beasts, the ape, the brood queen, pirate bosses, the Leviathan) award XP with reach INF: every captain
+  gets it wherever they are (`Net._all_xp` checks distance <= reach). Ordinary kills keep XP_RANGE 40 m.
+- `QuestRewards.give` (each captain's own share, on their machine) adds XP_SHARE 0.25 of the captain's next level
+  (`xp_for`); `text()` lists "experience". Tests: `t/progression/crew_xp`; `t/quests/reward_kinds` flipped.

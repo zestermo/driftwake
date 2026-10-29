@@ -649,7 +649,7 @@ func _die() -> void:
 	_dead_t = 0.0
 	_jaw_open = 1.0
 	hurtbox.set_deferred("monitorable", false)
-	Net.award_xp(400, _head.global_position, 120.0)
+	Net.award_xp(400, _head.global_position, INF)
 	Net.bounty("leviathan", _head.global_position, 120.0)
 	_dead_fx()
 	Net.event(self, "dead", [])

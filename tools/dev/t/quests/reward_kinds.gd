@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 			check("a charted place is found for the crew, wherever they stand", gm.charted.has("spot:isle77:place3"))
 			check("...and the fog round it lifted", gm.fog.has("isle77") and (gm.fog["isle77"] as PackedByteArray).size() == 900
 				and gm.fog["isle77"][6] == 255 and gm.fog["isle77"][8] == 0)
-			check("no XP from any of it", p.progression.xp == xp0)
+			check("XP from it too (1.26: a quarter level a quest)", p.progression.xp > xp0 or p.progression.level > 1)
 			SHOPS.extra["t_shop"] = {"name": "Test Goods", "line": "Hm.", "trade": "grocer", "stock": [["rum", 1]], "buys": {}}
 			SHOPS.extra["t_other"] = {"name": "Other Goods", "line": "Hm.", "trade": "grocer", "stock": [["rum", 1]], "buys": {}}
 			j.apply("done", ["t_deal", here, 1, []])

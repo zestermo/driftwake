@@ -1,6 +1,6 @@
 class_name QuestRewards
 extends RefCounted
-## What a quest pays (never XP: that comes from fighting and discovering). A reward is data:
+## What a quest pays (1.26: XP too, XP_SHARE of a level each). A reward is data:
 ## {"gold": n, "items": [[item id, n]], "reveal": true (a treasure map: an X on the sea chart),
 ##  "chart": true (a place on the island the crew hasn't found, put on the held map: Journal picks it),
 ##  "recipe": meal id (Food.teach), "discount": [shop id, fraction, shop name], "favour": {"who": name, "gift": [[item id, n]]}}.
@@ -9,6 +9,9 @@ extends RefCounted
 
 ## Gold instead of a map once every treasure's map is in hand (or a recipe already known).
 const MAP_GOLD := 30
+## (1.26, docs/v1_26_plan.md "XP in co-op": quests are worth XP now) Each captain's share: this much of their own
+## next level, to every captain in the crew wherever they are.
+const XP_SHARE := 0.25
 
 
 static func text(r: Dictionary) -> String:
@@ -27,6 +30,7 @@ static func text(r: Dictionary) -> String:
 		out.append("%d%% off at %s" % [roundi(float(r["discount"][1]) * 100.0), str(r["discount"][2])])
 	if r.has("favour"):
 		out.append("a favour from %s" % str(r["favour"]["who"]))
+	out.append("experience")
 	return ", ".join(out)
 
 
@@ -58,7 +62,18 @@ static func give(r: Dictionary, p: Player) -> String:
 	for e in r.get("items", []):
 		inv.add_item(ItemDB.get_item(str(e[0])), int(e[1]))
 		got.append(_item_text(e))
+	var xp := xp_for(p)
+	if xp > 0:
+		p.progression.add_xp(xp)
+		got.append("%d XP" % xp)
 	return ", ".join(got)
+
+
+## A quest's XP for captain `p`: XP_SHARE of their next level.
+static func xp_for(p: Player) -> int:
+	if p == null or p.progression == null:
+		return 0
+	return roundi(float(p.progression.get_script().xp_to_next(int(p.progression.level))) * XP_SHARE)
 
 
 ## Items handed over at a turn-in (a fetch quest's), out of `p`'s bag; false if they're short.

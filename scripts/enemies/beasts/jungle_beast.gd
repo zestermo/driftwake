@@ -835,7 +835,8 @@ func _on_died() -> void:
 	_on_die()
 	Net.event(self, "die", [])
 	Net.coins(global_position + Vector3(0, 1.5, 0), roundi(_coins_base() * Levels.coins_k(level)))
-	Net.award_xp(roundi(_xp_base() * Levels.xp_k(level)), global_position + Vector3(0, 3.0, 0), 70.0)
+	# (1.26: a boss is the whole crew's, wherever they are)
+	Net.award_xp(roundi(_xp_base() * Levels.xp_k(level)), global_position + Vector3(0, 3.0, 0), INF)
 	Net.bounty("boss", global_position, 70.0, 1.0 if is_in_group("bosses") else 0.4)   # (a miniboss, the roamer: less)
 	died.emit(self)
 

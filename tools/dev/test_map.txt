@@ -643,3 +643,4 @@ scripts/combat/poise.gd                 t/combat/player_poise t/combat/poise_kno
 scenes/player/player.gd                 t/combat/player_poise
 scripts/enemies/fauna/creature.gd       t/combat/creature_tell
 scripts/enemies/scuttlebug.gd           t/combat/creature_tell
+scripts/quests/quest_rewards.gd         t/progression/crew_xp t/quests/reward_kinds
