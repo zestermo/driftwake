@@ -72,7 +72,9 @@ static func _gen(isl: GenIsland) -> Dictionary:
 	var spots: Array = []
 	for s in SITES.keys():
 		if isl.sites.has(s):
-			spots.append({"id": "site_" + s, "kind": SITES[s][0], "name": SITES[s][1], "at": isl.sites[s], "r": FIND_R + 8.0})
+			var held: bool = s == "lair" and IslandContent.lair_kind(isl) != "burrows"
+			spots.append({"id": "site_" + s, "kind": "camp" if held else SITES[s][0], "name": IslandContent.lair_name(isl).capitalize() if held else SITES[s][1],
+				"at": isl.sites[s], "r": FIND_R + 8.0})
 	for i in range(isl.places.size()):
 		var pl: Dictionary = isl.places[i]
 		var kind := str(pl["kind"])

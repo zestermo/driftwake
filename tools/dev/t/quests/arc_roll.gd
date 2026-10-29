@@ -51,7 +51,7 @@ func _rolls() -> void:
 		for id in range(1, 13):
 			for outpost in [false, true]:
 				for cave in [false, true]:
-					var f := {"id": id, "theme": "jungle", "outpost": outpost, "cave": cave, "village": true, "chain": chain}
+					var f := {"id": id, "theme": "jungle", "outpost": outpost, "cave": cave, "burrows": cave, "village": true, "chain": chain}
 					var t: String = A.pick(f)
 					same = same and t == A.pick(f.duplicate())
 					ok_fit = ok_fit and t != "" and A.fits(f, t)
@@ -59,7 +59,7 @@ func _rolls() -> void:
 					var nf := f.duplicate()
 					nf["village"] = false
 					none_ok = none_ok and A.pick(nf) == ""
-			var t2: String = A.pick({"id": id, "theme": "jungle", "outpost": true, "cave": true, "village": true, "chain": chain})
+			var t2: String = A.pick({"id": id, "theme": "jungle", "outpost": true, "cave": true, "burrows": true, "village": true, "chain": chain})
 			if prev != "" and t2 != prev:
 				differ += 1
 			prev = t2
@@ -68,7 +68,7 @@ func _rolls() -> void:
 	check("no village: no arc", none_ok)
 	var fog := true
 	for id in range(1, 13):
-		var f := {"id": id, "theme": "fog", "outpost": id % 2 == 0, "cave": true, "village": true, "chain": 11}
+		var f := {"id": id, "theme": "fog", "outpost": id % 2 == 0, "cave": true, "burrows": false, "village": true, "chain": 11}
 		fog = fog and A.pick(f) == "festival"
 		var nf := f.duplicate()
 		nf["theme"] = "jungle"

@@ -38,11 +38,28 @@ const BLOW_R := 3.0
 const BLOW := 0.08
 ## Festival lanterns round the showdown's place, this far out (m).
 const LANTERN_R := 12.0
+## (1.25.5, docs/v1_26_plan.md "Island loop") Side work is a lead against the villain: each of the island's quests done,
+## each miniboss down, each townsman freed and the weak spot heard. A lead's effect is its place in this order.
+const LEADS := ["intel", "lieutenant", "wound", "ally", "lieutenant", "wound", "ally"]
+## A wound lead: this share of the villain's health gone when the showdown starts; all wounds together at most WOUND_MAX.
+const LEAD_WOUND := 0.1
+const WOUND_MAX := 0.6
+## An ally's one blow in the showdown, a share of the villain's health.
+const ALLY_BLOW := 0.06
+const ALLY_NAMES := ["Bosun Ama", "Old Teodor", "Kesi", "Rafe the Smith", "Nell", "Big Jory"]
+## The weak spot a villager tells of, by the villain's kind.
+const GOSSIP := {
+	"camp": "They say {villain} keeps his crew with coin and fear. Every job you do for {village} is a man of his who stops believing.",
+	"squad": "{villain}'s men are tired and far from home. Help {village} and some of them will just walk away.",
+	"beast": "The old hunters say {villain} is only as strong as the island lets it be. Every wrong you right here, it feels.",
+	"queen": "The queen's brood feeds on fear. Every bit of good done in {village}, the burrows go a little quieter.",
+	"ghost": "{villain} feeds on the village's dread. Every kindness here thins him out, my grandmother said.",
+}
 const Shops := preload("res://scripts/game/shops.gd")
 ## Tests and tools: every island rolls this template ("" for the roll).
 static var force := ""
 
-## Each template: "title"; "needs" (what the island must have: camp, beast, outpost, cave, fog); "villain" ({"kind":
+## Each template: "title"; "needs" (what the island must have: camp, beast, outpost, cave, fog, burrows); "villain" ({"kind":
 ## camp / beast / squad ...}); "place" (the showdown's spot); the elder's telling ("elder"), the folk's "rumours", the
 ## board's "poster"; "steps" (beat 2: {"do": squad / pickup / talk / wave, "at": a spot, "goal", "said", ...});
 ## "showdown" (its goal); "meet" and "moment" (replies: {"lines", "replies": [{"tone", "text", "answer", "out"}],
@@ -345,7 +362,7 @@ const TEMPLATES := {
 	},
 	"well": {
 		"title": "The Poisoned Well",
-		"needs": [],
+		"needs": ["burrows"],
 		"villain": {"kind": "queen", "at": "lair"},
 		"place": "lair",
 		"place_name": "the burrows",
@@ -474,6 +491,8 @@ var place := ""
 var tok := {}
 var contacts: Array = []
 var militia: Array = []
+var allies: Array = []
+var _gossip := {}
 var villain_name := ""
 var _t := 0.0
 var _asking := 0
@@ -511,14 +530,14 @@ static func plan(gi: GenIsland) -> Dictionary:
 
 ## What the roll reads off an island.
 static func facts(gi: GenIsland, outpost: bool) -> Dictionary:
-	return {"id": int(gi.node["id"]), "theme": gi.theme, "outpost": outpost, "cave": not gi.interiors.is_empty(),
+	return {"id": int(gi.node["id"]), "theme": gi.theme, "outpost": outpost, "cave": not gi.interiors.is_empty(), "burrows": IslandContent.lair_kind(gi) == "burrows",
 		"village": not gi.village_plan.is_empty() and not (gi is CapitalIsland), "chain": int(gi.node.get("chain", 0))}
 
 
 static func fits(f: Dictionary, id: String) -> bool:
 	for n in TEMPLATES[id]["needs"]:
 		match str(n):
-			"outpost", "cave":
+			"outpost", "cave", "burrows":
 				if not f[n]:
 					return false
 			"fog":
@@ -622,8 +641,9 @@ func _setup(looks: Array) -> void:
 	steps.append({"do": "villain", "goal": fill(T["showdown"]), "said": "%s is finished. Tell %s." % [villain_name, village.elder_name]})
 	steps.append({"do": "turnin", "goal": "Tell %s it's over" % village.elder_name})
 	def = {"id": key, "title": str(T["title"]), "giver": village.elder_name, "isle": isl.island_name, "pos": isl.position, "src": "arc",
-		"steps": steps, "reward": {"gold": 50 + t * 25}}
+		"steps": steps, "reward": {"gold": 120 + t * 60, "xp": 4.0}}
 	Journal.register(def, self)
+	Dialogue.register_token("%s_leads" % key, lead_summary)
 	village.elder_hooks.append(_elder_talk)
 	village.board_hooks.append(_poster)
 	if flag("fell"):
@@ -769,7 +789,11 @@ func _elder_talk(choices: Array, nodes: Dictionary) -> void:
 	nodes["arc_take"] = {"text": ["Thank you, Captain. %s" % fill(T["remind"][0])], "event": "arc:%s:take" % key, "next": "menu"}
 	choices.append({"text": "About %s..." % villain_name, "next": "arc_remind",
 		"if": func(): return Journal.has(key) and not Journal.is_done(key) and not Journal.at_turnin(key)})
-	nodes["arc_remind"] = {"text": fill_all(T["remind"]), "next": "menu"}
+	nodes["arc_remind"] = {"text": fill_all(T["remind"]), "next": "arc_leads"}
+	nodes["arc_leads"] = {"text": ["{%s_leads}" % key], "next": "menu"}
+	choices.append({"text": "Where's %s? We'll face him now." % villain_name, "next": "arc_now",
+		"if": func(): return Journal.has(key) and Journal.step_of(key) < showdown() and not Journal.is_done(key)})
+	nodes["arc_now"] = {"text": [fill("Now? Then go with every lead you have, Captain. {villain} is at {place}.")], "event": "arc:%s:now" % key, "next": "menu"}
 	choices.append({"text": "It's over. %s won't trouble you again." % villain_name, "next": "arc_pay", "if": func(): return Journal.at_turnin(key)})
 	nodes["arc_pay"] = {"text": fill_all(T["thanks"]) + ["(%s)" % QuestRewards.text(def["reward"])], "event": "arc:%s:pay" % key, "next": "menu"}
 
@@ -782,6 +806,190 @@ func _poster(choices: Array, nodes: Dictionary) -> void:
 ## What the island's folk say of it (IslandLife deals them out).
 func rumours() -> Array:
 	return fill_all(T["rumours"])
+
+
+## A named villager's word on the arc (IslandLife._define_talk; `nth` among the named): the first tells the villain's
+## weak spot (a lead once heard), the second where the island's miniboss dens (marked on the map).
+func gossip_talk(nth: int, who: String, choices: Array, nodes: Dictionary) -> void:
+	var line := ""
+	var ev := ""
+	if nth == 0:
+		line = fill(GOSSIP[_kind()])
+		ev = "gossip"
+	elif nth == 1 and not _minis().is_empty():
+		var m: String = _minis()[0]
+		var site := str(BeastPool.info(isl.theme, m)["site"])
+		line = fill("%s dens out at %s. Folk say if it fell, {villain} would lose the one thing the island still fears more than him." % [
+			BeastPool.mini_name(isl, m), str(MapIsles.SITES.get(site, [site, "the " + site])[1]).to_lower()])
+		ev = "gossip_mini"
+	if line == "":
+		return
+	_gossip[ev] = line
+	choices.push_front({"text": "Heard anything about %s?" % villain_name, "next": "arc_gossip", "if": func(): return not flag("fell")})
+	nodes["arc_gossip"] = {"text": [line, "(A lead: noted in your journal.)"], "event": "arc:%s:%s:%s" % [key, ev, who], "next": "menu"}
+
+
+## The villain's kind as the leads and the gossip read it (the fog isle's ghost at the camp is a crew's).
+func _kind() -> String:
+	var k := str(T["villain"]["kind"])
+	return "camp" if k == "ghost" and place == "camp" else k
+
+
+## The island's minibosses that are beasts (a camp's chief is its captain, not one of these).
+func _minis() -> Array:
+	return (isl.node["minis"] as Array).filter(func(m): return not BeastPool.info(isl.theme, str(m)).get("camp", false))
+
+
+func _mini_body(m: String) -> Node:
+	return isl.site_node(str(BeastPool.info(isl.theme, m)["site"])).get_node_or_null(m.to_pascal_case())
+
+
+# --------------------------------------------------------------------------
+# Leads (1.25.5): side work that weakens the villain before the showdown
+# --------------------------------------------------------------------------
+## How many leads the crew has earned on this island: its quests and notices done, its minibosses down, the weak spot
+## heard, its townsfolk freed.
+func lead_sources() -> int:
+	var n := 0
+	for q in life.given + life.notices:
+		if Journal.is_done(str(q["id"])):
+			n += 1
+	for m in _minis():
+		if flag("mini_" + str(m)):
+			n += 1
+	if flag("gossip"):
+		n += 1
+	return n + freed()
+
+
+## Townsfolk freed from a pirate-held village (PirateHeld sets the flags).
+func freed() -> int:
+	var n := 0
+	while flag("freed%d" % n):
+		n += 1
+	return n
+
+
+## The leads given so far, each its kind (intel, lieutenant, wound, ally).
+func leads() -> Array:
+	var out: Array = []
+	while flag("lead%d" % out.size()):
+		out.append(lead_kind(out.size()))
+	return out
+
+
+func lead_kind(k: int) -> String:
+	var kind: String = LEADS[k] if k < LEADS.size() else "wound"
+	if kind == "lieutenant" and not _kind() in ["camp", "squad"]:
+		return "wound"
+	return kind
+
+
+func lieutenants() -> int:
+	return leads().count("lieutenant")
+
+
+func lead_wound() -> float:
+	return leads().count("wound") * LEAD_WOUND
+
+
+func lead_allies() -> int:
+	return leads().count("ally")
+
+
+func lead_summary() -> String:
+	var l := leads()
+	if l.is_empty():
+		return fill("You've nothing on {villain} yet. Help the folk here, Captain: every job done for {village} is a lead against him.")
+	var parts: Array = []
+	if l.has("intel"):
+		parts.append("we know where he holds out")
+	if lieutenants() > 0:
+		parts.append("%d of his lieutenants gone" % lieutenants())
+	if lead_wound() > 0.0:
+		parts.append("he's weakened")
+	if lead_allies() > 0:
+		parts.append("%d of ours will stand with you" % lead_allies())
+	return fill("%d lead%s against {villain}: %s." % [l.size(), "" if l.size() == 1 else "s", ", ".join(parts)])
+
+
+func _lead_text(k: int) -> String:
+	match lead_kind(k):
+		"intel":
+			return fill("A lead: where {villain} holds out is marked on your map.")
+		"lieutenant":
+			return fill("A lead: one of {villain}'s lieutenants has had enough. He won't be at the showdown.")
+		"ally":
+			var n := range(k).filter(func(i): return lead_kind(i) == "ally").size()
+			return fill("A lead: %s will stand with you against {villain}." % _ally_name(n))
+	return fill("A lead: {villain} will come to the showdown weakened.")
+
+
+func _ally_name(k: int) -> String:
+	return ALLY_NAMES[(absi(hash(key)) + k) % ALLY_NAMES.size()]
+
+
+## (host) Minibosses seen down, and a lead for each new piece of side work.
+func _lead_watch() -> void:
+	for m in _minis():
+		if not flag("mini_" + str(m)):
+			var b := _mini_body(str(m))
+			if b and b.is_dead():
+				set_flag("mini_" + str(m))
+	var have := leads().size()
+	var due := lead_sources()
+	while have < due:
+		set_flag("lead%d" % have)
+		Net.everyone("_all_arc", [Net.key_of(self), "lead", [have]])
+		have += 1
+
+
+## The map's mark nearest the showdown's place, found, with the fog lifted round it (every machine).
+func _mark_place() -> void:
+	_chart(spots[place])
+
+
+func _chart(at: Vector2) -> void:
+	var d := MapIsles.of(isl)
+	var best := {}
+	for s in d["spots"]:
+		if best.is_empty() or at.distance_to(s["at"]) < at.distance_to(best["at"]):
+			best = s
+	MapFog.apply(GameManager, str(d["key"]), int(d["n"]), MapFog.cells_near(d, at, Journal.CHART_SEE))
+	if not best.is_empty() and at.distance_to(best["at"]) < 30.0:
+		MapFog.find(GameManager, str(d["key"]), str(best["id"]))
+
+
+## The lieutenants a lead sent off: the crew's last plain men, gone from the showdown (every machine, the same ones).
+func _send_off() -> void:
+	var gone := lieutenants()
+	var camp := _villain_camp()
+	if gone == 0 or camp == null:
+		return
+	var idx: Array = []
+	for i in range(camp.specs.size() - 1, -1, -1):
+		if idx.size() < gone and not camp.specs[i].get("captain", false):
+			idx.append(i)
+	for i in idx:
+		if i < camp.grunts.size() and _alive(camp.grunts[i]):
+			(camp.grunts[i] as Node).queue_free()
+
+
+## The villagers a lead brought, by the showdown's place.
+func _ensure_allies() -> void:
+	while allies.size() < lead_allies():
+		var k := allies.size()
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([key, "ally", k])
+		var lk := IslandVillage._villager_look(rng)
+		lk["name"] = _ally_name(k)
+		var npc := NPC.new()
+		npc.setup({"name": lk["name"], "look": lk, "barks": [fill("For {village}!"), "I'm with you, Captain!", fill("Down with {villain}!")], "voice": 1.0})
+		npc.name = "Ally%d" % k
+		npc.ground_func = isl.walk_height
+		add_child(npc)
+		npc.position = _at("more", Vector2.from_angle(TAU * k / 3.0 + 1.0) * 2.5)
+		allies.append(npc)
 
 
 # --------------------------------------------------------------------------
@@ -894,6 +1102,8 @@ func _process(delta: float) -> void:
 	if _t > 0.0:
 		return
 	_t = TICK
+	if Net.is_host() and not flag("fell"):
+		_lead_watch()
 	if not Journal.has(key) or Journal.is_done(key):
 		return
 	var step := Journal.step_of(key)
@@ -931,6 +1141,8 @@ func _process(delta: float) -> void:
 			_ensure_squad("More", "more", 2, "marine" if str(T["villain"].get("look", "")) == "marine" else "pirate")
 		if outs().has("allies"):
 			_ensure_militia()
+		_ensure_allies()
+		_send_off()
 		_follow_fight()
 		_fair_watch()
 		if _turncoats():
@@ -1124,7 +1336,7 @@ func _follow_fight() -> void:
 	if not _alive(v) or not v.in_combat():
 		return
 	var at := to_local(v.global_position)
-	var followers: Array = militia.duplicate()
+	var followers: Array = militia + allies
 	if str(T["hidden"]["kind"]) == "noble_blow":
 		followers.append(contacts[0])
 	for f in followers:
@@ -1245,6 +1457,10 @@ func _host(step: int) -> void:
 			"escort":
 				if contacts[int(s["contact"])].position.distance_to(_v3(spots["village"])) < 14.0:
 					Journal.advance(key, step)
+		# (the showdown is open any time: a villain brought down before his steps are done ends the arc all the same)
+		var early := villain()
+		if early and str(T["villain"]["kind"]) in ["camp", "beast"] and not _alive(early):
+			Journal.jump(key, step, n)
 		return
 	if step != n:
 		return
@@ -1367,12 +1583,21 @@ func _watch(v: Node3D) -> void:
 					(h as HealthComponent).take_damage((h as HealthComponent).max_health * BLOW)
 				Net.fx("sparkle", [v.global_position + Vector3.UP * 1.2, 16, Color(1.0, 0.9, 0.6)])
 				Net.everyone("_all_arc", [Net.key_of(self), "blow", []])
+	for k in range(allies.size()):
+		var a := allies[k] as Node3D
+		if not flag("ablow%d" % k) and v.in_combat() and a.global_position.distance_to(v.global_position) < BLOW_R + 0.8:
+			set_flag("ablow%d" % k)
+			var h = v.get("health")
+			if h is HealthComponent:
+				(h as HealthComponent).take_damage((h as HealthComponent).max_health * ALLY_BLOW)
+			Net.fx("sparkle", [v.global_position + Vector3.UP * 1.2, 12, Color(1.0, 0.8, 0.5)])
+			Net.everyone("_all_arc", [Net.key_of(self), "ally_blow", [k]])
 	if v.in_combat():
 		if _woke_t < 0.0:
 			_woke_t = _fight_t
 			if str(T["hidden"]["kind"]) == "timer":
 				Net.everyone("_all_arc", [Net.key_of(self), "poison", [POISON]])
-		var k := _out_k("wounded")
+		var k := minf(_out_k("wounded") + lead_wound(), WOUND_MAX)
 		if k > 0.0 and not _wounded.has(v.get_instance_id()):
 			_wounded.append(v.get_instance_id())
 			var h = v.get("health")
@@ -1432,6 +1657,11 @@ func _on_event(ev: String) -> void:
 				Journal.turn_in(key, (get_tree().get_first_node_in_group("player") as Node3D).global_position)
 			"told":
 				Net.arc_ask(Net.key_of(self), "told", [int(ev.get_slice(":", 3))])
+			"now":
+				Journal.jump(key, Journal.step_of(key), showdown())
+			"gossip", "gossip_mini":
+				Journal.hear(str(_gossip[ev.get_slice(":", 2)]), ev.get_slice(":", 3), isl.island_name)
+				Net.arc_ask(Net.key_of(self), ev.get_slice(":", 2), [])
 	elif ev.begins_with("%s%s:" % [Replies.EVENT, key]):
 		var parts := ev.split(":")
 		Net.arc_ask(Net.key_of(self), "reply", [parts[2], int(parts[3])])
@@ -1442,6 +1672,13 @@ func decide(op: String, args: Array, by: int) -> void:
 	match op:
 		"busy":
 			_asking = 0
+		"gossip":
+			if not flag("gossip"):
+				set_flag("gossip")
+		"gossip_mini":
+			if not flag("gossip_mini"):
+				set_flag("gossip_mini")
+				Net.everyone("_all_arc", [Net.key_of(self), "chart_mini", []])
 		"told":
 			set_flag("told%d" % int(args[0]))
 		"piece":
@@ -1528,6 +1765,16 @@ func apply(op: String, args: Array) -> void:
 					me.inventory_component.add_item(ItemDB.get_item("gold"), -n)
 		"toast":
 			get_tree().call_group("hud", "show_toast", str(args[0]))
+		"lead":
+			var k := int(args[0])
+			if lead_kind(k) == "intel":
+				_mark_place()
+			get_tree().call_group("hud", "show_toast", _lead_text(k))
+		"chart_mini":
+			for m in _minis():
+				_chart(isl.sites[str(BeastPool.info(isl.theme, str(m))["site"])])
+		"ally_blow":
+			get_tree().call_group("hud", "show_toast", "%s lands a blow on %s!" % [_ally_name(int(args[0])), villain_name])
 		"snuff":
 			_snuffed[int(args[0])] = true
 			get_tree().call_group("hud", "show_toast", "%s snuffs a lantern! Light it again." % villain_name)
@@ -1567,7 +1814,7 @@ func _chests(hidden: bool) -> void:
 	var off: Vector2 = (spots["village"] - spots[place]).normalized() * 4.0
 	var at: Vector2 = spots[place] + off
 	if not GameManager.opened.has(isl.save_key("arc_chest")) and not has_node("ArcChest"):
-		var bag := isl.strongbox(self, at, 0.0, "arc_chest", [["gold", 80 + t * 40], ["treasure", 3 + t], ["rum", 2],
+		var bag := isl.strongbox(self, at, 0.0, "arc_chest", [["gold", 120 + t * 60 + leads().size() * (15 + t * 5)], ["treasure", 3 + t], ["rum", 2], ["tonic", 1],
 			[Loot.weapon(WEAPONS[rng.randi() % WEAPONS.size()], mini(t + 1, 5), rng), 1]], 1.3)
 		bag.name = "ArcChest"
 		if ys.has(place):
@@ -1632,6 +1879,8 @@ func _nearest(points: Array) -> Vector3:
 
 
 func progress(_q: Dictionary, step: int) -> String:
+	if step == showdown() and not leads().is_empty():
+		return " (%d lead%s)" % [leads().size(), "" if leads().size() == 1 else "s"]
 	if step >= showdown():
 		return ""
 	var s: Dictionary = T["steps"][step]

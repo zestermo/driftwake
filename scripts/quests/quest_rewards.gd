@@ -1,7 +1,7 @@
 class_name QuestRewards
 extends RefCounted
 ## What a quest pays (1.26: XP too, XP_SHARE of a level each). A reward is data:
-## {"gold": n, "items": [[item id, n]], "reveal": true (a treasure map: an X on the sea chart),
+## {"gold": n, "xp": k (XP_SHARE times k; an island's arc: 4), "items": [[item id, n]], "reveal": true (a treasure map: an X on the sea chart),
 ##  "chart": true (a place on the island the crew hasn't found, put on the held map: Journal picks it),
 ##  "recipe": meal id (Food.teach), "discount": [shop id, fraction, shop name], "favour": {"who": name, "gift": [[item id, n]]}}.
 ## Gold, items, the treasure map and the recipe go to every captain in the crew, wherever they are (1.22; each on their
@@ -30,7 +30,7 @@ static func text(r: Dictionary) -> String:
 		out.append("%d%% off at %s" % [roundi(float(r["discount"][1]) * 100.0), str(r["discount"][2])])
 	if r.has("favour"):
 		out.append("a favour from %s" % str(r["favour"]["who"]))
-	out.append("experience")
+	out.append("a great deal of experience" if float(r.get("xp", 1.0)) > 1.0 else "experience")
 	return ", ".join(out)
 
 
@@ -62,7 +62,7 @@ static func give(r: Dictionary, p: Player) -> String:
 	for e in r.get("items", []):
 		inv.add_item(ItemDB.get_item(str(e[0])), int(e[1]))
 		got.append(_item_text(e))
-	var xp := xp_for(p)
+	var xp := roundi(xp_for(p) * float(r.get("xp", 1.0)))
 	if xp > 0:
 		p.progression.add_xp(xp)
 		got.append("%d XP" % xp)

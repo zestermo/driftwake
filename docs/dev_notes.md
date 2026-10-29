@@ -7778,3 +7778,37 @@ docs/v1_23_previews.md section 6 (approved). The shared pieces every beast boss 
 - Tests: new `t/progression/edy_tree`; t/will/* buy through learn_path; `t/will/reinforce` (an old save's Will
   purchases drop), `t/progression/edy_types`, `t/ui/skills_captain_forks` rewritten for the tree; `t/progression/will_paths`
   and `t/will/open_paths` (the old path rules) removed. skillmapshot films the tree (_will, _will2, _will_sense).
+
+## 1.25.5, piece 1: side work weakens the villain (2026-10-29)
+- `IslandArcs` leads: every quest of the island's done (IslandLife `given` + the board's `notices`), every beast miniboss
+  down (flag `mini_<kind>`, the host watching its body), the weak spot heard and each townsman freed (`freed<k>`, piece 6)
+  is a lead. The host (`_lead_watch`, every TICK, before the arc is even taken) sets `lead<k>` flags for new ones and
+  everyone toasts it. A lead's kind is its place in `LEADS` (intel, lieutenant, wound, ally, lieutenant, wound, ally,
+  then wounds; a lieutenant on a villain with no crew is a wound). All read from world flags, so a guest and a late
+  joiner see the same.
+- Effects at the showdown (every machine, `_process` at step n): `_send_off` frees the crew's last plain men (by spec
+  index, the same ones everywhere, like the Iron Boot turncoats); `_ensure_allies` puts villagers (`Ally<k>`) by the
+  place, who follow the fight (`_follow_fight`) and land one ALLY_BLOW (6%) each (host, `ablow<k>`); wounds add
+  LEAD_WOUND (10%) each to the replies' `wounded:` (WOUND_MAX 60%) when he wakes; intel marks the map (MapFog) at once.
+- The showdown is open any time: the elder's "Where's X? We'll face him now." jumps the Journal to it, and a camp or
+  beast villain brought down early jumps it too. The elder's "About X..." ends with the leads so far (a Dialogue token
+  `<key>_leads`); the Journal's showdown goal shows "(N leads)".
+- Gossip: the first named villager (not a trader) tells the villain's weak spot (GOSSIP by kind; a lead, into the
+  journal's rumours); the second where the beast miniboss dens (its site charted for the crew).
+- Reward: the arc's turn-in is gold 120 + 60/tier and `"xp": 4.0` (QuestRewards: XP_SHARE x 4 of a level to every
+  captain, wherever they are); the arc chest gets 15 + 5/tier gold a lead and a tonic. Bounty and the Admiralty's answer
+  as before. Numbers assumed (docs/v1_26_plan.md).
+- Test: `t/quests/arc_leads` (a built jungle island, the Tyrant's Tax).
+
+## 1.25.5, piece 2: fewer bug burrows (2026-10-29)
+- `IslandContent.lair_kind(isl)` (its own stream, hash [seed, 5130]; `lair_roll(seed)`; `force_lair` for tools): the lair
+  site is the bug burrows on ~20% of islands, a smugglers' hideout ~50% or an Admiralty picket ~30% (LAIR_KINDS,
+  assumed). `_hideout` builds a fire, two tents, stores, a flag (jolly / Admiralty white and blue), the hoard
+  (`lair_hoard`, same key) and a GruntCamp "Hideout" (four men, one or two riflemen, a named bosun or sergeant as its
+  captain; pirates through `undead` so the fog isle's are drowned), its own nav zone. A hideout island's later
+  IslandContent steps no longer share the burrows' rng draws (its look changes; Brinehollow untouched).
+- The board's lair notice follows it (IslandVillage.jobs "lair" carries `kind`: KitQuests "hideout" / "picket" with
+  their own steps, titles, gold and NOTICE_TEXT); IslandLife names the POI by it (a "camp" POI for quests and rumours);
+  the map's mark too (MapIsles). The Poisoned Well arc (the brood queen) needs the burrows (`needs: ["burrows"]`).
+- Test: `t/island/lair_kinds` (the roll's shares over 400 seeds; a built hideout and picket: no burrows, five men, the
+  hoard, the notice, done once they're down). isletest checks whichever the seed rolls; arc_roll's facts carry "burrows".

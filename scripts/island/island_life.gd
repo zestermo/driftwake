@@ -232,14 +232,14 @@ func _post(v: IslandVillage) -> void:
 	for job in KitQuests.NOTICES.keys():
 		if not v.jobs.has(job):
 			continue
-		var kind: String = KitQuests.NOTICES[job]
 		var j: Dictionary = v.jobs[job]
+		var kind: String = j.get("kind", KitQuests.NOTICES[job])
 		var by := v.elder_name if job == "camp" or rng.randf() < 0.35 else str(folk[named[rng.randi() % named.size()]]["name"])
 		var nm: String = _site_name("boss") if job == "beast" else str(j["name"])
 		var tok := {"name": nm, "poster": by}
 		var q := {"id": key("notice_" + kind), "kind": kind, "giver": by, "isle": isl.island_name, "pos": isl.position, "src": "board",
 			"title": _cap(LifePools.fill(KitQuests.NOTICE_TITLE[kind], tok)), "clear": j["check"], "poi_at": j["at"],
-			"notice": LifePools.fill(deck.one("notice_" + kind, N[kind]), tok), "posted": deck.one("posted", N["posted"]), "steps": [],
+			"notice": LifePools.fill(deck.one("notice_" + kind, N.get(kind, KitQuests.NOTICE_TEXT.get(kind, []))), tok), "posted": deck.one("posted", N["posted"]), "steps": [],
 			"favour_ask": FAVOUR_ASK}
 		q["reward"] = _reward(q, 100 + k)
 		q["favour_thanks"] = deck.deal("favour", FAVOUR_THANKS, 1) if q["reward"].has("favour") else []
@@ -313,8 +313,9 @@ func _gather() -> void:
 		fed[s["kind"]] = true
 	var mine: Array = _village_spots(v) if v and not fed_village else []
 	for site in SITE_KIND.keys():
-		if isl.sites.has(site) and not fed.has(SITE_KIND[site]):
-			mine.append({"kind": SITE_KIND[site], "at": isl.sites[site], "poi": true, "name": _site_name(site)})
+		var kind: String = "camp" if site == "lair" and IslandContent.lair_kind(isl) != "burrows" else SITE_KIND[site]
+		if isl.sites.has(site) and not fed.has(kind):
+			mine.append({"kind": kind, "at": isl.sites[site], "poi": true, "name": _site_name(site)})
 	spots = mine + isl.life_spots
 	for i in range(spots.size()):
 		var s: Dictionary = spots[i]
@@ -389,7 +390,7 @@ func _site_name(site: String) -> String:
 		"boss":
 			return isl.get_node("Site_boss/Arena").boss.boss_name
 		"lair":
-			return "the bug burrows"
+			return IslandContent.lair_name(isl)
 		"ruins":
 			return "the old stones"
 	return "the lookout on the summit"
@@ -542,6 +543,8 @@ func _define_talk(i: int) -> void:
 	for q in found:
 		if q["giver"] == f["name"]:
 			quest_node.receive(q, menu, nodes)
+	if arc:
+		arc.gossip_talk(placed.filter(func(k): return folk[k]["named"] and not str(folk[k]["role"]).begins_with("vendor:")).find(i), str(f["name"]), menu, nodes)
 	menu.append({"text": pools["bye"], "next": "end"})
 	Dialogue.define(f["talk"], {"speaker": f["name"], "voice": f["voice"], "start": "intro", "return": "menu", "nodes": nodes})
 

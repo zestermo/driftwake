@@ -11,8 +11,9 @@ extends Node
 
 const TICK := 0.5
 const KINDS := ["lost", "scout", "deliver", "fetch", "clear"]
-const GOLD := {"lost": [25, 12], "scout": [20, 10], "deliver": [15, 8], "fetch": [35, 15], "clear": [45, 20], "bounty": [40, 20], "lair": [30, 15], "beast": [80, 35]}
-## The notice board's kinds (IslandVillage.jobs: camp, lair, beast), each turned in to whoever posted it.
+const GOLD := {"lost": [25, 12], "scout": [20, 10], "deliver": [15, 8], "fetch": [35, 15], "clear": [45, 20], "bounty": [40, 20], "lair": [30, 15], "beast": [80, 35], "hideout": [40, 18], "picket": [45, 20]}
+## The notice board's kinds (IslandVillage.jobs: camp, lair, beast; a job's own "kind" first: the lair site held by
+## smugglers or a picket), each turned in to whoever posted it.
 const NOTICES := {"camp": "bounty", "lair": "lair", "beast": "beast"}
 ## Each kind's steps: [what it is, the journal's goal]. The last is the turn-in.
 const STEPS := {
@@ -24,8 +25,17 @@ const STEPS := {
 	"bounty": [["clear", "Defeat {name} at the pirate camp"], ["turnin", "Report to {poster}"]],
 	"lair": [["clear", "Clear every creature from {name}"], ["turnin", "Report to {poster}"]],
 	"beast": [["clear", "Slay {name}"], ["turnin", "Report to {poster}"]],
+	"hideout": [["clear", "Drive the smugglers out of {name}"], ["turnin", "Report to {poster}"]],
+	"picket": [["clear", "Break {name}"], ["turnin", "Report to {poster}"]],
 }
-const NOTICE_TITLE := {"bounty": "Bounty: {name}", "lair": "Clear {name}", "beast": "Slay {name}"}
+const NOTICE_TITLE := {"bounty": "Bounty: {name}", "lair": "Clear {name}", "beast": "Slay {name}", "hideout": "Drive out {name}", "picket": "Break {name}"}
+## (1.25.5) The lair site's people as notices (the themes' tables have the burrows' "lair" only).
+const NOTICE_TEXT := {
+	"hideout": ["Smugglers have dug in at {name}. They steal from the boats and sell it back to us. Run them off. Report to {poster}.",
+		"A crew of smugglers holds {name}. Their bosun owes this village more than he'll ever pay. Paid by {poster}."],
+	"picket": ["The Admiralty has set a picket at {name}. They search every boat and take a 'fee'. See them off, quietly. Report to {poster}.",
+		"Soldiers at {name}, and their sergeant thinks he owns the island. Break the picket. Paid by {poster}."],
+}
 ## A person to talk to: the marker floats this far over their head.
 const HEAD := 2.2
 

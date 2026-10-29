@@ -161,6 +161,17 @@ Built here in the main session one piece at a time; each 1.25.x (Zach: the unsta
 **Beta updates (decided):** a "Get unstable updates" setting. With it on, Updater also offers pre-releases, and CI
 builds update.json and a patch for unstable tags too (against the same base). Off by default.
 
+### 1.25.5 as built (2026-10-29): the island loop
+
+Built without the previews the build order asked for: each row is **assumed** until Zach plays it.
+
+| What | As built | Status |
+|---|---|---|
+| Leads | Each of the island's quests and board notices done, each beast miniboss down, the weak spot heard (gossip) and each townsman freed is a lead. In order: intel (the showdown's place on the map), a lieutenant gone, a wound (10% of his health, all wounds at most 60%), an ally villager (one 6% blow), a lieutenant, a wound, an ally, then wounds | **assumed** |
+| Showdown | Open any time (the elder's "now", or the villain brought down early) | **assumed** |
+| Fewer bug burrows | The lair site: bug burrows 20%, a smugglers' hideout 50%, an Admiralty picket 30% (four men and a named leader, a notice on the board); the Poisoned Well arc only with the burrows | **assumed** |
+| Completion reward | Turn-in: 120 + 60/tier gold and 4x a quest's XP (1 level at XP_SHARE 0.25) to every captain; the arc chest +15 + 5/tier gold a lead and a tonic; bounty 400 and the Admiralty's answer as before | **assumed** |
+
 ### Fixes with no design question
 - Jail in co-op: guests invisible, grunts unseen by guests.
 - Hunters spawning on top of the captain.

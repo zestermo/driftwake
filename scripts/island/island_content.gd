@@ -14,6 +14,36 @@ extends RefCounted
 const FIRST := ["Ned", "Sal", "Mags", "Bram", "Corvin", "Ysolde", "Rook", "Tamsin", "Hask", "Vel", "Odo", "Fen"]
 const EPITHET := ["Bloody", "One-Eye", "Iron", "Black", "Mad", "Saltjaw", "Red", "Grinning", "Lucky", "Bonesaw", "Quiet", "Hook"]
 const LOOT_WEAPONS := ["cutlass", "boarding_axe", "katana", "pistol", "dagger", "spear", "warhammer", "musket", "slingshot"]
+## (1.25.5, docs/v1_26_plan.md "Fewer bug burrows") What holds the lair site, by weight: the bug burrows only now and
+## then, a smugglers' hideout or an Admiralty picket the rest of the time.
+const LAIR_KINDS := {"burrows": 0.2, "hideout": 0.5, "picket": 0.3}
+const LAIR_NAMES := {"burrows": "the bug burrows", "hideout": "the smugglers' hideout", "picket": "the Admiralty picket"}
+const SERGEANTS := ["Sergeant Pike", "Sergeant Doyle", "Lieutenant Marsh", "Sergeant Brand", "Lieutenant Kell", "Sergeant Ruddock"]
+const BOSUNS := ["Bosun Grist", "Bosun Mallow", "Quartermaster Fenn", "Bosun Tarr", "Mate Scully", "Bosun Hobb"]
+## Tests and tools: every island's lair site is this ("" for the roll).
+static var force_lair := ""
+
+
+## The lair site's kind for an island (its own stream: data, worker-safe).
+static func lair_kind(isl) -> String:
+	if force_lair != "":
+		return force_lair
+	return lair_roll(int(isl.node["seed"]))
+
+
+static func lair_roll(seed_: int) -> String:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_, 5130])
+	var r := rng.randf()
+	for k in LAIR_KINDS.keys():
+		r -= float(LAIR_KINDS[k])
+		if r < 0.0:
+			return k
+	return "hideout"
+
+
+static func lair_name(isl) -> String:
+	return LAIR_NAMES[lair_kind(isl)]
 
 
 ## The sites as GenIsland.finish_steps, in order: one random stream through
@@ -199,6 +229,9 @@ static func _camp_crew(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary
 # The bug lair
 # ==========================================================================
 static func _lair(isl: GenIsland, rng: RandomNumberGenerator) -> void:
+	if lair_kind(isl) != "burrows":
+		_hideout(isl, lair_kind(isl) == "picket")
+		return
 	var c: Vector2 = isl.sites["lair"]
 	var site := isl.site_node("lair")
 	# the hive: a great burrow mound in the middle
@@ -241,6 +274,83 @@ static func _lair(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 			continue
 		taken.append(g)
 		roosts.add_spitter(_local(isl, roosts, ga, anchor.y), _local(isl, roosts, ga))
+
+
+## A smugglers' hideout or an Admiralty picket at the lair site (1.25.5): a fire, tents, stores, a flag, four men and
+## their leader ("Hideout", its own nav zone), on the hoard the burrows would have sat on. Its own stream.
+static func _hideout(isl: GenIsland, marines: bool) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(isl.node["seed"]), 5131])
+	var c: Vector2 = isl.sites["lair"]
+	var site := isl.site_node("lair")
+	var st := KitStyle.of(isl.theme)
+	var f: Vector2 = (isl.sites["village"] - c).normalized()
+	var s := Vector2(-f.y, f.x)
+	var at := func(fw: float, sd: float) -> Vector2: return c + f * fw + s * sd
+	_fire(isl, site, c)
+	for tp in [at.call(-4.5, -3.0), at.call(-4.0, 3.5)]:
+		var tent := KitCamps.tent(Color(0.85, 0.85, 0.82) if marines else st["camp_tent"])
+		isl.place(tent, site, tp, StarterIsland.face_yaw(c - tp), 2.0)
+	var seat: Vector2 = at.call(0.0, 2.3)
+	isl.place(KitCamps.log_seat(), site, seat, StarterIsland.face_yaw(c - seat) + PI * 0.5)
+	for i in range(3):
+		isl.place(KitStyle.prop(st, "crate", rng, 0.9 + i * 0.1), site, at.call(3.5 + (i % 2), -4.0 + i * 0.9), rng.randf() * TAU, 1.0)
+	isl.place(KitStyle.prop(st, "barrel", rng), site, at.call(4.5, 3.5))
+	isl.place(KitStyle.prop(st, "lamp", rng), site, at.call(2.0, -2.5))
+	isl.place(Props.weapon_rack(), site, at.call(-2.0, -5.0), StarterIsland.face_yaw(f))
+	var pole := MeshBuilder.new()
+	pole.add_cylinder(PSXMat.lit("bark"), Transform3D.IDENTITY, 0.08, 0.06, 5.0, 5, 1.0)
+	if marines:
+		for side in [-1.0, 1.0]:
+			pole.add_box(PSXMat.flat(Color(0.92, 0.92, 0.95)), Transform3D(Basis(), Vector3(side * 0.01, 4.6, 0.5)), Vector3(0.01, 0.55, 0.9), 1.0)
+			pole.add_box(PSXMat.flat(Color(0.18, 0.3, 0.62)), Transform3D(Basis(), Vector3(side * 0.02, 4.6, 0.5)), Vector3(0.01, 0.16, 0.9), 1.0)
+	else:
+		var jolly := HullBuilder.jolly_material()
+		pole.add_card(jolly, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.01, 4.5, 0.6)), 0.9, 0.55, Rect2(0, 0, 1, 1))
+		pole.add_card(jolly, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-0.01, 4.5, 0.6)), 0.9, 0.55, Rect2(0, 0, 1, 1))
+	isl.place(pole.to_instance("HideoutFlag"), site, at.call(-1.0, 5.0), 0.3)
+	var t := tier(isl)
+	isl.strongbox(site, at.call(-6.5, 0.0), StarterIsland.face_yaw(f), "lair_hoard", [
+		["gold", rng.randi_range(20, 32) + t * 7], ["treasure", rng.randi_range(2, 3)],
+		[ItemDB.tiered(LOOT_WEAPONS[rng.randi() % LOOT_WEAPONS.size()], t), 1]], 1.0)
+	var crew := GruntCamp.new()
+	crew.name = "Hideout"
+	crew.respawn_time = 300.0
+	crew.respawn_clearance = 70.0
+	crew.warm_start = true
+	crew.level = level(isl)
+	var v3 := func(q: Vector2) -> Vector3: return _local(isl, site, q)
+	var posts := [[at.call(0.0, 2.1), "sit"], [at.call(1.5, -2.0), "stand"], [at.call(6.0, 1.0), "stand"], [at.call(-3.0, -6.0), "stand"]]
+	for i in range(posts.size()):
+		var q: Vector2 = posts[i][0]
+		var cfg := {"post": v3.call(q), "yaw": _yaw_to(q, c if i < 2 else q + f), "mode": posts[i][1], "seed": hash([int(isl.node["seed"]), 5132, i]),
+			"role": "rifle" if i == 2 or (marines and i == 3) else "sword"}
+		if posts[i][1] == "sit":
+			cfg["seat_y"] = 0.42
+		if marines:
+			var lk: Dictionary = CharacterLook.random_look(rng)
+			EnemyShip.marine_look(lk, rng, false)
+			cfg["look"] = lk
+			crew.add_grunt(cfg)
+		else:
+			crew.add_grunt(undead(isl, cfg, 20 + i))
+	var lead_p: Vector2 = at.call(-2.5, 0.5)
+	var lk: Dictionary
+	if marines:
+		lk = CharacterLook.random_look(rng)
+		EnemyShip.marine_look(lk, rng, true)
+	else:
+		lk = PirateGrunt.crew_look(rng)
+		lk.merge({"build": "broad", "hat": ["tricorn", "bandana"][rng.randi() % 2], "coat": "longcoat"}, true)
+	var title: String = (SERGEANTS if marines else BOSUNS)[rng.randi() % 6]
+	lk["name"] = title
+	var cap := {"post": v3.call(lead_p), "yaw": _yaw_to(lead_p, lead_p + f), "mode": "stand", "seed": hash([int(isl.node["seed"]), 5133]),
+		"look": lk, "captain": true, "title": title}
+	crew.add_grunt(cap if marines else undead(isl, cap, 29))
+	site.add_child(crew)
+	var baker := isl.get_parent().get_node_or_null("NavBaker")
+	if baker:
+		baker.add_zone(site, 30.0, false, isl.terrain_faces)
 
 
 # ==========================================================================

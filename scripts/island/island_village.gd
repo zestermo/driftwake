@@ -249,8 +249,10 @@ func _build_people(rng: RandomNumberGenerator) -> void:
 	var camp = isl.get_node("Site_camp/Camp")
 	jobs["camp"] = {"name": str(camp.specs.filter(func(s): return s.get("captain", false))[0]["title"]), "at": isl.sites["camp"],
 		"check": func() -> bool: return camp.grunts.any(func(g): return is_instance_valid(g) and g.captain and g.state == PirateGrunt.S.DEAD)}
-	var burrows = isl.get_node("Site_lair/Burrows")
-	jobs["lair"] = {"name": "the bug burrows", "at": isl.sites["lair"], "check": func() -> bool: return burrows.alive_count() == 0}
+	var lair_kind := IslandContent.lair_kind(isl)
+	var holders = isl.get_node("Site_lair/Burrows" if lair_kind == "burrows" else "Site_lair/Hideout")
+	jobs["lair"] = {"name": IslandContent.lair_name(isl), "at": isl.sites["lair"], "kind": "lair" if lair_kind == "burrows" else lair_kind,
+		"check": func() -> bool: return holders.specs.size() == holders.grunts.size() and holders.alive_count() == 0 if holders is GruntCamp else holders.alive_count() == 0}
 	# (by its flag, not the arena: tools rebuild the arena)
 	var beast_flag := _key("boss_beaten")
 	jobs["beast"] = {"name": "the beast", "at": isl.sites["boss"], "check": func() -> bool: return Dialogue.has_flag(beast_flag)}

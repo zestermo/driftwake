@@ -95,6 +95,9 @@ scripts/island/kit/kit_quests.gd        t/quests netchain
 scripts/island/themes/*_life.gd         t/quests
 scripts/island/themes/*_encounters.gd   t/quests
 scripts/island/island_village.gd        t/quests isletest
+scripts/island/island_arcs.gd           t/quests/arc_leads t/quests/arc_beats t/quests/arc_hidden t/quests/arc_reply t/quests/arc_templates t/quests/arc_roll lifetest
+scripts/island/island_life.gd           t/quests lifetest
+scripts/island/island_content.gd        t/island/lair_kinds isletest
 tools/dev/t/swim/*                      t/swim
 scripts/swim/*                          t/swim swimtest
 scenes/ocean/ocean.gdshader             t/swim
