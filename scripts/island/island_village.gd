@@ -312,7 +312,8 @@ func _make(b: Dictionary) -> Dictionary:
 			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": ctx.style["inn"]["wall"], "wall2": mat["weave"], "roof_tex": mat["thatch"],
 				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}.merged(frame), p, face, raised)
 		"vshop", "unique" when own.has("trade") and raised == INF:
-			n = ctx.place(KitStyle.model(own["trade"], rng, maxf(w, d)), p, yaw, r, 0.0, false)
+			# (the theme's store, dressed for the trade or the place: its "<trade model>_<kind>")
+			n = ctx.place(KitStyle.model("%s_%s" % [own["trade"], b["trade"]], rng, maxf(w, d)), p, yaw, r, 0.0, false)
 			n.name = _uniq("Shop" if kind == "vshop" else "Place")
 		"trade", "cook", "home", "elder", "vshop", "unique":
 			var spec := {"kind": str(b["trade"]) if b.has("trade") else ("home" if kind == "elder" else kind), "w": w, "d": d, "found": found, "seed": rng.randi(),

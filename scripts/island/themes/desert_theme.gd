@@ -185,6 +185,9 @@ func _init() -> void:
 		"desert_watchtower": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.watchtower(rng.randi(), size),
 		"desert_bandit_hut": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.bandit_hut(rng.randi(), size, snappedf(size * 0.82, 0.1)),
 	}
+	# (1.26) the traders' own shops and the unique places: the store's room dressed for the trade ("<trade model>_<kind>")
+	for k in KitShops.KINDS:
+		props["desert_trade_" + k] = func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room(k, rng.randi(), size)
 	life = preload("res://scripts/island/themes/desert_life.gd").TEXT
 	encounters = preload("res://scripts/island/themes/desert_encounters.gd").TEXT
 	bosses = ["sandworm", "giant_scorpion", "basilisk", "sand_lion"]
