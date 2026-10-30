@@ -62,6 +62,10 @@ var energy: float = BASE_ENERGY
 var ult: float = 0.0
 ## Skill ids on the slots ("" = empty).
 var loadout: Array[String] = ["", "", "", "", "", ""]
+## (1.27) The fruit stance (V, any fruit): while it's on, `loadout` IS the fruit's loadout (its powers on the keys) and
+## the weapon's waits in `other_loadout`; toggling swaps them, so everything that reads the bar follows.
+var fruit_stance := false
+var other_loadout: Array[String] = ["", "", "", "", "", ""]
 var cooldowns: Dictionary = {}     # skill id -> seconds left
 var cooldown_len: Dictionary = {}  # skill id -> full cooldown
 var buffs: Dictionary = {}         # name -> seconds left
@@ -669,7 +673,10 @@ func behind(t: Node3D) -> bool:
 
 
 func to_dict() -> Dictionary:
-	return {"fruit": fruit, "energy": energy, "ult": ult, "loadout": loadout.duplicate()}
+	# (saved by what each is, whichever is showing: the weapon's as "loadout", the fruit's as "fruit_loadout")
+	var weapon_lo := other_loadout if fruit_stance else loadout
+	var fruit_lo := loadout if fruit_stance else other_loadout
+	return {"fruit": fruit, "energy": energy, "ult": ult, "loadout": weapon_lo.duplicate(), "fruit_loadout": fruit_lo.duplicate()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -679,6 +686,10 @@ func from_dict(d: Dictionary) -> void:
 	var lo: Array = d.get("loadout", [])
 	for i in range(SLOTS):
 		loadout[i] = str(Skills.RENAMED.get(str(lo[i]), lo[i])) if i < lo.size() else ""
+	var fl: Array = d.get("fruit_loadout", [])
+	for i in range(SLOTS):
+		other_loadout[i] = str(fl[i]) if i < fl.size() else ""
+	fruit_stance = false
 	fruit_changed.emit(fruit)
 	loadout_changed.emit()
 
@@ -796,3 +807,15 @@ var _proxy: Node3D:
 			_proxy_node.name = "BlastOrigin"
 			player.get_tree().current_scene.add_child(_proxy_node)
 		return _proxy_node
+
+
+## (1.27) Into or out of the fruit stance (V with a fruit eaten): the bar swaps to the fruit's powers and back.
+func set_fruit_stance(on: bool) -> void:
+	if on == fruit_stance or (on and fruit == ""):
+		return
+	fruit_stance = on
+	var keep := loadout.duplicate()
+	for i in range(SLOTS):
+		loadout[i] = other_loadout[i]
+		other_loadout[i] = str(keep[i])
+	loadout_changed.emit()

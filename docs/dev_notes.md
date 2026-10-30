@@ -8384,3 +8384,10 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     60,000, legendary 200,000.
   - Not hooked into the sources yet: DevilFruits.IN_WORLD stays false until the reworked kits are in.
   - Test: t/progression/fruit_pool.
+- (same day) **Driftfruits, piece 3: the fruit stance on V** (decided).
+  - `PowerComponent.set_fruit_stance`: with any fruit eaten, V swaps the bar to the fruit's loadout and back.
+    `loadout` IS the showing one and `other_loadout` the other, so the HUD, casting and the skill map follow unchanged.
+  - Saved by what each is ("loadout" the weapon's, "fruit_loadout" the fruit's) whichever is showing; a load comes back
+    out of stance.
+  - A zoan still shifts into its hybrid form with it.
+  - Test: t/progression/fruit_stance. t/progression and t/combat (60) pass.

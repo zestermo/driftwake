@@ -1716,8 +1716,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
 		get_viewport().set_input_as_handled()
 		return
-	# Zoan: shift between human and hybrid form
+	# (1.27) the fruit stance, any fruit: the bar swaps to its powers; a zoan also shifts into its hybrid form
 	if event.is_action_pressed("transform"):
+		if power.fruit != "":
+			power.set_fruit_stance(not power.fruit_stance)
 		if power.fruit_type() == "zoan":
 			toggle_hybrid()
 		get_viewport().set_input_as_handled()
