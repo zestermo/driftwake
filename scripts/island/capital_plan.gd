@@ -190,17 +190,197 @@ static func quay_coast(q: Vector2) -> bool:
 
 
 static func in_floor(q: Vector2, grow := 0.0) -> bool:
-	for f in FLOORS:
+	for f in floors():
 		if (f[1] as Rect2).grow(grow).has_point(q):
 			return true
 	return false
 
 
 static func floor_of(q: Vector2) -> int:
-	for i in range(FLOORS.size()):
-		if (FLOORS[i][1] as Rect2).has_point(q):
+	var all := floors()
+	for i in range(all.size()):
+		if (all[i][1] as Rect2).has_point(q):
 			return i
 	return -1
+
+
+# --------------------------------------------------------------------------
+# The rolled streets (1.27, docs/v1_27_plan.md "the cities pass"): the landmarks and FLOORS stay put; between them the
+# gaps of the house grid open as lanes (a connected set rolled from the world's seed), alleys cut through blocks' middles
+# (some dead ends), and courtyards clear at some crossings. Everything else (the houses facing them, the walls across
+# what's left open) follows from floors().
+# --------------------------------------------------------------------------
+## The world's seed (CapitalIsland.prepare sets it; 0 for tools and tests that don't).
+static var world_seed := 0
+static var _floors_for := -1
+static var _floors: Array = []
+static var _lots_for := -1
+static var _lots: Array = []
+## The house grid's gaps, the lanes' centre lines: x of the gap columns (each side of the market street) and z of the
+## gap rows (between blocks; _spans' blocks are 26 x 22 with 4 m lanes).
+const GAP_X := [34.0, 64.0, 94.0, 124.0]
+const GAP_Z := [52.0, 26.0, 0.0, -26.0, -52.0, -78.0]
+const LANE_W := 4.0
+const ALLEY_W := 2.4
+## How many lanes open (graph edges), alleys and courtyards: [lo, hi].
+const LANES := [18, 24]
+const ALLEYS := [6, 9]
+const COURTS := [3, 5]
+const COURT := 10.0
+
+
+static func use_seed(s: int) -> void:
+	world_seed = s
+
+
+## Every walkable floor: FLOORS, then the rolled lanes ("lane"), alleys ("alley_r") and courtyards ("court"), each
+## [name, rect, texture]. Cached per seed.
+static func floors() -> Array:
+	if _floors_for == world_seed and not _floors.is_empty():
+		return _floors
+	_floors = FLOORS.duplicate()
+	_floors.append_array(_roll())
+	_floors_for = world_seed
+	return _floors
+
+
+## The rolled ones only.
+static func rolled() -> Array:
+	return floors().slice(FLOORS.size())
+
+
+## A rect the lanes may open on: dry land inside the harbour wall, clear of the palace grounds, the arena, the temple
+## and every building the district builds itself.
+static func _clear(r: Rect2) -> bool:
+	for p in [r.position, r.end, Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.position.y), r.get_center()]:
+		if land_t(p) > -SEA_WALL_IN - 8.0 or p.y > WALL_Z - WALL_T - 0.5:
+			return false
+		if p.distance_to(HILL_C) < GROUNDS_R + 4.0 or ellipse(p, ARENA_C, ARENA_R) < 1.15:
+			return false
+	if r.intersects(TEMPLE.grow(2.0)):
+		return false
+	for k in KEEP:
+		if (k as Rect2).intersects(r):
+			return false
+	for k in SPECIAL:
+		if (SPECIAL[k][0] as Rect2).grow(1.0).intersects(r):
+			return false
+	return true
+
+
+static func _roll() -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([71329, world_seed])
+	var xs: Array = [0.0]
+	for x in GAP_X:
+		xs.append(x)
+		xs.push_front(-x)
+	# the graph: nodes at the gaps' crossings (x = 0 is the fixed spine: the market street, the plaza, the avenue);
+	# edges along the gaps between neighbours, each a lane's rect
+	var edges: Array = []
+	for zi in range(GAP_Z.size()):
+		var z: float = GAP_Z[zi]
+		for xi in range(xs.size() - 1):
+			var x0: float = xs[xi]
+			var x1: float = xs[xi + 1]
+			var r := Rect2(x0 - LANE_W * 0.5, z - LANE_W * 0.5, x1 - x0 + LANE_W, LANE_W)
+			edges.append({"a": Vector2i(xi, zi), "b": Vector2i(xi + 1, zi), "r": r})
+	for xi in range(xs.size()):
+		if xs[xi] == 0.0:
+			continue
+		for zi in range(GAP_Z.size() - 1):
+			var z0: float = GAP_Z[zi + 1]
+			var z1: float = GAP_Z[zi]
+			var r := Rect2(xs[xi] - LANE_W * 0.5, z0 - LANE_W * 0.5, LANE_W, z1 - z0 + LANE_W)
+			edges.append({"a": Vector2i(xi, zi), "b": Vector2i(xi, zi + 1), "r": r})
+	# an edge's own ground (between its ends, off the spine's floors where it starts on them) must be clear
+	var ok: Array = edges.filter(func(e):
+		var r: Rect2 = e["r"]
+		var mid := Rect2(r.position + r.size * 0.25, r.size * 0.5)
+		return _clear(mid) and _clear(r.grow(-0.5)) or (_clear(mid) and _touches_fixed(r)))
+	# the spine's nodes are where the network starts: grown by a random walk out from the connected set, with a few
+	# loops kept (a lane meeting one already open) so it isn't a tree
+	# (an edge whose middle is on a fixed floor already is one: its nodes join the spine and it costs nothing)
+	var spine := {}
+	for e in edges:
+		var r: Rect2 = e["r"]
+		if _on_fixed(r.get_center()):
+			spine[e["a"]] = true
+			spine[e["b"]] = true
+	ok = ok.filter(func(e): return not _on_fixed((e["r"] as Rect2).get_center()))
+	for e in ok:
+		for k in ["a", "b"]:
+			var n: Vector2i = e[k]
+			if xs[n.x] == 0.0 or _touches_fixed(e["r"]):
+				spine[n] = true
+	var joined := spine.duplicate()
+	var want := rng.randi_range(LANES[0], LANES[1])
+	var picked: Array = []
+	var left: Array = ok.duplicate()
+	var guard := 0
+	while picked.size() < want and not left.is_empty() and guard < 400:
+		guard += 1
+		var frontier: Array = left.filter(func(e): return joined.has(e["a"]) or joined.has(e["b"]))
+		if frontier.is_empty():
+			break
+		var e: Dictionary = frontier[rng.randi() % frontier.size()]
+		left.erase(e)
+		if joined.has(e["a"]) and joined.has(e["b"]) and rng.randf() > 0.3:
+			continue
+		joined[e["a"]] = true
+		joined[e["b"]] = true
+		picked.append(e)
+	var out: Array = []
+	for e in picked:
+		out.append(["lane", e["r"], "cobbles"])
+	# courtyards at some crossings the lanes reach (not on the spine)
+	var nodes: Array = joined.keys().filter(func(n): return xs[n.x] != 0.0)
+	nodes.sort()
+	var courts := 0
+	var want_c := rng.randi_range(COURTS[0], COURTS[1])
+	for i in range(nodes.size()):
+		var n: Vector2i = nodes[(i * 7 + rng.randi() % 3) % nodes.size()]
+		var c := Vector2(xs[n.x], GAP_Z[n.y])
+		var r := Rect2(c - Vector2.ONE * COURT * 0.5, Vector2.ONE * COURT)
+		if courts >= want_c or not _clear(r) or out.any(func(f): return str(f[0]) == "court" and (f[1] as Rect2).grow(6.0).intersects(r)):
+			continue
+		out.append(["court", r, "capital_slabs"])
+		courts += 1
+	# alleys: through a block's middle (between its two rows of lots) from an open lane, through to the next one or a
+	# dead end part way
+	var want_a := rng.randi_range(ALLEYS[0], ALLEYS[1])
+	var alleys := 0
+	var lanes_v: Array = picked.filter(func(e): return (e["r"] as Rect2).size.y > (e["r"] as Rect2).size.x)
+	lanes_v.shuffle()
+	for e in lanes_v:
+		if alleys >= want_a:
+			break
+		var lr: Rect2 = e["r"]
+		var zm := lr.get_center().y
+		var dir := -1.0 if rng.randf() < 0.5 else 1.0
+		var x0 := lr.get_center().x + dir * LANE_W * 0.5
+		var run := rng.randf_range(10.0, 26.0)
+		var r := Rect2(minf(x0, x0 + dir * run), zm - ALLEY_W * 0.5, run, ALLEY_W)
+		if not _clear(r) or out.any(func(f): return (f[1] as Rect2).intersects(r.grow(-0.2)) and str(f[0]) != "lane"):
+			continue
+		out.append(["alley_r", r, "cobbles"])
+		alleys += 1
+	return out
+
+
+static func _on_fixed(q: Vector2) -> bool:
+	for f in FLOORS:
+		if (f[1] as Rect2).has_point(q):
+			return true
+	return false
+
+
+## A lane that runs onto one of the fixed floors (it joins the spine there).
+static func _touches_fixed(r: Rect2) -> bool:
+	for f in FLOORS:
+		if (f[1] as Rect2).grow(0.5).intersects(r):
+			return true
+	return false
 
 
 static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
@@ -261,8 +441,10 @@ static func _spans(from: float, to: float, size: float, lane: float) -> Array:
 ## "roof": hip / gable / flat, "face": Vector2 (toward its street), "seed", "front": it fronts a walkable floor,
 ## "keep": on ground kept for the district's own buildings (piece 2 builds those instead)}.
 static func lots() -> Array:
+	if _lots_for == world_seed and not _lots.is_empty():
+		return _lots
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 51971
+	rng.seed = 51971 if world_seed == 0 else hash([51971, world_seed])
 	var out: Array = []
 	var cols := _spans(6.0, 240.0, 26.0, 4.0)
 	var rows := _spans(-76.0, 260.0, 22.0, 4.0)
@@ -277,14 +459,21 @@ static func lots() -> Array:
 	for sx in [-1.0, 1.0]:
 		var r := Rect2(158.0 if sx > 0.0 else -174.0, 82.0, 16.0, 13.0)
 		out.append({"r": r, "cell": r, "c": r.get_center(), "floors": 3, "roof": "gable", "face": Vector2(-sx, 0), "seed": 9001 + int(sx), "front": false, "keep": false})
+	_lots = out
+	_lots_for = world_seed
 	return out
 
 
 static func _block(b: Rect2, rng: RandomNumberGenerator, out: Array, keep: bool) -> void:
 	var zm := b.position.y + b.size.y * 0.5
+	# (an alley rolled through this block's middle: its two rows of lots stand back from it)
+	var cut := 0.0
+	for f in rolled():
+		if str(f[0]) == "alley_r" and absf((f[1] as Rect2).get_center().y - zm) < 0.5 and (f[1] as Rect2).intersects(b):
+			cut = ALLEY_W * 0.5
 	for half in [0, 1]:
-		var z0: float = b.position.y if half == 0 else zm
-		var z1: float = zm if half == 0 else b.end.y
+		var z0: float = b.position.y if half == 0 else zm + cut
+		var z1: float = zm - cut if half == 0 else b.end.y
 		var x := b.position.x
 		while x < b.end.x - 3.0:
 			var w := minf(rng.randf_range(6.0, 10.0), b.end.x - x)
@@ -305,7 +494,7 @@ static func _block(b: Rect2, rng: RandomNumberGenerator, out: Array, keep: bool)
 				floors += 1
 			var face := Vector2(0, -1) if half == 0 else Vector2(0, 1)
 			var front := false
-			for f in FLOORS:
+			for f in floors():
 				var fr: Rect2 = f[1]
 				if not fr.grow(1.5).intersects(r):
 					continue
@@ -324,6 +513,9 @@ static func _block(b: Rect2, rng: RandomNumberGenerator, out: Array, keep: bool)
 
 
 static func _lot_ok(r: Rect2, keep: bool) -> bool:
+	for f in rolled():
+		if str(f[0]) == "court" and (f[1] as Rect2).grow(0.3).intersects(r):
+			return false
 	for p in [r.position, r.end, Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.position.y), r.get_center()]:
 		if land_t(p) > -SEA_WALL_IN - 8.0 or p.y > WALL_Z - WALL_T:
 			return false
@@ -351,7 +543,7 @@ static func openings(all_lots: Array) -> Array:
 	for k in SPECIAL:
 		cells.append((SPECIAL[k][0] as Rect2).grow(0.45))
 	var out: Array = []
-	for f in FLOORS:
+	for f in floors():
 		var r: Rect2 = f[1]
 		var edges := [[r.position, Vector2(r.end.x, r.position.y), Vector2(0, -1)], [Vector2(r.position.x, r.end.y), r.end, Vector2(0, 1)],
 			[r.position, Vector2(r.position.x, r.end.y), Vector2(-1, 0)], [Vector2(r.end.x, r.position.y), r.end, Vector2(1, 0)]]

@@ -50,6 +50,8 @@ func start_beasts() -> void:
 func prepare(n: Dictionary) -> void:
 	node = n
 	theme = "capital"
+	# (1.27) the streets between the landmarks are rolled from the world's seed: the same city for every crew member
+	CapitalPlan.use_seed(int(n.get("seed", 0)))
 	add_to_group("capital")
 	radius = RADIUS
 	extent = ceilf((radius + MARGIN) * 2.0 / CELL) * CELL
@@ -324,6 +326,7 @@ func _piece(i: int) -> void:
 	mi.name = "Mesh"
 	mi.mesh = pc["mesh"]
 	mi.visibility_range_end = float(pc["range"])
+	mi.visibility_range_begin = float(pc.get("begin", 0.0))
 	if not pc["shadow"]:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
@@ -374,7 +377,7 @@ func nav_faces(c: Vector3, r: float) -> PackedVector3Array:
 	var xf := city.global_transform
 	var l := city.to_local(c)
 	var q0 := Vector2(l.x, l.z)
-	for f in CapitalPlan.FLOORS:
+	for f in CapitalPlan.floors():
 		var rect: Rect2 = f[1]
 		var x := rect.position.x
 		while x < rect.end.x:

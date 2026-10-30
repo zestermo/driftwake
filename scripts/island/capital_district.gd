@@ -109,7 +109,7 @@ static func _area(l: Dictionary) -> String:
 	var c: Vector2 = l["c"]
 	var best := ""
 	var bd := INF
-	for f in P.FLOORS:
+	for f in P.floors():
 		var r: Rect2 = f[1]
 		var d := Vector2(maxf(maxf(r.position.x - c.x, c.x - r.end.x), 0.0), maxf(maxf(r.position.y - c.y, c.y - r.end.y), 0.0)).length()
 		if d < bd:

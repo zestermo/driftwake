@@ -131,7 +131,16 @@ func _setup(island) -> void:
 		["crowd", "the market street at eye height", Vector2(-1.0, 62), 1.7, Vector2(0, 28), 2.0],
 		["halls", "the guild hall and the counting house", Vector2(0, 12), 2.5, Vector2(0, -30), 7.0],
 		["hill", "the town from the palace", Vector2(0, -112), 40.0, Vector2(0, 60), 0.0],
+		# (1.27) the rolled streets: the whole town straight down, and eye height in the first lane, alley and courtyard
+		["plan", "the town from straight above", Vector2(0, -12), 330.0, Vector2(0, -14), 0.0],
 	]
+	for kind in ["lane", "alley_r", "court"]:
+		var fl: Array = CapitalPlan.rolled().filter(func(f): return str(f[0]) == kind)
+		if fl.is_empty():
+			continue
+		var r: Rect2 = fl[0][1]
+		var along := Vector2(r.size.x * 0.4, 0) if r.size.x > r.size.y else Vector2(0, r.size.y * 0.4)
+		shots.append([kind, "a rolled " + kind.trim_suffix("_r"), r.get_center() - along, 1.7, r.get_center() + along, 1.8])
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))

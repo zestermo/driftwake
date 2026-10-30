@@ -68,7 +68,7 @@ func _process(_d: float) -> bool:
 			var mboxes := 0
 			for k in massing:
 				mboxes += (by[k] as Array).size()
-			check("the massing's houses have them (%d boxes in %d chunks)" % [mboxes, massing.size()], mboxes > 400 and massing.size() > 10)
+			check("the massing's houses have them (%d boxes in %d chunks)" % [mboxes, massing.size()], mboxes > 300 and massing.size() > 10)  # (1.27: more houses face a rolled lane, fewer are massing)
 			check("none on the arena (its arcades are open) nor the floors", not by.has("Arena") and not by.has("Floors"))
 			var out: Array = []
 			for k in by.keys():

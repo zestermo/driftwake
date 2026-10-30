@@ -265,8 +265,19 @@ static func _landmarks(out: Array) -> void:
 static func _massing(out: Array) -> void:
 	var lots := P.lots()
 	var chunks := {}
+	var far := {}
 	for l in lots:
-		if l["front"] or l["keep"] or P.special_hit(l["cell"]):
+		if l["keep"] or P.special_hit(l["cell"]):
+			continue
+		# (1.27) a house on a rolled lane is the district's up close; out past its range it's massing like the rest, or the
+		# city shows holes from the sea and the hill
+		if l["front"] and not _on_rolled(l):
+			continue
+		if l["front"]:
+			var fk := Vector2i(floori(l["c"].x / CHUNK), floori(l["c"].y / CHUNK))
+			if not far.has(fk):
+				far[fk] = []
+			far[fk].append(l)
 			continue
 		var c: Vector2 = l["c"]
 		var key := Vector2i(floori(c.x / CHUNK), floori(c.y / CHUNK))
@@ -295,6 +306,22 @@ static func _massing(out: Array) -> void:
 			M.house(mb, cols, l, low - 0.5, top)
 		# (no colliders: only the occluders)
 		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols.filter(func(c): return c.has("occ")), MASS, false)
+	var fkeys := far.keys()
+	fkeys.sort()
+	for key in fkeys:
+		var fmb := MeshBuilder.new()
+		var fcols: Array = []
+		for l in far[key]:
+			var r: Rect2 = l["r"]
+			var low := INF
+			var top := -INF
+			for p in [r.position, r.end, Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.position.y), r.get_center()]:
+				low = minf(low, _low(p))
+				top = maxf(top, P.ground(p))
+			M.house(fmb, fcols, l, low - 0.5, top)
+		# (shown only past the district's own range: no occluders, nothing to collide with out there)
+		_piece(out, "FarLanes_%d_%d" % [key.x, key.y], fmb, [], MASS, false)
+		(out[out.size() - 1] as Dictionary)["begin"] = CapitalDistrict.RANGE - 10.0
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	for o in P.openings(lots):
@@ -325,7 +352,7 @@ static func _barrier(mb: MeshBuilder, cols: Array, a: Vector2, b: Vector2, n: Ve
 static func _floors(out: Array) -> void:
 	var mb := MeshBuilder.new()
 	var shapes: Array = []
-	for f in P.FLOORS:
+	for f in P.floors():
 		var r: Rect2 = f[1]
 		var m := PSXMat.lit(str(f[2]))
 		var uv := 0.5 if str(f[2]) == "capital_slabs" else 0.6
@@ -346,3 +373,12 @@ static func _floors(out: Array) -> void:
 				faces.append_array([p[0], p[1], p[2], p[0], p[2], p[3]])
 		shapes.append(faces)
 	_piece(out, "Floors", mb, [], NEAR, false, shapes)
+
+
+## A lot whose street is one of the rolled ones (1.27), not a fixed floor.
+static func _on_rolled(l: Dictionary) -> bool:
+	var r: Rect2 = (l["r"] as Rect2).grow(1.5)
+	for f in P.FLOORS:
+		if (f[1] as Rect2).intersects(r):
+			return false
+	return true
