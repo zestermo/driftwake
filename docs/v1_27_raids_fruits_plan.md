@@ -533,3 +533,54 @@ Nothing like the capital: no limestone, no cone roofs. What the reference shows:
 - **Walls and bridges:** sea walls straight out of the water from rocks, and arched viaduct bridges between towers.
 - **Approaches:** a grand stair up to a huge portcullis gate between torches.
 - **Industry:** iron gantries and cranes with hanging crates, and wooden docks.
+
+## Stronghold bosses preview (Zach, 2026-10-30: replaces preview v2's Drill Sergeant / Commodore / Warden / Vice Admiral)
+Zach's direction:
+- **Three tough bosses through the fortress:** a **Lieutenant**, then a **Captain**, then **the Commodore**, who commands
+  the whole fortress and is the end boss.
+- **The Commodore** is a fusion of a player AI (CaptainBrain: weapons, skills, abilities and movement, like a rival
+  captain) and a traditional scripted boss fight with **phases**.
+
+All three are captain-style AIs (player.tscn with a brain, like 1.19's officers), each with its own arena gimmick, run
+by a small phase controller (`StrongholdBoss`: health thresholds -> a phase's loadout, adds, arena changes, a cutscene
+beat; the host runs it, the phases go over as one event). Numbers are a first pass, for the squad of 3; solo scales by
+preview v2's table.
+
+| Boss | Where | Seal | Kit (weapon, skills) | Phases | Arena gimmick |
+|---|---|---|---|---|---|
+| **Lieutenant Varro Kesh** | the Casting Hall (the Arsenal) | seal 1 | cutlass + flintlock (the Corsair tree), 2 techniques | **2:** at 50%, he kicks the furnace sluices open | the floor's channels run with molten iron in turns (telegraphed glow, then a burning strip), a powder keg or two |
+| **Captain Ilse Marrow** | the Prison Tower's yard and its cell block | seal 2 | a greatsword or polearm, heavy, 3 techniques, a seastone net (a fruit user caught is powerless 4 s) | **2:** at 50%, she opens a cell block: 3 brutes join, and she takes the high catwalk with a rifle a while | catwalks over the hollow core; fall and you take the stair up again |
+| **Commodore Aurel Vane** | the Command Hall (the Verdict's base) | (the end) | everything a captain has: a katana + pistol, 4 techniques, an ultimate, dodges, parries, blocks, his movement | **3** (below) | the hall changes each phase |
+
+### The Commodore's three phases
+1. **The Duel (100-65%):**
+   - He fights you like a rival captain: katana, parries, a technique every few seconds, the ultimate once.
+   - The Hall Guard stands at the walls and doesn't join.
+   - A captain alone on him gets a proper 1v1.
+2. **The Fortress Answers (65-30%):**
+   - A beat: he steps back to the dais, rings the bell, and the galleries open: riflemen fire from them and two waves of
+     marines come in.
+   - He switches to pistol and katana, fights from the dais, and uses a new technique (a cross-slash wave across the
+     hall).
+   - The braziers flare: fire zones on the floor's quarters in turn.
+3. **The Verdict (30-0%):**
+   - Another beat: the war table breaks, and he draws a second blade (dual wield, faster).
+   - **If he holds a fruit** (step 5: a solid one from the pool), he eats or uses it here and fights with its powers.
+   - Otherwise a signature: "Final Judgement", an ultimate that sweeps the hall in three telegraphed lines.
+   - No more adds. Enraged: shorter cooldowns and +20% speed.
+   - He can't be staggered by light hits; poise breaks only on techniques.
+
+**On his death:** a slow-motion beat. The broadcast follows, then the Scouring (decided).
+**Health (squad of 3, around level 22):**
+- the Lieutenant 6x a rival captain's;
+- the Captain 8x;
+- the Commodore 12x across his phases.
+Solo: x0.5 (preview v2).
+
+### Questions for Zach
+1. **Names and kits:** Kesh (cutlass + pistol, molten floor), Marrow (heavy blade, seastone net, catwalks), Vane
+   (katana + pistol, then dual, then a fruit if he has one): right, or other weapon kinds?
+2. **Order:** the Lieutenant and the Captain are the two seals (either order, any route), and the Commodore at the
+   top. Or a strict order (the Lieutenant first, then the Captain)?
+3. **The Vice Admiral:** the earlier plan's top boss is now the Commodore. Keep the Vice Admiral out, or have them
+   arrive with the Scouring (instead of, or as well as, the Admiral at high level)?
