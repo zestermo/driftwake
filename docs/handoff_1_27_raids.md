@@ -205,3 +205,10 @@ On main and pushed:
   - Phase 3: dual wield and an enrage (shorter cooldowns, more speed), and his fruit if he holds one (step 5).
   - Still to add: Marrow's seastone net and catwalks, then the broadcast and the Scouring (with the Admiral's escape
     fight).
+- (later) **Commodore Vane is built:** three phases, the marine waves and flaring quarters, the Verdict's enrage, and
+  "sh_seal_keep" on his fall (t/stronghold/vane). All three stronghold bosses are in.
+  - **Next:** the emergency broadcast and the Scouring (the fleet ring, telegraphed shells, spreading fires, the escape
+    to 500 m out) with the Admiral's escape fight (blink and knockback near the ship, leaves at about 2/3 health). Also
+    the respawns stopping once the Commodore is down.
+  - **Polish:** Marrow's seastone net and catwalks, the Commodore's fruit in phase 3 once fruits land, rewards (the
+    vault's legendary, bounty), the muster flags and the brig on a wipe.

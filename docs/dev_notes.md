@@ -8332,3 +8332,13 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     "sh_seal_arsenal" and "sh_seal_prison" are set (either order).
   - Test: t/stronghold/marrow (the yard, her kit and health, the brutes at half health, the seal, the gate on one seal
     and then two).
+- (same day) **Commodore Aurel Vane**, the end boss.
+  - BOSSES["vane"]: the Command Hall, katana and pistol, 12x health, skill 0.9.
+  - **Phase 2 at 65%:** an armed encounter of two marine waves of five pours in, and the hall's four quarters flare in
+    turn. The hazards are now `zones()` per boss (Kesh's three channels, Vane's quarters), still timed from Ocean.clock
+    and hurting only the local captain.
+  - **Phase 3 at 30%:** world flag "sh_vane_p3"; `_enrage` gives a second blade (set_offhand cutlass), brain skill 1.0
+    and a full ultimate.
+  - **His fall:** "sh_seal_keep" (for the broadcast and the Scouring to hang off).
+  - Phase-2 adds generalised: `adds` is a list of wave sizes, and `prisoners` picks Marrow's brutes.
+  - Test: t/stronghold/vane.

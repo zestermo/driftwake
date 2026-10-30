@@ -10,13 +10,22 @@ extends Node3D
 ##
 ## Lieutenant Varro Kesh (the Casting Hall, seal of the Arsenal): cutlass and pistol, the full kit; at half health he
 ## kicks the furnace sluices open and molten iron runs down the floor's channels in turn (a glow first, then it burns).
+## Captain Ilse Marrow (the prison yard, an open arena, seal of the prison): a greatsword; at half health the cell
+## block opens on its berserk brutes. Commodore Aurel Vane (the Command Hall, the end): katana and pistol, three phases:
+## the duel; at 65% the fortress answers (two waves of marines, the hall's quarters flaring in turn); at 30% the Verdict
+## (a second blade, the sharpest brain, his ultimate charged). His fall is "sh_seal_keep": the broadcast and the
+## Scouring follow.
 
 const BOSSES := {
 	"kesh": {"room": "casting", "name": "Lieutenant Varro Kesh", "weapon": "cutlass", "offhand": "pistol", "hp": 6.0,
 		"skill": 0.85, "seal": "arsenal", "p2": 0.5},
 	# (an open arena, no room: the yard before the prison's drum; at half health the cell block opens on its brutes)
 	"marrow": {"arena": [Vector2(-72.0, 5.0), 14.0], "district": 3, "name": "Captain Ilse Marrow", "weapon": "greatsword", "hp": 8.0,
-		"skill": 0.9, "seal": "prison", "p2": 0.5, "adds": 4},
+		"skill": 0.9, "seal": "prison", "p2": 0.5, "adds": [4], "prisoners": true},
+	# (the end: three phases; at 65% the fortress answers (two waves of marines, the hall's quarters flaring), at 30% the
+	# Verdict (a second blade, enraged))
+	"vane": {"room": "command", "name": "Commodore Aurel Vane", "weapon": "katana", "offhand": "pistol", "offhand3": "cutlass",
+		"hp": 12.0, "skill": 0.9, "seal": "keep", "p2": 0.65, "p3": 0.3, "adds": [5, 5]},
 }
 ## The molten channels (Kesh's phase 2): across the room at these offsets from its middle, each this wide; one at a
 ## time in turn every CYCLE s: WARN s of glow, then BURN s of burning; MOLTEN_DPS to a captain standing in it.
@@ -62,8 +71,7 @@ func _ready() -> void:
 		add_child(_grate)
 	if BOSSES[key].has("adds"):
 		_build_adds()
-	if key == "kesh":
-		_build_channels()
+	_build_zones()
 
 
 func _flag(f: String) -> bool:
@@ -87,8 +95,12 @@ func beaten() -> bool:
 	return _flag(flag_seal())
 
 
+func flag_p3() -> String:
+	return "sh_%s_p3" % key
+
+
 func phase() -> int:
-	return 2 if _flag(flag_p2()) else 1
+	return 3 if _flag(flag_p3()) else (2 if _flag(flag_p2()) else 1)
 
 
 ## The grate's down while the fight is on and the seal not yet taken.
@@ -122,6 +134,9 @@ func _process(delta: float) -> void:
 	var hp := boss.health_component.current_health / maxf(boss.health_component.max_health, 1.0)
 	if phase() == 1 and hp <= float(BOSSES[key]["p2"]):
 		net.world_flag(flag_p2())
+	if phase() == 2 and BOSSES[key].has("p3") and hp <= float(BOSSES[key]["p3"]):
+		net.world_flag(flag_p3())
+		_enrage()
 	if hp <= 0.0:
 		net.world_flag(flag_seal())
 
@@ -172,30 +187,47 @@ func _spawn() -> void:
 
 
 # --------------------------------------------------------------------------
-# Kesh's molten channels
+# The arena's hazards (phase 2 on): Kesh's molten channels, the Commodore's flaring quarters
 # --------------------------------------------------------------------------
-func _build_channels() -> void:
+## The hazard zones (local xz rects, from the boss's node), one live at a time in turn: Kesh's three channels across
+## the Casting Hall, the Commodore's four quarters of the Command Hall. None for a boss without them.
+func zones() -> Array:
+	var out: Array = []
+	if rm.is_empty():
+		return out
 	var r: Rect2 = rm[2]
+	match key:
+		"kesh":
+			for z: float in CHANNELS:
+				out.append(Rect2(-(r.size.x * 0.5 - 2.0), z - CHANNEL_W * 0.5, r.size.x - 4.0, CHANNEL_W))
+		"vane":
+			var h := r.size.x * 0.5 - 1.6
+			for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
+				out.append(Rect2(Vector2(minf(q.x * h, q.x * 2.0), minf(q.y * h, q.y * 2.0)), Vector2(h - 2.0, h - 2.0)))
+	return out
+
+
+func _build_zones() -> void:
 	_warn_m = PSXMat.glow(Color(1.0, 0.45, 0.1), 0.8)
 	_burn_m = PSXMat.glow(Color(1.0, 0.35, 0.08), 3.5)
-	for z: float in CHANNELS:
+	for z: Rect2 in zones():
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
-		bm.size = Vector3(r.size.x - 4.0, 0.06, CHANNEL_W)
+		bm.size = Vector3(z.size.x, 0.06, z.size.y)
 		mi.mesh = bm
-		mi.position = Vector3(0, 0.05, z)
+		mi.position = Vector3(z.get_center().x, 0.05, z.get_center().y)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visible = false
 		add_child(mi)
 		_strips.append(mi)
 
 
-## Which channel is live now and how ([index, "warn" / "burn" / ""]): the same on every machine (Ocean.clock).
+## Which zone is live now and how ([index, "warn" / "burn" / ""]): the same on every machine (Ocean.clock).
 func channel_now() -> Array:
-	if key != "kesh" or phase() < 2 or beaten():
+	if _strips.is_empty() or phase() < 2 or beaten():
 		return [-1, ""]
 	var t := float(get_node("/root/Ocean").clock())
-	var i := int(floor(t / CYCLE)) % CHANNELS.size()
+	var i := int(floor(t / CYCLE)) % _strips.size()
 	var u := fmod(t, CYCLE)
 	if u < WARN:
 		return [i, "warn"]
@@ -221,8 +253,7 @@ func _hazards(delta: float) -> void:
 	if me == null:
 		return
 	var l := to_local(me.global_position)
-	var r: Rect2 = rm[2]
-	if absf(l.z - float(CHANNELS[int(now[0])])) < CHANNEL_W * 0.5 and absf(l.x) < r.size.x * 0.5 - 2.0 and l.y < 1.0:
+	if (zones()[int(now[0])] as Rect2).has_point(Vector2(l.x, l.z)) and l.y < 1.0:
 		_hurt -= delta
 		if _hurt <= 0.0:
 			_hurt = 0.5
@@ -232,18 +263,36 @@ func _hazards(delta: float) -> void:
 			me.hurtbox.take_hit(hd, null)
 
 
-## (Marrow) the cell block's brutes: a sealed-room fight with no grate, one wave, armed by this boss's phase 2 flag.
+## The phase-2 adds: a sealed-room fight with no grate, armed by this boss's phase 2 flag. Marrow's cell block (one
+## wave of berserk prisoners beside the yard); the Commodore's marines pouring into his hall (two waves).
 func _build_adds() -> void:
 	var b: Dictionary = BOSSES[key]
-	var c := Vector2(position.x, position.z) + Vector2(-16.0, 0.0)
-	var cells := ["cells_" + key, "The Cell Block", Rect2(c - Vector2(6, 5), Vector2(12, 10)), position.y, 6.0, Vector2(1, 0), 4.0]
+	var room: Array
+	if rm.is_empty():
+		var c := Vector2(position.x, position.z) + Vector2(-16.0, 0.0)
+		room = ["cells_" + key, "The Cell Block", Rect2(c - Vector2(6, 5), Vector2(12, 10)), position.y, 6.0, Vector2(1, 0), 4.0]
+	else:
+		room = ["adds_" + key, str(rm[1]), rm[2], rm[3], rm[4], rm[5], rm[6]]
 	var enc := StrongholdEncounter.new()
 	enc.arm_flag = flag_p2()
-	enc.waves = 1
-	enc.sizes = [int(b["adds"])]
-	enc.prisoners = true
-	enc.setup(isl, cells)
+	enc.sizes = b["adds"]
+	enc.waves = (b["adds"] as Array).size()
+	enc.prisoners = bool(b.get("prisoners", false))
+	enc.setup(isl, room)
 	isl.city.add_child.call_deferred(enc)
+
+
+## (the Commodore, phase 3) the Verdict: a second blade, the sharpest of brains, his ultimate charged.
+func _enrage() -> void:
+	if boss == null:
+		return
+	var b: Dictionary = BOSSES[key]
+	if b.has("offhand3"):
+		boss.set_offhand(ItemDB.get_item(str(b["offhand3"])))
+	var brain := boss.get_node_or_null("Brain")
+	if brain:
+		brain.skill = 1.0
+	boss.power.ult = PowerComponent.ULT_MAX
 
 
 ## The keep's gate at the Bridge of Judgement's end: its grate down until both seals are the crew's (the Arsenal's and
