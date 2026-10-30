@@ -516,3 +516,9 @@ Stance attacks: LMB soap bubbles that pop (small damage, a slip chance); RMB a b
 | **Scrub** | Washes buffs off a foe and burning off you | It scrubs a debuff off you by itself | Burning and bleeding never stick to you |
 | **Foam Flood** | A wave of foam knocks foes down and away | Popped bubbles leave foam | Your footprints foam (foes slip on your trail) |
 Awakened, "Bath Time": the area floods with foam for 30 s; foes slip constantly, and you skate.
+
+## Decided: where the stronghold is (Zach, 2026-10-30)
+- **A new island, outside the sea chain:** optional, missable, skippable. It isn't on the route (no "next" links into
+  or out of it), the log pose never points to it, and it's **off the chart until you hear of it** (captured orders, a
+  rumour, the Queen's line).
+- Built after the chain from its own rng (`hash([chain seed, "stronghold"])`), so no existing island's roll changes.
