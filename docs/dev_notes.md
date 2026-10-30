@@ -8011,3 +8011,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **Far fronts**: the walkway houses had no far version (district RANGE 300), so every walkway and calle showed bare
   ground from the lagoon and from above; "FarFronts_*" massing past the range (as the capital's FarLanes).
 - Tests: t/canal/walk_in (new). Renders: canalshot plan, campo2, roofs, room.
+- **The campanile climbed** (CapitalBellTower with a wall material, colour and no hip roof: brick, the canal's green spire
+  over it), a 1 m paving strip "campanile_door" from its south door to piazza_cw; the Hooded Stranger in its belfry too
+  (CanalLife, spot "informant"). t/canal/campanile.

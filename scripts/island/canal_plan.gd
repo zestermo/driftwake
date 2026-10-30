@@ -176,6 +176,8 @@ static func floors() -> Array:
 	out.append(["piazza", PIAZZA, "capital_slabs"])
 	# the piazza reaches the walkway along the Grand Canal by a lane past the campanile
 	out.append(["piazza_cw", Rect2(16.0, 66.0, 8.0, 30.0), "capital_slabs"])
+	# (1.27) the paving from the campanile's door down onto that lane
+	out.append(["campanile_door", Rect2(16.5, 65.0, 6.0, 1.0), "capital_slabs"])
 	out.append(["arsenal", ARSENAL, "capital_slabs"])
 	_floors = _clip(out)
 	_floors_for = world_seed

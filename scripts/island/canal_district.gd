@@ -276,6 +276,9 @@ static func _long_boat(mb: MeshBuilder, t: Transform3D, rng: RandomNumberGenerat
 # --------------------------------------------------------------------------
 ## Each block's campo: a carved wellhead, a bench, a potted tree; a lamp in a few (the light budget).
 static func _campi(out: Dictionary) -> void:
+	# (1.27) the hooded stranger's place, up in the campanile's belfry (the same figure as the capital's bell tower)
+	var bt := CapitalBellTower.top((P.SPECIAL["campanile"][0] as Rect2).get_center(), P.QUAY_Y)
+	_spot(out, "informant", Vector2(bt.x, bt.z), bt.y, Vector2(0, 1))
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	var rng := _rng(3317)

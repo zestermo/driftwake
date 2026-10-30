@@ -168,19 +168,13 @@ static func _landmarks(out: Array) -> void:
 	var lime := M.mat("lime")
 	var cr: Rect2 = P.SPECIAL["campanile"][0]
 	var cc := cr.get_center()
-	var w := cr.size.x
-	var shaft := 34.0
-	mb.add_box(b, M.xf(M.v3(cc, P.QUAY_Y + shaft * 0.5 - 1.0)), Vector3(w, shaft + 2.0, w), 0.5, Color(0.86, 0.5, 0.4))
-	M.box(cols, M.xf(M.v3(cc, P.QUAY_Y + shaft * 0.5 - 1.0)), Vector3(w, shaft + 2.0, w))
-	Occluders.box(cols, M.xf(M.v3(cc, P.QUAY_Y + shaft * 0.5)), Vector3(w - 0.4, shaft, w - 0.4))
-	for f in range(4):
-		var yaw := f * PI * 0.5
-		var t := M.xf(M.v3(cc, P.QUAY_Y + shaft), yaw) * Transform3D(Basis(), Vector3(0, 0, w * 0.5 - 0.3))
-		M.arch_wall(mb, lime, t, w, 5.0, 0.6, w * 0.5, 3.0, Color(0.96, 0.94, 0.9))
-		mb.add_box(M.mat("dark"), t * Transform3D(Basis(), Vector3(0, 2.0, -0.4)), Vector3(w * 0.5, 3.2, 0.06), 1.0, Color(0.15, 0.13, 0.12), false)
-	mb.add_box(lime, M.xf(M.v3(cc, P.QUAY_Y + shaft + 5.2)), Vector3(w + 0.6, 0.5, w + 0.6), 0.6, Color(0.94, 0.92, 0.88), false)
-	mb.add_cone(PSXMat.lit("metal", Color(0.45, 0.62, 0.52)), M.xf(M.v3(cc, P.QUAY_Y + shaft + 5.45), PI * 0.25), w * 0.72, 9.0, 4, 1.0)
-	M.flag(mb, M.v3(cc, P.QUAY_Y + shaft + 14.5), M.GOLD)
+	# (1.27) climbed, as the capital's bell tower: brick, its door on the lane south of it, the stranger in its belfry
+	var w := CapitalBellTower.W
+	CapitalBellTower.build(mb, cols, cc, P.QUAY_Y, b, Color(0.86, 0.5, 0.4), false)
+	var spire_y := P.QUAY_Y + CapitalBellTower.H + 0.8
+	mb.add_box(lime, M.xf(M.v3(cc, spire_y - 0.25)), Vector3(w + 0.6, 0.5, w + 0.6), 0.6, Color(0.94, 0.92, 0.88), false)
+	mb.add_cone(PSXMat.lit("metal", Color(0.45, 0.62, 0.52)), M.xf(M.v3(cc, spire_y), PI * 0.25), w * 0.72, 9.0, 4, 1.0)
+	M.flag(mb, M.v3(cc, spire_y + 9.05), M.GOLD)
 	var ch: Rect2 = P.SPECIAL["church"][0]
 	M.dome(mb, M.v3(ch.get_center() - Vector2(0, 2.0), P.QUAY_Y + 15.0), 6.5, 3.0, Color(0.5, 0.62, 0.56))
 	_piece(out, "Landmarks", mb, cols, FAR, true)

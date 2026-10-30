@@ -26,10 +26,12 @@ static func top(c: Vector2, y0: float) -> Vector3:
 	return M.v3(c + Vector2(0, 0.6), y0 + BELFRY)
 
 
-static func build(mb: MeshBuilder, cols: Array, c: Vector2, y0: float) -> void:
+static func build(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, wall_mat: Material = null, wall_col := Color(0.95, 0.93, 0.89), roofed := true) -> void:
 	var t := M.xf(M.v3(c, 0.0))
 	var lime := M.mat("lime")
-	var col := Color(0.95, 0.93, 0.89)
+	# (the walls: the capital's limestone, or the canal city's brick)
+	var wm: Material = wall_mat if wall_mat else lime
+	var col := wall_col
 	var hw := W * 0.5
 	var a := hw - WALL
 	var deep := 2.0
@@ -48,14 +50,14 @@ static func build(mb: MeshBuilder, cols: Array, c: Vector2, y0: float) -> void:
 			var gap: Array = sp[2]
 			if gap.is_empty():
 				var bt := st * Transform3D(Basis(), Vector3(0, (lo + hi) * 0.5, z))
-				mb.add_box(lime, bt, Vector3(W, hi - lo, WALL), 0.5, col)
+				mb.add_box(wm, bt, Vector3(W, hi - lo, WALL), 0.5, col)
 				M.box(cols, bt, Vector3(W, hi - lo, WALL))
 			else:
 				var gw: float = gap[0]
 				var pw := (W - gw) * 0.5
 				for s in [-1.0, 1.0]:
 					var bt := st * Transform3D(Basis(), Vector3(s * (gw * 0.5 + pw * 0.5), (lo + hi) * 0.5, z))
-					mb.add_box(lime, bt, Vector3(pw, hi - lo, WALL), 0.5, col)
+					mb.add_box(wm, bt, Vector3(pw, hi - lo, WALL), 0.5, col)
 					M.box(cols, bt, Vector3(pw, hi - lo, WALL))
 		# the clock faces under the belfry, a rail across each arch, the arch's sill
 		var ct := st * Transform3D(Basis(), Vector3(0, y0 + 18.5, hw + 0.02))
@@ -73,8 +75,9 @@ static func build(mb: MeshBuilder, cols: Array, c: Vector2, y0: float) -> void:
 	# the cornice and the roof (as the old solid tower had)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y0 + H + 0.4, 0)), Vector3(W + 0.6, 0.8, W + 0.6), 0.6, Color(0.85, 0.83, 0.79), false)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y0 + H - 0.1, 0)), Vector3(W, 0.4, W), 0.6, Color(0.85, 0.83, 0.79), false)
-	M._hip(mb, t * Transform3D(Basis(), Vector3(0, y0 + H + 0.8, 0)), W + 0.4, W + 0.4, W * 0.75, 0.3, Color.WHITE)
-	mb.add_cylinder(M.mat("gold"), t * Transform3D(Basis(), Vector3(0, y0 + H + 0.8 + W * 0.75 - 0.1, 0)), 0.07, 0.03, 1.3, 4)
+	if roofed:
+		M._hip(mb, t * Transform3D(Basis(), Vector3(0, y0 + H + 0.8, 0)), W + 0.4, W + 0.4, W * 0.75, 0.3, Color.WHITE)
+		mb.add_cylinder(M.mat("gold"), t * Transform3D(Basis(), Vector3(0, y0 + H + 0.8 + W * 0.75 - 0.1, 0)), 0.07, 0.03, 1.3, 4)
 	# the ground floor
 	mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(0, y0 - 0.05, 0)), Vector3(a * 2.0, 0.1, a * 2.0), 0.6, Color.WHITE, false)
 	M.box(cols, t * Transform3D(Basis(), Vector3(0, y0 - 0.2, 0)), Vector3(a * 2.0, 0.4, a * 2.0))

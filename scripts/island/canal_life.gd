@@ -57,6 +57,11 @@ var _fader: ColorRect
 ## Everyone named: {"name", "spot", "voice", "look" over the city's folk look, "barks" / "shop" / "dialogue"}.
 static func cast() -> Array:
 	return [
+		# 1.27 C3: the same hooded stranger as the capital's bell tower, up in the campanile
+		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
+			"cloak": true, "cloak_color": Color(0.1, 0.09, 0.12), "legs_color": Color(0.12, 0.12, 0.14)},
+			"barks": ["You again. Or me again. Hard to say who's following whom.", "The lagoon keeps secrets better than the capital. Not better than me.",
+				"There's a pirate who taxes these waters. The Doge would pay to know where he sleeps.", "Ring the bell if you like. Nobody comes up here."]},
 		{"name": "Master Ottavio Grane", "spot": "arsenal_master", "voice": 0.8, "dialogue": "master", "look": {"body": "masc", "coat": "longcoat", "coat_color": Color(0.36, 0.14, 0.12),
 			"trim_color": GOLD, "hat": "none", "gloves": true, "gloves_color": Color(0.3, 0.22, 0.16)}},
 		{"name": "Pia Calder", "spot": "shipwright0", "voice": 1.1, "look": APRON.merged({"body": "fem"}, true), "barks": ["Forty-two ribs on this one. I've numbered every one in chalk.",
