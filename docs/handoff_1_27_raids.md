@@ -261,3 +261,12 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
      skill_trees.gd).
   4. Turn IN_WORLD on with the sources drawing from FruitPool, then enemy users (officers and Vane's phase 3), the
      costs (the sea's weakness and rescues) and the Seafarer tree.
+- (latest) **The fruit stance on V** is in (PowerComponent.set_fruit_stance, `other_loadout`, saved as "fruit_loadout").
+  - **The shared combat pool** (decided: 3 points a level across the weapon and fruit trees) is **deferred on purpose**.
+    It changes how every weapon tree buys (SkillTrees.pool_of / Progression.earned, each tree's own points today) and
+    what existing saves have spent: do it as its own piece, with a refund-and-rebuy for old saves and the economy tests
+    updated.
+  - **Then the kits:** Ember first as the template.
+    - Each of its five powers gets a Skills.ALL entry for its Active form.
+    - Its Reflex and Nature behaviours sit in the player's hit and dodge paths, reading FruitForms.form(pr, id, "ember").
+    - The tree is in skill_trees.gd `_build_ember`, rebuilt to the plan's shape.
