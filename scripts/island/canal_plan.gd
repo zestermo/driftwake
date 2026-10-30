@@ -55,6 +55,8 @@ const SPECIAL := {
 	"inn": [Rect2(-38.0, -52.0, 22.0, 20.0), Vector2(1, 0)],
 	"masters": [Rect2(136.0, 6.0, 28.0, 10.0), Vector2(0, -1)],
 	"sheds": [Rect2(170.0, -40.0, 26.0, 40.0), Vector2(-1, 0)],
+	# 1.27 C3: the Doge's palace on the piazza's east side, its door west onto the piazza (CapitalHalls "doge")
+	"doge": [Rect2(104.0, 58.0, 28.0, 38.0), Vector2(-1, 0)],
 }
 ## Bridges over the water: [from, to (frame points on the floors either side), width, rise at the middle].
 const BRIDGES := [

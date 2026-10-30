@@ -15,8 +15,8 @@ const RISE := 0.6
 
 
 ## A hall's frame (+z toward its floor, the door in that face), its width (along x) and depth (along z).
-static func frame(key: String) -> Array:
-	var sp: Array = P.SPECIAL[key]
+static func frame(key: String, plan = null) -> Array:
+	var sp: Array = (plan if plan else P).SPECIAL[key]
 	var r: Rect2 = sp[0]
 	var face: Vector2 = sp[1]
 	var w := r.size.x if absf(face.y) > 0.5 else r.size.y
@@ -25,44 +25,45 @@ static func frame(key: String) -> Array:
 
 
 ## The ground at the door and the hall's floor over it.
-static func ground(key: String) -> float:
-	var fr := frame(key)
+static func ground(key: String, plan = null) -> float:
+	var fr := frame(key, plan)
 	var t: Transform3D = fr[0]
 	var door := t * Vector3(0, 0, float(fr[2]) * 0.5 + 1.5)
-	return P.ground(Vector2(door.x, door.z))
+	return (plan if plan else P).ground(Vector2(door.x, door.z))
 
 
 ## Where someone inside would stand (frame, on the floor).
-static func inside(key: String) -> Vector3:
-	var fr := frame(key)
+static func inside(key: String, plan = null) -> Vector3:
+	var fr := frame(key, plan)
 	var ix := float(fr[1]) * 0.5 - WALL
 	var iz := float(fr[2]) * 0.5 - WALL
 	# (the library: an aisle between a shelf row and the tables; the theatre: the floor before the stage, under the rows)
-	var q := Vector3(ix * 0.3, 0, iz * 0.25) if key == "library" else Vector3(0, 0, -iz + 5.5 + 1.2)
-	return (fr[0] as Transform3D) * Vector3(q.x, ground(key) + RISE, q.z)
+	var q := Vector3(ix * 0.3, 0, iz * 0.25) if key == "library" else (Vector3(0, 0, iz * 0.4) if key == "doge" else Vector3(0, 0, -iz + 5.5 + 1.2))
+	return (fr[0] as Transform3D) * Vector3(q.x, ground(key, plan) + RISE, q.z)
 
 
-static func build(mb: MeshBuilder, cols: Array, key: String, h: float) -> void:
-	var fr := frame(key)
+static func build(mb: MeshBuilder, cols: Array, key: String, h: float, plan = null) -> void:
+	var fr := frame(key, plan)
 	var t: Transform3D = fr[0]
 	var w: float = fr[1]
 	var d: float = fr[2]
-	var gy := ground(key)
+	var gy := ground(key, plan)
 	var fy := gy + RISE
-	_shell(mb, cols, t, w, d, gy, fy, h)
+	_shell(mb, cols, t, w, d, gy, fy, h, Color(0.98, 0.82, 0.78) if key == "doge" else Color(0.97, 0.94, 0.88))
 	match key:
 		"library":
 			_library(mb, cols, t, w, d, fy, h)
 		"theatre":
 			_theatre(mb, cols, t, w, d, fy, h)
+		"doge":
+			_council(mb, cols, t, w, d, fy, h)
 
 
 ## Walls (facade out, plaster in, the front round its door), the plinth and floor, the ceiling, roof, steps, cornice.
-static func _shell(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, gy: float, fy: float, h: float) -> void:
+static func _shell(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, gy: float, fy: float, h: float, col := Color(0.97, 0.94, 0.88)) -> void:
 	var lime := M.mat("lime")
 	var hw := w * 0.5
 	var hd := d * 0.5
-	var col := Color(0.97, 0.94, 0.88)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, (gy - 2.0 + fy) * 0.5, 0)), Vector3(w + 0.4, fy - gy + 2.0, d + 0.4), 0.5, Color(0.9, 0.88, 0.84), true, false)
 	M.box(cols, t * Transform3D(Basis(), Vector3(0, (gy - 2.0 + fy) * 0.5, 0)), Vector3(w, fy - gy + 2.0, d))
 	var fac := M.mat("facade_a")
@@ -219,3 +220,84 @@ static func _theatre(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: 
 	mb.add_box(M.mat("iron"), t * Transform3D(Basis(), Vector3(0, fy + h - 1.0, iz * 0.3)), Vector3(0.05, 2.0, 0.05), 1.0, Color.WHITE, false)
 	mb.add_cylinder(M.mat("gold"), t * Transform3D(Basis(), Vector3(0, fy + h - 2.2, iz * 0.3)), 1.1, 0.6, 0.4, 10)
 	mb.add_box(foot, t * Transform3D(Basis(), Vector3(0, fy + h - 2.3, iz * 0.3)), Vector3(0.8, 0.1, 0.8), 1.0, Color.WHITE, false)
+
+
+## The Doge's palace (the canal city): its council chamber. A dais across the back with the Doge's gilded chair under a
+## canopy, a long table down each side with its benches, banners of the lagoon's colours on the walls, a lamp hung over
+## the floor; crenels along the palace's top outside.
+static func _council(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, fy: float, h: float) -> void:
+	var wood := PSXMat.lit("planks_dark")
+	var lime := M.mat("lime")
+	var gold := M.mat("gold")
+	var ix := w * 0.5 - WALL
+	var iz := d * 0.5 - WALL
+	var dais := t * Transform3D(Basis(), Vector3(0, fy + 0.35, -iz + 2.2))
+	mb.add_box(lime, dais, Vector3(ix * 2.0 - 2.0, 0.7, 4.4), 0.6, Color(0.9, 0.86, 0.8))
+	M.box(cols, dais, Vector3(ix * 2.0 - 2.0, 0.7, 4.4))
+	mb.add_box(M.mat("cloth"), dais * Transform3D(Basis(), Vector3(0, 0.36, 0.6)), Vector3(4.0, 0.02, 2.6), 1.0, Color(0.55, 0.1, 0.12), false)
+	var ct := dais * Transform3D(Basis(), Vector3(0, 0.35, -0.9))
+	mb.add_box(gold, ct * Transform3D(Basis(), Vector3(0, 0.55, 0)), Vector3(1.2, 0.12, 0.9), 1.0, Color.WHITE)
+	mb.add_box(gold, ct * Transform3D(Basis(), Vector3(0, 1.4, -0.42)), Vector3(1.2, 1.8, 0.12), 1.0, Color.WHITE)
+	for s in [-1.0, 1.0]:
+		mb.add_box(gold, ct * Transform3D(Basis(), Vector3(s * 0.55, 0.75, 0)), Vector3(0.1, 0.5, 0.9), 1.0, Color.WHITE, false)
+	M.box(cols, ct * Transform3D(Basis(), Vector3(0, 0.8, 0)), Vector3(1.2, 1.6, 0.9))
+	# the canopy over the chair
+	mb.add_box(M.mat("cloth"), ct * Transform3D(Basis(), Vector3(0, 3.4, 0.2)), Vector3(2.4, 0.08, 1.8), 1.0, Color(0.55, 0.1, 0.12), false)
+	for s in [-1.0, 1.0]:
+		mb.add_cylinder(gold, ct * Transform3D(Basis(), Vector3(s * 1.1, 0, 0.95)), 0.06, 0.06, 3.4, 6)
+	# the council tables down each side, benches along them
+	for s in [-1.0, 1.0]:
+		var tl := iz * 2.0 - 8.0
+		var tt := t * Transform3D(Basis(), Vector3(s * (ix - 2.6), fy, 1.5))
+		mb.add_box(wood, tt * Transform3D(Basis(), Vector3(0, 0.78, 0)), Vector3(1.4, 0.08, tl), 0.6, Color.WHITE)
+		mb.add_box(wood, tt * Transform3D(Basis(), Vector3(0, 0.38, 0)), Vector3(0.8, 0.76, tl - 0.6), 0.6, Color.WHITE, false)
+		M.box(cols, tt * Transform3D(Basis(), Vector3(0, 0.4, 0)), Vector3(1.4, 0.82, tl))
+		for side in [-1.0, 1.0]:
+			mb.add_box(wood, tt * Transform3D(Basis(), Vector3(side * 1.1, 0.45, 0)), Vector3(0.4, 0.08, tl - 0.4), 0.6, Color(0.9, 0.85, 0.8), false)
+	# banners on the long walls, the lamp over the floor
+	var banners: Array = [Color(0.55, 0.1, 0.12), Color(0.9, 0.72, 0.25)]
+	var z := -iz + 6.0
+	var i := 0
+	while z < iz - 3.0:
+		for s in [-1.0, 1.0]:
+			mb.add_box(M.mat("cloth"), t * Transform3D(Basis(), Vector3(s * (ix - 0.06), fy + h * 0.55, z)), Vector3(0.04, 3.0, 1.2), 1.0, banners[i % 2], false)
+			i += 1
+		z += 5.0
+	mb.add_box(M.mat("iron"), t * Transform3D(Basis(), Vector3(0, fy + h - 1.0, 0)), Vector3(0.05, 2.0, 0.05), 1.0, Color.WHITE, false)
+	mb.add_cylinder(gold, t * Transform3D(Basis(), Vector3(0, fy + h - 2.2, 0)), 1.2, 0.6, 0.4, 10)
+	mb.add_box(PSXMat.glow(Color(1.0, 0.78, 0.4), 2.0), t * Transform3D(Basis(), Vector3(0, fy + h - 2.3, 0)), Vector3(0.9, 0.1, 0.9), 1.0, Color.WHITE, false)
+	# outside: an arcade along the front onto the piazza: columns, their arches, the walk's roof over them
+	var ad := 2.6
+	var ax := -w * 0.5 + 1.2
+	while ax <= w * 0.5 - 1.0:
+		if absf(ax) > DOOR_W * 0.5 + 0.6:
+			var cq := Vector3(ax, fy, d * 0.5 + ad - 0.3)
+			mb.add_cylinder(lime, t * Transform3D(Basis(), cq), 0.28, 0.24, 3.8, 8, 0.5, Color(0.96, 0.94, 0.9))
+			mb.add_box(lime, t * Transform3D(Basis(), cq + Vector3(0, 3.95, 0)), Vector3(0.7, 0.3, 0.7), 0.6, Color(0.94, 0.92, 0.88), false)
+			M.cyl(cols, t * cq, 0.28, 3.8)
+		ax += 2.8
+	var arc := t * Transform3D(Basis(), Vector3(0, fy + 4.1, d * 0.5 + ad * 0.5))
+	mb.add_box(lime, arc, Vector3(w, 0.5, ad + 0.2), 0.6, Color(0.96, 0.88, 0.84))
+	mb.add_box(M.mat("lime"), arc * Transform3D(Basis(), Vector3(0, 0.6, ad * 0.5 - 0.1)), Vector3(w, 0.7, 0.2), 0.6, Color(0.94, 0.84, 0.8), false)
+	M.box(cols, arc, Vector3(w, 0.5, ad + 0.2))
+	# outside: crenels along the top of every wall
+	var x := -w * 0.5 + 0.5
+	while x < w * 0.5:
+		for s in [-1.0, 1.0]:
+			mb.add_box(lime, t * Transform3D(Basis(), Vector3(x, fy + h + 0.9, s * (d * 0.5 - 0.2))), Vector3(0.6, 0.8, 0.4), 0.6, Color(0.96, 0.9, 0.86), false)
+		x += 1.4
+	z = -d * 0.5 + 0.5
+	while z < d * 0.5:
+		for s in [-1.0, 1.0]:
+			mb.add_box(lime, t * Transform3D(Basis(), Vector3(s * (w * 0.5 - 0.2), fy + h + 0.9, z)), Vector3(0.4, 0.8, 0.6), 0.6, Color(0.96, 0.9, 0.86), false)
+		z += 1.4
+
+
+## The Doge's place on the dais (frame): where the Doge stands, facing the hall.
+static func doge_spot(plan) -> Array:
+	var fr := frame("doge", plan)
+	var t: Transform3D = fr[0]
+	var iz := float(fr[2]) * 0.5 - WALL
+	var at: Vector3 = t * Vector3(0, ground("doge", plan) + RISE + 0.7, -iz + 3.2)
+	var fwd: Vector3 = t.basis * Vector3(0, 0, 1)
+	return [at, Vector2(fwd.x, fwd.z).normalized()]

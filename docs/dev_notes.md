@@ -8011,6 +8011,11 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **Far fronts**: the walkway houses had no far version (district RANGE 300), so every walkway and calle showed bare
   ground from the lagoon and from above; "FarFronts_*" massing past the range (as the capital's FarLanes).
 - Tests: t/canal/walk_in (new). Renders: canalshot plan, campo2, roofs, room.
+- **The Doge's palace** (CanalPlan.SPECIAL "doge" (104,58,28,38) on the piazza's east side; CapitalHalls now takes a
+  plan, so either city builds halls): a rose-tinted hall, an arcade of columns along its front, crenels; inside the
+  council chamber (a dais with the gilded chair under its canopy, council tables and benches, banners, a lamp).
+  Doge Benedetto Vael stands on the dais (CanalLife, spot "doge") with barks; the Doge's line is C5. Checked in
+  t/canal/walk_in; canalshot doge, council, campanile.
 - **The campanile climbed** (CapitalBellTower with a wall material, colour and no hip roof: brick, the canal's green spire
   over it), a 1 m paving strip "campanile_door" from its south door to piazza_cw; the Hooded Stranger in its belfry too
   (CanalLife, spot "informant"). t/canal/campanile.

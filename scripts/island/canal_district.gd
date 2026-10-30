@@ -276,6 +276,13 @@ static func _long_boat(mb: MeshBuilder, t: Transform3D, rng: RandomNumberGenerat
 # --------------------------------------------------------------------------
 ## Each block's campo: a carved wellhead, a bench, a potted tree; a lamp in a few (the light budget).
 static func _campi(out: Dictionary) -> void:
+	# (1.27) the Doge's palace on the piazza, walked into, the Doge on the dais
+	var dmb := MeshBuilder.new()
+	var dcols: Array = []
+	CapitalHalls.build(dmb, dcols, "doge", 10.0, P)
+	_piece(out, "DogePalace", dmb, dcols)
+	var ds: Array = CapitalHalls.doge_spot(P)
+	_spot(out, "doge", Vector2((ds[0] as Vector3).x, (ds[0] as Vector3).z), (ds[0] as Vector3).y, ds[1])
 	# (1.27) the hooded stranger's place, up in the campanile's belfry (the same figure as the capital's bell tower)
 	var bt := CapitalBellTower.top((P.SPECIAL["campanile"][0] as Rect2).get_center(), P.QUAY_Y)
 	_spot(out, "informant", Vector2(bt.x, bt.z), bt.y, Vector2(0, 1))

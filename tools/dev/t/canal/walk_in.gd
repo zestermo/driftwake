@@ -61,6 +61,14 @@ func _process(_d: float) -> bool:
 				if dy < -0.35:
 					holes.append("%s %.1f" % [(l["c"] as Vector2).round(), dy])
 			check("flat roofs to stand on (%d), every one solid (%s)" % [flats.size(), holes.slice(0, 6)], flats.size() >= 10 and holes.is_empty())
+			var H = load("res://scripts/island/capital_halls.gd")
+			var fr: Array = H.frame("doge", P)
+			var dt: Transform3D = fr[0]
+			var dfy: float = H.ground("doge", P) + H.RISE
+			var d_out: Vector3 = dt * Vector3(0, dfy + 1.6, float(fr[2]) * 0.5 + 2.0)
+			var d_in: Vector3 = dt * Vector3(0, dfy + 1.6, float(fr[2]) * 0.5 - 2.0)
+			check("the Doge's palace opens off the piazza", _ray(isl.city_global(Vector2(d_out.x, d_out.z), d_out.y), isl.city_global(Vector2(d_in.x, d_in.z), d_in.y)).is_empty())
+			check("the Doge has a place on the dais", isl.spots.has("doge"))
 			check("ladders up from the calli (%d)" % isl.city.find_children("*", "Ladder", true, false).size(), isl.city.find_children("*", "Ladder", true, false).size() >= 2)
 			room = rooms[0]
 			roof = flats[flats.size() / 2]

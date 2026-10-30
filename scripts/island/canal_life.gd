@@ -57,6 +57,11 @@ var _fader: ColorRect
 ## Everyone named: {"name", "spot", "voice", "look" over the city's folk look, "barks" / "shop" / "dialogue"}.
 static func cast() -> Array:
 	return [
+		# 1.27 C3: the Doge of the lagoon, on the dais of the council chamber (the Doge's line comes with C5)
+		{"name": "Doge Benedetto Vael", "spot": "doge", "voice": 0.85, "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.55, 0.1, 0.12), "trim_color": Color(0.9, 0.72, 0.25),
+			"hat": "none", "cloak": true, "cloak_color": Color(0.62, 0.12, 0.14)},
+			"barks": ["The lagoon elected me to keep its ships safe. Someone is making that very difficult.", "The guilds argue, the arsenal builds, and I sign. That is the Republic.",
+				"A pirate taxes our waters as if he were the Doge. He is not the Doge."]},
 		# 1.27 C3: the same hooded stranger as the capital's bell tower, up in the campanile
 		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
 			"cloak": true, "cloak_color": Color(0.1, 0.09, 0.12), "legs_color": Color(0.12, 0.12, 0.14)},

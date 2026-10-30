@@ -120,6 +120,9 @@ func _setup(island) -> void:
 		["arsenal", "the arsenal", Vector2(134, 4), 2.2, Vector2(150, -66), 1.0],
 		["canal", "a cross canal at eye height", Vector2(-180, 18), 1.7, Vector2(-40, 24), 1.0],
 		["plan", "the city from straight above", Vector2(0, -38), 320.0, Vector2(0, -40), 0.0],
+		["doge", "the Doge's palace across the piazza", Vector2(60, 80), 1.8, Vector2(118, 77), 6.0],
+		["council", "the council chamber", Vector2(128.0, 77.0), 2.4, Vector2(106, 77), 1.5],
+		["campanile", "the campanile's belfry", Vector2(18.8, 61.0), 23.7, Vector2(80, 80), 0.0],
 	]
 	# (1.27) the rolled campo, a roof, a room: wherever this world put them
 	var campi: Array = CanalPlan.floors().filter(func(f): return str(f[0]).ends_with("_campo"))
