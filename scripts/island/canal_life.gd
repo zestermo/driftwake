@@ -262,6 +262,12 @@ func _quests() -> void:
 
 
 func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
+	# (1.27 C4) the dice den in a campo: a dicer and an arm-wrestler (TavernGames.make_at)
+	var campi: Array = P.floors().filter(func(f): return str(f[0]).ends_with("_campo"))
+	if campi.size() > 2 and get_node_or_null("Den_campo") == null:
+		var cr: Rect2 = campi[2][1]
+		var q: Vector2 = cr.position + Vector2(3.0, cr.size.y - 3.0)
+		TavernGames.make_at(self, isl, isl.from_city(q), isl.from_city_dir((cr.get_center() - q).normalized()), P.QUAY_Y, "campo")
 	# (1.27 C4) the Hooded Stranger sells leads: a cache in this city for gold, marked on the map (CityCaches)
 	Dialogue.define(_key("stranger"), {"speaker": "The Hooded Stranger", "voice": 0.92, "start": "intro", "return": "menu", "nodes": CityCaches.stranger_nodes("canal", isl)})
 	if not Dialogue.dialogue_event.is_connected(_on_lead):

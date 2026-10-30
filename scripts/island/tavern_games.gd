@@ -46,6 +46,42 @@ static func make(v, door: Vector2, face: Vector2, y: float) -> TavernGames:
 	return t
 
 
+## (1.27 C4) A den in a city (a courtyard, a campo): the same two regulars and games, with no village round them;
+## `at` (island space) is where they stand, `face` the way into the den, `parent` holds them (the city's life node: co-op
+## finds the den by its path), `tag` names the den apart from the city's other one.
+static func make_at(parent: Node, isl, at: Vector2, face: Vector2, y: float, tag: String) -> TavernGames:
+	var t := TavernGames.new()
+	t.name = "Den_" + tag
+	t.isl = isl
+	t.key = isl.save_key("den_" + tag)
+	t.trade_id = isl.save_key("trader")
+	parent.add_child(t)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(isl.node["seed"]), 5151, tag])
+	var firsts := ["Tam", "Bel", "Pip", "Nell", "Dov", "Gil", "Marro", "Sefa"]
+	var side := Vector2(-face.y, face.x)
+	for k in range(2):
+		var lk := KitStyle.folk_look(KitStyle.BRINEHOLLOW, rng)
+		if k == 1:
+			lk.merge({"build": "broad", "height": 1.08}, true)
+		var nm := "%s %s" % [(DICERS if k == 0 else ARMS)[rng.randi() % 6], firsts[rng.randi() % firsts.size()]]
+		lk["name"] = nm
+		if k == 0:
+			t.dicer = nm
+		else:
+			t.wrestler = nm
+		var npc := NPC.new()
+		var p: Vector2 = at + side * (1.6 if k == 0 else -1.6)
+		var fc: Vector2 = -side if k == 0 else side
+		npc.setup({"name": nm, "dialogue": "%s_%d" % [t.key, k], "voice": 0.9 + 0.15 * k, "look": lk, "yaw": atan2(-fc.x, -fc.y)})
+		npc.ground_func = isl.walk_height
+		isl.add_child(npc)
+		npc.position = Vector3(p.x, y, p.y)
+		t._npcs.append(npc)
+	t._define()
+	return t
+
+
 ## The dicer's and the wrestler's looks (named), from the island's seed: GenIsland.prepare builds their bodies ahead.
 static func looks(gi) -> Array:
 	var rng := RandomNumberGenerator.new()

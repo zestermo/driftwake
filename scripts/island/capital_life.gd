@@ -394,6 +394,12 @@ func _talk_reader() -> void:
 
 
 func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary, petition: Dictionary) -> void:
+	# (1.27 C4) the dice den in the first courtyard: a dicer and an arm-wrestler (TavernGames.make_at)
+	var courts: Array = P.rolled().filter(func(f): return str(f[0]) == "court")
+	if not courts.is_empty() and get_node_or_null("Den_court") == null:
+		var cr: Rect2 = courts[0][1]
+		var q: Vector2 = cr.position + Vector2(3.0, cr.size.y - 3.0)
+		TavernGames.make_at(self, isl, isl.from_city(q), isl.from_city_dir((cr.get_center() - q).normalized()), P.ground(q), "court")
 	# (1.27 C4) the Hooded Stranger sells leads: a cache in this city for gold, marked on the map (CityCaches)
 	Dialogue.define(_key("stranger"), {"speaker": "The Hooded Stranger", "voice": 0.92, "start": "intro", "return": "menu", "nodes": CityCaches.stranger_nodes("capital", isl)})
 	if not Dialogue.dialogue_event.is_connected(_on_lead):

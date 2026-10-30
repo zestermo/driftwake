@@ -8057,3 +8057,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   "lead_<key>" so it comes back on build (CityCaches.place marks it again) until the chest is opened (the bag's
   tree_exited clears the X). Static funcs reach Net through the tree (compilecheck's static-autoload rule).
   t/capital/caches checks the price, the flag and mark, and the X clearing.
+- **C4 piece 5: the dice dens** (TavernGames.make_at: the villages' dicer and arm-wrestler with no village round them,
+  named from DICERS/ARMS, looks from KitStyle.BRINEHOLLOW): "Den_court" in the capital's first courtyard, "Den_campo" in
+  the canal city's third campo (the first two hold caches). Same stakes and streak discount. t/capital/dens.
