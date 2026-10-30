@@ -398,6 +398,9 @@ static func _specials(out: Dictionary) -> void:
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	var lime := M.mat("lime")
+	# (1.27) the hooded stranger's place, up in the belfry
+	var bt := CapitalBellTower.top(CapitalShell.BELL, CapitalShell.bell_y())
+	_spot(out, "informant", Vector2(bt.x, bt.z), bt.y, Vector2(0, 1))
 	for key in P.SPECIAL.keys():
 		var sp: Array = P.SPECIAL[key]
 		var r: Rect2 = sp[0]

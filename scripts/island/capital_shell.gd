@@ -235,15 +235,8 @@ static func _arena(out: Array) -> void:
 static func _landmarks(out: Array) -> void:
 	var mb := MeshBuilder.new()
 	var cols: Array = []
-	var bell := Vector2(38.0, -31.0)
-	M.square_tower(mb, cols, bell, P.PLAZA_Y, 6.5, 27.0, 0.0, true, 2.0)
-	for f in range(4):
-		var yaw := f * PI * 0.5
-		var t := M.xf(M.v3(bell, P.PLAZA_Y), yaw) * Transform3D(Basis(), Vector3(0, 0, 3.27))
-		mb.add_box(M.mat("dark"), t * Transform3D(Basis(), Vector3(0, 23.6, 0)), Vector3(2.2, 3.4, 0.06), 1.0, Color(0.18, 0.16, 0.15), false)
-		mb.add_cylinder(M.mat("lime"), t * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 18.5, 0.02)), 1.3, 1.3, 0.12, 12, 1.0, Color(0.96, 0.95, 0.92))
-		mb.add_box(M.mat("iron"), t * Transform3D(Basis(Vector3.BACK, 0.6), Vector3(0, 18.5, 0.2)), Vector3(0.08, 1.0, 0.04), 1.0, Color.WHITE, false)
-		mb.add_box(M.mat("iron"), t * Transform3D(Basis(Vector3.BACK, -1.9), Vector3(0, 18.5, 0.2)), Vector3(0.08, 0.7, 0.04), 1.0, Color.WHITE, false)
+	# (1.27) the bell tower, climbed: hollow, its door on the bell yard, stairs up to the belfry
+	CapitalBellTower.build(mb, cols, BELL, bell_y())
 	var tc := P.TEMPLE.get_center() + Vector2(4.0, 2.0)
 	var ty := P.ground(tc)
 	var tt := M.xf(M.v3(tc, 0.0))
@@ -382,3 +375,11 @@ static func _on_rolled(l: Dictionary) -> bool:
 		if (f[1] as Rect2).intersects(r):
 			return false
 	return true
+
+
+## The bell tower's middle (frame) and its floor: the bell yard's ground at its door.
+const BELL := Vector2(38.0, -31.0)
+
+
+static func bell_y() -> float:
+	return P.ground(BELL + Vector2(0, CapitalBellTower.W * 0.5 + 0.6))

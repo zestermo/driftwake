@@ -133,6 +133,10 @@ func _setup(island) -> void:
 		["hill", "the town from the palace", Vector2(0, -112), 40.0, Vector2(0, 60), 0.0],
 		# (1.27) the rolled streets: the whole town straight down, and eye height in the first lane, alley and courtyard
 		["plan", "the town from straight above", Vector2(0, -12), 330.0, Vector2(0, -14), 0.0],
+		# (1.27 C2) the bell tower from its yard, the stair inside, and the city from the belfry beside the stranger
+		["bell", "the bell tower from its yard", Vector2(30, -19), 1.7, Vector2(38, -31), 14.0],
+		["stair", "inside the bell tower", Vector2(38, -28.6), 1.7, Vector2(36.5, -33), 4.0],
+		["belfry", "the city from the belfry", Vector2(37.2, -32.2), 23.7, Vector2(-20, 40), 0.0],
 	]
 	for kind in ["lane", "alley_r", "court"]:
 		var fl: Array = CapitalPlan.rolled().filter(func(f): return str(f[0]) == kind)

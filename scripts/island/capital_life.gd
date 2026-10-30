@@ -88,6 +88,11 @@ static func cast() -> Array:
 			"coat_color": Color(0.16, 0.3, 0.36), "trim_color": GOLD, "hat": "none"},
 			"barks": ["Everyone's Edy runs one way. Some run the wrong way for years and never ask.", "Isao reads well. Slowly. Sometimes too slowly."]},
 		{"name": "Guard Ellery", "spot": "terrace_guard", "voice": 0.9, "look": GUARD, "barks": ["The terrace is open to all, Captain. Behave as though it weren't.", "Keep to the paths. The duchess counts her roses."]},
+		# 1.27 C2: up in the bell tower, the hooded stranger (who sells leads: the leads come with the strongholds and Driftfruits)
+		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
+			"cloak": true, "cloak_color": Color(0.1, 0.09, 0.12), "legs_color": Color(0.12, 0.12, 0.14)},
+			"barks": ["The bells see the whole city. So do I.", "Gold opens doors. What I know opens the right ones.",
+				"There's a Driftfruit in the Admiralty's keeping that nobody's meant to know about. Nobody but me.", "Climbed all this way to look at the view? Most don't."]},
 		# 1.21: the palace
 		{"name": "Queen Ilsabet", "spot": "queen", "voice": 1.0, "dialogue": "queen", "look": {"body": "fem", "top": "blouse", "legs": "skirt", "coat": "frock",
 			"coat_color": Color(0.32, 0.14, 0.4), "trim_color": GOLD, "hat": "none", "cloak": true, "cloak_color": Color(0.5, 0.1, 0.12)}},

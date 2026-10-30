@@ -7982,4 +7982,9 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   shelves of wares), a home (table and chairs, bed, hearth or cupboard, rug) or a workshop (bench, tools, barrels).
   The door dict carries "inside" (frame point on the room's floor). t/capital/interiors; shell's edge probe now 14 m
   (a room is a closed pocket). capitalshot shop, home, shop_door, home_door.
+- **The bell tower climbed** (C2 piece 1, CapitalBellTower, replacing the solid square_tower in CapitalShell._landmarks):
+  hollow 6.5 m tower, door on the new fixed floor "bell_yard" (FLOORS, appended), nine 39-degree flights round the inner
+  walls with corner landings (treads to see, one tilted ramp collider each), the belfry floor at 22 m open over the last
+  flight, railed arches, the bell. The Hooded Stranger (CapitalLife, spot "informant") stands up there with barks; the
+  leads he sells come with the strongholds and Driftfruits. t/capital/bell_tower; capitalshot bell, stair, belfry.
 - Open: a lane running past unbuilt ground shows a long blank barrier wall; stairs to upper floors not yet.

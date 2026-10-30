@@ -81,6 +81,8 @@ const FLOORS := [
 	["palace_court", Rect2(-10.0, -151.8, 20.0, 33.8), "capital_slabs"],
 	# 1.21 piece 3: the arena's gate, paved through the arch (no barrier across the arena street's end)
 	["arena_gate", Rect2(67.5, -2.0, 4.0, 4.0), "cobbles"],
+	# 1.27 C2: the bell yard, off the plaza's north-east corner to the bell tower's door (CapitalBellTower)
+	["bell_yard", Rect2(26.0, -27.75, 18.0, 9.75), "capital_slabs"],
 ]
 ## Ground round the plaza, the avenue and the arena street kept for the district's own buildings (the inn, the
 ## treasure merchant, the guild hall...: piece 2): its lots are marked "keep"; and the temple's, which has none.
