@@ -553,6 +553,16 @@ func _talk_palace(petition: Dictionary, signet: Dictionary, audience: Dictionary
 	var qnodes := {"intro": {"text": ["Ilsabet, Queen of this city. You've a petitioner's look, and a sailor's. One of them is honest."], "next": "menu"}, "menu": qmenu,
 		"king": {"text": ["Ill. Since the spring tides. The physicians shake their heads in Latin.", "Until he wakes, I hold the city. Not everyone at court likes that."], "next": "menu"}}
 	quest_node.hand_over(audience, qmenu["choices"], qnodes)
+	# (1.27 C5) the Queen's line, its first step the forged seal (Ambrose Pell's); the writ waits for the Admiralty's fortress
+	CityFavour.ruler_line("capital", self, seal_q, qmenu["choices"], qnodes, {
+		"ask": "Is there a service the Crown needs of me?",
+		"point": ["There is. Someone in this city signs the Merchants' Guild's seal better than the Guild does, and cargoes no ship carried pass my customs.",
+			"Ambrose Pell keeps the Guild's registers. He's frightened, which makes him useful. Find his forger and the Crown will remember it."],
+		"done_ask": "The forger's found, Majesty.",
+		"done": ["The theatre's prop-maker. A man who paints kings for a living, forging merchants. I almost admire it.", "The Crown pays its debts, Captain. Take this, and my thanks, which are rarer."],
+		"next_ask": "What else does the Crown need?",
+		"next": ["The Admiralty keeps a fortress on an island of this chain, and in its vault something that belongs to me.", "When you've found where it stands, come back. I'll have a writ for you, and a reason to use it."]},
+		audience["id"])
 	# (1.27 C5) where you stand with the Crown (CityFavour); asking applies its perks
 	qmenu["choices"].append({"text": "How does the Crown regard me?", "next": "favour"})
 	qnodes["favour"] = {"text": ["{capital_favour}"], "event": "favour:capital", "next": "menu"}
@@ -783,6 +793,8 @@ func _wanted() -> void:
 func _on_favour(ev: String) -> void:
 	if ev == "favour:capital":
 		CityFavour.apply("capital", self, favour_shops())
+	elif ev == "ruler:capital":
+		CityFavour.thank("capital", self)
 
 
 func favour_shops() -> Array:

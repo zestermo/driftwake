@@ -48,3 +48,35 @@ static func apply(city: String, life, shops: Array) -> void:
 	for s in shops:
 		var k := "discount:" + str(s)
 		j.perks[k] = maxf(float(j.perks.get(k, 0.0)), DISCOUNT)
+
+
+## A ruler's line (the Queen's, the Doge's): its first step is one of the city's investigations (`q`, offered by its own
+## giver); the ruler points you at it, thanks you once it's done (LINE_REWARD, once: "line:<city>:1" in Journal.perks),
+## then tells of the next step, which waits for 1.27's stronghold / the pirate's hideout. `say`: ask, point, done_ask,
+## done, next_ask, next (each a line or lines); `after`: a quest that opens the line (the Queen's audience).
+const LINE_REWARD := {"gold": 400, "xp": 1.0}
+
+
+static func ruler_line(city: String, life, q: Dictionary, menu: Array, nodes: Dictionary, say: Dictionary, after := "") -> void:
+	var j := (life as Node).get_node("/root/Journal")
+	var id := str(q["id"])
+	var flag := "line:%s:1" % city
+	menu.insert(0, {"text": say["ask"], "next": "line_point", "if": func(): return (after == "" or j.is_done(after)) and not j.is_done(id)})
+	menu.insert(1, {"text": say["done_ask"], "next": "line_done", "if": func(): return j.is_done(id) and not j.perks.has(flag)})
+	menu.insert(2, {"text": say["next_ask"], "next": "line_next", "if": func(): return j.perks.has(flag)})
+	nodes["line_point"] = {"text": say["point"], "next": "menu"}
+	nodes["line_done"] = {"text": say["done"], "event": "ruler:" + city, "next": "menu"}
+	nodes["line_next"] = {"text": say["next"], "next": "menu"}
+
+
+## The ruler's thanks for the line's first step (the dialogue's "ruler:<city>" event): the reward, once per save.
+static func thank(city: String, life) -> void:
+	var n := life as Node
+	var j := n.get_node("/root/Journal")
+	var flag := "line:%s:1" % city
+	if j.perks.has(flag):
+		return
+	j.perks[flag] = true
+	var p = n.get_tree().get_first_node_in_group("player")
+	if p:
+		QuestRewards.give(LINE_REWARD, p)

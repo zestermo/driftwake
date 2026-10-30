@@ -48,6 +48,26 @@ func _process(_d: float) -> bool:
 			var shops: Array = life.favour_shops()
 			check("asking the Queen: 10%% off every capital trader (%d shops)" % shops.size(), shops.size() >= 3 and shops.all(func(s): return absf(J.discount(str(s)) - 0.1) < 0.001))
 			check("the Lagoon's ranks are its own", F.title("canal", 3) == "Gondolier of the Republic")
+			# the rulers' lines: the Queen points at the forged seal once the audience is done, thanks you once it's solved
+			var D = root.get_node("Dialogue")
+			var qm: Array = _choices(life._key("queen"), "Is there a service the Crown needs of me?")
+			check("the Queen's line opens with the audience (%d)" % qm.size(), qm.size() == 1 and not qm[0]["if"].call())
+			J.entries[life._key("audience")] = {"done": true, "step": 0}
+			check("...then she points at the forged seal", qm[0]["if"].call())
+			J.entries[str(life.seal_q["id"])] = {"done": true, "step": 0}
+			var inv = stage.player.inventory_component
+			var g0: int = inv.count("gold")
+			D.dialogue_event.emit("ruler:capital")
+			D.dialogue_event.emit("ruler:capital")
+			check("the forger found: the Crown's thanks, once (%d gold)" % (inv.count("gold") - g0), inv.count("gold") - g0 == 400 and J.perks.has("line:capital:1"))
+			var km: Array = _choices(canal.canal_life._key("doge"), "Can I serve the Republic?")
+			check("the Doge points at Grane's smugglers", km.size() == 1 and km[0]["if"].call())
 			return TK.done(fails)
 	step += 1
 	return false
+
+
+## The menu choices of a defined conversation with this text.
+func _choices(dlg: String, text: String) -> Array:
+	var d: Dictionary = root.get_node("Dialogue")._cache.get(dlg, {})
+	return (d.get("nodes", {}).get("menu", {}).get("choices", []) as Array).filter(func(c): return c["text"] == text)

@@ -283,6 +283,16 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 		"menu": {"text": "Well, Captain?", "choices": [{"text": "How does the Lagoon regard me?", "next": "favour"}, {"text": "Your pirate problem?", "next": "pirate"}, {"text": "Good day, Doge.", "next": "end"}]},
 		"favour": {"text": ["{canal_favour}"], "event": "favour:canal", "next": "menu"},
 		"pirate": {"text": ["A captain who calls himself a prince taxes every hull that leaves this lagoon. My ships, my guilds, my people.", "When you're trusted here, Captain, we'll speak of where he sleeps."], "next": "menu"}}
+	# (1.27 C5) the Doge's line, its first step the smuggling ring (Master Grane's); the convoy waits for the pirate's hideout
+	if not smug_q.is_empty():
+		CityFavour.ruler_line("canal", self, smug_q, dnodes["menu"]["choices"], dnodes, {
+			"ask": "Can I serve the Republic?",
+			"point": ["Serve it? Then stop it bleeding. The arsenal's stores leave by night on boats nobody owns.",
+				"Master Grane builds my galleys and counts my nails. He knows which crates go missing. Ask him, and follow where it leads."],
+			"done_ask": "Grane's smugglers are broken, Doge.",
+			"done": ["So the council tells me, and for once it's pleased. Copper and oak stay in the Republic's yards.", "The Lagoon pays its friends. Not lavishly. Promptly."],
+			"next_ask": "And the pirate prince?",
+			"next": ["Those smugglers sold to his ships. He'll need new suppliers, and he'll come for my convoys to find them.", "When we know where he moors, I'll want an escort, and then I'll want him gone."]})
 	Dialogue.define(_key("doge"), {"speaker": "Doge Benedetto Vael", "voice": 0.85, "start": "intro", "return": "menu", "nodes": dnodes})
 	Dialogue.register_token("canal_favour", func(): return CityFavour.line("canal", CityFavour.done(self)))
 	if not Dialogue.dialogue_event.is_connected(_on_favour):
@@ -516,6 +526,8 @@ func _drowned_bell(common: Dictionary) -> void:
 func _on_favour(ev: String) -> void:
 	if ev == "favour:canal":
 		CityFavour.apply("canal", self, favour_shops())
+	elif ev == "ruler:canal":
+		CityFavour.thank("canal", self)
 
 
 func favour_shops() -> Array:
