@@ -149,6 +149,19 @@ func _setup(island) -> void:
 		var h: float = float(l["top_y"]) - CapitalPlan.ground(c)
 		shots.append(["roof", "up on a flat roof", c - (l["face"] as Vector2) * 2.0, h + 1.7, c + (l["face"] as Vector2) * 30.0, h - 2.0])
 		shots.append(["roofs", "the rooftops from above", c - (l["face"] as Vector2) * 14.0, h + 14.0, c + (l["face"] as Vector2) * 6.0, h])
+	# (1.27) inside: a shop and a home, from the back of the room toward the door, and a doorway from the street
+	var inside: Array = isl.doors.filter(func(dd): return dd.get("inside", Vector3.INF) != Vector3.INF)
+	for want in ["shop", "home"]:
+		var found: Array = inside.filter(func(dd): return (str(dd["kind"]) != "") == (want == "shop"))
+		if found.is_empty():
+			continue
+		var dd: Dictionary = found[0]
+		var iv: Vector3 = dd["inside"]
+		var iq := Vector2(iv.x, iv.z)
+		var fc: Vector2 = dd["face"]
+		shots.append([want, "inside a " + want, iq - fc * 1.6, 1.9, iq + fc * 4.0, 1.0])
+		var dq := Vector2((dd["at"] as Vector3).x, (dd["at"] as Vector3).z)
+		shots.append([want + "_door", "a " + want + "'s open door", dq + fc * 3.0, 1.7, dq - fc * 2.0, 1.4])
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))

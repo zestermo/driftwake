@@ -194,14 +194,22 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	l["wd"] = Vector2(w, d)
 	l["top_y"] = eaves + 0.24
 	l["ground_y"] = top
-	var cell: Rect2 = l["cell"]
-	M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
-	# (behind the door's niche)
-	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -0.4)), Vector3(w, eaves - low, d - 0.8))
 	# the front: a recessed door, a shop window or a window, pilasters at the corners
 	var door_x := clampf(rng.randf_range(-hw * 0.4, hw * 0.4), -hw + 1.4, hw - 1.4)
 	var dw := 1.3
 	var nd := 0.7
+	var cell: Rect2 = l["cell"]
+	# (1.27) every shop and about a third of the houses on a street can be walked into: the ground floor hollow
+	var enter := enterable(l, kind)
+	if enter:
+		# (its walls reach the lot's whole cell, as the solid house did: no crack between neighbours)
+		var face: Vector2 = l["face"]
+		var pad := Vector2((cell.size.x if absf(face.y) > 0.5 else cell.size.y) - w, (cell.size.y if absf(face.y) > 0.5 else cell.size.x) - d) * 0.5
+		l["inside"] = CapitalInteriors.build(mb, cols, t, w, d, low, sill, g1, eaves, door_x, dw, nd, kind, int(l["seed"]), pad)
+	else:
+		M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
+		# (behind the door's niche)
+		Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -0.4)), Vector3(w, eaves - low, d - 0.8))
 	var z := hd
 	var segs := [[-hw, door_x - dw * 0.5 - 0.25], [door_x + dw * 0.5 + 0.25, hw]]
 	for sg in segs:
@@ -221,7 +229,11 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	mb.add_box(lime, nt * Transform3D(Basis(), Vector3(0, sill + top_d + 0.15, -nd * 0.5 + 0.02)), Vector3(dw + 0.5, 0.3, nd + 0.04), 0.6, Color(0.86, 0.84, 0.8), false)
 	mb.add_box(lime, nt * Transform3D(Basis(), Vector3(0, sill + top_d + 0.42, 0.06)), Vector3(dw + 0.8, 0.22, 0.14), 0.6, Color(0.95, 0.93, 0.9), false)
 	var paint: Color = DOORS[(int(l["seed"]) >> 5) % DOORS.size()] if not shabby else DOORS[0]
-	Buildings.panel_door(mb, nt * Transform3D(Basis(), Vector3(0, sill, -nd)), dw - 0.1, top_d - 0.1, Buildings.door_leaf(paint), lime, M.mat("window"))
+	if enter:
+		# (open, swung in on its hinge)
+		Buildings.panel_door(mb, nt * Transform3D(Basis(Vector3.UP, -1.35), Vector3(-dw * 0.5 + 0.05, sill, -nd)) * Transform3D(Basis(), Vector3(dw * 0.5 - 0.05, 0, 0)), dw - 0.1, top_d - 0.1, Buildings.door_leaf(paint), lime, M.mat("window"))
+	else:
+		Buildings.panel_door(mb, nt * Transform3D(Basis(), Vector3(0, sill, -nd)), dw - 0.1, top_d - 0.1, Buildings.door_leaf(paint), lime, M.mat("window"))
 	for k in range(2):
 		var sy := top + (sill - top) * (k + 1) / 3.0
 		mb.add_box(lime, nt * Transform3D(Basis(), Vector3(0, (sy + low) * 0.5, -nd + 0.15 + (1 - k) * 0.28)), Vector3(dw, sy - low, 0.3 + (1 - k) * 0.28), 0.6, Color(0.86, 0.84, 0.8), true, false)
@@ -243,7 +255,8 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	if shabby and rng.randf() < 0.5:
 		mb.add_box(M.mat("dark"), t * Transform3D(Basis(Vector3.BACK, 0.4), Vector3(wx - 1.0, sill + g1 + 1.4, hd + 0.06)), Vector3(0.5, 1.4, 0.05), 1.0, Color(0.5, 0.42, 0.34), false)
 	warmth(mb, int(l["seed"]), t, w, eaves - sill, hd, door_x, sill)
-	return {"at": t * Vector3(door_x, top, hd + 0.9), "face": (Vector2((t.basis * Vector3.BACK).x, (t.basis * Vector3.BACK).z)).normalized(), "kind": kind}
+	return {"at": t * Vector3(door_x, top, hd + 0.9), "face": (Vector2((t.basis * Vector3.BACK).x, (t.basis * Vector3.BACK).z)).normalized(), "kind": kind,
+		"inside": l.get("inside", Vector3.INF)}
 
 
 const WARM_FLOWERS := [Color(0.9, 0.24, 0.3), Color(0.98, 0.84, 0.3), Color(0.82, 0.5, 0.86), Color(0.96, 0.96, 0.92), Color(0.98, 0.5, 0.24)]
@@ -1472,3 +1485,13 @@ static func _courts(out: Dictionary) -> void:
 			_spot(out, "court%d_%d" % [i, k], c + Vector2(cos(a), sin(a)) * 3.2, y, -Vector2(cos(a), sin(a)))
 		i += 1
 	_piece(out, "Courts", mb, cols)
+
+
+## Can this town house be walked into (1.27): every shop, and about a third of the others that face a street (their
+## door on a floor); never a warehouse or the slum's (those keep their own business shut).
+static func enterable(l: Dictionary, kind: String) -> bool:
+	if not l.get("front", false) or l.get("keep", false):
+		return false
+	if kind != "":
+		return true
+	return (int(l["seed"]) >> 7) % 3 == 0

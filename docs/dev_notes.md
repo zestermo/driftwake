@@ -7976,4 +7976,10 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   The stair hut on some flat roofs (CapitalModels.roof) now collides.
 - Budgets: district surfaces < 540 (was 420), city meshes < 60 not counting ladders. Tests: t/capital/rooftops (new),
   district/occluders/shell thresholds. Renders: capitalshot plan, lane, alley_r, court, roof, roofs.
-- Open: a lane running past unbuilt ground shows a long blank barrier wall; interiors (C1c) next.
+- **Interiors** (C1c, CapitalInteriors; CapitalDistrict.enterable: every shop + a third of street houses, ~36 rooms):
+  the ground storey hollow (plinth and upper storeys solid, walls out to the lot's cell so no crack between neighbours,
+  the occluder only over the ground floor), the door swung open, step colliders; furnished as a shop (counter,
+  shelves of wares), a home (table and chairs, bed, hearth or cupboard, rug) or a workshop (bench, tools, barrels).
+  The door dict carries "inside" (frame point on the room's floor). t/capital/interiors; shell's edge probe now 14 m
+  (a room is a closed pocket). capitalshot shop, home, shop_door, home_door.
+- Open: a lane running past unbuilt ground shows a long blank barrier wall; stairs to upper floors not yet.

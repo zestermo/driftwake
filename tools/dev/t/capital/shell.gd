@@ -107,8 +107,9 @@ func _process(_d: float) -> bool:
 						var from: Vector3 = isl.city_global(p - n * 1.5, y)
 						if _solid_at(from):
 							continue
-						# (7 m: a portico's steps lead in under its columns before its wall, a closed pocket)
-						if _ray(from, isl.city_global(p + n * 7.0, y)).is_empty():
+						# (14 m: a portico's steps lead in under its columns before its wall, and 1.27's open doors into a room
+						# that ends at its back wall, closed pockets both)
+						if _ray(from, isl.city_global(p + n * 14.0, y)).is_empty():
 							open.append("%s %s" % [f[0], p.round()])
 			check("every floor closed at its edges (%d open: %s)" % [open.size(), open.slice(0, 12)], open.is_empty())
 			var meshes: int = isl.city.find_children("*", "MeshInstance3D", true, false).filter(func(m): return not isl.crowd.is_ancestor_of(m) and not str(m.get_parent().get_script().resource_path if m.get_parent().get_script() else "").ends_with("ladder.gd")).size()  # (1.27: the roof ladders are their own nodes)

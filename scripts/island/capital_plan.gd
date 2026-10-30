@@ -494,6 +494,8 @@ static func _block(b: Rect2, rng: RandomNumberGenerator, out: Array, keep: bool)
 				else:
 					r = Rect2(r.position.x, r.position.y, cr.position.x - 0.3 - r.position.x, r.size.y)
 				cell = r.grow(inset)
+				if r.size.x < 3.5:
+					break
 			var floors := rng.randi_range(2, 4)
 			var roof_roll := rng.randf()
 			var sd := rng.randi()
