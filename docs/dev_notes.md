@@ -8356,3 +8356,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - Bounty kinds "stronghold_officer" 8,000 (Kesh, Marrow), "commodore" 25,000 and "scouring" 20,000. The bosses award
     theirs when their seal is taken.
   - Test: t/stronghold/scouring (the light stage has no ship, so the escape check is skipped there).
+- (same day) **Finding the stronghold and its vault.**
+  - **Finding it:** a raided marine outpost's captured orders call `Chain.learn_stronghold` (a banner). The chart's
+    marker (MapMarks "stronghold") is put back from the world flag in WorldGenerator.sync_chain_islands, since MapMarks
+    aren't saved. A tavern rumour points to it.
+  - **The vault:** once the Commodore is beaten, every machine places a saved chest behind his dais ("sh_vault_<chain
+    seed>"). It holds the stronghold's legendary from StrongholdBoss.LEGENDARIES (by the chain seed: a kind at
+    LEGENDARY rarity via ItemDB.with_trait, named "Old Thunder" and so on), 2,500 gold and 6 treasure.
+  - Tests: t/island/outpost (the orders), t/stronghold/vane (the vault and its legendary).

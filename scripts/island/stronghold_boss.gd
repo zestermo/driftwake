@@ -35,6 +35,9 @@ const CYCLE := 6.0
 const WARN := 1.5
 const BURN := 3.0
 const MOLTEN_DPS := 18.0
+## The vault's legendary (one per stronghold, picked by the chain's seed): [name, weapon kind, trait]. At LEGENDARY rarity.
+const LEGENDARIES := [["Gallowsbane", "cutlass", "duellist"], ["Mourning Moon", "katana", "gale"], ["Old Thunder", "greatsword", "thundering"],
+	["Saint's Knuckle", "hammer", "headsman"], ["Bosun's Promise", "axe", "bloodthirsty"], ["Quiet Tide", "dagger", "venomous"]]
 
 var key := ""
 var isl: Node3D
@@ -46,6 +49,7 @@ var _warn_m: Material
 var _burn_m: Material
 var _check := 0.0
 var _hurt := 0.0
+var _vault := false
 
 
 func setup(island: Node3D, boss_key: String) -> StrongholdBoss:
@@ -114,6 +118,9 @@ func _process(delta: float) -> void:
 		_grate.visible = shut
 		_grate.collision_layer = 1 if shut else 0
 	_hazards(delta)
+	if key == "vane" and not _vault and beaten():
+		_vault = true
+		_open_vault()
 	if not get_node("/root/Net").is_host() or beaten():
 		return
 	_check -= delta
@@ -320,3 +327,18 @@ class SealGate extends Node3D:
 		if _grate.visible != shut:
 			_grate.visible = shut
 			_grate.collision_layer = 1 if shut else 0
+
+
+## The vault behind the Commodore's dais, open once he's beaten (every machine; saved like any chest): the stronghold's
+## named legendary (LEGENDARIES by the chain's seed: its kind at LEGENDARY rarity with its trait), gold and treasure.
+func _open_vault() -> void:
+	var gm := get_node("/root/GameManager")
+	var l: Array = LEGENDARIES[posmod(hash([int(gm.chain_seed), "legendary"]), LEGENDARIES.size())]
+	var it := ItemDB.with_trait("%s@%d" % [str(l[1]), ItemData.Rarity.LEGENDARY], str(l[2]))
+	if it:
+		it.display_name = str(l[0])
+	var items: Array = [["gold", 2500], ["treasure", 6]]
+	if it:
+		items.push_front([it.id, 1])
+	CityCaches.place(self, [{"xf": Transform3D(Basis(), Vector3(6.0, 0.0, -17.0)), "key": "sh_vault_%d" % int(gm.chain_seed), "items": items}])
+	get_tree().call_group("hud", "show_banner", "The vault", "%s lies in the Commodore's vault." % str(l[0]), true)
