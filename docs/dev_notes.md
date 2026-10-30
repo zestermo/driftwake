@@ -8052,3 +8052,8 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **C4 piece 3: the Watch's odd jobs** (CapitalLife._jobs, on the board, paid by Sergeant Brannoch, "xp": 0.5): a sealed
   packet to Tobin Rook (deliver; handed over in his talk), Marmalade the cat on an unhatched flat roof (a roof pickup),
   three fish for the cook (fetch: a turn-in with a cost). t/capital/jobs; t/capital/life counts 12 city quests.
+- **C4 piece 4: the Stranger's cache lead** (CityCaches.stranger_nodes / sell_lead; the Stranger's "stranger" talk in
+  both cities): 300 gold puts the next closed, unled cache on the map with an X (MapMarks "x"), saved as world flag
+  "lead_<key>" so it comes back on build (CityCaches.place marks it again) until the chest is opened (the bag's
+  tree_exited clears the X). Static funcs reach Net through the tree (compilecheck's static-autoload rule).
+  t/capital/caches checks the price, the flag and mark, and the X clearing.

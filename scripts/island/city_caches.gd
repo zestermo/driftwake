@@ -43,3 +43,69 @@ static func place(parent: Node3D, caches: Array) -> void:
 			mi.scale = Vector3.ONE
 		bag.transform = e["xf"]
 		parent.add_child(bag)
+		# (a lead bought from the Hooded Stranger: an X on the map until it's opened)
+		if gm and gm.world_flags.has(LEAD + str(e["key"])):
+			_mark(bag, str(e["key"]))
+
+
+# --------------------------------------------------------------------------
+# The Hooded Stranger's leads (docs/v1_27_plan.md "The Hooded Stranger's leads"): a cache in this city for LEAD_GOLD,
+# marked with an X on the map (saved as a world flag, so it comes back after a load and for the crew) until opened. The
+# dearer leads (a legendary weapon, the stronghold's way in, a Driftfruit) come with the strongholds and the fruits.
+# --------------------------------------------------------------------------
+const LEAD := "lead_"
+const LEAD_GOLD := 300
+
+
+## The Stranger's talk for a city (`city`: "capital" / "canal"; the island holds the caches as `caches` under `city`).
+static func stranger_nodes(city: String, isl: Node) -> Dictionary:
+	var me := func() -> Player: return isl.get_tree().get_first_node_in_group("player") as Player if isl.is_inside_tree() else null
+	var left := func(): return not _unled(isl).is_empty()
+	var can := func(): return left.call() and me.call() != null and me.call().inventory_component.count("gold") >= LEAD_GOLD
+	var short := func(): return left.call() and (me.call() == null or me.call().inventory_component.count("gold") < LEAD_GOLD)
+	var menu := {"text": "Well?", "choices": [
+		{"text": "Sell me a secret. (%d gold)" % LEAD_GOLD, "next": "sell", "if": can},
+		{"text": "What do you sell?", "next": "what"},
+		{"text": "I'm short of gold.", "next": "short", "if": short},
+		{"text": "Nothing left to sell me?", "next": "none", "if": func(): return not left.call()},
+		{"text": "Goodbye.", "next": "end"}]}
+	return {"intro": {"text": ["...You climbed all this way. Most don't.", "I sell what this city hides. Gold up front."], "next": "menu"}, "menu": menu,
+		"what": {"text": ["Strongboxes, tucked where nobody looks: up on the roofs, behind the shelves, in the dark corners.",
+			"For %d gold I'll put one on your map. Bigger secrets later. Bigger prices too." % LEAD_GOLD], "next": "menu"},
+		"sell": {"text": ["Look at your map. There. Don't tell anyone where you heard it."], "event": "lead:cache:" + city, "next": "menu"},
+		"short": {"text": ["Then come back when you aren't."], "next": "menu"},
+		"none": {"text": ["You've had everything I know about this city. Try the other one. Or wait for news."], "next": "menu"}}
+
+
+## A "lead:cache:<city>" event: the gold paid, the next unled cache flagged for the crew and marked on the map.
+static func sell_lead(ev: String, city: String, isl: Node) -> void:
+	if ev != "lead:cache:" + city:
+		return
+	var p := isl.get_tree().get_first_node_in_group("player") as Player
+	var todo := _unled(isl)
+	if p == null or todo.is_empty() or p.inventory_component.count("gold") < LEAD_GOLD:
+		return
+	p.inventory_component.remove_item(ItemDB.get_item("gold"), LEAD_GOLD)
+	var key: String = todo[0]
+	isl.get_node("/root/Net").world_flag(LEAD + key)
+	var bag := (isl.get("city") as Node).get_node_or_null("Cache_" + key) as Node3D
+	if bag:
+		_mark(bag, key)
+	isl.get_tree().call_group("hud", "show_toast", "A cache marked on your map (%d gold)" % LEAD_GOLD)
+
+
+## The caches still closed that no lead has pointed to yet, in their order.
+static func _unled(isl: Node) -> Array:
+	var gm := isl.get_node_or_null("/root/GameManager")
+	var out: Array = []
+	for e in isl.get("caches"):
+		var k := str(e["key"])
+		if gm and (gm.opened.has(k) or gm.world_flags.has(LEAD + k)):
+			continue
+		out.append(k)
+	return out
+
+
+static func _mark(bag: Node3D, key: String) -> void:
+	MapMarks.put("cache_" + key, bag.global_position, "x", "A cache")
+	bag.tree_exited.connect(func(): MapMarks.clear("cache_" + key))

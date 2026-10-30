@@ -63,7 +63,7 @@ static func cast() -> Array:
 			"barks": ["The lagoon elected me to keep its ships safe. Someone is making that very difficult.", "The guilds argue, the arsenal builds, and I sign. That is the Republic.",
 				"A pirate taxes our waters as if he were the Doge. He is not the Doge."]},
 		# 1.27 C3: the same hooded stranger as the capital's bell tower, up in the campanile
-		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
+		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "dialogue": "stranger", "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
 			"cloak": true, "cloak_color": Color(0.1, 0.09, 0.12), "legs_color": Color(0.12, 0.12, 0.14)},
 			"barks": ["You again. Or me again. Hard to say who's following whom.", "The lagoon keeps secrets better than the capital. Not better than me.",
 				"There's a pirate who taxes these waters. The Doge would pay to know where he sleeps.", "Ring the bell if you like. Nobody comes up here."]},
@@ -262,6 +262,10 @@ func _quests() -> void:
 
 
 func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
+	# (1.27 C4) the Hooded Stranger sells leads: a cache in this city for gold, marked on the map (CityCaches)
+	Dialogue.define(_key("stranger"), {"speaker": "The Hooded Stranger", "voice": 0.92, "start": "intro", "return": "menu", "nodes": CityCaches.stranger_nodes("canal", isl)})
+	if not Dialogue.dialogue_event.is_connected(_on_lead):
+		Dialogue.dialogue_event.connect(_on_lead)
 	var mmenu := {"text": "The arsenal's business, Captain. Quickly.", "choices": [{"text": "Show me what your yard can do to my ship.", "next": "yard"},
 		{"text": "Do you build ships to sell?", "next": "ships"}]}
 	var mnodes := {"intro": {"text": ["Ottavio Grane, Master of the Arsenal. Every hull on this lagoon has passed under my eye, and most of them under my hand."], "next": "menu"},
@@ -369,3 +373,8 @@ static func _ship_choices(choices: Array, nodes: Dictionary, sells: bool) -> voi
 		choices.insert(0, {"text": "I'll sail the %s." % str(ShipClasses.CLASSES[c]["name"]).to_lower(), "next": "sail_" + c,
 			"if": func(): return ShipClasses.owns(kit.call(), c) and ShipClasses.class_of(kit.call()) != c})
 		nodes["sail_" + c] = {"text": ["Right you are. I'll have her brought round."], "event": "ship:switch:" + c, "next": "end"}
+
+
+func _on_lead(ev: String) -> void:
+	if is_instance_valid(isl):
+		CityCaches.sell_lead(ev, "canal", isl)

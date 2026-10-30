@@ -93,7 +93,7 @@ static func cast() -> Array:
 			"barks": ["Everyone's Edy runs one way. Some run the wrong way for years and never ask.", "Isao reads well. Slowly. Sometimes too slowly."]},
 		{"name": "Guard Ellery", "spot": "terrace_guard", "voice": 0.9, "look": GUARD, "barks": ["The terrace is open to all, Captain. Behave as though it weren't.", "Keep to the paths. The duchess counts her roses."]},
 		# 1.27 C2: up in the bell tower, the hooded stranger (who sells leads: the leads come with the strongholds and Driftfruits)
-		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
+		{"name": "The Hooded Stranger", "spot": "informant", "voice": 0.92, "dialogue": "stranger", "look": {"body": "masc", "coat": "greatcoat", "coat_color": Color(0.14, 0.13, 0.16), "hat": "hood",
 			"cloak": true, "cloak_color": Color(0.1, 0.09, 0.12), "legs_color": Color(0.12, 0.12, 0.14)},
 			"barks": ["The bells see the whole city. So do I.", "Gold opens doors. What I know opens the right ones.",
 				"There's a Driftfruit in the Admiralty's keeping that nobody's meant to know about. Nobody but me.", "Climbed all this way to look at the view? Most don't."]},
@@ -394,6 +394,10 @@ func _talk_reader() -> void:
 
 
 func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: Dictionary, petition: Dictionary) -> void:
+	# (1.27 C4) the Hooded Stranger sells leads: a cache in this city for gold, marked on the map (CityCaches)
+	Dialogue.define(_key("stranger"), {"speaker": "The Hooded Stranger", "voice": 0.92, "start": "intro", "return": "menu", "nodes": CityCaches.stranger_nodes("capital", isl)})
+	if not Dialogue.dialogue_event.is_connected(_on_lead):
+		Dialogue.dialogue_event.connect(_on_lead)
 	var board: Array = []
 	var bnodes := {"start": {"text": "Notices pinned three deep: a reward from the Watch, a lost goat answering to Bartholomew, the arena's ladder (fighters wanted), a room to let above the bakery.", "choices": board}}
 	quest_node.post(gallows, board, bnodes)
@@ -629,3 +633,8 @@ func _jobs(common: Dictionary) -> void:
 	job_qs.append(fish)
 	for jq in job_qs:
 		quest_node.add(jq, isl)
+
+
+func _on_lead(ev: String) -> void:
+	if is_instance_valid(isl):
+		CityCaches.sell_lead(ev, "capital", isl)

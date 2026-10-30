@@ -60,6 +60,27 @@ func _process(_d: float) -> bool:
 			var bad: Array = _solid(cb) + _solid(kb)
 			check("every cache stands on something solid (%s)" % [bad.slice(0, 6)], bad.is_empty())
 			check("an opened one isn't placed again", cap.city.get_node_or_null("Cache_capital_cache_theatre") == null)
+			# the Stranger's lead: 300 gold for an X on the map
+			var p = stage.player
+			p.inventory_component.add_item(load("res://scripts/loot/item_db.gd").get_item("gold"), 400)
+			set_meta("gold0", p.inventory_component.count("gold"))
+			root.get_node("Dialogue").dialogue_event.emit("lead:cache:capital")
+			until = TK.wait_ticks(2)
+		3:
+			var p = stage.player
+			var MM = load("res://scripts/map/map_marks.gd")
+			var led: Array = cap.caches.filter(func(e): return root.get_node("GameManager").world_flags.has("lead_" + str(e["key"])))
+			check("a lead costs 300 gold (%d -> %d)" % [int(get_meta("gold0")), p.inventory_component.count("gold")], int(get_meta("gold0")) - p.inventory_component.count("gold") == 300)
+			check("...flags one cache for the crew and marks it on the map", led.size() == 1 and MM.has("cache_" + str(led[0]["key"])))
+			if not led.is_empty():
+				set_meta("led", str(led[0]["key"]))
+				var bag = cap.city.get_node_or_null("Cache_" + str(led[0]["key"]))
+				if bag:
+					bag.queue_free()
+			until = TK.wait_ticks(3)
+		4:
+			var MM = load("res://scripts/map/map_marks.gd")
+			check("opened (gone), its X clears", not MM.has("cache_" + str(get_meta("led", ""))))
 			return TK.done(fails)
 	step += 1
 	return false
