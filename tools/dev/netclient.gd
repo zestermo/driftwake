@@ -352,7 +352,7 @@ func _process(d: float) -> bool:
 			# (loaded, not named: it touches autoloads, which a --script can't see at compile time)
 			var cg = load("res://scripts/player_states/corsair_gun.gd")
 			var far: float = cg.muzzle(p).distance_to(cg.body_center(data["g"]))
-			# what fire() deals: melee_hit(30) (no crit here), then the range falloff past NEAR
+			# what fire() deals: melee_hit(30), then the range falloff past NEAR (half again on a crit: captains have some crit chance since 1.26)
 			data["shot_want"] = 30.0 * p.damage_multiplier() * lerpf(1.0, cg.FAR_MIN, clampf((far - cg.NEAR) / (cg.RANGE - cg.NEAR), 0.0, 1.0))
 			data["shot_far"] = far
 			var struck = cg.fire(p, to.normalized(), 30.0, "", {"ball": false, "unblock": true}, data["g"])
@@ -367,7 +367,7 @@ func _process(d: float) -> bool:
 			if not tn.got("report"):
 				return false
 			var dealt: float = float(rep()["enemies"][data["gkey"]][5]) - data["gdmg"]
-			check("our pistol shot landed on the host's grunt (%.1f damage, want %.1f)" % [dealt, data["shot_want"]], absf(dealt - data["shot_want"]) < 0.5)
+			check("our pistol shot landed on the host's grunt (%.1f damage, want %.1f)" % [dealt, data["shot_want"]], absf(dealt - data["shot_want"]) < 0.5 or absf(dealt - data["shot_want"] * 1.5) < 0.5)
 			check("the host's puppet of us: sword and pistol, the shot playing (%s, %s)" % [rep()["puppet_stance"], rep()["puppet_action"]],
 				rep()["puppet_stance"] == "sword_pistol" and rep()["puppet_action"] == "sp_shot")
 			check("...the pistol along its forearm (%.2f)" % float(rep()["puppet_off_grip"]), float(rep()["puppet_off_grip"]) > 0.95)
