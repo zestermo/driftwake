@@ -192,8 +192,15 @@ static func _landmarks(out: Array) -> void:
 static func _massing(out: Array) -> void:
 	var lots := P.lots()
 	var chunks := {}
+	var far := {}
 	for l in lots:
+		# (1.27) a walkway house is the district's up close; out past its range, massing like the rest, or every walkway
+		# and calle shows a gap of bare ground from the lagoon and from above
 		if l["front"]:
+			var fk := Vector2i(floori(l["c"].x / (CHUNK * 2.5)), floori(l["c"].y / (CHUNK * 2.5)))
+			if not far.has(fk):
+				far[fk] = []
+			far[fk].append(l)
 			continue
 		var c: Vector2 = l["c"]
 		var key := Vector2i(floori(c.x / CHUNK), floori(c.y / CHUNK))
@@ -208,6 +215,15 @@ static func _massing(out: Array) -> void:
 		for l in chunks[key]:
 			house(mb, cols, l, false)
 		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols.filter(func(c): return c.has("occ")), MASS, false)
+	var fkeys := far.keys()
+	fkeys.sort()
+	for key in fkeys:
+		var fmb := MeshBuilder.new()
+		var fcols: Array = []
+		for l in far[key]:
+			house(fmb, fcols, l, false)
+		_piece(out, "FarFronts_%d_%d" % [key.x, key.y], fmb, [], MASS, false)
+		(out[out.size() - 1] as Dictionary)["begin"] = CanalDistrict.RANGE - 10.0
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	for o in P.openings(lots):
@@ -217,7 +233,7 @@ static func _massing(out: Array) -> void:
 
 ## A lagoon house on lot `l`: a stone plinth, coloured facade storeys, a cornice, a tiled roof and a funnel chimney or
 ## two. `solid` gives it a collider (the walkways' houses; the massing has none). Returns its frame transform and size.
-static func house(mb: MeshBuilder, cols: Array, l: Dictionary, solid: bool) -> Array:
+static func house(mb: MeshBuilder, cols: Array, l: Dictionary, solid: bool, hollow := false) -> Array:
 	var r: Rect2 = l["r"]
 	var face: Vector2 = l["face"]
 	var w := r.size.x if absf(face.y) > 0.5 else r.size.y
@@ -236,8 +252,11 @@ static func house(mb: MeshBuilder, cols: Array, l: Dictionary, solid: bool) -> A
 		var cp := t * Vector3(rng.randf_range(-w * 0.3, w * 0.3), 0, rng.randf_range(-d * 0.3, d * 0.3))
 		chimney(mb, Vector3(cp.x, y0 + h + 1.2, cp.z), rng)
 	var cell: Rect2 = l["cell"]
+	# (1.27: a walk-in house is hollowed by CapitalInteriors instead; the solid one's top meets its roof, walked on)
+	if hollow:
+		return [t, w, d, h]
 	if solid:
-		M.box(cols, M.xf(M.v3(cell.get_center(), (y0 + h) * 0.5)), Vector3(cell.size.x, y0 + h + 1.0, cell.size.y))
+		M.box(cols, M.xf(M.v3(cell.get_center(), (y0 + h + 0.4 - 1.0) * 0.5)), Vector3(cell.size.x, y0 + h + 0.4 + 1.0, cell.size.y))
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + h * 0.5, 0)), Vector3(w - 0.3, h, d - 0.3))
 	return [t, w, d, h]
 

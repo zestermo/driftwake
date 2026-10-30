@@ -14,6 +14,8 @@ var canal_life: CanalLife
 func prepare(n: Dictionary) -> void:
 	node = n
 	theme = "canal"
+	# (1.27) its calli and campi rolled from the world's seed
+	CanalPlan.use_seed(int(n.get("seed", 0)))
 	add_to_group("canal_city")
 	radius = CANAL_RADIUS
 	extent = ceilf((radius + MARGIN) * 2.0 / CELL) * CELL
@@ -52,6 +54,7 @@ func prepare(n: Dictionary) -> void:
 	pieces.append_array(d["pieces"])
 	spots = d["spots"]
 	doors = d["doors"]
+	ladders = d.get("ladders", [])
 	lights = d["lights"]
 	smoke_tops = CanalShell.smoke_tops.duplicate()
 	CanalShell.smoke_tops.clear()
@@ -83,6 +86,7 @@ func finish_steps() -> Array:
 	steps.append(["dock", _dock])
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
+	steps.append(["ladders", _ladders])
 	steps.append(["lamps", _lamps])
 	steps.append(["smoke", _smoke])
 	steps.append(["pigeons", _pigeons])

@@ -119,7 +119,25 @@ func _setup(island) -> void:
 		["campo", "a campo", Vector2(-100, -22), 1.7, Vector2(-112, -34), 1.5],
 		["arsenal", "the arsenal", Vector2(134, 4), 2.2, Vector2(150, -66), 1.0],
 		["canal", "a cross canal at eye height", Vector2(-180, 18), 1.7, Vector2(-40, 24), 1.0],
+		["plan", "the city from straight above", Vector2(0, -38), 320.0, Vector2(0, -40), 0.0],
 	]
+	# (1.27) the rolled campo, a roof, a room: wherever this world put them
+	var campi: Array = CanalPlan.floors().filter(func(f): return str(f[0]).ends_with("_campo"))
+	if not campi.is_empty():
+		var cr: Rect2 = campi[1 % campi.size()][1]
+		shots.append(["campo2", "a rolled campo", cr.get_center() + Vector2(6.5, 6.5), 1.7, cr.get_center() - Vector2(8, 8), 1.6])
+	var flats: Array = CanalPlan.lots().filter(func(l): return l.has("top_y") and str(l["roof"]) == "flat")
+	if not flats.is_empty():
+		var l: Dictionary = flats[flats.size() / 3]
+		var c: Vector2 = l["c"]
+		var h: float = float(l["top_y"]) - CanalPlan.QUAY_Y
+		shots.append(["roofs", "the rooftops", c - (l["face"] as Vector2) * 12.0, h + 12.0, c + (l["face"] as Vector2) * 6.0, h])
+	var rooms: Array = isl.doors.filter(func(dd): return dd.get("inside", Vector3.INF) != Vector3.INF)
+	if not rooms.is_empty():
+		var dd: Dictionary = rooms[0]
+		var iv: Vector3 = dd["inside"]
+		var fc: Vector2 = dd["face"]
+		shots.append(["room", "inside a canal house", Vector2(iv.x, iv.z) - fc * 1.4, 1.9, Vector2(iv.x, iv.z) + fc * 4.0, 1.0])
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))

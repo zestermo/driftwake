@@ -118,10 +118,17 @@ static func ground(_q: Vector2) -> float:
 ## Every walkable floor: [name, rect, texture]. The riva, each block's walkways on its water sides, its lanes and campo,
 ## the piazza and the arsenal's yard. Built once (a static cache).
 static var _floors: Array = []
+## (1.27) The world's seed (CanalIsland.prepare sets it): each block's campo sits off its middle and a calle may close.
+static var world_seed := 0
+static var _floors_for := -1
+
+
+static func use_seed(s: int) -> void:
+	world_seed = s
 
 
 static func floors() -> Array:
-	if not _floors.is_empty():
+	if not _floors.is_empty() and _floors_for == world_seed:
 		return _floors
 	var out: Array = []
 	out.append(["riva_w", RIVA[0], "capital_slabs"])
@@ -142,23 +149,36 @@ static func floors() -> Array:
 			out.append([name + "_e", Rect2(r.end.x - WALK, top, WALK, bot - top), "cobbles"])
 		if name in ["se", "yard"]:
 			continue
-		# a lane each way through the block, crossing at its campo (open to the walkways it reaches)
+		# a lane each way through the block, crossing at its campo (open to the walkways it reaches); (1.27) the campo off
+		# the block's middle by the seed, and now and then one of its four calli shut (never two)
+		var brng := RandomNumberGenerator.new()
+		brng.seed = hash([name, world_seed, 5501])
 		var c := _campo_of(r)
+		if world_seed != 0:
+			var inner_r := r.grow(-(WALK + 14.0))
+			if inner_r.size.x > 0.0 and inner_r.size.y > 0.0:
+				c = Vector2(roundf(lerpf(inner_r.position.x, inner_r.end.x, brng.randf()) / 2.0) * 2.0, roundf(lerpf(inner_r.position.y, inner_r.end.y, brng.randf()) / 2.0) * 2.0)
+				if special_hit(Rect2(c - Vector2(8.0, 8.0), Vector2(16.0, 16.0)).grow(2.0)):
+					c = _campo_of(r)
+		var shut := brng.randi() % 4 if world_seed != 0 and brng.randf() < 0.4 else -1
 		var x0 := r.position.x + (WALK if sides.contains("w") else 0.0)
 		var x1 := r.end.x - (WALK if sides.contains("e") else 0.0)
 		var cr := Rect2(c - Vector2(8.0, 8.0), Vector2(16.0, 16.0))
 		out.append([name + "_campo", cr, "capital_slabs"])
-		if sides.contains("n"):
+		if sides.contains("n") and shut != 0:
 			out.append([name + "_cn", Rect2(c.x - CALLE * 0.5, top, CALLE, cr.position.y - top), "cobbles"])
-		if sides.contains("s") or name in ["sw"]:
+		if (sides.contains("s") or name in ["sw"]) and shut != 1:
 			out.append([name + "_cs", Rect2(c.x - CALLE * 0.5, cr.end.y, CALLE, bot - cr.end.y), "cobbles"])
-		out.append([name + "_cw", Rect2(x0, c.y - CALLE * 0.5, cr.position.x - x0, CALLE), "cobbles"])
-		out.append([name + "_ce", Rect2(cr.end.x, c.y - CALLE * 0.5, x1 - cr.end.x, CALLE), "cobbles"])
+		if shut != 2:
+			out.append([name + "_cw", Rect2(x0, c.y - CALLE * 0.5, cr.position.x - x0, CALLE), "cobbles"])
+		if shut != 3:
+			out.append([name + "_ce", Rect2(cr.end.x, c.y - CALLE * 0.5, x1 - cr.end.x, CALLE), "cobbles"])
 	out.append(["piazza", PIAZZA, "capital_slabs"])
 	# the piazza reaches the walkway along the Grand Canal by a lane past the campanile
 	out.append(["piazza_cw", Rect2(16.0, 66.0, 8.0, 30.0), "capital_slabs"])
 	out.append(["arsenal", ARSENAL, "capital_slabs"])
 	_floors = _clip(out)
+	_floors_for = world_seed
 	return _floors
 
 
@@ -210,9 +230,16 @@ static func terrain(q: Vector2) -> float:
 ## campo), each band into rows at most 12 m deep, each row into spans between its north-south floors, each span
 ## filled edge to edge with narrow lots, so every lane and campo is lined with houses (no gaps to wall off).
 ## {"r", "cell", "c", "floors", "roof", "face", "seed", "front", "keep": false}.
+static var _lots: Array = []
+static var _lots_for := -1
+
+
 static func lots() -> Array:
+	# (cached per seed: the district records each walkable roof on its lot, the roofs read them back)
+	if _lots_for == world_seed and not _lots.is_empty():
+		return _lots
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 61021
+	rng.seed = 61021 if world_seed == 0 else hash([61021, world_seed])
 	var out: Array = []
 	var fl := floors()
 	for b in BLOCKS:
@@ -261,8 +288,10 @@ static func lots() -> Array:
 							else:
 								face = Vector2(0, -1)
 							break
-						out.append({"r": lr, "cell": cell, "c": lr.get_center(), "floors": floors_n, "roof": "flat" if roof_roll < 0.15 else ("gable" if roof_roll < 0.65 else "hip"),
+						out.append({"r": lr, "cell": cell, "c": lr.get_center(), "floors": floors_n, "roof": "flat" if roof_roll < 0.3 else ("gable" if roof_roll < 0.7 else "hip"),
 							"face": face, "seed": sd, "front": front, "keep": false})
+	_lots = out
+	_lots_for = world_seed
 	return out
 
 

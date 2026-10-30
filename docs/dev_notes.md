@@ -8000,3 +8000,14 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   curtains, footlights and raked rows. t/capital/halls; capitalshot library, theatre.
 - The walls across leftover gaps (CapitalShell._barrier) 3 m or wider now stand two storeys with a windowed facade over a
   plain ground floor, so a lane past unbuilt ground reads as a house side. Open: stairs to upper floors not yet.
+
+## 2026-10-29: 1.27 cities C3 (first pass) - the canal city rolled, walked into and climbed
+- **Rolled blocks** (CanalPlan.use_seed from CanalIsland.prepare; floors() and lots() cached per seed): each block's
+  campo sits anywhere in its inner rect (kept off the specials) and one of its four calli shuts 40% of the time.
+- **Interiors and rooftops** reuse the capital's: CanalShell.house(..., hollow) skips its solid box and occluder for a
+  walk-in house, CanalDistrict hollows it with CapitalInteriors (a third of shops, one house in twelve: ~70 rooms) and
+  swings its door open; every front house records frame/wd/top_y/ground_y for CapitalRoofs.build(out, lots,
+  ladder_floors = the calli and campi). Flat roofs 30% now; the solid house box tops at the roof's base.
+- **Far fronts**: the walkway houses had no far version (district RANGE 300), so every walkway and calle showed bare
+  ground from the lagoon and from above; "FarFronts_*" massing past the range (as the capital's FarLanes).
+- Tests: t/canal/walk_in (new). Renders: canalshot plan, campo2, roofs, room.

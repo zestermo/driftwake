@@ -79,13 +79,30 @@ static func _houses(out: Dictionary) -> void:
 		var cols: Array = []
 		var i := 0
 		for l in by[key]:
-			var h: Array = S.house(mb, cols, l, true)
 			var kind: String = SHOP_KINDS[(int(l["seed"]) >> 3) % SHOP_KINDS.size()] if i % 3 == 0 else ""
-			var d := _front(mb, cols, l, h[0], h[1], h[2], h[3], kind)
+			# (1.27) walk-in, hollowed and furnished as the capital's: the city has many more fronts than the capital, so a
+			# third of its shops and one house in twelve (about 50 rooms)
+			var sd := int(l["seed"])
+			var enter: bool = (kind != "" and (sd >> 9) % 3 == 0) or (kind == "" and (sd >> 7) % 12 == 0)
+			var h: Array = S.house(mb, cols, l, true, enter)
+			var d := _front(mb, cols, l, h[0], h[1], h[2], h[3], kind, enter)
+			var ht: Transform3D = h[0]
+			l["frame"] = ht
+			l["wd"] = Vector2(h[1], h[2])
+			l["top_y"] = P.QUAY_Y + 0.4 + float(h[3])
+			l["ground_y"] = P.QUAY_Y
+			if enter:
+				var dx: float = (ht.affine_inverse() * (d["at"] as Vector3)).x
+				var cell: Rect2 = l["cell"]
+				var face: Vector2 = l["face"]
+				var pad := Vector2((cell.size.x if absf(face.y) > 0.5 else cell.size.y) - float(h[1]), (cell.size.y if absf(face.y) > 0.5 else cell.size.x) - float(h[2])) * 0.5
+				d["inside"] = CapitalInteriors.build(mb, cols, ht, h[1], h[2], P.QUAY_Y - 1.0, P.QUAY_Y + 0.2, 3.6, P.QUAY_Y + 0.2 + float(h[3]), dx, 1.2, 0.12, kind, int(l["seed"]), pad)
 			if P.in_floor(_q(d["at"])):
 				(out["doors"] as Array).append(d)
 			i += 1
 		_piece(out, "Town_" + str(key), mb, cols)
+	# (1.27) the roofs made walkable, dressed, planked, laddered up from the calli and campi
+	CapitalRoofs.build(out, P.lots().filter(func(l): return l.has("top_y")), P.floors().filter(func(f): return str(f[0]).contains("_c")))
 
 
 static func _block_of(c: Vector2) -> String:
@@ -97,7 +114,7 @@ static func _block_of(c: Vector2) -> String:
 
 ## A walkway house's front: a door up a stone step, windows with coloured shutters on every storey, a flower box under
 ## some, an iron balcony on some, and a shop under an awning with its wares and sign if `kind`. Returns its door.
-static func _front(mb: MeshBuilder, cols: Array, l: Dictionary, t: Transform3D, w: float, d: float, h: float, kind: String) -> Dictionary:
+static func _front(mb: MeshBuilder, cols: Array, l: Dictionary, t: Transform3D, w: float, d: float, h: float, kind: String, enter := false) -> Dictionary:
 	var rng := _rng(int(l["seed"]) + 7)
 	var lime := M.mat("lime")
 	var y0 := P.QUAY_Y + 0.2
@@ -108,7 +125,10 @@ static func _front(mb: MeshBuilder, cols: Array, l: Dictionary, t: Transform3D, 
 	var door_x := clampf(rng.randf_range(-hw * 0.35, hw * 0.35), -hw + 1.0, hw - 1.0)
 	var dt := t * Transform3D(Basis(), Vector3(door_x, y0 - 0.2, hd + 0.03))
 	mb.add_box(lime, dt * Transform3D(Basis(), Vector3(0, 0.1, 0.35)), Vector3(1.6, 0.2, 0.7), 0.6, Color(0.88, 0.86, 0.82))
-	Buildings.panel_door(mb, dt * Transform3D(Basis(), Vector3(0, 0.2, 0)), 1.2, 2.3, Buildings.door_leaf(shut * 0.8), lime)
+	if enter:
+		Buildings.panel_door(mb, dt * Transform3D(Basis(Vector3.UP, -1.35), Vector3(-0.55, 0.2, -0.05)) * Transform3D(Basis(), Vector3(0.55, 0, 0)), 1.2, 2.3, Buildings.door_leaf(shut * 0.8), lime)
+	else:
+		Buildings.panel_door(mb, dt * Transform3D(Basis(), Vector3(0, 0.2, 0)), 1.2, 2.3, Buildings.door_leaf(shut * 0.8), lime)
 	# the storeys' windows: shutters either side, a flower box under some
 	var storeys := maxi(int(round((h - 3.6) / M.STOREY)), 1)
 	for s in range(storeys):
@@ -141,7 +161,7 @@ static func _front(mb: MeshBuilder, cols: Array, l: Dictionary, t: Transform3D, 
 		else:
 			mb.add_box(PSXMat.lit("planks"), dt * Transform3D(Basis(), Vector3(-1.3, 0.25, 0.3)), Vector3(1.2, 0.08, 0.36), 1.0, Color(0.8, 0.7, 0.6))
 	D.warmth(mb, int(l["seed"]), t, w, h, hd, door_x, y0)
-	return {"at": t * Vector3(door_x, P.QUAY_Y, hd + 0.9), "face": _fd(t), "kind": kind}
+	return {"at": t * Vector3(door_x, P.QUAY_Y, hd + 0.9), "face": _fd(t), "kind": kind, "inside": Vector3.INF}
 
 
 # --------------------------------------------------------------------------

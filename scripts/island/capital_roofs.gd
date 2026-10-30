@@ -20,7 +20,8 @@ const PLANK_W := 0.9
 const PLANK_DY := 1.6
 
 
-static func build(out: Dictionary, lots: Array) -> void:
+static func build(out: Dictionary, lots: Array, ladder_floors: Array = []) -> void:
+	var lf: Array = ladder_floors if not ladder_floors.is_empty() else P.rolled()
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	var ladders: Array = []
@@ -34,7 +35,7 @@ static func build(out: Dictionary, lots: Array) -> void:
 		if str(l["roof"]) == "flat":
 			_flat(mb, cols, t, wd.x, wd.y, y, int(l["seed"]))
 			flats.append(l)
-			if _on_rolled(l) and _roll(int(l["seed"]), 3) < LADDER_P:
+			if _on_rolled(l, lf) and _roll(int(l["seed"]), 3) < LADDER_P:
 				var lx := (wd.x * 0.5 - 0.9) * (1.0 if _roll(int(l["seed"]), 5) < 0.5 else -1.0)
 				ladders.append({"xf": t * Transform3D(Basis(), Vector3(lx, y, wd.y * 0.5 + 0.02)), "length": y - float(l["ground_y"]) + 0.2,
 					"rail": PARAPET})
@@ -193,9 +194,9 @@ static func _planks(mb: MeshBuilder, cols: Array, flats: Array) -> void:
 
 
 ## A house on one of the rolled floors (a lane, an alley, a courtyard), not the fixed streets.
-static func _on_rolled(l: Dictionary) -> bool:
+static func _on_rolled(l: Dictionary, floors: Array) -> bool:
 	var r: Rect2 = (l["r"] as Rect2).grow(1.5)
-	for f in P.rolled():
+	for f in floors:
 		if (f[1] as Rect2).intersects(r):
 			return true
 	return false
