@@ -1,6 +1,7 @@
-class_name CanalUndercity
+class_name CityUndercity
 extends Node3D
-## The canal city's undercity (1.27, docs/v1_27_plan.md "Canal set pieces": flooded cellars, smugglers' tunnels).
+## A city's undercity (1.27, docs/v1_27_plan.md: the canal city's flooded cellars and smugglers' tunnels; the capital's
+## catacombs and its thieves' den), the same vaults under each with their own stone, keys and water (build's opts).
 ## A sealed pocket like the brig (AdmiraltyBrig): built under the City node at POCKET (frame space, high above the
 ## city: below the quays the sea would count as deep water), its brick vaults lit by a few lanterns. Trapdoors in
 ## the calli (rolled from the world's seed, one per arm) take you down; the ladder at each arm's end brings you
@@ -33,16 +34,22 @@ var _wood: Material
 var _iron: Material
 var _body: StaticBody3D
 var _mb: MeshBuilder
+var _ground: Callable
 
 
-## Build it under `city` (the canal island's City node, CanalPlan's frame): `calli` are the floors to put the
-## trapdoors in, `seed` the world's.
-func build(city: Node3D, calli: Array, seed: int) -> void:
+## Build it under `city` (the island's City node, its plan's frame): `calli` are the floors to put the trapdoors in,
+## `seed` the world's. opts: "prefix" (the caches' save keys), "tint" (the stone), "water" (the hall flooded),
+## "ground" (Callable(frame point) -> the street's height at a trapdoor).
+func build(city: Node3D, calli: Array, seed: int, opts: Dictionary = {}) -> void:
+	var prefix: String = opts.get("prefix", "canal_under")
+	var tint: Color = opts.get("tint", Color(0.72, 0.62, 0.55))
+	var flooded: bool = opts.get("water", true)
+	_ground = opts.get("ground", func(_q: Vector2) -> float: return CanalPlan.QUAY_Y)
 	name = "Undercity"
 	position = POCKET
 	city.add_child(self)
-	_brick = PSXMat.lit("stone_brick", Color(0.72, 0.62, 0.55))
-	_vault = PSXMat.lit("stone_brick", Color(0.5, 0.45, 0.42))
+	_brick = PSXMat.lit("stone_brick", tint)
+	_vault = PSXMat.lit("stone_brick", tint * 0.7)
 	_wood = PSXMat.lit("planks_dark")
 	_iron = PSXMat.lit("metal", Color(0.35, 0.36, 0.38))
 	_body = StaticBody3D.new()
@@ -76,20 +83,21 @@ func build(city: Node3D, calli: Array, seed: int) -> void:
 	_box(_wood, Vector3(21.0, 0.8, 6.0), Vector3(2.0, 0.1, 1.1))
 	for lx in [20.2, 21.8]:
 		_box(_wood, Vector3(lx, 0.4, 6.0), Vector3(0.12, 0.8, 0.9))
-	# the cistern's water, to the ankles
-	var water := MeshInstance3D.new()
-	water.name = "Water"
-	var wm := PlaneMesh.new()
-	wm.size = Vector2(HALL_HALF * 2.0, HALL_HALF * 2.0)
-	water.mesh = wm
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.12, 0.2, 0.18, 0.75)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.roughness = 0.2
-	water.material_override = mat
-	water.position = Vector3(0, WATER_Y, 0)
-	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(water)
+	# the cistern's water, to the ankles (the canal's: flooded)
+	if flooded:
+		var water := MeshInstance3D.new()
+		water.name = "Water"
+		var wm := PlaneMesh.new()
+		wm.size = Vector2(HALL_HALF * 2.0, HALL_HALF * 2.0)
+		water.mesh = wm
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.12, 0.2, 0.18, 0.75)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.roughness = 0.2
+		water.material_override = mat
+		water.position = Vector3(0, WATER_Y, 0)
+		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(water)
 	add_child(_mb.to_instance("Brick"))
 	for at in [Vector3(0, HALL_H - 0.8, 0), Vector3(DEN.x, ARM_H - 0.6, DEN.y), Vector3(0, ARM_H - 0.6, 22.0)]:
 		var lamp := OmniLight3D.new()
@@ -100,9 +108,9 @@ func build(city: Node3D, calli: Array, seed: int) -> void:
 		lamp.shadow_enabled = false
 		add_child(lamp)
 	CityCaches.place(self, [
-		CityCaches.entry(Transform3D(Basis(), Vector3(DEN.x + 2.6, 0.0, DEN.y + 2.2)), "canal_under_stash"),
-		CityCaches.entry(Transform3D(Basis(), Vector3(1.6, 0.0, -CHAMBER_R - 1.6)), "canal_under_north"),
-		CityCaches.entry(Transform3D(Basis(), Vector3(-CHAMBER_R - 1.6, 0.0, 1.6)), "canal_under_west")])
+		CityCaches.entry(Transform3D(Basis(), Vector3(DEN.x + 2.6, 0.0, DEN.y + 2.2)), prefix + "_stash"),
+		CityCaches.entry(Transform3D(Basis(), Vector3(1.6, 0.0, -CHAMBER_R - 1.6)), prefix + "_north"),
+		CityCaches.entry(Transform3D(Basis(), Vector3(-CHAMBER_R - 1.6, 0.0, 1.6)), prefix + "_west")])
 	_hatches(city, calli, seed)
 
 
@@ -178,7 +186,7 @@ func _hatches(city: Node3D, calli: Array, seed: int) -> void:
 		var f: Array = pool.pop_at(rng.randi() % pool.size())
 		var r: Rect2 = f[1]
 		var at := r.get_center()
-		var y := CanalPlan.QUAY_Y
+		var y: float = _ground.call(at)
 		hatches[k] = [at, y]
 		var hatch := Node3D.new()
 		hatch.name = "Hatch_" + k

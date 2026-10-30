@@ -22,6 +22,8 @@ var _windows_t := 0.0
 ## The shell's and district's pieces from prepare: {"name", "mesh", "range", "shadow", "cols", "faces"}.
 var pieces: Array = []
 var city: Node3D
+## (1.27) The undercity: its vaults in a sealed pocket over the city, trapdoors down from rolled streets (CityUndercity).
+var undercity: CityUndercity
 ## The district's places for its people ({name: [frame Vector3, yaw facing its way]}), its town houses' doors
 ## ({"at", "face", "kind"}, frame) and its lamps ([frame Vector3, energy, range, all day]).
 var spots := {}
@@ -132,6 +134,7 @@ func finish_steps() -> Array:
 		steps.append(["city", _piece.bind(i)])
 	steps.append(["ladders", _ladders])
 	steps.append(["caches", _caches])
+	steps.append(["undercity", _undercity])
 	steps.append(["lamps", _lamps])
 	steps.append(["smoke", _smoke])
 	steps.append(["pigeons", _pigeons])
@@ -479,3 +482,12 @@ func _ladders() -> void:
 ## The hidden caches as LootBags under the city node (CityCaches), the opened ones left out.
 func _caches() -> void:
 	CityCaches.place(city, caches)
+
+
+## (1.27) The capital's catacombs: the undercity's vaults in grey stone, dry, a trapdoor per tunnel in a rolled lane
+## or alley.
+func _undercity() -> void:
+	var lanes: Array = CapitalPlan.rolled().filter(func(fl): return str(fl[0]) in ["lane", "alley_r"])
+	undercity = CityUndercity.new()
+	undercity.build(city, lanes, int(node.get("seed", 0)), {"prefix": "capital_under", "tint": Color(0.62, 0.6, 0.58),
+		"water": false, "ground": func(q: Vector2) -> float: return CapitalPlan.ground(q)})

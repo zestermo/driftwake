@@ -1,5 +1,5 @@
 extends SceneTree
-## The canal city's undercity (1.27, CanalUndercity): four trapdoors in the calli, one per tunnel; climbing down puts
+## The canal city's undercity (1.27, CityUndercity): four trapdoors in the calli, one per tunnel; climbing down puts
 ## you on the vaults' floor in the sealed pocket (and keeps you there); the den's stash and two caches are down
 ## there; climbing the ladder brings you out beside the trapdoor you came down.
 const TK := preload("res://tools/dev/test_kit.gd")

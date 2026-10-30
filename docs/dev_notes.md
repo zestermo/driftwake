@@ -8157,3 +8157,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Not yet:** smugglers to fight down there (grunts need nav in the pocket), the capital's cellars, a water gate out
   to the Grand Canal, and ambience/music.
 - Test: t/canal/undercity. Renders: canalshot `under_hall`, `under_arm` and `under_den`.
+- (same day) **The capital's catacombs.**
+  - The undercity is now `CityUndercity` (scripts/island/city_undercity.gd), built from CapitalIsland's "undercity" step
+    (CanalIsland inherits the `undercity` member).
+  - `build(city, calli, seed, opts)` takes opts: "prefix" (cache keys), "tint" (stone), "water" (flooded) and "ground"
+    (the street height at a trapdoor).
+  - The capital's version: grey stone, dry, trapdoors in rolled lanes and alleys (`capital_under_*` caches).
+  - t/capital/shell's mesh count leaves out the catacombs and their trapdoors.
+  - Test: t/capital/catacombs.

@@ -9,8 +9,6 @@ extends CapitalIsland
 const CANAL_RADIUS := 260.0
 
 var canal_life: CanalLife
-## (1.27) The undercity: its tunnels in a sealed pocket, trapdoors down from the calli (CanalUndercity).
-var undercity: CanalUndercity
 
 
 func prepare(n: Dictionary) -> void:
@@ -239,5 +237,5 @@ func _in_stone(at: Vector3, ship: bool) -> bool:
 ## (1.27) The undercity: a pocket of vaults under the City node, a trapdoor per tunnel in a rolled calle.
 func _undercity() -> void:
 	var calli: Array = CanalPlan.floors().filter(func(fl): return str(fl[0]).contains("_c") and not str(fl[0]).ends_with("_campo"))
-	undercity = CanalUndercity.new()
+	undercity = CityUndercity.new()
 	undercity.build(city, calli, int(node.get("seed", 0)))

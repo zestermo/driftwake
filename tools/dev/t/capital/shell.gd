@@ -115,7 +115,7 @@ func _process(_d: float) -> bool:
 						if _ray(from, isl.city_global(p + n * 14.0, y)).is_empty():
 							open.append("%s %s" % [f[0], p.round()])
 			check("every floor closed at its edges (%d open: %s)" % [open.size(), open.slice(0, 12)], open.is_empty())
-			var meshes: int = isl.city.find_children("*", "MeshInstance3D", true, false).filter(func(m): return not isl.crowd.is_ancestor_of(m) and not str(m.get_parent().get_script().resource_path if m.get_parent().get_script() else "").ends_with("ladder.gd") and not str(m.get_parent().get_script().resource_path if m.get_parent().get_script() else "").ends_with("loot_bag.gd")).size()  # (1.27: the roof ladders are their own nodes)
+			var meshes: int = isl.city.find_children("*", "MeshInstance3D", true, false).filter(func(m): return not isl.crowd.is_ancestor_of(m) and not str(m.get_parent().get_script().resource_path if m.get_parent().get_script() else "").ends_with("ladder.gd") and not str(m.get_parent().get_script().resource_path if m.get_parent().get_script() else "").ends_with("loot_bag.gd") and not (isl.undercity and isl.undercity.is_ancestor_of(m)) and not str(m.get_parent().name).begins_with("Hatch_")).size()  # (1.27: the roof ladders are their own nodes; the catacombs and their trapdoors are a place of their own)
 			check("the city's pieces are few meshes (%d)" % meshes, meshes < 60)
 			isl.queue_free()
 			return TK.done(fails)
