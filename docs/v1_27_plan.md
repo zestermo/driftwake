@@ -165,3 +165,14 @@ the rooftop thief (capital board), the Watch's three odd jobs (capital board), t
 both cities), dice dens (a capital courtyard, a canal campo). Next: a canal investigation and jobs (no board there
 yet: offered by its people), the other three investigations (missing apprentice, smuggling ring, forged seal; the
 drowned bell needs diving), then C5 (the Queen's and the Doge's lines, favour ranks). Known red: t/island/beast_moves.
+
+## Status (2026-10-30, C4 done)
+C4 is complete on main (tested, not pushed): caches (9 + 7), the Stranger's cache leads, all five investigations (the
+rooftop thief, the missing apprentice, the forged seal; the smuggling ring, the drowned bell), the capital's board
+(the thief, Black Ned's bounty, three Watch jobs), the canal's jobs from its people (three), dice dens in both cities.
+**Next: C5.** Favour ranks with each ruler (Crown: Known 3 / Trusted 6 / Champion 9 capital quests done; Lagoon: Friend
+3 / Citizen 5 / Gondolier 7 canal quests) with their perks (Trusted / Citizen: 10% off that city's traders via
+Journal.perks discount; Champion / Gondolier: a title), shown when you talk to the Queen / the Doge (the Doge needs a
+talk: today barks only). Then each ruler's line's first step in the city (the Queen after the audience: a Crown errand =
+the forged seal; the Doge: an audience, then the smuggling ring); their later steps wait for the stronghold and the
+hideout (1.27 build steps 2 and 6).
