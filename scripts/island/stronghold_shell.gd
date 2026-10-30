@@ -12,6 +12,8 @@ extends RefCounted
 const P := preload("res://scripts/island/stronghold_plan.gd")
 const M := preload("res://scripts/island/capital_models.gd")
 const FAR := 3600.0
+## The rooms' lanterns from the last build: [frame Vector3, range] (StrongholdIsland lights them).
+static var lights: Array = []
 ## The Verdict: its stepped base ([half width, top over the keep's plateau]), its twin towers (each one's width, its
 ## depth, the cleft between them, their tops) and the circle cut where they meet (its middle's height, its radius).
 const SPIRE_STAGES := [[24.0, 32.0], [19.0, 50.0]]
@@ -24,6 +26,7 @@ const SEA_GATE_GAP := 26.0
 
 static func build(build_ms: Dictionary) -> Array:
 	var out: Array = []
+	lights.clear()
 	for step in [["paving", _paving], ["harbour", _harbour], ["ways", _ways], ["walls", _walls], ["buildings", _buildings], ["verdict", _verdict], ["viaducts", _viaducts], ["sea gate", _sea_gate]]:
 		var t0 := Time.get_ticks_usec()
 		step[1].call(out)
@@ -174,6 +177,9 @@ static func _walls(out: Array) -> void:
 				var m := a.lerp(b, float(k) / (nm + 1))
 				if _gapped(m, m + (b - a).normalized() * 0.1).is_empty() and _near_way(m, 6.0):
 					continue
+				# (never into a room: its windows and stone would stand inside the hall)
+				if P.ROOMS.any(func(rm): return (rm[2] as Rect2).grow(1.0).intersects(Rect2(m - Vector2(4, 4), Vector2(8, 8)))):
+					continue
 				var side := Vector2(-(b - a).y, (b - a).x).normalized()
 				if side.dot(m - (d[1] as Rect2).get_center()) < 0.0:
 					side = -side
@@ -297,12 +303,11 @@ static func _buildings(out: Array) -> void:
 	var mb := MeshBuilder.new()
 	mb.all_faces = true
 	var cols: Array = []
-	var halls := [
-		[Rect2(-42.0, -10.0, 24.0, 22.0), 12.0, 10.0], [Rect2(18.0, -10.0, 24.0, 22.0), 12.0, 10.0],
-		[Rect2(68.0, -38.0, 30.0, 30.0), 14.0, 14.0], [Rect2(-38.0, -110.0, 76.0, 7.0), 30.0, 9.0],
-	]
-	for h in halls:
-		_hall(mb, cols, h[0], h[1], h[2])
+	# the rooms you walk into (StrongholdPlan.ROOMS; the Command Hall is the Verdict's base, built there)
+	for rm in P.ROOMS:
+		if str(rm[0]) != "command":
+			_room(mb, cols, rm)
+			_furnish(mb, cols, rm)
 	# the foundry's chimneys: tapering round stacks banded with iron, their mouths glowing
 	for p: Vector2 in [Vector2(74.0, -32.0), Vector2(92.0, -32.0)]:
 		mb.add_cylinder(_dark_m(), M.xf(M.v3(p, 14.0)), 2.6, 1.8, 34.0, 12, 0.5, Color.WHITE, false)
@@ -340,25 +345,6 @@ static func _buildings(out: Array) -> void:
 	CapitalShell._piece(out, "Buildings", mb, cols, FAR, true)
 
 
-## A barracks-like hall on rect r at floor y, `tall` high: dark-footed grey stone, a flat roof with a parapet and
-## iron rail, rows of slit windows on its long sides, two iron stacks.
-static func _hall(mb: MeshBuilder, cols: Array, r: Rect2, y: float, tall: float) -> void:
-	var c := r.get_center()
-	_block(mb, cols, _wall_m(), M.xf(M.v3(c, y + tall * 0.5 - 1.0)), Vector3(r.size.x, tall + 2.0, r.size.y))
-	mb.add_box(_foot_m(), M.xf(M.v3(c, y + 0.5)), Vector3(r.size.x + 0.5, 1.4, r.size.y + 0.5), 0.5)
-	mb.add_box(_dark_m(), M.xf(M.v3(c, y + tall + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8), 0.5)
-	for s: float in [-1.0, 1.0]:
-		mb.add_box(_iron_m(), M.xf(M.v3(c + Vector2(0, s * (r.size.y * 0.5 + 0.2)), y + tall + 1.6)), Vector3(r.size.x, 0.12, 0.12), 0.5)
-		var n := int(r.size.x / 3.0)
-		for k in range(n):
-			var x := r.position.x + (k + 0.5) * r.size.x / n
-			for row: float in [0.35, 0.7]:
-				mb.add_box(PSXMat.flat(Color(0.05, 0.05, 0.06)), M.xf(M.v3(Vector2(x, c.y + s * (r.size.y * 0.5 + 0.02)), y + tall * row)), Vector3(0.4, 1.4, 0.1), 1.0, Color.WHITE, false)
-	for k: float in [-1.0, 1.0]:
-		var sp := c + Vector2(k * r.size.x * 0.3, 0)
-		mb.add_cylinder(_iron_m(), M.xf(M.v3(sp, y + tall + 1.0)), 0.6, 0.6, 4.0, 8, 0.5)
-
-
 # --------------------------------------------------------------------------
 # The Verdict
 # --------------------------------------------------------------------------
@@ -377,15 +363,23 @@ static func _verdict(out: Array) -> void:
 	for st in SPIRE_STAGES:
 		var hw: float = st[0]
 		var top: float = y0 + float(st[1])
-		_block(mb, cols, _dark_m() if below == y0 else _wall_m(), M.xf(M.v3(c, (below + top) * 0.5 - (2.0 if below == y0 else 0.0))), Vector3(hw * 2.0, top - below + (4.0 if below == y0 else 0.0), hw * 2.0))
+		if below == y0:
+			# the first stage hollow: the Command Hall, its ceiling the stage's top
+			_room(mb, cols, P.ROOMS[3], top)
+			_furnish(mb, cols, P.ROOMS[3])
+		else:
+			_block(mb, cols, _wall_m(), M.xf(M.v3(c, (below + top) * 0.5)), Vector3(hw * 2.0, top - below, hw * 2.0))
 		mb.add_box(_dark_m(), M.xf(M.v3(c, top + 0.6)), Vector3(hw * 2.0 + 1.6, 1.2, hw * 2.0 + 1.6), 0.5)
 		_ribs(mb, c, hw, hw, below, top)
 		below = top
 	var hw0: float = SPIRE_STAGES[0][0]
 	for cn: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		_tower(mb, cols, c + cn * (hw0 + 3.0), y0, 8.0, float(SPIRE_STAGES[0][1]) + 14.0, cn)
-	for f: Vector2 in [Vector2(0, 1), Vector2(1, 0), Vector2(-1, 0)]:
+		_tower(mb, cols, c + cn * (hw0 + 4.6), y0, 8.0, float(SPIRE_STAGES[0][1]) + 14.0, cn)
+	for f: Vector2 in [Vector2(1, 0), Vector2(-1, 0)]:
 		_banner(mb, c + f * (hw0 + 0.12), y0 + float(SPIRE_STAGES[0][1]) - 2.0, f, 10.0, 22.0)
+	# (either side of the Command Hall's door, not over it)
+	for s: float in [-1.0, 1.0]:
+		_banner(mb, c + Vector2(s * 13.0, hw0 + 0.12), y0 + float(SPIRE_STAGES[0][1]) - 2.0, Vector2(0, 1), 8.0, 20.0)
 	# the twin towers: each in slices across its width, the slices near the cleft cut by the circle
 	var tw: float = TWINS[0]
 	var td: float = TWINS[1]
@@ -659,3 +653,111 @@ static func _sea_gate(out: Array) -> void:
 		for k in range(n):
 			_wall(mb, cols, a.lerp(b, float(k) / n), a.lerp(b, float(k + 1) / n), P.QUAY_Y + 2.0, 8.0)
 	CapitalShell._piece(out, "SeaGate", mb, cols, FAR, true)
+
+
+# --------------------------------------------------------------------------
+# The rooms (StrongholdPlan.ROOMS)
+# --------------------------------------------------------------------------
+## A room you walk into: a flagstone floor slab, walls WALL thick round its rect with the door's gap (and a lintel)
+## in the wall on its door's side, a ceiling slab from its height up to `top` (default: a hall's roof just over it),
+## and outside a cornice, lit slits and iron stacks. Everything solid.
+static func _room(mb: MeshBuilder, cols: Array, rm: Array, top := -1.0) -> void:
+	var r: Rect2 = rm[2]
+	var y: float = rm[3]
+	var h: float = rm[4]
+	var door: Vector2 = rm[5]
+	var dw: float = rm[6]
+	var t := 1.2
+	var roof := top if top > 0.0 else y + h + 1.0
+	var c := r.get_center()
+	_block(mb, cols, _flag_m(), M.xf(M.v3(c, y - 0.25)), Vector3(r.size.x, 0.5, r.size.y))
+	var dh := minf(h * 0.6, 9.0)
+	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
+		var along := Vector2(-f.y, f.x)
+		var yaw := M.yaw_of(along)
+		var half_len := (r.size.y if absf(f.x) > 0.5 else r.size.x) * 0.5
+		var wc := c + Vector2(f.x * (r.size.x * 0.5 - t * 0.5), f.y * (r.size.y * 0.5 - t * 0.5))
+		if f.is_equal_approx(door):
+			var piece := half_len - dw * 0.5
+			for s: float in [-1.0, 1.0]:
+				_block(mb, cols, _wall_m(), M.xf(M.v3(wc + along * s * (dw * 0.5 + piece * 0.5), (y - 2.0 + roof) * 0.5), yaw), Vector3(t, roof - y + 2.0, piece))
+			_block(mb, cols, _dark_m(), M.xf(M.v3(wc, (y + dh + roof) * 0.5), yaw), Vector3(t, roof - y - dh, dw + 0.1))
+			# the door's iron-banded frame and a torch each side, outside
+			for s: float in [-1.0, 1.0]:
+				_torch(mb, wc + f * 1.4 + along * s * (dw * 0.5 + 1.0), y)
+		else:
+			_block(mb, cols, _wall_m(), M.xf(M.v3(wc, (y - 2.0 + roof) * 0.5), yaw), Vector3(t, roof - y + 2.0, half_len * 2.0))
+	if roof - y - h > 0.1:
+		_block(mb, cols, _dark_m(), M.xf(M.v3(c, (y + h + roof) * 0.5)), Vector3(r.size.x, roof - y - h, r.size.y))
+	if top > 0.0:
+		return
+	mb.add_box(_dark_m(), M.xf(M.v3(c, roof + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8), 0.5)
+	for k: float in [-1.0, 1.0]:
+		mb.add_cylinder(_iron_m(), M.xf(M.v3(c + Vector2(k * r.size.x * 0.3, 0), roof + 1.0)), 0.6, 0.6, 4.0, 8, 0.5)
+	for f: Vector2 in [Vector2(0, -1), Vector2(0, 1)]:
+		var n := int(r.size.x / 3.0)
+		for k in range(n):
+			var x := r.position.x + (k + 0.5) * r.size.x / n
+			mb.add_box(_window_m(), M.xf(M.v3(Vector2(x, c.y + f.y * (r.size.y * 0.5 + 0.02)), y + h * 0.75)), Vector3(0.4, 1.4, 0.1), 1.0, Color.WHITE, false)
+
+
+## What's in a room, by its key, and its lanterns (lights).
+static func _furnish(mb: MeshBuilder, cols: Array, rm: Array) -> void:
+	var r: Rect2 = (rm[2] as Rect2).grow(-1.2)
+	var y: float = rm[3]
+	var h: float = rm[4]
+	var c := r.get_center()
+	var wood := PSXMat.lit("planks_dark")
+	match str(rm[0]):
+		"mess":
+			# three long tables along the hall with benches, a hearth on the back wall
+			for z: float in [-6.0, 0.0, 6.0]:
+				_block(mb, cols, wood, M.xf(M.v3(c + Vector2(-1.0, z), y + 0.8)), Vector3(14.0, 0.15, 1.6))
+				for s: float in [-1.0, 1.0]:
+					_block(mb, cols, wood, M.xf(M.v3(c + Vector2(-1.0, z + s * 1.4), y + 0.45)), Vector3(14.0, 0.12, 0.5))
+				for x: float in [-7.0, 5.0]:
+					mb.add_box(wood, M.xf(M.v3(c + Vector2(x, z), y + 0.4)), Vector3(0.2, 0.8, 1.4), 0.5)
+			var hc := Vector2(r.position.x + 0.8, c.y)
+			_block(mb, cols, _dark_m(), M.xf(M.v3(hc, y + 1.8)), Vector3(1.6, 3.6, 4.0))
+			mb.add_box(_fire_m(), M.xf(M.v3(hc + Vector2(0.85, 0), y + 0.7)), Vector3(0.1, 1.0, 2.4), 1.0, Color.WHITE, false)
+			lights.append([M.v3(c, y + h - 2.0), 16.0])
+		"barracks":
+			# bunks two high along both long walls
+			var n := int(r.size.x / 2.6)
+			for k in range(n):
+				var x := r.position.x + (k + 0.5) * r.size.x / n
+				for s: float in [-1.0, 1.0]:
+					var b := Vector2(x, c.y + s * (r.size.y * 0.5 - 1.1))
+					for lv: float in [0.5, 1.9]:
+						_block(mb, cols, wood, M.xf(M.v3(b, y + lv)), Vector3(1.0, 0.2, 2.0))
+					mb.add_box(wood, M.xf(M.v3(b + Vector2(0.45, 0), y + 1.2)), Vector3(0.12, 2.4, 0.12), 0.5)
+			lights.append([M.v3(c, y + h - 2.0), 16.0])
+		"casting":
+			# pillars, a glowing channel of iron down the floor, two furnaces at the back, a crucible on a chain
+			for p: Vector2 in [Vector2(-7, -7), Vector2(7, -7), Vector2(-7, 7), Vector2(7, 7)]:
+				_block(mb, cols, _dark_m(), M.xf(M.v3(c + p, y + h * 0.5)), Vector3(1.6, h, 1.6))
+			mb.add_box(_fire_m(), M.xf(M.v3(c, y + 0.03)), Vector3(r.size.x - 4.0, 0.06, 1.0), 1.0, Color.WHITE, false)
+			for z: float in [-6.0, 6.0]:
+				var fc := Vector2(r.end.x - 1.8, c.y + z)
+				_block(mb, cols, _dark_m(), M.xf(M.v3(fc, y + 3.0)), Vector3(3.2, 6.0, 5.0))
+				mb.add_box(_fire_m(), M.xf(M.v3(fc + Vector2(-1.65, 0), y + 1.6)), Vector3(0.1, 1.8, 2.4), 1.0, Color.WHITE, false)
+			mb.add_box(_iron_m(), M.xf(M.v3(c + Vector2(4, 0), y + h - 3.0)), Vector3(0.14, 6.0, 0.14), 0.5)
+			mb.add_box(_iron_m(), M.xf(M.v3(c + Vector2(4, 0), y + h - 7.0)), Vector3(2.2, 2.0, 2.2), 0.5)
+			mb.add_box(_fire_m(), M.xf(M.v3(c + Vector2(4, 0), y + h - 5.95)), Vector3(1.8, 0.1, 1.8), 1.0, Color.WHITE, false)
+			lights.append([M.v3(c + Vector2(-5, 0), y + h - 3.0), 20.0])
+		"command":
+			# a ring of pillars, the dais at the back with its seat, the war table in the middle, braziers, banners
+			for k in range(10):
+				var a := TAU * k / 10.0
+				_block(mb, cols, _dark_m(), M.xf(M.v3(c + Vector2(cos(a), sin(a)) * 15.0, y + h * 0.5)), Vector3(2.0, h, 2.0))
+			var dz := r.position.y + 4.0
+			_block(mb, cols, _dark_m(), M.xf(M.v3(Vector2(c.x, dz), y + 0.6)), Vector3(14.0, 1.2, 6.0))
+			_block(mb, cols, _iron_m(), M.xf(M.v3(Vector2(c.x, dz - 1.2), y + 2.6)), Vector3(2.4, 2.8, 1.0))
+			_block(mb, cols, wood, M.xf(M.v3(c + Vector2(0, 4), y + 0.9)), Vector3(8.0, 0.2, 5.0))
+			mb.add_box(PSXMat.lit("canvas", Color(0.85, 0.8, 0.65)), M.xf(M.v3(c + Vector2(0, 4), y + 1.02)), Vector3(7.4, 0.04, 4.4), 0.5)
+			for p: Vector2 in [Vector2(-9, -9), Vector2(9, -9), Vector2(-9, 9), Vector2(9, 9)]:
+				_torch(mb, c + p, y)
+			for s: float in [-1.0, 1.0]:
+				_banner(mb, Vector2(c.x + s * 6.0, r.position.y - 1.08), y + h - 2.0, Vector2(0, 1), 5.0, 14.0)
+			lights.append([M.v3(c, y + h - 4.0), 30.0])
+			lights.append([M.v3(Vector2(c.x, dz + 2.0), y + 6.0), 14.0])

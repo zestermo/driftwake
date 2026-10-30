@@ -74,6 +74,25 @@ func _process(_d: float) -> bool:
 			var under := _floor_at(Vector2(-12, -31), 14.0)
 			check("the chasm beside the bridge is open down to the sea (%.1f)" % under, under < 0.0)
 			check("its fortress pieces stand", isl.city.get_child_count() >= 4)
+			# (the rooms: in through the door from outside, a floor at its height, a ceiling at its height)
+			var rooms: Array = []
+			for rm in P.ROOMS:
+				var r: Rect2 = rm[2]
+				var y: float = rm[3]
+				var dv: Vector2 = rm[5]
+				var wall: Vector2 = r.get_center() + Vector2(dv.x * r.size.x * 0.5, dv.y * r.size.y * 0.5)
+				var inside: Vector2 = wall - dv * 3.0
+				if not _ray(isl.city_global(wall + dv * 3.0, y + 1.3), isl.city_global(inside, y + 1.3)).is_empty():
+					rooms.append("%s: door shut" % rm[0])
+				var fy := _floor_at(inside, y + 2.0)
+				if absf(fy - y) > 0.3:
+					rooms.append("%s: floor %.1f (want %.1f)" % [rm[0], fy, y])
+				var up := _ray(isl.city_global(inside, y + 1.5), isl.city_global(inside, y + float(rm[4]) + 6.0))
+				var cy: float = -INF if up.is_empty() else isl.to_local(up["position"]).y
+				if absf(cy - (y + float(rm[4]))) > 0.5:
+					rooms.append("%s: ceiling %.1f (want %.1f)" % [rm[0], cy, y + float(rm[4])])
+			check("every room walked into: its door open, its floor and ceiling (%s)" % [rooms], rooms.is_empty())
+			check("the rooms' lanterns are lit (%d)" % isl.city.find_children("RoomLight*", "OmniLight3D", false, false).size(), isl.city.find_children("RoomLight*", "OmniLight3D", false, false).size() == 5)
 			return TK.done(fails)
 	step += 1
 	return false

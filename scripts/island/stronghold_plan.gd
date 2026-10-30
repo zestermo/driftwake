@@ -117,3 +117,22 @@ static func terrain(q: Vector2) -> float:
 	if t > -6.0:
 		h = minf(h, lerpf(h, SEAFLOOR, smooth(-6.0, 30.0, t)))
 	return maxf(h, SEAFLOOR)
+
+
+## (1.27) The rooms you walk into (the encounter rooms of preview v2): [key, title, rect, floor y, height, door's
+## side (the wall it's in, outward), door width]. The Mess Hall (the hub's sealed brawl), the barracks beside it, the
+## Arsenal's casting hall (the Commodore's), and the Command Hall in the Verdict's base (the Vice Admiral's).
+const ROOMS := [
+	["mess", "The Mess Hall", Rect2(-42.0, -10.0, 24.0, 22.0), 12.0, 10.0, Vector2(1, 0), 4.0],
+	["barracks", "The Barracks", Rect2(18.0, -10.0, 24.0, 22.0), 12.0, 10.0, Vector2(-1, 0), 4.0],
+	["casting", "The Casting Hall", Rect2(68.0, -38.0, 30.0, 30.0), 14.0, 14.0, Vector2(-1, 0), 6.0],
+	["command", "The Command Hall", Rect2(-24.0, -110.0, 48.0, 48.0), 30.0, 28.0, Vector2(0, 1), 8.0],
+]
+
+
+## The room at q (its index), or -1.
+static func room_at(q: Vector2) -> int:
+	for i in range(ROOMS.size()):
+		if (ROOMS[i][2] as Rect2).has_point(q):
+			return i
+	return -1

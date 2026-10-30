@@ -8253,3 +8253,15 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - **The sea gate:** two towers in the water SEA_GATE_Z 96 out, a SEA_GATE_GAP 26 m passage centred on the berth, a
     lintel with a banner, a raised portcullis and chains. Sea walls run back to the quay's ends, so the harbour is a
     basin you sail into through the gate. The docks are shortened to stay inside it.
+- (same day) **The stronghold's first rooms** (StrongholdPlan.ROOMS: key, title, rect, floor, height, door side, door
+  width; `room_at`):
+  - The Mess Hall (long tables, benches, a hearth) and the Barracks (bunks) either side of the hub.
+  - The Casting Hall in the Arsenal (pillars, a glowing channel, two furnaces, a crucible on a chain).
+  - The Command Hall: the Verdict's first stage hollowed (a pillar ring, the dais and seat, the war table, braziers,
+    banners), its ceiling the stage's top.
+  - `_room` builds a flagstone floor slab, solid walls with the door's gap and lintel, a ceiling slab, torches at the
+    door and an outside cornice. `_furnish` adds the contents and the lanterns (`StrongholdShell.lights`, lit by
+    StrongholdIsland's "lights" step: 5 OmniLights, no shadows).
+  - Wall towers and the Verdict's buttress towers keep out of the rooms.
+  - Test: t/stronghold/place walks into every room (door open, floor, ceiling) and counts the lanterns. Renders:
+    strongholdshot `mess_in`, `barracks_in`, `casting_in`, `command_door`, `command_in`.

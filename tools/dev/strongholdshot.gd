@@ -123,6 +123,11 @@ func _setup(island) -> void:
 		["prison", "the Prison Tower", Vector2(-50, -4), 1.7, Vector2(-82, -18), 16.0],
 		["verdict", "the Verdict from the ward", Vector2(-10, 16), 1.7, Vector2(0, -86), 130.0],
 		["verdict_sea", "the Verdict from out at sea", Vector2(-120, 700), 6.0, Vector2(0, -86), 90.0],
+		["mess_in", "inside the Mess Hall", Vector2(-20.5, 1), 1.7, Vector2(-40, 1), 1.0],
+		["barracks_in", "inside the Barracks", Vector2(20.5, 1), 1.7, Vector2(40, 1), 1.0],
+		["casting_in", "inside the Casting Hall", Vector2(70.5, -23), 1.8, Vector2(96, -23), 2.0],
+		["command_door", "the Command Hall's door", Vector2(0, -50), 1.7, Vector2(0, -62), 8.0],
+		["command_in", "inside the Command Hall", Vector2(0, -64.5), 2.0, Vector2(0, -104), 3.0],
 		["sea_gate", "the sea gate from outside", Vector2(18, 170), 4.0, Vector2(18, 96), 16.0],
 		["arcade", "the arcade over the Landing", Vector2(-20, 40), 1.7, Vector2(10, 58), 20.0],
 		# looking up from underneath: what a gap in the geometry would show

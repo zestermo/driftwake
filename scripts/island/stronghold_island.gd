@@ -7,6 +7,9 @@ extends CapitalIsland
 
 const STRONGHOLD_RADIUS := 170.0
 
+## The rooms' lanterns from the shell ([frame Vector3, range]), lit in finish.
+var room_lights: Array = []
+
 
 func prepare(n: Dictionary) -> void:
 	node = n
@@ -38,6 +41,7 @@ func prepare(n: Dictionary) -> void:
 	build_ms["shore"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
 	pieces = StrongholdShell.build(build_ms)
+	room_lights = StrongholdShell.lights.duplicate()
 	build_ms["shell"] = _lap(t0)
 	places = []
 	var titles := {"landing": "The Landing", "ward": "The Lower Ward", "arsenal": "The Arsenal", "prison": "The Prison Tower", "keep": "The Keep"}
@@ -56,6 +60,7 @@ func finish_steps() -> Array:
 	steps.append(["dock", _dock_here])
 	for i in range(pieces.size()):
 		steps.append(["fortress", _piece.bind(i)])
+	steps.append(["lights", _lights_on])
 	steps.append(["arrival", _arrival])
 	return steps
 
@@ -173,3 +178,17 @@ func _in_stone(at: Vector3, ship: bool) -> bool:
 func ground_set() -> Dictionary:
 	return {"grass": "fog_rock", "sand": "shingle_wet", "wet_sand": "shingle_wet", "dirt": "fog_rock", "rock": "fog_rock",
 		"seafloor": "seafloor", "cliff": "fog_rock"}
+
+
+## The rooms' lanterns: warm, no shadows, always lit (no daylight gets in there).
+func _lights_on() -> void:
+	for i in range(room_lights.size()):
+		var l: Array = room_lights[i]
+		var o := OmniLight3D.new()
+		o.name = "RoomLight%d" % i
+		o.position = l[0]
+		o.omni_range = float(l[1])
+		o.light_energy = 1.6
+		o.light_color = Color(1.0, 0.68, 0.4)
+		o.shadow_enabled = false
+		city.add_child(o)
