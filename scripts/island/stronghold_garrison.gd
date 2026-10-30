@@ -53,6 +53,10 @@ static func build(isl: Node3D) -> Array:
 	var off := StrongholdOfficers.new().setup(isl, out.filter(func(c): return c is GruntCamp))
 	isl.city.add_child(off)
 	out.append(off)
+	# the broadcast and the Scouring once the Commodore falls (StrongholdScouring)
+	var sc := StrongholdScouring.new().setup(isl, out.duplicate())
+	isl.city.add_child(sc)
+	out.append(sc)
 	return out
 
 

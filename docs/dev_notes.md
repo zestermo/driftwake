@@ -8342,3 +8342,17 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - **His fall:** "sh_seal_keep" (for the broadcast and the Scouring to hang off).
   - Phase-2 adds generalised: `adds` is a list of wave sizes, and `prisoners` picks Marrow's brutes.
   - Test: t/stronghold/vane.
+- (same day) **The broadcast and the Scouring** (StrongholdScouring, made by StrongholdGarrison.build).
+  - Every machine runs it from the moment it sees "sh_seal_keep" (its own Ocean.clock t0):
+    - the broadcast banner, and the garrison stands down (respawns off, officers off);
+    - GRACE 120 s, then COUNT 120 s with countdown banners;
+    - then a shell every SHELL_EVERY 1.2 s, deterministic by index from the island's seed (every third at our own
+      captain): FX.telegraph WARN 2 s ahead, then a blast hurting our captain within SHELL_R (20, unblockable), and a
+      burning patch FIRE_LIFE 8 s (8 dps, one burn a tick however many overlap).
+  - **The host:** the ship past ESCAPE_R 500 m sets "sh_escaped" and the "scouring" bounty.
+  - **The Admiral** (a top captain at level 32+ or a Dreaded bounty): Admiral Thorne Halvard, 30x health, skill 1.0, a
+    greatsword. Every BLINK_EVERY 6 s he blinks in front of whoever is nearest the ship (within 90 m) and goes for them.
+    At LEAVE_AT 2/3 health he speaks, leaves ("sh_admiral_gone") and drops out of the fight.
+  - Bounty kinds "stronghold_officer" 8,000 (Kesh, Marrow), "commodore" 25,000 and "scouring" 20,000. The bosses award
+    theirs when their seal is taken.
+  - Test: t/stronghold/scouring (the light stage has no ship, so the escape check is skipped there).

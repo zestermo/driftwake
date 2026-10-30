@@ -16,6 +16,9 @@ const TABLE := {
 	"hunter": 12000,         # a named Admiralty hunter beaten
 	"bounty_hunter": 1500,   # a civilian bounty hunter beaten
 	"arc": 8000,             # an island arc's villain brought down (IslandArcs)
+	"stronghold_officer": 8000,   # (1.27) a stronghold's Lieutenant or Captain beaten
+	"commodore": 25000,          # (1.27) the stronghold's Commodore beaten
+	"scouring": 20000,           # (1.27) the Scouring survived
 }
 
 ## The tiers: [from, name, what it switches on].

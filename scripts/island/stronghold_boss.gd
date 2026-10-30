@@ -139,6 +139,7 @@ func _process(delta: float) -> void:
 		_enrage()
 	if hp <= 0.0:
 		net.world_flag(flag_seal())
+		net.bounty("commodore" if key == "vane" else "stronghold_officer", boss.global_position, 120.0)
 
 
 func _anyone_inside() -> bool:
