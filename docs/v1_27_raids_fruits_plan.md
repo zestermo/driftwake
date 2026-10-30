@@ -584,3 +584,10 @@ Solo: x0.5 (preview v2).
    top. Or a strict order (the Lieutenant first, then the Captain)?
 3. **The Vice Admiral:** the earlier plan's top boss is now the Commodore. Keep the Vice Admiral out, or have them
    arrive with the Scouring (instead of, or as well as, the Admiral at high level)?
+
+## Decided: the stronghold bosses (Zach, 2026-10-30)
+| Decision | Choice |
+|---|---|
+| Bosses | **Lieutenant Varro Kesh** (the Casting Hall, cutlass and pistol, a molten floor), **Captain Ilse Marrow** (the Prison Tower, a heavy blade, a seastone net, catwalks), **Commodore Aurel Vane** (the Command Hall, the end boss: a captain AI with three scripted phases), as previewed |
+| Order | **Two seals, any order:** the Lieutenant and the Captain each hold a seal in a wing; both open the bridge to the Commodore |
+| The Vice Admiral | **Arrives with the Scouring:** leads its fleet after the Commodore falls (lands at high level; you run), alongside the Admiral at the top levels |
