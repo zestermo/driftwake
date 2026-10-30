@@ -95,7 +95,7 @@ func _process(_d: float) -> bool:
 				if isl.crowd.is_ancestor_of(mi):
 					continue
 				draws += (mi as MeshInstance3D).mesh.get_surface_count()
-			check("its surfaces stay few (%d)" % draws, draws < 520)
+			check("its surfaces stay few (%d; 1.27: rooms, rooftops and the far fronts add some)" % draws, draws < 560)
 			isl.canal_life.ride(2)
 			until = TK.wait_secs(1.6)
 		3:
