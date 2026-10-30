@@ -138,7 +138,7 @@ func tree_ok(tr: String) -> bool:
 			n += 1
 			ults += 1 if SkillTree.nodes()[k]["kind"] == "ult" else 0
 	print("   %s tree: %d nodes" % [tr, n])
-	return n >= 12 and n <= 19 and ults == 1
+	return n >= 12 and n <= 30 and ults >= 1 and ults <= 2  # (1.26 added alternates, variants, elements and a second ultimate)
 
 
 func _physics_process(_d: float) -> bool:
@@ -202,8 +202,8 @@ func _process(d: float) -> bool:
 				p.style() == "dual_sword" and p.offhand_kind() == "dagger" and WieldMoves.offhand_kind(p.body_model) == "dagger")
 			check("...reversed in the off hand", p.body_model.offhand.transform.basis.z.z < -0.9)
 			# --- trees
-			check("the dagger tree: a few big nodes (12-19) and one ultimate", tree_ok("dagger"))
-			check("the twin-dagger tree: a few big nodes (12-19) and one ultimate", tree_ok("dual_dagger"))
+			check("the dagger tree: a few big nodes (12-30) and one or two ultimates", tree_ok("dagger"))
+			check("the twin-dagger tree: a few big nodes (12-30) and one or two ultimates", tree_ok("dual_dagger"))
 			check("both have a tab", "dagger" in SkillTree.TAB_ORDER and "dual_dagger" in SkillTree.TAB_ORDER)
 			check("Nightfall needs dagger mastery 16 (%s)" % pr.can_learn("dg_elem"), pr.can_learn("dg_elem") == "Needs Dagger 16")
 			pr.owned["dg_elem"] = true

@@ -191,6 +191,8 @@ func _process(d: float) -> bool:
 			g = circling()
 			if g == null: wait = 0.3; return false
 			p.global_position = g.global_position - g._fwd() * 1.5
+			# (1.26.1: breaking a 50-poise guard takes ~9 light hits, which leaves it on a sliver: full again, so this one stuns, not kills)
+			g.health.current_health = g.health.max_health
 			var hp: float = g.health.current_health
 			g.hurtbox.take_hit(light(), p)
 			check("hit from behind lands (hitstun)", g.state == HITSTUN and g.health.current_health < hp)
@@ -204,9 +206,9 @@ func _process(d: float) -> bool:
 		7:
 			g = circling()
 			if g == null: wait = 0.3; return false
-			var h := light(); h.damage = 30.0; h.knockdown = true; h.knockback_force = 10.0
+			var h := light(); h.damage = 30.0; h.knockdown = true; h.knockback_force = 10.0; h.poise = Poise.TECH_MAX  # (1.26.1: only a technique-weight break ragdolls a grunt)
 			g.hurtbox.take_hit(h, p)
-			check("heavy hit -> knocked down (ragdoll)", g.state == DOWN and g.humanoid.ragdoll != null)
+			check("a technique-weight knockdown -> down (ragdoll)", g.state == DOWN and g.humanoid.ragdoll != null)
 			t0 = t
 			step += 1
 			return false

@@ -170,7 +170,7 @@ func _process(d: float) -> bool:
 			wait = 0.3
 		8:
 			check("hitstun is short (<0.3 s)", st() != "Stagger")
-			var hit := HitData.new(); hit.damage = 5.0; hit.knockdown = true; hit.knockback_force = 7.0
+			var hit := HitData.new(); hit.damage = 5.0; hit.knockdown = true; hit.knockback_force = 7.0; hit.poise = 999.0  # (1.26.1: only a poise break floors a captain; this is one, like a red-glow blow)
 			p.hurtbox.take_hit(hit, null)
 			check("knockdown hit -> Downed", st() == "Downed")
 			t0 = t

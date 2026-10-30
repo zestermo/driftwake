@@ -114,7 +114,7 @@ func _process(d: float) -> bool:
 			step += 1
 		4:
 			check("the combo: hack, hook, splitter (%s)" % str(saw.keys()), saw.has("axe_hack") and saw.has("axe_hook") and saw.has("axe_split"))
-			check("...the splitter knocks them flat", downed)
+			check("...the splitter lands a knockdown blow: flat, or its poise drained (%.0f of %.0f)" % [g.poise.current(), g.poise.full], (downed or g.poise.immune() or g.poise.current() < g.poise.full - 20.0))
 			p.state_machine.force_state("Idle", {})
 			wait = 1.0
 			step += 1
@@ -134,7 +134,7 @@ func _process(d: float) -> bool:
 			wait = 0.6
 			step += 1
 		7:
-			check("...the second turn hits again (%.0f -> %.0f) and knocks them flat" % [hp0, g.health.current_health], g.health.current_health < hp0 and downed)
+			check("...the second turn hits again (%.0f -> %.0f): flat, or its poise drained (1.26.1)" % [hp0, g.health.current_health], g.health.current_health < hp0 and (downed or g.poise.immune() or g.poise.current() < g.poise.full - 20.0))
 			p.state_machine.force_state("Idle", {})
 			wait = 1.0
 			step += 1
@@ -159,7 +159,7 @@ func _process(d: float) -> bool:
 			step += 1
 		11:
 			check("...comes down and splits the ground (%s seen)" % str(saw.keys()), saw.has("axe_land"))
-			check("...and the split runs out to the grunt ahead (%.0f -> %.0f), knocked flat" % [hp0, g.health.current_health], g.health.current_health < hp0 and downed)
+			check("...and the split runs out to the grunt ahead (%.0f -> %.0f), flat, or its poise broken (1.26.1)" % [hp0, g.health.current_health], g.health.current_health < hp0 and (downed or g.poise.immune() or g.poise.current() < g.poise.full - 20.0))
 			# --- the cutlass: its combo lands, and a sprint attack is the running cut
 			var cutlass = load("res://resources/items/cutlass.tres")
 			p.inventory_component.add_item(cutlass, 1)

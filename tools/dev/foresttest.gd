@@ -362,7 +362,7 @@ func _process(d: float) -> bool:
 			check("...before he goes", p.health_component.current_health >= hp0 - 0.01)
 			wait = 1.5
 		51:
-			check("...the charge floors whoever stays in the lane", p.health_component.current_health < hp0 and p.current_state_name() == "Downed")
+			check("...the charge hits whoever stays in the lane: staggered or floored (1.26.1 poise)", p.health_component.current_health < hp0 and p.current_state_name() in ["Downed", "Stagger"])
 			wait = 2.0
 		52:
 			_grell_setup()

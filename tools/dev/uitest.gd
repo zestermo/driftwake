@@ -86,7 +86,7 @@ func _process(d: float) -> bool:
 					check("...the picked blade's card with a Buy button", c._buy_btn.visible and c._card.get_child_count() > 2)
 					check("shop fits the canvas", fits(c._panel))
 				_:
-					check("%s fits the canvas" % s, fits(c))
+					check("%s fits the canvas (%s, x%s)" % [s, str(c.get_global_rect()), str(c.scale)], fits(c))
 			si += 1
 			step = 2
 		4:

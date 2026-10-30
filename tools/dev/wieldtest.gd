@@ -182,7 +182,7 @@ func _process(d: float) -> bool:
 				if SkillTree.nodes()[k]["tree"] == "corsair" and not (SkillTree.nodes()[k]["kind"] in ["step", "version"]):
 					n += 1
 					ults += 1 if SkillTree.nodes()[k]["kind"] == "ult" else 0
-			check("the Corsair tree has 13-19 big nodes and one ultimate (%d)" % n, n >= 13 and n <= 19 and ults == 1)
+			check("the Corsair tree has 13-30 big nodes and one or two ultimates (%d; 1.26 added alternates, variants, elements and second ultimates)" % n, n >= 13 and n <= 30 and ults >= 1 and ults <= 2)
 			check("no element at first", not pr.elemental("corsair"))
 			check("Black Powder needs Corsair 16, Powder Keg 25 (%s)" % pr.can_learn("cs_elem"), pr.can_learn("cs_elem") == "Needs Corsair 16" and pr.can_learn("cs_elem2") == "Needs Corsair 25")
 			# (owned by hand: levelling the Corsair would bring Powder Finale before the combo checks below)
@@ -237,7 +237,7 @@ func _process(d: float) -> bool:
 		15:
 			check("Powder Finale: played (%s)" % str(saw.keys()), saw.has("sp_finale") and p.state_machine.get_node("LightAttack").combo_count == 4)
 			check("...the spin and the shot land (%.0f)" % lost(), lost() > 20.0)
-			check("...and knock them flat", downed)
+			check("...and land a knockdown blow: flat, or its poise drained (%.0f of %.0f; 1.26.1)" % [g.poise.current(), g.poise.full], downed or g.poise.immune() or g.poise.current() < g.poise.full - 20.0)
 			# empty the pistol: it reloads by itself; a shot meanwhile is a butt-strike
 			target(1.7)
 			p.ammo[0] = 1
@@ -274,7 +274,7 @@ func _process(d: float) -> bool:
 		21:
 			check("Powder Lunge: played (%s)" % str(saw.keys()), saw.has("sp_lunge"))
 			check("...the thrust and the shot land (%.0f)" % lost(), lost() > 25.0)
-			check("...knocking them flat", downed)
+			check("...a knockdown blow: flat, or its poise broken (1.26.1)", (downed or g.poise.immune() or g.poise.current() < g.poise.full - 20.0))
 			check("...with a ball (%d -> %d)" % [get_meta("ammo"), p.ammo[0]], p.ammo[0] < int(get_meta("ammo")) or p.reloading())
 			# --- Dead Man's Drop
 			pr._own("cs_drop")
@@ -297,7 +297,7 @@ func _process(d: float) -> bool:
 		24:
 			check("Dead Man's Drop: played (%s)" % str(saw.keys()), saw.has("sp_drop") and saw.has("sp_drop_land"))
 			check("...the shot and the dive land (%.0f)" % lost(), lost() > 20.0)
-			check("...the landing knocks them flat", downed)
+			check("...the landing: flat, or its poise broken (1.26.1)", (downed or g.poise.immune() or g.poise.current() < g.poise.full - 20.0))
 			step = 30
 		# --- dual wield
 		30:

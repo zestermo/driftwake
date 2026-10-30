@@ -55,7 +55,7 @@ func _clear() -> void:
 func refresh() -> void:
 	_clear()
 	_scroll = ScrollContainer.new()
-	_scroll.custom_minimum_size = Vector2(ROW_W + 16.0, 300)
+	_scroll.custom_minimum_size = Vector2(ROW_W + 16.0, 260)  # (the whole list fits the menus' 360-high canvas unscaled: crisp fonts)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_body.add_child(_scroll)
 	_list = VBoxContainer.new()

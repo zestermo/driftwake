@@ -169,7 +169,7 @@ func _process(d: float) -> bool:
 			saw[g.state] = true
 			saw[100 + g2.state] = true
 			if t - t0 < 1.0: return false
-			check("ring knocks both down", saw.has(DOWN) and saw.has(100 + DOWN))
+			check("ring rocks both: down, staggered or stunned (1.26.1 poise; fruits are being reworked)", (saw.has(DOWN) or saw.has(STAGGER) or saw.has(HITSTUN)) and (saw.has(100 + DOWN) or saw.has(100 + STAGGER) or saw.has(100 + HITSTUN)))
 			check("ring burns (unblockable)", g.health.current_health < 100.0 and g2.health.current_health < 100.0)
 			wait = 3.5
 			step += 1
@@ -287,11 +287,12 @@ func _process(d: float) -> bool:
 			check("1 reaches the skill bar after closing the menu", int(saw["casts"]) > 0)
 			# --- Armament: Coat
 			p.state_machine.force_state("Idle", {})
-			p.progression.gift("will", 1)
+			# (1.24.1: the Will paths are the Edy tree; Infuse is the iron branch's first ability, past Iron Body I: 3 Edy points, once your Edy is read)
 			if p.progression.will_color == "":
-				p.progression.attune("still")
-			p.progression.buy("w_coat_heavy")
-			check("Coat bought with a Will point (Heavy Coat)", p.progression.knows("armament_coat"))
+				p.progression.will_color = "storm"
+			p.progression.gift("will", 3)
+			var ET = load("res://scripts/progression/edy_tree.gd")
+			check("Infuse bought with Edy points", ET.learn_path(p.progression, "e_iron_1") and p.progression.knows("armament_coat"))
 			pc.equip("armament_coat", 3)
 			pc.energy = pc.max_energy()
 			pc.cooldowns.clear()
@@ -345,6 +346,9 @@ func _process(d: float) -> bool:
 			check("letting go drops the block", p.current_state_name() != "Block")
 			# --- the red unblockable grunt heavy
 			p.state_machine.force_state("Idle", {})
+			# (fresh, so the earlier steps' blows haven't worn its poise down: a break interrupts even a red wind-up)
+			g.poise = Poise.make(g._poise_class())
+			g.health.current_health = g.health.max_health
 			g._attack = "peril"
 			g._start_wind()
 			check("red wind-up: flashing, unblockable hit data", g._peril_on and g.hitbox.hit_data.unblockable and g.state == WIND)

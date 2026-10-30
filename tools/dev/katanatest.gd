@@ -169,6 +169,8 @@ func _process(d: float) -> bool:
 			var st = p.state_machine.get_node("Iai")
 			check("the charge reaches level 2 (%d)" % st.level, st.level == 2)
 			pos0 = p.global_position
+			# (1.26.1 raised a grunt's poise 30 -> 50: this one's worn to the old 30, so the draw still empties it)
+			g.poise = Poise.make("grunt", 0.6)
 			gpos0 = g.humanoid.hips.global_position
 			attack("light_attack")
 			wait = 0.3

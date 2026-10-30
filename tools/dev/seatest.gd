@@ -209,7 +209,7 @@ func _process(d: float) -> bool:
 			check("left alone, it lands (hull hit)", ship.hull < hull0)
 			# --- who the pirates go after
 			check("a captain aboard at sea: the pirates have a target", es._crew_ship() == ship and es._huntable(ship))
-			p.global_position = ship.global_transform * Vector3(0, 0, 30)
+			p.global_position = ship.global_transform * Vector3(0, 0, es.CREW_NEAR + 30.0)  # (1.26.1: a captain within CREW_NEAR still mans her: swimming, boarding)
 			p.reset_physics_interpolation()
 			wait = 0.2
 			step = 12

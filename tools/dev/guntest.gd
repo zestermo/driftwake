@@ -151,7 +151,7 @@ func _process(d: float) -> bool:
 			return false
 		12:
 			print("   after shove: state ", p.current_state_name(), " hp lost ", hp0 - p.health_component.current_health, " dist ", p.global_position.distance_to(rifle.global_position))
-			check("shove: small damage + knocked down", hp0 - p.health_component.current_health > 0.0 and p.current_state_name() == "Downed")
+			check("shove: small damage + staggered or floored (1.26.1: a full poise only staggers)", hp0 - p.health_component.current_health > 0.0 and p.current_state_name() in ["Downed", "Stagger"])
 			wait = 1.0
 		13:
 			check("shove has a cooldown", rifle._shove_cd > 2.0)
@@ -186,7 +186,7 @@ func _process(d: float) -> bool:
 			rifle.process_mode = Node.PROCESS_MODE_INHERIT
 			p.global_position = rifle.global_position + rifle._fwd() * 6.0 + Vector3.UP * 0.5
 			p.reset_physics_interpolation()
-			var h := HitData.new(); h.damage = 10.0; h.knockdown = true; h.knockback_force = 8.0
+			var h := HitData.new(); h.damage = 10.0; h.knockdown = true; h.knockback_force = 8.0; h.poise = Poise.TECH_MAX  # (1.26.1: a technique-weight break floors a grunt)
 			rifle.hurtbox.take_hit(h, p)
 			wait = 0.3
 		18:

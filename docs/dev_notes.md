@@ -8112,3 +8112,28 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - Tests: t/capital/palace walks each flight and landing, and checks a wall's walk and its balustrade. The rest of
   t/capital passes unchanged.
 - Renders: capitalshot `pgate`, `proad`, `pturn`, `pside` and `ptop` (CSHOT_ONLY=...).
+
+## Stale suites after 1.26.1's poise (2026-10-30)
+Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (stale tests):
+- **Knockdown checks:**
+  - A grunt (poise 50) goes down/ragdolls only on a technique-weight break (poise >= TECH_MIN); lighter breaks give a
+    1.3 s hard stagger.
+  - A captain is floored only on a poise break.
+  - ragtest, grunttest and guntest now land technique-weight (or 999) blows where they mean a knockdown.
+  - wieldtest and axetest accept "flat, or its poise broken" (a break refills poise and sets `immune()`, so a full
+    bar can mean broken).
+  - guntest's shove and foresttest's charge accept Stagger or Downed on the captain.
+  - katanatest wears its grunt to the old 30 poise so a charged draw still crumples it.
+  - grunttest heals the grunt before the hit from behind (9 light hits to break 50 poise left it on 2 HP).
+- **Tree sizes:** wieldtest and daggertest take 12-30 big nodes and 1-2 ultimates (1.26 added alternates, variants,
+  elements and second ultimates).
+- **seatest:** the empty-ship check moves the captain past CREW_NEAR (70 m; a captain that close still mans her).
+- **uitest:** a real bug. The load screen was 373 px tall on the menus' 360-high canvas, so it was scaled to 0.91 and
+  its pixel fonts blurred. SaveSlotList's scroll area went 300 -> 260.
+- **powertest:**
+  - Infuse is bought on the Edy tree now (1.24.1: `EdyTree.learn_path("e_iron_1")`, Edy read first).
+  - The red wind-up step gets a fresh grunt.
+  - The ring check accepts stagger and stun.
+  - **Still red:** "holding parry settles into a block (Swim)": the captain ends up in the water before that step, by
+    position or timing (time-boxed; see docs/todo.md).
+- **nettest five:** the guest pistol check accepts a crit.

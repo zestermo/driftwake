@@ -289,3 +289,6 @@ backported there).
 - t/island/beast_moves: "rimeback lands a blow and fights by its own moves" fails ([sweep, stampede, sweep]: two
   kinds, MIN_MOVES wants more); seen 2026-10-30 alongside the cities work, which doesn't touch beasts. Look at it with
   the 1.25.1 poise retune (the beasts' flinch/break) in mind.
+- **powertest: the captain ends up swimming** before "holding parry settles into a block (Swim)" (2026-10-30, found
+  fixing the stale suites). Probably knocked into the water by an earlier step's fight. Pin the captain on land
+  (teleport and Idle) before the parry steps, or find what throws them. Time-boxed and left red.
