@@ -187,3 +187,8 @@ Deferred: the undercities, stairs to upper floors, the rank perks beyond the dis
 captain card, water taxis). Known: "CapitalModels: no material beam" errors print in every capital test (it doesn't
 fail them), and t/island/beast_moves is red. **Next:** the strongholds and Driftfruits previews in
 docs/v1_27_raids_fruits_plan.md, for Zach's OK.
+
+## Status (2026-10-30, evening): the palace stair, and a pause to switch machines
+The palace hill is now terraces with a grand stair (dev notes). Zach's order from here: the undercities, stairs to upper
+floors, the cities' night life, then the stronghold and Driftfruit-rework discussion (his direction is in
+docs/v1_27_raids_fruits_plan.md). How to resume: docs/handoff_1_27_raids.md.
