@@ -99,6 +99,9 @@ func _process(_d: float) -> bool:
 						# (another floor, or the plaza's own buildings: the guild's portico opens off the plaza)
 						if P.in_floor(p + n * 1.0, 0.6) or P.special_hit(Rect2(p + n * 1.0, Vector2.ZERO).grow(0.1)):
 							continue
+						# (1.27: the cathedral's doors open into its nave, a closed room deeper than the probe)
+						if Rect2(P.TEMPLE.get_center() + Vector2(4.0, 2.0) - Vector2(13.0, 16.0), Vector2(26.0, 32.0)).has_point(p + n * 1.5):
+							continue
 						# (1.21: the palace grounds and the arena are walked: the avenue's top opens through the gate, the court onto the
 						# grounds, the arena's gate onto its sand)
 						if (p + n * 1.5).distance_to(P.HILL_C) < P.GROUNDS_R + 4.0 or P.ellipse(p + n * 1.5, P.ARENA_C, P.ARENA_R) < 1.0:

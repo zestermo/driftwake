@@ -239,14 +239,13 @@ static func _landmarks(out: Array) -> void:
 	CapitalBellTower.build(mb, cols, BELL, bell_y())
 	var tc := P.TEMPLE.get_center() + Vector2(4.0, 2.0)
 	var ty := P.ground(tc)
-	var tt := M.xf(M.v3(tc, 0.0))
-	mb.add_box(M.mat("lime"), M.xf(M.v3(tc, ty - 1.0)), Vector3(27.0, 3.6, 33.0), 0.5, Color(0.9, 0.88, 0.84), true, false)
-	M.facade_box(mb, M.mat("facade_b"), tt, 26.0, 32.0, ty + 0.8, 12.0, Color(0.98, 0.95, 0.88))
+	# (1.27) the cathedral walked into: the nave, its doors on the forecourt, pews, altar, candles
+	CapitalCathedral.build(mb, cols, ty)
 	mb.add_box(M.mat("lime"), M.xf(M.v3(tc, ty + 13.0)), Vector3(26.8, 0.5, 32.8), 0.6, Color(0.92, 0.9, 0.86), false)
 	M._hip(mb, M.xf(M.v3(tc, ty + 13.2)), 26.0, 32.0, 4.0, 0.3, Color.WHITE)
 	M.dome(mb, M.v3(tc, ty + 15.0), 8.5, 4.0, Color(0.62, 0.75, 0.68))
-	M.box(cols, M.xf(M.v3(tc, ty + 6.0)), Vector3(26.0, 14.0, 32.0))
-	Occluders.box(cols, M.xf(M.v3(tc, ty + 6.8)), Vector3(26.0, 12.0, 32.0))
+	# (the roof's slab: solid over the hollow nave)
+	M.box(cols, M.xf(M.v3(tc, ty + 13.0)), Vector3(26.0, 0.6, 32.0))
 	for s in [-1.0, 1.0]:
 		M.square_tower(mb, cols, tc + Vector2(14.5, s * 17.0), ty, 5.0, 19.0, 0.0, true, 2.0)
 	_piece(out, "Landmarks", mb, cols, FAR, true)

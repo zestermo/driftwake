@@ -7987,5 +7987,11 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   walls with corner landings (treads to see, one tilted ramp collider each), the belfry floor at 22 m open over the last
   flight, railed arches, the bell. The Hooded Stranger (CapitalLife, spot "informant") stands up there with barks; the
   leads he sells come with the strongholds and Driftfruits. t/capital/bell_tower; capitalshot bell, stair, belfry.
+- **The cathedral walked into** (C2 piece 2, CapitalCathedral, replacing the solid temple block): new fixed floors
+  "forecourt" (its east front) and "temple_walk" (to the avenue), joined to the rolled lanes; the front split round 3.4 m
+  doors swung open, a portal arch, steps up 0.8 m, a pediment; inside a nave with columns, two blocks of pews, the altar
+  on its step, candles and a hanging lamp (glow, no real lights), coloured windows (2 glass materials). CapitalPlan._open
+  treats the cathedral's footprint as closed (the old TEMPLE rect reaches into the forecourt). t/capital/cathedral;
+  capitalshot forecourt, nave. Known: the rose window over the portal doesn't show yet.
 - The walls across leftover gaps (CapitalShell._barrier) 3 m or wider now stand two storeys with a windowed facade over a
   plain ground floor, so a lane past unbuilt ground reads as a house side. Open: stairs to upper floors not yet.
