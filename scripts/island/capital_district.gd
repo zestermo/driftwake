@@ -205,7 +205,11 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 		# (its walls reach the lot's whole cell, as the solid house did: no crack between neighbours)
 		var face: Vector2 = l["face"]
 		var pad := Vector2((cell.size.x if absf(face.y) > 0.5 else cell.size.y) - w, (cell.size.y if absf(face.y) > 0.5 else cell.size.x) - d) * 0.5
-		l["inside"] = CapitalInteriors.build(mb, cols, t, w, d, low, sill, g1, eaves, door_x, dw, nd, kind, int(l["seed"]), pad)
+		var info := {}
+		l["inside"] = CapitalInteriors.build(mb, cols, t, w, d, low, sill, g1, eaves, door_x, dw, nd, kind, int(l["seed"]), pad, eaves + 0.24 if str(l["roof"]) == "flat" else -1.0, info)
+		if info.has("hatch"):
+			l["hatch"] = info["hatch"]
+			l["hatch_ladder"] = info["ladder"]
 	else:
 		M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
 		# (behind the door's niche)

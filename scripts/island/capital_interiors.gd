@@ -9,17 +9,29 @@ extends RefCounted
 
 const M := preload("res://scripts/island/capital_models.gd")
 const WALL := 0.3
+## The roof hatch's shaft (square, m).
+const HATCH := 1.3
 
 
 static func build(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, low: float, sill: float, g1: float,
-		eaves: float, door_x: float, dw: float, nd: float, kind: String, seed_value: int, pad := Vector2.ZERO) -> Vector3:
+		eaves: float, door_x: float, dw: float, nd: float, kind: String, seed_value: int, pad := Vector2.ZERO, roof_y := -1.0, info: Dictionary = {}) -> Vector3:
 	var hw := w * 0.5
 	var hd := d * 0.5
 	var ceil_y := sill + g1 - 0.05
 	# solid: the plinth under the floor and the storeys over the ceiling (the occluder only up there: one round the room
 	# would hide the town from someone inside)
 	M.box(cols, t * Transform3D(Basis(), Vector3(0, (low + sill) * 0.5, 0)), Vector3(w, sill - low, d))
-	M.box(cols, t * Transform3D(Basis(), Vector3(0, (sill + g1 + eaves) * 0.5, 0)), Vector3(w, eaves - sill - g1, d))
+	# (a flat-roofed one: a shaft up its back corner through the storeys, a ladder in it, a hatch onto the roof)
+	var shaft := Rect2(-hw + WALL, -hd + WALL, HATCH, HATCH)
+	if roof_y > 0.0:
+		for r in CapitalBellTower._minus(Rect2(-hw, -hd, w, d), shaft):
+			M.box(cols, t * Transform3D(Basis(), Vector3(r.get_center().x, (sill + g1 + eaves) * 0.5, r.get_center().y)), Vector3(r.size.x, eaves - sill - g1, r.size.y))
+		info["hatch"] = shaft
+		# (on the shaft's room side, facing the back: you climb with your back to the room and step off forward onto the roof)
+		info["ladder"] = {"xf": t * Transform3D(Basis(Vector3.UP, PI), Vector3(shaft.get_center().x, roof_y, shaft.end.y - 0.12)), "length": roof_y - sill + 0.1, "rail": 0.0}
+		mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(shaft.get_center().x, sill + g1 - 0.06, shaft.get_center().y)), Vector3(HATCH, 0.04, HATCH), 1.0, Color(0.15, 0.13, 0.12), false)
+	else:
+		M.box(cols, t * Transform3D(Basis(), Vector3(0, (sill + g1 + eaves) * 0.5, 0)), Vector3(w, eaves - sill - g1, d))
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (sill + g1 + eaves) * 0.5, -0.4)), Vector3(w, eaves - sill - g1, d - 0.8))
 	# the walls: the back, the sides, the front either side of the door's niche
 	var gy := sill + g1 * 0.5
@@ -76,6 +88,9 @@ static func build(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: flo
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([seed_value, 6113])
 	var room := Rect2(-ix, iz0, ix * 2.0, iz1 - iz0)
+	# (the hatch's corner kept clear: the furniture stands in the rest of the room)
+	if roof_y > 0.0:
+		room = Rect2(-ix + 1.6, iz0, ix * 2.0 - 1.6, iz1 - iz0)
 	if kind != "":
 		_shop(mb, cols, t, room, sill, kind, rng)
 	elif rng.randf() < 0.75:

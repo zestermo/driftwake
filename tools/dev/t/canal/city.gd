@@ -94,6 +94,9 @@ func _process(_d: float) -> bool:
 			for mi in isl.city.find_children("*", "MeshInstance3D", true, false):
 				if isl.crowd.is_ancestor_of(mi):
 					continue
+				# (1.27: the ladders are their own little nodes, one surface each, near the camera only)
+				if mi.get_parent() and mi.get_parent().get_script() and str(mi.get_parent().get_script().resource_path).ends_with("ladder.gd"):
+					continue
 				draws += (mi as MeshInstance3D).mesh.get_surface_count()
 			check("its surfaces stay few (%d; 1.27: rooms, rooftops and the far fronts add some)" % draws, draws < 560)
 			isl.canal_life.ride(2)

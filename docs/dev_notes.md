@@ -8023,3 +8023,8 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **The campanile climbed** (CapitalBellTower with a wall material, colour and no hip roof: brick, the canal's green spire
   over it), a 1 m paving strip "campanile_door" from its south door to piazza_cw; the Hooded Stranger in its belfry too
   (CanalLife, spot "informant"). t/canal/campanile.
+- **Up through the house** (1.27): a walk-in house with a flat roof gets a 1.3 m shaft up its back corner (the upper
+  storeys' solid box split round it: CapitalInteriors roof_y/info), a Ladder in it facing the back (step off forward
+  onto the roof over the room), the furniture kept out of that corner; CapitalRoofs cuts the slab round the hatch,
+  frames it and throws the lid back. Both cities (~14 in the capital). t/capital/rooftops checks every hatch is open.
+  The surface counts skip Ladder nodes (one small surface each, near the camera only).

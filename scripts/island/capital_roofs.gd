@@ -33,7 +33,10 @@ static func build(out: Dictionary, lots: Array, ladder_floors: Array = []) -> vo
 		var wd: Vector2 = l["wd"]
 		var y: float = l["top_y"]
 		if str(l["roof"]) == "flat":
-			_flat(mb, cols, t, wd.x, wd.y, y, int(l["seed"]))
+			_flat(mb, cols, t, wd.x, wd.y, y, int(l["seed"]), l.get("hatch", Rect2()))
+			# (a walk-in house's own ladder up through its hatch)
+			if l.has("hatch_ladder"):
+				ladders.append(l["hatch_ladder"])
 			flats.append(l)
 			if _on_rolled(l, lf) and _roll(int(l["seed"]), 3) < LADDER_P:
 				var lx := (wd.x * 0.5 - 0.9) * (1.0 if _roll(int(l["seed"]), 5) < 0.5 else -1.0)
@@ -47,14 +50,25 @@ static func build(out: Dictionary, lots: Array, ladder_floors: Array = []) -> vo
 
 
 ## A flat roof: its slab and parapets solid (the house's own box stops at the eaves), and what's kept up there.
-static func _flat(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, y: float, seed_value: int) -> void:
-	M.box(cols, t * Transform3D(Basis(), Vector3(0, y - 0.1, 0)), Vector3(w, 0.3, d))
+static func _flat(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, y: float, seed_value: int, hatch := Rect2()) -> void:
+	if hatch.size.x > 0.0:
+		# the slab round the hatch, its wooden frame, the lid thrown back
+		for r in CapitalBellTower._minus(Rect2(-w * 0.5, -d * 0.5, w, d), hatch):
+			M.box(cols, t * Transform3D(Basis(), Vector3(r.get_center().x, y - 0.1, r.get_center().y)), Vector3(r.size.x, 0.3, r.size.y))
+		for s in [-1.0, 1.0]:
+			mb.add_box(PSXMat.lit("planks"), t * Transform3D(Basis(), Vector3(hatch.get_center().x + s * hatch.size.x * 0.5, y + 0.12, hatch.get_center().y)), Vector3(0.12, 0.2, hatch.size.y + 0.12), 0.6, Color(0.8, 0.7, 0.58), false)
+			mb.add_box(PSXMat.lit("planks"), t * Transform3D(Basis(), Vector3(hatch.get_center().x, y + 0.12, hatch.get_center().y + s * hatch.size.y * 0.5)), Vector3(hatch.size.x, 0.2, 0.12), 0.6, Color(0.8, 0.7, 0.58), false)
+		mb.add_box(PSXMat.lit("planks"), t * Transform3D(Basis(Vector3.RIGHT, -1.2), Vector3(hatch.get_center().x, y + 0.6, hatch.end.y + 0.1)), Vector3(hatch.size.x, 0.06, hatch.size.y), 0.6, Color(0.7, 0.6, 0.5), false)
+	else:
+		M.box(cols, t * Transform3D(Basis(), Vector3(0, y - 0.1, 0)), Vector3(w, 0.3, d))
 	for s in [-1.0, 1.0]:
 		M.box(cols, t * Transform3D(Basis(), Vector3(s * (w * 0.5 - PARAPET_T * 0.5), y + PARAPET * 0.5, 0)), Vector3(PARAPET_T, PARAPET, d))
 		M.box(cols, t * Transform3D(Basis(), Vector3(0, y + PARAPET * 0.5, s * (d * 0.5 - PARAPET_T * 0.5))), Vector3(w - PARAPET_T * 2.0, PARAPET, PARAPET_T))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([seed_value, 4447])
 	var used: Array = []
+	if hatch.size.x > 0.0:
+		used.append(Vector3(hatch.get_center().x, 1.6, hatch.get_center().y))
 	var spot := func(r: float) -> Vector3:
 		for _i in range(8):
 			var p := Vector3(rng.randf_range(-w * 0.5 + 0.6 + r, w * 0.5 - 0.6 - r), y + 0.05, rng.randf_range(-d * 0.5 + 0.6 + r, d * 0.5 - 0.6 - r))

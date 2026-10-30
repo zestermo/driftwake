@@ -61,6 +61,17 @@ func _process(_d: float) -> bool:
 				if hit.is_empty() or hit["position"].y < isl.city_global(l["c"], float(l["top_y"])).y + 0.5:
 					bad_p.append(str((l["c"] as Vector2).round()))
 			check("every pitched roof is solid under its tiles, not at the eaves (%s)" % [bad_p.slice(0, 6)], bad_p.is_empty())
+			# (1.27) a walk-in house with a flat roof: a hatch through it, open down its shaft into the room
+			var hatched: Array = tops.filter(func(l): return l.has("hatch"))
+			var shut: Array = []
+			for l in hatched:
+				var ht: Transform3D = l["frame"]
+				var hc: Vector3 = ht * Vector3((l["hatch"] as Rect2).get_center().x, float(l["top_y"]), (l["hatch"] as Rect2).get_center().y)
+				var a: Vector3 = isl.city_global(Vector2(hc.x, hc.z), hc.y + 1.0)
+				var hit := _down(Vector2(hc.x, hc.z), hc.y)
+				if not hit.is_empty() and hit["position"].y > a.y - 2.0:
+					shut.append(str(Vector2(hc.x, hc.z).round()))
+			check("houses with a hatch to their roof (%d), every one open down its shaft (%s)" % [hatched.size(), shut.slice(0, 4)], hatched.size() >= 3 and shut.is_empty())
 			var lads: Array = isl.city.find_children("*", "Ladder", true, false)
 			check("ladders up from the lanes (%d)" % lads.size(), lads.size() >= 3)
 			flat = flats[flats.size() / 2]

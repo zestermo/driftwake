@@ -79,6 +79,9 @@ func _process(_d: float) -> bool:
 				# (the crowd's real bodies only show by the camera, a few at a time)
 				if isl.crowd.is_ancestor_of(mi):
 					continue
+				# (1.27: the ladders are their own little nodes, one surface each, near the camera only)
+				if mi.get_parent() and mi.get_parent().get_script() and str(mi.get_parent().get_script().resource_path).ends_with("ladder.gd"):
+					continue
 				draws += (mi as MeshInstance3D).mesh.get_surface_count()
 				var key := str(mi.get_parent().name)
 				by[key] = int(by.get(key, 0)) + (mi as MeshInstance3D).mesh.get_surface_count()

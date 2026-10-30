@@ -96,7 +96,12 @@ static func _houses(out: Dictionary) -> void:
 				var cell: Rect2 = l["cell"]
 				var face: Vector2 = l["face"]
 				var pad := Vector2((cell.size.x if absf(face.y) > 0.5 else cell.size.y) - float(h[1]), (cell.size.y if absf(face.y) > 0.5 else cell.size.x) - float(h[2])) * 0.5
-				d["inside"] = CapitalInteriors.build(mb, cols, ht, h[1], h[2], P.QUAY_Y - 1.0, P.QUAY_Y + 0.2, 3.6, P.QUAY_Y + 0.2 + float(h[3]), dx, 1.2, 0.12, kind, int(l["seed"]), pad)
+				var info := {}
+				d["inside"] = CapitalInteriors.build(mb, cols, ht, h[1], h[2], P.QUAY_Y - 1.0, P.QUAY_Y + 0.2, 3.6, P.QUAY_Y + 0.2 + float(h[3]), dx, 1.2, 0.12, kind, int(l["seed"]), pad,
+					P.QUAY_Y + 0.4 + float(h[3]) if str(l["roof"]) == "flat" else -1.0, info)
+				if info.has("hatch"):
+					l["hatch"] = info["hatch"]
+					l["hatch_ladder"] = info["ladder"]
 			if P.in_floor(_q(d["at"])):
 				(out["doors"] as Array).append(d)
 			i += 1
