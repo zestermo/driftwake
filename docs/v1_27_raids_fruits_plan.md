@@ -522,3 +522,14 @@ Awakened, "Bath Time": the area floods with foam for 30 s; foes slip constantly,
   or out of it), the log pose never points to it, and it's **off the chart until you hear of it** (captured orders, a
   rumour, the Queen's line).
 - Built after the chain from its own rng (`hash([chain seed, "stronghold"])`), so no existing island's roll changes.
+
+## The stronghold's look (Zach, 2026-10-30): docs/art/stronghold_reference.webp
+Nothing like the capital: no limestone, no cone roofs. What the reference shows:
+- **Stone:** blue-grey stone and cobbles, an industrial navy's fortress.
+- **The Verdict:** two colossal square towers side by side, a full circle cut where they meet near the top, and the
+  towers going on above it. The tallest thing in the sea; it should make you feel small and worried.
+- **Towers:** many tall square towers with flat or open lantern tops, lit windows, and blue banners with the
+  Admiralty's emblem.
+- **Walls and bridges:** sea walls straight out of the water from rocks, and arched viaduct bridges between towers.
+- **Approaches:** a grand stair up to a huge portcullis gate between torches.
+- **Industry:** iron gantries and cranes with hanging crates, and wooden docks.
