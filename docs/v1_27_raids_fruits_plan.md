@@ -591,3 +591,21 @@ Solo: x0.5 (preview v2).
 | Bosses | **Lieutenant Varro Kesh** (the Casting Hall, cutlass and pistol, a molten floor), **Captain Ilse Marrow** (the Prison Tower, a heavy blade, a seastone net, catwalks), **Commodore Aurel Vane** (the Command Hall, the end boss: a captain AI with three scripted phases), as previewed |
 | Order | **Two seals, any order:** the Lieutenant and the Captain each hold a seal in a wing; both open the bridge to the Commodore |
 | The Vice Admiral | **Arrives with the Scouring:** leads its fleet after the Commodore falls (lands at high level; you run), alongside the Admiral at the top levels |
+
+## Zach's direction (2026-10-30, night): officers in the crowds, the pacing, the Admiral at the escape
+- **Officers in the crowds:** player-AI Admiralty officers (captain-style AI: weapons, skills, movement) sprinkled in
+  among the grunts, **detuned a little** (fewer skills, slower to use them, less health than a rival captain).
+  - Waves (squad respawns, encounter waves) have a **% chance to bring an officer**, with a **cap of 5 officers alive
+    at once** across the whole fortress.
+- **Pacing:** officers and grunt waves are **spread over the raid's duration and space**: you meet them as you
+  advance, district by district, never 50 at once.
+  - The feel is **One Piece: Burning Blood-style crowd plowing**: big crowds of weak marines you cut through, broken
+    up by tougher fighters and set-piece events.
+  - Inspired by the show's **Enies Lobby** (the bridge run, the Tower of Justice, the Buster Call) and **Impel Down**
+    (levels of a prison, breaking out, its warden).
+- **The Admiral at the Scouring:**
+  - He comes ashore and **chases the crew down, trying to stop them near their ship**. Very tanky, with wild
+    abilities, but **slow and intentional, not an instant kill**.
+  - He **blinks in front of whoever runs for the ship** (any crewmate) and **knocks them back**.
+  - Wear him down to about **2/3 of his health** and he **says something and leaves**; then you can escape.
+  - Replaces "unbeatable, just run": he's a gate you push through, not a wall.
