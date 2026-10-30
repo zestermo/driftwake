@@ -47,7 +47,7 @@
     - A **30-60 minute** WoW-dungeon-like raid, **tuned for a squad of 3+** but soloable.
     - **Enemies keep respawning** through the zone (not in set encounter rooms or boss arenas) **until the main boss
       dies**.
-    - Then the **Admiralty's emergency broadcast**. **2 minutes later the Buster Call** counts down: the fleet
+    - Then the **Admiralty's emergency broadcast**. **2 minutes later the bombardment** (its own name, not "Buster Call") counts down: the fleet
       surrounds the island and your ship and barrages everything with huge explosive shells that set it all on fire.
   - **The Driftfruits are fully reworked** (moves, costs, progression, mixing with weapons, looks):
     - Mastery by use **evolves the powers**. An ability goes from activated, to triggering on its own, to always on.
@@ -59,7 +59,7 @@
 - **Still to discuss before building** (feel systems get a preview with numbers first):
   - The stronghold: its districts and order, the encounter rooms and bosses (is the Vice Admiral the main boss?), how
     stealth and alarm fit a respawning zone, checkpoints or the brig on a wipe in a 30-60 minute run, and the escape
-    from the Buster Call (to the ship and out, under fire).
+    from the bombardment (to the ship and out, under fire).
   - The fruit rework:
     - The evolution stages per ability, with mastery thresholds.
     - The awakening's trigger and what it does per fruit.
