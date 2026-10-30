@@ -38,6 +38,15 @@ const SLEEP_R := 260.0
 const SLEEP_EVERY := 0.5
 const SPEED := [0.95, 1.45]
 const FIGURE_H := 1.72
+## (1.27) Night: the share of the crowd still out by the hour (OUT_NIGHT at night), and the watch: WATCH_PER watchmen on
+## each of the first WATCH_LANES lanes from dusk to dawn, in WATCH_COAT with a lantern, walking at WATCH_SPEED.
+const OUT_NIGHT := 0.25
+const WATCH_LANES := 2
+const WATCH_PER := 2
+const WATCH_SPEED := 0.9
+const WATCH_COAT := Color(0.16, 0.2, 0.38)
+## Where a lantern goes while the watch is in (far under the city: out of sight and out of every frustum).
+const HIDDEN := Vector3(0.0, -1000.0, 0.0)
 
 ## {"lane": int, "s0", "v", "look": int} per walker (from the fixed seed).
 var walkers: Array = []
@@ -51,6 +60,9 @@ var _tick := 0.0
 var _sleep_t := 0.0
 var awake := true
 var centre := Vector3.ZERO
+## (1.27) The share of the crowd out now (out_share), looked at every tick.
+var share := 1.0
+var _lanterns: MultiMesh
 ## The city it walks (1.21: the capital's or the canal city's): its lanes ([points, walkers, ring]) and its ground at a frame point.
 var lanes: Array = LANES
 var ground_of: Callable = P.ground
@@ -71,7 +83,8 @@ static func make_looks() -> Array:
 
 func setup(look_list: Array, lane_list: Array = LANES, ground: Callable = P.ground) -> CapitalCrowd:
 	name = "Crowd"
-	looks = look_list
+	looks = look_list.duplicate()
+	looks.append(_watch_look(look_list[0]))
 	lanes = lane_list
 	ground_of = ground
 	var rng := RandomNumberGenerator.new()
@@ -90,6 +103,15 @@ func setup(look_list: Array, lane_list: Array = LANES, ground: Callable = P.grou
 		for k in range(int(lanes[li][1])):
 			walkers.append({"lane": li, "s0": rng.randf() * float(lens[-1]) * 2.0, "v": rng.randf_range(SPEED[0], SPEED[1]) * (1.0 if rng.randf() < 0.5 or lanes[li][2] else -1.0),
 				"look": walkers.size() % LOOKS})
+	# (1.27) how late each stays out (its own stream: the walkers above are as they were), and the night watch
+	var late := RandomNumberGenerator.new()
+	late.seed = 7312
+	for w in walkers:
+		w["late"] = late.randf()
+	for li in range(mini(WATCH_LANES, _lanes.size())):
+		for k in range(WATCH_PER):
+			var L: float = (_lanes[li]["lens"] as Array)[-1]
+			walkers.append({"lane": li, "s0": L * (0.5 + k), "v": WATCH_SPEED * (1.0 if k == 0 else -1.0), "look": looks.size() - 1, "watch": true, "late": 0.0})
 	for stride in range(2):
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -106,7 +128,25 @@ func setup(look_list: Array, lane_list: Array = LANES, ground: Callable = P.grou
 		mi.custom_aabb = AABB(Vector3(-160, -5, -80), Vector3(320, 60, 200))
 		add_child(mi)
 		_mm.append(mm)
-	for i in range(LOOKS):
+	# (1.27) the watch's lanterns: a glow at each watchman's hand (no real light), shown while they're out
+	var nw := walkers.filter(func(w): return w.get("watch", false)).size()
+	_lanterns = MultiMesh.new()
+	_lanterns.transform_format = MultiMesh.TRANSFORM_3D
+	var lm := BoxMesh.new()
+	lm.size = Vector3(0.18, 0.24, 0.18)
+	lm.material = PSXMat.glow(Color(1.0, 0.72, 0.35), 2.2)
+	_lanterns.mesh = lm
+	_lanterns.instance_count = nw
+	for k in range(nw):
+		_lanterns.set_instance_transform(k, Transform3D(Basis(), HIDDEN))
+	var lmi := MultiMeshInstance3D.new()
+	lmi.name = "Lanterns"
+	lmi.multimesh = _lanterns
+	lmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	lmi.visibility_range_end = 180.0
+	lmi.custom_aabb = AABB(Vector3(-160, -5, -80), Vector3(320, 60, 200))
+	add_child(lmi)
+	for i in range(looks.size()):
 		var h := Humanoid.make(looks[i])
 		h.name = "Walker%d" % i
 		h.lod = true
@@ -168,6 +208,7 @@ func _process(delta: float) -> void:
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = TICK
+		share = out_share(Weather.hour())
 		_assign(eye, t)
 		_update_figures(t)
 	for b in range(_bodies.size()):
@@ -185,19 +226,21 @@ func _process(delta: float) -> void:
 ## Each body to the nearest walker of its look within NEAR_R (or none).
 func _assign(eye: Vector3, t: float) -> void:
 	var best: Array = []
-	best.resize(LOOKS)
+	best.resize(looks.size())
 	best.fill(-1)
 	var bd: Array = []
-	bd.resize(LOOKS)
+	bd.resize(looks.size())
 	bd.fill(NEAR_R)
 	for i in range(walkers.size()):
+		if not is_out(i):
+			continue
 		var p: Vector3 = place_of(i, t)[0]
 		var d := Vector2(p.x - eye.x, p.z - eye.z).length()
 		var lk: int = walkers[i]["look"]
 		if d < float(bd[lk]):
 			bd[lk] = d
 			best[lk] = i
-	for b in range(LOOKS):
+	for b in range(looks.size()):
 		if int(best[b]) == int(_owner[b]):
 			continue
 		if int(best[b]) < 0:
@@ -233,7 +276,7 @@ func _update_figures(t: float) -> void:
 			var p: Vector3 = at[i][0]
 			var d: Vector2 = at[i][1]
 			var phase := t * absf(float(walkers[i]["v"])) * 1.6 + float(i) * 0.37
-			var show := int(floor(phase)) % 2 == s and not taken.has(i)
+			var show := int(floor(phase)) % 2 == s and not taken.has(i) and is_out(i)
 			var b := Basis(Vector3.UP, atan2(d.x, d.y))
 			if not show:
 				b = b.scaled(Vector3.ZERO)
@@ -244,6 +287,7 @@ func _update_figures(t: float) -> void:
 			var c: Color = looks[int(walkers[i]["look"])]["top_color"]
 			buf[o + 12] = c.r; buf[o + 13] = c.g; buf[o + 14] = c.b; buf[o + 15] = 1.0
 		(_mm[s] as MultiMesh).buffer = buf
+	_update_lanterns(at)
 
 
 ## A townsperson for the far crowd, facing +Z, FIGURE_H tall: legs (the step's two strides), a coat, arms swinging,
@@ -267,3 +311,53 @@ static func figure_mesh(stride: int) -> ArrayMesh:
 	mb.add_blob(m, Transform3D(Basis(), Vector3(0, FIGURE_H - 0.13, 0.01)), Vector3(0.11, 0.13, 0.12), rng, 0.0, 3, 6, 1.0, skin)
 	mb.add_blob(m, Transform3D(Basis(), Vector3(0, FIGURE_H - 0.08, -0.02)), Vector3(0.12, 0.09, 0.12), rng, 0.0, 2, 6, 1.0, dark)
 	return mb.commit()
+
+
+## (1.27) The share of the crowd out at hour h: everyone by day, thinning from 19:00 to OUT_NIGHT by 23:00, filling
+## again from 5:00 to 7:00.
+static func out_share(h: float) -> float:
+	if h >= 7.0 and h < 19.0:
+		return 1.0
+	if h >= 19.0 and h < 23.0:
+		return lerpf(1.0, OUT_NIGHT, (h - 19.0) / 4.0)
+	if h >= 5.0 and h < 7.0:
+		return lerpf(OUT_NIGHT, 1.0, (h - 5.0) / 2.0)
+	return OUT_NIGHT
+
+
+## Is walker i out now: a townsperson while the share keeps them (the latest go in first), the watch from dusk to dawn.
+func is_out(i: int) -> bool:
+	var w: Dictionary = walkers[i]
+	if w.get("watch", false):
+		return share < 0.9
+	return float(w["late"]) < share
+
+
+## The watch's look: a townsperson's in a long navy coat.
+static func _watch_look(base: Dictionary) -> Dictionary:
+	var lk := base.duplicate(true)
+	lk["name"] = "Watchman"
+	lk["coat"] = "frock"
+	lk["coat_color"] = WATCH_COAT
+	lk["top_color"] = WATCH_COAT
+	return lk
+
+
+## The lanterns at the watchmen's hands (right side, waist high), hidden while the watch is in.
+func _update_lanterns(at: Array) -> void:
+	var k := 0
+	for i in range(walkers.size()):
+		if not walkers[i].get("watch", false):
+			continue
+		_lanterns.set_instance_transform(k, Transform3D(Basis(), lantern_pos(i, at[i])))
+		k += 1
+
+
+## Watchman i's lantern (`pl`: where they are, place_of): at their right hand while the watch is out, else HIDDEN.
+func lantern_pos(i: int, pl: Array) -> Vector3:
+	if not is_out(i):
+		return HIDDEN
+	var p: Vector3 = pl[0]
+	var d: Vector2 = pl[1]
+	var side := Vector2(-d.y, d.x) * 0.32
+	return Vector3(p.x + side.x, p.y + 0.85, p.z + side.y)

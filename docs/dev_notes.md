@@ -8180,3 +8180,17 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Test: t/capital/interiors (some homes have an upstairs, each stair and upper floor is a surface at its height, and
   the captain stands upstairs).
 - Renders: capitalshot `stairs`, `bedroom`, `cata_hall`, `cata_den` and `trapdoor`.
+
+## 1.27: the cities by night, piece 1 (2026-10-30)
+- CapitalCrowd (both cities' crowds):
+  - Each walker gets a `late` value (its own rng stream: the old walkers are unchanged).
+  - `out_share(hour)`: everyone out 7-19, thinning to OUT_NIGHT 0.25 by 23:00, filling again 5-7. The latest go in
+    first.
+  - The night watch: WATCH_PER 2 watchmen on each of the first 2 lanes from dusk to dawn (`share < 0.9`). They wear a
+    navy-coat look (a body in the near pool too) and carry a lantern: a glow box in its own MultiMesh, no real light,
+    HIDDEN far below while the watch is in.
+  - The hour comes from Weather and the place from the shared clock, so co-op needs no messages.
+- **Gotcha:** the headless renderer keeps no MultiMesh transforms to read back (every get returns zero). So tests check
+  `lantern_pos` and `is_out`, not the MultiMesh.
+- Test: t/capital/night. Render: capitalshot with CSHOT_HOUR=21.5.
+- Not yet: lamplighters at dusk, shutters on shops, the inns busier at night.
