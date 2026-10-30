@@ -276,8 +276,7 @@ bridge they open, and the keep. Roughly a 45-55 minute run for a crew of 3. Buil
 (sword, rifle, shield, horn-blower, brute, elites), captain-style AI for officers, GruntCamp-style spawners, the brig,
 the Admiralty's ships and rings, FX fire and blasts.
 
-**The bombardment's name:** not "Buster Call" (Zach). Working name **the Ashfall Order**; alternatives are in the
-questions.
+**The bombardment's name:** not "Buster Call" (Zach). **the Scouring** (Zach, 2026-10-30).
 
 ### The map (Gallowmere Bastion as the example; the parts are fixed, names and dressing rolled per chain)
 ```
@@ -344,7 +343,7 @@ Levels: the chain's last island +2, officers +3, the Vice Admiral +5.
      spread** (fire zones, about 8 s, catching on nearby wood) and smoke.
    - The island burns: fire and smoke on every district within 60 s, and towers drop rubble you have to dodge.
    - **The escape:** reach the ship (the harbour or a beach longboat), sail out through a gap in the ring under
-     broadsides, and get past 500 m. Then a "Survived the Ashfall Order" banner, +20,000 bounty, and the chain's
+     broadsides, and get past 500 m. Then a "Survived the Scouring" banner, +20,000 bounty, and the chain's
      Admiralty patrols halve for 3 days.
 5. **At high level** (top captain 32+ or Dreaded): **an Admiral leads the bombardment** and lands on the island once it
    starts. He's unbeatable before 2.0 and you run (as decided). He breaks off at the ring.
@@ -370,3 +369,13 @@ Levels: the chain's last island +2, officers +3, the Vice Admiral +5.
    out?
 5. **After the raid:** the fortress stays a **burnt ruin** (a place to revisit, with salvage and no garrison) or
    **rebuilds** after some days with a new Vice Admiral (a repeatable raid)?
+
+## Decided: the stronghold (Zach, 2026-10-30)
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| The bombardment's name | **The Scouring** | Its own Driftwake name, not "Buster Call" | - |
+| A wipe | **The brig in the Prison Tower**, a breakout (about a minute), then back to your last flag; a boss you wiped on resets | Failure becomes a scene | - |
+| Death in the Scouring | **Keep the prize, wake on the ship out at sea** | A 45+ minute run shouldn't vanish | If escaping feels pointless |
+| After the raid | **It stays a burnt ruin**: one raid per chain, revisitable for salvage, no garrison | Zach's pick | - |
+| Prisoners as temporary allies | **In** (**assumed**; not asked yet) | Chaos in the Prison Tower | Zach's word |
+| The map, spawns, scaling, flags, timings | Preview v2's, as the first pass | - | Tune in play |
