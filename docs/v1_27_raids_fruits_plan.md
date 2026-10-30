@@ -276,7 +276,7 @@ bridge they open, and the keep. Roughly a 45-55 minute run for a crew of 3. Buil
 (sword, rifle, shield, horn-blower, brute, elites), captain-style AI for officers, GruntCamp-style spawners, the brig,
 the Admiralty's ships and rings, FX fire and blasts.
 
-**The bombardment's name:** not "Buster Call" (Zach). **the Scouring** (Zach, 2026-10-30).
+**The bombardment's name:** not "Buster Call" (Zach). It's **the Scouring** (Zach, 2026-10-30).
 
 ### The map (Gallowmere Bastion as the example; the parts are fixed, names and dressing rolled per chain)
 ```
@@ -333,7 +333,7 @@ Levels: the chain's last island +2, officers +3, the Vice Admiral +5.
 ### The end: the broadcast and the bombardment
 1. **The Vice Admiral falls:** a slow-motion beat, all spawns stop, and the garrison that's left breaks and runs.
 2. **The emergency broadcast**, at once: a transmission banner and voice: "All ships. Gallowmere has fallen. The
-   Ashfall Order is given." With the Spire wrecked, it comes through static.
+   Scouring is ordered." With the Spire wrecked, it comes through static.
 3. **2:00 of grace** to open the vault (the prize: the legendary weapon, the chain's best chest, and a legendary fruit
    once fruits land) and loot.
 4. **The countdown, 2:00 on screen** (+60 s if the Spire was wrecked), then **the bombardment**:
