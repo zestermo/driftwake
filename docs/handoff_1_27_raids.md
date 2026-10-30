@@ -81,3 +81,23 @@
    as before, and render with capitalshot.gd or canalshot.gd (CSHOT_ONLY=...).
 4. Then hold the strongholds and fruit-rework discussion with Zach. Previews come first (tables and mocks), and
    nothing is built from picked options alone.
+
+## Red before the push (prepush, 2026-10-30): fix first on the next machine
+These suites failed in this run, from the unpushed 1.26.1 work (poise and knockback, bigger weapon trees) rather than
+1.27. They're most likely stale tests (suspect the test first):
+- **Knockdowns and hitstun:**
+  - ragtest: "knockdown hit -> Downed"
+  - grunttest: "hit from behind lands (hitstun)"
+  - guntest: "shove: small damage + knocked down"
+  - powertest: "ring knocks both down"
+  - katanatest: "...and the grunt crumples"
+  - axetest: "...the splitter knocks them flat"
+  - foresttest: "...the charge floors whoever stays in the lane"
+  - (1.26.1 piece 4 changed poise and knockdown.)
+- **Tree sizes:** wieldtest ("the Corsair tree has 13-19 big nodes ... (26)") and daggertest ("12-19 big nodes"). The
+  1.26 trees grew.
+- **seatest:** "nobody aboard: no target".
+- **uitest:** "load fits the canvas".
+- **net-five:** a pistol crit. Fixed in nettest (aa97623b) and to rerun.
+- **t/island/beast_moves:** known red.
+Fix them, then `.\tools\dev\prepush.ps1` (it reruns only these and what the fixes touch, then pushes).
