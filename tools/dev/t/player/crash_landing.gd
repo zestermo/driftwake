@@ -55,7 +55,7 @@ func _process(_d: float) -> bool:
 			check("landed in the crash (%s)" % p.body_model.current_action(), p.body_model.current_action() == "crash_land")
 			check("the fall hurt half as much (%.1f)" % lost, lost > 8.0 and lost < 16.0)
 			check("no stagger", p.current_state_name() != "Stagger")
-			check("the grunt beside you is knocked down (state %d)" % g.state, g.state == 11)
+			check("the grunt beside you is knocked down or reels (1.25.1 poise) (state %d)" % g.state, g.state in [9, 10, 11])
 			pr._switch("ac_feather", 0)
 			check("switched to Featherfall", pr.has_flag("featherfall") and not pr.has_flag("crash_landing"))
 			until = TK.wait_secs(2.5)

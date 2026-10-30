@@ -44,7 +44,7 @@ func _process(_d: float) -> bool:
 			var a = stage.camp.grunts[0]
 			var b = stage.camp.grunts[1]
 			var c = stage.camp.grunts[2]
-			check("an armoured elite: half again an elite's poise (%.0f)" % a.poise.full, absf(a.poise.full - 55.0 * 1.5) < 0.1)
+			check("an armoured elite: half again an elite's poise (%.0f)" % a.poise.full, absf(a.poise.full - 80.0 * 1.5) < 0.1)  # (1.25.1: an elite's poise 55 -> 80)
 			for e in [a, b, c]:
 				e.alert()
 			until = TK.wait_secs(1.0)
