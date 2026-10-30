@@ -49,6 +49,10 @@ static func build(mb: MeshBuilder, cols: Array, key: String, h: float, plan = nu
 	var d: float = fr[2]
 	var gy := ground(key, plan)
 	var fy := gy + RISE
+	# (the fish loggia is open on every side: columns and a roof, no walls)
+	if key == "loggia":
+		_loggia(mb, cols, t, w, d, gy, h)
+		return
 	_shell(mb, cols, t, w, d, gy, fy, h, Color(0.98, 0.82, 0.78) if key == "doge" else Color(0.97, 0.94, 0.88))
 	match key:
 		"library":
@@ -57,6 +61,8 @@ static func build(mb: MeshBuilder, cols: Array, key: String, h: float, plan = nu
 			_theatre(mb, cols, t, w, d, fy, h)
 		"doge":
 			_council(mb, cols, t, w, d, fy, h)
+		"glassworks":
+			_glassworks(mb, cols, t, w, d, fy, h)
 
 
 ## Walls (facade out, plaster in, the front round its door), the plinth and floor, the ceiling, roof, steps, cornice.
@@ -301,3 +307,78 @@ static func doge_spot(plan) -> Array:
 	var at: Vector3 = t * Vector3(0, ground("doge", plan) + RISE + 0.7, -iz + 3.2)
 	var fwd: Vector3 = t.basis * Vector3(0, 0, 1)
 	return [at, Vector2(fwd.x, fwd.z).normalized()]
+
+
+## The glassworks (the canal city): two brick furnaces glowing at their mouths, a chimney stack each through the roof,
+## the glassblowers' benches with pipes and gathers on them, racks of coloured glass along a wall, cullet in crates.
+static func _glassworks(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, fy: float, h: float) -> void:
+	var brick := PSXMat.lit("brick") if ResourceLoader.exists("res://assets/textures/psx/brick.png") else M.mat("lime")
+	var ix := w * 0.5 - WALL
+	var iz := d * 0.5 - WALL
+	var fire := PSXMat.glow(Color(1.0, 0.55, 0.2), 2.6)
+	for s in [-1.0, 1.0]:
+		var ft := t * Transform3D(Basis(), Vector3(s * ix * 0.5, fy, -iz + 1.8))
+		mb.add_box(brick, ft * Transform3D(Basis(), Vector3(0, 1.3, 0)), Vector3(3.2, 2.6, 2.8), 0.5, Color(0.8, 0.46, 0.36))
+		mb.add_cylinder(brick, ft * Transform3D(Basis(), Vector3(0, 2.6, 0)), 1.5, 0.6, 1.4, 8, 0.5, Color(0.78, 0.44, 0.34))
+		mb.add_box(fire, ft * Transform3D(Basis(), Vector3(0, 1.2, 1.41)), Vector3(1.0, 0.8, 0.04), 1.0, Color.WHITE, false)
+		mb.add_cylinder(brick, ft * Transform3D(Basis(), Vector3(0, 4.0, -0.4)), 0.5, 0.45, h, 8, 0.5, Color(0.74, 0.42, 0.32))
+		M.box(cols, ft * Transform3D(Basis(), Vector3(0, 1.4, 0)), Vector3(3.2, 2.8, 2.8))
+	var wood := PSXMat.lit("planks_dark")
+	var glass: Array = [Color(0.3, 0.6, 0.85), Color(0.85, 0.3, 0.4), Color(0.4, 0.8, 0.5), Color(0.9, 0.75, 0.3)]
+	for s in [-1.0, 1.0]:
+		var bt := t * Transform3D(Basis(), Vector3(s * ix * 0.5, fy, 1.2))
+		mb.add_box(wood, bt * Transform3D(Basis(), Vector3(0, 0.8, 0)), Vector3(2.6, 0.08, 1.0), 0.6, Color.WHITE)
+		mb.add_box(wood, bt * Transform3D(Basis(), Vector3(0, 0.4, 0)), Vector3(2.2, 0.8, 0.6), 0.6, Color.WHITE, false)
+		M.box(cols, bt * Transform3D(Basis(), Vector3(0, 0.42, 0)), Vector3(2.6, 0.84, 1.0))
+		for k in range(3):
+			mb.add_box(M.mat("iron"), bt * Transform3D(Basis(Vector3.UP, 0.2 * k), Vector3(-0.8 + k * 0.6, 0.88, 0)), Vector3(0.04, 0.04, 1.3), 1.0, Color.WHITE, false)
+			mb.add_cylinder(PSXMat.glow(glass[k % glass.size()], 1.2), bt * Transform3D(Basis(), Vector3(-0.8 + k * 0.6, 0.86, 0.5)), 0.1, 0.14, 0.22, 6)
+	# racks of finished glass along the side wall
+	var side := 1.0 if (int(w * 10.0) % 2) == 0 else -1.0
+	var rt := t * Transform3D(Basis(), Vector3(side * (ix - 0.35), fy, iz * 0.4))
+	for k in range(3):
+		mb.add_box(wood, rt * Transform3D(Basis(), Vector3(0, 0.6 + k * 0.7, 0)), Vector3(0.5, 0.05, iz), 0.6, Color.WHITE, false)
+		for i in range(int(iz / 0.45)):
+			mb.add_cylinder(PSXMat.glow(glass[(i + k) % glass.size()], 1.0), rt * Transform3D(Basis(), Vector3(0, 0.63 + k * 0.7, -iz * 0.5 + 0.25 + i * 0.45)), 0.09, 0.12, 0.28, 6)
+	M.box(cols, rt * Transform3D(Basis(), Vector3(0, 1.1, 0)), Vector3(0.5, 2.2, iz))
+	CapitalDistrict.absorb(mb, cols, Props.crate(0.7), t * Transform3D(Basis(), Vector3(-side * (ix - 0.8), fy, iz - 1.2)))
+
+
+## The fish loggia (the canal city): an open market hall on the riva: columns round its edge, a tiled roof on a beam
+## frame, marble slabs of fish under it, baskets and a scale; open on every side.
+static func _loggia(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: float, gy: float, h: float) -> void:
+	var lime := M.mat("lime")
+	var hw := w * 0.5
+	var hd := d * 0.5
+	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, gy + 0.1, 0)), Vector3(w, 0.2, d), 0.5, Color(0.92, 0.9, 0.86))
+	M.box(cols, t * Transform3D(Basis(), Vector3(0, gy - 0.4, 0)), Vector3(w, 1.2, d))
+	var x := -hw + 0.6
+	while x <= hw - 0.5:
+		for s in [-1.0, 1.0]:
+			var cq := Vector3(x, gy + 0.2, s * (hd - 0.6))
+			mb.add_cylinder(lime, t * Transform3D(Basis(), cq), 0.3, 0.26, h - 0.4, 8, 0.5, Color(0.95, 0.93, 0.89))
+			M.cyl(cols, t * cq, 0.3, h - 0.4)
+		x += (w - 1.2) / 5.0
+	var z := -hd + 0.6 + (d - 1.2) / 3.0
+	while z < hd - 0.7:
+		for s in [-1.0, 1.0]:
+			var cq := Vector3(s * (hw - 0.6), gy + 0.2, z)
+			mb.add_cylinder(lime, t * Transform3D(Basis(), cq), 0.3, 0.26, h - 0.4, 8, 0.5, Color(0.95, 0.93, 0.89))
+			M.cyl(cols, t * cq, 0.3, h - 0.4)
+		z += (d - 1.2) / 3.0
+	mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(0, gy + h - 0.1, 0)), Vector3(w, 0.3, d), 0.6, Color.WHITE)
+	M._hip(mb, t * Transform3D(Basis(), Vector3(0, gy + h + 0.05, 0)), w + 0.6, d + 0.6, minf(w, d) * M.ROOF_PITCH * 0.8, 0.4, M.ROOFS[2])
+	# the fish slabs in two rows, the catch on them, baskets, a scale
+	var fish := [Color(0.62, 0.66, 0.7), Color(0.75, 0.55, 0.5), Color(0.5, 0.56, 0.62)]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 33011
+	for s in [-1.0, 1.0]:
+		var st := t * Transform3D(Basis(), Vector3(0, gy + 0.2, s * hd * 0.4))
+		mb.add_box(lime, st * Transform3D(Basis(), Vector3(0, 0.45, 0)), Vector3(w - 5.0, 0.9, 1.4), 0.6, Color(0.96, 0.96, 0.94))
+		M.box(cols, st * Transform3D(Basis(), Vector3(0, 0.45, 0)), Vector3(w - 5.0, 0.9, 1.4))
+		for i in range(int((w - 5.5) / 0.5)):
+			var fx := -(w - 5.5) * 0.5 + i * 0.5
+			mb.add_box(M.mat("cloth"), st * Transform3D(Basis(Vector3.UP, rng.randf_range(-0.4, 0.4)), Vector3(fx, 0.95, rng.randf_range(-0.4, 0.4))), Vector3(0.45, 0.1, 0.14), 1.0, fish[rng.randi() % fish.size()], false)
+		for k in range(3):
+			var bq := Vector3(-w * 0.5 + 2.0 + k * 1.0, 0, s * (hd * 0.4 + 1.3))
+			mb.add_cylinder(PSXMat.lit("straw") if ResourceLoader.exists("res://assets/textures/psx/straw.png") else PSXMat.lit("planks"), st * Transform3D(Basis(), bq - Vector3(0, 0, s * hd * 0.4)), 0.32, 0.38, 0.45, 8, 0.5, Color(0.86, 0.74, 0.5))

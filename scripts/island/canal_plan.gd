@@ -57,6 +57,9 @@ const SPECIAL := {
 	"sheds": [Rect2(170.0, -40.0, 26.0, 40.0), Vector2(-1, 0)],
 	# 1.27 C3: the Doge's palace on the piazza's east side, its door west onto the piazza (CapitalHalls "doge")
 	"doge": [Rect2(104.0, 58.0, 28.0, 38.0), Vector2(-1, 0)],
+	# 1.27 C3: the glassworks on the me block's north walkway, the fish loggia on the riva (CapitalHalls)
+	"glassworks": [Rect2(96.0, -74.0, 26.0, 18.0), Vector2(0, -1)],
+	"loggia": [Rect2(140.0, 76.0, 26.0, 20.0), Vector2(0, 1)],
 }
 ## Bridges over the water: [from, to (frame points on the floors either side), width, rise at the middle].
 const BRIDGES := [
@@ -167,13 +170,13 @@ static func floors() -> Array:
 		var x1 := r.end.x - (WALK if sides.contains("e") else 0.0)
 		var cr := Rect2(c - Vector2(8.0, 8.0), Vector2(16.0, 16.0))
 		out.append([name + "_campo", cr, "capital_slabs"])
-		if sides.contains("n") and shut != 0:
+		if sides.contains("n") and shut != 0 and not special_hit(Rect2(c.x - CALLE * 0.5, top, CALLE, cr.position.y - top)):
 			out.append([name + "_cn", Rect2(c.x - CALLE * 0.5, top, CALLE, cr.position.y - top), "cobbles"])
-		if (sides.contains("s") or name in ["sw"]) and shut != 1:
+		if (sides.contains("s") or name in ["sw"]) and shut != 1 and not special_hit(Rect2(c.x - CALLE * 0.5, cr.end.y, CALLE, bot - cr.end.y)):
 			out.append([name + "_cs", Rect2(c.x - CALLE * 0.5, cr.end.y, CALLE, bot - cr.end.y), "cobbles"])
-		if shut != 2:
+		if shut != 2 and not special_hit(Rect2(x0, c.y - CALLE * 0.5, cr.position.x - x0, CALLE)):
 			out.append([name + "_cw", Rect2(x0, c.y - CALLE * 0.5, cr.position.x - x0, CALLE), "cobbles"])
-		if shut != 3:
+		if shut != 3 and not special_hit(Rect2(cr.end.x, c.y - CALLE * 0.5, x1 - cr.end.x, CALLE)):
 			out.append([name + "_ce", Rect2(cr.end.x, c.y - CALLE * 0.5, x1 - cr.end.x, CALLE), "cobbles"])
 	out.append(["piazza", PIAZZA, "capital_slabs"])
 	# the piazza reaches the walkway along the Grand Canal by a lane past the campanile

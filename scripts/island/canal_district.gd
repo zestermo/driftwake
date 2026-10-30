@@ -281,6 +281,12 @@ static func _campi(out: Dictionary) -> void:
 	var dcols: Array = []
 	CapitalHalls.build(dmb, dcols, "doge", 10.0, P)
 	_piece(out, "DogePalace", dmb, dcols)
+	# (1.27) the glassworks and the fish loggia
+	for hk in ["glassworks", "loggia"]:
+		var hmb := MeshBuilder.new()
+		var hcols: Array = []
+		CapitalHalls.build(hmb, hcols, hk, 8.0 if hk == "glassworks" else 6.5, P)
+		_piece(out, "Hall_" + hk, hmb, hcols)
 	var ds: Array = CapitalHalls.doge_spot(P)
 	_spot(out, "doge", Vector2((ds[0] as Vector3).x, (ds[0] as Vector3).z), (ds[0] as Vector3).y, ds[1])
 	# (1.27) the hooded stranger's place, up in the campanile's belfry (the same figure as the capital's bell tower)
