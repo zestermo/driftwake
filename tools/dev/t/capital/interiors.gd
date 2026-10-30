@@ -9,6 +9,7 @@ var w
 var isl
 var p
 var room: Dictionary
+var upper: Dictionary
 var step := 0
 var until := 0
 var fails := 0
@@ -64,6 +65,22 @@ func _process(_d: float) -> bool:
 						break
 			check("every doorway is open into its room (%s)" % [blocked.slice(0, 6)], blocked.is_empty())
 			check("every room is walled round (%s)" % [walled.slice(0, 6)], walled.is_empty())
+			# (1.27) some homes have a first floor: a stair up the side wall to a bedroom
+			var ups: Array = rooms.filter(func(dd): return not (dd.get("upper", {}) as Dictionary).is_empty())
+			check("some homes have an upstairs (%d)" % ups.size(), ups.size() >= 2)
+			var off: Array = []
+			for dd in ups:
+				var u: Dictionary = dd["upper"]
+				var s: Vector3 = u["stair"]
+				var hs := _ray(isl.city_global(Vector2(s.x, s.z), s.y + 2.0), isl.city_global(Vector2(s.x, s.z), s.y - 2.0))
+				if hs.is_empty() or absf(isl.to_local(hs["position"]).y - s.y) > 0.5:
+					off.append("stair %s" % Vector2(s.x, s.z).round())
+				var f: Vector3 = u["floor"]
+				var hf := _ray(isl.city_global(Vector2(f.x, f.z), f.y + 1.5), isl.city_global(Vector2(f.x, f.z), f.y - 1.0))
+				if hf.is_empty() or absf(isl.to_local(hf["position"]).y - f.y) > 0.15:
+					off.append("floor %s" % Vector2(f.x, f.z).round())
+			check("...each stair walked half way up and its upper floor under you (%s)" % [off.slice(0, 6)], off.is_empty())
+			upper = ups[0] if not ups.is_empty() else {}
 			room = shops[0] if not shops.is_empty() else rooms[0]
 			p = stage.player
 			var iv: Vector3 = room["inside"]
@@ -74,6 +91,16 @@ func _process(_d: float) -> bool:
 			var iv: Vector3 = room["inside"]
 			var y0: float = isl.city_global(Vector2(iv.x, iv.z), iv.y).y
 			check("the captain stands on the room's floor (%.2f over it)" % (p.global_position.y - y0), absf(p.global_position.y - y0) < 0.4)
+			if upper.is_empty():
+				return TK.done(fails)
+			var f: Vector3 = upper["upper"]["floor"]
+			p.global_position = isl.city_global(Vector2(f.x, f.z), f.y + 0.4)
+			p.reset_physics_interpolation()
+			until = TK.wait_secs(1.0)
+		4:
+			var f: Vector3 = upper["upper"]["floor"]
+			var y1: float = isl.city_global(Vector2(f.x, f.z), f.y).y
+			check("...and upstairs, on the bedroom's floor (%.2f over it)" % (p.global_position.y - y1), absf(p.global_position.y - y1) < 0.4)
 			return TK.done(fails)
 	step += 1
 	return false

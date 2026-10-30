@@ -8165,3 +8165,18 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - The capital's version: grey stone, dry, trapdoors in rolled lanes and alleys (`capital_under_*` caches).
   - t/capital/shell's mesh count leaves out the catacombs and their trapdoors.
   - Test: t/capital/catacombs.
+
+## 1.27: stairs to an upper floor (2026-10-30)
+- CapitalInteriors.build: about 60% of walk-in homes get a first floor. The conditions: no roof hatch, deep enough for
+  the stair, at least 4.6 m wide, and room under the eaves for UPPER_H 3.0. It's decided first from its own rng stream;
+  the room's rng keeps its old sequence.
+- **The stair:** up the side wall away from the door, from the back to the front (21 cm risers, 27 cm treads, a ramp
+  collider along the nosings). A stairwell cuts the slab, and the ceiling and beams stop short of it.
+- **The upper room:** floor round the well, a rail on its room side and back end, plaster walls and ceiling, the bed
+  (moved up from downstairs; `_bed`) and a chest.
+- The occluder now starts above the upper room. The home's furniture keeps out of the stair's lane (the room rect is
+  narrowed; the hearth is anchored to the room's middle).
+- `info["upper"]` gives the stair's middle and an upper-floor point, carried onto the door entries (`upper`).
+- Test: t/capital/interiors (some homes have an upstairs, each stair and upper floor is a surface at its height, and
+  the captain stands upstairs).
+- Renders: capitalshot `stairs`, `bedroom`, `cata_hall`, `cata_den` and `trapdoor`.

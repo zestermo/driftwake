@@ -178,6 +178,26 @@ func _setup(island) -> void:
 		shots.append([want, "inside a " + want, iq - fc * 1.6, 1.9, iq + fc * 4.0, 1.0])
 		var dq := Vector2((dd["at"] as Vector3).x, (dd["at"] as Vector3).z)
 		shots.append([want + "_door", "a " + want + "'s open door", dq + fc * 3.0, 1.7, dq - fc * 2.0, 1.4])
+	# (1.27) a home's upstairs: its stair from the ground room, and the bedroom from its front
+	var ups: Array = inside.filter(func(dd): return not (dd.get("upper", {}) as Dictionary).is_empty())
+	if not ups.is_empty():
+		var u: Dictionary = ups[0]["upper"]
+		var st: Vector3 = u["stair"]
+		var fl: Vector3 = u["floor"]
+		var iv: Vector3 = ups[0]["inside"]
+		var fc: Vector2 = ups[0]["face"]
+		var a := Vector2(iv.x, iv.z) + fc * 1.2
+		var sq := Vector2(st.x, st.z)
+		shots.append(["stairs", "a home's stair up", a, iv.y + 1.6 - CapitalPlan.ground(a), sq - fc * 1.5, st.y + 1.2 - CapitalPlan.ground(sq - fc * 1.5)])
+		var b := Vector2(fl.x, fl.z)
+		shots.append(["bedroom", "the bedroom upstairs", b, fl.y + 1.6 - CapitalPlan.ground(b), b - fc * 5.0, fl.y + 0.5 - CapitalPlan.ground(b - fc * 5.0)])
+	# (1.27) the catacombs (CityUndercity's pocket, its floor 360 up) and a trapdoor down into them
+	if isl.undercity:
+		var py: float = isl.undercity.POCKET.y
+		for e in [["cata_hall", "the catacombs under the capital", Vector2(6, -7), Vector2(-4, 5)], ["cata_den", "the thieves' den", Vector2(17.5, 4.2), Vector2(23, 9)]]:
+			shots.append([e[0], e[1], e[2], py + 1.7 - CapitalPlan.ground(e[2]), e[3], py + 0.6 - CapitalPlan.ground(e[3])])
+		var hq: Vector2 = isl.undercity.hatches["n"][0]
+		shots.append(["trapdoor", "a trapdoor down to the catacombs", hq + Vector2(2.2, 2.2), 1.7, hq, 0.0])
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))

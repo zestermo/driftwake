@@ -210,6 +210,8 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 		if info.has("hatch"):
 			l["hatch"] = info["hatch"]
 			l["hatch_ladder"] = info["ladder"]
+		if info.has("upper"):
+			l["upper"] = info["upper"]
 	else:
 		M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
 		# (behind the door's niche)
@@ -260,7 +262,7 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 		mb.add_box(M.mat("dark"), t * Transform3D(Basis(Vector3.BACK, 0.4), Vector3(wx - 1.0, sill + g1 + 1.4, hd + 0.06)), Vector3(0.5, 1.4, 0.05), 1.0, Color(0.5, 0.42, 0.34), false)
 	warmth(mb, int(l["seed"]), t, w, eaves - sill, hd, door_x, sill)
 	return {"at": t * Vector3(door_x, top, hd + 0.9), "face": (Vector2((t.basis * Vector3.BACK).x, (t.basis * Vector3.BACK).z)).normalized(), "kind": kind,
-		"inside": l.get("inside", Vector3.INF)}
+		"inside": l.get("inside", Vector3.INF), "upper": l.get("upper", {})}
 
 
 const WARM_FLOWERS := [Color(0.9, 0.24, 0.3), Color(0.98, 0.84, 0.3), Color(0.82, 0.5, 0.86), Color(0.96, 0.96, 0.92), Color(0.98, 0.5, 0.24)]
