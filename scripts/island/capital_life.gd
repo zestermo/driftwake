@@ -27,6 +27,8 @@ var quest_node: KitQuests
 var thief_q: Dictionary = {}
 ## (1.27 C4) The Watch's odd jobs on the board: a delivery, the cat on the roofs, an errand.
 var job_qs: Array = []
+## (1.27 C4) The missing apprentice, Mirela's (empty with too few walk-in rooms or no den).
+var appr_q: Dictionary = {}
 var ruffians: GruntCamp
 var people := {}
 var notices: Array = []
@@ -279,6 +281,7 @@ func _quests() -> void:
 	quest_node.add(gallows, isl)
 	_investigations(common)
 	_jobs(common)
+	_apprentice(common)
 	notices.append(gallows)
 	var ledger := {"id": _key("ledger"), "kind": "deliver", "giver": "Ambrose Pell", "src": "npc", "title": "Sealed with wax",
 		"recipient": "Tobin Rook", "reward": {"gold": 45},
@@ -441,6 +444,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	var fmenu := {"text": "Flowers, Captain? For someone special?", "choices": []}
 	var fnodes := {"intro": {"text": ["Flowers! Fresh flowers!"], "next": "menu"}, "menu": fmenu}
 	quest_node.offer(locket, fmenu["choices"], fnodes)
+	if not appr_q.is_empty():
+		quest_node.offer(appr_q, fmenu["choices"], fnodes)
 	fmenu["choices"].append({"text": "Not today.", "next": "end"})
 	Dialogue.define(_key("flower"), {"speaker": "Mirela", "voice": 1.25, "start": "intro", "return": "menu", "nodes": fnodes})
 	var imenu := {"text": "What'll it be, love?", "choices": [{"text": "Something to eat.", "next": "eat"}, {"text": "A room?", "next": "room"}, {"text": "What's the news?", "next": "news"}]}
@@ -644,3 +649,32 @@ func _jobs(common: Dictionary) -> void:
 func _on_lead(ev: String) -> void:
 	if is_instance_valid(isl):
 		CityCaches.sell_lead(ev, "capital", isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "Investigations") The missing apprentice, Mirela's: her son Tobias hasn't come home from
+## his glazier's; his bench in one walk-in workshop, a note in another, then the cellar door by the courtyard's dice den
+## where the dicers keep him till his debt's paid. Back to Mirela.
+func _apprentice(common: Dictionary) -> void:
+	var rooms: Array = isl.doors.filter(func(dd): return dd.get("inside", Vector3.INF) != Vector3.INF and str(dd["kind"]) == "")
+	var courts: Array = P.rolled().filter(func(f): return str(f[0]) == "court")
+	if rooms.size() < 4 or courts.is_empty():
+		return
+	var cr: Rect2 = courts[0][1]
+	var cellar: Vector2 = cr.position + Vector2(cr.size.x - 2.5, cr.size.y - 2.5)
+	var clues := [[rooms[1]["inside"], "Look at the bench", "Tobias's bench: glass half-cut, his apron on the hook. He left in a hurry, or was taken.", "Tobias's bench in a workshop"],
+		[rooms[3]["inside"], "Read the note", "A note, pinned by a knife: 'Pay what you owe at the dice, or we keep the boy.' The den in the courtyard.", "the note left in another workshop"],
+		[Vector3(cellar.x, P.ground(cellar), cellar.y), "Open the cellar door", "Tobias, in a cellar under the courtyard, hungry and frightened but whole. He runs for home.", "the cellar door by the dice den"]]
+	var steps: Array = []
+	for c in clues:
+		var v: Vector3 = c[0]
+		steps.append({"do": "pickup", "at": isl.from_city(Vector2(v.x, v.z)), "y": v.y + 0.02, "yaw": 0.0, "search": c[1], "goal": "Find %s" % c[3], "said": c[2]})
+	steps.append({"do": "turnin", "goal": "Tell Mirela her son is free"})
+	appr_q = {"id": _key("inv_apprentice"), "kind": "lost", "giver": "Mirela", "src": "npc", "title": "The missing apprentice",
+		"ask": "You look worried.", "plea": ["My boy Tobias. Apprentice to a glazier in the lanes. He didn't come home last night, and the glazier swears he left at dusk.",
+			"He's been seen at the dice. He swore he'd stopped. Please. Find him."],
+		"accept": "I'll find him.", "decline": "I'm sorry.", "taken": "His bench is in a workshop off the lanes. Start there. Please hurry.",
+		"remind_choice": "About Tobias...", "remind": ["His bench, in the workshops off the lanes. And the dicers: he swore he'd stopped."],
+		"done": "Tobias is free.", "thanks": ["He's home. Shaking, starving, and home. I owe you more than flowers, Captain.", "Take this. And never let him near the dice again."],
+		"at": steps[0]["at"], "yaw": 0.0, "search": clues[0][1], "reward": {"gold": 90}, "steps": steps}
+	appr_q.merge(common)
+	quest_node.add(appr_q, isl)

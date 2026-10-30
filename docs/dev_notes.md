@@ -8062,3 +8062,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   the canal city's third campo (the first two hold caches). Same stakes and streak discount. t/capital/dens.
 - **C4 piece 6: the smuggling ring** (CanalLife._smugglers, offered by Master Grane, "xp": 1.5, 150 gold): three crates
   chalked hook-and-eye in the calli (first, middle, last), then the ledger scrap back to Grane. t/canal/smugglers.
+- **C4 piece 7: the missing apprentice** (CapitalLife._apprentice, offered by Mirela, 90 gold + quest XP): Tobias's
+  bench and the dicers' note in two walk-in homes/workshops (isl.doors' "inside" points), the cellar door in the corner
+  of the dice den's courtyard. t/capital/apprentice; t/capital/life counts 13 city quests.
