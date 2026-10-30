@@ -212,3 +212,37 @@ On main and pushed:
     the respawns stopping once the Commodore is down.
   - **Polish:** Marrow's seastone net and catwalks, the Commodore's fruit in phase 3 once fruits land, rewards (the
     vault's legendary, bounty), the muster flags and the brig on a wipe.
+
+### Update (2026-10-30, latest): the stronghold's raid is playable end to end
+On main and pushed: the garrison, the officers (5 at most), the Mess Hall's sealed waves, Kesh, Marrow, the seal gate,
+Vane's three phases, the broadcast, the Scouring and the Admiral's escape fight, and the raid bounties. Tests:
+t/stronghold/* (7 suites, all green).
+
+**Zach's instruction:** "continue without stopping until you fully finish 1.27 or you hit 95% usage": finish the
+strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10-30, late)").
+
+**Stronghold work left:**
+1. **Finding it:**
+   - captured orders: a beaten Admiralty officer at sea drops them, and `Chain.learn_stronghold` puts it on the chart;
+   - a tavern rumour;
+   - the chart showing it only once `Chain.stronghold_known`;
+   - the Queen's line step 2 (the writ).
+2. **The vault:** the Command Hall's chest after "sh_seal_keep", with a named legendary weapon with a trait (one per
+   stronghold, from the plan's list) and the chain's best chest.
+3. Muster flags and the brig on a wipe.
+4. Marrow's seastone net and catwalks.
+5. Escape-from-the-ship polish: the Scouring with the real ship in a world test.
+
+**Fruits** (plan doc: "Decided: the Driftfruit rework", "The six fruit kits", and Zach's ten-fruit direction):
+- **The framework first:**
+  - the fruit stance on V (LMB/RMB the fruit's attacks, Q/E/R its powers);
+  - each power's three forms by its own use plus fruit mastery (Reflex at 150 uses and mastery 12, Nature at 400 and
+    24);
+  - the shared combat pool;
+  - awakening at mastery 30;
+  - `DevilFruits.IN_WORLD` on.
+- **Then the fruits one at a time,** each to a weapon-size tree (fewer stat nodes, more connected). Today's code:
+  scripts/powers/devil_fruits.gd (FRUITS: ember, wolf, vine), skill_trees.gd `_build_ember` and the others, Skills.ALL.
+- **The ten:** the six in the plan (Ember, Wolf, Vine, Iron, Bubble, Storm) plus four more. Zoan and logia are
+  consistent in structure; paramecia are each very different, some not for combat. Each has a movement power, two
+  ultimate options and some CC.
