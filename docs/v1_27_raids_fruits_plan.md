@@ -620,3 +620,37 @@ Solo: x0.5 (preview v2).
 - **Unique to each fruit:** how its powers **target**, their **hitboxes, range and style**.
 - **The tree:** **nearly the size of a weapon tree**, with **slightly fewer stat nodes** and **more connected** on its
   skill map.
+
+## The ten Driftfruits (2026-10-30; the six above plus four new, from Zach's direction)
+| # | Fruit | Type | Tier | Its nature (how it targets, its range and style) |
+|---|---|---|---|---|
+| 1 | Ember | logia | legendary | fire: projectiles, rings, a body blows pass through, flight |
+| 2 | Storm | logia | legendary | lightning: chains between foes, blinks, clouds that strike on their own |
+| 3 | **Gust** (new) | logia | legendary | wind: cones and lines that push and pull, launches, the best air mobility, a cyclone ultimate |
+| 4 | Wolf | zoan | solid | the hybrid form (stance), pounces, bleeds, a pack howl |
+| 5 | **Bear** (new) | zoan | solid | the hybrid form (stance), slow huge swings, a charge, a roar that stuns in a ring, grabs and throws |
+| 6 | Vine | paramecia | solid | tethers: snares, a grapple, walls, rooted zones; reach over burst |
+| 7 | Iron | paramecia | solid | the tank: self-buffs, guard, poise, ground slams, no ranged |
+| 8 | Bubble | paramecia | joke | floors that trip, floating, shields; helpful more than harmful |
+| 9 | **Clockwork** (new) | paramecia | solid (utility) | time on a small scale: a slow field, a haste for allies, rewinding your last 3 s, stopping one foe briefly; little damage of its own |
+| 10 | **Echo** (new) | paramecia | solid | sound: sonar that shows foes and caches through walls, a shout that stuns in a cone, an echo that repeats your last attack |
+
+**Every fruit has** a movement power, two ultimate options and some CC (Clockwork's stop, Echo's shout, Bubble's slick
+floor). **The shape is shared by type:**
+- **Zoan and logia** keep one structure: a stance or form, five powers, a passive.
+- **Paramecia** each have their own: Clockwork and Bubble are support-leaning, Echo is a scout and disruptor.
+
+**The tree, per fruit** (nearly a weapon tree's size, fewer stat nodes, more connected):
+- Big nodes:
+  - a root;
+  - 5 powers (each a big node, its forms earned by use);
+  - 2 ultimates (one equipped);
+  - 3-4 mechanics and passives;
+  - 1 alternate;
+  - a variant pick;
+  - a crew technique;
+  - the awakening at mastery 30.
+- About 4 step chains.
+- Links between neighbouring powers, so the map is a web rather than three branches.
+
+**The forms (decided):** Reflex at 150 uses of that power and fruit mastery 12; Nature at 400 uses and mastery 24.
