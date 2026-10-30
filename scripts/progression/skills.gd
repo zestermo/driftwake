@@ -69,6 +69,9 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) Ember's Flame Body, its Active form (FruitForms: Reflex and Nature grow from its uses)
+	"flicker": {"name": "Flicker", "tree": "Ember", "cost": 25.0, "cooldown": 12.0, "needs": "", "fruit": "ember",
+		"desc": "Your body turns to flame for a moment: blades and shot pass through you. Used often, it starts to happen by itself, and in the end it's simply what you are."},
 	"fire_fist": {"name": "Cinder Fist", "tree": "Ember", "cost": 18.0, "cooldown": 2.5, "needs": "", "fruit": "ember",
 		"desc": "Hurl a ball of fire where you aim. It bursts on impact and sets enemies ablaze."},
 	"fire_ring": {"name": "Blazing Ring", "tree": "Ember", "cost": 32.0, "cooldown": 9.0, "needs": "", "fruit": "ember",

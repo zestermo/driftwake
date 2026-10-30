@@ -8391,3 +8391,13 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     out of stance.
   - A zoan still shifts into its hybrid form with it.
   - Test: t/progression/fruit_stance. t/progression and t/combat (60) pass.
+- (same day) **Driftfruits, piece 4: the first power with forms, Ember's Flame Body.**
+  - Skills.ALL "flicker" (Active: 25 energy, 12 s cooldown) is cast straight from PowerComponent.try_cast: the
+    "flicker" buff for FLICKER_SECS 1.5, no state of its own.
+  - Player._on_hit_received asks `_flame_body(hit)` for an Ember captain:
+    - Active: through while Flicker lasts;
+    - Reflex (150 Flickers, mastery 12): 30% of hits pass, at most once every 6 s;
+    - Nature (400, 24): shot always passes, blades 25% of the time.
+  - The template for every fruit power: an Active skill, and its Reflex and Nature in the path they belong to, reading
+    FruitForms.form on that skill's uses.
+  - Test: t/progression/ember_flame_body.

@@ -44,6 +44,8 @@ const STANCE_EVERY := 3.0
 const STANCE_DRAIN := 2.0
 const REFLEX_COOLDOWN := 15.0
 const SHADOW_STEP_COST := 8.0
+## (1.27) Ember's Flicker: how long blows pass through.
+const FLICKER_SECS := 1.5
 ## Buffs that are Will (an aura in the captain's Will colour when they start).
 const WILL_BUFFS := ["coat", "foresight"]
 ## Emission (Iron Will tier 2): a coated heavy attack strikes EMIT_RANGE m ahead (a line EMIT_WIDE m across) or a
@@ -348,6 +350,12 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) Ember's Flicker: no state of its own, the flame body for a moment (its forms grow from these uses)
+	if id == "flicker":
+		add_buff("flicker", FLICKER_SECS)
+		Net.fx("flame", [player.global_position + Vector3.UP, 14, 0.7, 0.5, 0.5])
+		cast.emit(slot)
+		return true
 	# (1.26) the Edy tree: a cast counts toward its node's next rank; with Edy Techniques on, a technique carries your Edy
 	var en := EdyTree.of_skill(id)
 	if en != "":

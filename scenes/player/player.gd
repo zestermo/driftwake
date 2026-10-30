@@ -592,6 +592,10 @@ func attack_cost_k() -> float:
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished() or power.will.untouchable():
 		return
+	# (1.27) Ember's Flame Body, by its form (FruitForms on Flicker's uses): the blow passes through the flames
+	if power.fruit == "ember" and _flame_body(hit):
+		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])
+		return
 	# a spirit (the drowned captain): shot and shell pass through him
 	if bloodless() and (hit.ranged or hit.impact == "shot"):
 		Net.fx("sparkle", [global_position + Vector3.UP * 1.4, 6, Humanoid.SPIRIT])
@@ -3308,3 +3312,22 @@ func take_helm() -> void:
 		return
 	current_ship = ship
 	state_machine.force_state("Helm", {})
+
+
+## (1.27) Ember's Flame Body: does this blow pass through? Active (Flicker cast): while it lasts. Reflex: a hit now and
+## then (FLAME_REFLEX of them, at most once every FLAME_REFLEX_EVERY s). Nature: shot always, blades a quarter of the time.
+const FLAME_REFLEX := 0.3
+const FLAME_REFLEX_EVERY := 6.0
+var _flame_reflex_at := -1000000
+
+
+func _flame_body(hit: HitData) -> bool:
+	if power.buff("flicker"):
+		return true
+	var f := FruitForms.form(progression, "flicker", "ember")
+	if f == FruitForms.NATURE:
+		return hit.ranged or randf() < 0.25
+	if f == FruitForms.REFLEX and Engine.get_physics_frames() >= _flame_reflex_at and randf() < FLAME_REFLEX:
+		_flame_reflex_at = Engine.get_physics_frames() + int(FLAME_REFLEX_EVERY * Engine.physics_ticks_per_second)
+		return true
+	return false
