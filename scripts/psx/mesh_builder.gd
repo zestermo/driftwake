@@ -15,6 +15,9 @@ var _order: Array[Material] = []
 ## add_tri's `vb`), which is all the segmented PS1-style chains need.
 var skinned := false
 var bone := 0
+## Every face drawn, whatever a call skips: boxes keep their bottoms and cylinders their bottom caps (a place seen from
+## below, like the stronghold's towers and bridges; the default leaves them out, as nothing's usually under them).
+var all_faces := false
 ## Optional blended skinning: func(position) -> [PackedInt32Array(4) bones,
 ## PackedFloat32Array(4) weights], applied per vertex instead of `bone`.
 ## (A pure function of position, so coincident vertices always move together.)
@@ -101,6 +104,9 @@ func add_quad(mat: Material, a: Vector3, b: Vector3, c: Vector3, d: Vector3,
 ## Axis-aligned box (in the local frame of `xf`), UVs scaled by world size.
 func add_box(mat: Material, xf: Transform3D, size: Vector3, uv_scale: float = 0.5,
 		col: Color = Color.WHITE, skip_bottom: bool = true, skip_top: bool = false) -> void:
+	if all_faces:
+		skip_bottom = false
+		skip_top = false
 	var h := size * 0.5
 	var p := [
 		Vector3(-h.x, -h.y, -h.z), Vector3(h.x, -h.y, -h.z), Vector3(h.x, -h.y, h.z), Vector3(-h.x, -h.y, h.z),
@@ -153,6 +159,8 @@ func add_box_unit_uv(mat: Material, xf: Transform3D, size: Vector3, col: Color =
 func add_cylinder(mat: Material, xf: Transform3D, r_bottom: float, r_top: float, height: float,
 		sides: int = 6, uv_scale: float = 0.5, col: Color = Color.WHITE,
 		cap_top: bool = true, cap_bottom: bool = false, smooth: bool = true, cap_mat: Material = null) -> void:
+	if all_faces:
+		cap_bottom = true
 	var circ := TAU * maxf(r_bottom, r_top)
 	var u_total := maxf(1.0, roundf(circ * uv_scale))
 	var v_total := height * uv_scale

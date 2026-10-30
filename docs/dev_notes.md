@@ -8239,3 +8239,9 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     near it (it builds by distance).
 - Still to come: the cliffs paint as the capital's earth (a grey rock style for its terrain), arched viaducts between
   towers, the sea gate's portcullis on the water, interiors.
+- (same day) **No gaps from below** (Zach: faces missing looking up at towers and walls). MeshBuilder.add_box leaves out
+  a box's bottom by default and add_cylinder its bottom cap: cheap, but an overhang seen from under shows the sky
+  through it. The new `MeshBuilder.all_faces = true` draws every face whatever a call skips. All of StrongholdShell's
+  builders set it.
+  - Renders looking up: strongholdshot `up_tower`, `under_bridge`, `up_gate`, `up_verdict`.
+  - Other places seen from below (the capital's palace stair arches, bridges) can set the same flag.

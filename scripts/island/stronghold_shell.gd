@@ -67,6 +67,7 @@ static func _block(mb: MeshBuilder, cols: Array, m: Material, t: Transform3D, si
 ## The districts' cobbles (the terrain under them is the collider), a black-rock kerb round the quay's sea edge.
 static func _paving(out: Array) -> void:
 	var mb := MeshBuilder.new()
+	mb.all_faces = true
 	var cob := PSXMat.lit("cobbles", Color(0.6, 0.6, 0.62))
 	for d in P.DISTRICTS:
 		var r: Rect2 = d[1]
@@ -81,6 +82,7 @@ static func _paving(out: Array) -> void:
 ## braced with iron), parapets along them all.
 static func _ways(out: Array) -> void:
 	var mb := MeshBuilder.new()
+	mb.all_faces = true
 	var cols: Array = []
 	for w in P.WAYS:
 		var a: Vector2 = w[1]
@@ -146,6 +148,7 @@ static func _ways(out: Array) -> void:
 ## turn, flat-topped), the gatehouses where the stair comes up and the bridge arrives, and the sea gate's towers.
 static func _walls(out: Array) -> void:
 	var mb := MeshBuilder.new()
+	mb.all_faces = true
 	var cols: Array = []
 	for d in P.DISTRICTS:
 		if str(d[0]) == "landing":
@@ -289,6 +292,7 @@ static func _gapped(a: Vector2, b: Vector2) -> Array:
 ## signal spire's iron lattice.
 static func _buildings(out: Array) -> void:
 	var mb := MeshBuilder.new()
+	mb.all_faces = true
 	var cols: Array = []
 	var halls := [
 		[Rect2(-42.0, -10.0, 24.0, 22.0), 12.0, 10.0], [Rect2(18.0, -10.0, 24.0, 22.0), 12.0, 10.0],
@@ -362,6 +366,7 @@ static func _hall(mb: MeshBuilder, cols: Array, r: Rect2, y: float, tall: float)
 ## fire hanging in the circle on chains. The tallest thing in the sea, seen from far out.
 static func _verdict(out: Array) -> void:
 	var mb := MeshBuilder.new()
+	mb.all_faces = true
 	var cols: Array = []
 	var y0: float = P.DISTRICTS[4][2]
 	var c := P.KEEP
@@ -529,6 +534,7 @@ static func _torch(mb: MeshBuilder, p: Vector2, y: float) -> void:
 ## jibs over the water, and stacks of crates and barrels along the quay.
 static func _harbour(out: Array) -> void:
 	var mb := MeshBuilder.new()
+	mb.all_faces = true
 	var cols: Array = []
 	var wood := PSXMat.lit("planks_dark")
 	var deck_y := P.QUAY_Y - 0.15

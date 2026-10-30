@@ -123,6 +123,11 @@ func _setup(island) -> void:
 		["prison", "the Prison Tower", Vector2(-50, -4), 1.7, Vector2(-82, -18), 16.0],
 		["verdict", "the Verdict from the ward", Vector2(-10, 16), 1.7, Vector2(0, -86), 130.0],
 		["verdict_sea", "the Verdict from out at sea", Vector2(-120, 700), 6.0, Vector2(0, -86), 90.0],
+		# looking up from underneath: what a gap in the geometry would show
+		["up_tower", "up at a ward tower", Vector2(40.0, 13.0), 1.7, Vector2(44.6, 18.6), 30.0],
+		["under_bridge", "under the bridge from the chasm", Vector2(10.0, -31.0), 1.5, Vector2(0, -31.0), 18.0],
+		["up_gate", "up under the keep gate", Vector2(0, -46.0), 1.7, Vector2(0, -52.0), 14.0],
+		["up_verdict", "up the Verdict from its foot", Vector2(6.0, -58.0), 1.7, Vector2(0, -86.0), 160.0],
 	]
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
