@@ -286,3 +286,6 @@ backported there).
 - A refunded technique cast ("Nobody close enough") still pays Edy Techniques' 2-energy infusion and shows its aura
   (PowerComponent.try_cast's infusion line runs after the state refunds). Charge it only when the cast goes through.
 - techtest's "the next shot right after isn't deflected" failed once in ~8 runs (the fixer's note): look if it recurs.
+- t/island/beast_moves: "rimeback lands a blow and fights by its own moves" fails ([sweep, stampede, sweep]: two
+  kinds, MIN_MOVES wants more); seen 2026-10-30 alongside the cities work, which doesn't touch beasts. Look at it with
+  the 1.25.1 poise retune (the beasts' flinch/break) in mind.
