@@ -25,6 +25,8 @@ var isl
 var quest_node: KitQuests
 ## (1.27 C4) The rooftop thief, the first investigation (empty in a world with too few hatch roofs).
 var thief_q: Dictionary = {}
+## (1.27 C4) The Watch's odd jobs on the board: a delivery, the cat on the roofs, an errand.
+var job_qs: Array = []
 var ruffians: GruntCamp
 var people := {}
 var notices: Array = []
@@ -276,6 +278,7 @@ func _quests() -> void:
 	gallows.merge(common)
 	quest_node.add(gallows, isl)
 	_investigations(common)
+	_jobs(common)
 	notices.append(gallows)
 	var ledger := {"id": _key("ledger"), "kind": "deliver", "giver": "Ambrose Pell", "src": "npc", "title": "Sealed with wax",
 		"recipient": "Tobin Rook", "reward": {"gold": 45},
@@ -396,6 +399,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	quest_node.post(gallows, board, bnodes)
 	if not thief_q.is_empty():
 		quest_node.post(thief_q, board, bnodes)
+	for jq in job_qs:
+		quest_node.post(jq, board, bnodes)
 	board.append({"text": "Leave it.", "next": "end"})
 	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": bnodes})
 	var smenu := {"text": "Something you need, Captain?", "choices": [{"text": "What's the city like?", "next": "city"}, {"text": "What's down Gallows Row?", "next": "row"}]}
@@ -405,6 +410,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	quest_node.report(gallows, smenu["choices"], snodes)
 	if not thief_q.is_empty():
 		quest_node.report(thief_q, smenu["choices"], snodes)
+	for jq in job_qs:
+		quest_node.report(jq, smenu["choices"], snodes)
 	smenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("sergeant"), {"speaker": "Sergeant Brannoch", "voice": 0.8, "start": "intro", "return": "menu", "nodes": snodes})
 	var cmenu := {"text": "The guild's business, Captain?", "choices": []}
@@ -417,6 +424,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	var hnodes := {"intro": {"text": ["Tobin Rook, harbourmaster. Your sloop's berthed and logged. No fee for a captain the Crown's heard of. Which you aren't. Yet."], "next": "menu"},
 		"menu": hmenu, "busy": {"text": ["Forty ships a morning in the season. Merchantmen, navy, the odd pirate pretending to be a merchantman. I log them all."], "next": "menu"}}
 	quest_node.hand_over(ledger, hmenu["choices"], hnodes)
+	if not job_qs.is_empty():
+		quest_node.hand_over(job_qs[0], hmenu["choices"], hnodes)
 	hmenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("harbour"), {"speaker": "Tobin Rook", "voice": 0.85, "start": "intro", "return": "menu", "nodes": hnodes})
 	var fmenu := {"text": "Flowers, Captain? For someone special?", "choices": []}
@@ -581,3 +590,42 @@ func _investigations(common: Dictionary) -> void:
 		"at": steps[0]["at"], "yaw": 0.0, "search": clues[0][0], "reward": {"gold": 120}, "steps": steps}
 	thief_q.merge(common)
 	quest_node.add(thief_q, isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "City jobs") The Watch's odd jobs, posted on the board and paid by Sergeant Brannoch:
+## a sealed packet to the harbourmaster, a cat stranded on a roof, three fish for the Watch's cook. Half a quest's XP.
+func _jobs(common: Dictionary) -> void:
+	var packet := {"id": _key("job_packet"), "kind": "deliver", "giver": "Sergeant Brannoch", "src": "board", "title": "A packet for the harbourmaster",
+		"notice": "THE WATCH: a sealed packet for Tobin Rook, the harbourmaster, by a pair of honest hands. Collect it from Sergeant Brannoch at the sea gate; a few crowns for the walk.",
+		"posted": "Rook has it? Good. Don't ask what was in it. I didn't.", "recipient": "Tobin Rook",
+		"hand": "A sealed packet from the Watch.", "got": ["From Brannoch? Sealed with his own thumb, by the look of it. Thank you, Captain. Tell him it's logged."],
+		"reward": {"gold": 30, "xp": 0.5},
+		"steps": [{"do": "talk", "who": "Tobin Rook", "goal": "Take the Watch's packet to Tobin Rook, the harbourmaster", "said": "Delivered. Back to Sergeant Brannoch."},
+			{"do": "turnin", "goal": "Tell Sergeant Brannoch the packet's delivered"}]}
+	packet.merge(common)
+	job_qs.append(packet)
+	# the cat: on a flat roof the lanes' ladders or a hatch reach (not one the caches or the thief use)
+	var flats: Array = CapitalDistrict.lots().filter(func(l): return l.has("top_y") and str(l["roof"]) == "flat" and not l.has("hatch"))
+	flats.sort_custom(func(a, b): return int(a["seed"]) < int(b["seed"]))
+	if not flats.is_empty():
+		var l: Dictionary = flats[0]
+		var t: Transform3D = l["frame"]
+		var wd: Vector2 = l["wd"]
+		var p: Vector3 = t * Vector3(-wd.x * 0.2, float(l["top_y"]), wd.y * 0.15)
+		var cat := {"id": _key("job_cat"), "kind": "lost", "giver": "Sergeant Brannoch", "src": "board", "title": "The cat on the roofs",
+			"notice": "LOST: a ginger cat, answers to Marmalade, last seen going up a drainpipe in the lanes and not coming down. The Watch will pay to stop the crying (the owner's, not the cat's). Sergeant Brannoch, the sea gate.",
+			"posted": "Marmalade! The widow will stop writing to me now. Bless you.", "at": isl.from_city(Vector2(p.x, p.z)), "yaw": 0.0,
+			"search": "Coax the cat down", "reward": {"gold": 25, "xp": 0.5},
+			"steps": [{"do": "pickup", "at": isl.from_city(Vector2(p.x, p.z)), "y": p.y + 0.05, "yaw": 0.0, "search": "Coax the cat down",
+				"goal": "Find the ginger cat up on the lanes' roofs", "said": "Marmalade, purring, tucked under your arm. Back to Sergeant Brannoch."},
+				{"do": "turnin", "goal": "Bring Marmalade to Sergeant Brannoch at the sea gate"}]}
+		cat.merge(common)
+		job_qs.append(cat)
+	var fish := {"id": _key("job_fish"), "kind": "fetch", "giver": "Sergeant Brannoch", "src": "board", "title": "Fish for the Watch",
+		"notice": "WANTED, for the Watch's kitchen: three good fish. The cook is threatening to serve us the Sergeant's boots. Bring them to Sergeant Brannoch at the sea gate.",
+		"posted": "Three fish! The cook will live another day, and so will my boots.", "cost": [["fish", 3]], "reward": {"gold": 40, "xp": 0.5},
+		"steps": [{"do": "turnin", "goal": "Bring three fish to Sergeant Brannoch at the sea gate"}]}
+	fish.merge(common)
+	job_qs.append(fish)
+	for jq in job_qs:
+		quest_node.add(jq, isl)

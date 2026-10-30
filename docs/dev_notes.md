@@ -8049,3 +8049,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   "at"/"y"/"r". The capital's first investigation (CapitalLife._investigations): posted on the board by Sergeant Brannoch,
   three clues on the hatched flat roofs after the caches' three, report at the sea gate (120 gold + the quest XP).
   t/capital/investigation walks it. Quests pay XP by default: QuestRewards.give, XP_SHARE 0.25 of a level x "xp" (1).
+- **C4 piece 3: the Watch's odd jobs** (CapitalLife._jobs, on the board, paid by Sergeant Brannoch, "xp": 0.5): a sealed
+  packet to Tobin Rook (deliver; handed over in his talk), Marmalade the cat on an unhatched flat roof (a roof pickup),
+  three fish for the cook (fetch: a turn-in with a cost). t/capital/jobs; t/capital/life counts 12 city quests.
