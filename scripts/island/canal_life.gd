@@ -49,6 +49,8 @@ static func lanes() -> Array:
 
 
 var isl
+## (1.27 C4) The smuggling ring, Master Grane's investigation (empty with too few campi).
+var smug_q: Dictionary = {}
 var quest_node: KitQuests
 var people := {}
 var _fader: ColorRect
@@ -258,6 +260,7 @@ func _quests() -> void:
 			{"do": "turnin", "goal": "Tell Ilaria Fiore on the market bridge it's delivered"}]}
 	glass.merge(common)
 	quest_node.add(glass, isl)
+	_smugglers(common)
 	_talk(blessing, oar, glass)
 
 
@@ -281,6 +284,8 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 	_ship_choices(mmenu["choices"], mnodes, true)
 	quest_node.hand_over(blessing, mmenu["choices"], mnodes)
 	mmenu["choices"].append({"text": "Goodbye.", "next": "end"})
+	if not smug_q.is_empty():
+		quest_node.offer(smug_q, mmenu["choices"], mnodes)
 	Dialogue.define(_key("master"), {"speaker": "Master Ottavio Grane", "voice": 0.8, "start": "intro", "return": "menu", "nodes": mnodes})
 	var pmenu := {"text": "Peace on you, Captain.", "choices": []}
 	var pnodes := {"intro": {"text": ["Father Anselm. I bless the hulls, the boats and, when they let me, the sailors."], "next": "menu"}, "menu": pmenu}
@@ -384,3 +389,31 @@ static func _ship_choices(choices: Array, nodes: Dictionary, sells: bool) -> voi
 func _on_lead(ev: String) -> void:
 	if is_instance_valid(isl):
 		CityCaches.sell_lead(ev, "canal", isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "Investigations") The smuggling ring, Master Grane's: the arsenal's stores go missing
+## by night; three crates chalked with the smugglers' mark in the calli, spread over the city, then back to
+## Grane. Half again a quest's XP.
+func _smugglers(common: Dictionary) -> void:
+	var calli: Array = P.floors().filter(func(f): return str(f[0]).contains("_c") and not str(f[0]).ends_with("_campo"))
+	if calli.size() < 3:
+		return
+	var marks := [["Look at the chalked crate", "A crate of the arsenal's own copper nails, chalked with a hook-and-eye. Someone's sorting stolen goods.", "a crate chalked with a hook-and-eye"],
+		["Look at the second crate", "Pitch, the arsenal's, under a sailcloth. The same chalk mark, and a boatman's tally scratched beside it.", "a second chalked crate"],
+		["Search the last crate", "Empty but for a scrap of a ledger: 'the glassworks' back door, Thursdays'. Grane will want to see this.", "the last chalked crate"]]
+	var steps: Array = []
+	for k in range(3):
+		var r: Rect2 = calli[[0, calli.size() / 2, calli.size() - 1][k]][1]
+		var q: Vector2 = r.get_center()
+		steps.append({"do": "pickup", "at": isl.from_city(q), "yaw": 0.0, "search": marks[k][0], "goal": "Find %s in the calli" % marks[k][2], "said": marks[k][1]})
+	steps.append({"do": "turnin", "goal": "Bring the ledger scrap to Master Grane at the arsenal"})
+	smug_q = {"id": _key("inv_smugglers"), "kind": "lost", "giver": "Master Ottavio Grane", "src": "npc", "title": "The smuggling ring",
+		"ask": "You look like a man missing something.", "plea": ["Copper, pitch, good oak. The arsenal's stores walk out of the gates by night and come back on other men's ships.",
+			"The smugglers chalk what they take, so their boatmen know which crates to row away. Find their crates in the lanes. Follow the chalk."],
+		"accept": "I'll follow the chalk.", "decline": "Not my stores.", "taken": "Hook-and-eye, they mark it. Start in the lanes; they leave them where nobody minds a crate.",
+		"remind_choice": "About the smugglers...", "remind": ["Crates chalked with a hook-and-eye, in the lanes. Bring me what they lead to."],
+		"done": "I followed the chalk.", "thanks": ["The glassworks' back door, Thursdays. So it's one of my own, selling out through the furnaces.",
+			"I'll deal with him. You've earned this, and the arsenal's thanks."],
+		"at": steps[0]["at"], "yaw": 0.0, "search": marks[0][0], "reward": {"gold": 150, "xp": 1.5}, "steps": steps}
+	smug_q.merge(common)
+	quest_node.add(smug_q, isl)

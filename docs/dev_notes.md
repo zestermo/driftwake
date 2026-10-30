@@ -8060,3 +8060,5 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **C4 piece 5: the dice dens** (TavernGames.make_at: the villages' dicer and arm-wrestler with no village round them,
   named from DICERS/ARMS, looks from KitStyle.BRINEHOLLOW): "Den_court" in the capital's first courtyard, "Den_campo" in
   the canal city's third campo (the first two hold caches). Same stakes and streak discount. t/capital/dens.
+- **C4 piece 6: the smuggling ring** (CanalLife._smugglers, offered by Master Grane, "xp": 1.5, 150 gold): three crates
+  chalked hook-and-eye in the calli (first, middle, last), then the ledger scrap back to Grane. t/canal/smugglers.
