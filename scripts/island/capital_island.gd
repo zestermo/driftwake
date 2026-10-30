@@ -26,6 +26,8 @@ var city: Node3D
 ## ({"at", "face", "kind"}, frame) and its lamps ([frame Vector3, energy, range, all day]).
 var spots := {}
 var doors: Array = []
+## (1.27) Ladders up to the flat roofs from the lanes: [{"xf": frame Transform3D at its head, "length", "rail"}].
+var ladders: Array = []
 var lights: Array = []
 ## The chimney tops that may smoke (city frame), gathered from the builders in prepare.
 var smoke_tops: Array = []
@@ -90,6 +92,7 @@ func prepare(n: Dictionary) -> void:
 	pieces.append_array(d["pieces"])
 	spots = d["spots"]
 	doors = d["doors"]
+	ladders = d.get("ladders", [])
 	lights = d["lights"]
 	smoke_tops = CapitalModels.smoke_tops.duplicate()
 	CapitalModels.smoke_tops.clear()
@@ -124,6 +127,7 @@ func finish_steps() -> Array:
 	steps.append(["dock", _dock])
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
+	steps.append(["ladders", _ladders])
 	steps.append(["lamps", _lamps])
 	steps.append(["smoke", _smoke])
 	steps.append(["pigeons", _pigeons])
@@ -455,3 +459,14 @@ func _in_stone(at: Vector3, ship: bool) -> bool:
 ## The arena sand's middle (global): where a bout's fighters face off (ArenaBout, 1.21).
 func arena_sand() -> Vector3:
 	return city_global(CapitalPlan.ARENA_C, CapitalPlan.PLAZA_Y + 0.05)
+
+
+## Ladders up the lane houses' fronts onto their flat roofs (CapitalRoofs): a Ladder each, over the parapet at its head.
+func _ladders() -> void:
+	for e in ladders:
+		var lad := Ladder.new()
+		lad.length = float(e["length"])
+		lad.rail = float(e["rail"])
+		lad.deck_depth = 0.9
+		lad.transform = e["xf"]
+		city.add_child(lad)

@@ -108,6 +108,8 @@ static func _houses(out: Dictionary) -> void:
 				(out["doors"] as Array).append(d)
 			i += 1
 		_piece(out, "Town_" + str(key), mb, cols)
+	# (1.27) the roofs made walkable, dressed, planked and laddered
+	CapitalRoofs.build(out, lots())
 
 
 ## Which part of the district a lot belongs to (its mesh), by the floor it fronts or the nearest one.
@@ -185,8 +187,13 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	M.facade_quad(mb, fac, t * Vector3(hw, sill, -hd), t * Vector3(-hw, sill, -hd), g1, (t.basis * Vector3.FORWARD).normalized(), col * 0.96, g1)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, sill + g1, 0)), Vector3(w + 0.16, 0.22, d + 0.16), 0.6, Color(0.9, 0.88, 0.84), false)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, eaves + 0.12, 0)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
-	M.roof(mb, str(l["roof"]), t, w, d, eaves + 0.24, rcol, rng)
+	M.roof(mb, str(l["roof"]), t, w, d, eaves + 0.24, rcol, rng, cols)
 	M.stack(mb, t, w, d, eaves + 0.24, str(l["roof"]), int(l["seed"]))
+	# (1.27) what CapitalRoofs needs to make the roof walkable
+	l["frame"] = t
+	l["wd"] = Vector2(w, d)
+	l["top_y"] = eaves + 0.24
+	l["ground_y"] = top
 	var cell: Rect2 = l["cell"]
 	M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
 	# (behind the door's niche)

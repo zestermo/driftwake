@@ -133,7 +133,7 @@ static func house(mb: MeshBuilder, cols: Array, lot: Dictionary, low: float, top
 	return eaves
 
 
-static func roof(mb: MeshBuilder, kind: String, t: Transform3D, w: float, d: float, y: float, rcol: Color, rng: RandomNumberGenerator) -> void:
+static func roof(mb: MeshBuilder, kind: String, t: Transform3D, w: float, d: float, y: float, rcol: Color, rng: RandomNumberGenerator, cols: Array = []) -> void:
 	var at := t * Transform3D(Basis(), Vector3(0, y, 0))
 	match kind:
 		"hip":
@@ -155,6 +155,7 @@ static func roof(mb: MeshBuilder, kind: String, t: Transform3D, w: float, d: flo
 				var pz := rng.randf_range(-d * 0.25, d * 0.25)
 				var pt := at * Transform3D(Basis(), Vector3(px, 0.0, pz))
 				mb.add_box(mat("lime"), pt * Transform3D(Basis(), Vector3(0, 1.1, 0)), Vector3(2.2, 2.2, 2.2), 0.5, Color(0.96, 0.94, 0.9))
+				box(cols, pt * Transform3D(Basis(), Vector3(0, 1.1, 0)), Vector3(2.2, 2.2, 2.2))
 				_hip(mb, pt * Transform3D(Basis(), Vector3(0, 2.2, 0)), 2.2, 2.2, 0.9, 0.2, rcol)
 
 

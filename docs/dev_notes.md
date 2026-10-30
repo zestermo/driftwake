@@ -7957,3 +7957,23 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   bugs knocked down on any knockdown-flagged hit. Techniques, the ram and the leap still floor. Canister Shot: 18 balls,
   0.62 rad, 14 m, sparks across the cone. FX.cannon_blast smoke 9 puffs / 2 s -> 5 / 1.5 s.
 - **techtest for 1.26:** Cannonball Fist refund check allows the 2 energy of Edy Techniques (master_all has it on); Conqueror's Haki gets the R slot cleared (no ult swap mid-fight), a few ticks after parking, and Intimidate (e_conq_4) switched off so the weak still faint.
+
+## 2026-10-29: 1.27 cities C1 - the capital's rolled streets and rooftops
+- **Rolled streets** (CapitalPlan.floors()/rolled(), seed from CapitalIsland.prepare -> use_seed(node seed)): FLOORS and
+  the landmarks stay; the house grid's 4 m gaps (GAP_X/GAP_Z) form a graph; edges on fixed floors join the spine for
+  free, then a random walk opens 18-24 lanes (30% loops). 3-5 courtyards at crossings, sized to the four blocks' corner
+  lots (lots partly under one are trimmed, slivers dropped); 6-9 alleys (2.4 m) through block middles off a lane (some
+  dead ends; _block splits the two lot rows round them). Everything else follows floors(): fronts, openings' walls,
+  terrain drop, nav faces, district areas. Lane houses keep a massing twin past CapitalDistrict.RANGE ("FarLanes_*",
+  visibility_range_begin) or the skyline shows holes.
+- **Signs**: SIGN_ICONS maps a shop kind to an icon (assets/textures/icons), all in one runtime atlas on one cutout
+  material (one surface); a quarter of lane/court houses are shops. Courtyards dressed (_courts: well, plane tree or
+  fountain, lamp, crates, spots court<i>_<k>).
+- **Rooftops** (CapitalRoofs, after the houses; townhouse records frame/wd/top_y/ground_y on its lot): flat roofs (32% now)
+  solid slabs + parapets and dressed (water tank, crates, washing line, pots, skylight, table and chair); pitched roofs
+  two tilted collider slabs (36 deg, under the captain's 50); planks across lanes between facing flat roofs within
+  1.6 m (steps inside the parapets); ladders up 40% of rolled-lane flat roofs (Ladder nodes, CapitalIsland._ladders).
+  The stair hut on some flat roofs (CapitalModels.roof) now collides.
+- Budgets: district surfaces < 540 (was 420), city meshes < 60 not counting ladders. Tests: t/capital/rooftops (new),
+  district/occluders/shell thresholds. Renders: capitalshot plan, lane, alley_r, court, roof, roofs.
+- Open: a lane running past unbuilt ground shows a long blank barrier wall; interiors (C1c) next.

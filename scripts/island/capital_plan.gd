@@ -522,7 +522,7 @@ static func _block(b: Rect2, rng: RandomNumberGenerator, out: Array, keep: bool)
 				else:
 					face = Vector2(0, -1)
 				break
-			out.append({"r": r, "cell": cell, "c": r.get_center(), "floors": floors, "roof": "flat" if roof_roll < 0.2 else ("gable" if roof_roll < 0.5 else "hip"),
+			out.append({"r": r, "cell": cell, "c": r.get_center(), "floors": floors, "roof": "flat" if roof_roll < 0.32 else ("gable" if roof_roll < 0.6 else "hip"),
 				"face": face, "seed": sd, "front": front, "keep": keep})
 
 

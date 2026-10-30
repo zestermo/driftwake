@@ -141,6 +141,14 @@ func _setup(island) -> void:
 		var r: Rect2 = fl[0][1]
 		var along := Vector2(r.size.x * 0.4, 0) if r.size.x > r.size.y else Vector2(0, r.size.y * 0.4)
 		shots.append([kind, "a rolled " + kind.trim_suffix("_r"), r.get_center() - along, 1.7, r.get_center() + along, 1.8])
+	# (1.27) up on the roofs: from a flat roof across the others, and from above a plank between two
+	var flats: Array = load("res://scripts/island/capital_district.gd").lots().filter(func(l): return l.has("top_y") and str(l["roof"]) == "flat")
+	if not flats.is_empty():
+		var l: Dictionary = flats[flats.size() / 3]
+		var c: Vector2 = l["c"]
+		var h: float = float(l["top_y"]) - CapitalPlan.ground(c)
+		shots.append(["roof", "up on a flat roof", c - (l["face"] as Vector2) * 2.0, h + 1.7, c + (l["face"] as Vector2) * 30.0, h - 2.0])
+		shots.append(["roofs", "the rooftops from above", c - (l["face"] as Vector2) * 14.0, h + 14.0, c + (l["face"] as Vector2) * 6.0, h])
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))
