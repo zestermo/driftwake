@@ -672,3 +672,8 @@ scripts/ui/compass_strip.gd             t/ui/compass_on_foot
 resources/items/tonic_flask.tres        t/food/tonic_flask
 scripts/ui/vendor_marks.gd              t/ui/vendor_marks
 scripts/island/island_life.gd           lifetest
+scripts/island/stronghold_plan.gd       t/stronghold
+scripts/island/stronghold_shell.gd      t/stronghold
+scripts/island/stronghold_island.gd     t/stronghold
+scripts/island/city_undercity.gd        t/canal/undercity t/capital/catacombs
+scripts/island/capital_crowd.gd         t/capital/night

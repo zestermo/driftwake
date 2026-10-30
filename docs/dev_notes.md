@@ -8194,3 +8194,31 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   `lantern_pos` and `is_out`, not the MultiMesh.
 - Test: t/capital/night. Render: capitalshot with CSHOT_HOUR=21.5.
 - Not yet: lamplighters at dusk, shutters on shops, the inns busier at night.
+
+## 1.27 build step 1: the stronghold, the place (blockout) (2026-10-30)
+- **Off the chain** (Zach: optional, missable, skippable):
+  - `Chain._add_stronghold` runs after every other roll, from its own rng (`hash([seed, "stronghold"])`), so no island
+    changes.
+  - The node is `chain.stronghold`, not in `nodes`: nothing that walks the chain sees it (chaintest's "every island
+    reachable", BeastPool, KitSetPieces).
+  - Its id is STRONGHOLD_ID 1000 (`node(1000)` returns it); `next` is empty and nothing leads to it.
+  - It sits 1.4-2 km out to the side of the canal city, 1.1 km clear of every island. Names are from
+    STRONGHOLD_NAMES by the chain seed.
+- `Chain.learn_stronghold` / `stronghold_known`: the world flag "stronghold_known", set on landing so far. Orders,
+  rumours and the Queen set it later.
+- **WorldGenerator:** `_wanted` adds the stronghold while a captain is within STRONGHOLD_NEAR 1300 m (1600 m to let it
+  go), so a ship can stumble on it, known or not. It's never chain_at, so arriving doesn't move the log pose.
+- **StrongholdPlan** (data):
+  - The districts are rects at their heights: the Landing 1.6, the Ward 12, the Arsenal and Prison 14, the Keep 30.
+  - The ways: the grand stair, the ramps, and the Bridge of Judgement over the CHASM (open sea under it: the terrain
+    leaves it unraised).
+  - The rock falls in cliffs (CLIFF 1.6).
+- **StrongholdShell:** paving, the ways (steps over ramp colliders, the bridge deck on piers, parapets), the curtain
+  walls cut at the ways with towers and two gatehouses, and solid halls, the foundry, the prison tower, the keep and
+  the spire.
+- **StrongholdIsland** extends CapitalIsland, like CanalIsland. A banner on landing.
+- Test: t/stronghold/place (off the route and clear, every district/way walked, the chasm open, the pieces stand).
+  Render: tools/dev/strongholdshot.gd.
+- **Next:** interiors and encounter rooms, the garrison and respawns, the alarm, the flags, the Vice Admiral, the
+  broadcast and the Scouring. Also finding it (orders, rumours), the chart, and its own look (theme/style; it borrows
+  the capital's for now). Stray red diagonal lines in the renders (likely tower banners) to look at.

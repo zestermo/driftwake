@@ -29,3 +29,5 @@ scripts/island/kit/kit_cliff_path.gd:mesh | build timing (build_ms: the den path
 scripts/island/canal_island.gd | build timing (build_ms) per step
 scripts/island/canal_shell.gd | build timing (build_ms) per shell piece
 scripts/island/canal_district.gd | build timing (build_ms) per district piece
+scripts/island/stronghold_island.gd | build timing (build_ms) per step
+scripts/island/stronghold_shell.gd | build timing (build_ms) per shell piece

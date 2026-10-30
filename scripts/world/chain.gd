@@ -29,6 +29,13 @@ const APART := 1150.0
 ## The island radius the legs, forks and APART are sized for (the jungle's top end): a theme whose islands
 ## reach further (ThemeDef.radius) pushes its fork partner and the next layer out by the difference.
 const BASE_R := 450.0
+## (1.27) The stronghold off the chain: how far out to the side of the canal city's layer, and its clearance from every
+## island; its names (one per chain, from the chain seed).
+const STRONGHOLD_OFF := [1400.0, 2000.0]
+const STRONGHOLD_CLEAR := 1100.0
+const STRONGHOLD_ID := 1000
+const STRONGHOLD_NAMES := ["Gallowmere Bastion", "Saltmarch Citadel", "Ironveil Hold", "Graveshoal Keep", "Bellweather Fort",
+	"Coldharrow Bastion", "Thornwick Battery", "Saint Odran's Rock"]
 
 ## (the themes, their names and blurbs are the registry's: IslandThemes, in its declared order)
 const ISLE_WORDS := ["Isle", "Island", "Key", "Atoll", "Rock"]
@@ -43,6 +50,9 @@ const CANAL_NAMES := ["Saltmere", "Lantern Reach", "Brackwater"]
 var seed_value: int
 ## Index = node id: {id, sea, layer, branch, theme, role, level, seed, pos, name, next}
 var nodes: Array = []
+## (1.27) The Admiralty's stronghold, off the chain: not one of `nodes` (nothing that walks the chain sees it), its id
+## STRONGHOLD_ID; {} in a chain without one.
+var stronghold: Dictionary = {}
 ## Where Brinehollow's sea leads (the first layer's ids).
 var start_next: Array = []
 
@@ -55,6 +65,8 @@ static func make(chain_seed: int, origin: Vector2, heading: Vector2) -> Chain:
 
 
 func node(id: int) -> Dictionary:
+	if id == STRONGHOLD_ID:
+		return stronghold
 	return nodes[id]
 
 
@@ -145,6 +157,58 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		prev = ids
 	KitSetPieces.assign(self)
 	BeastPool.assign(self)
+	_add_stronghold()
+
+
+## (1.27) The Admiralty's stronghold: an island off the chain (docs/v1_27_raids_fruits_plan.md), added after every
+## other roll from its own stream, so no island before it changes. Out to the side of the route by the canal city's
+## layer, clear of every island; nothing's "next" leads to it and it leads nowhere: optional, missable, found by
+## sailing near it or hearing of it (stronghold_known).
+func _add_stronghold() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_value, "stronghold"])
+	var canal: Dictionary = {}
+	for n in nodes:
+		if n.get("canal", false):
+			canal = n
+	if canal.is_empty():
+		return
+	var face: Vector2 = canal.get("face", Vector2(0, 1))
+	var side := Vector2(-face.y, face.x) * (1.0 if rng.randf() < 0.5 else -1.0)
+	var at: Vector2 = canal["pos"] + side * rng.randf_range(STRONGHOLD_OFF[0], STRONGHOLD_OFF[1]) - face * rng.randf_range(-600.0, 600.0)
+	# (pushed further out until it's clear of every island)
+	for _i in range(40):
+		var near := nodes.any(func(o): return (o["pos"] as Vector2).distance_to(at) < STRONGHOLD_CLEAR)
+		if not near:
+			break
+		at += side * 150.0
+	var n := {
+		"id": STRONGHOLD_ID, "sea": 1, "layer": int(canal["layer"]), "branch": 9, "theme": canal["theme"], "role": "stronghold",
+		"level": int(canal["level"]) + 4, "seed": rng.randi(), "pos": at, "next": [], "stronghold": true,
+		"face": (at - (canal["pos"] as Vector2)).normalized(), "chain": seed_value, "base": "", "name": stronghold_name(seed_value),
+	}
+	stronghold = n
+
+
+## The stronghold's node id (STRONGHOLD_ID), or -1.
+func stronghold_id() -> int:
+	return -1 if stronghold.is_empty() else STRONGHOLD_ID
+
+
+static func stronghold_name(chain_seed: int) -> String:
+	return STRONGHOLD_NAMES[posmod(hash([chain_seed, "stronghold"]), STRONGHOLD_NAMES.size())]
+
+
+## The crew has heard of (or found) the stronghold: on the chart from now on, for everyone (a world flag).
+static func learn_stronghold(tree: SceneTree, _how: String) -> void:
+	var gm := tree.root.get_node_or_null("/root/GameManager")
+	if gm and not gm.world_flags.has("stronghold_known"):
+		tree.root.get_node("/root/Net").world_flag("stronghold_known")
+
+
+static func stronghold_known(tree: SceneTree) -> bool:
+	var gm := tree.root.get_node_or_null("/root/GameManager")
+	return gm != null and gm.world_flags.has("stronghold_known")
 
 
 ## `dir` turned as little as it takes for a leg from `at` to end inside RING with
@@ -282,6 +346,8 @@ static func describe(n: Dictionary) -> String:
 		return "The royal capital  Lv %d" % int(n["level"])
 	if n.get("canal", false):
 		return "The canal city  Lv %d" % int(n["level"])
+	if n.get("stronghold", false):
+		return "The Admiralty's stronghold  Lv %d" % int(n["level"])
 	var kind: String = IslandThemes.of(n["theme"]).display
 	match str(n["role"]):
 		"city":

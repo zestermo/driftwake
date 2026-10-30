@@ -36,6 +36,8 @@ var _built_seed := 0
 ## (a whole island in one queue_free was a 150-270 ms frame: 10-14k nodes).
 var _freeing: Array = []
 const FREE_US := 2500
+## (1.27) How near a captain sails before the stronghold (off the chain) is built.
+const STRONGHOLD_NEAR := 1300.0
 
 
 func _ready() -> void:
@@ -127,6 +129,17 @@ func _wanted() -> Array:
 	var want: Array = chain().next_of(at).duplicate() if gm.log_pose_set() else []
 	if at >= 0:
 		want.append(at)
+	# (1.27) the stronghold, off the chain: built while a captain is near it, whether the crew's heard of it or not
+	var sid := chain().stronghold_id()
+	if sid >= 0 and not want.has(sid):
+		var sp: Vector2 = chain().node(sid)["pos"]
+		# (300 m more before it's let go than before it's built: no flapping at the edge)
+		var reach := STRONGHOLD_NEAR + (300.0 if chain_islands.has(sid) or _pending.has(sid) or _finishing.has(sid) else 0.0)
+		for p in Net.all_players():
+			var pp := (p as Node3D).global_position
+			if Vector2(pp.x, pp.z).distance_to(sp) < reach:
+				want.append(sid)
+				break
 	return want
 
 
@@ -147,7 +160,9 @@ func _check_arrival() -> void:
 
 func _start_chain_island(n: Dictionary) -> void:
 	var isl: GenIsland
-	if n.get("capital", false):
+	if n.get("stronghold", false):
+		isl = StrongholdIsland.new()
+	elif n.get("capital", false):
 		isl = CapitalIsland.new()
 	elif n.get("canal", false):
 		isl = CanalIsland.new()

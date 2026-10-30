@@ -59,3 +59,15 @@ func build_canal(at: Vector3) -> Node3D:
 	isl.build(n)
 	chain_islands[int(n["id"])] = isl
 	return isl
+
+
+## (1.27) The Admiralty's stronghold (StrongholdIsland), off the chain, built here.
+func build_stronghold(at: Vector3) -> Node3D:
+	var n: Dictionary = c.node(c.stronghold_id())
+	var isl = load("res://scripts/island/stronghold_island.gd").new()
+	isl.name = "Isle%d" % int(n["id"])
+	isl.position = at
+	get_parent().add_child(isl)
+	isl.build(n)
+	chain_islands[int(n["id"])] = isl
+	return isl
