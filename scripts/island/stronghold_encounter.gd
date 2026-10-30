@@ -135,15 +135,22 @@ func _update_door() -> void:
 
 ## The grate across the door's gap (iron bars and two cross bars), its collider on layer 1 while it's down.
 func _build_door() -> void:
+	_door = make_grate(rm)
+	add_child(_door)
+
+
+## A grate for room rm's door (a StaticBody3D in the room's frame, its middle on the floor), up (hidden, no collision)
+## to begin with: StrongholdBoss's arenas use it too.
+static func make_grate(rm: Array) -> StaticBody3D:
 	var r: Rect2 = rm[2]
 	var door: Vector2 = rm[5]
 	var dw: float = rm[6]
 	var dh := minf(float(rm[4]) * 0.6, 9.0)
-	_door = StaticBody3D.new()
-	_door.name = "Grate"
+	var door_b := StaticBody3D.new()
+	door_b.name = "Grate"
 	var half := (r.size.x if absf(door.x) > 0.5 else r.size.y) * 0.5 - 0.6
-	_door.position = Vector3(door.x * half, 0.0, door.y * half)
-	_door.rotation.y = atan2(door.x, door.y)
+	door_b.position = Vector3(door.x * half, 0.0, door.y * half)
+	door_b.rotation.y = atan2(door.x, door.y)
 	var mb := MeshBuilder.new()
 	mb.all_faces = true
 	var iron := PSXMat.lit("metal", Color(0.3, 0.31, 0.34))
@@ -152,13 +159,13 @@ func _build_door() -> void:
 		mb.add_box(iron, Transform3D(Basis(), Vector3(-dw * 0.5 + k * dw / bars, dh * 0.5, 0)), Vector3(0.12, dh, 0.12), 0.5)
 	for y: float in [dh * 0.3, dh * 0.7]:
 		mb.add_box(iron, Transform3D(Basis(), Vector3(0, y, 0)), Vector3(dw, 0.14, 0.14), 0.5)
-	_door.add_child(mb.to_instance("Bars"))
+	door_b.add_child(mb.to_instance("Bars"))
 	var cs := CollisionShape3D.new()
 	var sh := BoxShape3D.new()
 	sh.size = Vector3(dw + 0.2, dh, 0.4)
 	cs.shape = sh
 	cs.position = Vector3(0, dh * 0.5, 0)
-	_door.add_child(cs)
-	_door.visible = false
-	_door.collision_layer = 0
-	add_child(_door)
+	door_b.add_child(cs)
+	door_b.visible = false
+	door_b.collision_layer = 0
+	return door_b

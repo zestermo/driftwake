@@ -50,7 +50,7 @@ func _process(_d: float) -> bool:
 			if s.is_empty():
 				return TK.done(fails)
 			var o = s[0]
-			check("...a captain-style AI on the captains, detuned (%.0f health)" % o.health_component.max_health, o.is_ai and o.get_node("Brain").order == "fight" and o.health_component.max_health > 0.0)
+			check("...a captain-style AI on the captains, detuned (%.0f health)" % o.health_component.max_health, o.is_ai and o.get_node("Brain").order == "fight" and o.health_component.max_health < 100.0)
 			# the other districts in turn
 			for key in ["landing", "arsenal", "prison", "keep"]:
 				off.spawn_near(isl.city.get_node("Garrison_" + key))

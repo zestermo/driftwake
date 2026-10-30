@@ -93,7 +93,9 @@ func spawn_near(camp: Node3D) -> Player:
 	var r := isl.city.get_node_or_null(oname) as Player
 	if r == null:
 		return null
-	r.health_component.max_health *= HEALTH
+	# (health from hp_k, as the rivals': the stats recalc would undo a max_health set by hand)
+	r.hp_k = HEALTH
+	r._recalc_stats()
 	r.health_component.current_health = r.health_component.max_health
 	var brain := r.get_node_or_null("Brain")
 	if brain:

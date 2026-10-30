@@ -8308,3 +8308,16 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - The brain's "fight" order picks the nearest captain. A beaten officer stays down (Player.defeated).
   - Test: t/stronghold/officers (none before you're near, one as you reach a district, five at most, a beaten one makes
     room). Tests mustn't type `Player` (it touches autoloads).
+- (same day) **Lieutenant Varro Kesh** (StrongholdBoss, made by StrongholdGarrison.build; BOSSES holds each boss's room,
+  name, weapon and off-hand, health multiple, skill, seal and phase-2 threshold):
+  - A captain-style AI via Net._all_spawn_rival when a captain walks into the Casting Hall. Cutlass and pistol
+    (set_offhand), the full kit (skill 0.85), 6x a rival's health.
+  - **Set health through `hp_k` and `_recalc_stats()`** (the rivals' way): a max_health set by hand is undone by the
+    stats recalc. This also fixed the officers, which had been on 100.
+  - The world flags "sh_kesh_on", "sh_kesh_p2" (at 50%) and "sh_seal_arsenal" are all clients need. The room's grate
+    (StrongholdEncounter.make_grate, now shared) is down while the fight is on.
+  - **Phase 2's molten channels:** three strips across the floor, one live at a time per CYCLE 6 s (WARN 1.5 s glow,
+    BURN 3 s), timed from Ocean.clock on every machine. They hurt only the local captain (18 dps as dot hits).
+  - Test: t/stronghold/kesh.
+- Next: Captain Marrow (the Prison Tower, seal 2: a seastone net, a cell block opened at 50%, catwalks). Then the keep
+  gate's barrier on the two seals, and the Commodore's three phases.

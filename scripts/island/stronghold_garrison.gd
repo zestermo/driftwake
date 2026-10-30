@@ -40,8 +40,13 @@ static func build(isl: Node3D) -> Array:
 		out.append(enc)
 		if baker:
 			baker.add_zone(enc, 24.0, false, isl.nav_faces)
+	# the bosses in their arenas (StrongholdBoss): Lieutenant Kesh in the Casting Hall so far
+	for bkey in StrongholdBoss.BOSSES:
+		var boss := StrongholdBoss.new().setup(isl, str(bkey))
+		isl.city.add_child(boss)
+		out.append(boss)
 	# the officers sprinkled in: one per district as you reach it, then a chance with each new wave (StrongholdOfficers)
-	var off := StrongholdOfficers.new().setup(isl, out.duplicate())
+	var off := StrongholdOfficers.new().setup(isl, out.filter(func(c): return c is GruntCamp))
 	isl.city.add_child(off)
 	out.append(off)
 	return out
