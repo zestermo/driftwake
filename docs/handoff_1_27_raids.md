@@ -270,3 +270,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
     - Each of its five powers gets a Skills.ALL entry for its Active form.
     - Its Reflex and Nature behaviours sit in the player's hit and dodge paths, reading FruitForms.form(pr, id, "ember").
     - The tree is in skill_trees.gd `_build_ember`, rebuilt to the plan's shape.
+- (latest) **Ember's Flame Body is the first power with its three forms** (Flicker, Skills.ALL plus the e_flicker node;
+  Player._flame_body). It's the template for the rest of Ember's powers (Fire Fist, Blaze Step flight, Fire Ring, Pillar
+  of Flame), then the other fruits.
+  - Every new active skill needs a tree node (t/progression/tree_shape checks it).
