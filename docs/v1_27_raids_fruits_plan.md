@@ -450,3 +450,69 @@ The other five follow the same pattern:
 | Awakening | **At mastery 30 alone**; no trial quest | Zach's pick | - |
 | The model | Preview's: 5 powers a fruit, Active / Reflex / Nature, the awakened state for 30 s with a permanent passive | - | - |
 Next for fruits: the five powers and their three forms for each of the six fruits (Ember's done above), then build step 3.
+
+## The six fruit kits (preview, 2026-10-30; for Zach's OK)
+In fruit stance (V):
+- **LMB** is the fruit's light chain and **RMB** its heavy.
+- **Q/E/R** hold three of the five powers. The other two sit on the stance's **Shift+Q / Shift+E**, or become Nature and
+  leave the bar.
+- Forms: **I** Active, **II** Reflex (fires by itself; 150 uses and mastery 12), **III** Nature (always on; 400 uses and
+  mastery 24).
+- Ember's table is above.
+
+### Storm (logia, legendary): the Lagoon Prince's
+Stance attacks: LMB crackling jabs that chain 2 m to a second foe; RMB a thunderclap palm (stagger, ring).
+| Power | I | II | III |
+|---|---|---|---|
+| **Thunder Step** | A 9 m blink, leaving a spark trail that shocks | After a dodge, a free blink toward the nearest foe | Your dash is a blink, and passes through thin walls |
+| **Chain Lightning** | A bolt that jumps 4 foes | It leaps from you to anyone who hits you | Every 4th stance hit chains by itself |
+| **Thundercloud** | A cloud for 8 s, striking a random foe each second | It forms over you when your health falls under 30% | A small cloud follows you, striking now and then |
+| **Static Guard** | 3 s: melee attackers are shocked and stunned | A perfect block shocks the attacker | Guns misfire near you (25%) |
+| **Lightning Flight** | Ride a bolt 15 m upward and across | Hover in a storm (the weather's) | **Hold Space: fly as lightning** (energy) |
+Awakened, "Tempest Crown": the weather turns to storm around you, bolts strike every foe you mark, and flight is free.
+
+### Iron (paramecia, solid): the tank
+Stance attacks: LMB heavy iron punches (slow, big poise damage); RMB an iron-shoulder charge.
+| Power | I | II | III |
+|---|---|---|---|
+| **Iron Guard** | 3 s: no stagger, half damage | It hardens by itself against a heavy or technique (8 s inner cooldown) | Nothing below a technique staggers you |
+| **Iron Fist** | A charged punch that breaks guards and shields | Your parries hit back with it | Every finisher breaks a guard |
+| **Cannonball Dive** | Leap and crash down (ring, knockdown) | A fall of over 4 m lands as one | Your landing from any jump shocks the ground |
+| **Anvil** | Drop an iron anvil on a marked foe | It drops on anyone who grabs you | Grabs and shoves can't move you |
+| **Iron Skin** | 10 s: bullets bounce off | It covers you by itself for 2 s when shot from behind | Bullets do half damage, always |
+Awakened, "Living Fortress": you go wholly iron for 30 s, every blow lands as an Iron Fist, and you walk through
+cannonfire.
+(Iron sinks like a stone in the sea: the deep-water weakness is worse for it, a 20 s breath meter.)
+
+### Wolf (zoan, solid)
+Stance = the hybrid form (today's V): LMB claws, RMB a lunging bite.
+| Power | I | II | III |
+|---|---|---|---|
+| **Pounce** | Leap 8 m onto a foe, pinning them for 1.5 s | Pounce onto anyone fleeing at low health | Your sprint attack is a pounce |
+| **Howl** | The crew gets +15% damage and fear shakes nearby grunts | It howls by itself when a crewmate goes down | Crewmates near you deal +5% always |
+| **Scent** | Marks every foe and cache within 40 m for 10 s | Hidden foes nearby are always marked | You see tracks: enemies' trails and buried caches |
+| **Rending Fang** | A bleeding bite combo | Bites bleed on crits by themselves | Every claw hit bleeds |
+| **Moon Leap** | A huge leap (wall tops, rooftops) | A double jump | You climb walls in the hybrid form |
+Awakened, "Full Moon": a full wolf for 30 s, huge and fast; every hit tears.
+
+### Vine (paramecia, solid)
+Stance attacks: LMB vine whips (reach 4 m); RMB a vine yank that pulls a foe in.
+| Power | I | II | III |
+|---|---|---|---|
+| **Vine Snare** | Roots a foe for 2 s | Snares whoever hits you (6 s inner cooldown) | Your stance hits slow their target |
+| **Vine Swing** | A vine grapple to any surface | You catch yourself on a vine when falling | Grapple anywhere, at no energy cost |
+| **Thorn Wall** | A wall of thorns that blocks and cuts | Thorns rise round you when you're surrounded (4+ foes) | You trail thorns as you dodge |
+| **Strangler Grove** | A patch that roots and strangles | It spreads from every fallen foe | Plants near you heal you |
+| **Photosynthesis** | 6 s: heal fast in sunlight | Heals by itself out of combat (today's passive) | Sunlight always heals you slowly, in combat too |
+Awakened, "Verdant Lord": the ground round you grows a forest for 30 s that fights at your side.
+
+### Bubble (paramecia, joke but useful)
+Stance attacks: LMB soap bubbles that pop (small damage, a slip chance); RMB a big bubble that traps a grunt for 2 s.
+| Power | I | II | III |
+|---|---|---|---|
+| **Slick Floor** | A soapy patch where foes slip and fall | You leave suds when you dodge | Foes that chase you slip now and then |
+| **Bubble Float** | Float in a bubble for 4 s (over water too) | Falls become a slow float | You can cross water in a bubble (but not dive) |
+| **Bubble Shield** | Absorbs the next 3 hits | A shield forms by itself when you're downed once a fight | One hit in five pops a bubble instead of you |
+| **Scrub** | Washes buffs off a foe and burning off you | It scrubs a debuff off you by itself | Burning and bleeding never stick to you |
+| **Foam Flood** | A wave of foam knocks foes down and away | Popped bubbles leave foam | Your footprints foam (foes slip on your trail) |
+Awakened, "Bath Time": the area floods with foam for 30 s; foes slip constantly, and you skate.
