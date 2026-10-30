@@ -13,6 +13,9 @@ const M := preload("res://scripts/island/capital_models.gd")
 const RANGE := 320.0
 const FAR := 900.0
 const SHOP_KINDS := ["baker", "cloth", "spice", "potter", "jeweller", "chart", "fruit", "wine", "tailor", "books"]
+## (1.27) Each kind's sign: an icon (assets/textures/icons) painted on its board.
+const SIGN_ICONS := {"baker": "flour", "cloth": "canvas", "spice": "pepper", "potter": "salt", "jeweller": "pearl", "chart": "treasure",
+	"fruit": "tangerine", "tailor": "plume", "books": "ivory", "fish": "fish", "cook": "stew", "smith": "cutlass", "grocer": "citrus_tart"}
 const AWNINGS := ["awning_blue", "awning_red", "awning_gold", "awning_green"]
 ## Door paints (a door leaf keeps its picture exact, so each paint is a surface of its own: a few only).
 const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36, 0.3), Color(0.5, 0.2, 0.16)]
@@ -22,7 +25,7 @@ const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36,
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": [], "cells": P.lots().map(func(l): return l["cell"])}
 	for step in [["houses", _houses], ["specials", _specials], ["plaza", _plaza], ["street", _street], ["quay", _quay],
-			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena]]:
+			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena], ["courts", _courts]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -96,6 +99,9 @@ static func _houses(out: Dictionary) -> void:
 			var kind := ""
 			if key in ["street", "plaza", "arena_st", "avenue"] and l["front"]:
 				kind = SHOP_KINDS[(int(l["seed"]) >> 3) % SHOP_KINDS.size()] if i % 3 != 2 else ""
+			# (1.27) the rolled lanes and courtyards: a shop now and then among the homes
+			elif key in ["lane", "court"] and l["front"] and (int(l["seed"]) >> 5) % 4 == 0:
+				kind = SHOP_KINDS[(int(l["seed"]) >> 3) % SHOP_KINDS.size()]
 			var d := warehouse(mb, cols, l) if key == "docks" else townhouse(mb, cols, l, kind, key == "slum")
 			var at: Vector3 = d["at"]
 			if l["front"] and P.in_floor(Vector2(at.x, at.z)):
@@ -332,14 +338,22 @@ static func _sign(mb: MeshBuilder, t: Transform3D, kind: String, rng: RandomNumb
 	var iron := M.mat("iron")
 	mb.add_box(iron, t * Transform3D(Basis(), Vector3(0, 0, 0.45)), Vector3(0.06, 0.06, 0.9), 1.0, Color.WHITE, false)
 	Buildings.beam_between(mb, iron, t * Vector3(0, -0.35, 0.02), t * Vector3(0, 0, 0.6), 0.04)
-	var tex := "sign_tavern" if kind == "wine" else ("sign_fish" if kind == "fruit" else "")
 	var col: Color = (CapitalStyle.STYLE["pennants"] as Array)[rng.randi() % 4]
 	var board := t * Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, -0.45, 0.62))
-	if tex != "":
-		mb.add_box_unit_uv(PSXMat.lit(tex, Color.WHITE, {"vertex_color": false}), board, Vector3(0.75, 0.62, 0.05))
-	else:
-		mb.add_box(PSXMat.lit("planks", col), board, Vector3(0.75, 0.62, 0.05), 1.0, Color.WHITE, false)
-		mb.add_box(M.mat("gold"), board * Transform3D(Basis(), Vector3(0, 0, 0.0)), Vector3(0.4, 0.3, 0.07), 1.0, Color.WHITE, false)
+	if kind == "wine":
+		mb.add_box_unit_uv(PSXMat.lit("sign_tavern", Color.WHITE, {"vertex_color": false}), board, Vector3(0.75, 0.62, 0.05))
+		return
+	mb.add_box(PSXMat.lit("planks", col), board, Vector3(0.75, 0.62, 0.05), 1.0, Color.WHITE, false)
+	# (1.27) the trade's own sign painted on both faces: the same pictures as the vendors' badges, so a shop reads at a
+	# glance (the fruit seller hung a fish before)
+	var sm := _sign_mat(str(SIGN_ICONS.get(kind, "biscuit")))
+	var m: ShaderMaterial = sm[0]
+	var u: Rect2 = sm[1]
+	for s in [1.0, -1.0]:
+		var z: float = 0.03 * s
+		var hw: float = 0.24 * s
+		mb.add_quad(m, board * Vector3(-hw, 0.24, z), board * Vector3(hw, 0.24, z), board * Vector3(hw, -0.24, z), board * Vector3(-hw, -0.24, z),
+			u.position, Vector2(u.end.x, u.position.y), u.end, Vector2(u.position.x, u.end.y), Color.WHITE, (board.basis * Vector3(0, 0, s)).normalized())
 
 
 ## A balcony: a stone slab on brackets and an iron railing (frame `t` at the wall face, its floor level, +z out).
@@ -1370,3 +1384,84 @@ static func _arena(out: Dictionary) -> void:
 	_piece(out, "ArenaCrowd", mb, [], RANGE, false)
 	var mq := Vector2(c.x - r.x * P.arena_inner() + 2.6, c.y - 3.2)
 	_spot(out, "arena_master", mq, P.ground(mq), Vector2(-1, 0))
+
+
+static var _sign_atlas: ShaderMaterial
+static var _sign_cells := {}
+const SIGN_CELL := 32
+
+
+## Every sign's picture in one atlas (the icons from assets/textures/icons, 4 a row) on one cutout material: one surface
+## for all the city's signs. Returns [material, the icon's uv rect].
+static func _sign_mat(icon: String) -> Array:
+	if _sign_atlas == null:
+		var names: Array = SIGN_ICONS.values()
+		names.append("biscuit")
+		var uniq: Array = []
+		for n in names:
+			if not (n in uniq):
+				uniq.append(n)
+		var rows := ceili(uniq.size() / 4.0)
+		var img := Image.create(SIGN_CELL * 4, SIGN_CELL * rows, false, Image.FORMAT_RGBA8)
+		for k in range(uniq.size()):
+			var src := (load("res://assets/textures/icons/%s.png" % uniq[k]) as Texture2D).get_image()
+			src.decompress()
+			src.convert(Image.FORMAT_RGBA8)
+			src.resize(SIGN_CELL, SIGN_CELL, Image.INTERPOLATE_NEAREST)
+			img.blit_rect(src, Rect2i(0, 0, SIGN_CELL, SIGN_CELL), Vector2i((k % 4) * SIGN_CELL, (k / 4) * SIGN_CELL))
+			_sign_cells[uniq[k]] = Rect2(float(k % 4) / 4.0, float(k / 4) / rows, 0.25, 1.0 / rows)
+		var m := PSXMat.cutout("").duplicate() as ShaderMaterial
+		m.set_shader_parameter("albedo_tex", ImageTexture.create_from_image(img))
+		_sign_atlas = m
+	return [_sign_atlas, _sign_cells.get(icon, _sign_cells["biscuit"])]
+
+
+# --------------------------------------------------------------------------
+# The rolled courtyards (1.27): each its own heart, rolled from its place: a well, a plane tree in a stone planter, or a
+# small fountain; a lamp at a corner (unlit: the light budget is the plaza's), benches, tubs and crates round the edge.
+# --------------------------------------------------------------------------
+static func _courts(out: Dictionary) -> void:
+	var mb := MeshBuilder.new()
+	var cols: Array = []
+	var lime := M.mat("lime")
+	var i := 0
+	for f in P.rolled():
+		if str(f[0]) != "court":
+			continue
+		var r: Rect2 = f[1]
+		var c := r.get_center()
+		var y := P.ground(c)
+		var rng := _rng(int(c.x * 31.0 + c.y * 7.0) + 90001)
+		match rng.randi() % 3:
+			0:
+				# a well: a round stone curb, two posts and a beam with its bucket
+				mb.add_cylinder(lime, M.xf(M.v3(c, y)), 1.1, 1.1, 0.8, 12, 0.6, Color(0.86, 0.84, 0.8), true)
+				mb.add_cylinder(PSXMat.flat(Color(0.08, 0.1, 0.12)), M.xf(M.v3(c, y + 0.78)), 0.85, 0.85, 0.02, 12, 0.5)
+				for sx in [-1.0, 1.0]:
+					mb.add_box(M.mat("beam"), M.xf(M.v3(c + Vector2(sx * 0.95, 0), y + 1.2)), Vector3(0.14, 2.4, 0.14), 0.5, Color.WHITE)
+				mb.add_box(M.mat("beam"), M.xf(M.v3(c, y + 2.35)), Vector3(2.1, 0.14, 0.14), 0.5, Color.WHITE)
+				M.cyl(cols, M.v3(c, y), 1.1, 0.9)
+			1:
+				mb.add_cylinder(lime, M.xf(M.v3(c, y)), 1.5, 1.5, 0.6, 12, 0.6, Color(0.92, 0.9, 0.86), true)
+				_plane_tree(mb, M.v3(c, y + 0.5), rng)
+				M.cyl(cols, M.v3(c, y), 1.5, 0.6)
+				M.cyl(cols, M.v3(c, y), 0.35, 3.0)
+			_:
+				mb.add_cylinder(lime, M.xf(M.v3(c, y)), 1.9, 1.9, 0.6, 14, 0.5, Color(0.94, 0.92, 0.88), true, false)
+				mb.add_cylinder(PSXMat.flat(Color(0.3, 0.5, 0.6)), M.xf(M.v3(c, y + 0.5)), 1.7, 1.7, 0.02, 14, 0.5)
+				mb.add_cylinder(lime, M.xf(M.v3(c, y + 0.5)), 0.3, 0.25, 1.1, 8, 0.5, Color(0.92, 0.9, 0.86))
+				M.cyl(cols, M.v3(c, y), 1.9, 0.8)
+		# a lamp at one corner, tubs and crates against the walls
+		var corner := Vector2(r.size.x * 0.5 - 1.6, r.size.y * 0.5 - 1.6) * Vector2(1.0 if rng.randf() < 0.5 else -1.0, 1.0 if rng.randf() < 0.5 else -1.0)
+		lamp_post(mb, cols, c + corner, y, rng.randf() * TAU)
+		for k in range(rng.randi_range(3, 6)):
+			var side := rng.randi() % 4
+			var t := rng.randf_range(-0.35, 0.35)
+			var p := c + (Vector2(t * r.size.x, (r.size.y * 0.5 - 0.9) * (1.0 if side == 0 else -1.0)) if side < 2 else Vector2((r.size.x * 0.5 - 0.9) * (1.0 if side == 2 else -1.0), t * r.size.y))
+			var prop := Props.barrel() if k % 3 == 0 else Props.crate(0.7)
+			absorb(mb, cols, prop, M.xf(M.v3(p, P.ground(p)), rng.randf() * TAU))
+		for k in range(2):
+			var a := rng.randf() * TAU
+			_spot(out, "court%d_%d" % [i, k], c + Vector2(cos(a), sin(a)) * 3.2, y, -Vector2(cos(a), sin(a)))
+		i += 1
+	_piece(out, "Courts", mb, cols)

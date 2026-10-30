@@ -83,7 +83,7 @@ func _process(_d: float) -> bool:
 				var key := str(mi.get_parent().name)
 				by[key] = int(by.get(key, 0)) + (mi as MeshInstance3D).mesh.get_surface_count()
 			print("   surfaces by piece: %s" % by)
-			check("the city's surfaces stay few (%d; 1.27: the rolled lanes' houses add ~40)" % draws, draws < 500)
+			check("the city's surfaces stay few (%d; 1.27: the rolled lanes' and courtyards' houses add ~80)" % draws, draws < 540)
 			isl.queue_free()
 			return TK.done(fails)
 	step += 1

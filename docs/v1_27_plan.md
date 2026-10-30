@@ -62,6 +62,10 @@ wrong storefront signs, nothing to do, and no reason to meet the Queen. They get
 ### Cities build order (unstable 1.26.x steps, before the stronghold)
 C1. **Capital layout:** the rolled street/alley network round fixed landmarks, denser taller blocks, the market circle
     gone, the right signs, shops and homes enterable (the kit's rooms, stairs and roofs).
+C1b. **Rooftops (Zach, 2026-10-29: "players will reach the roofs; make it polished, walkable, detailed"):** flat roofs and
+    terraces you can walk on (parapets, chimneys, water tanks, laundry, potted plants, skylights, pigeons), planks and
+    small bridges between neighbouring roofs, ladders, outside stairs and drainpipes up from lanes and courtyards,
+    pitched roofs with walkable ridges where they meet flat ones; a rooftop route across each district.
 C2. **Capital set pieces:** bell tower + the informant, cathedral and crypt, library, theatre, gardens and maze, the
     undercity.
 C3. **Canal city layout and set pieces:** the same treatment on the lagoon (rolled calli and bridges), the Doge's

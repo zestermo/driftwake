@@ -274,7 +274,7 @@ static func _massing(out: Array) -> void:
 		if l["front"] and not _on_rolled(l):
 			continue
 		if l["front"]:
-			var fk := Vector2i(floori(l["c"].x / CHUNK), floori(l["c"].y / CHUNK))
+			var fk := Vector2i(floori(l["c"].x / (CHUNK * 2.5)), floori(l["c"].y / (CHUNK * 2.5)))
 			if not far.has(fk):
 				far[fk] = []
 			far[fk].append(l)

@@ -341,7 +341,9 @@ static func _roll() -> Array:
 	for i in range(nodes.size()):
 		var n: Vector2i = nodes[(i * 7 + rng.randi() % 3) % nodes.size()]
 		var c := Vector2(xs[n.x], GAP_Z[n.y])
-		var r := Rect2(c - Vector2.ONE * COURT * 0.5, Vector2.ONE * COURT)
+		# (the four blocks' corner lots round the crossing, their whole depth: house fronts frame it, no scraps left over)
+		var ext := Vector2(LANE_W * 0.5 + COURT * 0.7, LANE_W * 0.5 + 11.0)
+		var r := Rect2(c - ext, ext * 2.0)
 		if courts >= want_c or not _clear(r) or out.any(func(f): return str(f[0]) == "court" and (f[1] as Rect2).grow(6.0).intersects(r)):
 			continue
 		out.append(["court", r, "capital_slabs"])
@@ -482,10 +484,22 @@ static func _block(b: Rect2, rng: RandomNumberGenerator, out: Array, keep: bool)
 			var inset := rng.randf_range(0.0, 0.4)
 			var cell := Rect2(x, z0, w, z1 - z0)
 			var r := cell.grow(-inset)
+			# (1.27) a courtyard over the lot's corner: the lot keeps the rest of its frontage, or goes if too little is left
+			for f in rolled():
+				var cr: Rect2 = f[1]
+				if str(f[0]) != "court" or not cr.intersects(r) or cr.position.y > r.position.y + 0.5 or cr.end.y < r.end.y - 0.5:
+					continue
+				if cr.get_center().x < r.get_center().x:
+					r = Rect2(cr.end.x + 0.3, r.position.y, r.end.x - cr.end.x - 0.3, r.size.y)
+				else:
+					r = Rect2(r.position.x, r.position.y, cr.position.x - 0.3 - r.position.x, r.size.y)
+				cell = r.grow(inset)
 			var floors := rng.randi_range(2, 4)
 			var roof_roll := rng.randf()
 			var sd := rng.randi()
 			x += w
+			if r.size.x < 3.5:
+				continue
 			if not _lot_ok(r, keep):
 				continue
 			if r.get_center().distance_to(HILL_C) < HILL_R1:
