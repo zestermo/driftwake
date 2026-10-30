@@ -14,6 +14,9 @@ extends Node3D
 const BOSSES := {
 	"kesh": {"room": "casting", "name": "Lieutenant Varro Kesh", "weapon": "cutlass", "offhand": "pistol", "hp": 6.0,
 		"skill": 0.85, "seal": "arsenal", "p2": 0.5},
+	# (an open arena, no room: the yard before the prison's drum; at half health the cell block opens on its brutes)
+	"marrow": {"arena": [Vector2(-72.0, 5.0), 14.0], "district": 3, "name": "Captain Ilse Marrow", "weapon": "greatsword", "hp": 8.0,
+		"skill": 0.9, "seal": "prison", "p2": 0.5, "adds": 4},
 }
 ## The molten channels (Kesh's phase 2): across the room at these offsets from its middle, each this wide; one at a
 ## time in turn every CYCLE s: WARN s of glow, then BURN s of burning; MOLTEN_DPS to a captain standing in it.
@@ -40,17 +43,25 @@ func setup(island: Node3D, boss_key: String) -> StrongholdBoss:
 	isl = island
 	key = boss_key
 	name = "Boss_" + key
-	for r in StrongholdPlan.ROOMS:
-		if str(r[0]) == str(BOSSES[key]["room"]):
-			rm = r
-	var c: Vector2 = (rm[2] as Rect2).get_center()
-	position = Vector3(c.x, float(rm[3]), c.y)
+	var b: Dictionary = BOSSES[key]
+	if b.has("room"):
+		for r in StrongholdPlan.ROOMS:
+			if str(r[0]) == str(b["room"]):
+				rm = r
+		var c: Vector2 = (rm[2] as Rect2).get_center()
+		position = Vector3(c.x, float(rm[3]), c.y)
+	else:
+		var ac: Vector2 = b["arena"][0]
+		position = Vector3(ac.x, float(StrongholdPlan.DISTRICTS[int(b["district"])][2]), ac.y)
 	return self
 
 
 func _ready() -> void:
-	_grate = StrongholdEncounter.make_grate(rm)
-	add_child(_grate)
+	if not rm.is_empty():
+		_grate = StrongholdEncounter.make_grate(rm)
+		add_child(_grate)
+	if BOSSES[key].has("adds"):
+		_build_adds()
 	if key == "kesh":
 		_build_channels()
 
@@ -87,7 +98,7 @@ func grate_shut() -> bool:
 
 func _process(delta: float) -> void:
 	var shut := grate_shut()
-	if _grate.visible != shut:
+	if _grate and _grate.visible != shut:
 		_grate.visible = shut
 		_grate.collision_layer = 1 if shut else 0
 	_hazards(delta)
@@ -116,6 +127,13 @@ func _process(delta: float) -> void:
 
 
 func _anyone_inside() -> bool:
+	if rm.is_empty():
+		var reach: float = BOSSES[key]["arena"][1]
+		for p in get_node("/root/Net").all_players():
+			var d := to_local((p as Node3D).global_position)
+			if Vector2(d.x, d.z).length() < reach and absf(d.y) < 6.0:
+				return true
+		return false
 	var r: Rect2 = rm[2]
 	for p in get_node("/root/Net").all_players():
 		var l := to_local((p as Node3D).global_position)
@@ -133,9 +151,8 @@ func _spawn() -> void:
 	var lk := PirateGrunt.crew_look(rng)
 	EnemyShip.marine_look(lk, rng, true)
 	lk["name"] = str(b["name"])
-	var door: Vector2 = rm[5]
-	var r: Rect2 = rm[2]
-	var back := -door * (minf(r.size.x, r.size.y) * 0.3)
+	var door: Vector2 = rm[5] if not rm.is_empty() else Vector2(1, 0)
+	var back := -door * (minf((rm[2] as Rect2).size.x, (rm[2] as Rect2).size.y) * 0.3 if not rm.is_empty() else 4.0)
 	var at := to_global(Vector3(back.x, 0.5, back.y))
 	var net := get_node("/root/Net")
 	var bname := "Boss%s" % key.capitalize()
@@ -213,3 +230,43 @@ func _hazards(delta: float) -> void:
 			hd.damage = MOLTEN_DPS * 0.5
 			hd.dot = true
 			me.hurtbox.take_hit(hd, null)
+
+
+## (Marrow) the cell block's brutes: a sealed-room fight with no grate, one wave, armed by this boss's phase 2 flag.
+func _build_adds() -> void:
+	var b: Dictionary = BOSSES[key]
+	var c := Vector2(position.x, position.z) + Vector2(-16.0, 0.0)
+	var cells := ["cells_" + key, "The Cell Block", Rect2(c - Vector2(6, 5), Vector2(12, 10)), position.y, 6.0, Vector2(1, 0), 4.0]
+	var enc := StrongholdEncounter.new()
+	enc.arm_flag = flag_p2()
+	enc.waves = 1
+	enc.sizes = [int(b["adds"])]
+	enc.prisoners = true
+	enc.setup(isl, cells)
+	isl.city.add_child.call_deferred(enc)
+
+
+## The keep's gate at the Bridge of Judgement's end: its grate down until both seals are the crew's (the Arsenal's and
+## the prison's: Kesh and Marrow, in either order). Worked out from the world flags on every machine.
+class SealGate extends Node3D:
+	const SEALS := ["sh_seal_arsenal", "sh_seal_prison"]
+	var _grate: StaticBody3D
+
+	func _ready() -> void:
+		name = "SealGate"
+		var ky: float = StrongholdPlan.DISTRICTS[4][2]
+		position = Vector3(0.0, ky, -49.4)
+		var hw: float = StrongholdPlan.WAYS[3][3]
+		_grate = StrongholdEncounter.make_grate(["keep_gate", "", Rect2(-hw - 1.0, -0.6, hw * 2.0 + 2.0, 1.2), ky, 15.0, Vector2(0, 1), hw * 2.0 + 1.0])
+		_grate.position = Vector3.ZERO
+		add_child(_grate)
+
+	func open() -> bool:
+		var gm := get_node_or_null("/root/GameManager")
+		return gm != null and SEALS.all(func(s): return gm.world_flags.has(s))
+
+	func _process(_d: float) -> void:
+		var shut := not open()
+		if _grate.visible != shut:
+			_grate.visible = shut
+			_grate.collision_layer = 1 if shut else 0

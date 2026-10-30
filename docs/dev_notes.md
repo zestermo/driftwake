@@ -8321,3 +8321,14 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - Test: t/stronghold/kesh.
 - Next: Captain Marrow (the Prison Tower, seal 2: a seastone net, a cell block opened at 50%, catwalks). Then the keep
   gate's barrier on the two seals, and the Commodore's three phases.
+- (same day) **Captain Ilse Marrow and the seal gate.**
+  - **Arena bosses:** StrongholdBoss takes "arena" bosses (BOSSES' `arena`: a centre and radius in a district; no room,
+    no grate): triggered by a captain within the radius.
+  - **Marrow** is in the prison yard: a greatsword, 8x health, skill 0.9.
+  - **Her phase 2** arms a StrongholdEncounter. Encounters now take `arm_flag` (a world flag starts them instead of a
+    captain walking in; no grate), `waves`, `sizes` and `prisoners` (elite berserk brutes). Hers is the cell block's
+    four brutes.
+  - **The keep's gate:** `StrongholdBoss.SealGate`, a grate at the Bridge of Judgement's end, down until both
+    "sh_seal_arsenal" and "sh_seal_prison" are set (either order).
+  - Test: t/stronghold/marrow (the yard, her kit and health, the brutes at half health, the seal, the gate on one seal
+    and then two).

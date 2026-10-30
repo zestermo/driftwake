@@ -45,6 +45,10 @@ static func build(isl: Node3D) -> Array:
 		var boss := StrongholdBoss.new().setup(isl, str(bkey))
 		isl.city.add_child(boss)
 		out.append(boss)
+	# the keep's gate, shut until both seals are taken
+	var sg := StrongholdBoss.SealGate.new()
+	isl.city.add_child(sg)
+	out.append(sg)
 	# the officers sprinkled in: one per district as you reach it, then a chance with each new wave (StrongholdOfficers)
 	var off := StrongholdOfficers.new().setup(isl, out.filter(func(c): return c is GruntCamp))
 	isl.city.add_child(off)

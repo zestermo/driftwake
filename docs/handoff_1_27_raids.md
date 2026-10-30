@@ -197,3 +197,11 @@ On main and pushed:
   - At about 2/3 of his health he speaks and leaves; then you escape.
   - Build it after the Commodore, with the Scouring: the same spawn path as the bosses, plus a blink-and-knockback
     behaviour toward the captain nearest the ship.
+- (later) **Kesh and Marrow are built** (StrongholdBoss: a room or open-arena boss, phase 2 by a world flag, its seal),
+  with the keep's SealGate opening on both seals. Tests: t/stronghold/kesh, t/stronghold/marrow.
+- **Next:** Commodore Vane (the Command Hall; three phases).
+  - Phase 2's adds: an armed StrongholdEncounter with marine waves.
+  - Phase 2's fire quarters: like Kesh's channels.
+  - Phase 3: dual wield and an enrage (shorter cooldowns, more speed), and his fruit if he holds one (step 5).
+  - Still to add: Marrow's seastone net and catwalks, then the broadcast and the Scouring (with the Admiral's escape
+    fight).

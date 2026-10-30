@@ -18,6 +18,12 @@ var isl: Node3D
 var _door: StaticBody3D
 var _check := 0.0
 var _quiet := 0.0
+## (1.27) Overrides for a fight armed some other way (a boss's phase: StrongholdBoss): how many waves and their sizes,
+## the world flag that starts it (none: a captain walking in), prisoners (berserk brutes) instead of marines, and no grate.
+var waves := WAVES
+var sizes: Array = SIZES
+var arm_flag := ""
+var prisoners := false
 
 
 ## Ready to go under the island's City node at the room's middle, on its floor.
@@ -37,7 +43,8 @@ func _ready() -> void:
 	# (a camp, but nothing musters until someone walks in)
 	add_to_group("net_spawner")
 	add_to_group("grunt_camps")
-	_build_door()
+	if arm_flag == "":
+		_build_door()
 
 
 func flag() -> String:
@@ -55,21 +62,22 @@ func wave_specs(g: int) -> Array:
 	var out: Array = []
 	var r: Rect2 = rm[2]
 	var door: Vector2 = rm[5]
-	var n: int = SIZES[clampi(g - 1, 0, SIZES.size() - 1)]
+	var n: int = sizes[clampi(g - 1, 0, sizes.size() - 1)]
 	for i in range(n):
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([str(rm[0]), g, i])
 		var lk := PirateGrunt.crew_look(rng)
-		var officer := g == WAVES and i == 0
-		EnemyShip.marine_look(lk, rng, officer)
+		var officer := g == waves and i == 0 and not prisoners
+		if not prisoners:
+			EnemyShip.marine_look(lk, rng, officer)
 		# (rows across the room, back from the door)
 		var across := (float(i % 3) - 1.0) * minf(r.size.x, r.size.y) * 0.22
 		var back := -0.25 - 0.15 * float(i / 3)
 		var side := Vector2(-door.y, door.x)
 		var p: Vector2 = side * across + door * back * (r.size.x if absf(door.x) > 0.5 else r.size.y)
 		out.append({"post": Vector3(p.x, 0.0, p.y), "yaw": atan2(door.x, door.y), "mode": "stand", "look": lk,
-			"title": "Admiralty officer" if officer else "Admiralty marine", "seed": hash([str(rm[0]), g, i]),
-			"role": "rifle" if g >= 2 and i == n - 1 else "sword"})
+			"title": "Prisoner" if prisoners else ("Admiralty officer" if officer else "Admiralty marine"), "seed": hash([str(rm[0]), g, i]),
+			"role": "rifle" if g >= 2 and i == n - 1 and not prisoners else "sword", "elite": prisoners, "trait": "berserk" if prisoners else ""})
 	return out
 
 
@@ -87,7 +95,8 @@ func _process(delta: float) -> void:
 		return
 	_check = 0.25
 	if gen == 0:
-		if _anyone_inside():
+		var gm := get_node("/root/GameManager")
+		if (arm_flag == "" and _anyone_inside()) or (arm_flag != "" and gm.world_flags.has(arm_flag)):
 			_next()
 		return
 	if alive_count() > 0:
@@ -96,7 +105,7 @@ func _process(delta: float) -> void:
 	_quiet += 0.25
 	if _quiet < BETWEEN:
 		return
-	if gen < WAVES:
+	if gen < waves:
 		_next()
 	else:
 		Net.world_flag(flag())
@@ -123,10 +132,12 @@ func _anyone_inside() -> bool:
 func door_shut() -> bool:
 	if gen <= 0 or cleared():
 		return false
-	return not (gen >= WAVES and alive_count() == 0)
+	return not (gen >= waves and alive_count() == 0)
 
 
 func _update_door() -> void:
+	if _door == null:
+		return
 	var shut := door_shut()
 	if _door.visible != shut:
 		_door.visible = shut
