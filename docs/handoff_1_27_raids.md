@@ -101,3 +101,12 @@ These suites failed in this run, from the unpushed 1.26.1 work (poise and knockb
 - **net-five:** a pistol crit. Fixed in nettest (aa97623b) and to rerun.
 - **t/island/beast_moves:** known red.
 Fix them, then `.\tools\dev\prepush.ps1` (it reruns only these and what the fixes touch, then pushes).
+
+### Update (2026-10-30, later): the red suites mostly fixed
+11 of the 12 now pass (966867ed; what changed is in dev_notes "Stale suites after 1.26.1's poise"), including a real UI
+fix (the load screen's blurry 0.91 scale). Still red:
+- **powertest:** the captain is swimming before the parry step (docs/todo.md).
+- **t/island/beast_moves:** known red.
+- **net-five:** fixed in the test, still to rerun.
+The stronghold design moved on: preview v2 and its "Decided: the stronghold" table in
+docs/v1_27_raids_fruits_plan.md (the Scouring, brig on a wipe, keep the prize, a burnt ruin after).
