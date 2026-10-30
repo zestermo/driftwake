@@ -158,3 +158,10 @@ canal's rooftops; a chest each (a chain island's chest tier), marked on the map 
 | The stronghold's way in | 1,500 gold | a weak point (the sea gate, a wall, a sewer) marked on its chart |
 | A Driftfruit | 5,000 gold, or a favour from the Queen/Doge | the island or enemy that holds one (once fruits land) |
 One lead at a time per captain; the Stranger moves between the two cities' belfries at dusk.
+
+## Status (2026-10-30, C4 under way)
+Built since the preview (on main, tested, not pushed): the hidden caches (9 + 7), KitQuests steps at their own places,
+the rooftop thief (capital board), the Watch's three odd jobs (capital board), the Stranger's cache leads (300 gold,
+both cities), dice dens (a capital courtyard, a canal campo). Next: a canal investigation and jobs (no board there
+yet: offered by its people), the other three investigations (missing apprentice, smuggling ring, forged seal; the
+drowned bell needs diving), then C5 (the Queen's and the Doge's lines, favour ranks). Known red: t/island/beast_moves.
