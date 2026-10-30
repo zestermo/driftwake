@@ -273,6 +273,10 @@ Dictionary/Array speed-ups (#123788, #123531), GDScript VM refcounts (#118813), 
 non-allocating physics queries (#113970), faster child removal/duplication, built-in Trail3D (#117107).
 Then export templates, installer and updater CI on 4.8. Until then stay on 4.7.x (the ENet bandwidth fix #124620 is
 backported there).
+- **Tried 4.8 beta 2 (2026-10-29, worktree-godot48):** imports clean (only new .import defaults), all 1232 scripts
+  compile, smoketest/savetest/airtest/techtest and 97 atomic tests pass the same as 4.7.2. Bench (quick, Brinehollow,
+  5600G + 3080, back to back): **6% slower mean frame** (13.60 -> 14.42 ms), render CPU (draw) +10%, physics +9%,
+  scripts flat (+1%): the GDScript speed-ups didn't show in our frames yet. Retry at RC.
 
 ## Rainy day (Zach, 2026-10-29)
 - **The internal id rename** (sea_king, devil_fruits, log_pose, haki ids -> Driftwake's own, with a save migration):
