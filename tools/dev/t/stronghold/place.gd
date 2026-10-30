@@ -92,6 +92,28 @@ func _process(_d: float) -> bool:
 				if absf(cy - (y + float(rm[4]))) > 0.5:
 					rooms.append("%s: ceiling %.1f (want %.1f)" % [rm[0], cy, y + float(rm[4])])
 			check("every room walked into: its door open, its floor and ceiling (%s)" % [rooms], rooms.is_empty())
+			# (the island's shape: a ragged coast, reefs round it, a deep channel in, the cove and its drain)
+			var rs: Array = []
+			for k in range(72):
+				var a := TAU * k / 72.0
+				rs.append(P.coast_r(P.LAND_C + Vector2(cos(a), sin(a))))
+			check("a ragged coast, not a circle (radius %.0f-%.0f m)" % [rs.min(), rs.max()], rs.max() - rs.min() > 25.0 and rs.min() >= P.COAST_MIN)
+			var reefs := 0
+			for k in range(360):
+				var a := TAU * k / 360.0
+				for dd: float in [20.0, 40.0, 60.0]:
+					var q: Vector2 = P.LAND_C + Vector2(cos(a), sin(a)) * (P.coast_r(P.LAND_C + Vector2(cos(a), sin(a))) + dd)
+					if P.terrain(q) > -1.5 and not P.in_channel(q):
+						reefs += 1
+			check("reefs and shallows round it (%d spots under 1.5 m)" % reefs, reefs > 60)
+			var deep := true
+			for z in range(70, 260, 10):
+				deep = deep and P.terrain(Vector2(P.BERTH.x, float(z))) < -5.0
+			check("...but a deep channel in to the sea gate and the berth", deep)
+			var bc: Vector2 = P.BEACH[0]
+			check("the west cove's beach at the water (%.1f)" % P.terrain(bc), P.terrain(bc) > -1.0 and P.terrain(bc) < 1.5)
+			var dm := _floor_at(P.DRAIN + Vector2(-2.5, 0), P.DRAIN_Y + 4.0)
+			check("...the drain's mouth walked up to from it (%.1f)" % dm, absf(dm - P.DRAIN_Y) < 1.2)
 			check("the rooms' lanterns are lit (%d)" % isl.city.find_children("RoomLight*", "OmniLight3D", false, false).size(), isl.city.find_children("RoomLight*", "OmniLight3D", false, false).size() == 5)
 			return TK.done(fails)
 	step += 1

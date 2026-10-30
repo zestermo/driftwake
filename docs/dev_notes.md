@@ -8265,3 +8265,19 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - Wall towers and the Verdict's buttress towers keep out of the rooms.
   - Test: t/stronghold/place walks into every room (door open, floor, ceiling) and counts the lanterns. Renders:
     strongholdshot `mess_in`, `barracks_in`, `casting_in`, `command_door`, `command_in`.
+- (same day) **A real rocky outcrop** (Zach: not a rectangle; outcrops, reefs and shallows; a sneaky way in).
+  StrongholdPlan:
+  - **The coast:** `coast_r(q)` is LAND_R 150 wobbled by three harmonics (126-174 m, never inside COAST_MIN), and
+    `noise(q, k)` is sines, no rng.
+  - **The rock:** a rugged mound with ledges, kept a metre under the nearest floor; floors and ways are exact. District
+    cliffs vary in steepness, with a sheer drop at the coast.
+  - **The sea:** `sea_floor` has a reef band (REEF_IN 8 to REEF_OUT 90 past the coast) in noise patches, some breaking
+    the surface. `in_channel` keeps the harbour basin and the channel out from the sea gate deep (-7). Nine sea stacks
+    (STACKS) stand round it.
+  - **The west cove (BEACH):** a shingle shelf down to the water under the prison. **The sewer drain (DRAIN):** an arched,
+    grated culvert mouth in the prison's west wall.
+  - DRAIN_CUT carves the terrain at the mouth (the 3 m cells would smear the 12 m step over it); StrongholdShell._drain
+    fills it with stone up to the prison's floor.
+  - The wall towers keep clear of the drain. STRONGHOLD_RADIUS is 250 (the reefs are inside the terrain).
+  - Test: t/stronghold/place checks the coast's spread, the reefs, the deep channel, the beach and the walk to the
+    drain. Renders: strongholdshot `cove`, `reefs`, `aerial`.

@@ -123,6 +123,8 @@ func _setup(island) -> void:
 		["prison", "the Prison Tower", Vector2(-50, -4), 1.7, Vector2(-82, -18), 16.0],
 		["verdict", "the Verdict from the ward", Vector2(-10, 16), 1.7, Vector2(0, -86), 130.0],
 		["verdict_sea", "the Verdict from out at sea", Vector2(-120, 700), 6.0, Vector2(0, -86), 90.0],
+		["cove", "the west cove and its drain", Vector2(-138, -6), 1.7, Vector2(-108.6, -14), 2.5],
+		["reefs", "the reefs off its east side", Vector2(230, 70), 5.0, Vector2(120, 0), 2.0],
 		["mess_in", "inside the Mess Hall", Vector2(-20.5, 1), 1.7, Vector2(-40, 1), 1.0],
 		["barracks_in", "inside the Barracks", Vector2(20.5, 1), 1.7, Vector2(40, 1), 1.0],
 		["casting_in", "inside the Casting Hall", Vector2(70.5, -23), 1.8, Vector2(96, -23), 2.0],

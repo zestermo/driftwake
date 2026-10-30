@@ -5,7 +5,7 @@ extends CapitalIsland
 ## heard of it or not. The capital's machinery (a GenIsland to the world, everything under the turned "City" node, its
 ## pieces a frame each) with StrongholdPlan's rock and StrongholdShell's fortress; its garrison and raid come later.
 
-const STRONGHOLD_RADIUS := 170.0
+const STRONGHOLD_RADIUS := 250.0
 
 ## The rooms' lanterns from the shell ([frame Vector3, range]), lit in finish.
 var room_lights: Array = []

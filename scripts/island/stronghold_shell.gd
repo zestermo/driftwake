@@ -177,6 +177,9 @@ static func _walls(out: Array) -> void:
 				var m := a.lerp(b, float(k) / (nm + 1))
 				if _gapped(m, m + (b - a).normalized() * 0.1).is_empty() and _near_way(m, 6.0):
 					continue
+				# (nor over the sewer drain's mouth)
+				if m.distance_to(P.DRAIN) < 10.0:
+					continue
 				# (never into a room: its windows and stone would stand inside the hall)
 				if P.ROOMS.any(func(rm): return (rm[2] as Rect2).grow(1.0).intersects(Rect2(m - Vector2(4, 4), Vector2(8, 8)))):
 					continue
@@ -184,6 +187,7 @@ static func _walls(out: Array) -> void:
 				if side.dot(m - (d[1] as Rect2).get_center()) < 0.0:
 					side = -side
 				_tower(mb, cols, m, y, 6.0, 18.0 + float(posmod(hash(m.round()), 12)), side)
+	_drain(mb, cols)
 	_gate(mb, cols, Vector2(0, 18.6), 12.0, 13.0, P.WAYS[0][3] * 2.0 + 1.0)
 	_gate(mb, cols, Vector2(0, -49.4), 30.0, 15.0, P.WAYS[3][3] * 2.0 + 1.0)
 	for x: float in [-58.0, 58.0]:
@@ -276,6 +280,9 @@ static func _gapped(a: Vector2, b: Vector2) -> Array:
 	for k in range(1, n + 1):
 		var p := a.lerp(b, float(k) / n)
 		var gap := false
+		# (the sewer drain's mouth in the prison's west wall, over the cove: built by _drain)
+		if p.distance_to(P.DRAIN) < 3.0:
+			gap = true
 		for w in P.WAYS:
 			var wa: Vector2 = w[1]
 			var wb: Vector2 = w[2]
@@ -761,3 +768,43 @@ static func _furnish(mb: MeshBuilder, cols: Array, rm: Array) -> void:
 				_banner(mb, Vector2(c.x + s * 6.0, r.position.y - 1.08), y + h - 2.0, Vector2(0, 1), 5.0, 14.0)
 			lights.append([M.v3(c, y + h - 4.0), 30.0])
 			lights.append([M.v3(Vector2(c.x, dz + 2.0), y + 6.0), 14.0])
+
+
+## The sewer drain over the west cove (StrongholdPlan.DRAIN): the prison's wall closes over a low stone culvert mouth,
+## an iron grate across it and a dark recess behind, its trickle on the shingle. The sneaky way in (preview v2's
+## "sewer"); the tunnel behind it comes with the interiors.
+static func _drain(mb: MeshBuilder, cols: Array) -> void:
+	var d := P.DRAIN
+	var y0 := P.DRAIN_Y
+	var top: float = float(P.DISTRICTS[3][2]) + 6.0
+	var ow := 3.0
+	var oh := 3.0
+	var yaw := M.yaw_of(Vector2(0, 1))
+	var low := P.terrain(d + Vector2(-3, 0)) - 1.0
+	# the wall over and beside the mouth (the gap _gapped left is 6 m)
+	_block(mb, cols, _wall_m(), M.xf(M.v3(d, (y0 + oh + top) * 0.5), yaw), Vector3(2.4, top - y0 - oh, 6.4))
+	for s: float in [-1.0, 1.0]:
+		_block(mb, cols, _wall_m(), M.xf(M.v3(d + Vector2(0, s * (ow * 0.5 + 0.9)), (low + y0 + oh) * 0.5), yaw), Vector3(2.4, y0 + oh - low, 1.8))
+	_block(mb, cols, _foot_m(), M.xf(M.v3(d, (low + y0) * 0.5), yaw), Vector3(2.4, y0 - low, ow))
+	# the recess: sides, roof and a dark back 2 m in
+	var inn := d + Vector2(2.2, 0)
+	_block(mb, cols, _dark_m(), M.xf(M.v3(inn + Vector2(1.2, 0), y0 + oh * 0.5), yaw), Vector3(0.4, oh, ow + 0.4))
+	for s: float in [-1.0, 1.0]:
+		_block(mb, cols, _dark_m(), M.xf(M.v3(inn + Vector2(0, s * (ow * 0.5 + 0.2)), y0 + oh * 0.5), yaw), Vector3(2.4, oh, 0.4))
+	_block(mb, cols, _dark_m(), M.xf(M.v3(inn, y0 + oh + 0.2), yaw), Vector3(2.4, 0.4, ow + 0.8))
+	mb.add_box(PSXMat.flat(Color(0.03, 0.03, 0.04)), M.xf(M.v3(inn + Vector2(0.95, 0), y0 + oh * 0.5), yaw), Vector3(0.05, oh - 0.2, ow - 0.2), 1.0)
+	# the grate across the mouth, and stones round its arch
+	for k in range(7):
+		var z := -ow * 0.5 + (k + 0.5) * ow / 7.0
+		_block(mb, cols, _iron_m(), M.xf(M.v3(d + Vector2(-0.9, z), y0 + oh * 0.5), yaw), Vector3(0.14, oh, 0.14))
+	mb.add_box(_iron_m(), M.xf(M.v3(d + Vector2(-0.9, 0), y0 + oh * 0.7), yaw), Vector3(0.14, 0.14, ow), 0.5)
+	for k in range(7):
+		var a := PI * k / 6.0
+		mb.add_box(_foot_m(), M.xf(M.v3(d + Vector2(-1.3, cos(a) * (ow * 0.5 + 0.3)), y0 + oh - 0.4 + sin(a) * 0.6), yaw), Vector3(0.6, 0.6, 0.7), 0.5)
+	# the stone filled in over the cut behind the mouth, up to the prison's floor (a cobbled top), 3 m past it each way
+	var py: float = P.DISTRICTS[3][2]
+	var fill := Rect2(Vector2(d.x + 1.2, P.DRAIN_CUT.position.y - 3.0), Vector2(P.DRAIN_CUT.end.x + 3.0 - d.x - 1.2, P.DRAIN_CUT.size.y + 6.0))
+	_block(mb, cols, _dark_m(), M.xf(M.v3(fill.get_center(), (y0 + oh + 0.4 + py) * 0.5)), Vector3(fill.size.x, py - y0 - oh - 0.4, fill.size.y))
+	mb.add_box(PSXMat.lit("cobbles", Color(0.6, 0.6, 0.62)), M.xf(M.v3(fill.get_center(), py + 0.01)), Vector3(fill.size.x, 0.02, fill.size.y), 0.5)
+	# the trickle out over the shingle
+	mb.add_box(PSXMat.lit("water", Color(0.5, 0.6, 0.6)), M.xf(M.v3(d + Vector2(-4.0, 0), P.terrain(d + Vector2(-4, 0)) + 0.06), yaw), Vector3(6.0, 0.02, 1.2), 0.5)
