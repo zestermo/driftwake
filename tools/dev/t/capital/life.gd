@@ -73,7 +73,7 @@ func _process(_d: float) -> bool:
 			p.health_component.current_health = p.health_component.max_health * 0.3
 			rest.interacted.emit(p)
 			check("resting at the inn heals", p.health_component.current_health >= p.health_component.max_health - 0.5)
-			check("eight city quests in the journal's sources", life.quest_node.quests.size() == 8)
+			check("nine city quests in the journal's sources (1.27: the rooftop thief)", life.quest_node.quests.size() == 9)
 			var cham: Dictionary = root.get_node("Dialogue")._cache.get(isl.save_key("capital_chamberlain"), {})
 			var offered := {}
 			for c in (cham.get("nodes", {}).get("menu", {}).get("choices", []) as Array):

@@ -8043,3 +8043,9 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   the belfry, three hatch roofs (CapitalDistrict.roof_caches: the corner opposite the hatch), two courtyard corners.
   Canal (7): the campanile's belfry, the glassworks, three hatch roofs, two campi.
 - t/capital/caches (both cities, solid footing, an opened one stays gone). The city mesh/surface counts skip LootBags.
+- **C4 piece 2: investigations' plumbing + the rooftop thief.** KitQuests: every "pickup" step gets its own lost thing
+  (`_lost_thing`, keyed "id#step", at the step's "at"/"yaw"/"search"/"y" or the quest's), shown and searchable only
+  while that step is under way (`_show_mark`, `_pick_up(q, step)`, `mark(q, step)`); a "reach" step may carry its own
+  "at"/"y"/"r". The capital's first investigation (CapitalLife._investigations): posted on the board by Sergeant Brannoch,
+  three clues on the hatched flat roofs after the caches' three, report at the sea gate (120 gold + the quest XP).
+  t/capital/investigation walks it. Quests pay XP by default: QuestRewards.give, XP_SHARE 0.25 of a level x "xp" (1).

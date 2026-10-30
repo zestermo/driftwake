@@ -23,6 +23,8 @@ const YARD_R := 34.0
 
 var isl
 var quest_node: KitQuests
+## (1.27 C4) The rooftop thief, the first investigation (empty in a world with too few hatch roofs).
+var thief_q: Dictionary = {}
 var ruffians: GruntCamp
 var people := {}
 var notices: Array = []
@@ -273,6 +275,7 @@ func _quests() -> void:
 			{"do": "turnin", "goal": "Report to Sergeant Brannoch at the sea gate"}]}
 	gallows.merge(common)
 	quest_node.add(gallows, isl)
+	_investigations(common)
 	notices.append(gallows)
 	var ledger := {"id": _key("ledger"), "kind": "deliver", "giver": "Ambrose Pell", "src": "npc", "title": "Sealed with wax",
 		"recipient": "Tobin Rook", "reward": {"gold": 45},
@@ -391,6 +394,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	var board: Array = []
 	var bnodes := {"start": {"text": "Notices pinned three deep: a reward from the Watch, a lost goat answering to Bartholomew, the arena's ladder (fighters wanted), a room to let above the bakery.", "choices": board}}
 	quest_node.post(gallows, board, bnodes)
+	if not thief_q.is_empty():
+		quest_node.post(thief_q, board, bnodes)
 	board.append({"text": "Leave it.", "next": "end"})
 	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": bnodes})
 	var smenu := {"text": "Something you need, Captain?", "choices": [{"text": "What's the city like?", "next": "city"}, {"text": "What's down Gallows Row?", "next": "row"}]}
@@ -398,6 +403,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 		"menu": smenu, "city": {"text": ["Biggest port in the sea. Market's up the street, palace on the hill, arena east of the plaza. The palace grounds are open to petitioners again; the arena's open at last."], "next": "menu"},
 		"row": {"text": ["The slums, west off the market street. There's a yard at the end the toughs have taken. I've a notice up on the board, if you've the stomach."], "next": "menu"}}
 	quest_node.report(gallows, smenu["choices"], snodes)
+	if not thief_q.is_empty():
+		quest_node.report(thief_q, smenu["choices"], snodes)
 	smenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("sergeant"), {"speaker": "Sergeant Brannoch", "voice": 0.8, "start": "intro", "return": "menu", "nodes": snodes})
 	var cmenu := {"text": "The guild's business, Captain?", "choices": []}
@@ -546,3 +553,31 @@ func _on_arena_event(ev: String) -> void:
 		return
 	var parts := ev.split(":")
 	Net.request_arena(parts[1], int(parts[2]))
+
+
+## (1.27 C4, docs/v1_27_plan.md "Investigations") The rooftop thief, posted on the board by the Watch: a torn sleeve on
+## one hatch roof, prints on a second, the stash on a third (the walk-in houses' hatches and the lanes' ladders get you
+## up there); report to Sergeant Brannoch. The roofs: the hatched flat roofs after the three the caches use.
+func _investigations(common: Dictionary) -> void:
+	var hatched: Array = CapitalDistrict.lots().filter(func(l): return l.has("hatch"))
+	hatched.sort_custom(func(a, b): return int(a["seed"]) < int(b["seed"]))
+	if hatched.size() < 6:
+		return
+	var steps: Array = []
+	var clues := [["Look at the torn cloth", "A strip of dark sleeve caught on the parapet. Someone came over here in a hurry.", "a torn sleeve on a rooftop"],
+		["Look at the prints", "Muddy prints across the slabs, toward the next roofs over. Soft boots. A climber.", "muddy prints on another roof"],
+		["Search the stash", "A sack behind the chimney: candlesticks, a purse, and a jeweller's ring with the Crown's mark. The thief's stash.", "the thief's stash"]]
+	for k in range(3):
+		var l: Dictionary = hatched[3 + k]
+		var t: Transform3D = l["frame"]
+		var wd: Vector2 = l["wd"]
+		var p: Vector3 = t * Vector3(wd.x * 0.2, float(l["top_y"]), -wd.y * 0.1)
+		steps.append({"do": "pickup", "at": isl.from_city(Vector2(p.x, p.z)), "y": p.y + 0.05, "yaw": 0.0, "search": clues[k][0],
+			"goal": "Find %s" % clues[k][2], "said": clues[k][1]})
+	steps.append({"do": "turnin", "goal": "Bring the ring to Sergeant Brannoch at the sea gate"})
+	thief_q = {"id": _key("inv_thief"), "kind": "lost", "giver": "Sergeant Brannoch", "src": "board", "title": "The rooftop thief",
+		"notice": "THE WATCH: a thief is working the rooftops of the lanes, in through the hatches and out over the parapets. A jeweller's ring with the Crown's mark is gone. Follow the trail; report to Sergeant Brannoch at the sea gate.",
+		"posted": "The ring, and the rest of his haul? You went over the rooftops after him? The Watch could use a few like you. As promised.",
+		"at": steps[0]["at"], "yaw": 0.0, "search": clues[0][0], "reward": {"gold": 120}, "steps": steps}
+	thief_q.merge(common)
+	quest_node.add(thief_q, isl)

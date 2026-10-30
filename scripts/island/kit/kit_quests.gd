@@ -72,10 +72,25 @@ func add(q: Dictionary, isl: GenIsland) -> void:
 	if q.has("poi_at"):
 		var a: Vector2 = q["poi_at"]
 		q["poi"] = isl.to_global(Vector3(a.x, isl.hv(a) + 1.5, a.y))
-	if step_index(q, "pickup") < 0:
-		return
+	# (1.27) a reach step may carry its own place ("at", "r"): an investigation's clues are in several
+	var steps: Array = q["steps"]
+	for i in range(steps.size()):
+		var s: Dictionary = steps[i]
+		if s["do"] == "reach" and s.has("at"):
+			var sa: Vector2 = s["at"]
+			s["point"] = isl.to_global(Vector3(sa.x, float(s.get("y", isl.hv(sa))), sa.y))
+	# every pickup step its own thing to find: at the step's place ("at", "yaw", "search", "y") or the quest's
+	for i in range(steps.size()):
+		if steps[i]["do"] == "pickup":
+			_lost_thing(q, i, isl)
+	if step_index(q, "pickup") >= 0:
+		_show_mark(q)
+
+
+func _lost_thing(q: Dictionary, i: int, isl: GenIsland) -> void:
+	var s: Dictionary = q["steps"][i]
 	var n := Node3D.new()
-	n.name = "Lost_%s" % q["id"]
+	n.name = "Lost_%s_%d" % [q["id"], i]
 	var mi := MeshInstance3D.new()
 	mi.mesh = Props.sack_mesh()
 	mi.scale = Vector3.ONE * 0.6
@@ -86,7 +101,7 @@ func add(q: Dictionary, isl: GenIsland) -> void:
 	it.name = "Search"
 	it.collision_layer = NPC.INTERACT_LAYER
 	it.collision_mask = 0
-	it.prompt_text = str(q["search"])
+	it.prompt_text = str(s.get("search", q.get("search", "Search")))
 	it.gesture = "pickup"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
@@ -95,14 +110,15 @@ func add(q: Dictionary, isl: GenIsland) -> void:
 	cs.position = Vector3(0, 0.5, 0)
 	it.add_child(cs)
 	n.add_child(it)
-	it.interacted.connect(func(_p): _pick_up(q))
-	isl.place(n, isl, q["at"], float(q["yaw"]))
-	_marks[q["id"]] = n
-	_show_mark(q)
+	it.interacted.connect(func(_p): _pick_up(q, i))
+	isl.place(n, isl, s.get("at", q.get("at")), float(s.get("yaw", q.get("yaw", 0.0))))
+	if s.has("y"):
+		n.position.y = float(s["y"])
+	_marks["%s#%d" % [q["id"], i]] = n
 
 
-func mark(q: Dictionary) -> Node3D:
-	return _marks[q["id"]]
+func mark(q: Dictionary, step := -1) -> Node3D:
+	return _marks.get("%s#%d" % [q["id"], step if step >= 0 else step_index(q, "pickup")])
 
 
 ## The giver's choices and nodes for `q` (into its menu and its nodes).
@@ -171,16 +187,23 @@ func _can_pay(cost: Array) -> bool:
 	return cost.is_empty() or (me != null and QuestRewards.can_pay(cost, me))
 
 
-func _pick_up(q: Dictionary) -> void:
-	Journal.advance(q["id"], step_index(q, "pickup"))
+func _pick_up(q: Dictionary, step := -1) -> void:
+	var i := step if step >= 0 else step_index(q, "pickup")
+	if Journal.step_of(q["id"]) == i:
+		Journal.advance(q["id"], i)
 	_show_mark(q)
 
 
+## Each pickup step's thing shows (and can be searched) only while that step is the one under way.
 func _show_mark(q: Dictionary) -> void:
-	var n: Node3D = _marks[q["id"]]
-	var on := Journal.step_of(q["id"]) == step_index(q, "pickup") and not Journal.is_done(q["id"])
-	n.visible = on
-	(n.get_node("Search") as Interactable).collision_layer = NPC.INTERACT_LAYER if on else 0
+	var steps: Array = q["steps"]
+	for i in range(steps.size()):
+		var n: Node3D = _marks.get("%s#%d" % [q["id"], i])
+		if n == null:
+			continue
+		var on := Journal.step_of(q["id"]) == i and not Journal.is_done(q["id"])
+		n.visible = on
+		(n.get_node("Search") as Interactable).collision_layer = NPC.INTERACT_LAYER if on else 0
 
 
 func _on_event(ev: String) -> void:
@@ -217,9 +240,9 @@ func target(q: Dictionary, step: int) -> Vector3:
 	var s: Dictionary = q["steps"][step]
 	match str(s["do"]):
 		"pickup":
-			return mark(q).global_position + Vector3(0, 0.5, 0)
+			return mark(q, step).global_position + Vector3(0, 0.5, 0)
 		"reach":
-			return q["point"]
+			return s.get("point", q.get("point", Vector3.INF))
 		"clear":
 			return q["poi"]
 		"talk":
@@ -275,7 +298,7 @@ func _process(delta: float) -> void:
 		_glint_t = 2.5
 	for q in quests:
 		var id: String = q["id"]
-		if _marks.has(id):
+		if step_index(q, "pickup") >= 0:
 			_show_mark(q)
 		# host: a target cleared before the quest was taken (or since respawned / freed) still counts: the moment it's
 		# first seen cleared is remembered as a world flag (saved, everyone's)
@@ -286,12 +309,13 @@ func _process(delta: float) -> void:
 		var step := Journal.step_of(id)
 		match str(q["steps"][step]["do"]):
 			"reach":
-				if me.global_position.distance_to(q["point"]) < float(q["r"]):
+				var rs: Dictionary = q["steps"][step]
+				if me.global_position.distance_to(rs.get("point", q.get("point", Vector3.INF))) < float(rs.get("r", q.get("r", 6.0))):
 					Journal.advance(id, step)
 			"clear":
 				if Net.is_host() and (_cleared(id) or (q["clear"] as Callable).call()):
 					Journal.advance(id, step)
 			"pickup":
-				var n: Node3D = _marks[id]
-				if glint and me.global_position.distance_to(n.global_position) < 40.0:
+				var n: Node3D = mark(q, step)
+				if n and glint and me.global_position.distance_to(n.global_position) < 40.0:
 					FX.glint(n.global_position + Vector3(0, 0.35, 0), Color(1.0, 0.9, 0.55), 0.5)
