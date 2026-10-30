@@ -25,7 +25,7 @@ const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36,
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": [], "cells": P.lots().map(func(l): return l["cell"])}
 	for step in [["houses", _houses], ["specials", _specials], ["plaza", _plaza], ["street", _street], ["quay", _quay],
-			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena], ["courts", _courts]]:
+			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena], ["courts", _courts], ["gardens", _gardens]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -1505,3 +1505,8 @@ static func enterable(l: Dictionary, kind: String) -> bool:
 	if kind != "":
 		return true
 	return (int(l["seed"]) >> 7) % 3 == 0
+
+
+## (1.27) The palace gardens: the hedge maze and the formal garden on the hilltop (CapitalGardens).
+static func _gardens(out: Dictionary) -> void:
+	CapitalGardens.build(out, P.world_seed)

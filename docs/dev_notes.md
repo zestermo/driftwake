@@ -7993,6 +7993,10 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   on its step, candles and a hanging lamp (glow, no real lights), coloured windows (2 glass materials). CapitalPlan._open
   treats the cathedral's footprint as closed (the old TEMPLE rect reaches into the forecourt). t/capital/cathedral;
   capitalshot forecourt, nave.
+- **The palace gardens** (C2, CapitalGardens, on the hilltop plateau inside the ring wall either side of the throne hall,
+  flat at the hill's top): west a hedge maze (a depth-first maze of 3.5 m cells rolled from the world's seed, 2.4 m
+  hedges, the way in on the east side's last row, a statue and a chest at the far corner); east the formal garden
+  (clipped cones, flower beds, a fountain, benches). t/capital/gardens; capitalshot maze, garden.
 - **The library and the theatre** (C2 pieces 3-4, CapitalHalls on new SPECIAL rects "library" (-48,-44,20,20) facing
   the forecourt and "theatre" (46,-28,20,22) on the arena street): a shared hall shell (facade out, plaster in, door,
   steps, hip roof, colliders, occluders in the side walls); the library's shelf rows, reading tables and lamps, a back

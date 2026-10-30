@@ -140,6 +140,8 @@ func _setup(island) -> void:
 		["forecourt", "the cathedral from its forecourt", Vector2(-52, -30), 1.7, Vector2(-86, -32), 6.0],
 		["nave", "inside the cathedral", Vector2(-75.5, -32), 2.4, Vector2(-97, -32), 2.0],
 		["library", "inside the library", Vector2(-45.6, -33.0), 1.9, Vector2(-30, -35), 1.4],
+		["maze", "the palace maze from above", Vector2(-20, -150), 16.0, Vector2(-34, -168), 0.0],
+		["garden", "the palace's formal garden", Vector2(33, -153.5), 1.7, Vector2(33, -170), 1.2],
 		["theatre", "inside the theatre", Vector2(56, -8.0), 5.6, Vector2(56, -25), 1.6],
 	]
 	for kind in ["lane", "alley_r", "court"]:
