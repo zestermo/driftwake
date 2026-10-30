@@ -51,6 +51,8 @@ static func lanes() -> Array:
 var isl
 ## (1.27 C4) The smuggling ring, Master Grane's investigation (empty with too few campi).
 var smug_q: Dictionary = {}
+## (1.27 C4) The canal city's odd jobs, offered by its people: [soup fish, the basket on the roofs, the candles].
+var job_qs: Array = []
 var quest_node: KitQuests
 var people := {}
 var _fader: ColorRect
@@ -261,6 +263,7 @@ func _quests() -> void:
 	glass.merge(common)
 	quest_node.add(glass, isl)
 	_smugglers(common)
+	_jobs(common)
 	_talk(blessing, oar, glass)
 
 
@@ -283,6 +286,8 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 		"buy": {"text": ["Done! I'll have her at your berth by the time you're down the steps. Your sloop stays here, looked after."], "event": "ship:buy:caravel", "next": "end"}}
 	_ship_choices(mmenu["choices"], mnodes, true)
 	quest_node.hand_over(blessing, mmenu["choices"], mnodes)
+	for j in job_qs.filter(func(q): return str(q.get("recipient", "")) == "Master Ottavio Grane"):
+		quest_node.hand_over(j, mmenu["choices"], mnodes)
 	mmenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	if not smug_q.is_empty():
 		quest_node.offer(smug_q, mmenu["choices"], mnodes)
@@ -290,6 +295,8 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 	var pmenu := {"text": "Peace on you, Captain.", "choices": []}
 	var pnodes := {"intro": {"text": ["Father Anselm. I bless the hulls, the boats and, when they let me, the sailors."], "next": "menu"}, "menu": pmenu}
 	quest_node.offer(blessing, pmenu["choices"], pnodes)
+	for j in job_qs.filter(func(q): return str(q["giver"]) == "Father Anselm"):
+		quest_node.offer(j, pmenu["choices"], pnodes)
 	pmenu["choices"].append({"text": "Goodbye, Father.", "next": "end"})
 	Dialogue.define(_key("priest"), {"speaker": "Father Anselm", "voice": 0.8, "start": "intro", "return": "menu", "nodes": pnodes})
 	var imenu := {"text": "What'll it be, Captain?", "choices": [{"text": "Something to eat.", "next": "eat"}, {"text": "What's the news?", "next": "news"}]}
@@ -297,6 +304,8 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 		"eat": {"text": ["Soup's on. Sit anywhere that isn't wet."], "event": "shop:" + _key("inn"), "next": "end"},
 		"news": {"text": ["The arsenal's got a caravel on the slips that'll be the prettiest thing on the water.", "And they say the capital's arena has a champion again. Pirates everywhere, these days."], "next": "menu"}}
 	quest_node.offer(oar, imenu["choices"], inodes)
+	for j in job_qs.filter(func(q): return str(q["giver"]) == "Carlotta Vere"):
+		quest_node.offer(j, imenu["choices"], inodes)
 	quest_node.hand_over(glass, imenu["choices"], inodes)
 	imenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("inn"), {"speaker": "Carlotta Vere", "voice": 1.05, "start": "intro", "return": "menu", "nodes": inodes})
@@ -417,3 +426,49 @@ func _smugglers(common: Dictionary) -> void:
 		"at": steps[0]["at"], "yaw": 0.0, "search": marks[0][0], "reward": {"gold": 150, "xp": 1.5}, "steps": steps}
 	smug_q.merge(common)
 	quest_node.add(smug_q, isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "City jobs") The canal city's odd jobs, offered by its people (no board here): three
+## fish for Carlotta's soup, her washing basket blown onto a roof, Father Anselm's blessed candles to Master Grane for a
+## launch. Half a quest's XP each.
+func _jobs(common: Dictionary) -> void:
+	var soup := {"id": _key("job_soup"), "kind": "fetch", "giver": "Carlotta Vere", "src": "npc", "title": "Fish for the soup",
+		"ask": "Short of anything?", "plea": ["Fish! The boats came in empty and I've a pot of soup and no soup in it. Three good fish, Captain. I'll pay."],
+		"accept": "Three fish. Done.", "decline": "Not today.", "taken": "Fresh as you can. The lagoon's sardines, a bream, anything with fins.",
+		"remind_choice": "About the fish...", "remind": ["Three fish, for the pot."], "done": "Three fish for the pot.",
+		"thanks": ["Beautiful. The soup lives! A bowl's on the house tonight, and this."], "cost": [["fish", 3]], "reward": {"gold": 35, "xp": 0.5},
+		"steps": [{"do": "turnin", "goal": "Bring three fish to Carlotta at the Oar and Lantern"}]}
+	soup.merge(common)
+	job_qs.append(soup)
+	var flats: Array = P.lots().filter(func(l): return l.has("top_y") and str(l["roof"]) == "flat" and not l.has("hatch"))
+	flats.sort_custom(func(a, b): return int(a["seed"]) < int(b["seed"]))
+	if not flats.is_empty():
+		var l: Dictionary = flats[0]
+		var t: Transform3D = l["frame"]
+		var wd: Vector2 = l["wd"]
+		var p: Vector3 = t * Vector3(wd.x * 0.2, float(l["top_y"]), 0.0)
+		var basket := {"id": _key("job_basket"), "kind": "lost", "giver": "Carlotta Vere", "src": "npc", "title": "The basket on the roofs",
+			"ask": "You look windswept.", "plea": ["The wind! It took my whole basket of washing off the line and up onto the roofs. Sheets, aprons, the lot.",
+				"You look like you climb things. Fetch it down?"],
+			"accept": "I'll fetch it.", "decline": "Not my laundry.", "taken": "Over the lanes somewhere. The ladders go up from the calli.",
+			"remind_choice": "About the basket...", "remind": ["On a roof over the lanes. Up a ladder."], "done": "Your washing, Carlotta.",
+			"thanks": ["Every sheet! You're a treasure. Take this."], "at": isl.from_city(Vector2(p.x, p.z)), "yaw": 0.0, "search": "Take the basket",
+			"reward": {"gold": 25, "xp": 0.5},
+			"steps": [{"do": "pickup", "at": isl.from_city(Vector2(p.x, p.z)), "y": p.y + 0.05, "yaw": 0.0, "search": "Take the basket",
+				"goal": "Find Carlotta's washing basket on the roofs", "said": "Sheets and aprons, a little gull-trodden. Back to Carlotta."},
+				{"do": "turnin", "goal": "Bring the basket back to Carlotta at the Oar and Lantern"}]}
+		basket.merge(common)
+		job_qs.append(basket)
+	var candles := {"id": _key("job_candles"), "kind": "deliver", "giver": "Father Anselm", "src": "npc", "title": "Candles for a launch",
+		"ask": "Can I help, Father?", "plea": ["The arsenal launches a hull on the tide. Master Grane asked for blessed candles for her bow. My knees won't take me there and back."],
+		"accept": "I'll take them.", "decline": "Not today, Father.", "taken": "Master Grane, at the arsenal. Mind you don't drop them in a canal.",
+		"remind_choice": "About the candles...", "remind": ["To Master Grane at the arsenal."], "done": "Grane has the candles.",
+		"thanks": ["Then she'll sail lucky. Bless you, Captain."], "recipient": "Master Ottavio Grane",
+		"hand": "Blessed candles, from Father Anselm.", "got": ["Candles for her bow. The old man remembered. Good."],
+		"reward": {"gold": 20, "xp": 0.5},
+		"steps": [{"do": "talk", "who": "Master Ottavio Grane", "goal": "Take Father Anselm's candles to Master Grane at the arsenal", "said": "Delivered. Back to Father Anselm."},
+			{"do": "turnin", "goal": "Tell Father Anselm the candles are delivered"}]}
+	candles.merge(common)
+	job_qs.append(candles)
+	for j in job_qs:
+		quest_node.add(j, isl)

@@ -8068,3 +8068,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **C4 piece 8: the forged seal** (CapitalLife._forged_seal, offered by Ambrose Pell, 160 gold, "xp": 1.5): forged
   papers in the library's hidden room, wax by the Guild hall's door, the stamp on the theatre's stage (the prop-maker).
   t/capital/forged_seal; t/capital/life counts 14.
+- **C4 piece 9: the canal city's jobs** (CanalLife._jobs, offered by its people, "xp": 0.5): Carlotta's soup fish
+  (fetch) and her washing basket on an unhatched flat roof (a roof pickup), Father Anselm's candles to Master Grane
+  (deliver; handed over in Grane's talk). t/canal/jobs; t/canal/city counts 7 city quests.
