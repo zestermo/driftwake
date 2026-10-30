@@ -8367,3 +8367,13 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - (same day) **A wipe means the brig** (decided). StrongholdScouring._wipe (the host, from the first fight on): every
   captain on the stronghold down at once sends `Net.everyone("_all_arrest", ...)`, the Admiralty's brig with kit kept.
   Breaking out returns the crew to the Lower Ward. Test: t/stronghold/wipe.
+
+## 1.27 Driftfruits, piece 1: the forms (2026-10-30)
+- `scripts/progression/fruit_forms.gd` (FruitForms): a fruit power's form from its own uses (Progression.uses_of, already
+  counted on every cast and saved) and its fruit's mastery:
+  - Active;
+  - Reflex at REFLEX_USES 150 and mastery 12;
+  - Nature at NATURE_USES 400 and mastery 24.
+- `next_step` gives what's left, for the skill map. What each form does is each fruit's own kit (to come).
+- Test: t/progression/fruit_forms.
+- The roster of ten and the tree's shape are in docs/v1_27_raids_fruits_plan.md "The ten Driftfruits".
