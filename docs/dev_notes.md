@@ -8245,3 +8245,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   builders set it.
   - Renders looking up: strongholdshot `up_tower`, `under_bridge`, `up_gate`, `up_verdict`.
   - Other places seen from below (the capital's palace stair arches, bridges) can set the same flag.
+- (same day) **The stronghold's rock, viaducts and sea gate.**
+  - **Rock:** CapitalIsland.ground_set() picks the terrain's textures; StrongholdIsland's is fog_rock and wet shingle
+    (glacier_rock read as snow).
+  - **Viaducts** (`_viaduct`: a deck, parapets, piers to the rock with arches between, end towers): the Arsenal and the
+    Prison to the keep's plateau at its height, and an arcade across the Landing at 24 m between the quay's towers.
+  - **The sea gate:** two towers in the water SEA_GATE_Z 96 out, a SEA_GATE_GAP 26 m passage centred on the berth, a
+    lintel with a banner, a raised portcullis and chains. Sea walls run back to the quay's ends, so the harbour is a
+    basin you sail into through the gate. The docks are shortened to stay inside it.

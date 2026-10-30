@@ -281,7 +281,7 @@ func _capital_arrays() -> void:
 func _capital_terrain() -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
-	mesh.surface_set_material(0, PSXMat.terrain(true, 0.0, KitStyle.of(theme)["ground"], ""))
+	mesh.surface_set_material(0, PSXMat.terrain(true, 0.0, ground_set(), ""))
 	var body := StaticBody3D.new()
 	body.name = "Terrain"
 	body.collision_layer = 1
@@ -491,3 +491,8 @@ func _undercity() -> void:
 	undercity = CityUndercity.new()
 	undercity.build(city, lanes, int(node.get("seed", 0)), {"prefix": "capital_under", "tint": Color(0.62, 0.6, 0.58),
 		"water": false, "ground": func(q: Vector2) -> float: return CapitalPlan.ground(q)})
+
+
+## The terrain's textures by layer (KitStyle "ground"; the stronghold has its own grey rock).
+func ground_set() -> Dictionary:
+	return KitStyle.of(theme)["ground"]

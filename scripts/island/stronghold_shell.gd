@@ -17,11 +17,14 @@ const FAR := 3600.0
 const SPIRE_STAGES := [[24.0, 32.0], [19.0, 50.0]]
 const TWINS := [16.0, 18.0, 6.0, 185.0]
 const VERDICT_RING := [140.0, 13.0]
+## The sea gate: how far out in front of the harbour, and the passage between its towers (centred on the berth).
+const SEA_GATE_Z := 96.0
+const SEA_GATE_GAP := 26.0
 
 
 static func build(build_ms: Dictionary) -> Array:
 	var out: Array = []
-	for step in [["paving", _paving], ["harbour", _harbour], ["ways", _ways], ["walls", _walls], ["buildings", _buildings], ["verdict", _verdict]]:
+	for step in [["paving", _paving], ["harbour", _harbour], ["ways", _ways], ["walls", _walls], ["buildings", _buildings], ["verdict", _verdict], ["viaducts", _viaducts], ["sea gate", _sea_gate]]:
 		var t0 := Time.get_ticks_usec()
 		step[1].call(out)
 		build_ms[step[0]] = (Time.get_ticks_usec() - t0) / 1000.0
@@ -538,9 +541,9 @@ static func _harbour(out: Array) -> void:
 	var cols: Array = []
 	var wood := PSXMat.lit("planks_dark")
 	var deck_y := P.QUAY_Y - 0.15
-	for x: float in [-36.0, 46.0]:
+	for x: float in [-36.0, 42.0]:
 		var z0 := P.FRONT_Z
-		var z1 := P.FRONT_Z + 20.0
+		var z1 := P.FRONT_Z + 10.0
 		_block(mb, cols, wood, M.xf(M.v3(Vector2(x, (z0 + z1) * 0.5), deck_y)), Vector3(4.0, 0.3, z1 - z0))
 		var z := z0 + 2.0
 		while z < z1:
@@ -569,3 +572,90 @@ static func _harbour(out: Array) -> void:
 		for j in range(tall):
 			_block(mb, cols, wood, M.xf(M.v3(p, P.QUAY_Y + 0.5 + j * 1.0), rng.randf_range(-0.2, 0.2)), Vector3(1.0, 1.0, 1.0), Color(0.75, 0.68, 0.56))
 	CapitalShell._piece(out, "Harbour", mb, cols, FAR, true)
+
+
+## A walkway on arches from frame point a to b at deck height y (w wide): its deck and parapets, piers every span down
+## to the rock or sea, the arches between them, and a square tower at each end rising to it.
+static func _viaduct(mb: MeshBuilder, cols: Array, a: Vector2, b: Vector2, y: float, w: float, end_towers := true) -> void:
+	var L := a.distance_to(b)
+	var dir := (b - a) / L
+	var yaw := M.yaw_of(dir)
+	var side := Vector2(-dir.y, dir.x)
+	_block(mb, cols, _dark_m(), M.xf(M.v3((a + b) * 0.5, y - 0.6), yaw), Vector3(w, 1.2, L))
+	for s: float in [-1.0, 1.0]:
+		_block(mb, cols, _wall_m(), M.xf(M.v3((a + b) * 0.5 + side * s * (w * 0.5 - 0.3), y + 0.6), yaw), Vector3(0.6, 1.2, L))
+	var n := maxi(int(L / 11.0), 1)
+	for k in range(n + 1):
+		var p := a.lerp(b, float(k) / n)
+		var foot := P.terrain(p) - 1.0
+		if k > 0 and k < n:
+			_block(mb, cols, _wall_m(), M.xf(M.v3(p, (foot + y - 1.2) * 0.5), yaw), Vector3(w + 0.8, y - 1.2 - foot, 2.6))
+			mb.add_box(_foot_m(), M.xf(M.v3(p, foot + 1.5), yaw), Vector3(w + 1.6, 3.0, 3.4), 0.5)
+		if k == n:
+			break
+		# the arch from this pier to the next: the spandrel in slices down to its curve
+		var span := L / n
+		var r := span * 0.5 - 1.3
+		var m := 14
+		for j in range(m):
+			var s := -span * 0.5 + (j + 0.5) * span / m
+			var q := a.lerp(b, (k + 0.5) / n) + dir * s
+			var deck := y - 1.2
+			var spring := deck - 1.0 - r
+			var curve := spring + sqrt(maxf(r * r - s * s, 0.0)) if absf(s) < r else maxf(P.terrain(q) - 1.0, spring - 30.0)
+			if absf(s) >= r:
+				curve = P.terrain(q) - 1.0
+			if deck - curve > 0.05:
+				mb.add_box(_wall_m(), M.xf(M.v3(q, (deck + curve) * 0.5), yaw), Vector3(w, deck - curve, span / m + 0.02), 0.5)
+	if end_towers:
+		for e: Vector2 in [a, b]:
+			var fy := maxf(P._height_near(e), P.QUAY_Y)
+			_tower(mb, cols, e - dir * 0.0, fy, w + 3.0, maxf(y - fy, 4.0) + 1.0, side)
+
+
+## The viaducts of the reference: from the Arsenal and the Prison wings up to the keep's plateau at its height, and an
+## arcade across the Landing between the quay's two towers, high over the quay.
+static func _viaducts(out: Array) -> void:
+	var mb := MeshBuilder.new()
+	mb.all_faces = true
+	var cols: Array = []
+	var ky: float = P.DISTRICTS[4][2]
+	_viaduct(mb, cols, Vector2(66.0, -44.0), Vector2(44.0, -66.0), ky, 4.0)
+	_viaduct(mb, cols, Vector2(-66.0, -44.0), Vector2(-44.0, -66.0), ky, 4.0)
+	_viaduct(mb, cols, Vector2(-52.0, 58.0), Vector2(52.0, 58.0), 24.0, 4.0, false)
+	CapitalShell._piece(out, "Viaducts", mb, cols, FAR, true)
+
+
+## The sea gate: two towers standing in the water in front of the harbour, a lintel over the passage between them with
+## its portcullis raised and chains to it, and sea walls from them back to the quay's ends: the harbour a basin you
+## sail into through the gate.
+static func _sea_gate(out: Array) -> void:
+	var mb := MeshBuilder.new()
+	mb.all_faces = true
+	var cols: Array = []
+	var g1 := Vector2(P.BERTH.x - SEA_GATE_GAP * 0.5 - 6.0, SEA_GATE_Z)
+	var g2 := Vector2(P.BERTH.x + SEA_GATE_GAP * 0.5 + 6.0, SEA_GATE_Z)
+	var top := 30.0
+	for g: Vector2 in [g1, g2]:
+		_tower(mb, cols, g, P.QUAY_Y, 12.0, top - P.QUAY_Y, Vector2(0, 1))
+	var mid := (g1 + g2) * 0.5
+	var lb := top - 7.0
+	_block(mb, cols, _dark_m(), M.xf(M.v3(mid, (lb + top) * 0.5)), Vector3(SEA_GATE_GAP + 1.0, top - lb, 8.0))
+	_banner(mb, mid + Vector2(0, 4.12), top - 0.5, Vector2(0, 1), 8.0, 6.0)
+	var bars := int(SEA_GATE_GAP / 1.2)
+	for k in range(bars + 1):
+		var x := -SEA_GATE_GAP * 0.5 + k * SEA_GATE_GAP / bars
+		mb.add_box(_iron_m(), M.xf(M.v3(mid + Vector2(x, 0), lb - 2.0)), Vector3(0.22, 4.0, 0.22), 0.5)
+	mb.add_box(_iron_m(), M.xf(M.v3(mid, lb - 4.0)), Vector3(SEA_GATE_GAP, 0.3, 0.3), 0.5)
+	for s: float in [-1.0, 1.0]:
+		var a3 := M.v3(mid + Vector2(s * (SEA_GATE_GAP * 0.5 + 3.0), 0), top + 3.0)
+		var b3 := M.v3(mid + Vector2(s * SEA_GATE_GAP * 0.4, 0), lb - 4.0)
+		mb.add_box(_iron_m(), Transform3D(Basis.looking_at(b3 - a3, Vector3.UP), (a3 + b3) * 0.5), Vector3(0.3, 0.3, a3.distance_to(b3)), 0.5)
+	# the sea walls back to the quay's ends
+	for e in [[g1, Vector2(-58.0, P.FRONT_Z)], [g2, Vector2(58.0, P.FRONT_Z)]]:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var n := int(a.distance_to(b) / 4.0)
+		for k in range(n):
+			_wall(mb, cols, a.lerp(b, float(k) / n), a.lerp(b, float(k + 1) / n), P.QUAY_Y + 2.0, 8.0)
+	CapitalShell._piece(out, "SeaGate", mb, cols, FAR, true)

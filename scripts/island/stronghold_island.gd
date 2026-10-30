@@ -167,3 +167,9 @@ func _in_stone(at: Vector3, ship: bool) -> bool:
 	if ship:
 		return StrongholdPlan.land_t(q) < 3.0
 	return StrongholdPlan.land_t(q) < -1.0 and l.y < StrongholdPlan.terrain(q) - 0.5
+
+
+## Blue-grey rock and wet shingle, nothing green or sandy: the reference's rock under the walls.
+func ground_set() -> Dictionary:
+	return {"grass": "fog_rock", "sand": "shingle_wet", "wet_sand": "shingle_wet", "dirt": "fog_rock", "rock": "fog_rock",
+		"seafloor": "seafloor", "cliff": "fog_rock"}
