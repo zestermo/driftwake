@@ -277,3 +277,8 @@ backported there).
 ## Rainy day (Zach, 2026-10-29)
 - **The internal id rename** (sea_king, devil_fruits, log_pose, haki ids -> Driftwake's own, with a save migration):
   out of 1.26, no version yet. Display text is already renamed; only ids, file names and saves are left.
+
+## Small, after 1.26 (2026-10-29)
+- A refunded technique cast ("Nobody close enough") still pays Edy Techniques' 2-energy infusion and shows its aura
+  (PowerComponent.try_cast's infusion line runs after the state refunds). Charge it only when the cast goes through.
+- techtest's "the next shot right after isn't deflected" failed once in ~8 runs (the fixer's note): look if it recurs.
