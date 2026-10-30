@@ -8377,3 +8377,10 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - `next_step` gives what's left, for the skill map. What each form does is each fruit's own kit (to come).
 - Test: t/progression/fruit_forms.
 - The roster of ten and the tree's shape are in docs/v1_27_raids_fruits_plan.md "The ten Driftfruits".
+- (same day) **Driftfruits, piece 2: the world pool** (`scripts/powers/fruit_pool.gd`, FruitPool).
+  - Each fruit is once per save. `draw(tree, tier, rng)` reserves a free fruit of that tier for everyone (the world
+    flag "fruit:<id>"), and `release` puts it back (an enemy user beaten, a fruit lost).
+  - TIERS hold the ten's tiers; only fruits the game has (DevilFruits.FRUITS) are drawn. SELL: joke 15,000, solid
+    60,000, legendary 200,000.
+  - Not hooked into the sources yet: DevilFruits.IN_WORLD stays false until the reworked kits are in.
+  - Test: t/progression/fruit_pool.

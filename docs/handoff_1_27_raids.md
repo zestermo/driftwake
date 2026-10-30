@@ -251,3 +251,13 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   - **Stronghold left:** muster flags (respawn at a raised flag while the crew is up), Marrow's seastone net and
     catwalks, a world test of the escape with a real ship, and the Queen's step 2 (the writ).
   - **Next:** the Driftfruits.
+- (latest) **Driftfruits so far:** the roster of ten (plan doc), FruitForms (the forms by use plus mastery) and FruitPool
+  (once per save, tiered draws, sell prices), each tested. **Next for fruits:**
+  1. The fruit stance on V (the Wolf's hybrid V is the model: in stance LMB/RMB are the fruit's attacks, Q/E/R its
+     powers).
+  2. Rebuild Ember, Wolf and Vine to the new kits (the plan's tables), with the Reflex and Nature behaviours per power
+     reading FruitForms.form.
+  3. Add Storm, Iron and Bubble, then Gust, Bear, Clockwork and Echo (items, icons, Skills.ALL entries, trees in
+     skill_trees.gd).
+  4. Turn IN_WORLD on with the sources drawing from FruitPool, then enemy users (officers and Vane's phase 3), the
+     costs (the sea's weakness and rescues) and the Seafarer tree.
