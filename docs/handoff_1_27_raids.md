@@ -126,3 +126,11 @@ docs/v1_27_raids_fruits_plan.md (the Scouring, brig on a wipe, keep the prize, a
   - Then build: stronghold step 1 (the fortress, the place) from preview v2.
   - Still open from the cities: lamplighters, shutters, busier inns at night; smugglers to fight in the undercity; a
     water gate; the rank perks beyond the discount.
+- **Stronghold placement, to decide before step 1:**
+  - Chain.gd rolls islands layer by layer from one rng, so a new node shifts every later island's roll (a save's chain
+    changes past it).
+  - The safe way is to mark an existing island the stronghold: the first island of the layer after the canal city
+    (`n["stronghold"] = true`, its content swapped, like `capital`/`canal` at CITY_LAYERS). Other islands stay as
+    they were.
+  - Build it like CapitalIsland: a fixed plan (StrongholdPlan, data) plus shell pieces a frame each.
+- The six fruit kits (Storm, Iron, Wolf, Vine, Bubble, plus Ember's) are in the plan as a preview for Zach's OK.
