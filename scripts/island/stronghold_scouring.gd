@@ -72,6 +72,9 @@ func _banner(key: String, title: String, sub: String) -> void:
 
 
 func _process(delta: float) -> void:
+	# (a wipe counts from the first fight on, not only once the Scouring's begun)
+	if get_node("/root/Net").is_host():
+		_wipe(delta)
 	if _flag("sh_escaped"):
 		state = "escaped"
 		_banner("escaped", "Survived the Scouring", "%s burns behind you." % isl.island_name)
@@ -263,3 +266,26 @@ func _drive_admiral(step: float, ship: Node3D) -> void:
 	if brain:
 		brain.order = "fight"
 		brain.target = runner
+
+
+## A wipe (decided: the brig, kit kept): every captain on the stronghold down at once -> the Admiralty's brig
+## (AdmiraltyBrig via Net._all_arrest); breaking out brings the crew back to the Lower Ward. Not once they've escaped.
+var _wiped_t := 0.0
+
+
+func _wipe(step: float) -> void:
+	_wiped_t -= step
+	if _wiped_t > 0.0 or state == "escaped" or AdmiraltyBrig.of(get_tree()) != null:
+		return
+	var centre: Vector3 = isl.city_global(StrongholdPlan.LAND_C, 0.0)
+	var here: Array = []
+	for p in get_node("/root/Net").all_players():
+		var pl := p as Player
+		if Vector2(pl.global_position.x - centre.x, pl.global_position.z - centre.z).length() < ISLAND_R + 30.0:
+			here.append(pl)
+	if here.is_empty() or here.any(func(pl): return pl.is_standing()):
+		return
+	_wiped_t = 15.0
+	var ward: Rect2 = StrongholdPlan.DISTRICTS[1][1]
+	var back: Vector3 = isl.city_global(ward.get_center(), float(StrongholdPlan.DISTRICTS[1][2]) + 0.5)
+	get_node("/root/Net").everyone("_all_arrest", [back, "Commodore Aurel Vane"])

@@ -246,3 +246,8 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
 - **The ten:** the six in the plan (Ember, Wolf, Vine, Iron, Bubble, Storm) plus four more. Zoan and logia are
   consistent in structure; paramecia are each very different, some not for combat. Each has a movement power, two
   ultimate options and some CC.
+- (latest) **Also done:** finding the stronghold (captured orders from a raided outpost, the chart marker, a rumour), the
+  vault and its legendary, and the wipe to the brig.
+  - **Stronghold left:** muster flags (respawn at a raised flag while the crew is up), Marrow's seastone net and
+    catwalks, a world test of the escape with a real ship, and the Queen's step 2 (the writ).
+  - **Next:** the Driftfruits.

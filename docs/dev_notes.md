@@ -8364,3 +8364,6 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     seed>"). It holds the stronghold's legendary from StrongholdBoss.LEGENDARIES (by the chain seed: a kind at
     LEGENDARY rarity via ItemDB.with_trait, named "Old Thunder" and so on), 2,500 gold and 6 treasure.
   - Tests: t/island/outpost (the orders), t/stronghold/vane (the vault and its legendary).
+- (same day) **A wipe means the brig** (decided). StrongholdScouring._wipe (the host, from the first fight on): every
+  captain on the stronghold down at once sends `Net.everyone("_all_arrest", ...)`, the Admiralty's brig with kit kept.
+  Breaking out returns the crew to the Lower Ward. Test: t/stronghold/wipe.
