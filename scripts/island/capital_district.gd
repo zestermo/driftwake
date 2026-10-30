@@ -407,6 +407,9 @@ static func _specials(out: Dictionary) -> void:
 		var face: Vector2 = sp[1]
 		if key in ["bell", "yardhall", "outfitter"]:
 			continue
+		if key in ["library", "theatre"]:
+			CapitalHalls.build(mb, cols, key, 9.0 if key == "library" else 11.0)
+			continue
 		var l := {"r": r, "cell": r, "c": r.get_center(), "face": face, "seed": hash(key), "floors": 3, "roof": "hip"}
 		var fr := lot_frame(l)
 		var t: Transform3D = fr[0]

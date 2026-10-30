@@ -7993,5 +7993,10 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   on its step, candles and a hanging lamp (glow, no real lights), coloured windows (2 glass materials). CapitalPlan._open
   treats the cathedral's footprint as closed (the old TEMPLE rect reaches into the forecourt). t/capital/cathedral;
   capitalshot forecourt, nave.
+- **The library and the theatre** (C2 pieces 3-4, CapitalHalls on new SPECIAL rects "library" (-48,-44,20,20) facing
+  the forecourt and "theatre" (46,-28,20,22) on the arena street): a shared hall shell (facade out, plaster in, door,
+  steps, hip roof, colliders, occluders in the side walls); the library's shelf rows, reading tables and lamps, a back
+  shelf wall with a 0.9 m gap into the hidden room (a chest, a lamp, scrolls); the theatre's raised stage, proscenium,
+  curtains, footlights and raked rows. t/capital/halls; capitalshot library, theatre.
 - The walls across leftover gaps (CapitalShell._barrier) 3 m or wider now stand two storeys with a windowed facade over a
   plain ground floor, so a lane past unbuilt ground reads as a house side. Open: stairs to upper floors not yet.

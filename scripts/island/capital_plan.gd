@@ -113,6 +113,9 @@ const SPECIAL := {
 	# 1.21: the capital shipwright's hall on the wharf, the outfitter on the terrace
 	"yardhall": [Rect2(148.0, 44.0, 16.0, 22.0), Vector2(-1, 0)],
 	"outfitter": [Rect2(46.0, -50.0, 16.0, 11.0), Vector2(0, -1)],
+	# 1.27 C2: the library on the cathedral's forecourt (its door west onto it), the theatre on the arena street (CapitalHalls)
+	"library": [Rect2(-48.0, -44.0, 20.0, 20.0), Vector2(-1, 0)],
+	"theatre": [Rect2(46.0, -28.0, 20.0, 22.0), Vector2(0, 1)],
 }
 
 

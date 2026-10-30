@@ -139,6 +139,8 @@ func _setup(island) -> void:
 		["belfry", "the city from the belfry", Vector2(37.2, -32.2), 23.7, Vector2(-20, 40), 0.0],
 		["forecourt", "the cathedral from its forecourt", Vector2(-52, -30), 1.7, Vector2(-86, -32), 6.0],
 		["nave", "inside the cathedral", Vector2(-75.5, -32), 2.4, Vector2(-97, -32), 2.0],
+		["library", "inside the library", Vector2(-45.6, -33.0), 1.9, Vector2(-30, -35), 1.4],
+		["theatre", "inside the theatre", Vector2(56, -8.0), 5.6, Vector2(56, -25), 1.6],
 	]
 	for kind in ["lane", "alley_r", "court"]:
 		var fl: Array = CapitalPlan.rolled().filter(func(f): return str(f[0]) == kind)
