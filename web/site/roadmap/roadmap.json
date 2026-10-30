@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.25",
+	"here": "1.26",
 	"versions": [
 		{
 			"v": "0.1",
@@ -849,25 +849,30 @@
 		{
 			"v": "1.26",
 			"name": "The Playtest Overhaul",
-			"status": "building",
-			"headline": "Everything a two-hour co-op playtest turned up: villages worth finding, a new Brinehollow opening, a round Edy tree, and more from every weapon.",
-			"img": "post",
-			"alt": "A trading post's palisade gate and watchtower (current build)",
-			"plan": [
-				["Villages", "Shops you walk into, unique places to find, tavern games, and island stories your side work feeds."],
-				["A new opening", "Start unarmed, pick your weapon at Vey's rack, and learn your Edy at the shrine."],
-				["The Edy tree", "One round tree of eight branches, with abilities that rank up as you use them."],
-				["Weapons", "Two ultimates, a crew move and alternate attacks for every weapon."]
+			"date": "2026-10-29",
+			"status": "shipped",
+			"headline": "Everything a two-hour co-op playtest turned up: more from every weapon, a new Brinehollow opening, a round Edy tree, villages worth finding, and saves without a limit.",
+			"img": "edy_banner",
+			"alt": "EDY over a night sea, and the five types' symbols",
+			"github": true,
+			"added": [
+				["Weapons", "Every weapon: a second ultimate, a second crew technique, alternates, a launcher, an aerial heavy and bridges."],
+				["A new opening", "Start unarmed, pick from Vey's rack, learn your Edy at the shrine."],
+				["The Edy tree", "Eight branches, ranks by use, Infusion, and subtler auras."],
+				["Villages", "Shops you walk into, special places, dojo spars, tavern games, pirate-held villages."],
+				["Saves", "Unlimited saves with pictures and backups; join a crew without a save first."],
+				["The installer", "Driftwake-Setup.exe installs the game and keeps it up to date."]
 			]
 		},
 		{
 			"v": "1.27",
 			"name": "Strongholds and Driftfruits",
-			"status": "planned",
-			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
+			"status": "building",
+			"headline": "Cities worth exploring first, then raids on an Admiralty stronghold and a great pirate's hideout, and Driftfruits back, done right.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",
 			"plan": [
+				["Cities", "Rolled streets and alleys, interiors to explore, bell towers and undercities, city jobs and mysteries, and a reason to meet the Queen and the Doge."],
 				["Strongholds", "Admiralty strongholds and pirate hideouts as raids."],
 				["Driftfruits return", "Each fruit with its own moves, effects and tree, real trade-offs, and co-op rescues from the sea."],
 				["Fruit-user enemies", "Enemies who wield fruits, from one world pool: a fruit is free again when its user falls."]

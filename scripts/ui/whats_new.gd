@@ -7,11 +7,13 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
+	["Every weapon, more", "All 17 weapons get a second ultimate, a second crew technique, free alternate aerial, sprint and right-click attacks as their mastery grows, a launcher, an aerial heavy at mastery 10, and bridges between their branches."],
 	["A new beginning", "New captains wake on Brinehollow with nothing. Fight with your fists, pick your weapon from Sergeant Vey's rack, have your Edy read by Master Isao at the shrine, and cross the whole island before you sail."],
-	["The Edy tree", "One round tree of eight branches round your Edy. Abilities rank up as you use them, passives can be switched off, and the Infusion branch puts your Edy into every technique and blow. Old Edy purchases come back as points to spend."],
-	["Edy that fits", "Subtler auras: haze, sparks, gold glints, swirling motes or crackling arcs round your arms and legs, a light glow on the limbs, and the whole body when you Reinforce."],
-	["Islands worth landing on", "Side jobs weaken the island's villain, traders have shops you walk into, every village has one special place, dice and arm wrestling at the inn, and now and then a village the pirates have taken."],
-	["Finding your way", "The compass stays up with your crew and your objective on it, every captain carries a tonic flask, and villagers glance at you instead of spinning round."],
+	["The Edy tree", "One round tree of eight branches. Abilities rank up as you use them, passives switch off, Infusion puts your Edy into every blow, and subtler auras glow on your arms and legs (the whole body when you Reinforce)."],
+	["Islands worth landing on", "Side jobs weaken the island's villain, shops you walk into, a special place in every village, dojo masters who spar you for real, dice and arm wrestling at the inn, and villages the pirates have taken."],
+	["Saves without a limit", "As many saves as you like, each with its picture, place, crew and play time, and three backups kept of each. Host or join a crew without making a save first."],
+	["The sea pushes back", "Bounty hunters are announced before they walk in, Admiralty ships chase with bow chasers, blockades of three ships can be broken, and your sails come down when you're rammed."],
+	["Finding your way", "The compass stays up with your crew and objective, every captain carries a tonic flask, villagers glance instead of spinning round, and Vsync, a frame cap and Reduce flashing are in the options."],
 ]
 
 
