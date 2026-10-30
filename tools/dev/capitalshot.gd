@@ -143,6 +143,12 @@ func _setup(island) -> void:
 		["maze", "the palace maze from above", Vector2(-20, -150), 16.0, Vector2(-34, -168), 0.0],
 		["garden", "the palace's formal garden", Vector2(33, -153.5), 1.7, Vector2(33, -170), 1.2],
 		["theatre", "inside the theatre", Vector2(56, -8.0), 5.6, Vector2(56, -25), 1.6],
+		# (1.27) the grand stair up the palace hill: from the gate, its first landing, a terrace walk, side-on and from above
+		["pgate", "the grand stair from the palace gate", Vector2(0, -71), 1.7, Vector2(0, -115), 22.0],
+		["proad", "on the grand stair's first landing", Vector2(0, -85.5), 1.7, Vector2(0, -118), 14.0],
+		["pturn", "along a terrace walk", Vector2(-30, -93), 1.7, Vector2(0, -88), 3.0],
+		["pside", "the palace hill side-on", Vector2(115, -95), 30.0, Vector2(0, -100), 18.0],
+		["ptop", "the palace hill from above", Vector2(0, -55), 75.0, Vector2(0, -100), 0.0],
 	]
 	for kind in ["lane", "alley_r", "court"]:
 		var fl: Array = CapitalPlan.rolled().filter(func(f): return str(f[0]) == kind)

@@ -8092,3 +8092,23 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   callables on Dialogue choices gate them.
 - Test: t/capital/favour (the ranks, the discount on every trader, the Queen's gate on the audience, the thanks paid
   once, the Doge's pointer).
+
+## 1.27: the palace hill terraced, a grand stair up it (2026-10-30)
+- Zach: the zigzag road up the palace hill looked bad and didn't play well. It was a thin ramp on a 35-45 degree
+  mound, and at eye height it sank into the hillside because the 3 m terrain cells smeared the slope over it.
+- The hilltop is now **HILL_TOP 32** (was 42; a stair can't climb 34 m in the 43 m between the gate and the plateau).
+- The hill is in terraces: `CapitalPlan.TERRACES` holds [the wall's outer radius, the ring's height] (81/16, 65.5/24,
+  50/32). `hill(q, shift)` is stepped.
+- `terrain()` steps half a wall in (`hill(q, -TERRACE_T * 0.5)`), so the mesh's 3 m smear stays inside the
+  TERRACE_T 6.5 m deep retaining walls.
+- `flights()` gives the grand stair's three flights (12 m run, about 34 degrees). `on_stair()` marks the stair's band.
+- `steep()` paints the terraces as lawn.
+- capital_shell `_terraces`:
+  - The ring walls: solid, their tops a walk with a balustrade that opens where the stair arrives. Colliders and
+    occluders.
+  - The flights: step blocks, a ramp collider along the nosings, sloped cheeks, and urns at each foot.
+  - Cypress rows along the stair on each lawn.
+  - The old road and its slabs are gone. The random cypresses keep off the walls and the stair.
+- Tests: t/capital/palace walks each flight and landing, and checks a wall's walk and its balustrade. The rest of
+  t/capital passes unchanged.
+- Renders: capitalshot `pgate`, `proad`, `pturn`, `pside` and `ptop` (CSHOT_ONLY=...).

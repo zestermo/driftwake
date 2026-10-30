@@ -238,3 +238,34 @@ Total: 16 points. Haki leaning toward non-users is not in 1.27 (Haki's numbers a
 | Sea gate | **Swim-under for non-users only** | The fruit's cost matters inside a raid; the Seafarer build gets its own way in | - |
 | Numbers | **This preview's numbers are the first pass**, tuned in play | - | Play-testing |
 Next: build step 1 (the fortress, the place), then the steps in docs/v1_27_plan.md order.
+
+## Zach's direction (2026-10-30, after the preview): supersedes parts of A and C
+
+### The stronghold, reshaped (replaces A's "open fortress" shape where they differ)
+- **A large fortress of distinct districts**, a Dark Souls 3 / Elden Ring legacy-dungeon place: big buildings with rooms
+  that hold **chaotic boss fights and wave fights**. A **30-60 minute raid**, WoW-dungeon-like in pace.
+- **Tuned for a squad of 3+**; anyone can still do it solo (single-player stays possible, scaled down).
+- **Enemies keep respawning through the zone** (outside set encounter rooms and boss arenas) **until the main boss is
+  beaten**; then they stop.
+- **The Admiralty's emergency broadcast** once it's cleared and the main boss is down.
+- **The Buster Call:** 2 minutes after the boss falls, a countdown starts; at zero the Admiralty's fleet surrounds the
+  island and your ship and **barrages the whole place** with huge explosive shells (big fireball blasts) that set
+  everything around you on fire. You get out with the prize.
+- Still to settle (next discussion): the districts and their order, the encounter rooms and bosses (the Vice Admiral as
+  the main boss?), how the alarm/stealth idea fits a respawning zone, checkpoints/the brig on a wipe in a 30-60 min run,
+  the escape from the Buster Call (to the ship and out, with the ship under fire).
+
+### The Driftfruits, fully reworked (replaces C's weapon-tree copy)
+Today's moves, costs, progression, mixing with weapons and looks are all outdated: redo them.
+- **Mastery by use that evolves the powers themselves**, not just unlocks: an ability gains new triggers, passives,
+  speed and features as you master the fruit. Zach's examples:
+  - A logia's **bullets pass through you**: first an activated ability (a short window), later it **happens on its own
+    now and then**, finally **always on**.
+  - **Flight**: first a short phase-dash/hover on an ability; later hover longer and phase through material briefly on
+    Space; finally it's part of your dash, and **holding Space dematerialises you into free flight for energy**.
+- **Every fruit has an awakening**: an awakened form/state that does more (the top of its mastery).
+- **Balance against the weapons:** Zach's lean: **combat points also buy fruit progression**, so a captain chooses
+  between weapon and fruit growth. To preview with numbers.
+- **Controls (an idea, not settled):** a fruit hotbar on a held modifier (hold Alt: Q, E, R, LMB, RMB become fruit
+  powers). Alternatives to preview.
+- The six fruits stay (Bubble, Wolf, Vine, Iron, Ember, Storm) unless the rework says otherwise.

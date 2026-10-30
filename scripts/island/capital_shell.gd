@@ -113,7 +113,7 @@ static func _harbour_wall(out: Array) -> void:
 	var lime := M.mat("lime")
 	var ends := sqrt(pow(P.LAND_R - P.SEA_WALL_IN, 2.0) - pow(P.WALL_Z - P.LAND_C.y, 2.0))
 	for run in [[Vector2(-ends, P.WALL_Z), Vector2(-70.6, P.WALL_Z)], [Vector2(-64.4, P.WALL_Z), Vector2(-9.0, P.WALL_Z)], [Vector2(9.0, P.WALL_Z), Vector2(129.9, P.WALL_Z)], [Vector2(136.1, P.WALL_Z), Vector2(ends, P.WALL_Z)]]:
-		M.wall_run(mb, cols, run, 9.0, P.WALL_T, _ground, _low)
+		M.wall_run(mb, cols, run, 9.0, P.TERRACE_T, _ground, _low)
 	for sx in [-1.0, 1.0]:
 		M.wall_run(mb, cols, [Vector2(sx * P.QUAY_END_X, P.WALL_Z + 1.5), Vector2(sx * P.QUAY_END_X, P.FRONT_Z + 2.0)], 6.0, 2.4, _ground, _low)
 		for x in [50.0, 100.0]:
@@ -122,14 +122,14 @@ static func _harbour_wall(out: Array) -> void:
 		M.round_tower(mb, cols, Vector2(sx * P.QUAY_END_X, P.FRONT_Z + 2.0), P.QUAY_Y, 3.6, 8.0, false, 12.0)
 	M.gatehouse(mb, cols, M.xf(M.v3(Vector2(0, P.WALL_Z), P.QUAY_Y)), 18.0, 10.0, 13.0, 6.0, 4.6, 4.2)
 	var pt := M.xf(M.v3(Vector2(-67.5, P.WALL_Z), P.base(P.WALL_Z)))
-	M.arch_wall(mb, lime, pt, 6.2, 9.0, P.WALL_T, 2.6, 2.1, Color(0.93, 0.91, 0.87))
+	M.arch_wall(mb, lime, pt, 6.2, 9.0, P.TERRACE_T, 2.6, 2.1, Color(0.93, 0.91, 0.87))
 	for s in [-1.0, 1.0]:
-		M.box(cols, pt * Transform3D(Basis(), Vector3(s * 2.25, 4.5, 0)), Vector3(1.7, 9.0, P.WALL_T))
+		M.box(cols, pt * Transform3D(Basis(), Vector3(s * 2.25, 4.5, 0)), Vector3(1.7, 9.0, P.TERRACE_T))
 	# (1.21) the docks' postern, east
 	var pe := M.xf(M.v3(Vector2(133.0, P.WALL_Z), P.base(P.WALL_Z)))
-	M.arch_wall(mb, lime, pe, 6.2, 9.0, P.WALL_T, 2.6, 2.1, Color(0.93, 0.91, 0.87))
+	M.arch_wall(mb, lime, pe, 6.2, 9.0, P.TERRACE_T, 2.6, 2.1, Color(0.93, 0.91, 0.87))
 	for s in [-1.0, 1.0]:
-		M.box(cols, pe * Transform3D(Basis(), Vector3(s * 2.25, 4.5, 0)), Vector3(1.7, 9.0, P.WALL_T))
+		M.box(cols, pe * Transform3D(Basis(), Vector3(s * 2.25, 4.5, 0)), Vector3(1.7, 9.0, P.TERRACE_T))
 	_piece(out, "HarbourWall", mb, cols, FAR, true)
 
 
@@ -175,46 +175,91 @@ static func _grounds(out: Array) -> void:
 			M.round_tower(mb, cols, p, P.ground(p), 3.6, 11.0, true, 6.0)
 	# (open since 1.21: the grounds, the road up and the palace court are walked)
 	M.gatehouse(mb, cols, M.xf(M.v3(P.PALACE_GATE, P.ground(P.PALACE_GATE))), 18.0, 9.0, 12.0, 5.0, 4.0, 3.8, false)
-	var road := [Vector2(0, -72), Vector2(-36, -84), Vector2(30, -100), Vector2(-20, -113), Vector2(0, -120)]
-	var slab := M.mat("slabs")
-	var lime := M.mat("lime")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 6113
-	for i in range(road.size() - 1):
-		var a: Vector2 = road[i]
-		var b: Vector2 = road[i + 1]
-		var dir := (b - a).normalized()
-		var side := Vector2(-dir.y, dir.x)
-		var steps := ceili(a.distance_to(b) / 3.0)
-		for k in range(steps):
-			var p0 := a.lerp(b, float(k) / steps)
-			var p1 := a.lerp(b, float(k + 1) / steps)
-			# (its ends come down to the ground: no lip to step up at the gate or the top)
-			var y0 := P.ground(p0) + (0.0 if i == 0 and k == 0 else 0.45)
-			var y1 := P.ground(p1) + (0.0 if i == road.size() - 2 and k == steps - 1 else 0.45)
-			mb.add_quad(slab, M.v3(p0 - side * 2.6, y0), M.v3(p0 + side * 2.6, y0), M.v3(p1 + side * 2.6, y1), M.v3(p1 - side * 2.6, y1),
-				Vector2.ZERO, Vector2(2.6, 0), Vector2(2.6, 1.5), Vector2(0, 1.5), Color(0.92, 0.9, 0.86), Vector3.UP)
-			# (walked since 1.21: a slab under each step of the road, its top the road's)
-			var a3 := M.v3(p0, y0)
-			var b3 := M.v3(p1, y1)
-			M.box(cols, Transform3D(Basis.looking_at(b3 - a3, Vector3.UP), (a3 + b3) * 0.5) * Transform3D(Basis(), Vector3(0, -0.2, 0)), Vector3(5.2, 0.4, a3.distance_to(b3) + 0.3))
-			for s: float in [-1.0, 1.0]:
-				var e0: Vector2 = p0 + side * s * 2.85
-				var e1: Vector2 = p1 + side * s * 2.85
-				var mid: Vector2 = (e0 + e1) * 0.5
-				mb.add_box(lime, M.xf(M.v3(mid, (y0 + y1) * 0.5 + 0.1), M.yaw_of(dir)), Vector3(0.45, 1.6, e0.distance_to(e1) + 0.05), 0.6, Color(0.9, 0.88, 0.84))
-				# (the parapets keep the captain on the road: off its side is a drop they couldn't step back up)
-				M.box(cols, M.xf(M.v3(mid, (y0 + y1) * 0.5 + 0.1), M.yaw_of(dir)), Vector3(0.45, 1.6, e0.distance_to(e1) + 0.05))
-			if k % 3 == 1:
-				var cp := p0 + side * (4.4 if k % 2 == 0 else -4.4)
-				M.cypress(mb, M.v3(cp, P.terrain(cp)), rng.randf_range(6.0, 8.5), rng)
+	_terraces(mb, cols, rng)
 	for k in range(26):
 		var a := rng.randf() * TAU
 		var d := rng.randf_range(P.HILL_R0 + 6.0, P.GROUNDS_R - 8.0)
 		var p := P.HILL_C + Vector2(cos(a), sin(a)) * d
-		if P.land_t(p) < -12.0:
+		# (on the lawns: never on a retaining wall's walk or the stair)
+		var on_wall := false
+		for t in P.TERRACES:
+			on_wall = on_wall or (d > float(t[0]) - P.TERRACE_T - 1.5 and d < float(t[0]) + 1.5)
+		if P.land_t(p) < -12.0 and not on_wall and not P.on_stair(p, 5.0):
 			M.cypress(mb, M.v3(p, P.terrain(p)), rng.randf_range(6.0, 10.0), rng)
 	_piece(out, "PalaceGrounds", mb, cols, FAR, true)
+
+
+## (1.27) The palace hill's terraces (CapitalPlan.TERRACES): a retaining wall round each ring, TERRACE_T deep, its top a
+## walk with a balustrade (open where the stair arrives); the grand stair's flights up the avenue's line, each a
+## step-block stack with a ramp under it for the feet, sloped cheeks each side and a pair of urns at its foot; and
+## cypresses lining the stair on every lawn.
+static func _terraces(mb: MeshBuilder, cols: Array, rng: RandomNumberGenerator) -> void:
+	var lime := M.mat("lime")
+	var slab := M.mat("slabs")
+	var stone := Color(0.95, 0.93, 0.89)
+	var lo := 8.0
+	for t in P.TERRACES:
+		var R: float = t[0]
+		var top: float = float(t[1]) + 0.06
+		var n := ceili(TAU * R / 6.0)
+		for k in range(n):
+			var a0 := TAU * k / n
+			var a1 := TAU * (k + 1) / n
+			var dir := Vector2(cos((a0 + a1) * 0.5), sin((a0 + a1) * 0.5))
+			if P.land_t(P.HILL_C + dir * R) > -6.0:
+				continue
+			var yaw := M.yaw_of(Vector2(-dir.y, dir.x))
+			var L := 2.0 * R * sin((a1 - a0) * 0.5) + 0.3
+			var bt := M.xf(M.v3(P.HILL_C + dir * (R - P.TERRACE_T * 0.5), (top + lo - 2.0) * 0.5), yaw)
+			var size := Vector3(P.TERRACE_T, top - lo + 2.0, L)
+			mb.add_box(lime, bt, size, 0.5, stone * (0.96 + 0.04 * float(k % 2)))
+			M.box(cols, bt, size)
+			Occluders.box(cols, bt, size)
+			# a moulded course under the walk's edge, then the balustrade (none where the stair comes up)
+			mb.add_box(lime, M.xf(M.v3(P.HILL_C + dir * (R + 0.1), top - 0.5), yaw), Vector3(0.4, 0.3, L), 0.6, Color(0.86, 0.84, 0.8), false)
+			if not P.on_stair(P.HILL_C + dir * R, 0.6):
+				var rail := M.xf(M.v3(P.HILL_C + dir * (R - 0.3), top + 0.5), yaw)
+				mb.add_box(lime, rail, Vector3(0.45, 1.0, L), 0.6, stone)
+				M.box(cols, rail, Vector3(0.45, 1.0, L))
+		lo = float(t[1])
+	for f in P.flights():
+		var r0: float = f[0]
+		var r1: float = f[1]
+		var y0: float = f[2] + (0.06 if f[2] > 8.0 else 0.0)
+		var y1: float = float(f[3]) + 0.06
+		var steps := ceili((y1 - y0) / 0.25)
+		var tread := (r0 - r1) / steps
+		for i in range(steps):
+			var yt := y0 + (i + 1) * (y1 - y0) / steps
+			var c := P.HILL_C + Vector2(0, r0 - (i + 0.5) * tread)
+			mb.add_box(slab, M.xf(M.v3(c, (yt + y0 - 0.6) * 0.5)), Vector3(P.STAIR_HW * 2.0 + 1.2, yt - y0 + 0.6, tread + 0.02), 0.5, Color(0.92, 0.9, 0.86))
+		# (the feet walk a ramp along the nosings' line, not the steps' corners)
+		var a3 := M.v3(P.HILL_C + Vector2(0, r0), y0 + 0.12)
+		var b3 := M.v3(P.HILL_C + Vector2(0, r1), y1 + 0.12)
+		var along := Transform3D(Basis.looking_at(b3 - a3, Vector3.UP), (a3 + b3) * 0.5)
+		M.box(cols, along * Transform3D(Basis(), Vector3(0, -0.2, 0)), Vector3(P.STAIR_HW * 2.0, 0.4, a3.distance_to(b3) + 0.4))
+		for s: float in [-1.0, 1.0]:
+			var cheek := along * Transform3D(Basis(), Vector3(s * (P.STAIR_HW + 0.3), 0.45, 0))
+			mb.add_box(lime, cheek, Vector3(0.6, 1.3, a3.distance_to(b3) + 0.6), 0.6, stone)
+			M.box(cols, cheek, Vector3(0.6, 1.3, a3.distance_to(b3) + 0.6))
+			# an urn on a pedestal each side of the foot
+			var u := P.HILL_C + Vector2(s * (P.STAIR_HW + 0.5), r0 + 0.8)
+			mb.add_box(lime, M.xf(M.v3(u, y0 + 0.6)), Vector3(1.0, 1.2, 1.0), 0.5, stone)
+			M.box(cols, M.xf(M.v3(u, y0 + 0.6)), Vector3(1.0, 1.2, 1.0))
+			mb.add_cylinder(lime, M.xf(M.v3(u, y0 + 1.2)), 0.3, 0.45, 0.7, 8, 0.5, Color(0.88, 0.86, 0.82), false, false, false)
+	# cypresses lining the stair on each lawn (between a wall's walk and the next wall's face)
+	var lawns := [[82.5, P.GROUNDS_R - 5.0]]
+	for i in range(P.TERRACES.size() - 1):
+		lawns.append([float(P.TERRACES[i + 1][0]) + 1.0, float(P.TERRACES[i][0]) - P.TERRACE_T - 1.0])
+	for l in lawns:
+		var r := float(l[0])
+		while r < float(l[1]):
+			for s: float in [-1.0, 1.0]:
+				var p := P.HILL_C + Vector2(s * (P.STAIR_HW + 3.0), r)
+				M.cypress(mb, M.v3(p, P.ground(p)), rng.randf_range(6.5, 8.5), rng)
+			r += 4.5
 
 
 static func _palace(out: Array) -> void:

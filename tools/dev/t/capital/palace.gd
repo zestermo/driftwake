@@ -53,14 +53,24 @@ func _process(_d: float) -> bool:
 			var g: Vector2 = P.PALACE_GATE
 			# (through the gatehouse only: the ground rises past it to the road's foot)
 			check("the grounds' gate is open", _clear(g + Vector2(0, 6.0), g - Vector2(0, 4.2), P.ground(g) + 1.5))
-			var road := [Vector2(0, -72), Vector2(-36, -84), Vector2(30, -100), Vector2(-20, -113), Vector2(0, -120)]
+			# (1.27) the grand stair: each flight walked half way up its rise, each landing at its terrace's walk
 			var off: Array = []
-			for i in range(road.size() - 1):
-				var q: Vector2 = (road[i] as Vector2).lerp(road[i + 1], 0.5)
-				var y := _floor_at(q, P.ground(q) + 4.0)
-				if absf(y - (P.ground(q) + 0.45)) > 0.3:
-					off.append("%s: %.2f, the road %.2f" % [q.round(), y, P.ground(q) + 0.45])
-			check("the road up the hill is walked on its slabs (%s)" % [off], off.is_empty())
+			for f in P.flights():
+				var q: Vector2 = P.HILL_C + Vector2(0, (float(f[0]) + float(f[1])) * 0.5)
+				var want := (float(f[2]) + float(f[3])) * 0.5
+				var y := _floor_at(q, want + 4.0)
+				if absf(y - want) > 0.5:
+					off.append("flight at %s: %.2f, its middle %.2f" % [q.round(), y, want])
+				var land: Vector2 = P.HILL_C + Vector2(0, float(f[1]) - 1.5)
+				var ly := _floor_at(land, float(f[3]) + 4.0)
+				if absf(ly - float(f[3])) > 0.3:
+					off.append("landing at %s: %.2f, the terrace %.2f" % [land.round(), ly, float(f[3])])
+			check("the grand stair is walked flight by flight (%s)" % [off], off.is_empty())
+			var t1: Array = P.TERRACES[0]
+			var wq: Vector2 = P.HILL_C + Vector2(0, float(t1[0]) - 2.0).rotated(0.6)
+			check("a wall's top is a walk at its terrace (%.2f)" % _floor_at(wq, float(t1[1]) + 4.0), absf(_floor_at(wq, float(t1[1]) + 4.0) - float(t1[1])) < 0.3)
+			var out: Vector2 = P.HILL_C + Vector2(0, float(t1[0]) - 0.3).rotated(0.6)
+			check("...its edge balustraded", not _clear(out + (out - P.HILL_C).normalized() * -1.5, out + (out - P.HILL_C).normalized() * 1.5, float(t1[1]) + 0.6))
 			var top: float = P.HILL_TOP
 			check("the ring wall's gate is open", _clear(Vector2(0, -110.0), Vector2(0, -126.0), top + 1.5))
 			var court := Vector2(0, -138.0)

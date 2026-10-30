@@ -33,12 +33,21 @@ const MOLE_Y := 2.2
 const QUAY_END_X := 156.0
 ## The palace hill: its plateau and where its slope meets the town.
 const HILL_C := Vector2(0.0, -165.0)
-const HILL_TOP := 42.0
+const HILL_TOP := 32.0
 const HILL_R0 := 50.0
 const HILL_R1 := 112.0
 ## The palace grounds' wall (round the hill) and its gate at the avenue's end.
 const GROUNDS_R := 98.0
 const PALACE_GATE := Vector2(0.0, -67.0)
+## (1.27) The hill in terraces: flat rings held up by retaining walls, [the wall's outer radius, the ring's height
+## inside it] from the outside in (the plateau inside HILL_R0 is HILL_TOP; outside the first wall it's the town's).
+## The grand stair climbs the avenue's line (x 0) in a flight up the face of each wall, STAIR_RUN long, STAIR_HW
+## each side of the axis; the walls are TERRACE_T deep, their top a walk at the ring's height (the terrain mesh steps
+## half way in, so its 3 m cells smear the step out inside the stone).
+const TERRACES := [[81.0, 16.0], [65.5, 24.0], [50.0, 32.0]]
+const STAIR_HW := 3.5
+const STAIR_RUN := 12.0
+const TERRACE_T := 6.5
 ## The throne hall (1.21: walked into): its middle, size, wall height and door's width.
 const HALL_C := Vector2(0.0, -171.0)
 const HALL_W := 38.0
@@ -171,8 +180,28 @@ static func base(z: float) -> float:
 	return 8.0
 
 
-static func hill(q: Vector2) -> float:
-	return HILL_TOP * (1.0 - smooth(HILL_R0, HILL_R1, q.distance_to(HILL_C)))
+static func hill(q: Vector2, shift := 0.0) -> float:
+	var d := q.distance_to(HILL_C) - shift
+	var y := 0.0
+	for t in TERRACES:
+		if d < float(t[0]):
+			y = float(t[1])
+	return y
+
+
+## The grand stair's flights: [from r, to r (the wall's face), y at its foot, y at its top], r from HILL_C along +z.
+static func flights() -> Array:
+	var out: Array = []
+	var lo := 8.0
+	for t in TERRACES:
+		out.append([float(t[0]) + STAIR_RUN, float(t[0]), lo, float(t[1])])
+		lo = float(t[1])
+	return out
+
+
+## Is q on the grand stair (its flights and the band between them, to `pad` beyond its sides)?
+static func on_stair(q: Vector2, pad := 0.0) -> bool:
+	return absf(q.x - HILL_C.x) < STAIR_HW + pad and q.y > HILL_C.y + HILL_R0 - 1.0 and q.y < PALACE_GATE.y
 
 
 static func ellipse(q: Vector2, c: Vector2, r: Vector2) -> float:
@@ -411,6 +440,8 @@ static func mole_dist(q: Vector2) -> float:
 static func terrain(q: Vector2) -> float:
 	var t := land_t(q)
 	var g := ground(q)
+	if q.distance_to(HILL_C) < GROUNDS_R:
+		g = maxf(base(q.y), hill(q, -TERRACE_T * 0.5))
 	var h: float
 	if quay_coast(q):
 		h = lerpf(g, BASIN_Y, smooth(-2.5, 2.5, t))
@@ -431,7 +462,7 @@ static func terrain(q: Vector2) -> float:
 ## How far a point is down the hill road's slope (0 town, 1 the plateau): for the terrain's paint.
 static func steep(q: Vector2) -> float:
 	var d := q.distance_to(HILL_C)
-	return smooth(HILL_R0 - 4.0, HILL_R0 + 6.0, d) * (1.0 - smooth(HILL_R1 - 30.0, HILL_R1, d))
+	return smooth(HILL_R0 - 4.0, HILL_R0 + 2.0, d) * (1.0 - smooth(GROUNDS_R - 6.0, GROUNDS_R - 2.0, d))
 
 
 # --------------------------------------------------------------------------
