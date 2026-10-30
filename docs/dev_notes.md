@@ -8401,3 +8401,8 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - The template for every fruit power: an Active skill, and its Reflex and Nature in the path they belong to, reading
     FruitForms.form on that skill's uses.
   - Test: t/progression/ember_flame_body.
+- (same day) **Ember's Cinder Fist forms.**
+  - Reflex: DodgeState.exit calls `Player.ember_dodge_reflex` and a dodge's end throws a free Fireball the way you face
+    (at most every FIST_REFLEX_EVERY 4 s).
+  - Nature: PowerComponent's kindled sear applies to every melee hit, as Kindled Blade does.
+  - Checked in t/progression/ember_flame_body; t/player passes.

@@ -637,7 +637,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 		Net.fx("elem_hit", [tree, hit_at, away.normalized() if away.length() > 0.05 else Vector3.FORWARD])
 	if player.is_local and target is Node3D and not hit.dot:
 		_wounds(target as Node3D, hit, st)
-	if fruit == "ember" and player.progression.has_flag("kindled_blade") and target is Node3D and not suppressed():
+	if fruit == "ember" and (player.progression.has_flag("kindled_blade") or FruitForms.form(player.progression, "fire_fist", "ember") == FruitForms.NATURE) and target is Node3D and not suppressed():
 		BurnStatus.apply(target as Node3D, 1.6, 5.0, player)
 	if player.is_local and player.armed and target is Node3D:
 		var venom := 0.0

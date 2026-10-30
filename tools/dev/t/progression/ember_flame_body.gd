@@ -65,6 +65,12 @@ func _process(_d: float) -> bool:
 				if _hit(true) == 0.0:
 					shots += 1
 			check("Nature: shot always passes (%d of 10)" % shots, shots == 10)
+			# Cinder Fist's forms: at Reflex a dodge's end throws one by itself, once in 4 s
+			pr.uses["fire_fist"] = 0
+			check("Cinder Fist at Active: no dodge throw", not p.ember_dodge_reflex())
+			pr.uses["fire_fist"] = 150
+			check("...at Reflex: a dodge's end throws one", p.ember_dodge_reflex())
+			check("...not twice in 4 s", not p.ember_dodge_reflex())
 			return TK.done(fails)
 	step += 1
 	return false

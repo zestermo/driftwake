@@ -3331,3 +3331,23 @@ func _flame_body(hit: HitData) -> bool:
 		_flame_reflex_at = Engine.get_physics_frames() + int(FLAME_REFLEX_EVERY * Engine.physics_ticks_per_second)
 		return true
 	return false
+
+
+## (1.27) Ember's Cinder Fist at Reflex (FruitForms on its uses): the end of a dodge throws one by itself, the way you
+## face (at most once every FIST_REFLEX_EVERY s). At Nature your melee blows sear too (PowerComponent's kindled check).
+const FIST_REFLEX_EVERY := 4.0
+var _fist_reflex_at := -1000000
+
+
+func ember_dodge_reflex() -> bool:
+	if power.fruit != "ember" or FruitForms.form(progression, "fire_fist", "ember") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _fist_reflex_at or power.suppressed():
+		return false
+	_fist_reflex_at = Engine.get_physics_frames() + int(FIST_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	var fwd := -player_model.global_basis.z
+	fwd.y = 0.0
+	var from := global_position + Vector3(0, 1.3, 0) + fwd.normalized() * 0.6
+	Fireball.launch(get_tree(), from, fwd.normalized(), self)
+	Net.fx("flame", [from, 8, 0.5, 0.3, 0.15])
+	return true
