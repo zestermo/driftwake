@@ -188,3 +188,12 @@ On main and pushed:
   boss arms).
 - Tests to write: t/stronghold/boss_lieutenant (spawns on entering, his weapon and kit, phase 2 at 50%, the seal on
   defeat), then the Captain and the Commodore likewise.
+- (later) **The officers in the crowds** are built (StrongholdOfficers: one per district as you reach it, then 35% per
+  new wave, 5 standing at most, detuned). Zach's direction on pacing (Burning Blood-style crowds, Enies Lobby / Impel
+  Down set pieces) and **the Admiral's escape fight** at the Scouring are in the plan doc ("Zach's direction
+  (2026-10-30, night)"). The Admiral fight:
+  - He blinks in front of whoever runs for the ship and knocks them back.
+  - He's tanky, deliberate and never an instant kill.
+  - At about 2/3 of his health he speaks and leaves; then you escape.
+  - Build it after the Commodore, with the Scouring: the same spawn path as the bosses, plus a blink-and-knockback
+    behaviour toward the captain nearest the ship.
