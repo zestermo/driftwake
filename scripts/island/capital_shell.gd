@@ -327,10 +327,18 @@ static func _barrier(mb: MeshBuilder, cols: Array, a: Vector2, b: Vector2, n: Ve
 	var c := (a + b) * 0.5 + n * 0.3
 	var L := a.distance_to(b) + 1.0
 	var y := minf(P.ground(a), P.ground(b)) - 1.0
-	var top := maxf(P.ground(a), P.ground(b)) + 4.6
+	var gy := maxf(P.ground(a), P.ground(b))
+	# (1.27) a long one reads as a house's side: two storeys, shuttered windows over a plain ground floor, not a blank wall
+	var tall := L >= 3.0
+	var top := gy + (7.6 if tall else 4.6)
 	var yaw := M.yaw_of(-n)
 	var t := M.xf(M.v3(c, (y + top) * 0.5), yaw)
 	mb.add_box(M.mat("wash"), t, Vector3(L, top - y, 0.8), 0.5, Color(0.95, 0.92, 0.86))
+	if tall:
+		var f0 := M.v3(c - n * 0.42 + Vector2(-n.y, n.x) * (L * 0.5 - 0.05), gy + 3.4)
+		var f1 := M.v3(c - n * 0.42 - Vector2(-n.y, n.x) * (L * 0.5 - 0.05), gy + 3.4)
+		M.facade_quad(mb, M.mat("facade_a"), f1, f0, top - gy - 3.6, M.v3(-n, 0.0).normalized(), Color(0.95, 0.92, 0.86))
+		mb.add_box(M.mat("lime"), M.xf(M.v3(c - n * 0.42, gy + 3.35), yaw), Vector3(L, 0.2, 0.14), 0.6, Color(0.9, 0.88, 0.84), false)
 	mb.add_box(M.mat("lime"), M.xf(M.v3(c, top + 0.1), yaw), Vector3(L + 0.2, 0.25, 1.0), 0.6, Color(0.88, 0.86, 0.82), false)
 	M.box(cols, t, Vector3(L, top - y, 0.8))
 	Occluders.box(cols, t, Vector3(L - 1.0, top - y, 0.8))

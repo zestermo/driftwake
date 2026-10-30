@@ -7987,4 +7987,5 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   walls with corner landings (treads to see, one tilted ramp collider each), the belfry floor at 22 m open over the last
   flight, railed arches, the bell. The Hooded Stranger (CapitalLife, spot "informant") stands up there with barks; the
   leads he sells come with the strongholds and Driftfruits. t/capital/bell_tower; capitalshot bell, stair, belfry.
-- Open: a lane running past unbuilt ground shows a long blank barrier wall; stairs to upper floors not yet.
+- The walls across leftover gaps (CapitalShell._barrier) 3 m or wider now stand two storeys with a windowed facade over a
+  plain ground floor, so a lane past unbuilt ground reads as a house side. Open: stairs to upper floors not yet.
