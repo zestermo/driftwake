@@ -8065,3 +8065,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **C4 piece 7: the missing apprentice** (CapitalLife._apprentice, offered by Mirela, 90 gold + quest XP): Tobias's
   bench and the dicers' note in two walk-in homes/workshops (isl.doors' "inside" points), the cellar door in the corner
   of the dice den's courtyard. t/capital/apprentice; t/capital/life counts 13 city quests.
+- **C4 piece 8: the forged seal** (CapitalLife._forged_seal, offered by Ambrose Pell, 160 gold, "xp": 1.5): forged
+  papers in the library's hidden room, wax by the Guild hall's door, the stamp on the theatre's stage (the prop-maker).
+  t/capital/forged_seal; t/capital/life counts 14.

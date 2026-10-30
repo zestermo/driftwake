@@ -29,6 +29,8 @@ var thief_q: Dictionary = {}
 var job_qs: Array = []
 ## (1.27 C4) The missing apprentice, Mirela's (empty with too few walk-in rooms or no den).
 var appr_q: Dictionary = {}
+## (1.27 C4) The forged seal, Ambrose Pell's.
+var seal_q: Dictionary = {}
 var ruffians: GruntCamp
 var people := {}
 var notices: Array = []
@@ -282,6 +284,7 @@ func _quests() -> void:
 	_investigations(common)
 	_jobs(common)
 	_apprentice(common)
+	_forged_seal(common)
 	notices.append(gallows)
 	var ledger := {"id": _key("ledger"), "kind": "deliver", "giver": "Ambrose Pell", "src": "npc", "title": "Sealed with wax",
 		"recipient": "Tobin Rook", "reward": {"gold": 45},
@@ -430,6 +433,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 	var cmenu := {"text": "The guild's business, Captain?", "choices": []}
 	var cnodes := {"intro": {"text": ["Ambrose Pell, clerk to the Merchants' Guild. If you've a cargo to register, the queue starts on the steps."], "next": "menu"}, "menu": cmenu}
 	quest_node.offer(ledger, cmenu["choices"], cnodes)
+	if not seal_q.is_empty():
+		quest_node.offer(seal_q, cmenu["choices"], cnodes)
 	quest_node.hand_over(petition, cmenu["choices"], cnodes)
 	cmenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("clerk"), {"speaker": "Ambrose Pell", "voice": 0.95, "start": "intro", "return": "menu", "nodes": cnodes})
@@ -678,3 +683,31 @@ func _apprentice(common: Dictionary) -> void:
 		"at": steps[0]["at"], "yaw": 0.0, "search": clues[0][1], "reward": {"gold": 90}, "steps": steps}
 	appr_q.merge(common)
 	quest_node.add(appr_q, isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "Investigations") The forged seal, Ambrose Pell's: forged papers in the library's hidden
+## room, a spoiled impression by the Guild hall's door, the forger's own stamp on the theatre's stage. Back to Pell.
+func _forged_seal(common: Dictionary) -> void:
+	var lib: Vector3 = CapitalHalls.library_chest() * Vector3(1.2, 0.0, 0.3)
+	var gr: Rect2 = P.SPECIAL["guild"][0]
+	var gd: Vector2 = gr.get_center() + (P.SPECIAL["guild"][1] as Vector2) * (gr.size.y * 0.5 + 2.0)
+	var th: Transform3D = CapitalHalls.frame("theatre")[0]
+	var stage_q: Vector3 = th * Vector3(-3.0, CapitalHalls.ground("theatre") + CapitalHalls.RISE + 1.2, -float(CapitalHalls.frame("theatre")[2]) * 0.5 + 3.4)
+	var clues := [[lib, "Read the papers", "Bills of lading under the Guild's seal, dozens of them, for cargoes that never sailed. Forged, and hidden here.", "forged papers in the library's hidden room"],
+		[Vector3(gd.x, P.ground(gd), gd.y), "Pick up the wax", "A spoiled impression of the Guild's seal, dropped by its door. The forger works from a good copy. Near here.", "a spoiled seal impression by the Guild hall"],
+		[stage_q, "Take the stamp", "A brass stamp in a prop chest on the stage: the Guild's seal, perfect. The theatre's prop-maker carves the stage's crowns too.", "the forger's stamp in the theatre"]]
+	var steps: Array = []
+	for c in clues:
+		var v: Vector3 = c[0]
+		steps.append({"do": "pickup", "at": isl.from_city(Vector2(v.x, v.z)), "y": v.y + 0.02, "yaw": 0.0, "search": c[1], "goal": "Find %s" % c[3], "said": c[2]})
+	steps.append({"do": "turnin", "goal": "Bring the forger's stamp to Ambrose Pell at the Guild's hall"})
+	seal_q = {"id": _key("inv_seal"), "kind": "lost", "giver": "Ambrose Pell", "src": "npc", "title": "The forged seal",
+		"ask": "Trouble at the Guild?", "plea": ["Trouble? Cargoes registered under our seal that no ship carried. Someone has the Guild's seal, or a copy good enough to fool me.",
+			"Which is to say, very good. Find where these papers come from. Discreetly: if the Guild hears, I'm the one they'll blame."],
+		"accept": "I'll find the forger.", "decline": "Not my guild.", "taken": "Start where nobody would look for papers. Or rather where scholars would. You understand.",
+		"remind_choice": "About the forgery...", "remind": ["Papers, wax, a stamp. Find the stamp, and we have the forger."],
+		"done": "Here's your forger's stamp.", "thanks": ["The theatre's prop-maker! Of course. He carves crowns for kings every night. Why not the Guild's seal by day.",
+			"The Guild owes you. I owe you more. Here."],
+		"at": steps[0]["at"], "yaw": 0.0, "search": clues[0][1], "reward": {"gold": 160, "xp": 1.5}, "steps": steps}
+	seal_q.merge(common)
+	quest_node.add(seal_q, isl)
