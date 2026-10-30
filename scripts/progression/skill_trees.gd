@@ -1292,6 +1292,8 @@ static func _build_ember() -> void:
 		"Flux: your body is fire. Your dodge turns you to flame - fully untouchable, passing straight through enemies and gunfire. Use its powers to grow it.")
 	_big("e_fist", "Cinder Fist", "tech", 0, 1, {}, "", "fire_fist")
 	_big("e_dash", "Flame Dash", "tech", 0, 6, {}, "", "flame_dash")
+	# (1.27) Flame Body's Active form: its Reflex and Nature grow from its uses (FruitForms)
+	_big("e_flicker", "Flicker", "tech", 1, 2, {}, "", "flicker")
 	_big("e_kindled", "Kindled Blade", "mech", 1, 4, {"kindled_blade": 1}, "Every melee hit sears: the target burns for a moment.")
 	_big("e_smolder", "Smoldering Body", "mech", 1, 11, {"smoldering": 1}, "Your flame-form dodge leaves burning embers behind.")
 	_big("e_inferno", "Great Inferno", "ult", 1, 20, {}, "", "inferno")
