@@ -55,6 +55,7 @@ func prepare(n: Dictionary) -> void:
 	spots = d["spots"]
 	doors = d["doors"]
 	ladders = d.get("ladders", [])
+	caches = d.get("caches", [])
 	lights = d["lights"]
 	smoke_tops = CanalShell.smoke_tops.duplicate()
 	CanalShell.smoke_tops.clear()
@@ -87,6 +88,7 @@ func finish_steps() -> Array:
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
 	steps.append(["ladders", _ladders])
+	steps.append(["caches", _caches])
 	steps.append(["lamps", _lamps])
 	steps.append(["smoke", _smoke])
 	steps.append(["pigeons", _pigeons])

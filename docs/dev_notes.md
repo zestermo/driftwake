@@ -8034,3 +8034,12 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   onto the roof over the room), the furniture kept out of that corner; CapitalRoofs cuts the slab round the hatch,
   frames it and throws the lid back. Both cities (~14 in the capital). t/capital/rooftops checks every hatch is open.
   The surface counts skip Ladder nodes (one small surface each, near the camera only).
+
+## 2026-10-30: 1.27 C4 piece 1 - the cities' hidden caches
+- CityCaches: each district lists its caches as data (`entry(xf, key)`: gold 40-90, 1-3 treasure, a tonic half the
+  time, rolled from the key); the island's "caches" step makes LootBags under the city node (`place`), skipping any key
+  already in GameManager.opened (apply_world_state only runs at load, before a city may be built).
+- Capital (9): the library's hidden room, the maze's heart (both replace the display-only chests), the theatre's stage,
+  the belfry, three hatch roofs (CapitalDistrict.roof_caches: the corner opposite the hatch), two courtyard corners.
+  Canal (7): the campanile's belfry, the glassworks, three hatch roofs, two campi.
+- t/capital/caches (both cities, solid footing, an opened one stays gone). The city mesh/surface counts skip LootBags.

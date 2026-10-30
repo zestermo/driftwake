@@ -25,7 +25,7 @@ const DOORS := [Color(0.42, 0.3, 0.22), Color(0.2, 0.3, 0.46), Color(0.22, 0.36,
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": [], "cells": P.lots().map(func(l): return l["cell"])}
 	for step in [["houses", _houses], ["specials", _specials], ["plaza", _plaza], ["street", _street], ["quay", _quay],
-			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena], ["courts", _courts], ["gardens", _gardens]]:
+			["avenue", _avenue], ["slum", _slum], ["docks", _docks], ["terrace", _terrace], ["palace", _throne], ["arena", _arena], ["courts", _courts], ["gardens", _gardens], ["caches", _caches]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -1510,3 +1510,32 @@ static func enterable(l: Dictionary, kind: String) -> bool:
 ## (1.27) The palace gardens: the hedge maze and the formal garden on the hilltop (CapitalGardens).
 static func _gardens(out: Dictionary) -> void:
 	CapitalGardens.build(out, P.world_seed)
+
+
+## (1.27 C4) The capital's hidden caches (CityCaches): the library's hidden room, the maze's heart, the belfry, the
+## theatre's stage, three hatch roofs, two courtyard corners.
+static func _caches(out: Dictionary) -> void:
+	var caches: Array = [CityCaches.entry(CapitalHalls.library_chest(), "capital_cache_library"),
+		CityCaches.entry(CapitalGardens.heart_chest(), "capital_cache_maze"),
+		CityCaches.entry(CapitalHalls.corner("theatre"), "capital_cache_theatre")]
+	var bt := CapitalBellTower.top(CapitalShell.BELL, CapitalShell.bell_y())
+	caches.append(CityCaches.entry(M.xf(Vector3(bt.x - 1.8, bt.y, bt.z + 1.0), PI * 0.5), "capital_cache_belfry"))
+	caches.append_array(roof_caches(lots(), "capital_cache_roof", 3))
+	var courts: Array = P.rolled().filter(func(f): return str(f[0]) == "court")
+	for i in range(mini(courts.size(), 2)):
+		var r: Rect2 = courts[i][1]
+		caches.append(CityCaches.entry(M.xf(M.v3(r.position + Vector2(1.2, 1.2), P.ground(r.position + Vector2(1.2, 1.2))), PI * 0.25), "capital_cache_court%d" % i))
+	out["caches"] = caches
+
+
+## `n` caches on the flat roofs with a hatch (a walk-in house's own way up), in the corner opposite the hatch.
+static func roof_caches(all_lots: Array, prefix: String, n: int) -> Array:
+	var out: Array = []
+	var hatched: Array = all_lots.filter(func(l): return l.has("hatch"))
+	hatched.sort_custom(func(a, b): return int(a["seed"]) < int(b["seed"]))
+	for i in range(mini(n, hatched.size())):
+		var l: Dictionary = hatched[i]
+		var t: Transform3D = l["frame"]
+		var wd: Vector2 = l["wd"]
+		out.append(CityCaches.entry(t * Transform3D(Basis(Vector3.UP, PI * 0.25), Vector3(wd.x * 0.5 - 1.1, float(l["top_y"]) + 0.05, wd.y * 0.5 - 1.1)), "%s%d" % [prefix, i]))
+	return out

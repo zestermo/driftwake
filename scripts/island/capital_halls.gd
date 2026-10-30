@@ -161,11 +161,6 @@ static func _library(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: 
 	var gap := 0.9
 	shelf.call(Vector3(-gap * 0.5, fy, back), true, ix * 2.0 - gap)
 	# the hidden room behind it: a chest, a lamp, scrolls
-	var chest_at := t * Transform3D(Basis(), Vector3(-ix * 0.4, fy, (-iz + back) * 0.5 - 0.3))
-	var chest := MeshBuilder.from_mesh(Props.treasure_chest_mesh())
-	chest.rebind(chest_at, 0)
-	mb.merge(chest)
-	M.box(cols, chest_at * Transform3D(Basis(), Vector3(0, 0.4, 0)), Vector3(1.0, 0.8, 0.7))
 	mb.add_box(PSXMat.glow(Color(1.0, 0.75, 0.35), 2.0), t * Transform3D(Basis(), Vector3(ix * 0.4, fy + 1.2, -iz + 0.3)), Vector3(0.12, 0.18, 0.12), 1.0, Color.WHITE, false)
 	for i in range(5):
 		mb.add_cylinder(M.mat("cloth"), t * Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(ix * 0.2 + i * 0.12, fy + 0.08, -iz + 0.8 + (i % 2) * 0.2)), 0.06, 0.06, 0.5, 6, 0.5, Color(0.92, 0.88, 0.76))
@@ -382,3 +377,23 @@ static func _loggia(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: f
 		for k in range(3):
 			var bq := Vector3(-w * 0.5 + 2.0 + k * 1.0, 0, s * (hd * 0.4 + 1.3))
 			mb.add_cylinder(PSXMat.lit("straw") if ResourceLoader.exists("res://assets/textures/psx/straw.png") else PSXMat.lit("planks"), st * Transform3D(Basis(), bq - Vector3(0, 0, s * hd * 0.4)), 0.32, 0.38, 0.45, 8, 0.5, Color(0.86, 0.74, 0.5))
+
+
+## (1.27 C4) The library's hidden room: where its cache stands (CityCaches), frame transform on the floor.
+static func library_chest() -> Transform3D:
+	var fr := frame("library")
+	var t: Transform3D = fr[0]
+	var ix := float(fr[1]) * 0.5 - WALL
+	var iz := float(fr[2]) * 0.5 - WALL
+	var back := -iz + 3.2
+	return t * Transform3D(Basis(), Vector3(-ix * 0.4, ground("library") + RISE, (-iz + back) * 0.5 - 0.3))
+
+
+## A hall's back corner, on its floor (the theatre: up on its stage).
+static func corner(key: String, plan = null) -> Transform3D:
+	var fr := frame(key, plan)
+	var t: Transform3D = fr[0]
+	var ix := float(fr[1]) * 0.5 - WALL
+	var iz := float(fr[2]) * 0.5 - WALL
+	var y := ground(key, plan) + RISE + (1.2 if key == "theatre" else 0.0)
+	return t * Transform3D(Basis(Vector3.UP, PI * 0.25), Vector3(ix - 1.2, y, -iz + 1.0 if key == "theatre" else iz - 1.2))

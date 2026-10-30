@@ -85,10 +85,6 @@ static func _maze(mb: MeshBuilder, cols: Array, world_seed: int) -> void:
 	mb.add_box(M.mat("lime"), M.xf(M.v3(hq, y + 0.4)), Vector3(1.0, 0.8, 1.0), 0.6, Color(0.92, 0.9, 0.86))
 	CapitalDistrict._figure(mb, M.xf(M.v3(hq, y + 0.8), PI * 0.25), 1.8, false)
 	M.box(cols, M.xf(M.v3(hq, y + 1.2)), Vector3(1.0, 2.4, 1.0))
-	var chest := MeshBuilder.from_mesh(Props.treasure_chest_mesh())
-	chest.rebind(M.xf(M.v3(hq + Vector2(1.1, 0.9), y), PI * 0.75), 0)
-	mb.merge(chest)
-	M.box(cols, M.xf(M.v3(hq + Vector2(1.1, 0.9), y + 0.35), PI * 0.75), Vector3(1.0, 0.7, 0.7))
 
 
 ## The formal garden: rows of clipped cones, flower beds between them, a fountain in the middle, benches facing it.
@@ -123,3 +119,9 @@ static func _garden(mb: MeshBuilder, cols: Array) -> void:
 		mb.add_box(PSXMat.lit("planks_dark"), bt * Transform3D(Basis(), Vector3(0, 0.45, 0)), Vector3(1.8, 0.08, 0.5), 0.6, Color.WHITE)
 		mb.add_box(lime, bt * Transform3D(Basis(), Vector3(0, 0.22, 0)), Vector3(1.6, 0.44, 0.3), 0.6, Color(0.9, 0.88, 0.84), false)
 		M.box(cols, bt * Transform3D(Basis(), Vector3(0, 0.25, 0)), Vector3(1.8, 0.5, 0.5))
+
+
+## (1.27 C4) The maze's cache: at the statue's feet (CityCaches), frame transform on the ground.
+static func heart_chest() -> Transform3D:
+	var h := heart()
+	return M.xf(M.v3(Vector2(h.x, h.z) + Vector2(1.1, 0.9), h.y), PI * 0.75)

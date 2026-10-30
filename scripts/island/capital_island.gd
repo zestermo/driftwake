@@ -28,6 +28,8 @@ var spots := {}
 var doors: Array = []
 ## (1.27) Ladders up to the flat roofs from the lanes: [{"xf": frame Transform3D at its head, "length", "rail"}].
 var ladders: Array = []
+## (1.27 C4) The hidden caches (CityCaches.entry), made as LootBags under the city node.
+var caches: Array = []
 var lights: Array = []
 ## The chimney tops that may smoke (city frame), gathered from the builders in prepare.
 var smoke_tops: Array = []
@@ -93,6 +95,7 @@ func prepare(n: Dictionary) -> void:
 	spots = d["spots"]
 	doors = d["doors"]
 	ladders = d.get("ladders", [])
+	caches = d.get("caches", [])
 	lights = d["lights"]
 	smoke_tops = CapitalModels.smoke_tops.duplicate()
 	CapitalModels.smoke_tops.clear()
@@ -128,6 +131,7 @@ func finish_steps() -> Array:
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
 	steps.append(["ladders", _ladders])
+	steps.append(["caches", _caches])
 	steps.append(["lamps", _lamps])
 	steps.append(["smoke", _smoke])
 	steps.append(["pigeons", _pigeons])
@@ -470,3 +474,8 @@ func _ladders() -> void:
 		lad.deck_depth = 0.9
 		lad.transform = e["xf"]
 		city.add_child(lad)
+
+
+## The hidden caches as LootBags under the city node (CityCaches), the opened ones left out.
+func _caches() -> void:
+	CityCaches.place(city, caches)

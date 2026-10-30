@@ -23,7 +23,7 @@ const FLOWERS := [Color(0.9, 0.24, 0.3), Color(0.98, 0.84, 0.3), Color(0.82, 0.5
 static func build(build_ms: Dictionary) -> Dictionary:
 	var out := {"pieces": [], "lights": [], "spots": {}, "doors": []}
 	for step in [["houses", _houses], ["washing", _washing], ["boats", _boats], ["campi", _campi], ["piazza", _piazza], ["market", _market],
-			["inn", _inn], ["arsenal", _arsenal], ["landings", _landings]]:
+			["inn", _inn], ["arsenal", _arsenal], ["landings", _landings], ["caches", _caches]]:
 		var t0 := Time.get_ticks_usec()
 		(step[1] as Callable).call(out)
 		build_ms["district " + str(step[0])] = int((Time.get_ticks_usec() - t0) / 1000)
@@ -601,3 +601,17 @@ static func _landings(out: Dictionary) -> void:
 				Color(0.2, 0.3, 0.62) if s % 2 == 0 else Color(0.95, 0.95, 0.92))
 		_spot(out, "landing%d" % i, q - wd * 0.6 + wd.orthogonal() * 1.6, P.QUAY_Y, wd)
 	_piece(out, "Landings", mb, cols)
+
+
+## (1.27 C4) The canal city's hidden caches (CityCaches): the campanile's belfry, the glassworks' corner, three hatch
+## roofs, two campo corners.
+static func _caches(out: Dictionary) -> void:
+	var bt := CapitalBellTower.top((P.SPECIAL["campanile"][0] as Rect2).get_center(), P.QUAY_Y)
+	var caches: Array = [CityCaches.entry(M.xf(Vector3(bt.x - 1.8, bt.y, bt.z + 1.0), PI * 0.5), "canal_cache_belfry"),
+		CityCaches.entry(CapitalHalls.corner("glassworks", P), "canal_cache_glassworks")]
+	caches.append_array(D.roof_caches(P.lots(), "canal_cache_roof", 3))
+	var campi: Array = P.floors().filter(func(f): return str(f[0]).ends_with("_campo"))
+	for i in range(mini(campi.size(), 2)):
+		var r: Rect2 = campi[i][1]
+		caches.append(CityCaches.entry(M.xf(M.v3(r.position + Vector2(1.2, 1.2), P.QUAY_Y), PI * 0.25), "canal_cache_campo%d" % i))
+	out["caches"] = caches
