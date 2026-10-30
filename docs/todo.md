@@ -292,3 +292,7 @@ backported there).
 - **powertest: the captain ends up swimming** before "holding parry settles into a block (Swim)" (2026-10-30, found
   fixing the stale suites). Probably knocked into the water by an earlier step's fight. Pin the captain on land
   (teleport and Idle) before the parry steps, or find what throws them. Time-boxed and left red.
+- **Quitting while GruntCamps prebuild hangs the exit** (2026-10-30). t/stronghold/place ended 4 ticks after building
+  the stronghold, while its garrison (warm_start camps, Humanoid.prebuild on workers) was still building bodies, and
+  Godot never exited (the runner's 150 s stall). The test now waits 8 s. Check that freeing an island mid-prebuild
+  (sailing away fast) doesn't hang too.

@@ -54,7 +54,8 @@ func _process(_d: float) -> bool:
 					near = minf(near, (o["pos"] as Vector2).distance_to(s["pos"]))
 			check("...clear of every island (%.0f m to the nearest)" % near, near >= c.STRONGHOLD_CLEAR)
 			isl = w.build_stronghold(Vector3(900, 0, 900))
-			until = TK.wait_ticks(4)
+			# (long enough for the garrison's bodies to finish building: quitting mid-prebuild hangs the exit, docs/todo.md)
+			until = TK.wait_secs(8.0)
 		2:
 			var off: Array = []
 			for d in P.DISTRICTS:

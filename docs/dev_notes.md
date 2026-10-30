@@ -8281,3 +8281,21 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - The wall towers keep clear of the drain. STRONGHOLD_RADIUS is 250 (the reefs are inside the terrain).
   - Test: t/stronghold/place checks the coast's spread, the reefs, the deep channel, the beach and the walk to the
     drain. Renders: strongholdshot `cove`, `reefs`, `aerial`.
+
+## 1.27 stronghold: the garrison and the first sealed room (2026-10-30)
+- **StrongholdIsland.nav_faces:** 2 m quads over the districts and ways at their heights, plus the fortress's solid boxes
+  as obstacles (the capital's way).
+- **StrongholdGarrison.build** (the island's "garrison" step, on every machine; the host runs the camps):
+  - A squad per district (PATROLS: size and a loop round its open ground), Admiralty marines (EnemyShip.marine_look),
+    the last a rifleman.
+  - A wiped squad comes back after RESPAWN 90 s once no captain is within CLEARANCE 30 m (GruntCamp's own respawn).
+  - Warm-started (bodies prebuilt on workers).
+- **StrongholdEncounter** extends GruntCamp: a sealed room (SEALED: the Mess Hall so far).
+  - It musters nothing until a captain is inside the room.
+  - Then it runs WAVES 3 waves (SIZES 4/5/6; riflemen from wave 2; an officer leads the last), each BETWEEN 2.5 s after
+    the last is down. `wave_specs(gen)` is the same on every machine.
+  - The host steps `gen` and sends it as a camp respawn (Net.spawned).
+  - The grate (a StaticBody across the door) is worked out on every machine from gen and who's standing: no message of
+    its own. The last wave down sets the world flag "sh_cleared_<room>": cleared for good.
+- Tests: t/stronghold/garrison (squads, a respawn, the three waves behind the grate, cleared). t/stronghold/place now
+  waits 8 s after building (quitting mid-prebuild hangs: docs/todo.md).

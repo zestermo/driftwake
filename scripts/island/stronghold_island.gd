@@ -9,6 +9,8 @@ const STRONGHOLD_RADIUS := 250.0
 
 ## The rooms' lanterns from the shell ([frame Vector3, range]), lit in finish.
 var room_lights: Array = []
+## (1.27) Its squads and sealed rooms (StrongholdGarrison): GruntCamps under the City node.
+var garrison: Array = []
 
 
 func prepare(n: Dictionary) -> void:
@@ -61,6 +63,7 @@ func finish_steps() -> Array:
 	for i in range(pieces.size()):
 		steps.append(["fortress", _piece.bind(i)])
 	steps.append(["lights", _lights_on])
+	steps.append(["garrison", _garrison])
 	steps.append(["arrival", _arrival])
 	return steps
 
@@ -120,8 +123,43 @@ func pigeon_flocks() -> Array:
 	return []
 
 
-func nav_faces(_c: Vector3, _r: float) -> PackedVector3Array:
-	return PackedVector3Array()
+## The garrison's walking: the districts' floors and the ways as 2 m quads at their heights near c (within r), and
+## the fortress's solid boxes as obstacles (CapitalIsland's way: _nav_boxes from the pieces' colliders).
+func nav_faces(c: Vector3, r: float) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var xf := city.global_transform
+	var l := city.to_local(c)
+	var q0 := Vector2(l.x, l.z)
+	var rects: Array = StrongholdPlan.DISTRICTS.map(func(d): return d[1])
+	for w in StrongholdPlan.WAYS:
+		var a: Vector2 = w[1]
+		var b: Vector2 = w[2]
+		var hw: float = w[3]
+		rects.append(Rect2(minf(a.x, b.x) - hw, minf(a.y, b.y) - hw, absf(b.x - a.x) + hw * 2.0, absf(b.y - a.y) + hw * 2.0))
+	for rect: Rect2 in rects:
+		var x := rect.position.x
+		while x < rect.end.x:
+			var z := rect.position.y
+			while z < rect.end.y:
+				var x1 := minf(x + 2.0, rect.end.x)
+				var z1 := minf(z + 2.0, rect.end.y)
+				var mid := Vector2((x + x1) * 0.5, (z + z1) * 0.5)
+				if mid.distance_to(q0) < r and StrongholdPlan.ground(mid) > -INF:
+					var p: Array = [Vector2(x, z), Vector2(x1, z), Vector2(x1, z1), Vector2(x, z1)].map(func(q): return xf * CapitalModels.v3(q, StrongholdPlan.ground(q) if StrongholdPlan.ground(q) > -INF else StrongholdPlan.ground(mid)))
+					out.append_array([p[0], p[1], p[2], p[0], p[2], p[3]])
+				z += 2.0
+			x += 2.0
+	for bx in _nav_boxes:
+		var t: Transform3D = bx[0]
+		if Vector2(t.origin.x, t.origin.z).distance_to(q0) > r + 12.0:
+			continue
+		var h: Vector3 = bx[1] * 0.5
+		var k: Array = []
+		for s in [Vector3(-1, -1, -1), Vector3(1, -1, -1), Vector3(1, -1, 1), Vector3(-1, -1, 1), Vector3(-1, 1, -1), Vector3(1, 1, -1), Vector3(1, 1, 1), Vector3(-1, 1, 1)]:
+			k.append(xf * (t * (h * s)))
+		for qd in [[4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]]:
+			out.append_array([k[qd[0]], k[qd[1]], k[qd[2]], k[qd[0]], k[qd[2]], k[qd[3]]])
+	return out
 
 
 func harbour_spawn() -> Vector3:
@@ -192,3 +230,8 @@ func _lights_on() -> void:
 		o.light_color = Color(1.0, 0.68, 0.4)
 		o.shadow_enabled = false
 		city.add_child(o)
+
+
+## The garrison's squads and the sealed rooms.
+func _garrison() -> void:
+	garrison = StrongholdGarrison.build(self)
