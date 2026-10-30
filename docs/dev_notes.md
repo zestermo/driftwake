@@ -8299,3 +8299,12 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     its own. The last wave down sets the world flag "sh_cleared_<room>": cleared for good.
 - Tests: t/stronghold/garrison (squads, a respawn, the three waves behind the grate, cleared). t/stronghold/place now
   waits 8 s after building (quitting mid-prebuild hangs: docs/todo.md).
+- (same day) **Officers in the crowds** (StrongholdOfficers, made by StrongholdGarrison.build; host-run):
+  - Captain-style AI Admiralty officers spawned through Net._all_spawn_rival (RivalDuel.build), so every machine has
+    the body.
+  - Each district fields its first when a captain comes within MEET 30 m of its squad. Each later muster of a squad or
+    a sealed room's wave rolls CHANCE 35% for another.
+  - At most CAP 5 standing at once. Detuned: SKILL 0.35 and HEALTH 0.8 of a rival's.
+  - The brain's "fight" order picks the nearest captain. A beaten officer stays down (Player.defeated).
+  - Test: t/stronghold/officers (none before you're near, one as you reach a district, five at most, a beaten one makes
+    room). Tests mustn't type `Player` (it touches autoloads).

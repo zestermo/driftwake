@@ -40,6 +40,10 @@ static func build(isl: Node3D) -> Array:
 		out.append(enc)
 		if baker:
 			baker.add_zone(enc, 24.0, false, isl.nav_faces)
+	# the officers sprinkled in: one per district as you reach it, then a chance with each new wave (StrongholdOfficers)
+	var off := StrongholdOfficers.new().setup(isl, out.duplicate())
+	isl.city.add_child(off)
+	out.append(off)
 	return out
 
 
