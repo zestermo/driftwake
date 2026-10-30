@@ -101,3 +101,17 @@ Each step is rendered at eye height (day and dusk) for Zach's look before it lan
 - How a wipe in the brig differs in solo (**assumed**: the same, solo).
 - Raid scaling for 1-5 captains (**assumed**: by crew size, like the other fights).
 - Where a freed fruit reappears (**assumed**: a random chain island's rare chest or a merchant, rumour-led).
+
+## Status (2026-10-29, night)
+Built on main (not pushed, not released):
+- **C1 capital layout:** rolled lanes, alleys and courtyards from the world's seed; the right trade sign on every shop;
+  a quarter of lane houses shops; walls over leftover gaps read as house sides; far stand-ins so the skyline stays full.
+- **C1b rooftops (both cities):** flat roofs walkable and dressed, pitched roofs walkable, planks across lanes, ladders.
+- **C1c interiors (both cities):** ~36 rooms in the capital, ~70 in the canal city (shops, homes, workshops).
+- **C2 capital set pieces:** the bell tower climbed with the Hooded Stranger in its belfry; the cathedral (forecourt,
+  portal, nave, altar); the library (with its hidden room behind the back shelf); the theatre.
+- **C3 canal city (first pass):** rolled campi and calli; interiors and rooftops; far fronts; the campanile climbed
+  (the Stranger again); the Doge's palace (council chamber, the Doge on the dais); the glassworks; the fish loggia.
+Still to do in the cities pass: the palace gardens and maze (needs a flat terrace cut into the hill), the undercities,
+the shop-lined bridge, stairs to upper floors, C4 activities (investigations, rooftop caches, city jobs, dens), C5 the
+Queen's and the Doge's lines and the Stranger's leads (with the strongholds and fruits), and the previews owed for those.
