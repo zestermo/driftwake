@@ -134,3 +134,25 @@ docs/v1_27_raids_fruits_plan.md (the Scouring, brig on a wipe, keep the prize, a
     they were.
   - Build it like CapitalIsland: a fixed plan (StrongholdPlan, data) plus shell pieces a frame each.
 - The six fruit kits (Storm, Iron, Wolf, Vine, Bubble, plus Ember's) are in the plan as a preview for Zach's OK.
+
+### Update (2026-10-30, late): the stronghold built up
+On main and pushed:
+- **The place:** the stronghold is a new island off the chain (`chain.stronghold`, id 1000), built when a ship sails
+  near it.
+- **Its look**, from Zach's reference (docs/art/stronghold_reference.webp):
+  - blue-grey stone, tall lantern towers with emblem banners, sheer walls and torches;
+  - the Verdict: twin towers with a circle cut between them;
+  - an arched Bridge of Judgement, viaducts and an arcade;
+  - the sea gate with a walled harbour basin;
+  - no gaps from below (MeshBuilder.all_faces).
+- **Its shape:** a ragged rocky outcrop, reef shallows with a deep channel, sea stacks, and a west cove with a grated
+  sewer drain.
+- **Its first rooms:** the Mess Hall, the Barracks, the Casting Hall and the Command Hall, walked into and lit.
+- Test: t/stronghold/place. Render: tools/dev/strongholdshot.gd (CSHOT_ONLY=...).
+
+**Next for the stronghold:**
+- More rooms: the prison's cells and the brig, the Arsenal's other halls, the keep's upper floors.
+- The tunnel behind the drain.
+- Then gameplay: the garrison with spawn doors and respawns, the sealed encounter rooms and their waves, muster flags,
+  the bosses (the Drill Sergeant, the Commodore, the Warden, the Vice Admiral), the broadcast and the Scouring.
+- Finding it (captured orders, rumours) and its chart entry.
