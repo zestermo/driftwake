@@ -609,3 +609,14 @@ Solo: x0.5 (preview v2).
   - He **blinks in front of whoever runs for the ship** (any crewmate) and **knocks them back**.
   - Wear him down to about **2/3 of his health** and he **says something and leaves**; then you can escape.
   - Replaces "unbeatable, just run": he's a gate you push through, not a wall.
+
+## Zach's direction (2026-10-30, late): ten Driftfruits
+- **Ten fruits in total**, built once the strongholds are done.
+- **The types:**
+  - **Zoan** (animal or beast) and **logia** (elemental) fruits are **fairly consistent** in their abilities, passives
+    and structure.
+  - **Paramecia** fruits (Vine, Rubber, Bubble...) are **all incredibly different**, and **not all are combat-focused**.
+- **Every fruit has:** a **movement ability**, a **couple of ultimate options**, and **usually some stun or CC**.
+- **Unique to each fruit:** how its powers **target**, their **hitboxes, range and style**.
+- **The tree:** **nearly the size of a weapon tree**, with **slightly fewer stat nodes** and **more connected** on its
+  skill map.
