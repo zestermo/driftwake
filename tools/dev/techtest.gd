@@ -24,6 +24,7 @@ var guard := 0
 var idx := 0
 var phase := 0
 var grunts_parked := false
+var haki_set := false
 func _initialize(): TK.seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
@@ -408,7 +409,8 @@ func _process(d: float) -> bool:
 			pc.energy = 50.0
 			pc.cooldowns.clear()
 			pc.try_cast(0)
-			check("Cannonball Fist with nobody in reach gives the energy back", pc.energy >= 50.0 - 0.01 and pc.cooldown_left(0) == 0.0)
+			# (1.26) master_all has Edy Techniques on: a technique cast also pays 2 energy (EDY_TECH_COST) for its infusion, refunded or not
+			check("Cannonball Fist with nobody in reach gives the energy back", pc.energy >= 50.0 - 2.0 - 0.01 and pc.cooldown_left(0) == 0.0)
 			# base passives
 			check("Featherfall (Acrobatics) and the experience talents", pr.has_flag("featherfall") and pr.stat("xp_pct") > 0.0)
 			check("Focus and Quick Learner: +25%% experience (%.2f)" % pr.stat("xp_pct"), is_equal_approx(pr.stat("xp_pct"), 0.25))
@@ -419,22 +421,34 @@ func _process(d: float) -> bool:
 			step += 1
 		17:
 			# Conqueror's Haki: the weak faint, the rest reel
-			g = fresh()
-			if g == null:
-				wait = 0.5
+			if not haki_set:
+				g = fresh()
+				if g == null:
+					wait = 0.5
+					return false
+				clear_others(g)
+				put(get_meta("land") + Vector3.UP * 0.2)
+				park(g, ground(p.global_position + Vector3(0, 0, -5.0)))
+				g.health.current_health = g.health.max_health * 0.2
+				pc.loadout[4] = ""
+				pc.equip("conquerors_haki", 4)
+				haki_set = true
+				until = TK.wait_ticks(6)
 				return false
-			clear_others(g)
-			put(get_meta("land") + Vector3.UP * 0.2)
-			park(g, ground(p.global_position + Vector3(0, 0, -5.0)))
+			if TK.ticking(until):
+				return false
 			g.health.current_health = g.health.max_health * 0.2
-			pc.equip("conquerors_haki", 4)
 			pc.ult = 100.0
 			pc.cooldowns.clear()
+			# (1.25.3) Intimidate, learned by master_all, makes the weak give up instead of fainting: switch it off here
+			pr.edy_off["e_conq_4"] = true
 			p.state_machine.force_state("Idle", {})
 			check("cast Conqueror's Haki", pc.try_cast(4))
-			wait = 1.0
+			until = TK.wait_secs(1.0)
 			step += 1
 		18:
+			if TK.ticking(until):
+				return false
 			check("Conqueror's Haki fells the weak (state %d)" % g.state, g.state == DEAD)
 			print("RESULT ", "OK" if fails == 0 else "FAILED %d" % fails)
 			quit(1 if fails else 0)

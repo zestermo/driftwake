@@ -7956,3 +7956,4 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **Cannon:** a plain shot staggers and drains poise (HEAVY), flooring only point-blank (CLOSE_DOWN 4 m); creatures and
   bugs knocked down on any knockdown-flagged hit. Techniques, the ram and the leap still floor. Canister Shot: 18 balls,
   0.62 rad, 14 m, sparks across the cone. FX.cannon_blast smoke 9 puffs / 2 s -> 5 / 1.5 s.
+- **techtest for 1.26:** Cannonball Fist refund check allows the 2 energy of Edy Techniques (master_all has it on); Conqueror's Haki gets the R slot cleared (no ult swap mid-fight), a few ticks after parking, and Intimidate (e_conq_4) switched off so the weak still faint.
