@@ -8137,3 +8137,23 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - **Still red:** "holding parry settles into a block (Swim)": the captain ends up in the water before that step, by
     position or timing (time-boxed; see docs/todo.md).
 - **nettest five:** the guest pistol check accepts a crit.
+
+## 1.27: the canal city's undercity, piece 1 (2026-10-30)
+- `scripts/island/canal_undercity.gd` (CanalUndercity), built by CanalIsland's "undercity" step under the City node.
+- **A sealed pocket like AdmiraltyBrig's** at POCKET (frame y 360). Below the quays, the sea would count as deep water
+  and a heightmap can't hold a tunnel.
+- **Inside:**
+  - A flooded cistern hall: 18 m, pillars, ankle-deep water (a visual plane).
+  - Four tunnels with brick ribs, out to a ladder chamber each.
+  - Off the east tunnel, the smugglers' den: crates, a table, its lantern and the stash.
+  - Three LootBags through CityCaches (canal_under_stash, _north, _west: saved like the city caches).
+  - Three budgeted OmniLights.
+- **Getting in and out:** a trapdoor per tunnel in a calle, rolled from the world's seed (`hatches`). "Climb down into
+  the cellars" puts you in that tunnel's chamber, and its ladder's "Climb up" puts you beside the trapdoor. Each
+  captain on their own machine: nothing goes over the net.
+- **Gotchas:**
+  - MeshBuilder.add_box skips the bottom face by default; a ceiling seen from below needs `skip_bottom = false`.
+  - A doorway into a taller room needs its lintel down to the tunnel's ceiling, or the sky shows through above.
+- **Not yet:** smugglers to fight down there (grunts need nav in the pocket), the capital's cellars, a water gate out
+  to the Grand Canal, and ambience/music.
+- Test: t/canal/undercity. Renders: canalshot `under_hall`, `under_arm` and `under_den`.

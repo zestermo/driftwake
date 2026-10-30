@@ -112,6 +112,10 @@ func _setup(island) -> void:
 		["approach", "sailing in from the lagoon", Vector2(40, 520), 20.0, Vector2(0, -40), 16.0],
 		["aerial", "from high above", Vector2(240, 300), 210.0, Vector2(0, -40), 0.0],
 		["riva", "on the riva", Vector2(-40, 104), 1.7, Vector2(60, 100), 3.0],
+		# (1.27) the undercity's pocket (its floor 360 up: 358.4 over the quays): the cistern hall, the east tunnel, the den
+		["under_hall", "the cistern under the city", Vector2(6, -7), 360.1, Vector2(-4, 5), 359.0],
+		["under_arm", "the east tunnel to the den", Vector2(11, 0), 360.1, Vector2(25, 6), 358.8],
+		["under_den", "the smugglers' den", Vector2(17.5, 4.2), 360.1, Vector2(23, 9), 358.6],
 		["piazza", "the piazza", Vector2(100, 92), 1.8, Vector2(50, 50), 6.0],
 		["grand", "along the Grand Canal", Vector2(-14, 60), 2.0, Vector2(0, -60), 3.0],
 		["bridge", "the market bridge", Vector2(-14, -8), 1.8, Vector2(8, -30), 3.0],
