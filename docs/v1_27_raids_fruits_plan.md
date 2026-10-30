@@ -440,3 +440,13 @@ The other five follow the same pattern:
 2. **Controls:** A (hold Alt), B (fruit stance), or C (one mixed loadout)?
 3. **Evolving a form:** by each power's own use plus mastery (as above), or by fruit mastery alone?
 4. **Awakening:** mastery 30 and a trial quest, or mastery 30 alone?
+
+## Decided: the Driftfruit rework (Zach, 2026-10-30)
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Points | **A shared combat pool**: 3 points a level, spent on any weapon tree or the fruit (about one weapon tree and most of a fruit by level 40) | A real build choice between weapons and fruit | Tune in play |
+| Controls | **A fruit stance (V)**: V toggles weapon and fruit stance. In fruit stance LMB/RMB are the fruit's own attacks and Q/E/R its powers | Clear modes, like the Wolf's hybrid today | If switching feels slow mid-fight |
+| Evolving a power | **By its own use plus fruit mastery**: Reflex at 150 uses and mastery 12, Nature at 400 uses and mastery 24 | The powers you lean on grow first | Tune in play |
+| Awakening | **At mastery 30 alone**; no trial quest | Zach's pick | - |
+| The model | Preview's: 5 powers a fruit, Active / Reflex / Nature, the awakened state for 30 s with a permanent passive | - | - |
+Next for fruits: the five powers and their three forms for each of the six fruits (Ember's done above), then build step 3.

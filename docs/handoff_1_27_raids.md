@@ -110,3 +110,19 @@ fix (the load screen's blurry 0.91 scale). Still red:
 - **net-five:** fixed in the test, still to rerun.
 The stronghold design moved on: preview v2 and its "Decided: the stronghold" table in
 docs/v1_27_raids_fruits_plan.md (the Scouring, brig on a wipe, keep the prize, a burnt ruin after).
+
+### Update (2026-10-30, evening): the cities' list done, both designs decided
+- **Built and pushed:**
+  - the palace stair;
+  - the canal undercity and the capital's catacombs (CityUndercity);
+  - stairs to an upper floor in about 60% of walk-in homes;
+  - the cities by night (the crowd thins, a night watch with lanterns).
+  - All city tests pass. dev_notes has a section for each.
+- **Decided:** the stronghold (preview v2 plus its Decided table: the Scouring and the rest) and the Driftfruit rework
+  (its Decided table: a shared combat pool, a fruit stance on V, evolution by use plus mastery, awakening at 30), both
+  in docs/v1_27_raids_fruits_plan.md.
+- **Next:**
+  - The fruit kits for the other five fruits (powers by form, like Ember's table).
+  - Then build: stronghold step 1 (the fortress, the place) from preview v2.
+  - Still open from the cities: lamplighters, shutters, busier inns at night; smugglers to fight in the undercity; a
+    water gate; the rank perks beyond the discount.
