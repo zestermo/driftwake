@@ -248,12 +248,12 @@ Next: build step 1 (the fortress, the place), then the steps in docs/v1_27_plan.
 - **Enemies keep respawning through the zone** (outside set encounter rooms and boss arenas) **until the main boss is
   beaten**; then they stop.
 - **The Admiralty's emergency broadcast** once it's cleared and the main boss is down.
-- **The Buster Call:** 2 minutes after the boss falls, a countdown starts; at zero the Admiralty's fleet surrounds the
+- **The bombardment** (Zach: its own Driftwake name, not "Buster Call"; see preview v2): 2 minutes after the boss falls, a countdown starts; at zero the Admiralty's fleet surrounds the
   island and your ship and **barrages the whole place** with huge explosive shells (big fireball blasts) that set
   everything around you on fire. You get out with the prize.
 - Still to settle (next discussion): the districts and their order, the encounter rooms and bosses (the Vice Admiral as
   the main boss?), how the alarm/stealth idea fits a respawning zone, checkpoints/the brig on a wipe in a 30-60 min run,
-  the escape from the Buster Call (to the ship and out, with the ship under fire).
+  the escape from the bombardment (to the ship and out, with the ship under fire).
 
 ### The Driftfruits, fully reworked (replaces C's weapon-tree copy)
 Today's moves, costs, progression, mixing with weapons and looks are all outdated: redo them.
@@ -269,3 +269,104 @@ Today's moves, costs, progression, mixing with weapons and looks are all outdate
 - **Controls (an idea, not settled):** a fruit hotbar on a held modifier (hold Alt: Q, E, R, LMB, RMB become fruit
   powers). Alternatives to preview.
 - The six fruits stay (Bubble, Wolf, Vine, Iron, Ember, Storm) unless the rework says otherwise.
+
+## Stronghold preview v2 (2026-10-30, from Zach's direction; for his OK, nothing built)
+A **legacy dungeon** on its own island: one fortress, seven districts, a hub with two wings that each hold a seal, the
+bridge they open, and the keep. Roughly a 45-55 minute run for a crew of 3. Built from what exists: grunt roles
+(sword, rifle, shield, horn-blower, brute, elites), captain-style AI for officers, GruntCamp-style spawners, the brig,
+the Admiralty's ships and rings, FX fire and blasts.
+
+**The bombardment's name:** not "Buster Call" (Zach). Working name **the Ashfall Order**; alternatives are in the
+questions.
+
+### The map (Gallowmere Bastion as the example; the parts are fixed, names and dressing rolled per chain)
+```
+                        [7 THE KEEP]  <- the Vice Admiral; the vault under it
+                             |
+               [5 THE BRIDGE OF JUDGEMENT]  <- opens with both seals
+                   /         |          \
+   [3 THE ARSENAL]  ---  [2 THE LOWER WARD]  ---  [4 THE PRISON TOWER]
+    seal 1: the              (the hub)              seal 2: the Warden;
+    Commodore                    |                  the brig is here
+                          [1 THE LANDING]          [6 THE SIGNAL SPIRE]
+                     harbour, sea gate, beach      optional, off the bridge
+```
+| # | District | What it is | The fight it holds | ~min |
+|---|---|---|---|---|
+| 1 | **The Landing** | The harbour basin, the sea gate (swim under: non-users), a beach under the cliffs with a scaling route, and the harbour battery | **The Battery**: hold the gun platform while waves land by boat and the wall guns fire on your ship. Once it's taken, the guns are silent | 5 |
+| 2 | **The Lower Ward** (hub) | Barracks streets, the mess hall, the drill yard, stairs up to the two wings, and a lift (a shortcut, opened from above) | **The Mess Hall**: a sealed brawl, 3 waves, tables and benches flying. Mini-boss **the Drill Sergeant**, a brute with a whistle that calls squads | 8 |
+| 3 | **The Arsenal** | A cannon foundry: furnaces, molten channels, powder magazines, and gantries over the casting pit | Boss **the Gunnery Commodore**: a cannon officer in the casting hall. Powder kegs chain-explode, the floor channels flood with molten iron in turns, and gun crews reload around him. **Seal 1** | 10 |
+| 4 | **The Prison Tower** | A tower of cell blocks round a hollow core, with lifts, catwalks and the brig. Seastone bars drain fruit users nearby | Boss **the Warden**: chains and a seastone net (a fruit user caught is powerless for 4 s), and he releases a cell block of brutes at half health. **Seal 2** | 10 |
+| 5 | **The Bridge of Judgement** | A long stone bridge over a chasm between two towers, with crossfire from galleries | **The Gauntlet**: cross under rifle fire while horn-blowers bring squads down from both ends. Cover is the statues; the galleries can be climbed and cleared | 5 |
+| 6 | **The Signal Spire** (optional) | A climb up a lattice tower to the broadcast room | Clearing it and wrecking the transmitter **delays the bombardment by 60 s** and stops reinforcements through the hub. An elite pair guards it | 5 |
+| 7 | **The Keep** | The command hall over the vault: three tiers, galleries and a war map table | Final boss **the Vice Admiral**, in 3 phases: the duel; then the hall's guard joins and the galleries open fire; then a desperate last phase (his fruit if he has one, or a signature technique). The vault key drops | 10 |
+
+### Spawns: the fortress refills until its master falls
+- Each district has **spawn doors** (barracks doors, boat landings and lifts). A dead patrol comes back after 90 s from
+  a door no captain can see, at least 25 m from any captain.
+- **Live caps per district:** 10 solo, then +4 per captain beyond the first (22 for 4).
+- **Sealed fights** (the Battery, the Mess Hall, the Gauntlet and the boss arenas): the gates drop when you enter, the
+  waves are fixed, nothing respawns inside, and once beaten they stay beaten.
+- A district whose officer is down is **secured**: its spawns slow to half.
+- **Everything stops when the Vice Admiral dies.**
+- **Stealth is the opening, not the whole raid.** Arriving unseen (the sea gate, the cliffs) skips the Battery's first
+  two waves and starts the hub on patrol rather than at arms. Once the bell rings, spawns run 1.5x faster and
+  horn-blowers join. There's no going back to quiet.
+
+### Scaling (tuned for 3; soloable)
+| Captains | Enemy health | Wave sizes | Boss health | Boss pace |
+|---|---|---|---|---|
+| 1 | x0.55 | x0.6 | x0.5 | slower combos, longer tells |
+| 2 | x0.8 | x0.8 | x0.75 | - |
+| 3 | x1.0 | x1.0 | x1.0 | - |
+| 4 | x1.2 | x1.25 | x1.3 | one more add per wave |
+Levels: the chain's last island +2, officers +3, the Vice Admiral +5.
+
+### Checkpoints and a wipe
+- **Muster points:** one per district, where you **cut down the Admiralty's flag and raise your own** (an interact,
+  shared with the crew). A dead captain whose crew is still up gets back up at the nearest raised flag after 20 s.
+- **A wipe** (the whole crew down) sends you **to the brig in the Prison Tower** with your kit. Breaking out (1.25's) is
+  about a minute, then the lift takes you back to your last flag.
+  - The district you wiped in refills.
+  - A boss you wiped on resets to full health.
+  - Secured districts stay secured.
+
+### The end: the broadcast and the bombardment
+1. **The Vice Admiral falls:** a slow-motion beat, all spawns stop, and the garrison that's left breaks and runs.
+2. **The emergency broadcast**, at once: a transmission banner and voice: "All ships. Gallowmere has fallen. The
+   Ashfall Order is given." With the Spire wrecked, it comes through static.
+3. **2:00 of grace** to open the vault (the prize: the legendary weapon, the chain's best chest, and a legendary fruit
+   once fruits land) and loot.
+4. **The countdown, 2:00 on screen** (+60 s if the Spire was wrecked), then **the bombardment**:
+   - 10 Admiralty warships ring the island at 320 m (Admiralty's ring code), with your ship inside the ring.
+   - **A shell every 1.2 s.** Each is telegraphed by a ground-warning circle 2 s ahead; every third is aimed at a
+     captain. Huge fireball blasts (FX: a blast, a flash light from the budget, a ring and debris) start **fires that
+     spread** (fire zones, about 8 s, catching on nearby wood) and smoke.
+   - The island burns: fire and smoke on every district within 60 s, and towers drop rubble you have to dodge.
+   - **The escape:** reach the ship (the harbour or a beach longboat), sail out through a gap in the ring under
+     broadsides, and get past 500 m. Then a "Survived the Ashfall Order" banner, +20,000 bounty, and the chain's
+     Admiralty patrols halve for 3 days.
+5. **At high level** (top captain 32+ or Dreaded): **an Admiral leads the bombardment** and lands on the island once it
+   starts. He's unbeatable before 2.0 and you run (as decided). He breaks off at the ring.
+
+### Budget
+- At most 24 live enemies in the whole fortress (14 solo).
+- Districts sleep when no captain is inside or near (ActorSleep, like FaunaSpawner's LOD).
+- Shells come from a pool, with one flash light at a time.
+- Fires are MultiMesh flame cards with a capped count.
+
+### Questions for Zach
+1. **The bombardment's name:**
+   - **the Ashfall Order** (the working name)
+   - **the Iron Verdict**
+   - **the Scouring**
+   - **Judgement Tide**
+   - or one of his own.
+2. **The wipe:** the brig in the Prison Tower and a breakout back to your flag, or **straight back to your last flag**
+   (no brig in the raid; the brig stays for being arrested at sea)?
+3. **Dying in the bombardment:** keep the prize and wake on your ship out at sea (generous), or **lose the vault's prize
+   and wash ashore** (harsh; a reason to run)?
+4. **Prisoners:** freeing a cell block in the Prison Tower gives a few temporary pirate allies for that district. In, or
+   out?
+5. **After the raid:** the fortress stays a **burnt ruin** (a place to revisit, with salvage and no garrison) or
+   **rebuilds** after some days with a new Vice Admiral (a repeatable raid)?
