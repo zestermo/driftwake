@@ -151,6 +151,22 @@ static func _bridges(out: Array) -> void:
 				# the brick side under the deck down to the arch
 				var under := 0.0 + 1.2 * (1.0 - sin(PI * (t0 + t1) * 0.5))
 				mb.add_box(b, M.xf(M.v3(pm, (ym + under) * 0.5 - 0.1), M.yaw_of(dir)), Vector3(0.5, ym - under, q0.distance_to(q1) + 0.05), 0.6, Color(0.92, 0.88, 0.84))
+			# (1.27) the market bridge is lined with booths: a row along each side, 2 m deep, the walk down the middle
+			if br == P.BRIDGES[2] and k > 0 and k < steps - 1:
+				for s: float in [-1.0, 1.0]:
+					var bq := (p0 + p1) * 0.5 + side * s * (w * 0.5 - 1.0)
+					var by := (y0 + y1) * 0.5
+					var bt := M.xf(M.v3(bq, by), M.yaw_of(-side * s))
+					var seg := p0.distance_to(p1)
+					var cloth: Color = [Color(0.8, 0.25, 0.2), Color(0.25, 0.4, 0.7), Color(0.85, 0.7, 0.25), Color(0.3, 0.55, 0.35)][(k + (1 if s > 0.0 else 0)) % 4]
+					# the counter toward the walk, the back posts, the awning tilting out over the counter
+					mb.add_box(PSXMat.lit("planks_dark"), bt * Transform3D(Basis(), Vector3(0, 0.45, 0.7)), Vector3(seg - 0.2, 0.9, 0.5), 0.6, Color.WHITE)
+					M.box(cols, bt * Transform3D(Basis(), Vector3(0, 0.45, 0.7)), Vector3(seg - 0.2, 0.9, 0.5))
+					for e in [-1.0, 1.0]:
+						mb.add_box(PSXMat.lit("planks_dark"), bt * Transform3D(Basis(), Vector3(e * (seg * 0.5 - 0.15), 1.25, -0.7)), Vector3(0.12, 2.5, 0.12), 0.6, Color.WHITE, false)
+					mb.add_box(M.mat("cloth"), bt * Transform3D(Basis(Vector3.RIGHT, 0.35), Vector3(0, 2.45, 0.1)), Vector3(seg, 0.05, 2.0), 1.0, cloth, false)
+					for g in range(3):
+						mb.add_box(M.mat("cloth"), bt * Transform3D(Basis(), Vector3(-seg * 0.3 + g * seg * 0.3, 1.0, 0.7)), Vector3(0.3, 0.2, 0.3), 1.0, [Color(0.92, 0.6, 0.12), Color(0.8, 0.14, 0.18), Color(0.4, 0.62, 0.22)][(g + k) % 3], false)
 			# the arch's soffit
 			var u0 := 1.2 * (1.0 - sin(PI * t0))
 			var u1 := 1.2 * (1.0 - sin(PI * t1))

@@ -8020,6 +8020,8 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   the riva; CapitalHalls _glassworks: two furnaces glowing with flues, blowers' benches with pipes and gathers, racks of
   coloured glass; _loggia: open on every side, columns, a tiled roof on a beam frame, marble fish slabs with the catch,
   baskets). Calli now skip any special they'd run into. canalshot glassworks, loggia.
+- **The shop bridge** (the market bridge, BRIDGES[2], 10 m wide over the Grand Canal): a row of booths down each side
+  (counter, posts, an awning tilted over the walk, wares), 6 m of walk left down the middle. canalshot bridge.
 - **The campanile climbed** (CapitalBellTower with a wall material, colour and no hip roof: brick, the canal's green spire
   over it), a 1 m paving strip "campanile_door" from its south door to piazza_cw; the Hooded Stranger in its belfry too
   (CanalLife, spot "informant"). t/canal/campanile.
