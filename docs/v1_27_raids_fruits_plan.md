@@ -179,7 +179,7 @@ Mastery rises with fruit use, like a weapon. Mastery 30 takes about as long as a
   - An officer at Notorious+ has a 1 in 4 chance to have eaten a free joke or solid fruit.
   - A Vice Admiral eats a free solid fruit.
   - The great power holds Storm.
-  - Rivals may eat one between meetings (question 4).
+  - Rivals don't eat fruits (decided below).
 - **Selling an uneaten fruit** (to a rare-gear merchant): joke 15,000, solid 60,000, legendary 200,000 gold.
 
 ---
@@ -227,3 +227,14 @@ Total: 16 points. Haki leaning toward non-users is not in 1.27 (Haki's numbers a
    raids.
 6. **The alarm and the garrison:** do the numbers in A read right (22 marines plus 3 officers solo, a wave of 4 every
    45 s, Lockdown at 3 min, the Vice Admiral at 6)? These get tuned in play either way.
+
+## Decided (Zach, 2026-10-30)
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| The 3 new fruits | **Bubble** (joke), **Iron** (solid), **Storm** (legendary) | Each plays unlike the existing three | - |
+| Ember's tier | **Legendary**: 1 joke / 3 solid / 2 legendary (Ember, Storm) | A logia, as in the source; Ember comes only from strongholds | - |
+| The great power | **Prince Corvo Malatesta, the Lagoon Prince**: a duellist with the Storm Fruit, a drowned-palace hideout, the end of the Doge's line | Ties the canal city's purpose to the raid | - |
+| Enemy users | **Officers, Vice Admirals and the great power only**; rivals stay weapon-only | Zach's pick | If the pool feels static |
+| Sea gate | **Swim-under for non-users only** | The fruit's cost matters inside a raid; the Seafarer build gets its own way in | - |
+| Numbers | **This preview's numbers are the first pass**, tuned in play | - | Play-testing |
+Next: build step 1 (the fortress, the place), then the steps in docs/v1_27_plan.md order.
