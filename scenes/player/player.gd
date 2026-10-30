@@ -1502,6 +1502,7 @@ const FALL_DAMAGE_PER_MS := 5.3
 
 
 func _on_landed(impact_vy: float) -> void:
+	ember_landing_ring(-impact_vy)
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
 	if sky_leap_fall:
@@ -3350,4 +3351,27 @@ func ember_dodge_reflex() -> bool:
 	var from := global_position + Vector3(0, 1.3, 0) + fwd.normalized() * 0.6
 	Fireball.launch(get_tree(), from, fwd.normalized(), self)
 	Net.fx("flame", [from, 8, 0.5, 0.3, 0.15])
+	return true
+
+
+## (1.27) Ember's Blazing Ring at Reflex: landing from a real jump or fall (LAND_RING_SPEED+) rings by itself, smaller and
+## weaker than the cast one (at most once every LAND_RING_EVERY s). Its Nature is PowerComponent's ember aura.
+const LAND_RING_SPEED := 6.0
+const LAND_RING_EVERY := 5.0
+var _land_ring_at := -1000000
+
+
+func ember_landing_ring(speed: float) -> bool:
+	if power.fruit != "ember" or speed < LAND_RING_SPEED or FruitForms.form(progression, "fire_ring", "ember") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _land_ring_at or power.suppressed():
+		return false
+	_land_ring_at = Engine.get_physics_frames() + int(LAND_RING_EVERY * Engine.physics_ticks_per_second)
+	var hd := HitData.new()
+	hd.damage = 10.0
+	hd.knockback_force = 6.0
+	hd.stagger_duration = 0.3
+	hd.unblockable = true
+	power.blast(global_position + Vector3(0, 0.8, 0), 3.0, hd, 2.0, 4.0)
+	Net.fx("fire_ring", [global_position, 3.0, 28])
 	return true

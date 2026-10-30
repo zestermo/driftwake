@@ -274,3 +274,5 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Player._flame_body). It's the template for the rest of Ember's powers (Fire Fist, Blaze Step flight, Fire Ring, Pillar
   of Flame), then the other fruits.
   - Every new active skill needs a tree node (t/progression/tree_shape checks it).
+- (latest) **Ember:** Flame Body, Cinder Fist and Blazing Ring are done with forms (dev notes). Next: Blaze Step's
+  flight, Pillar of Flame, the awakening, Ember's tree. Then the same for the other nine fruits.

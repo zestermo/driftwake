@@ -396,6 +396,7 @@ func _process(delta: float) -> void:
 	_regen_wait = maxf(_regen_wait - delta, 0.0)
 	if buff("coat") and player and player.is_local:
 		_tick_emission(delta)
+	_ember_aura(delta)
 	if foresight_stance:
 		_update_stance(delta)
 	elif not suppressed() and player and _regen_wait <= 0.0:
@@ -827,3 +828,28 @@ func set_fruit_stance(on: bool) -> void:
 		loadout[i] = other_loadout[i]
 		other_loadout[i] = str(keep[i])
 	loadout_changed.emit()
+
+
+## (1.27) Ember's Blazing Ring at Nature (FruitForms on its uses): an ember aura, burning anyone who stays within
+## AURA_R, a little every AURA_EVERY s (our own captain's blows: their machine's).
+const AURA_R := 2.4
+const AURA_EVERY := 1.0
+var _aura_t := 0.0
+
+
+func _ember_aura(delta: float) -> void:
+	if fruit != "ember" or player == null or not player.is_local or suppressed():
+		return
+	_aura_t -= delta
+	if _aura_t > 0.0:
+		return
+	_aura_t = AURA_EVERY
+	if FruitForms.form(player.progression, "fire_ring", "ember") < FruitForms.NATURE:
+		return
+	var hd := HitData.new()
+	hd.damage = 3.0
+	hd.knockback_force = 0.0
+	hd.stagger_duration = 0.0
+	hd.dot = true
+	if not blast(player.global_position + Vector3(0, 0.8, 0), AURA_R, hd, 1.0, 2.0).is_empty():
+		Net.fx("flame", [player.global_position + Vector3(0, 0.6, 0), 6, 0.6, 0.4, AURA_R * 0.5])

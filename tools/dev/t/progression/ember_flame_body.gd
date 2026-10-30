@@ -71,6 +71,9 @@ func _process(_d: float) -> bool:
 			pr.uses["fire_fist"] = 150
 			check("...at Reflex: a dodge's end throws one", p.ember_dodge_reflex())
 			check("...not twice in 4 s", not p.ember_dodge_reflex())
+			# Blazing Ring's Reflex: a real landing rings by itself (not a hop, not twice in 5 s)
+			pr.uses["fire_ring"] = 150
+			check("Blazing Ring at Reflex: a hop doesn't ring, a real landing does, not twice in 5 s", not p.ember_landing_ring(2.0) and p.ember_landing_ring(9.0) and not p.ember_landing_ring(9.0))
 			return TK.done(fails)
 	step += 1
 	return false

@@ -8406,3 +8406,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     (at most every FIST_REFLEX_EVERY 4 s).
   - Nature: PowerComponent's kindled sear applies to every melee hit, as Kindled Blade does.
   - Checked in t/progression/ember_flame_body; t/player passes.
+- (same day) **Ember's Blazing Ring forms.**
+  - Reflex: `Player.ember_landing_ring` from _on_landed. A landing at LAND_RING_SPEED 6+ rings by itself (3 m, 10
+    damage and a burn, at most every 5 s).
+  - Nature: `PowerComponent._ember_aura` burns enemies within AURA_R 2.4 every second (the local captain's own blows).
+  - Checked in t/progression/ember_flame_body.
+- **Ember so far:** Flame Body (Flicker), Cinder Fist and Blazing Ring have their three forms. Still to do: Blaze Step
+  (flight: hover, then phase through walls, then fly on Space) and Pillar of Flame, the awakening "Sunborn", and the
+  tree rebuilt to the plan's shape.
