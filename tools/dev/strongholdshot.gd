@@ -28,20 +28,24 @@ func _process(d: float) -> bool:
 	if w == null:
 		return false
 	var gm = root.get_node("GameManager")
+	# (the stronghold is off the chain: it builds while a captain is near it, so the captain sails over to it)
 	if want < 0:
-		for nn in w.chain().nodes:
-			if nn.get("stronghold", false):
-				want = int(nn["id"])
-	if gm.chain_at != want:
+		want = w.chain().stronghold_id()
+		var me = get_first_node_in_group("player")
+		if me == null or want < 0:
+			want = -1
+			return false
+		var sp: Vector2 = w.chain().node(want)["pos"]
+		me.global_position = Vector3(sp.x + 300.0, 2.0, sp.y + 300.0)
+		me.reset_physics_interpolation()
 		var wx = root.get_node("Weather")
-		gm.apply_chain(want, false, wx.world_time())
 		var hour := float(OS.get_environment("CSHOT_HOUR")) if OS.get_environment("CSHOT_HOUR") != "" else 11.0
 		wx.set_world_time(wx.time_at(hour))
 		gm.chain_since = wx.world_time()
 	if t < 1.5:
 		return false
 	if isl == null:
-		if not w.chain_ready() or not w.chain_islands.has(want):
+		if not w.chain_islands.has(want):
 			return false
 		_setup(w.chain_islands[want])
 		return false
@@ -117,6 +121,8 @@ func _setup(island) -> void:
 		["keep", "the Keep", Vector2(0, -56), 1.7, Vector2(0, -86), 18.0],
 		["arsenal", "the Arsenal's foundry", Vector2(50, -4), 1.7, Vector2(84, -21), 8.0],
 		["prison", "the Prison Tower", Vector2(-50, -4), 1.7, Vector2(-82, -18), 16.0],
+		["verdict", "the Verdict from the ward", Vector2(-10, 16), 1.7, Vector2(0, -86), 130.0],
+		["verdict_sea", "the Verdict from out at sea", Vector2(-120, 700), 6.0, Vector2(0, -86), 90.0],
 	]
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":

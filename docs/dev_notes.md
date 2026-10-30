@@ -8222,3 +8222,20 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Next:** interiors and encounter rooms, the garrison and respawns, the alarm, the flags, the Vice Admiral, the
   broadcast and the Scouring. Also finding it (orders, rumours), the chart, and its own look (theme/style; it borrows
   the capital's for now). Stray red diagonal lines in the renders (likely tower banners) to look at.
+- (same day) **The stronghold's own look** (Zach: nothing like the capital; docs/art/stronghold_reference.webp).
+  - StrongholdShell's palette:
+    - blue-grey limestone walls (`_wall_m`) and lighter stone_brick trim (`_dark_m`);
+    - black_rock footings, cobbles, flagstone steps;
+    - metal iron, a red-orange fire glow, a warm window glow.
+  - No cone roofs. `_tower` is a tall square tower with an open lantern top, lit windows and an emblem banner
+    (`_banner`: a blue cloth with a ring, staff and bar).
+  - Walls drop to the rock or sea outside them (sheer faces) and carry torches.
+  - The Bridge of Judgement has arches between its piers; torches line the grand stair.
+  - The harbour has timber docks, iron cranes with hanging crates, and crates on the quay.
+  - **The Verdict:** a stepped base, then twin square towers (TWINS: 16 m wide each, a 6 m cleft, the left one 14 m
+    taller) with a 13 m circle cut where they meet at 140 m (VERDICT_RING). Iron rim, a fire hanging in it, lantern
+    crowns. About 185 m over the keep plateau.
+  - strongholdshot: the stronghold isn't in `chain.nodes`, so the tool takes `stronghold_id()` and moves the captain
+    near it (it builds by distance).
+- Still to come: the cliffs paint as the capital's earth (a grey rock style for its terrain), arched viaducts between
+  towers, the sea gate's portcullis on the water, interiors.
