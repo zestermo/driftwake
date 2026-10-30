@@ -8079,3 +8079,16 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   belfry (a reach step with its own "at"/"y"/"r"), dive to the Grand Canal's bed below it for the clapper (a pickup
   with "water": true: KitQuests sets the Interactable's usable_in_water), back to Anselm. t/canal/bell; t/canal/city
   counts 8. All five previewed investigations are in now.
+
+## 1.27 C5: city favour and the rulers' first steps (2026-10-30)
+- `scripts/island/city_favour.gd` (CityFavour):
+  - Ranks come from a city's KitQuests done, counted in the Journal.
+  - `line()` is the ruler's sentence (the {capital_favour}/{canal_favour} tokens).
+  - `apply()` sets Journal.perks "discount:<shop>" 0.1 at rank 2. It runs on the "favour:<city>" event when you ask.
+  - `ruler_line()` adds three gated menu choices to a ruler's dialogue (point at the step-1 investigation, thank once,
+    the next step), with an optional `after` quest (the Queen's audience).
+  - `thank()` gives LINE_REWARD once, flagged "line:<city>:1" in Journal.perks.
+- The Queen (capital_life `_talk_palace`) and the Doge (canal_life: the Doge got a real talk) wire both. The "if"
+  callables on Dialogue choices gate them.
+- Test: t/capital/favour (the ranks, the discount on every trader, the Queen's gate on the audience, the thanks paid
+  once, the Doge's pointer).

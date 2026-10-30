@@ -176,3 +176,14 @@ Journal.perks discount; Champion / Gondolier: a title), shown when you talk to t
 talk: today barks only). Then each ruler's line's first step in the city (the Queen after the audience: a Crown errand =
 the forged seal; the Doge: an audience, then the smuggling ring); their later steps wait for the stronghold and the
 hideout (1.27 build steps 2 and 6).
+
+## Status (2026-10-30, the cities pass done)
+C1-C5 are on main, tested and not pushed. C5 adds city favour (CityFavour: the Crown's Known 3 / Trusted 6 / Champion 9 and
+the Lagoon's Friend 3 / Citizen 5 / Gondolier 7. The Queen and the Doge tell you where you stand; the second rank takes
+10% off the city's traders) and the rulers' lines' first steps. The Queen sets you on the forged seal after the
+audience, and the Doge sends you after Grane's smugglers. Each thanks you once (400 gold and a level's XP share) and
+names the next step: the Admiralty's vault, then the pirate prince's convoys. Those steps wait for build steps 2 and 6.
+Deferred: the undercities, stairs to upper floors, the rank perks beyond the discount (royal stock, titles on the
+captain card, water taxis). Known: "CapitalModels: no material beam" errors print in every capital test (it doesn't
+fail them), and t/island/beast_moves is red. **Next:** the strongholds and Driftfruits previews in
+docs/v1_27_raids_fruits_plan.md, for Zach's OK.
