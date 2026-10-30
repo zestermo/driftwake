@@ -289,6 +289,7 @@ func _quests() -> void:
 	_apprentice(common)
 	_forged_seal(common)
 	_wanted_notice(common)
+	CityFavour.apply("capital", self, favour_shops())
 	notices.append(gallows)
 	var ledger := {"id": _key("ledger"), "kind": "deliver", "giver": "Ambrose Pell", "src": "npc", "title": "Sealed with wax",
 		"recipient": "Tobin Rook", "reward": {"gold": 45},
@@ -552,6 +553,12 @@ func _talk_palace(petition: Dictionary, signet: Dictionary, audience: Dictionary
 	var qnodes := {"intro": {"text": ["Ilsabet, Queen of this city. You've a petitioner's look, and a sailor's. One of them is honest."], "next": "menu"}, "menu": qmenu,
 		"king": {"text": ["Ill. Since the spring tides. The physicians shake their heads in Latin.", "Until he wakes, I hold the city. Not everyone at court likes that."], "next": "menu"}}
 	quest_node.hand_over(audience, qmenu["choices"], qnodes)
+	# (1.27 C5) where you stand with the Crown (CityFavour); asking applies its perks
+	qmenu["choices"].append({"text": "How does the Crown regard me?", "next": "favour"})
+	qnodes["favour"] = {"text": ["{capital_favour}"], "event": "favour:capital", "next": "menu"}
+	Dialogue.register_token("capital_favour", func(): return CityFavour.line("capital", CityFavour.done(self)))
+	if not Dialogue.dialogue_event.is_connected(_on_favour):
+		Dialogue.dialogue_event.connect(_on_favour)
 	qmenu["choices"].append({"text": "Your Majesty.", "next": "end"})
 	Dialogue.define(_key("queen"), {"speaker": "Queen Ilsabet", "voice": 1.0, "start": "intro", "return": "menu", "nodes": qnodes})
 
@@ -770,3 +777,15 @@ func _wanted() -> void:
 	var baker: Node = isl.get_parent().get_node_or_null("NavBaker")
 	if baker:
 		baker.add_zone(camp, 10.0, false, isl.nav_faces)
+
+
+## (1.27 C5) The Crown's favour applied (asked of the Queen, and on every build so a loaded save keeps it).
+func _on_favour(ev: String) -> void:
+	if ev == "favour:capital":
+		CityFavour.apply("capital", self, favour_shops())
+
+
+func favour_shops() -> Array:
+	var out: Array = cast().filter(func(e): return e.has("shop")).map(func(e): return _key(str(e["shop"])))
+	out.append(_key("inn"))
+	return out

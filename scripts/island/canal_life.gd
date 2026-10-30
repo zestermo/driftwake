@@ -64,7 +64,7 @@ var _fader: ColorRect
 static func cast() -> Array:
 	return [
 		# 1.27 C3: the Doge of the lagoon, on the dais of the council chamber (the Doge's line comes with C5)
-		{"name": "Doge Benedetto Vael", "spot": "doge", "voice": 0.85, "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.55, 0.1, 0.12), "trim_color": Color(0.9, 0.72, 0.25),
+		{"name": "Doge Benedetto Vael", "spot": "doge", "voice": 0.85, "dialogue": "doge", "look": {"body": "masc", "coat": "frock", "coat_color": Color(0.55, 0.1, 0.12), "trim_color": Color(0.9, 0.72, 0.25),
 			"hat": "none", "cloak": true, "cloak_color": Color(0.62, 0.12, 0.14)},
 			"barks": ["The lagoon elected me to keep its ships safe. Someone is making that very difficult.", "The guilds argue, the arsenal builds, and I sign. That is the Republic.",
 				"A pirate taxes our waters as if he were the Doge. He is not the Doge."]},
@@ -267,6 +267,7 @@ func _quests() -> void:
 	_smugglers(common)
 	_jobs(common)
 	_drowned_bell(common)
+	CityFavour.apply("canal", self, favour_shops())
 	_talk(blessing, oar, glass)
 
 
@@ -277,6 +278,15 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 		var cr: Rect2 = campi[2][1]
 		var q: Vector2 = cr.position + Vector2(3.0, cr.size.y - 3.0)
 		TavernGames.make_at(self, isl, isl.from_city(q), isl.from_city_dir((cr.get_center() - q).normalized()), P.QUAY_Y, "campo")
+	# (1.27 C5) the Doge: where you stand with the Lagoon (CityFavour); asking applies its perks
+	var dnodes := {"intro": {"text": ["Benedetto Vael, Doge of this Republic by the grace of its guilds and its boatmen.", "Speak plainly. The council is waiting, and it hates waiting."], "next": "menu"},
+		"menu": {"text": "Well, Captain?", "choices": [{"text": "How does the Lagoon regard me?", "next": "favour"}, {"text": "Your pirate problem?", "next": "pirate"}, {"text": "Good day, Doge.", "next": "end"}]},
+		"favour": {"text": ["{canal_favour}"], "event": "favour:canal", "next": "menu"},
+		"pirate": {"text": ["A captain who calls himself a prince taxes every hull that leaves this lagoon. My ships, my guilds, my people.", "When you're trusted here, Captain, we'll speak of where he sleeps."], "next": "menu"}}
+	Dialogue.define(_key("doge"), {"speaker": "Doge Benedetto Vael", "voice": 0.85, "start": "intro", "return": "menu", "nodes": dnodes})
+	Dialogue.register_token("canal_favour", func(): return CityFavour.line("canal", CityFavour.done(self)))
+	if not Dialogue.dialogue_event.is_connected(_on_favour):
+		Dialogue.dialogue_event.connect(_on_favour)
 	# (1.27 C4) the Hooded Stranger sells leads: a cache in this city for gold, marked on the map (CityCaches)
 	Dialogue.define(_key("stranger"), {"speaker": "The Hooded Stranger", "voice": 0.92, "start": "intro", "return": "menu", "nodes": CityCaches.stranger_nodes("canal", isl)})
 	if not Dialogue.dialogue_event.is_connected(_on_lead):
@@ -500,3 +510,15 @@ func _drowned_bell(common: Dictionary) -> void:
 		"at": isl.from_city(bed), "yaw": 0.0, "search": "Haul up the clapper", "reward": {"gold": 80}, "steps": steps}
 	bell_q.merge(common)
 	quest_node.add(bell_q, isl)
+
+
+## (1.27 C5) The Lagoon's favour applied (asked of the Doge, and on every build so a loaded save keeps it).
+func _on_favour(ev: String) -> void:
+	if ev == "favour:canal":
+		CityFavour.apply("canal", self, favour_shops())
+
+
+func favour_shops() -> Array:
+	var out: Array = cast().filter(func(e): return e.has("shop")).map(func(e): return _key(str(e["shop"])))
+	out.append(_key("inn"))
+	return out
