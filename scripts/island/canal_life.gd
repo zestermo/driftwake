@@ -53,6 +53,8 @@ var isl
 var smug_q: Dictionary = {}
 ## (1.27 C4) The canal city's odd jobs, offered by its people: [soup fish, the basket on the roofs, the candles].
 var job_qs: Array = []
+## (1.27 C4) The drowned bell, Father Anselm's: the belfry, then a dive for the clapper.
+var bell_q: Dictionary = {}
 var quest_node: KitQuests
 var people := {}
 var _fader: ColorRect
@@ -264,6 +266,7 @@ func _quests() -> void:
 	quest_node.add(glass, isl)
 	_smugglers(common)
 	_jobs(common)
+	_drowned_bell(common)
 	_talk(blessing, oar, glass)
 
 
@@ -297,6 +300,8 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 	quest_node.offer(blessing, pmenu["choices"], pnodes)
 	for j in job_qs.filter(func(q): return str(q["giver"]) == "Father Anselm"):
 		quest_node.offer(j, pmenu["choices"], pnodes)
+	if not bell_q.is_empty():
+		quest_node.offer(bell_q, pmenu["choices"], pnodes)
 	pmenu["choices"].append({"text": "Goodbye, Father.", "next": "end"})
 	Dialogue.define(_key("priest"), {"speaker": "Father Anselm", "voice": 0.8, "start": "intro", "return": "menu", "nodes": pnodes})
 	var imenu := {"text": "What'll it be, Captain?", "choices": [{"text": "Something to eat.", "next": "eat"}, {"text": "What's the news?", "next": "news"}]}
@@ -472,3 +477,26 @@ func _jobs(common: Dictionary) -> void:
 	job_qs.append(candles)
 	for j in job_qs:
 		quest_node.add(j, isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "Investigations": the drowned bell) Father Anselm's: the campanile's bell has lost its
+## clapper. Up to the belfry to see the bell hanging dumb, then a dive to the Grand Canal's bed below the campanile for
+## the clapper (a thing searched while swimming), and back to Anselm.
+func _drowned_bell(common: Dictionary) -> void:
+	var bt := CapitalBellTower.top((P.SPECIAL["campanile"][0] as Rect2).get_center(), P.QUAY_Y)
+	var bed := Vector2(0.0, 61.5)
+	var steps: Array = [{"do": "reach", "at": isl.from_city(Vector2(bt.x, bt.z)), "y": bt.y + 1.0, "r": 4.0,
+			"goal": "Climb the campanile to the bell", "said": "The bell hangs dumb, its clapper gone. Below, in the Grand Canal, something glints."},
+		{"do": "pickup", "at": isl.from_city(bed), "y": P.CANAL_BED + 0.15, "yaw": 0.0, "water": true, "search": "Haul up the clapper",
+			"goal": "Dive for the clapper in the Grand Canal below the campanile", "said": "The clapper, heavy as an anchor, out of the silt. Back to Father Anselm."},
+		{"do": "turnin", "goal": "Bring the clapper to Father Anselm at the church"}]
+	bell_q = {"id": _key("inv_bell"), "kind": "lost", "giver": "Father Anselm", "src": "npc", "title": "The drowned bell",
+		"ask": "The bells were quiet today.", "plea": ["Quiet! They haven't rung in three days. The ringer swears the clapper fell when the storm took the louvres.",
+			"If it fell, it fell in the canal. My knees won't climb the stair, and my lungs won't dive. Would yours?"],
+		"accept": "I'll find your clapper.", "decline": "Not today, Father.", "taken": "Climb up and look first. Then the canal, if it's there. God keep you dry. Or not.",
+		"remind_choice": "About the bell...", "remind": ["The campanile, then the canal below it."],
+		"done": "Your clapper, Father.", "thanks": ["Ha! Wet as a fish and twice as welcome. The ringer will have it hung by vespers.",
+			"The lagoon will hear its hours again. Take this, with my blessing."],
+		"at": isl.from_city(bed), "yaw": 0.0, "search": "Haul up the clapper", "reward": {"gold": 80}, "steps": steps}
+	bell_q.merge(common)
+	quest_node.add(bell_q, isl)

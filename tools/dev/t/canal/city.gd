@@ -87,7 +87,7 @@ func _process(_d: float) -> bool:
 			check("the glassworker a rare goods merchant", SH.extra[isl.save_key("canal_glass")]["trade"] == "treasure")
 			var master: Dictionary = root.get_node("Dialogue")._cache.get(isl.save_key("canal_master"), {})
 			check("the Master's yard opens under his name", str(master).contains("shipwright:Grane"))
-			check("seven city quests (1.27: the smuggling ring, three jobs) (%d)" % isl.canal_life.quest_node.quests.size(), isl.canal_life.quest_node.quests.size() == 7)
+			check("eight city quests (1.27: the smuggling ring, three jobs, the drowned bell) (%d)" % isl.canal_life.quest_node.quests.size(), isl.canal_life.quest_node.quests.size() == 8)
 			var lights: Array = isl.find_children("*", "NightLight", true, false)
 			check("the lights inside the budget (%d)" % lights.size(), lights.size() >= 6 and lights.size() <= 16)
 			var draws := 0

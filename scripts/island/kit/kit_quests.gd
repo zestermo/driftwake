@@ -102,6 +102,9 @@ func _lost_thing(q: Dictionary, i: int, isl: GenIsland) -> void:
 	it.collision_layer = NPC.INTERACT_LAYER
 	it.collision_mask = 0
 	it.prompt_text = str(s.get("search", q.get("search", "Search")))
+	# (1.27) a thing on a canal bed or the seabed: searched while swimming
+	if s.get("water", false):
+		it.usable_in_water = true
 	it.gesture = "pickup"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()

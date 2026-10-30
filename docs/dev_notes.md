@@ -8075,3 +8075,7 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   his gang, level +1, respawn 30 min) in the second rolled courtyard, built on every machine and run by the host like
   Gallows Row; the Watch's bounty on the board clears when alive_count() is 0, paid by Sergeant Brannoch (60 gold,
   "xp": 0.6). t/capital/wanted; t/capital/life counts 15.
+- **C4 piece 11: the drowned bell** (CanalLife._drowned_bell, offered by Father Anselm, 80 gold): reach the campanile's
+  belfry (a reach step with its own "at"/"y"/"r"), dive to the Grand Canal's bed below it for the clapper (a pickup
+  with "water": true: KitQuests sets the Interactable's usable_in_water), back to Anselm. t/canal/bell; t/canal/city
+  counts 8. All five previewed investigations are in now.
