@@ -115,3 +115,46 @@ Built on main (not pushed, not released):
 Still to do in the cities pass: the palace gardens and maze (needs a flat terrace cut into the hill), the undercities,
 the shop-lined bridge, stairs to upper floors, C4 activities (investigations, rooftop caches, city jobs, dens), C5 the
 Queen's and the Doge's lines and the Stranger's leads (with the strongholds and fruits), and the previews owed for those.
+
+## Preview for Zach's OK: C4 things to do, C5 the rulers (2026-10-30; nothing here is built yet)
+Every pool is rolled per world from the city's seed, repeats drop out once done, and each city holds 2-3 of each kind at
+a time (refilled after a rest, like the island loop's leads). Rewards on the island loop's scale (quest XP by level,
+gold ~ a chain island's bandit camp), so a city is worth an evening, not a shortcut.
+
+### Investigations (3-5 clue steps through interiors, alleys and roofs; end in a fight or a find)
+| # | Name | Clues (where) | Ends | Reward |
+|---|---|---|---|---|
+| 1 | The rooftop thief | a torn sleeve on a parapet, footprints on a plank, a stash on a hatch roof | chase over the roofs, fight 2 thieves | 1x quest XP, the stolen ring (sell or return: +gold or Crown/Doge favour) |
+| 2 | The missing apprentice | the master's shop, a note in a workshop, the dens | found locked in a cellar room behind a den | 1x XP, a discount at the master's shop |
+| 3 | The smuggling ring | marked crates in 3 courtyards, a boatman's word, the fish loggia | the ring's room behind the glassworks/a warehouse; 4 smugglers | 1.5x XP, a contraband cache |
+| 4 | The forged seal | the library's hidden room, the guild hall, the theatre's back | unmask the forger (theatre) | 1.5x XP, royal favour |
+| 5 | The drowned bell (canal) | the campanile, a fisherman, a sunken crate (dive) | the bell's clapper returned | 1x XP, the Doge's favour |
+
+### City jobs (one step, quick; a job board by each city's inn)
+Deliveries (a parcel across the city before a dusk deadline), a wanted thug (a named tough in a lane or on a roof),
+a lost cat on the roofs (climb and fetch), debt collection (talk or fight), an errand for a shop (fetch 3 of an item).
+Reward 0.3-0.6x quest XP, small gold; 5 of each kind in the pool.
+
+### Games and dens
+A dice den (the capital's slum, the canal's back calli), a card table (an inn back room), arm-wrestling (a tavern
+corner, the docks). Stakes 10-200 gold, won by the island loop's tavern-game rules.
+
+### Hidden caches
+8-12 per city: on hatch roofs, in courtyards behind crates, in the library's hidden room, the theatre's flies, the
+canal's rooftops; a chest each (a chain island's chest tier), marked on the map once found.
+
+### The Queen (capital) and the Doge (canal)
+| | Queen Ilsabet (raid patron + royal favour) | Doge Benedetto Vael |
+|---|---|---|
+| Opens | after the audience (today's petition, signet, audience) | an audience asked at the palace door |
+| Line | 3 steps: a Crown errand in the city (C4 investigation 4), a writ to carry to the stronghold's chain island, "bring me what the Admiralty keeps in its vault" (the stronghold, 1.27 build step 2) | 3 steps: clear a smugglers' den (investigation 3), escort a convoy past the pirate's ships, the great power's hideout (build step 6) |
+| Favour ranks | Known, Trusted, Champion of the Crown: royal shops' stock (Trusted), 10% off in the capital, a title on your captain card, palace rooms opened (Champion) | Friend of the Lagoon, Citizen, Gondolier of the Republic: the arsenal's rare upgrades, free water taxis, a title |
+
+### The Hooded Stranger's leads (prices)
+| Lead | Price | Where it points |
+|---|---|---|
+| A cache in this city | 300 gold | one hidden cache on the map |
+| A legendary weapon | 2,000 gold or a favour | the island where a named legendary lies (a boss's hoard or a vault) |
+| The stronghold's way in | 1,500 gold | a weak point (the sea gate, a wall, a sewer) marked on its chart |
+| A Driftfruit | 5,000 gold, or a favour from the Queen/Doge | the island or enemy that holds one (once fruits land) |
+One lead at a time per captain; the Stranger moves between the two cities' belfries at dusk.
