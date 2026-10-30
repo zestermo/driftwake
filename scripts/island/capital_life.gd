@@ -31,6 +31,9 @@ var job_qs: Array = []
 var appr_q: Dictionary = {}
 ## (1.27 C4) The forged seal, Ambrose Pell's.
 var seal_q: Dictionary = {}
+## (1.27 C4) The wanted thug's bounty and his gang (a GruntCamp in the second courtyard).
+var wanted_q: Dictionary = {}
+var wanted: GruntCamp
 var ruffians: GruntCamp
 var people := {}
 var notices: Array = []
@@ -143,7 +146,7 @@ func setup(island) -> CapitalLife:
 
 ## Everything (CapitalIsland's last steps, in order): the shops, the people, the inn, the quests and the board, the toughs.
 func steps() -> Array:
-	return [["life", _shops], ["life", _people], ["life", _inn], ["life", _quests], ["life", _ruffians]]
+	return [["life", _shops], ["life", _people], ["life", _inn], ["life", _quests], ["life", _ruffians], ["life", _wanted]]
 
 
 func _key(what: String) -> String:
@@ -285,6 +288,7 @@ func _quests() -> void:
 	_jobs(common)
 	_apprentice(common)
 	_forged_seal(common)
+	_wanted_notice(common)
 	notices.append(gallows)
 	var ledger := {"id": _key("ledger"), "kind": "deliver", "giver": "Ambrose Pell", "src": "npc", "title": "Sealed with wax",
 		"recipient": "Tobin Rook", "reward": {"gold": 45},
@@ -417,6 +421,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 		quest_node.post(thief_q, board, bnodes)
 	for jq in job_qs:
 		quest_node.post(jq, board, bnodes)
+	if not wanted_q.is_empty():
+		quest_node.post(wanted_q, board, bnodes)
 	board.append({"text": "Leave it.", "next": "end"})
 	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": bnodes})
 	var smenu := {"text": "Something you need, Captain?", "choices": [{"text": "What's the city like?", "next": "city"}, {"text": "What's down Gallows Row?", "next": "row"}]}
@@ -428,6 +434,8 @@ func _talk(gallows: Dictionary, ledger: Dictionary, locket: Dictionary, invite: 
 		quest_node.report(thief_q, smenu["choices"], snodes)
 	for jq in job_qs:
 		quest_node.report(jq, smenu["choices"], snodes)
+	if not wanted_q.is_empty():
+		quest_node.report(wanted_q, smenu["choices"], snodes)
 	smenu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("sergeant"), {"speaker": "Sergeant Brannoch", "voice": 0.8, "start": "intro", "return": "menu", "nodes": snodes})
 	var cmenu := {"text": "The guild's business, Captain?", "choices": []}
@@ -711,3 +719,54 @@ func _forged_seal(common: Dictionary) -> void:
 		"at": steps[0]["at"], "yaw": 0.0, "search": clues[0][1], "reward": {"gold": 160, "xp": 1.5}, "steps": steps}
 	seal_q.merge(common)
 	quest_node.add(seal_q, isl)
+
+
+## (1.27 C4, docs/v1_27_plan.md "City jobs": a wanted thug) The second courtyard, where Black Ned's gang holds out.
+func _wanted_court() -> Rect2:
+	var courts: Array = P.rolled().filter(func(f): return str(f[0]) == "court")
+	return courts[1][1] if courts.size() > 1 else Rect2()
+
+
+## The Watch's bounty on Black Ned: posted on the board, cleared when his gang is down, paid by Sergeant Brannoch.
+func _wanted_notice(common: Dictionary) -> void:
+	var cr := _wanted_court()
+	if cr.size.x <= 0.0:
+		return
+	wanted_q = {"id": _key("job_wanted"), "kind": "bounty", "giver": "Sergeant Brannoch", "src": "board", "title": "Wanted: Black Ned",
+		"notice": "WANTED by the Watch: BLACK NED, cutpurse and knifeman, holed up with two of his gang in a courtyard off the lanes. Sixty crowns for the lot of them. Report to Sergeant Brannoch at the sea gate.",
+		"posted": "Ned and his lads, all of them? The lanes will sleep easier. Here, and the Watch's thanks.",
+		"clear": func(): return wanted != null and is_instance_valid(wanted) and wanted.alive_count() == 0, "poi_at": isl.from_city(cr.get_center()),
+		"reward": {"gold": 60, "xp": 0.6},
+		"steps": [{"do": "clear", "goal": "Defeat Black Ned's gang in the courtyard off the lanes", "said": "Black Ned's gang: down. Report to Sergeant Brannoch."},
+			{"do": "turnin", "goal": "Report to Sergeant Brannoch at the sea gate"}]}
+	wanted_q.merge(common)
+	quest_node.add(wanted_q, isl)
+
+
+## Black Ned and two of his gang in the second courtyard: a GruntCamp every machine builds (the host runs it).
+func _wanted() -> void:
+	var cr := _wanted_court()
+	if cr.size.x <= 0.0:
+		return
+	var c := cr.get_center()
+	var at: Vector2 = isl.from_city(c)
+	var camp := GruntCamp.new()
+	camp.name = "Wanted"
+	camp.warm_start = true
+	camp.respawn_time = 1800.0
+	camp.level = int(isl.node["level"]) + 1
+	camp.position = Vector3(at.x, P.ground(c), at.y)
+	for i in range(3):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 9901 + i
+		var lk := PirateGrunt.crew_look(rng)
+		lk.merge(TOUGH, true)
+		lk["name"] = "Black Ned" if i == 0 else "Ned's Man"
+		var a := TAU * i / 3.0
+		camp.add_grunt({"post": Vector3(cos(a), 0, sin(a)) * 2.5, "yaw": a + PI, "mode": "stand", "look": lk,
+			"title": "Black Ned" if i == 0 else "Ned's Gang", "seed": 9901 + i, "role": "sword"})
+	add_child(camp)
+	wanted = camp
+	var baker: Node = isl.get_parent().get_node_or_null("NavBaker")
+	if baker:
+		baker.add_zone(camp, 10.0, false, isl.nav_faces)

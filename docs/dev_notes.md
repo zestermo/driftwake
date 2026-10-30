@@ -8071,3 +8071,7 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
 - **C4 piece 9: the canal city's jobs** (CanalLife._jobs, offered by its people, "xp": 0.5): Carlotta's soup fish
   (fetch) and her washing basket on an unhatched flat roof (a roof pickup), Father Anselm's candles to Master Grane
   (deliver; handed over in Grane's talk). t/canal/jobs; t/canal/city counts 7 city quests.
+- **C4 piece 10: Black Ned, wanted** (CapitalLife._wanted_notice / _wanted): a GruntCamp of three (Black Ned and two of
+  his gang, level +1, respawn 30 min) in the second rolled courtyard, built on every machine and run by the host like
+  Gallows Row; the Watch's bounty on the board clears when alive_count() is 0, paid by Sergeant Brannoch (60 gold,
+  "xp": 0.6). t/capital/wanted; t/capital/life counts 15.
