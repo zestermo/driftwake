@@ -156,3 +156,35 @@ On main and pushed:
 - Then gameplay: the garrison with spawn doors and respawns, the sealed encounter rooms and their waves, muster flags,
   the bosses (the Drill Sergeant, the Commodore, the Warden, the Vice Admiral), the broadcast and the Scouring.
 - Finding it (captured orders, rumours) and its chart entry.
+
+### Update (2026-10-30, night): the garrison is in; the bosses are next, and how to build them
+**Done and pushed:**
+- The garrison (marine squads per district that respawn; StrongholdGarrison).
+- Nav for the fortress.
+- The Mess Hall's sealed fight (StrongholdEncounter: a grate, three waves, cleared for good).
+- The boss lineup is decided (plan doc "Decided: the stronghold bosses"): Lieutenant Kesh (the Casting Hall), Captain
+  Marrow (the Prison Tower), Commodore Vane (the Command Hall, three phases). The two seals can be taken in any order.
+  A Vice Admiral leads the Scouring.
+
+**How to build a boss (found while planning it):**
+- **Spawning:** `Net.everyone("_all_spawn_rival", [Net.key_of(isl.city), name, look, weapon_id, at, yaw, skill])`
+  builds an AI captain on every machine. The host's copy goes through RivalDuel.build (a CaptainBrain, a weapon, and
+  give_kit's skills and ultimate by skill). Set it on with `brain.order = "fight"` (RivalEncounter._fight) and
+  `brain.target`.
+  - Kit: `EnemyShip.marine_look(lk, rng, true)` for an officer.
+  - Off-hand: `Player.set_offhand(ItemDB.get_item("pistol"))` (cutlass + pistol = the Corsair).
+  - Health: on the host, raise `health_component.max_health` by the boss's multiple and fill it.
+- **Phases:** a StrongholdBoss node per arena (under City, like StrongholdEncounter), the host deciding. Work the
+  phase out on every machine from something already synced (the boss's health if puppets carry it, else a world flag
+  per phase via `Net.world_flag("sh_<boss>_p2")`), so clients need no new RPC.
+- **Hazards that hurt captains** (the molten channels, the Commodore's fire quarters): each captain takes damage on
+  their own machine. So every machine works out the hazard's timing from a shared clock (`Ocean.clock()`) and the
+  phase, and hurts only its own local player (`player.hurtbox.take_hit(HitData)`).
+  - FireZone burns enemies, not captains: don't use it for these.
+  - Telegraph with FX ground_warn first.
+- **The seals:** a world flag per boss beaten ("sh_seal_arsenal", "sh_seal_prison"). The keep's gatehouse gets a
+  barrier like the encounter grate while either is missing.
+- **The Commodore's phase 2 adds:** reuse StrongholdEncounter's waves (an encounter node in the Command Hall the
+  boss arms).
+- Tests to write: t/stronghold/boss_lieutenant (spawns on entering, his weapon and kit, phase 2 at 50%, the seal on
+  defeat), then the Captain and the Commodore likewise.
