@@ -379,3 +379,64 @@ Levels: the chain's last island +2, officers +3, the Vice Admiral +5.
 | After the raid | **It stays a burnt ruin**: one raid per chain, revisitable for salvage, no garrison | Zach's pick | - |
 | Prisoners as temporary allies | **In** (**assumed**; not asked yet) | Chaos in the Prison Tower | Zach's word |
 | The map, spawns, scaling, flags, timings | Preview v2's, as the first pass | - | Tune in play |
+
+## Driftfruit rework preview (2026-10-30, from Zach's direction; for his OK, nothing built)
+
+### The model: powers that grow into you
+Each fruit has **5 powers**. Each power has **three forms**, and you earn them by using it:
+
+| Form | What it is | How you get it |
+|---|---|---|
+| **I. Active** | On the fruit bar: a press, energy and a cooldown | Learned (bought) on the fruit's tree |
+| **II. Reflex** | It also fires **by itself** when its moment comes (with an inner cooldown); pressing it still works and is stronger | The power used **150 times** and fruit mastery **12** |
+| **III. Nature** | **Always on**, part of how your body works. Its bar slot frees up for something else, or it becomes a bigger version | The power used **400 times** and fruit mastery **24** |
+
+- Use counts are per power: grinding one power doesn't evolve the others. Mastery gates the forms, so no fruit
+  reaches Nature in its first hours.
+- **Awakening** (mastery 30 and the fruit's **trial**, a quest to beat a strong fight using only the fruit):
+  - The **awakened state**: hold the fruit key for 30 s. It drains energy, every power is at Nature and more, and the
+    world around you changes (a logia's element covers the ground, a zoan goes full beast, a paramecia bends the
+    place).
+  - Plus one permanent awakened passive.
+
+### Ember worked through (logia, legendary)
+| Power | I. Active | II. Reflex | III. Nature |
+|---|---|---|---|
+| **Flame Body** | Flicker: 1.5 s where bullets and blades pass through you (25 energy, 12 s) | A hit that would land has a 30% chance to pass through (6 s inner cooldown) | **Bullets always pass through you**; blades 25% |
+| **Fire Fist** | A flaming projectile punch | Hold to charge a bigger one, and a dodge's end throws one by itself | Twin fists, and your basic punches set burning |
+| **Blaze Step** (flight) | A short flame dash with a 1.2 s hover | Hover 3 s; Space mid-dash **phases through a thin wall or door** | **Your dash is a flame burst; hold Space to fly** (8 energy a second) |
+| **Fire Ring** | A ring of fire round you | Landing from a jump rings by itself | An ember aura burns anyone who stays close |
+| **Pillar of Flame** | A pillar under a marked enemy | It erupts under anyone who knocks you down | A second pillar follows the first |
+**Awakened, "Sunborn":** flight costs nothing, everything you touch leaves burning ground, and your ultimate's cooldown
+resets.
+
+The other five follow the same pattern:
+- **Storm:** Thunder Step blink, then blink-chaining after dodges, then a lightning dash.
+- **Iron:** Iron Guard, then auto-guard against heavies, then no stagger from anything below a technique.
+- **Wolf:** the hybrid form, a pounce, scent tracking.
+- **Vine:** a snare, then snares on enemies who hit you, then thorns.
+- **Bubble:** a bubble shield, then bubbles popping round you when you're hit, then floating falls.
+
+### Balance against the weapons (the fork)
+- **Today:** every weapon and the fruit earn their own points from their own mastery. A fruit never competes with a
+  weapon.
+- **Zach's lean, a shared "combat" pool:** every captain level gives **3 combat points** (120 by level 40), spent on
+  any weapon tree or the fruit tree. A weapon tree costs about 60 to complete and a fruit about 70. So level 40 buys
+  one weapon tree and most of a fruit, or two weapon trees: a real choice.
+  - Mastery still gates **what** you can buy; the shared points decide **how much**.
+  - The forms (I to III) come from use, not points, so a fruit you use a lot still grows.
+- **Energy:** fruit powers use energy (the existing bar), weapons stamina. Using both drains both.
+
+### Controls: three options to mock
+| Option | How it plays | Good | Cost |
+|---|---|---|---|
+| **A. Hold Alt (Zach's idea)** | Hold Alt and Q/E/R/LMB/RMB become the 5 fruit powers; let go and they're the weapon's again | Weapon and fruit both fully on hand; mixes into combos | Two bars to learn; a held key in the middle of a fight |
+| **B. Fruit stance (V toggles)** | V switches weapon stance and fruit stance; in fruit stance LMB/RMB are the fruit's own attacks (punches, claws, bolts) and Q/E/R its powers | Clear modes, like the Wolf's hybrid today; easy to read | Swapping takes a beat; less mixing |
+| **C. One mixed loadout** | The 6 skill slots hold weapon skills and fruit powers as you like | One bar, already built (1.26's loadouts) | Fruits compete with weapon skills for slots and feel smaller |
+**Recommended: A**, with Nature forms off the bar, because they're always on (so the fruit bar never feels crowded).
+
+### Questions for Zach
+1. **Points:** a shared combat pool (one weapon tree and most of a fruit by level 40) or keep separate pools?
+2. **Controls:** A (hold Alt), B (fruit stance), or C (one mixed loadout)?
+3. **Evolving a form:** by each power's own use plus mastery (as above), or by fruit mastery alone?
+4. **Awakening:** mastery 30 and a trial quest, or mastery 30 alone?
