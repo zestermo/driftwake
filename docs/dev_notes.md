@@ -7992,6 +7992,6 @@ Sheet: docs/weapons_126.md (**assumed**, not previewed). Every weapon tree gets,
   doors swung open, a portal arch, steps up 0.8 m, a pediment; inside a nave with columns, two blocks of pews, the altar
   on its step, candles and a hanging lamp (glow, no real lights), coloured windows (2 glass materials). CapitalPlan._open
   treats the cathedral's footprint as closed (the old TEMPLE rect reaches into the forecourt). t/capital/cathedral;
-  capitalshot forecourt, nave. Known: the rose window over the portal doesn't show yet.
+  capitalshot forecourt, nave.
 - The walls across leftover gaps (CapitalShell._barrier) 3 m or wider now stand two storeys with a windowed facade over a
   plain ground floor, so a lane past unbuilt ground reads as a house side. Open: stairs to upper floors not yet.

@@ -60,9 +60,9 @@ static func build(mb: MeshBuilder, cols: Array, ty: float) -> void:
 		var q := Vector3(W * 0.5 + 0.22, fy + DOOR_H + 0.8 + sin(a) * (DOOR_W * 0.5 + 0.5), cos(a) * (DOOR_W * 0.5 + 0.5))
 		mb.add_box(lime, tt * Transform3D(Basis(Vector3.RIGHT, -a), q), Vector3(0.44, 0.5, 0.75), 0.6, Color(0.92, 0.9, 0.86), false)
 	# the rose window over the portal (glass that glows), its stone ring
-	var rose := tt * Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(W * 0.5 + 0.1, fy + H - 2.6, 0))
+	var rose := tt * Transform3D(Basis(Vector3.BACK, -PI * 0.5), Vector3(W * 0.5 + 0.05, fy + H - 2.6, 0))
 	mb.add_cylinder(lime, rose, 2.0, 2.0, 0.2, 16, 0.5, Color(0.9, 0.88, 0.84))
-	mb.add_cylinder(PSXMat.glow(Color(0.3, 0.45, 0.85), 1.1), rose * Transform3D(Basis(), Vector3(0, -0.12, 0)), 1.6, 1.6, 0.02, 16, 0.5)
+	mb.add_cylinder(PSXMat.glow(Color(0.3, 0.45, 0.85), 1.1), rose * Transform3D(Basis(), Vector3(0, 0.16, 0)), 1.55, 1.55, 0.04, 16, 0.5)
 	# a pediment over the front
 	mb.add_tri(lime, tt * Vector3(W * 0.5 + 0.3, fy + H, -D * 0.5 * 0.55), tt * Vector3(W * 0.5 + 0.3, fy + H + 3.2, 0), tt * Vector3(W * 0.5 + 0.3, fy + H, D * 0.5 * 0.55),
 		east, east, east, Vector2(0, 1), Vector2(0.5, 0), Vector2(1, 1), Color(0.94, 0.92, 0.88), east)
