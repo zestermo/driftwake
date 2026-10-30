@@ -252,6 +252,10 @@ func _physics_process(delta: float) -> void:
 			net.bounty("officer", global_position)
 			_apply_raided(true)
 			get_tree().call_group("hud", "show_banner", "Outpost raided", "The armoury's open and the cell's unguarded.", true)
+			# (1.27) its orders captured: the Admiralty's stronghold, marked on the chart (once)
+			if not Chain.stronghold_known(get_tree()):
+				Chain.learn_stronghold(get_tree(), "orders")
+				get_tree().call_group("hud", "show_banner", "Captured orders", "The Admiralty's stronghold is marked on your chart.", true)
 		return
 	for c in net.all_players():
 		var p := c as Player

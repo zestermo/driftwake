@@ -61,6 +61,7 @@ func _process(_d: float) -> bool:
 		3:
 			check("the squad beaten: raided (a world flag), the armoury open, the bars gone",
 				o.raided and root.get_node("GameManager").world_flags.has("t_outpost") and o._chest.interactable.enabled and not o._cell_bars.visible)
+			check("...its orders captured: the Admiralty's stronghold known (1.27)", root.get_node("GameManager").world_flags.has("stronghold_known"))
 			gold0 = p.inventory_component.count("gold")
 			o._free_prisoner(p)
 			until = TK.wait_ticks(3)

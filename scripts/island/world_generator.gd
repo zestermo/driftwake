@@ -89,6 +89,11 @@ func sync_chain_islands() -> void:
 	for id in _wanted():
 		if not chain_islands.has(id) and not _pending.has(id) and not _finishing.has(id):
 			_start_chain_island(c.node(id))
+	# (1.27) the stronghold on the chart once the crew knows of it (MapMarks aren't saved: put back from the world flag)
+	var sid := c.stronghold_id()
+	if sid >= 0 and Chain.stronghold_known(get_tree()) and not MapMarks.has("stronghold"):
+		var sp: Vector2 = c.node(sid)["pos"]
+		MapMarks.put("stronghold", Vector3(sp.x, 0.0, sp.y), "spot", str(c.node(sid)["name"]))
 
 
 ## Every island wanted is built and its crews have turned up (tests, co-op).
@@ -732,6 +737,7 @@ func _rumor() -> String:
 		"%s past Redtide Rock, %s" % [IslandThemes.of(first["theme"]).blurb, "if you've a lodestone to find it by"],
 		"a fort on a sea stack %s. Captain Morrow's. Keeps a lodestone, they say" % redtide_phrase(),
 		"a whole chain of islands out past Redtide, one after the next, and cities on it bigger than any you've seen",
+		"an Admiralty fortress off the chain past the canal city, a tower on it you can see from three islands off. Raid one of their outposts and you'll find it on their orders",
 	]
 	return picks[randi() % picks.size()]
 
