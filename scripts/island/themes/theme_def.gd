@@ -23,6 +23,8 @@ var weight := 0.0
 ## first (Chain._apart, from a hash of the chain's seed, layer and branch), so adding one leaves every other island of
 ## every chain as it was; never on the first island, a city or the sea's end.
 var apart := false
+## (1.28) A theme rolled apart turns up only from this layer of the chain on (the volcanic isle's later level band).
+var from_layer := 0
 ## The chart's and the compass strip's colour and little glyph: glyph(ci: CanvasItem, p: Vector2, s: float, col: Color)
 ## draws it about s px from its middle p to each edge.
 var color := Color(0, 0, 0, 0)
@@ -93,6 +95,11 @@ func shape(_isl, _p: Vector2, h: float) -> float:
 ## The rest of the land hooks, called only for an island with a land plan (the jungle pays nothing):
 ## where its village goes once GenIsland has placed it (`p`: by the dock or inland), island space.
 func village_at(_isl, p: Vector2) -> Vector2:
+	return p
+
+
+## (1.28) Where another site goes once GenIsland has placed it ("boss", "summit", "camp", "lair", "ruins"; `p` its pick).
+func site_at(_isl, _site: String, p: Vector2) -> Vector2:
 	return p
 
 

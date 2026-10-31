@@ -621,6 +621,9 @@ func _plan_sites() -> void:
 			if gap > SITE_GAP:
 				break
 		sites[site] = pick
+	if not land_plan.is_empty():
+		for site in ["boss", "summit", "camp", "lair", "ruins"]:
+			sites[site] = _theme.site_at(self, site, sites[site])
 	for site in sites.keys():
 		if site != "dock" and site != "summit":
 			_keep.append([sites[site], 30.0])
