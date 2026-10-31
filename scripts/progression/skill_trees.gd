@@ -1586,6 +1586,8 @@ static func _grow_fruit(fid: String) -> void:
 		[pre + "_bent_a", vn[0], 22, {"fruit_pct": 0.15}, "Every %s power hits 15%% harder." % g["tree"]],
 		[pre + "_bent_b", vn[1], 22, {"fruit_cost_pct": 0.2}, "Every %s power costs 20%% less energy." % g["tree"]]],
 		"Two bents for the fruit. Both are yours once bought; pick the one you carry at the ship's bunk.")
+	var cn: Array = FRUIT_CREW_NODES[fid]
+	_big(pre + "_crew", cn[0], "mech", 0, 26, {"fruit_crew": 1}, str(cn[1]) + " Alone, a lesser version for yourself.")["cost"] = 6
 	# the step chains: the root's at 2, then harder powers (6), quicker powers (10), more energy (15)
 	var st: Array = g["steps"]
 	if st.size() == 3:
@@ -1604,3 +1606,18 @@ static func _grow_fruit(fid: String) -> void:
 		var a: Dictionary = _nodes[pw[i]]
 		if not (pw[i + 1] in a["links"]) and not (pw[i] in _nodes[pw[i + 1]]["links"]):
 			a["links"].append(pw[i + 1])
+
+
+## (1.27) Each fruit tree's crew technique (mastery 26; CrewTechniques.FRUIT_CREW plays it): [name, what it does].
+const FRUIT_CREW_NODES := {
+	"ember": ["Twin Flames", "C in the fruit stance: share your fire with a crewmate (energy, and both 20% harder for 8 s)."],
+	"storm": ["Lightning Rod", "C in the fruit stance: lightning through you and a crewmate (20 energy each, 20% harder for 8 s)."],
+	"gust": ["Tailwind", "C in the fruit stance: you and a crewmate quicker for 8 s."],
+	"wolf": ["Pack Hunt", "C in the fruit stance: you and a crewmate with the howl's strength for 10 s."],
+	"bear": ["Bear Wall", "C in the fruit stance: the next 3 blows on you and a crewmate turned."],
+	"vine": ["Overgrowth", "C in the fruit stance: you and a crewmate healed 15%."],
+	"iron": ["Iron Pact", "C in the fruit stance: you and a crewmate with iron skin for 6 s."],
+	"bubble": ["Bubble Pair", "C in the fruit stance: the next 2 hits on you and a crewmate popped away."],
+	"clockwork": ["Synchronise", "C in the fruit stance: every power of yours and a crewmate's 5 s nearer ready."],
+	"echo": ["Resonate", "C in the fruit stance: every blow you and a crewmate land echoes for 8 s."],
+}

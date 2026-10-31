@@ -42,6 +42,17 @@ const SUPPORT := {
 	"pouch_pass": {"energy": {"lead": 10.0, "partner": 25.0, "solo": 12.0}, "rally": true},
 	"blade_wall": {"shield": 2},
 	"smoke_mirrors": {"vanish": 1.5},
+	# (1.27) the fruits' crew techniques: a gift to both of you (buff: [name, s, what it says])
+	"fc_ember": {"energy": {"lead": 15.0, "partner": 20.0, "solo": 12.0}, "rally": true},
+	"fc_storm": {"energy": {"lead": 20.0, "partner": 20.0, "solo": 15.0}, "rally": true},
+	"fc_gust": {"buff": ["haste", 8.0, "quicker for 8 s"]},
+	"fc_wolf": {"buff": ["howl", 10.0, "the howl's strength for 10 s"]},
+	"fc_bear": {"shield": 3},
+	"fc_vine": {"heal": 0.15},
+	"fc_iron": {"buff": ["iron_guard", 6.0, "iron skin for 6 s"]},
+	"fc_bubble": {"bubbles": 2},
+	"fc_clockwork": {"wind": 5.0},
+	"fc_echo": {"buff": ["echo_strike", 8.0, "every blow echoes for 8 s"]},
 }
 const SHARE_SECS := 8.0
 const SHARE_DAMAGE := 0.2
@@ -128,6 +139,8 @@ static func of_style(style: String) -> String:
 ## A crew technique's entry: ALL's, or (1.26) a tree's second one (WeaponPlus.CREW: no styles, a "tree" and a
 ## "kind" CrewTechniqueState plays from its DUETS).
 static func def(id: String) -> Dictionary:
+	if FRUIT_CREW.has(id):
+		return FRUIT_CREW[id]
 	return ALL[id] if ALL.has(id) else WeaponPlus.CREW.get(id, {})
 
 
@@ -160,6 +173,9 @@ static func cooldown_of(id: String) -> float:
 
 ## The crew technique of the weapon in hand ("" for none): its tree's second one when that's switched on.
 func id() -> String:
+	# (1.27) in the fruit stance, the fruit's own (its tree's node at mastery 26)
+	if player.power.fruit_stance and player.progression.stat("fruit_crew") > 0.0 and FRUIT_CREW.has("fc_" + player.power.fruit):
+		return "fc_" + player.power.fruit
 	var tr := SkillTree.style_tree(player.style())
 	if tr != "" and WeaponPlus.crew_of(tr) != "" and player.progression.stat("crew2_" + tr) > 0.0:
 		return WeaponPlus.crew_of(tr)
@@ -303,6 +319,21 @@ func support(tid: String, role: String) -> void:
 	if s.has("shield"):
 		mark("shielded", SHIELD_SECS, "", int(s["shield"]))
 		got.append("the next %d blows turned" % int(s["shield"]))
+	if s.has("buff"):
+		var b: Array = s["buff"]
+		player.power.add_buff(str(b[0]), float(b[1]))
+		player.call("_recalc_stats")
+		got.append(str(b[2]))
+	if s.has("heal"):
+		player.health_component.heal(player.health_component.max_health * float(s["heal"]))
+		got.append("%d%% health back" % int(float(s["heal"]) * 100.0))
+	if s.has("bubbles"):
+		player.power.bubble_hits = maxi(player.power.bubble_hits, int(s["bubbles"]))
+		got.append("%d bubbles round you" % int(s["bubbles"]))
+	if s.has("wind"):
+		for k in player.power.cooldowns.keys():
+			player.power.cooldowns[k] = maxf(float(player.power.cooldowns[k]) - float(s["wind"]), 0.0)
+		got.append("every power %d s nearer" % int(s["wind"]))
 	if s.has("vanish"):
 		player.vanish(float(s["vanish"]))
 		player.power.add_buff("slipped", SLIP_SECS)
@@ -531,3 +562,31 @@ func _ring_part(mat: Material) -> MeshInstance3D:
 	mi.position = Vector3(0, 0.06, 0)
 	player.add_child(mi)
 	return mi
+
+
+## (1.27) The fruits' crew techniques (each fruit tree's node at mastery 26; C in the fruit stance): support moves, a gift
+## to both of you (SUPPORT), or to you alone with no crewmate near.
+const FRUIT_CREW := {
+	"fc_ember": {"name": "Twin Flames", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Stoke",
+		"desc": "Share your fire with a crewmate: energy for both of you, and you both hit 20% harder for 8 s.",
+		"solo_desc": "Stoke your own fire: 12 energy, 20% harder for 8 s."},
+	"fc_storm": {"name": "Lightning Rod", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Ground Strike",
+		"desc": "Lightning through you and a crewmate: 20 energy each, and 20% harder for 8 s.",
+		"solo_desc": "Lightning through you: 15 energy, 20% harder for 8 s."},
+	"fc_gust": {"name": "Tailwind", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Wind at Your Back",
+		"desc": "A wind at both your backs: you and a crewmate quicker for 8 s.", "solo_desc": "A wind at your back: quicker for 8 s."},
+	"fc_wolf": {"name": "Pack Hunt", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Lone Wolf",
+		"desc": "Hunt as a pack: you and a crewmate with the howl's strength for 10 s.", "solo_desc": "The howl's strength for 10 s."},
+	"fc_bear": {"name": "Bear Wall", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Hunker",
+		"desc": "Stand in front of a crewmate like a wall: the next 3 blows on each of you turned.", "solo_desc": "The next 3 blows on you turned."},
+	"fc_vine": {"name": "Overgrowth", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Green Shoots",
+		"desc": "Green shoots round you both: you and a crewmate healed 15%.", "solo_desc": "Healed 15%."},
+	"fc_iron": {"name": "Iron Pact", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Ironskin",
+		"desc": "Iron passed hand to hand: you and a crewmate with iron skin for 6 s.", "solo_desc": "Iron skin for 6 s."},
+	"fc_bubble": {"name": "Bubble Pair", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Bubble Up",
+		"desc": "Two bubbles each: the next 2 hits on you and a crewmate popped away.", "solo_desc": "The next 2 hits on you popped away."},
+	"fc_clockwork": {"name": "Synchronise", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Rewind the Spring",
+		"desc": "Your clocks set together: every power of yours and a crewmate's 5 s nearer ready.", "solo_desc": "Every power 5 s nearer ready."},
+	"fc_echo": {"name": "Resonate", "styles": [], "tree": "unarmed", "kind": "support", "solo": "Reverb",
+		"desc": "Strike in time: every blow you and a crewmate land echoes for 8 s.", "solo_desc": "Every blow you land echoes for 8 s."},
+}

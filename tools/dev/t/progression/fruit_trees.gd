@@ -63,6 +63,18 @@ func _process(_d: float) -> bool:
 			p.power.fruit = "storm"
 			pr.owned["sm_forked"] = true
 			check("Forked owned: Chain Lightning leaps once more (%d)" % int(p.power.sv("storm_jumps")), p.power.sv("storm_jumps") == 1.0)
+			# the crew technique: C in the fruit stance plays the fruit's own once its node is owned (alone: its lesser version)
+			p.power.fruit = "gust"
+			p.power.set_fruit_stance(true)
+			check("no fruit crew technique before the node", p.crew_tech.id() != "fc_gust")
+			pr.owned["gu_crew"] = true
+			check("Tailwind owned: C in the fruit stance is Tailwind (%s)" % p.crew_tech.id(), p.crew_tech.id() == "fc_gust")
+			p.state_machine.force_state("Idle", {})
+			p.crew_tech.cooldown = 0.0
+			check("...alone it plays for you (%s)" % p.crew_tech.trigger(), true)
+			until = TK.wait_secs(1.0)
+		2:
+			check("...and you're quicker (haste %s)" % p.power.buff("haste"), p.power.buff("haste"))
 			return TK.done(fails)
 	step += 1
 	return false

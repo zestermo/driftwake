@@ -1854,7 +1854,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var st := current_state_name()
 		if st == "Crouch":
 			state_machine.force_state("Idle", {})
-		elif armed and context == Context.ON_FOOT:
+		elif (armed or (power.fruit_stance and crew_tech.id() != "")) and context == Context.ON_FOOT:
 			crew_tech.trigger()
 		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():
 			state_machine.force_state("Crouch", {})

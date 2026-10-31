@@ -356,7 +356,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Test t/progression/awakenings. **The fruit kits are complete by count:** 5 powers, 2 ultimates, 1 awakening each.
   **Next:** the trees to near weapon size, then icons/models/animations, then the new powers' own Reflex/Nature forms
   (only each fruit's first two have them; awakened Nature does nothing extra for the rest yet).
-- (latest) **The fruit trees, built to the previewed shape (Zach's OK 2026-10-31)** (SkillTrees.FRUIT_GROWTH +
+- **The fruit trees, built to the previewed shape (Zach's OK 2026-10-31)** (SkillTrees.FRUIT_GROWTH +
   _grow_fruit, called after each _build_<fruit>): powers gated 1, 1, 4, 8, 12; four mechanics (5, 9, 14, 18; Ember,
   Wolf and Vine kept their two and got two more), each one tweak to one power read through PowerComponent.sv(key); an
   alternate at 16 (PowerComponent.ALTERNATES / alt_power: Thunder Lance, Wind Blade, Shadow Pounce, Overhead Smash,
@@ -366,4 +366,12 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   are `ir_` (`i_plate` was taken). 21 nodes and 81-87 points a tree (66 at mastery 30). The preview's "~32 nodes" was
   a miscount of its own table (20 rows). Tests t/progression/fruit_trees and fruit_alternates. The power-test flake
   was the captain turning during the wait (fixed: faced north again at the cast; flaky.txt lines gone).
-  **Left from the preview:** the crew technique per fruit (mastery 26).
+  (crew techniques: below)
+- (latest) **Fruit crew techniques: the preview is fully built.** Each fruit tree has a node at mastery 26 (cost 6, effect
+  "fruit_crew"); with it, C in the fruit stance plays the fruit's own (CrewTechniques.FRUIT_CREW, support kind:
+  CrewTechniques.SUPPORT gives both captains its gift; new gift keys "buff", "heal", "bubbles", "wind"): Twin Flames,
+  Lightning Rod, Tailwind, Pack Hunt, Bear Wall, Overgrowth, Iron Pact, Bubble Pair, Synchronise, Resonate. Their pose
+  is the support moves' smoke_throw / cross_guard (placeholders). Player: C opens it in the fruit stance even unarmed.
+  Tested solo in t/progression/fruit_trees; the duet with a real second captain isn't covered by a test.
+  **1.27 left:** icons and models for the fruits (placeholders), animations for the new powers, the new powers' own
+  Reflex/Nature forms, the shared combat pool and IN_WORLD fruit sources (deferred), stronghold leftovers (above).
