@@ -55,6 +55,7 @@ static func windup(p: Node3D, fruit: String, pose: String, dir: Vector3, secs: f
 	var chest := p.global_position + Vector3(0, 1.2, 0)
 	var hand := hand_at(p, dir, pose)
 	net.fx("gather", [hand, 2.6 if ult else 1.3, c, secs, 22 if ult else 12])
+	body_effect(p, fruit, pose, secs + 0.6, ult)
 	match fruit:
 		"storm":
 			# lightning crawling over the body, more of it the bigger the power
@@ -236,3 +237,88 @@ static func column(p: Node3D, at: Vector3, fruit: String, height: float = 6.0, r
 	net.fx("speed_lines", [at + Vector3(0, height * 0.4, 0), Vector3.UP, c, 16, height, 0.35])
 	net.fx("motes", [at + Vector3(0, 0.4, 0), Vector3.UP, 18, c, 4.0])
 	net.fx("flash_light", [at + Vector3(0, 1.5, 0), c, 6.0, 8.0, 0.4])
+
+
+## Each fruit's aura look on the body (EdyAura's looks).
+const AURA_LOOK := {"storm": "lightning", "gust": "swirl", "wolf": "haze", "bear": "haze", "vine": "shimmer", "iron": "shimmer",
+	"bubble": "shimmer", "clockwork": "crackle", "echo": "crackle", "ember": "crackle"}
+
+
+## A power held in the body for `secs` (a guard, a haste, an awakening): EdyAura on `part` ("arms", "legs", "body",
+## "reinforce" the whole of you) in the fruit's colour and look.
+static func aura(p: Node3D, fruit: String, part: String, secs: float) -> void:
+	var body = p.get("body_model")
+	if body == null:
+		return
+	p.get_node("/root/Net").fx("edy_aura", [body, part, secs, core(fruit), str(AURA_LOOK.get(fruit, "haze"))])
+
+
+## A move from `from` to `to` (a blink, a dash, a charge, a rewind): an afterimage left behind, and the way between
+## drawn in the fruit's own manner.
+static func trail(p: Node3D, fruit: String, from: Vector3, to: Vector3) -> void:
+	var net := p.get_node("/root/Net")
+	var c := core(fruit)
+	var a := accent(fruit)
+	var f := from + Vector3(0, 1.0, 0)
+	var t := to + Vector3(0, 1.0, 0)
+	var dir := (t - f).normalized() if f.distance_to(t) > 0.1 else Vector3.FORWARD
+	net.fx("streak", [f, t, c, 0.3, 0.3])
+	match fruit:
+		"storm":
+			for i in range(3):
+				net.fx("bolt", [f + Vector3(0, randf_range(-0.4, 0.5), 0), t + Vector3(0, randf_range(-0.4, 0.5), 0), c if i else a, 0.16 - i * 0.04, 0.25, randi()])
+			net.fx("sfx", ["jelly_zap", t, -2.0, 0.1, 1.2])
+		"gust":
+			net.fx("gust", [f, dir, 18, 9.0])
+			net.fx("speed_lines", [f.lerp(t, 0.5), dir, c, 14, f.distance_to(t), 0.3])
+		"wolf", "bear":
+			net.fx("dust_ring", [from, 12, 1.0])
+			net.fx("speed_lines", [f.lerp(t, 0.5), dir, c, 10, f.distance_to(t), 0.3])
+			if fruit == "bear":
+				net.fx("heavy_dust", [to, 10, 0.9])
+			else:
+				net.fx("shadow_wisps", [t, dir, 8, c, 3.0])
+		"echo":
+			for e in [f, t]:
+				for i in range(3):
+					net.fx("ring", [e, dir, 0.4 + i * 0.4, c, 0.25 + i * 0.08, 0.06])
+		"clockwork":
+			# the way back drawn in gold, a clock face at each end
+			for e in [f, t]:
+				net.fx("ring", [e, dir, 0.9, c, 0.5, 0.08])
+				net.fx("ring", [e, dir, 0.55, a, 0.5, 0.05])
+			net.fx("sfx", ["clack", t, -2.0, 0.1, 0.8])
+		"bubble":
+			net.fx("bubbles", [f, 8])
+			net.fx("bubbles", [t, 8])
+		"iron":
+			net.fx("muzzle_sparks", [t, -dir, 14, a])
+		"ember":
+			net.fx("flame", [f.lerp(t, 0.5), 14, 0.6, 0.45, 0.4])
+
+
+## The body taking on the fruit for a cast (`secs`): vines wrapped round the casting arm (and the legs on a ground move),
+## fists turned to iron or set burning, brass arms for Clockwork's biggest. A longer change already on (Iron Guard, an
+## awakening) is left alone.
+static func body_effect(p: Node3D, fruit: String, pose: String, secs: float, ult: bool) -> void:
+	var net := p.get_node("/root/Net")
+	var body = p.get("body_model")
+	var pc = p.get("power")
+	if body == null or pc == null:
+		return
+	var held: bool = pc.buff("iron_guard") or pc.buff("awakened")
+	match fruit:
+		"vine":
+			net.fx("arm_vines", [body, "lr" if ult or pose in ["df_burst", "df_pull"] else "r", secs])
+			if pose in ["df_stomp", "df_slam", "df_burst", "df_spin"]:
+				net.fx("leg_vines", [body, secs])
+		"iron":
+			if not held:
+				net.fx("fruit_skin", [body, "iron", "body" if ult else "arms", secs])
+		"ember":
+			net.fx("hot_fist", [body, true, secs, core(fruit)])
+			if ult or pose in ["df_slam", "df_burst", "df_spin"]:
+				net.fx("hot_fist", [body, false, secs, core(fruit)])
+		"clockwork":
+			if ult and not held:
+				net.fx("fruit_skin", [body, "brass", "arms", secs])

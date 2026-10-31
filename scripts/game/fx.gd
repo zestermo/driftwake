@@ -3161,3 +3161,50 @@ func sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, pitch_jitter:
 	p.global_position = pos
 	p.play()
 	p.finished.connect(p.queue_free)
+
+
+## (1.27) A Driftfruit turning the body itself for `secs`: `kind` "iron" (polished steel: Iron Guard on the arms, Iron
+## Fortress and Ironborn all over) or "brass" (Timeborn's clockwork arms); `part` "arms" or "body". Each mesh's own
+## material comes back after (whatever it had: Armament Coat's black included); a newer skin outlasts an older one.
+const FRUIT_SKINS := {"iron": [Color(0.8, 0.84, 0.92), Color(0.32, 0.35, 0.42)], "brass": [Color(1.0, 0.8, 0.42), Color(0.45, 0.3, 0.08)]}
+
+
+func fruit_skin(body: Node3D, kind: String, part: String, secs: float) -> void:
+	if not body is Humanoid or not FRUIT_SKINS.has(kind):
+		return
+	var h := body as Humanoid
+	var c: Array = FRUIT_SKINS[kind]
+	var mat := PSXMat.lit("metal", c[0], {"emission": c[1], "emission_energy": 0.55, "emission_pulse": 0.35, "vertex_color": false})
+	var meshes: Array = []
+	if part == "arms":
+		var ab = h.torso.get_node_or_null("ArmBody")
+		if ab:
+			meshes.append_array([ab.arm_mesh(true), ab.arm_mesh(false)])
+		for bone in [h.arm_l, h.fore_l, h.hand_l, h.arm_r, h.fore_r, h.hand_r]:
+			for ch in (bone as Node3D).get_children():
+				if ch is MeshInstance3D and ch != h.weapon and ch != h.offhand:
+					meshes.append(ch)
+	else:
+		for g in h.find_children("*", "MeshInstance3D", true, false):
+			# (nothing of an aura, PowerAura or EdyAura (its EdyGround disc, its EdyShell outlines): they stay their own)
+			if g == h.weapon or g == h.offhand or "Aura" in str(h.get_path_to(g)) or "Edy" in str(h.get_path_to(g)):
+				continue
+			meshes.append(g)
+	var token := int(h.get_meta("fruit_skin_token", 0)) + 1
+	h.set_meta("fruit_skin_token", token)
+	var before := {}
+	for m in meshes:
+		if m and is_instance_valid(m):
+			before[m] = (m as MeshInstance3D).get_meta("skin_before") if (m as MeshInstance3D).has_meta("skin_before") else (m as MeshInstance3D).material_override
+			(m as MeshInstance3D).set_meta("skin_before", before[m])
+			(m as MeshInstance3D).material_override = mat
+	# the change running over the body: a glint and sparks of it
+	flash(h.global_position + Vector3(0, 1.2, 0), 1.6, c[0], "glint", 0.25)
+	muzzle_sparks(h.global_position + Vector3(0, 1.2, 0), Vector3.UP, 14, c[0].lightened(0.3))
+	get_tree().create_timer(secs, false).timeout.connect(func():
+		if not is_instance_valid(h) or int(h.get_meta("fruit_skin_token", 0)) != token:
+			return
+		for m in before:
+			if is_instance_valid(m):
+				(m as MeshInstance3D).material_override = before[m]
+				(m as MeshInstance3D).remove_meta("skin_before"))

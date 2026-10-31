@@ -391,3 +391,10 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   out). Filmed with abilityshot (it now eats a fruit power's fruit and slots it). Tests: t/progression/fruit_cast (the
   cast path); the effect tests set PowerComponent.instant_casts (tests only). Codex page of all ten:
   https://claude.ai/artifact/T2QGzzpFsyqgvcpFLxQVXH . Next: per-power polish passes (each power's own touch).
+  (2026-10-31, later) Trails for every move (FruitFX.trail from thunder_step, echo_step, rewind: a streak, an
+  afterimage, the fruit's own marks), auras on the body for buffs and awakenings (FruitFX.aura: EdyAura's looks by
+  fruit), and the body taking on the fruit (Zach): FX.fruit_skin (iron or brass over the arms or the whole body for
+  some seconds, restoring each mesh's own material after; skips EdyAura/PowerAura pieces) for Iron Guard (arms), Iron
+  Fortress and Ironborn (all over), Timeborn (brass arms); FruitFX.body_effect on every cast (vines round the casting
+  arm and the legs on ground moves, iron fists, burning fists, brass arms on Clockwork's ultimates); Rootborn wraps
+  every limb in vines for its 30 s. Next: the zoan beast forms (Zach: a half-beast wolf and bear that grow the body).

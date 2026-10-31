@@ -469,6 +469,7 @@ func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 		return true
 	if id == "second_wind":
 		player.health_component.heal(player.health_component.max_health * 0.2)
+		FruitFX.aura(player, "bear", "body", 1.5)
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.6, Color(0.6, 0.9, 0.5), 0.5, 0.12])
 		cast.emit(slot)
 		return true
@@ -528,6 +529,7 @@ func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 		return true
 	if id == "echo_strike":
 		add_buff("echo_strike", ECHO_STRIKE_SECS)
+		FruitFX.aura(player, "echo", "arms", ECHO_STRIKE_SECS)
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.4, Color(0.6, 0.8, 0.9), 0.4, 0.1])
 		cast.emit(slot)
 		return true
@@ -623,6 +625,7 @@ func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 	# (1.27) the Bubble Fruit: Bubble Shield (the next BUBBLE_HITS hits) and Slick Floor (a patch ahead: foes slip and fall)
 	if id == "bubble_shield":
 		bubble_hits = BUBBLE_HITS + int(sv("bubble_hits"))
+		FruitFX.aura(player, "bubble", "body", 10.0)
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.3, Color(0.8, 0.95, 1.0), 0.5, 0.12])
 		cast.emit(slot)
 		return true
@@ -660,6 +663,8 @@ func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 	# (1.27) the Iron Fruit: Iron Guard (iron skin a while) and Iron Fist (a guard-breaking punch in front of you)
 	if id == "iron_guard":
 		add_buff("iron_guard", IRON_GUARD_SECS + sv("iron_guard_secs"))
+		FruitFX.aura(player, "iron", "reinforce", IRON_GUARD_SECS + sv("iron_guard_secs"))
+		Net.fx("fruit_skin", [player.body_model, "iron", "arms", IRON_GUARD_SECS + sv("iron_guard_secs")])
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.7, 0.72, 0.78), 0.4, 0.15])
 		cast.emit(slot)
 		return true
@@ -680,6 +685,14 @@ func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 	# (1.27) the other fruits' awakenings (mastery 30): AWAKENED_SECS of every power at Nature, half the energy, twice
 	# as quick back (the "awakened" buff; Sunborn is Ember's)
 	if bool((Skills.ALL.get(id, {}) as Dictionary).get("awakening", false)):
+		FruitFX.aura(player, fruit, "reinforce", AWAKENED_SECS)
+		if fruit == "iron":
+			Net.fx("fruit_skin", [player.body_model, "iron", "body", AWAKENED_SECS])
+		elif fruit == "clockwork":
+			Net.fx("fruit_skin", [player.body_model, "brass", "arms", AWAKENED_SECS])
+		elif fruit == "vine":
+			Net.fx("arm_vines", [player.body_model, "lr", AWAKENED_SECS])
+			Net.fx("leg_vines", [player.body_model, AWAKENED_SECS])
 		add_buff("awakened", AWAKENED_SECS)
 		var col: Color = (DevilFruits.FRUITS.get(fruit, {}) as Dictionary).get("color", Color.WHITE)
 		FruitFX.column(player, player.global_position, fruit, 16.0 * 0.5, 1.5)
@@ -1230,10 +1243,11 @@ func thunder_step(dist: float) -> void:
 	q.exclude = [player.get_rid()]
 	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
 	var go := dist if hit.is_empty() else maxf(from.distance_to(hit["position"]) - 0.6, 0.0)
-	Net.fx("impact", [player.global_position + Vector3.UP, Color(0.6, 0.75, 1.0)])
+	var left := player.global_position
+	Net.fx("afterimage", [player.body_model, FruitFX.core(fruit), 0.45])
 	player.global_position += fwd * go
 	player.reset_physics_interpolation()
-	Net.fx("impact", [player.global_position + Vector3.UP, Color(0.6, 0.75, 1.0)])
+	FruitFX.trail(player, fruit, left, player.global_position)
 
 
 ## (1.27) Chain Lightning from `at`: the nearest foe within `reach` (ahead of the captain when cast), then up to `jumps`
@@ -1323,11 +1337,12 @@ func _keep_trail(delta: float) -> void:
 func rewind() -> void:
 	if trail.is_empty():
 		return
-	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.4, 0.12])
+	var left := player.global_position
+	Net.fx("afterimage", [player.body_model, FruitFX.core("clockwork"), 0.6])
 	player.global_position = trail[0]
 	player.reset_physics_interpolation()
 	trail.clear()
-	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.4, 0.12])
+	FruitFX.trail(player, "clockwork", left, player.global_position)
 
 
 ## (1.27, Clockwork) a foe stopped in time for `secs` (held in place, its blow interrupted).
@@ -1359,11 +1374,12 @@ func echo_step(reach: float) -> Node3D:
 	var away := best.global_position - player.global_position
 	away.y = 0.0
 	away = away.normalized() if away.length() > 0.1 else -player.player_model.global_basis.z
-	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.55, 0.75, 0.85), 0.35, 0.1])
+	var left := player.global_position
+	Net.fx("afterimage", [player.body_model, FruitFX.core(fruit), 0.45])
 	player.global_position = best.global_position + away * 1.8 + Vector3(0, 0.2, 0)
 	player.reset_physics_interpolation()
 	player.player_model.look_at(player.player_model.global_position - away, Vector3.UP)
-	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.55, 0.75, 0.85), 0.35, 0.1])
+	FruitFX.trail(player, fruit, left, player.global_position)
 	return best
 
 
@@ -1839,6 +1855,7 @@ func fruit_ult(id: String) -> void:
 		# within 8 m cut low)
 		"blood_moon":
 			add_buff("howl", 15.0)
+			FruitFX.aura(player, "wolf", "reinforce", 15.0)
 			player.call("_recalc_stats")
 			player.health_component.heal(player.health_component.max_health * 0.25)
 			FruitFX.column(player, at, fruit, 14.0 * 0.5, 1.5)
@@ -1857,6 +1874,8 @@ func fruit_ult(id: String) -> void:
 		# Iron: a fortress (Iron Guard for 10 s, everyone near floored); or a meteor (a great leap, a crater where it lands)
 		"iron_fortress":
 			add_buff("iron_guard", 10.0)
+			FruitFX.aura(player, "iron", "reinforce", 10.0)
+			Net.fx("fruit_skin", [player.body_model, "iron", "body", 10.0])
 			big_blast(at, 6.0, 25.0 * m, true, Color(0.62, 0.64, 0.68))
 		"meteor_drop":
 			leap(18.0, 8.0)

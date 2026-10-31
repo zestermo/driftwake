@@ -1014,6 +1014,7 @@ func _all_haste(at: Vector3, r: float, secs: float) -> void:
 	if p and p.global_position.distance_to(at) <= r:
 		p.power.add_buff("haste", secs)
 		p.call("_recalc_stats")
+		FruitFX.aura(p, "clockwork", "legs", secs)
 		FX.ring(p.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.5, 0.1)
 
 
