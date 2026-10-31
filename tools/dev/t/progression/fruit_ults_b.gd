@@ -74,6 +74,9 @@ func _process(_d: float) -> bool:
 		2:
 			g.set_physics_process(true)
 			p.state_machine.force_state("Idle", {})
+			# (facing north again: the idle state may have turned the model during the wait, and the cones and front_foe
+			# read where it faces)
+			p.player_model.global_basis = Basis.IDENTITY
 			check("%s casts from the ultimate slot" % CASES[k][1], p.power.try_cast(p.power.ULT))
 			check("...the gauge spent", p.power.ult == 0.0)
 			until = TK.wait_secs(float(CASES[k][3]))

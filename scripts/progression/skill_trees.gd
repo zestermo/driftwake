@@ -226,15 +226,25 @@ static func _build() -> void:
 	_build_unarmed()
 	_build_black_leg()
 	_build_ember()
+	_grow_fruit("ember")
 	_build_iron()
+	_grow_fruit("iron")
 	_build_storm()
+	_grow_fruit("storm")
 	_build_bubble()
+	_grow_fruit("bubble")
 	_build_gust()
+	_grow_fruit("gust")
 	_build_bear()
+	_grow_fruit("bear")
 	_build_clockwork()
+	_grow_fruit("clockwork")
 	_build_echo()
+	_grow_fruit("echo")
 	_build_wolf()
+	_grow_fruit("wolf")
 	_build_vine()
+	_grow_fruit("vine")
 	for t in WeaponPlus.TREES.keys():
 		_t = t
 		_plus()
@@ -1474,3 +1484,123 @@ static func _build_echo() -> void:
 	_big("ec_strike", "Echo Strike", "tech", 1, 1, {}, "", "echo_strike")
 	_big("ec_sonar", "Sonar", "tech", 2, 1, {}, "", "sonar")
 	_step("ec_ear", "Keen Ear", "ec_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
+
+
+# --------------------------------------------------------------------------
+# (1.27) The fruit trees at near weapon size (docs/v1_27_raids_fruits_plan.md "Preview ... the fruit trees", Zach's OK
+# 2026-10-31): each fruit's power gates (1, 1, 4, 8, 12), four mechanics (5, 9, 14, 18; each one tweak to one power,
+# read through PowerComponent.sv), the alternate (16), the variant pick (22: a bent for power, fruit_pct, or for flow,
+# fruit_cost_pct), the step chains (2, 6, 10, 15) and links between neighbouring powers (drawn only: big nodes are gated
+# by level). Ember, Wolf and Vine kept their own mechanics and steps and get two mechanics more.
+# --------------------------------------------------------------------------
+const FRUIT_GROWTH := {
+	"storm": {"pre": "sm", "tree": "Storm", "gates": {"sm_cloud": 4, "sm_burst": 8, "sm_spear": 12},
+		"powers": ["sm_step", "sm_chain", "sm_cloud", "sm_burst", "sm_spear"],
+		"mechs": [["sm_forked", "Forked", 0, 5, {"storm_jumps": 1}, "Chain Lightning leaps to one more foe."],
+			["sm_after", "Afterimage Step", 2, 9, {"storm_step_shock": 1}, "Thunder Step leaves a shock where you stood: everyone within 2.5 m reels."],
+			["sm_longcloud", "Long Cloud", 1, 14, {"cloud_secs": 3.0}, "Thundercloud hangs on 3 s longer."],
+			["sm_overcharge", "Overcharge", 1, 18, {"burst_floor": 1}, "Static Burst floors everyone in it when your energy is (nearly) full."]],
+		"alt": ["thunder_lance", 0, "thunder_spear"], "variant": ["Grounded", "Skyward"],
+		"steps": [["sm_volt", "Voltage", "sm_chain"], ["sm_static", "Static", "sm_cloud"], ["sm_conductor", "Conductor", "sm_step"]]},
+	"gust": {"pre": "gu", "tree": "Gust", "gates": {"gu_updraft": 4, "gu_pull": 8, "gu_burst": 12},
+		"powers": ["gu_dash", "gu_cone", "gu_updraft", "gu_pull", "gu_burst"],
+		"mechs": [["gu_tailwind", "Tailwind", 2, 5, {"gale_dist": 4.0}, "Gale Dash carries you 4 m further."],
+			["gu_gale", "Gale Force", 0, 9, {"cone_reach": 3.0}, "Gust Cone reaches 3 m further."],
+			["gu_column", "Rising Column", 1, 14, {"updraft_r": 1.5}, "Updraft catches everyone 1.5 m further out."],
+			["gu_squall", "Squall", 2, 18, {"burst_r": 2.0}, "Gale Burst reaches 2 m further."]],
+		"alt": ["wind_blade", 0, "gust_cone"], "variant": ["Headwind", "Slipstream"],
+		"steps": [["gu_volt", "Shear", "gu_cone"], ["gu_static", "Draft", "gu_updraft"], ["gu_conductor", "Lift", "gu_dash"]]},
+	"wolf": {"pre": "z", "tree": "Wolf", "gates": {"z_hamstring": 4, "z_lunge": 8},
+		"powers": ["z_fang", "z_pounce", "z_hamstring", "z_lunge", "z_howl"],
+		"mechs": [["z_deep", "Deep Cut", 2, 14, {"hamstring_secs": 2.0}, "Hamstring slows its foe 2 s longer."],
+			["z_scent", "On the Scent", 0, 18, {"lunge_reach": 4.0}, "Lunge finds a foe 4 m further off."]],
+		"alt": ["shadow_pounce", 2, "pounce"], "variant": ["Alpha", "Pack Runner"], "steps": []},
+	"bear": {"pre": "be", "tree": "Bear", "gates": {"be_hug": 4, "be_maul": 8, "be_wind": 12},
+		"powers": ["be_charge", "be_roar", "be_hug", "be_maul", "be_wind"],
+		"mechs": [["be_stampede", "Stampede", 0, 5, {"charge_dist": 4.0}, "Bear Charge runs 4 m further."],
+			["be_thunder", "Thunderous Roar", 1, 9, {"roar_r": 2.0}, "Roar reaches 2 m further."],
+			["be_crush", "Crushing Hug", 2, 14, {"hug_dmg": 8.0}, "Bear Hug's throw hurts harder."],
+			["be_heavy", "Heavy Paws", 0, 18, {"maul_dmg": 10.0}, "Maul hits harder."]],
+		"alt": ["overhead_smash", 0, "maul"], "variant": ["Grizzly", "Old Bear"],
+		"steps": [["be_volt", "Brawn", "be_charge"], ["be_static", "Hide", "be_roar"], ["be_conductor", "Bulk", "be_hug"]]},
+	"vine": {"pre": "p", "tree": "Vine", "gates": {"p_rootfield": 4, "p_grasp": 8},
+		"powers": ["p_snare", "p_swing", "p_rootfield", "p_grasp", "p_whip"],
+		"mechs": [["p_deeproot", "Root Hold", 0, 14, {"roots_secs": 1.5}, "Root Field holds 1.5 s longer."],
+			["p_reach", "Long Reach", 2, 18, {"grasp_reach": 5.0}, "Grasping Vine reaches 5 m further."]],
+		"alt": ["thorn_lash", 1, "thorn_whip"], "variant": ["Bramble", "Bloom"], "steps": []},
+	"iron": {"pre": "ir", "tree": "Iron", "gates": {"i_slam": 4, "i_drop": 8, "i_anvil": 12},
+		"powers": ["i_guard", "i_fist", "i_slam", "i_drop", "i_anvil"],
+		"mechs": [["ir_plate", "Plated", 0, 5, {"iron_guard_secs": 2.0}, "Iron Guard holds 2 s longer."],
+			["ir_quake", "Quake", 2, 9, {"slam_r": 1.5}, "Iron Slam reaches 1.5 m further."],
+			["ir_crater", "Crater", 0, 14, {"drop_r": 1.5}, "Iron Drop's landing reaches 1.5 m further."],
+			["ir_forge", "Forged", 1, 18, {"anvil_dmg": 10.0}, "Anvil hits harder."]],
+		"alt": ["iron_uppercut", 1, "iron_fist"], "variant": ["Wrought", "Tempered"],
+		"steps": [["ir_volt", "Weight", "i_fist"], ["ir_static", "Temper", "i_guard"], ["ir_conductor", "Mass", "i_slam"]]},
+	"bubble": {"pre": "bb", "tree": "Bubble", "gates": {"bb_trap": 4, "bb_bounce": 8, "bb_bath": 12},
+		"powers": ["bb_shield", "bb_slick", "bb_trap", "bb_bounce", "bb_bath"],
+		"mechs": [["bb_thick", "Thick Film", 2, 5, {"bubble_hits": 1}, "Bubble Shield takes one more hit."],
+			["bb_sticky", "Sticky Bubble", 1, 9, {"trap_secs": 1.5}, "Bubble Trap holds 1.5 s longer."],
+			["bb_spring", "Springy", 2, 14, {"bounce_up": 4.0}, "Bubble Bounce throws you higher."],
+			["bb_lather", "Lather", 2, 18, {"bath_pct": 0.1}, "Bubble Bath heals 10% more."]],
+		"alt": ["soap_spray", 0, "slick_floor"], "variant": ["Froth", "Foam"],
+		"steps": [["bb_volt", "Pop", "bb_slick"], ["bb_static", "Suds", "bb_trap"], ["bb_conductor", "Rinse", "bb_shield"]]},
+	"clockwork": {"pre": "cw", "tree": "Clockwork", "gates": {"cw_field": 4, "cw_haste": 8, "cw_accel": 12},
+		"powers": ["cw_rewind", "cw_stop", "cw_field", "cw_haste", "cw_accel"],
+		"mechs": [["cw_hold", "Held Moment", 1, 5, {"stop_secs": 1.5}, "Time Stop holds 1.5 s longer."],
+			["cw_wide", "Long Field", 2, 9, {"field_secs": 3.0}, "Slow Field lasts 3 s longer."],
+			["cw_wound", "Fully Wound", 2, 14, {"haste_secs": 4.0}, "Haste lasts 4 s longer."],
+			["cw_escape", "Escapement", 0, 18, {"accel_secs": 2.0}, "Accelerate winds your powers 2 s further."]],
+		"alt": ["slow_bolt", 1, "time_stop"], "variant": ["Pendulum", "Balance Wheel"],
+		"steps": [["cw_volt", "Gearing", "cw_stop"], ["cw_static", "Tick", "cw_field"], ["cw_conductor", "Tock", "cw_rewind"]]},
+	"echo": {"pre": "ec", "tree": "Echo", "gates": {"ec_sonar": 4, "ec_strike": 8, "ec_ears": 12},
+		"powers": ["ec_step", "ec_note", "ec_sonar", "ec_strike", "ec_ears"],
+		"mechs": [["ec_far", "Far Echo", 0, 5, {"echo_reach": 6.0}, "Echo Step finds a foe 6 m further off."],
+			["ec_long", "Long Note", 1, 9, {"note_len": 6.0}, "Shatter Note's line runs 6 m further."],
+			["ec_linger", "Lingering Ping", 2, 14, {"sonar_secs": 4.0}, "Sonar's marks stay 4 s longer."],
+			["ec_tinnitus", "Tinnitus", 0, 18, {"ears_secs": 2.0}, "Ringing Ears slows 2 s longer."]],
+		"alt": ["echo_ring", 1, "shatter_note"], "variant": ["Fortissimo", "Legato"],
+		"steps": [["ec_volt", "Pitch", "ec_note"], ["ec_static", "Tempo", "ec_sonar"], ["ec_conductor", "Timbre", "ec_step"]]},
+	"ember": {"pre": "e", "tree": "Ember", "gates": {},
+		"powers": ["e_fist", "e_ring", "e_flicker", "e_dash", "e_field"],
+		"mechs": [["e_afterglow", "Afterglow", 1, 14, {"flicker_secs": 1.0}, "Flicker's flame body lasts 1 s longer."],
+			["e_corona", "Corona", 2, 18, {"aura_r": 1.2}, "Your burning aura reaches 1.2 m further."]],
+		"alt": ["flare_burst", 0, "fire_fist"], "variant": ["Blaze", "Kindling"], "steps": []},
+}
+
+
+## (1.27) Grows fruit tree `fid` (already built with its powers, ultimates and awakening) to the full shape.
+static func _grow_fruit(fid: String) -> void:
+	var g: Dictionary = FRUIT_GROWTH[fid]
+	var pre: String = g["pre"]
+	_t = fid
+	for k in g["gates"]:
+		_nodes[k]["level"] = int(g["gates"][k])
+	for m in g["mechs"]:
+		_big(m[0], m[1], "mech", int(m[2]), int(m[3]), m[4], m[5])
+	var alt: Array = g["alt"]
+	var alt_of := str(Skills.get_skill(str(alt[2])).get("name", ""))
+	var an := _big(pre + "_alt", str(Skills.get_skill(alt[0])["name"]), "tech", int(alt[1]), 16, {}, "", alt[0])
+	an["desc"] = str(an["desc"]) + " (The other take on %s: carry whichever suits you.)" % alt_of
+	var vn: Array = g["variant"]
+	_variant(pre + "_variant", "The Fruit's Bent", 1, [
+		[pre + "_bent_a", vn[0], 22, {"fruit_pct": 0.15}, "Every %s power hits 15%% harder." % g["tree"]],
+		[pre + "_bent_b", vn[1], 22, {"fruit_cost_pct": 0.2}, "Every %s power costs 20%% less energy." % g["tree"]]],
+		"Two bents for the fruit. Both are yours once bought; pick the one you carry at the ship's bunk.")
+	# the step chains: the root's at 2, then harder powers (6), quicker powers (10), more energy (15)
+	var st: Array = g["steps"]
+	if st.size() == 3:
+		for k in nodes_of(fid):
+			if _nodes[k]["kind"] == "step":
+				_nodes[k]["level"] = 2
+		_step(st[0][0], st[0][1], st[0][2], 3, {"fruit_pct": 0.04}, "Every %s power 4%% harder a step." % g["tree"])
+		_step(st[1][0], st[1][1], st[1][2], 3, {"cdr_" + str(g["tree"]): 0.03}, "%s powers come back 3%% sooner a step." % g["tree"])
+		_step(st[2][0], st[2][1], st[2][2], 3, {"max_energy": 4.0}, "+4 max energy a step.")
+		_nodes[st[0][0]]["level"] = 6
+		_nodes[st[1][0]]["level"] = 10
+		_nodes[st[2][0]]["level"] = 15
+	# links: each power to the next in order, so the map is a web across the branches
+	var pw: Array = g["powers"]
+	for i in range(pw.size() - 1):
+		var a: Dictionary = _nodes[pw[i]]
+		if not (pw[i + 1] in a["links"]) and not (pw[i] in _nodes[pw[i + 1]]["links"]):
+			a["links"].append(pw[i + 1])

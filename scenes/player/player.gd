@@ -1542,7 +1542,7 @@ func _on_landed(impact_vy: float) -> void:
 			# (the Meteor Drop ultimate: a crater)
 			power.big_blast(global_position, 7.0, 50.0 * power.power_multiplier(), true, Color(0.62, 0.64, 0.68))
 		else:
-			power.iron_slam(PowerComponent.DROP_R, 10.0 * power.power_multiplier())
+			power.iron_slam(PowerComponent.DROP_R + power.sv("drop_r"), 10.0 * power.power_multiplier())
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
 	if sky_leap_fall:

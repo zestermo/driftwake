@@ -388,7 +388,7 @@ func can_cast(slot: int) -> String:
 	if slot == ULT:
 		if ult < ULT_MAX:
 			return "Ultimate not charged"
-	elif energy < float(sk.get("cost", 0.0)) and not free and not stance_off:
+	elif energy < cost_of(sk) and not free and not stance_off:
 		return "Not enough energy"
 	if at != HANDS:
 		if not player.can_swap_now():
@@ -423,9 +423,7 @@ func try_cast(slot: int) -> bool:
 			ult = 0.0
 			_ult_lock = ULT_LOCK
 		else:
-			var c := float(sk.get("cost", 0.0))
-			if buff("awakened") and str(sk.get("fruit", "")) == fruit:
-				c *= 0.5
+			var c := cost_of(sk)
 			energy = maxf(energy - c, 0.0)
 			_regen_wait = REGEN_DELAY
 			energy_spent.emit(c)
@@ -435,6 +433,11 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) the fruit trees' alternates (mastery 16): a second take on one of the fruit's powers
+	if id in ALTERNATES:
+		alt_power(id)
+		cast.emit(slot)
+		return true
 	# (1.27) ultimates, part 1: Storm, Gust, Bear, Wolf, Vine (two each; one equipped)
 	if id in ["tempest", "judgement_bolt", "cyclone", "hurricane", "bear_avalanche", "great_roar", "blood_moon", "pack_fury", "forest_prison", "thorn_storm",
 			"iron_fortress", "meteor_drop", "bubble_prison", "bubble_sanctuary", "time_freeze", "overclock", "sonic_boom", "resonance_cascade", "solar_flare"]:
@@ -443,11 +446,11 @@ func try_cast(slot: int) -> bool:
 		return true
 	# (1.27) fifth powers
 	if id == "static_burst":
-		static_burst(4.5, 12.0 * power_multiplier())
+		static_burst(4.5, 12.0 * power_multiplier(), sv("burst_floor") > 0.0 and energy >= max_energy() * 0.9)
 		cast.emit(slot)
 		return true
 	if id == "gale_burst":
-		gale_burst(5.0)
+		gale_burst(5.0 + sv("burst_r"))
 		cast.emit(slot)
 		return true
 	if id == "second_wind":
@@ -456,35 +459,35 @@ func try_cast(slot: int) -> bool:
 		cast.emit(slot)
 		return true
 	if id == "lunge":
-		var prey := echo_step(10.0)
+		var prey := echo_step(10.0 + sv("lunge_reach"))
 		hamstring(prey, 10.0 * power_multiplier())
 		cast.emit(slot)
 		return true
 	if id == "grasping_vine":
-		var held := front_foe(12.0, 0.4)
+		var held := front_foe(12.0 + sv("grasp_reach"), 0.4)
 		if held and held.has_method("vine_yank"):
 			held.call("vine_yank", player.global_position - player.player_model.global_basis.z * 1.5, 5.0, true)
 		cast.emit(slot)
 		return true
 	if id == "anvil":
-		anvil(front_foe(2.8, 0.8), 26.0 * power_multiplier())
+		anvil(front_foe(2.8, 0.8), (26.0 + sv("anvil_dmg")) * power_multiplier())
 		cast.emit(slot)
 		return true
 	if id == "bubble_bath":
-		Net.everyone("_all_bubble_bath", [player.global_position, 10.0, 0.15])
+		Net.everyone("_all_bubble_bath", [player.global_position, 10.0, 0.15 + sv("bath_pct")])
 		cast.emit(slot)
 		return true
 	if id == "accelerate":
 		for k in cooldowns.keys():
 			if k != "accelerate":
-				cooldowns[k] = maxf(float(cooldowns[k]) - 4.0, 0.0)
+				cooldowns[k] = maxf(float(cooldowns[k]) - 4.0 - sv("accel_secs"), 0.0)
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.4, 0.1])
 		cast.emit(slot)
 		return true
 	if id == "ringing_ears":
 		for e in enemies_in(player.global_position, 6.0):
 			if e.has_method("slowed"):
-				e.call("slowed", 4.0, 0.6)
+				e.call("slowed", 4.0 + sv("ears_secs"), 0.6)
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 6.0, Color(0.6, 0.8, 0.9), 0.5, 0.1])
 		cast.emit(slot)
 		return true
@@ -498,7 +501,7 @@ func try_cast(slot: int) -> bool:
 		cast.emit(slot)
 		return true
 	if id == "maul":
-		maul(20.0 * power_multiplier())
+		maul((20.0 + sv("maul_dmg")) * power_multiplier())
 		cast.emit(slot)
 		return true
 	if id == "hamstring":
@@ -516,11 +519,11 @@ func try_cast(slot: int) -> bool:
 		return true
 	# (1.27) fourth powers: Clockwork's Haste (the crew near you quicker), Bubble Bounce and Iron Drop (their movement)
 	if id == "haste":
-		Net.everyone("_all_haste", [player.global_position, HASTE_R, HASTE_SECS])
+		Net.everyone("_all_haste", [player.global_position, HASTE_R, HASTE_SECS + sv("haste_secs")])
 		cast.emit(slot)
 		return true
 	if id == "bubble_bounce":
-		leap(BOUNCE_UP, BOUNCE_FWD)
+		leap(BOUNCE_UP + sv("bounce_up"), BOUNCE_FWD)
 		Net.fx("ring", [player.global_position + Vector3.UP * 0.3, Vector3.UP, 1.4, Color(0.75, 0.9, 1.0), 0.4, 0.1])
 		cast.emit(slot)
 		return true
@@ -531,15 +534,15 @@ func try_cast(slot: int) -> bool:
 		return true
 	# (1.27) third powers: Storm's Thundercloud, Gust's Updraft, Iron Slam, Bubble Trap, Bear Hug
 	if id == "thundercloud":
-		clouds.append([player.global_position - player.player_model.global_basis.z * CLOUD_AHEAD, CLOUD_SECS, 0.0, 10.0 * power_multiplier()])
+		clouds.append([player.global_position - player.player_model.global_basis.z * CLOUD_AHEAD, CLOUD_SECS + sv("cloud_secs"), 0.0, 10.0 * power_multiplier()])
 		cast.emit(slot)
 		return true
 	if id == "gust_updraft":
-		updraft(player.global_position - player.player_model.global_basis.z * UPDRAFT_AHEAD, UPDRAFT_R)
+		updraft(player.global_position - player.player_model.global_basis.z * UPDRAFT_AHEAD, UPDRAFT_R + sv("updraft_r"))
 		cast.emit(slot)
 		return true
 	if id == "iron_slam":
-		iron_slam(SLAM_R, 14.0 * power_multiplier())
+		iron_slam(SLAM_R + sv("slam_r"), 14.0 * power_multiplier())
 		cast.emit(slot)
 		return true
 	if id == "bubble_trap":
@@ -547,12 +550,12 @@ func try_cast(slot: int) -> bool:
 		cast.emit(slot)
 		return true
 	if id == "bear_hug":
-		bear_hug(front_foe(HUG_REACH, 0.7), 12.0 * power_multiplier())
+		bear_hug(front_foe(HUG_REACH, 0.7), (12.0 + sv("hug_dmg")) * power_multiplier())
 		cast.emit(slot)
 		return true
 	if id == "slow_field":
 		var ahead := player.global_position - player.player_model.global_basis.z * FIELD_AHEAD
-		fields.append([ahead, FIELD_SECS])
+		fields.append([ahead, FIELD_SECS + sv("field_secs")])
 		cast.emit(slot)
 		return true
 	if id == "sonar":
@@ -567,21 +570,21 @@ func try_cast(slot: int) -> bool:
 		var fwd := -player.player_model.global_basis.z
 		var foes := enemies_in(player.global_position + fwd * 3.0, 3.5)
 		if not foes.is_empty():
-			time_stop(foes[0], STOP_SECS)
+			time_stop(foes[0], STOP_SECS + sv("stop_secs"))
 		cast.emit(slot)
 		return true
 	# (1.27) the Echo Fruit: Echo Step (out behind the nearest foe) and Shatter Note (a long, narrow line)
 	if id == "echo_step":
-		echo_step(ECHO_REACH)
+		echo_step(ECHO_REACH + sv("echo_reach"))
 		cast.emit(slot)
 		return true
 	if id == "shatter_note":
-		shatter_note(player.global_position + Vector3(0, 0.9, 0), -player.player_model.global_basis.z, NOTE_LEN, NOTE_HALF_W, 8.0 * power_multiplier())
+		shatter_note(player.global_position + Vector3(0, 0.9, 0), -player.player_model.global_basis.z, NOTE_LEN + sv("note_len"), NOTE_HALF_W, 8.0 * power_multiplier())
 		cast.emit(slot)
 		return true
 	# (1.27) the Bear Fruit: Bear Charge (a rush and a slam at its end) and Roar (everyone round you stunned)
 	if id == "bear_charge":
-		thunder_step(CHARGE_DIST)
+		thunder_step(CHARGE_DIST + sv("charge_dist"))
 		var slam := HitData.new()
 		slam.damage = 22.0
 		slam.knockdown = true
@@ -591,21 +594,21 @@ func try_cast(slot: int) -> bool:
 		cast.emit(slot)
 		return true
 	if id == "bear_roar":
-		bear_roar(ROAR_R)
+		bear_roar(ROAR_R + sv("roar_r"))
 		cast.emit(slot)
 		return true
 	# (1.27) the Gust Fruit: Gale Dash (Thunder Step's blink, further) and Gust Cone (a cone ahead blown back and down)
 	if id == "gale_dash":
-		thunder_step(GALE_DIST)
+		thunder_step(GALE_DIST + sv("gale_dist"))
 		cast.emit(slot)
 		return true
 	if id == "gust_cone":
-		gust_cone(player.global_position, -player.player_model.global_basis.z, GUST_REACH, 16.0)
+		gust_cone(player.global_position, -player.player_model.global_basis.z, GUST_REACH + sv("cone_reach"), 16.0)
 		cast.emit(slot)
 		return true
 	# (1.27) the Bubble Fruit: Bubble Shield (the next BUBBLE_HITS hits) and Slick Floor (a patch ahead: foes slip and fall)
 	if id == "bubble_shield":
-		bubble_hits = BUBBLE_HITS
+		bubble_hits = BUBBLE_HITS + int(sv("bubble_hits"))
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.3, Color(0.8, 0.95, 1.0), 0.5, 0.12])
 		cast.emit(slot)
 		return true
@@ -624,16 +627,25 @@ func try_cast(slot: int) -> bool:
 		return true
 	# (1.27) the Storm Fruit: Thunder Step (a blink the way you face, stopped short of walls) and Chain Lightning
 	if id == "thunder_step":
+		var left_from := player.global_position
 		thunder_step(STEP_DIST)
+		# (Afterimage Step: a shock where you stood)
+		if sv("storm_step_shock") > 0.0:
+			var shock := HitData.new()
+			shock.damage = 6.0 * power_multiplier()
+			shock.stagger_duration = 0.6
+			shock.poise = 40.0
+			blast(left_from + Vector3(0, 0.9, 0), 2.5, shock)
+			Net.fx("ring", [left_from + Vector3.UP, Vector3.UP, 2.5, Color(0.7, 0.8, 1.0), 0.3, 0.1])
 		cast.emit(slot)
 		return true
 	if id == "chain_lightning":
-		chain_lightning(player.global_position, CHAIN_REACH, CHAIN_JUMPS, CHAIN_DMG)
+		chain_lightning(player.global_position, CHAIN_REACH, CHAIN_JUMPS + int(sv("storm_jumps")), CHAIN_DMG)
 		cast.emit(slot)
 		return true
 	# (1.27) the Iron Fruit: Iron Guard (iron skin a while) and Iron Fist (a guard-breaking punch in front of you)
 	if id == "iron_guard":
-		add_buff("iron_guard", IRON_GUARD_SECS)
+		add_buff("iron_guard", IRON_GUARD_SECS + sv("iron_guard_secs"))
 		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.7, 0.72, 0.78), 0.4, 0.15])
 		cast.emit(slot)
 		return true
@@ -671,7 +683,7 @@ func try_cast(slot: int) -> bool:
 		return true
 	# (1.27) Ember's Flicker: no state of its own, the flame body for a moment (its forms grow from these uses)
 	if id == "flicker":
-		add_buff("flicker", FLICKER_SECS)
+		add_buff("flicker", FLICKER_SECS + sv("flicker_secs"))
 		Net.fx("flame", [player.global_position + Vector3.UP, 14, 0.7, 0.5, 0.5])
 		cast.emit(slot)
 		return true
@@ -1110,6 +1122,8 @@ func power_multiplier() -> float:
 		return 1.0
 	var pr := player.progression
 	var m := 1.0 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
+	# (1.27) the fruit trees' Voltage-style steps and their power variant
+	m += pr.stat("fruit_pct")
 	if fruit == "ember":
 		m += pr.stat("fire_pct")
 	if buff("coat"):
@@ -1183,7 +1197,7 @@ func _ember_aura(delta: float) -> void:
 	hd.knockback_force = 0.0
 	hd.stagger_duration = 0.0
 	hd.dot = true
-	if not blast(player.global_position + Vector3(0, 0.8, 0), AURA_R, hd, 1.0, 2.0).is_empty():
+	if not blast(player.global_position + Vector3(0, 0.8, 0), AURA_R + sv("aura_r"), hd, 1.0, 2.0).is_empty():
 		Net.fx("flame", [player.global_position + Vector3(0, 0.6, 0), 6, 0.6, 0.4, AURA_R * 0.5])
 
 
@@ -1421,7 +1435,7 @@ func _sonar_mark(n: Node3D, col: Color) -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = Vector3(0, 3.0, 0)
 	n.add_child(mi)
-	n.get_tree().create_timer(SONAR_SECS, false).timeout.connect(func(): if is_instance_valid(mi): mi.queue_free())
+	n.get_tree().create_timer(SONAR_SECS + sv("sonar_secs"), false).timeout.connect(func(): if is_instance_valid(mi): mi.queue_free())
 
 
 ## (1.27) the nearest foe within `reach` in front of the captain (within `half` radians of where they face), or null.
@@ -1502,10 +1516,11 @@ func iron_slam(r: float, dmg: float) -> Array:
 func bubble_trap(e: Node3D) -> bool:
 	if e == null or not e.has_method("grabbed"):
 		return false
-	e.call("grabbed", TRAP_SECS)
-	Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.1, Color(0.75, 0.9, 1.0), TRAP_SECS, 0.05])
+	var secs := TRAP_SECS + sv("trap_secs")
+	e.call("grabbed", secs)
+	Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.1, Color(0.75, 0.9, 1.0), secs, 0.05])
 	var me := player
-	player.get_tree().create_timer(TRAP_SECS, false).timeout.connect(func():
+	player.get_tree().create_timer(secs, false).timeout.connect(func():
 		if not is_instance_valid(e) or not is_instance_valid(me):
 			return
 		Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.6, Color(0.75, 0.9, 1.0), 0.3, 0.1])
@@ -1639,7 +1654,7 @@ func hamstring(e: Node3D, dmg: float) -> bool:
 		hd.unblockable = true
 		hb.take_hit(hd, player)
 	if e.has_method("slowed"):
-		e.call("slowed", 4.0, 0.5)
+		e.call("slowed", 4.0 + sv("hamstring_secs"), 0.5)
 	Net.fx("impact", [e.global_position + Vector3(0, 0.4, 0), Color(0.8, 0.15, 0.1)])
 	return true
 
@@ -1648,7 +1663,7 @@ func hamstring(e: Node3D, dmg: float) -> bool:
 func root_field(at: Vector3, r: float) -> Array:
 	var hit_list := enemies_in(at, r)
 	for e in hit_list:
-		root_enemy(e, ROOTS_SECS)
+		root_enemy(e, ROOTS_SECS + sv("roots_secs"))
 	Net.fx("dust_ring", [at, 12, r * 0.3])
 	Net.fx("ring", [at + Vector3.UP * 0.1, Vector3.UP, r, Color(0.35, 0.6, 0.25), 0.6, 0.15])
 	return hit_list
@@ -1676,11 +1691,12 @@ func _echo_blow(e: Node3D, hit: HitData) -> void:
 
 
 ## (1.27, Storm) a ring of shock round the captain: everyone within `r` struck and reeling.
-func static_burst(r: float, dmg: float) -> Array:
+func static_burst(r: float, dmg: float, down: bool = false) -> Array:
 	var hd := HitData.new()
 	hd.damage = dmg
 	hd.stagger_duration = 0.8
-	hd.poise = 40.0
+	hd.poise = 999.0 if down else 40.0
+	hd.knockdown = down
 	hd.unblockable = true
 	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, r, Color(0.7, 0.8, 1.0), 0.35, 0.12])
 	return blast(player.global_position + Vector3(0, 0.9, 0), r, hd)
@@ -1873,3 +1889,107 @@ func _tick_cyclones(delta: float) -> void:
 			if (e as Node3D).global_position.distance_to(at) > 1.5 and e.has_method("vine_yank"):
 				e.call("vine_yank", at, 2.0, false)
 	cyclones = cyclones.filter(func(c): return float(c[1]) > 0.0)
+
+
+## (1.27) a fruit tree's mechanic or step value for this captain (0 without the node).
+func sv(key: String) -> float:
+	return player.progression.stat(key) if player and player.progression else 0.0
+
+
+## (1.27) a skill's energy price for this captain: a fruit power costs half while its fruit is awakened, and less with
+## the tree's flow variant (fruit_cost_pct).
+func cost_of(sk: Dictionary) -> float:
+	var c := float(sk.get("cost", 0.0))
+	if fruit != "" and str(sk.get("fruit", "")) == fruit:
+		if buff("awakened"):
+			c *= 0.5
+		c *= 1.0 - sv("fruit_cost_pct")
+	return c
+
+
+## (1.27) The fruit trees' alternates: id -> the power it's the other take on.
+const ALTERNATES := {"thunder_lance": "thunder_spear", "wind_blade": "gust_cone", "shadow_pounce": "pounce",
+	"overhead_smash": "maul", "thorn_lash": "thorn_whip", "iron_uppercut": "iron_fist", "soap_spray": "slick_floor",
+	"slow_bolt": "time_stop", "echo_ring": "shatter_note", "flare_burst": "fire_fist"}
+
+
+func alt_power(id: String) -> void:
+	var m := power_multiplier()
+	var at := player.global_position + Vector3(0, 0.9, 0)
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	match id:
+		# Storm: a short, heavy lance instead of the long spear
+		"thunder_lance":
+			for e in line_foes(at, fwd, 10.0, 1.0):
+				_alt_hit(e, 24.0 * m, true, 0.0)
+			Net.fx("bolt", [at, at + fwd * 10.0, Color(0.7, 0.8, 1.0), 0.25, 0.3])
+		# Gust: a thin blade of wind that cuts down a line instead of blowing a cone
+		"wind_blade":
+			for e in line_foes(at, fwd, 12.0, 0.6):
+				_alt_hit(e, 14.0 * m, false, 0.4)
+			for i in range(3):
+				Net.fx("ring", [at + fwd * (3.0 + i * 4.0), fwd, 0.7, Color(0.85, 0.95, 0.9), 0.25, 0.06])
+		# Wolf: round the nearest foe and strike from behind
+		"shadow_pounce":
+			var prey := echo_step(9.0)
+			if prey:
+				_alt_hit(prey, 12.0 * m, false, 0.6)
+		# Bear: one overhead smash on the foe in front
+		"overhead_smash":
+			anvil(front_foe(3.0, 0.9), 35.0 * m)
+		# Vine: a lash down a line that slows whoever it catches
+		"thorn_lash":
+			for e in line_foes(at, fwd, 8.0, 0.8):
+				_alt_hit(e, 12.0 * m, false, 0.3)
+				if e.has_method("slowed"):
+					e.call("slowed", 3.0, 0.6)
+		# Iron: an uppercut that throws the foe in front up
+		"iron_uppercut":
+			var e := front_foe(2.8, 0.8)
+			if e:
+				_alt_hit(e, 14.0 * m, false, 0.2)
+				if e.has_method("launched"):
+					e.call("launched", Vector3(0, 10.0, 0) + fwd * 1.5)
+		# Bubble: soap sprayed in a cone: everyone in it slowed
+		"soap_spray":
+			for e in enemies_in(player.global_position, 6.0):
+				var to := (e as Node3D).global_position - player.global_position
+				to.y = 0.0
+				if to.length() > 0.5 and fwd.angle_to(to.normalized()) > GUST_HALF:
+					continue
+				if e.has_method("slowed"):
+					e.call("slowed", 4.0, 0.5)
+			Net.fx("ring", [at + fwd * 3.0, fwd, 2.0, Color(0.85, 0.95, 1.0), 0.4, 0.1])
+		# Clockwork: a bolt of slow time at one foe far ahead
+		"slow_bolt":
+			var e := front_foe(12.0, 0.35)
+			if e and e.has_method("slowed"):
+				e.call("slowed", 5.0, 0.3)
+				Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.95, 0.8, 0.4), 0.5, 0.1])
+		# Echo: the note rung out in a ring round you instead of down a line
+		"echo_ring":
+			static_burst(5.0, 6.0 * m)
+		# Ember: a burst of flame round you that sets everyone in it burning
+		"flare_burst":
+			var hd := HitData.new()
+			hd.damage = 8.0 * m
+			hd.stagger_duration = 0.4
+			hd.poise = 30.0
+			blast(at, 3.5, hd, 3.0, 4.0)
+			Net.fx("fire_ring", [player.global_position, 3.5, 24])
+
+
+func _alt_hit(e: Node3D, dmg: float, down: bool, stagger: float) -> void:
+	var hb := e.get("hurtbox") as Hurtbox
+	if hb == null:
+		return
+	var hd := HitData.new()
+	hd.damage = dmg
+	hd.knockdown = down
+	hd.knockback_force = 7.0 if down else 1.0
+	hd.stagger_duration = stagger
+	hd.poise = 999.0 if down else 35.0
+	hd.unblockable = true
+	hb.take_hit(hd, player)

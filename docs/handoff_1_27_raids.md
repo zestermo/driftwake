@@ -348,7 +348,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Known: the five power tests flake under heavy load (docs/todo.md; lines in flaky.txt).
   (awakenings: below.) Then the trees to near weapon size (mechanics,
   a variant pick, a crew technique, step chains, links), icons and models, the new powers' animations and their forms.
-- (latest) **Awakenings: every fruit has one** (mastery 30; nodes "<Name>born (Awakening)" at level 30, skills flagged
+- **Awakenings: every fruit has one** (mastery 30; nodes "<Name>born (Awakening)" at level 30, skills flagged
   "awakening": true): Stormborn, Skyborn, Moonborn, Mountainborn, Rootborn, Ironborn, Foamborn, Timeborn, Soundborn,
   beside Ember's Sunborn. The "awakened" buff (30 s) now means, for every fruit: FruitForms.form returns NATURE for that
   fruit's powers (it reads pr.player), its powers cost half, cooldowns tick twice as fast. Each has a pillar in its
@@ -356,3 +356,14 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Test t/progression/awakenings. **The fruit kits are complete by count:** 5 powers, 2 ultimates, 1 awakening each.
   **Next:** the trees to near weapon size, then icons/models/animations, then the new powers' own Reflex/Nature forms
   (only each fruit's first two have them; awakened Nature does nothing extra for the rest yet).
+- (latest) **The fruit trees, built to the previewed shape (Zach's OK 2026-10-31)** (SkillTrees.FRUIT_GROWTH +
+  _grow_fruit, called after each _build_<fruit>): powers gated 1, 1, 4, 8, 12; four mechanics (5, 9, 14, 18; Ember,
+  Wolf and Vine kept their two and got two more), each one tweak to one power read through PowerComponent.sv(key); an
+  alternate at 16 (PowerComponent.ALTERNATES / alt_power: Thunder Lance, Wind Blade, Shadow Pounce, Overhead Smash,
+  Thorn Lash, Iron Uppercut, Soap Spray, Slow Bolt, Echo Ring, Flare Burst); the bent at 22 (a variant: +15% fruit
+  damage "fruit_pct", or -20% energy "fruit_cost_pct"; PowerComponent.cost_of is now the one price for checking and
+  spending); step chains at 2/6/10/15 (chains of 3: the tree UI wants 3 or 5); links power to power. Iron's new nodes
+  are `ir_` (`i_plate` was taken). 21 nodes and 81-87 points a tree (66 at mastery 30). The preview's "~32 nodes" was
+  a miscount of its own table (20 rows). Tests t/progression/fruit_trees and fruit_alternates. The power-test flake
+  was the captain turning during the wait (fixed: faced north again at the cast; flaky.txt lines gone).
+  **Left from the preview:** the crew technique per fruit (mastery 26).
