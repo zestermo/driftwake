@@ -8465,3 +8465,30 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - **Reflex:** Player.bear_roar_reflex, asked on each hit you take. Surrounded (3+ foes within 4 m), you roar by
     yourself (at most every 10 s).
   - Test: t/progression/bear_forms.
+
+## 2026-10-31: the Driftfruits finished out (1.27)
+- **Ten fruits, full kits:** Ember, Storm, Gust (logia), Wolf, Bear (zoan), Vine, Iron, Bubble, Clockwork, Echo (paramecia):
+  5 powers, 2 ultimates (one equipped), an awakening each (Skills.ALL, "fruit"; ultimates "ult", awakenings
+  "awakening"). Trees grown to the previewed shape by SkillTrees.FRUIT_GROWTH/_grow_fruit (gates 1,1,4,8,12; mechanics
+  5/9/14/18 read through PowerComponent.sv; alternate at 16, PowerComponent.ALTERNATES; the bent at 22, fruit_pct or
+  fruit_cost_pct; crew technique at 26, CrewTechniques.FRUIT_CREW; steps 2/6/10/15). 81-87 points a tree, 66 at 30.
+- **Forms:** the first two powers have their own Reflex/Nature in Player; powers 3-5 fire by themselves at a moment
+  (PowerComponent.AUTO: hurt, low, surrounded, dodge, land, kill). Awakened (30 s): FruitForms.form says Nature for
+  the fruit's powers, half the energy (PowerComponent.cost_of), cooldowns twice as fast.
+- **Casts and look:** FruitCastState plays a FruitPoses archetype (14, "df_*") and fires on its strike key through
+  PowerComponent._fire (try_cast is split there; tests set instant_casts); FruitFX: per-fruit colours, wind-up,
+  release, impact (called wherever a power lands), column (FX.light_pillar is fire's gold: it washed out every
+  ultimate), the ultimate's moment, trails for moves, auras for buffs, body effects on casts. FX.fruit_skin turns arms
+  or the whole body to iron or brass and restores each mesh's own material (skips EdyAura/PowerAura pieces).
+- **Zoan forms:** Player.BEAST_FORMS (fur, eyes, height, a BodyBuilder build "wolf"/"bear" with arm_k/leg_k/hand_k/
+  foot_k/torso_k, the clothes it bursts out of) and Humanoid.set_beast(on, fur, kind). A guest reads the form from the
+  look's build.
+- **Gotchas:** an id already in Skills.ALL is a parse error (updraft, avalanche were the greatsword's and another's:
+  gust_updraft, bear_avalanche); `i_` node ids are taken (Iron's new ones are `ir_`); the light stage's ground is at
+  y = 3; a power test must face the captain north right before casting (the idle state turns the model); FX.bolt skips
+  a bolt whose *start* is out of the camera's burst range (draw sky bolts from the ground up); static funcs can't use
+  autoloads (FruitFX reaches Net through the captain's tree); abilityshot must slot an unowned power directly (equip
+  refuses it, and the slot's old skill casts instead).
+- **Tests:** t/progression fruit_forms, power_forms, fruit_cast, third_powers, fourth_powers(_b), fifth_powers,
+  fruit_ults_a/b, awakenings, fruit_trees, fruit_alternates, the per-fruit *_forms. Renders: abilityshot (AB_HYBRID=1 for
+  a beast form); the codex page https://claude.ai/artifact/T2QGzzpFsyqgvcpFLxQVXH .
