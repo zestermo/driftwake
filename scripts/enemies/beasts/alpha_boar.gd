@@ -200,7 +200,13 @@ func _table_begin(m: String, e: Dictionary) -> void:
 	var d := _flat(at - global_position).normalized()
 	if d.length() < 0.1:
 		d = _fwd()
+	# the shared tell (1.28): white glint = parry it, red = get out of the way
+	wind_up_glint(bool(e.get("parry", false)))
 	match shape:
+		"cone", "behind":
+			# a close blow: a fan on the ground over where it lands, filling as it comes
+			var fd := _fwd() if shape == "cone" else -_fwd()
+			Net.fx("arc_warn", [global_position, fd, float(e.get("r", 4.0)), minf(TAU, deg_to_rad(float(e.get("deg", 70.0 if shape == "cone" else 90.0))) * 2.0), tell, col])
 		"ring":
 			if bool(e.get("warn", true)):
 				warn_ring(global_position + _fwd() * float(e.get("at", 0.0)), float(e.get("r", 4.0)), tell, col)

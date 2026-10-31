@@ -648,6 +648,21 @@ func warn_ring(at: Vector3, r: float, secs: float, col: Color = Color(1.0, 0.18,
 	Net.fx("telegraph", [at, r, secs, col])
 
 
+## The tell language every foe shares (1.28): a glint as a blow winds up - white for one you can parry, red for one
+## you can't (grunts glint the same) - on every screen. `at` defaults to over the beast's front.
+const GLINT_PARRY := Color(1.0, 1.0, 0.95)
+const GLINT_PERIL := Color(1.0, 0.15, 0.12)
+
+
+func wind_up_glint(parry: bool, at := Vector3.INF) -> void:
+	if at == Vector3.INF:
+		var c: Vector3 = hurtbox.global_position if hurtbox else global_position
+		var fwd := -global_basis.z
+		fwd.y = 0.0
+		at = c + Vector3.UP * 0.8 + fwd.normalized() * 1.2
+	Net.fx("glint", [at, GLINT_PARRY if parry else GLINT_PERIL, 1.6])
+
+
 ## A red strip where a lunge or a charge will run, on every screen.
 func warn_lane(from: Vector3, to: Vector3, w: float, secs: float, col: Color = Color(1.0, 0.18, 0.12)) -> void:
 	BeastFX.lane(from, to, w, secs, col)

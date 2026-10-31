@@ -77,7 +77,7 @@ static func calm(g: Node, face := Vector3.FORWARD) -> void:
 		g.poise.value = g.poise.full
 	if "hitbox" in g and g.hitbox != null:
 		g.hitbox.deactivate()
-	if g.has_method("_set_state") and "S" in g:
+	if g.has_method("_set_state") and "S" in g and (g.S as Dictionary).has("IDLE"):
 		g._set_state(g.S.IDLE)
 	if "velocity" in g:
 		g.velocity = Vector3.ZERO
