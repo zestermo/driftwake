@@ -37,6 +37,8 @@ func _process(_d: float) -> bool:
 		return false
 	var p = stage.player
 	var pr = p.progression
+	# (what Flicker does, not its cast: t/progression/fruit_cast is about casts)
+	p.power.instant_casts = true
 	match step:
 		0:
 			p.power.fruit = "wolf"

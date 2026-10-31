@@ -55,6 +55,9 @@ const IRON_GUARD_SECS := 3.0
 ## (1.27) Bubble Shield: how many hits it takes; the bubble's hits left now.
 ## (1.27) The Gust Fruit: Gale Dash's reach, Gust Cone's reach and half-angle.
 ## (1.27) The Bear Fruit: Bear Charge's rush, Roar's reach.
+## (1.27, tests only) a Driftfruit power goes off at once instead of through its cast (FruitCastState): the tests
+## that check what a power does set it; t/progression/fruit_cast checks the cast itself.
+var instant_casts := false
 ## (1.27) The Clockwork Fruit: how far back Rewind goes, how long Time Stop holds; the captain's recent places
 ## (sampled every TRAIL_EVERY s, REWIND_SECS of them, kept only for a Clockwork captain).
 ## (1.27) The Echo Fruit: how far Echo Step looks for a foe; Shatter Note's line (length, half its width).
@@ -432,6 +435,17 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) a Driftfruit power plays its cast (FruitCastState: its pose, the wind-up, the power going off on the strike
+	# key through _fire); everything else goes off now
+	if FruitCastState.CASTS.has(id) and player.state_machine.has_node("FruitCast") and not instant_casts:
+		player.state_machine.force_state("FruitCast", {"slot": slot, "id": id})
+		cast.emit(slot)
+		return true
+	return _fire(slot, id, sk)
+
+
+## (1.27) A skill going off (try_cast once it's paid for; FruitCastState on its strike key). Returns true.
+func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
 	# (1.27) the fruit trees' alternates (mastery 16): a second take on one of the fruit's powers
 	if id in ALTERNATES:
@@ -668,7 +682,7 @@ func try_cast(slot: int) -> bool:
 	if bool((Skills.ALL.get(id, {}) as Dictionary).get("awakening", false)):
 		add_buff("awakened", AWAKENED_SECS)
 		var col: Color = (DevilFruits.FRUITS.get(fruit, {}) as Dictionary).get("color", Color.WHITE)
-		Net.fx("light_pillar", [player.global_position, 16.0, 4.0, 1.2, col])
+		FruitFX.column(player, player.global_position, fruit, 16.0 * 0.5, 1.5)
 		if fruit in ["vine", "wolf"]:
 			FX.power_aura.call_deferred(player.body_model, fruit, 3.0)
 		player.cam_shake(0.4, 0.5)
@@ -1275,6 +1289,7 @@ func gust_cone(at: Vector3, dir: Vector3, reach: float, dmg: float) -> Array:
 			hb.take_hit(hd, player)
 			hit_list.append(e)
 	Net.fx("dust_ring", [at + dir * 3.0, 14, 1.2])
+	FruitFX.impact(player, at + dir * 3.0, fruit, 1.2, dir)
 	return hit_list
 
 
@@ -1287,6 +1302,7 @@ func bear_roar(r: float) -> Array:
 	hd.unblockable = true
 	hd.poise = 40.0
 	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, r, Color(0.9, 0.8, 0.6), 0.5, 0.2])
+	FruitFX.impact(player, player.global_position, fruit, r * 0.6)
 	return blast(player.global_position + Vector3(0, 0.9, 0), r, hd)
 
 
@@ -1326,6 +1342,7 @@ func time_stop(e: Node3D, secs: float) -> void:
 		hd.poise = 40.0
 		hb.take_hit(hd, player)
 	Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.95, 0.8, 0.4), secs, 0.1])
+	FruitFX.impact(player, e.global_position, "clockwork", 0.8)
 
 
 ## (1.27, Echo) out behind the nearest foe within `reach`, facing them; nothing near, nothing happens.
@@ -1475,7 +1492,8 @@ func _tick_clouds(delta: float) -> void:
 		if foes.is_empty():
 			continue
 		var e := foes[0] as Node3D
-		Net.fx("bolt", [at + Vector3.UP * CLOUD_H, e.global_position + Vector3.UP, Color(0.7, 0.8, 1.0), 0.12, 0.25])
+		Net.fx("bolt", [e.global_position + Vector3.UP, at + Vector3.UP * CLOUD_H, Color(0.72, 0.84, 1.0), 0.2, 0.28, randi()])
+		FruitFX.impact(player, e.global_position, "storm", 0.7)
 		var hb := e.get("hurtbox") as Hurtbox
 		if hb:
 			var hd := HitData.new()
@@ -1500,6 +1518,7 @@ func updraft(at: Vector3, r: float) -> Array:
 		if e.has_method("launched"):
 			e.call("launched", Vector3(0, UPDRAFT_V, 0))
 	Net.fx("dust_ring", [at, 14, r * 0.4])
+	FruitFX.impact(player, at, fruit, r * 0.5)
 	Net.fx("ring", [at + Vector3.UP * 0.2, Vector3.UP, r, Color(0.85, 0.95, 0.9), 0.5, 0.1])
 	return hit_list
 
@@ -1514,6 +1533,7 @@ func iron_slam(r: float, dmg: float) -> Array:
 	hd.camera_shake_intensity = 0.4
 	Net.fx("dust_ring", [player.global_position, 18, r * 0.4])
 	Net.fx("ring", [player.global_position + Vector3.UP * 0.1, Vector3.UP, r, Color(0.6, 0.62, 0.66), 0.4, 0.15])
+	FruitFX.impact(player, player.global_position, fruit, r * 0.6)
 	return blast(player.global_position + Vector3(0, 0.6, 0), r, hd)
 
 
@@ -1529,6 +1549,7 @@ func bubble_trap(e: Node3D) -> bool:
 		if not is_instance_valid(e) or not is_instance_valid(me):
 			return
 		Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.6, Color(0.75, 0.9, 1.0), 0.3, 0.1])
+		FruitFX.impact(me, e.global_position, "bubble", 1.0)
 		var hb := e.get("hurtbox") as Hurtbox
 		if hb:
 			var hd := HitData.new()
@@ -1599,7 +1620,11 @@ func thunder_spear(at: Vector3, dir: Vector3, length: float, dmg: float) -> Arra
 			hd.poise = 35.0
 			hd.unblockable = true
 			hb.take_hit(hd, player)
-	Net.fx("bolt", [at, at + dir * length, Color(0.7, 0.8, 1.0), 0.14, 0.3])
+	for i in range(3):
+		Net.fx("bolt", [at, at + dir * length, Color(0.72, 0.84, 1.0), 0.22 - i * 0.06, 0.32, randi()])
+	for e in hit_list:
+		FruitFX.impact(player, (e as Node3D).global_position, "storm", 0.8, dir)
+	FruitFX.impact(player, at + dir * length - Vector3(0, 1.0, 0), "storm", 0.6, dir)
 	return hit_list
 
 
@@ -1644,6 +1669,7 @@ func maul(dmg: float) -> Array:
 			hb.take_hit(hd, player)
 			hit_list.append(e)
 	Net.fx("dust_ring", [player.global_position + fwd * 2.0, 14, 0.9])
+	FruitFX.impact(player, player.global_position + fwd * 2.0, fruit, 1.5, fwd)
 	return hit_list
 
 
@@ -1660,7 +1686,7 @@ func hamstring(e: Node3D, dmg: float) -> bool:
 		hb.take_hit(hd, player)
 	if e.has_method("slowed"):
 		e.call("slowed", 4.0 + sv("hamstring_secs"), 0.5)
-	Net.fx("impact", [e.global_position + Vector3(0, 0.4, 0), Color(0.8, 0.15, 0.1)])
+	FruitFX.impact(player, e.global_position, fruit, 0.8, e.global_position - player.global_position)
 	return true
 
 
@@ -1670,6 +1696,7 @@ func root_field(at: Vector3, r: float) -> Array:
 	for e in hit_list:
 		root_enemy(e, ROOTS_SECS + sv("roots_secs"))
 	Net.fx("dust_ring", [at, 12, r * 0.3])
+	FruitFX.impact(player, at, fruit, r * 0.5)
 	Net.fx("ring", [at + Vector3.UP * 0.1, Vector3.UP, r, Color(0.35, 0.6, 0.25), 0.6, 0.15])
 	return hit_list
 
@@ -1704,6 +1731,7 @@ func static_burst(r: float, dmg: float, down: bool = false) -> Array:
 	hd.knockdown = down
 	hd.unblockable = true
 	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, r, Color(0.7, 0.8, 1.0), 0.35, 0.12])
+	FruitFX.impact(player, player.global_position, fruit, r * 0.6)
 	return blast(player.global_position + Vector3(0, 0.9, 0), r, hd)
 
 
@@ -1716,6 +1744,7 @@ func gale_burst(r: float) -> Array:
 		out = out.normalized() if out.length() > 0.1 else Vector3.FORWARD
 		if e.has_method("launched"):
 			e.call("launched", out * 10.0 + Vector3.UP * 4.0)
+	FruitFX.impact(player, player.global_position, fruit, r * 0.6)
 	Net.fx("dust_ring", [player.global_position, 18, 1.2])
 	return hit_list
 
@@ -1735,7 +1764,7 @@ func anvil(e: Node3D, dmg: float) -> bool:
 	hd.unblockable = true
 	hd.camera_shake_intensity = 0.4
 	hb.take_hit(hd, player)
-	Net.fx("impact", [e.global_position + Vector3.UP, Color(0.7, 0.72, 0.76)])
+	FruitFX.impact(player, e.global_position, fruit, 1.4, e.global_position - player.global_position)
 	return true
 
 
@@ -1750,8 +1779,9 @@ func big_blast(at: Vector3, r: float, dmg: float, down: bool, col: Color) -> Arr
 	hd.poise = 999.0 if down else 40.0
 	hd.unblockable = true
 	hd.camera_shake_intensity = 0.6
-	Net.fx("light_pillar", [at, 12.0, r, 0.8, col])
+	FruitFX.column(player, at, fruit, 12.0 * 0.5, 1.5)
 	player.cam_shake(0.4, 0.4)
+	FruitFX.impact(player, at, fruit, r * 0.6)
 	return blast(at + Vector3(0, 0.9, 0), r, hd)
 
 
@@ -1771,10 +1801,13 @@ func fruit_ult(id: String) -> void:
 					break
 				clouds.append([(e as Node3D).global_position, 6.0, 0.0, 18.0 * m])
 				n += 1
-			Net.fx("light_pillar", [at, 14.0, 3.0, 0.6, Color(0.7, 0.8, 1.0)])
+			FruitFX.column(player, at, fruit, 14.0 * 0.5, 1.5)
 		"judgement_bolt":
 			var spot := at + fwd * 8.0
-			Net.fx("bolt", [spot + Vector3.UP * 30.0, spot, Color(0.8, 0.88, 1.0), 0.4, 0.4])
+			# (one bolt out of a clear sky: a thick core, two strands round it, and the ground lit white)
+			for i in range(3):
+				# (drawn up from the ground: FX.bolt skips a bolt whose start is out of the camera's burst range)
+				Net.fx("bolt", [spot, spot + Vector3(randf_range(-1.5, 1.5), 24.0, randf_range(-1.5, 1.5)), Color(0.85, 0.92, 1.0), 0.6 - i * 0.18, 0.45, randi()])
 			big_blast(spot, 6.0, 60.0 * m, true, Color(0.7, 0.8, 1.0))
 		# Gust: a cyclone 7 m ahead that drags everyone near into it and throws them up when it dies; or a hurricane
 		# out of you
@@ -1808,7 +1841,7 @@ func fruit_ult(id: String) -> void:
 			add_buff("howl", 15.0)
 			player.call("_recalc_stats")
 			player.health_component.heal(player.health_component.max_health * 0.25)
-			Net.fx("light_pillar", [at, 14.0, 3.0, 0.8, Color(0.85, 0.2, 0.15)])
+			FruitFX.column(player, at, fruit, 14.0 * 0.5, 1.5)
 		"pack_fury":
 			for e in enemies_in(at, 8.0):
 				hamstring(e, 25.0 * m)
@@ -1832,14 +1865,14 @@ func fruit_ult(id: String) -> void:
 		"bubble_prison":
 			for e in enemies_in(at, 10.0):
 				bubble_trap(e)
-			Net.fx("light_pillar", [at, 10.0, 4.0, 0.7, Color(0.75, 0.9, 1.0)])
+			FruitFX.column(player, at, fruit, 10.0 * 0.5, 1.5)
 		"bubble_sanctuary":
 			Net.everyone("_all_sanctuary", [at, 12.0])
 		# Clockwork: time stopped for every foe within 15 m; or overclocked (every power ready, the crew quicker)
 		"time_freeze":
 			for e in enemies_in(at, 15.0):
 				time_stop(e, 5.0)
-			Net.fx("light_pillar", [at, 14.0, 5.0, 1.0, Color(0.95, 0.8, 0.4)])
+			FruitFX.column(player, at, fruit, 14.0 * 0.5, 1.5)
 		"overclock":
 			cooldowns.clear()
 			Net.everyone("_all_haste", [at, 12.0, 12.0])
@@ -1864,7 +1897,7 @@ func fruit_ult(id: String) -> void:
 				if e.has_method("slowed"):
 					e.call("slowed", 6.0, 0.5)
 			add_buff("echo_strike", 15.0)
-			Net.fx("light_pillar", [at, 12.0, 6.0, 0.8, Color(0.6, 0.8, 0.9)])
+			FruitFX.column(player, at, fruit, 12.0 * 0.5, 1.5)
 		# Ember: a solar flare (everyone within 9 m floored and set burning)
 		"solar_flare":
 			big_blast(at, 9.0, 45.0 * m, true, Color(1.0, 0.6, 0.2))
@@ -1982,6 +2015,7 @@ func alt_power(id: String) -> void:
 			hd.damage = 8.0 * m
 			hd.stagger_duration = 0.4
 			hd.poise = 30.0
+			hd.unblockable = true
 			blast(at, 3.5, hd, 3.0, 4.0)
 			Net.fx("fire_ring", [player.global_position, 3.5, 24])
 
@@ -1990,6 +2024,7 @@ func _alt_hit(e: Node3D, dmg: float, down: bool, stagger: float) -> void:
 	var hb := e.get("hurtbox") as Hurtbox
 	if hb == null:
 		return
+	FruitFX.impact(player, e.global_position, fruit, 1.0 if down else 0.7, e.global_position - player.global_position)
 	var hd := HitData.new()
 	hd.damage = dmg
 	hd.knockdown = down

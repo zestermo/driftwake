@@ -258,7 +258,14 @@ func _process(d: float) -> bool:
 				print("cast will_twin: ", pc.try_cast(0))
 			else:
 				var slot := 4 if Skills.is_ult(skill) else 0
-				pc.equip(skill, slot)
+				# (a Driftfruit power: its fruit eaten first)
+				var fr := str(Skills.get_skill(skill).get("fruit", ""))
+				if fr != "":
+					pc.fruit = fr
+					# (equip refuses a power whose node isn't owned: straight into the slot)
+					pc.loadout[slot] = skill
+				else:
+					pc.equip(skill, slot)
 				pc.energy = pc.max_energy()
 				pc.ult = 100.0
 				pc.cooldowns.clear()
@@ -280,7 +287,12 @@ func _process(d: float) -> bool:
 			var strike_at := float(OS.get_environment("AB_STRIKE")) if OS.get_environment("AB_STRIKE") != "" else -1.0
 			if strike_at >= 0.0 and since >= strike_at and since - d < strike_at:
 				(mate if mate else p)._on_hit_received(camp.grunts[0]._hit_light, camp.grunts[0])
+			# (a cast that turns the captain as it starts, FruitCast to the camera's forward: the views follow that turn)
+			if shot_i == 0 and not busy:
+				basis_at = p.player_model.global_basis.orthonormalized()
+				_aim()
 			if not busy and shot_i < frames and since >= start + span * float(shot_i) / maxf(frames - 1, 1):
+				print("frame %d t=%.2f state %s action %s fruit %s" % [shot_i, since, p.current_state_name(), p.body_model.current_action(), pc.fruit])
 				busy = true
 				_grab()
 			if shot_i >= frames and not busy:

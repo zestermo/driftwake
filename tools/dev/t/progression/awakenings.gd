@@ -31,6 +31,8 @@ func _process(_d: float) -> bool:
 	var FF = load("res://scripts/progression/fruit_forms.gd")
 	match step:
 		0:
+			# (what the powers do, not their casts: those are t/progression/fruit_cast's)
+			p.power.instant_casts = true
 			until = TK.wait_secs(2.0)
 		1:
 			for fr in AW:

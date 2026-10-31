@@ -375,9 +375,19 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Tested solo in t/progression/fruit_trees; the duet with a real second captain isn't covered by a test.
   **1.27 left:** icons and models for the fruits (placeholders), animations for the new powers, the new powers' own
   Reflex/Nature forms, the shared combat pool and IN_WORLD fruit sources (deferred), stronghold leftovers (above).
-- (latest) **Forms for every fruit's powers 3-5** (PowerComponent.AUTO / auto_moment / auto_effect): each power has a
+- **Forms for every fruit's powers 3-5** (PowerComponent.AUTO / auto_moment / auto_effect): each power has a
   moment (hurt, low, surrounded, dodge, land, kill) when it fires by itself, free: at Reflex if it's on a bar (12 s
   between), at Nature even off the bar (6 s). Wired: Player._on_hit_received (hurt, low), _on_landed (land, 12+ m/s),
   dodge_state exit (dodge), on_sword_hit (kill), PowerComponent._check_surrounded (each second, 3+ foes within 4 m).
   Each fired power shows its name over you. Test t/progression/power_forms.
   **Now:** Zach asked (2026-10-31) for a long polish pass: detailed, exaggerated animations and effects on every fruit.
+- (latest) **The fruit powers' casts and look (Zach 2026-10-31: "detailed, exaggerated animations and effects").**
+  FruitCastState (StateMachine node "FruitCast"): every fruit power in its CASTS table plays a pose and fires on the
+  pose's strike key (PowerComponent._fire: try_cast is split there); ultimates and awakenings are untouchable through
+  the gather. FruitPoses (scripts/npc/fruit_poses.gd, "df_*", hooked from TechniquePoses; ActionSpecs entries) has 14
+  keyed archetypes (thrust, pull, slam, uppercut, roar, spin, stomp, sky, burst, dash, hug, self, leap, sweep).
+  FruitFX: each fruit's colours (COLS), its wind-up, release, ultimate moment, its impact (called from every power's
+  landing in PowerComponent) and its column (fruit-coloured: FX.light_pillar is fire's gold, it washed every ult
+  out). Filmed with abilityshot (it now eats a fruit power's fruit and slots it). Tests: t/progression/fruit_cast (the
+  cast path); the effect tests set PowerComponent.instant_casts (tests only). Codex page of all ten:
+  https://claude.ai/artifact/T2QGzzpFsyqgvcpFLxQVXH . Next: per-power polish passes (each power's own touch).

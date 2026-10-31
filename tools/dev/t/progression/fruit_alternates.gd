@@ -34,6 +34,8 @@ func _process(_d: float) -> bool:
 	var g = stage.camp.grunts[0]
 	match step:
 		0:
+			# (what the powers do, not their casts: those are t/progression/fruit_cast's)
+			p.power.instant_casts = true
 			until = TK.wait_secs(2.0)
 		1:
 			if int(g.state) in [int(g.S.DOWN), int(g.S.GETUP)]:

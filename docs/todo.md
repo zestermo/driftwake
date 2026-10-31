@@ -292,6 +292,10 @@ backported there).
 - ~~The fruit power tests flaking under heavy load~~ (fixed 2026-10-31): the captain was faced north at placement, but the
   idle state could turn the model during the 3-tick wait, so front_foe and the cones missed; the tests face north again
   right before the cast. The flaky.txt lines are gone.
+- **Two Bear knockdown checks still flake under heavy load** (2026-10-31): Maul (t/progression/fourth_powers_b) and
+  Overhead Smash (fruit_alternates) now and then leave the grunt standing (state ALERT) when many groups run at once;
+  alone and on fresh seeds they pass. Time-boxed; lines in flaky.txt. Suspect: the grunt's state the frame it's
+  unpaused (it isn't the facing: that's fixed).
 - **powertest: the captain ends up swimming** before "holding parry settles into a block (Swim)" (2026-10-30, found
   fixing the stale suites). Probably knocked into the water by an earlier step's fight. Pin the captain on land
   (teleport and Idle) before the parry steps, or find what throws them. Time-boxed and left red.

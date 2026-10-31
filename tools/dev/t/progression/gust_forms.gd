@@ -26,6 +26,8 @@ func _process(_d: float) -> bool:
 		return false
 	var p = stage.player
 	var pr = p.progression
+	# (what the powers do, not their casts: those are t/progression/fruit_cast's)
+	p.power.instant_casts = true
 	var d = stage.dummy
 	match step:
 		0:

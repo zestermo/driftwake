@@ -35,6 +35,8 @@ func _process(_d: float) -> bool:
 		return false
 	var p = stage.player
 	var pr = p.progression
+	# (what the powers do, not their casts: those are t/progression/fruit_cast's)
+	p.power.instant_casts = true
 	check("the Bubble Fruit's item, fruit and tree", load("res://scripts/loot/item_db.gd").get_item("bubble_fruit") != null
 		and load("res://scripts/powers/devil_fruits.gd").FRUITS.has("bubble") and load("res://scripts/progression/skill_trees.gd").nodes().has("bb_shield"))
 	p.power.fruit = "bubble"

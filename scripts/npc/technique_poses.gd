@@ -9,6 +9,9 @@ class_name TechniquePoses
 
 ## [pose, mask, lift] for a technique action, or [] if `n` isn't one.
 static func pose(h, n: String, u: float) -> Array:
+	# (1.27) the Driftfruit powers' own poses
+	if n.begins_with("df_"):
+		return FruitPoses.pose(h, n, u)
 	var lift := Vector3.ZERO
 	var g: Dictionary = h._guard()
 	var T: float = float(h._action.get("dur", 1.0))

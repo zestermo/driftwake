@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3]
+[gd_scene load_steps=46 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/state_machine/state_machine.gd" id="2"]
@@ -39,6 +39,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/sky_leap_state.gd" id="sky_leap_state"]
 [ext_resource type="Script" path="res://scripts/player_states/grabbed_state.gd" id="grabbed_state"]
 [ext_resource type="Script" path="res://scripts/player_states/crew_technique_state.gd" id="crew_technique_state"]
+[ext_resource type="Script" path="res://scripts/player_states/fruit_cast_state.gd" id="fruit_cast_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -161,6 +162,9 @@ script = ExtResource("crouch_state")
 
 [node name="Skill" type="Node" parent="StateMachine"]
 script = ExtResource("skill_state")
+
+[node name="FruitCast" type="Node" parent="StateMachine"]
+script = ExtResource("fruit_cast_state")
 
 [node name="Shoot" type="Node" parent="StateMachine"]
 script = ExtResource("shoot_state")
