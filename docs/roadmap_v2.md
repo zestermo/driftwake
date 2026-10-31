@@ -117,3 +117,9 @@ to work toward.
 - **Stay on Godot** (Zach asked about Unity/Unreal, 2026-10-26): the frames are CPU-bound by our own scripts, so 1.23
   gets a perf track instead (spike logger first, time-sliced builds, AI/animation LOD, native C++ for measured hot
   paths); docs/v1_23_plan.md "Performance track".
+
+## Decided (2026-10-31)
+- **The weekend build, 1.28 on** (docs/v1_28_plan.md "Decided"): gadgets at a workbench, books, island dishes and crew
+  feasts, fishing by theme, three weapons (rapier, fighting staff, chain sickle), the volcanic isle and the coral atoll,
+  sea stops (a floating restaurant, a merchant ship, a warlord's flagship, an Admiralty lieutenant's warship), three
+  leviathans, dev tools and polish. Fruits are tuned in play, not polished now. Sky islands stay after 2.0.
