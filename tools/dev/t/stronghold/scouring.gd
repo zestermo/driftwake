@@ -15,7 +15,7 @@ var fails := 0
 
 func _initialize() -> void:
 	TK.seed_of(self)
-	stage = TK.stage(self, {"hud": false})
+	stage = TK.stage(self, {"hud": false, "ship": true})
 
 
 func check(what: String, cond: bool) -> void:
@@ -40,6 +40,12 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(8.0)
 		2:
 			sc = isl.city.get_node("Scouring")
+			# (the crew's ship moored off the stronghold, 220 m out: inside the escape line until it sails)
+			var ship0 = get_first_node_in_group("ship")
+			if ship0:
+				var c0: Vector3 = isl.city_global(load("res://scripts/island/stronghold_plan.gd").LAND_C, 0.0)
+				# (Ship.place: the ship sails its own position, a plain move doesn't stick)
+				ship0.place(Vector3(c0.x + 220.0, 0.0, c0.z), 0.0)
 			check("nothing before the Commodore falls", sc.state == "")
 			sc.grace = 1.0
 			sc.count = 1.0
@@ -69,7 +75,7 @@ func _process(_d: float) -> bool:
 				print("   (no ship on this stage: the escape check is skipped)")
 				return TK.done(fails)
 			var c: Vector3 = isl.city_global(load("res://scripts/island/stronghold_plan.gd").LAND_C, 0.0)
-			ship.global_position = c + Vector3(620, 0, 0)
+			ship.place(c + Vector3(620, 0, 0), 0.0)
 			until = TK.wait_secs(1.0)
 		6:
 			check("the ship out past 500 m: escaped, the Scouring over", gm.world_flags.has("sh_escaped") and sc.state == "escaped")
