@@ -8421,3 +8421,7 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - Checked in t/progression/ember_flame_body; t/progression passes.
 - (same day) **The Wolf's Rending Fang forms** (the zoan template). PowerComponent._wounds: claws in hybrid form bleed
   on a crit at Reflex and on every hit at Nature (FruitForms on rending_fang's uses). Test: t/progression/wolf_forms.
+- (same day) **Vine's Vine Snare forms.**
+  - Reflex: `Player.vine_snare_reflex` from the hit path snares whoever hits you for 1.5 s (at most every 6 s).
+  - Nature: PowerComponent._wounds briefly snares (slows) every blow's target.
+  - Test: t/progression/vine_forms. t/progression and t/player (78) pass.

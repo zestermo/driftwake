@@ -596,6 +596,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if power.fruit == "ember" and _flame_body(hit):
 		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])
 		return
+	# (1.27) Vine Snare at Reflex: whoever hits you is snared
+	if power.fruit == "vine" and attacker is Node3D and attacker != self:
+		vine_snare_reflex(attacker as Node3D)
 	# a spirit (the drowned captain): shot and shell pass through him
 	if bloodless() and (hit.ranged or hit.impact == "shot"):
 		Net.fx("sparkle", [global_position + Vector3.UP * 1.4, 6, Humanoid.SPIRIT])
@@ -3376,4 +3379,22 @@ func ember_landing_ring(speed: float) -> bool:
 	hd.unblockable = true
 	power.blast(global_position + Vector3(0, 0.8, 0), 3.0, hd, 2.0, 4.0)
 	Net.fx("fire_ring", [global_position, 3.0, 28])
+	return true
+
+
+## (1.27) Vine's Vine Snare at Reflex (FruitForms on its uses): whoever hits you is snared SNARE_REFLEX_SECS (at most
+## every SNARE_REFLEX_EVERY s). At Nature your blows slow their target too (PowerComponent._wounds).
+const SNARE_REFLEX_SECS := 1.5
+const SNARE_REFLEX_EVERY := 6.0
+var _snare_reflex_at := -1000000
+
+
+func vine_snare_reflex(attacker: Node3D) -> bool:
+	if power.fruit != "vine" or FruitForms.form(progression, "vine_snare", "vine") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _snare_reflex_at or power.suppressed():
+		return false
+	_snare_reflex_at = Engine.get_physics_frames() + int(SNARE_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	power.root_enemy(attacker, SNARE_REFLEX_SECS)
+	Net.fx("dust_ring", [attacker.global_position, 10, 0.6])
 	return true
