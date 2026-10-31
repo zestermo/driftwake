@@ -349,6 +349,9 @@ func eat(id: String) -> void:
 func suppressed() -> bool:
 	if player == null or not has_fruit():
 		return false
+	# (1.27) Captain Marrow's seastone net
+	if buff("seastone"):
+		return true
 	return player.is_swimming() or player.water_depth() > FIZZLE_DEPTH
 
 

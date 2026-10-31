@@ -991,6 +991,27 @@ func _all_rival_plunder(share: float, crew_name: String) -> void:
 	get_tree().call_group("hud", "show_toast", "%s took %d gold" % [crew_name.capitalize(), n] if n > 0 else "%s found your purse empty" % crew_name.capitalize())
 
 
+## (1.27) Captain Marrow's seastone net thrown from `from` at `at`: marked, then it lands StrongholdBoss.NET_WARN... later;
+## our captain under it is staggered, and a fruit user powerless (PowerComponent buff "seastone") a while.
+func _all_seastone_net(at: Vector3, from: Vector3) -> void:
+	FX.telegraph(at, 2.5, 1.2, Color(0.95, 0.25, 0.15))
+	FX.streak(from, at + Vector3.UP, Color(0.55, 0.62, 0.68), 0.06, 1.2)
+	get_tree().create_timer(1.2, false).timeout.connect(func():
+		FX.ring(at + Vector3.UP * 0.1, Vector3.UP, 2.5, Color(0.5, 0.58, 0.64), 0.6, 0.18)
+		FX.dust_ring(at, 14, 0.8)
+		var p := _me()
+		if p and p.global_position.distance_to(at) <= 2.5 and p.is_standing():
+			var hd := HitData.new()
+			hd.damage = 6.0
+			hd.stagger_duration = 1.2
+			hd.unblockable = true
+			p.hurtbox.take_hit(hd, null)
+			if p.power.fruit != "":
+				p.power.add_buff("seastone", 4.0)
+				FX.float_text(p.global_position + Vector3(0, 2.2, 0), "Seastone!", Color(0.6, 0.7, 0.75))
+				p.call("_toast", "Caught in seastone: your fruit is powerless a moment"))
+
+
 ## (1.27) Bubble Sanctuary: our captain, if within `r` of `at`, healed 30% and wrapped in a 3-hit Bubble Shield.
 func _all_sanctuary(at: Vector3, r: float) -> void:
 	var p := _me()

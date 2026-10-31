@@ -1,13 +1,15 @@
 extends SceneTree
 ## Captain Ilse Marrow in the prison's yard (1.27, StrongholdBoss, an open arena): nobody until a captain comes into
 ## the yard; then she's there (a captain-style AI, a greatsword, a boss's health, under her name); at half health the
-## cell block opens and its brutes come out (elite, berserk prisoners); beaten, the prison's seal is the crew's.
+## cell block opens and its brutes come out (elite, berserk prisoners); beaten, the prison's seal is the crew's. At half health she also leaps onto the catwalks over
+## her yard, and her seastone net leaves a fruit user powerless.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var w
 var isl
 var bnode
 var marrow
+var net_at := Vector3.ZERO
 var step := 0
 var until := 0
 var fails := 0
@@ -58,15 +60,26 @@ func _process(_d: float) -> bool:
 				bnode.phase() == 2 and cells != null and cells.alive_count() == 4)
 			if cells:
 				check("...berserk prisoners, not marines", cells.grunts.all(func(g): return bool(g.elite_rank)))
+			check("catwalks round her yard", bnode.get_node_or_null("Catwalks") != null)
+			check("...and she's leapt up onto them (%.1f m over the yard)" % (marrow.global_position.y - bnode.global_position.y), marrow.global_position.y - bnode.global_position.y > 4.0)
+			# her seastone net on a fruit user (out of the brutes' way, so nothing knocks you out from under it)
+			p.power.fruit = "iron"
+			p.global_position = bnode.to_global(Vector3(0.0, 0.6, -9.0))
+			p.reset_physics_interpolation()
+			net_at = p.global_position
+			root.get_node("Net")._all_seastone_net(net_at, marrow.global_position)
+			until = TK.wait_secs(1.6)
+		5:
+			check("the seastone net lands: the fruit user powerless (%.1f m from where it fell, standing %s)" % [p.global_position.distance_to(net_at), p.is_standing()], p.power.suppressed())
 			marrow.health_component.take_damage(marrow.health_component.max_health * 2.0)
 			until = TK.wait_secs(1.0)
-		5:
+		6:
 			check("beaten: the prison's seal is the crew's", bnode.beaten())
 			var sg = isl.city.get_node("SealGate")
 			check("...the keep's gate still shut: the Arsenal's seal is missing", not sg.open() and sg._grate.collision_layer == 1)
 			root.get_node("GameManager").world_flags["sh_seal_arsenal"] = true
 			until = TK.wait_ticks(3)
-		6:
+		7:
 			var sg = isl.city.get_node("SealGate")
 			check("both seals: the keep's gate opens", sg.open() and sg._grate.collision_layer == 0)
 			return TK.done(fails)

@@ -76,6 +76,8 @@ func _ready() -> void:
 	if BOSSES[key].has("adds"):
 		_build_adds()
 	_build_zones()
+	if key == "marrow":
+		_build_catwalks()
 
 
 func _flag(f: String) -> bool:
@@ -141,6 +143,10 @@ func _process(delta: float) -> void:
 	var hp := boss.health_component.current_health / maxf(boss.health_component.max_health, 1.0)
 	if phase() == 1 and hp <= float(BOSSES[key]["p2"]):
 		net.world_flag(flag_p2())
+		if key == "marrow":
+			_perch()
+	if key == "marrow":
+		_marrow(0.25)
 	if phase() == 2 and BOSSES[key].has("p3") and hp <= float(BOSSES[key]["p3"]):
 		net.world_flag(flag_p3())
 		_enrage()
@@ -342,3 +348,115 @@ func _open_vault() -> void:
 		items.push_front([it.id, 1])
 	CityCaches.place(self, [{"xf": Transform3D(Basis(), Vector3(6.0, 0.0, -17.0)), "key": "sh_vault_%d" % int(gm.chain_seed), "items": items}])
 	get_tree().call_group("hud", "show_banner", "The vault", "%s lies in the Commodore's vault." % str(l[0]), true)
+
+
+# --------------------------------------------------------------------------
+# Captain Marrow: the seastone net and the catwalks over her yard (1.27, the plan's Prison Tower)
+# --------------------------------------------------------------------------
+## Her net: every NET_EVERY s (NET_PERCHED from the catwalk) at the nearest captain within NET_REACH; it lands NET_WARN
+## s after the throw (Net._all_seastone_net: every captain checks their own); a fruit user caught is powerless
+## SEASTONE_SECS.
+const NET_EVERY := 9.0
+const NET_PERCHED := 4.5
+const NET_REACH := 14.0
+## The catwalks: a square walk CATWALK_H up round the yard, CATWALK_W wide, two stairs up to it; at half health she leaps
+## up onto it for PERCH_SECS and holds it, then drops back into the fight.
+const CATWALK_H := 5.5
+const CATWALK_W := 1.8
+const PERCH_SECS := 12.0
+var _net_t := 3.0
+var _perched := 0.0
+
+
+func _marrow(step: float) -> void:
+	if boss == null or not is_instance_valid(boss) or not _flag(flag_on()):
+		return
+	if _perched > 0.0:
+		_perched -= step
+		if _perched <= 0.0:
+			# back down into the yard
+			Net.fx("blast", [boss.global_position, Vector3.UP, 1.0, false])
+			boss.global_position = global_position + Vector3(0, 0.3, 0)
+			boss.reset_physics_interpolation()
+			Net.fx("heavy_dust", [boss.global_position, 18, 1.1])
+			var br := boss.get_node_or_null("Brain")
+			if br:
+				br.order = "fight"
+	_net_t -= step
+	if _net_t > 0.0:
+		return
+	_net_t = NET_PERCHED if _perched > 0.0 else NET_EVERY
+	var best: Node3D = null
+	var bd := NET_REACH * (1.6 if _perched > 0.0 else 1.0)
+	for p in get_node("/root/Net").all_players():
+		var d := (p as Node3D).global_position.distance_to(boss.global_position)
+		if d < bd and (p as Player).is_standing():
+			bd = d
+			best = p
+	if best == null:
+		return
+	FX.speech(boss, ["Seastone. Let's see your tricks now.", "Hold still.", "Into the net!"][randi() % 3])
+	get_node("/root/Net").everyone("_all_seastone_net", [best.global_position, boss.global_position + Vector3(0, 1.6, 0)])
+
+
+## Half health: up onto the catwalk (a leap), holding the high ground a while.
+func _perch() -> void:
+	var r := float(BOSSES["marrow"]["arena"][1]) * 0.8
+	var at := global_position + Vector3(r, CATWALK_H + 0.3, 0)
+	Net.fx("heavy_dust", [boss.global_position, 18, 1.1])
+	Net.fx("speed_lines", [boss.global_position + Vector3.UP * 2.0, Vector3.UP, Color(0.85, 0.8, 0.7), 12])
+	boss.global_position = at
+	boss.reset_physics_interpolation()
+	_perched = PERCH_SECS
+	_net_t = 1.0
+	var br := boss.get_node_or_null("Brain")
+	if br:
+		br.order = "hold"
+	FX.speech(boss, "Come up and get me, if you can climb.")
+
+
+## The catwalks: four walks in a square round the yard on posts, rails, and two stairs up from the yard floor.
+func _build_catwalks() -> void:
+	var r := float(BOSSES["marrow"]["arena"][1]) * 0.8
+	var wood := PSXMat.lit("wood", Color(0.5, 0.42, 0.32))
+	var iron := PSXMat.lit("metal", Color(0.4, 0.42, 0.45))
+	var mb := MeshBuilder.new()
+	var body := StaticBody3D.new()
+	body.name = "Catwalks"
+	add_child(body)
+	var boxes: Array = []
+	for s in range(4):
+		var a := s * PI * 0.5
+		var c := Vector3(cos(a), 0, sin(a)) * r + Vector3(0, CATWALK_H, 0)
+		var along := Vector3(-sin(a), 0, cos(a))
+		var bas := Basis(Vector3.UP, -a)
+		var size := Vector3(CATWALK_W, 0.18, r * 2.0 + CATWALK_W)
+		boxes.append([Transform3D(bas, c), size])
+		# the rails on both edges, posts down to the floor at the ends and the middle
+		for side in [-1.0, 1.0]:
+			var off: Vector3 = Vector3(cos(a), 0, sin(a)) * float(side) * CATWALK_W * 0.5
+			mb.add_box(iron, Transform3D(bas, c + off + Vector3(0, 0.55, 0)), Vector3(0.06, 0.06, r * 2.0 + CATWALK_W))
+		for k in [-1.0, 0.0, 1.0]:
+			var post: Vector3 = c + along * float(k) * r
+			mb.add_box(wood, Transform3D(Basis(), Vector3(post.x, CATWALK_H * 0.5, post.z)), Vector3(0.22, CATWALK_H, 0.22))
+	# two stairs up, from the yard floor to the walks (opposite corners)
+	for s in [0, 2]:
+		var a: float = float(s) * PI * 0.5 + PI * 0.25
+		var foot := Vector3(cos(a), 0, sin(a)) * (r - 4.5)
+		var top := Vector3(cos(a), 0, sin(a)) * (r * 1.15)
+		var mid := (foot + top) * 0.5 + Vector3(0, CATWALK_H * 0.5, 0)
+		var len := Vector2(top.x - foot.x, top.z - foot.z).length()
+		var slope := atan2(CATWALK_H, len)
+		var bas := Basis(Vector3.UP, -a + PI * 0.5) * Basis(Vector3.RIGHT, slope)
+		boxes.append([Transform3D(bas, mid), Vector3(1.6, 0.2, sqrt(len * len + CATWALK_H * CATWALK_H))])
+	for bx in boxes:
+		mb.add_box(wood, bx[0], bx[1])
+		var cs := CollisionShape3D.new()
+		var sh := BoxShape3D.new()
+		sh.size = bx[1]
+		cs.shape = sh
+		cs.transform = bx[0]
+		body.add_child(cs)
+	var mi := mb.to_instance("CatwalksMesh")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
