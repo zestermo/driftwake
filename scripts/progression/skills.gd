@@ -69,6 +69,11 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) the Bubble Fruit's first powers: Bubble Shield (its forms: FruitForms) and Slick Floor (its CC)
+	"bubble_shield": {"name": "Bubble Shield", "tree": "Bubble", "cost": 24.0, "cooldown": 14.0, "needs": "", "fruit": "bubble",
+		"desc": "A bubble round you that takes the next 3 hits. Used often, one forms by itself when you're hurt, and in the end one hit in five just pops a bubble."},
+	"slick_floor": {"name": "Slick Floor", "tree": "Bubble", "cost": 20.0, "cooldown": 8.0, "needs": "", "fruit": "bubble",
+		"desc": "A soapy patch ahead of you: every foe on it slips and falls."},
 	# (1.27) the Storm Fruit's first powers: Thunder Step (its movement) and Chain Lightning (its forms: FruitForms)
 	"thunder_step": {"name": "Thunder Step", "tree": "Storm", "cost": 20.0, "cooldown": 5.0, "needs": "", "fruit": "storm",
 		"desc": "Blink 9 m the way you face as a bolt of lightning, through the air and past foes (not through walls)."},

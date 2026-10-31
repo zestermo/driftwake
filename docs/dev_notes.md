@@ -8443,3 +8443,12 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     each.
   - **Reflex:** Player.storm_reflex, lightning leaps from you to whoever hits you (at most every 6 s).
   - Test: t/progression/storm_forms; t/progression and t/player (81) pass.
+- (same day) **The Bubble Fruit, piece 1.**
+  - bubble_fruit.tres (the Vine's icon as a placeholder), FRUITS "bubble" (Knack), and a tree (`bb_*`).
+  - **Bubble Shield:** PowerComponent.bubble_hits, the next 3 hits.
+  - **Slick Floor** (its CC): a blast 4 m ahead, 3 m wide, with poise 999 knockdowns.
+  - **Player._bubble_pops:**
+    - the cast's bubbles first;
+    - Reflex: one forms by itself under 30% health, at most every 20 s;
+    - Nature: one hit in five pops a bubble.
+  - Test: t/progression/bubble_forms; t/progression and t/player (82) pass.

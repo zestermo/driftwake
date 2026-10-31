@@ -290,3 +290,4 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   - **Next:** Storm, Bubble, then Gust, Bear, Clockwork and Echo; then each fruit's remaining powers, ultimates and
     awakening; then IN_WORLD on with FruitPool.
 - (latest) **Storm piece 1 in** (Thunder Step, Chain Lightning with its Reflex). Next: Bubble, then Gust, Bear, Clockwork, Echo (the recipe above).
+- (latest) **Bubble piece 1 in** (Bubble Shield with its forms, Slick Floor). Six fruits exist now: Ember, Wolf, Vine, Iron, Storm, Bubble. Next: Gust, Bear, Clockwork, Echo (the recipe above), then each fruit's remaining powers, ultimates, awakenings, icons and models.

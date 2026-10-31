@@ -53,6 +53,7 @@ const HEADERS := {
 	"vine": ["Vine Fruit", "fruit", Color(0.45, 0.85, 0.3), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
 	"iron": ["Iron Fruit", "fruit", Color(0.58, 0.6, 0.64), 30],
 	"storm": ["Storm Fruit", "fruit", Color(0.55, 0.72, 1.0), 30],
+	"bubble": ["Bubble Fruit", "fruit", Color(0.75, 0.9, 1.0), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -223,6 +224,7 @@ static func _build() -> void:
 	_build_ember()
 	_build_iron()
 	_build_storm()
+	_build_bubble()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1361,3 +1363,13 @@ static func _build_storm() -> void:
 	_big("sm_step", "Thunder Step", "tech", 2, 1, {}, "", "thunder_step")
 	_big("sm_chain", "Chain Lightning", "tech", 0, 1, {}, "", "chain_lightning")
 	_step("sm_charge", "Charge", "sm_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
+
+
+## (1.27) The Bubble Fruit (Knack, the joke that isn't): Bubble Shield and Slick Floor to begin with (to come: Bubble
+## Float, Scrub, Foam Flood; docs/v1_27_raids_fruits_plan.md "The six fruit kits").
+static func _build_bubble() -> void:
+	_tree("bubble", ["Slick", "Float", "Pop"])
+	_root("bb_root", "Bubble Fruit (Knack)", {}, "Knack: bubbles at will. Use its powers to grow them.")
+	_big("bb_shield", "Bubble Shield", "tech", 2, 1, {}, "", "bubble_shield")
+	_big("bb_slick", "Slick Floor", "tech", 0, 1, {}, "", "slick_floor")
+	_step("bb_foam", "Foam", "bb_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")

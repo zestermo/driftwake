@@ -596,6 +596,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if power.fruit == "ember" and _flame_body(hit):
 		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])
 		return
+	# (1.27) the Bubble Fruit: a bubble takes the hit (Bubble Shield's, its Reflex's, its Nature's one in five)
+	if power.fruit == "bubble" and _bubble_pops(hit):
+		Net.fx("water_ring", [global_position + Vector3.UP, 1.2, 0.5])
+		return
 	# (1.27) the Iron Fruit's Iron Guard, by its form: half damage and no stagger while it's on
 	if power.fruit == "iron" and _iron_guard(hit):
 		hit = hit.duplicate()
@@ -3444,3 +3448,25 @@ func storm_reflex(attacker: Node3D) -> bool:
 	_storm_reflex_at = Engine.get_physics_frames() + int(STORM_REFLEX_EVERY * Engine.physics_ticks_per_second)
 	power.chain_lightning(attacker.global_position, 2.0, 2, 10.0)
 	return true
+
+
+## (1.27) Bubble Shield by its form (FruitForms on its uses): does a bubble take this hit? A cast's bubbles first.
+## Reflex: falling under BUBBLE_LOW health forms a one-hit bubble by itself (at most every BUBBLE_REFLEX_EVERY s).
+## Nature: one hit in five pops a bubble instead.
+const BUBBLE_LOW := 0.3
+const BUBBLE_REFLEX_EVERY := 20.0
+var _bubble_reflex_at := -1000000
+
+
+func _bubble_pops(_hit: HitData) -> bool:
+	if power.bubble_hits > 0:
+		power.bubble_hits -= 1
+		return true
+	var f := FruitForms.form(progression, "bubble_shield", "bubble")
+	if f == FruitForms.NATURE and randf() < 0.2:
+		return true
+	if f >= FruitForms.REFLEX and health_component.current_health <= health_component.max_health * BUBBLE_LOW \
+			and Engine.get_physics_frames() >= _bubble_reflex_at:
+		_bubble_reflex_at = Engine.get_physics_frames() + int(BUBBLE_REFLEX_EVERY * Engine.physics_ticks_per_second)
+		return true
+	return false

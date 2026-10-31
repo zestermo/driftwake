@@ -52,6 +52,9 @@ const AWAKENED_SECS := 30.0
 const IRON_GUARD_SECS := 3.0
 ## (1.27) The Storm Fruit: Thunder Step's blink, Chain Lightning's reach to its first foe, how many more it leaps on to
 ## (each within CHAIN_HOP of the last) and its damage at each.
+## (1.27) Bubble Shield: how many hits it takes; the bubble's hits left now.
+const BUBBLE_HITS := 3
+var bubble_hits := 0
 const STEP_DIST := 9.0
 const CHAIN_REACH := 14.0
 const CHAIN_HOP := 6.0
@@ -361,6 +364,25 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) the Bubble Fruit: Bubble Shield (the next BUBBLE_HITS hits) and Slick Floor (a patch ahead: foes slip and fall)
+	if id == "bubble_shield":
+		bubble_hits = BUBBLE_HITS
+		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.3, Color(0.8, 0.95, 1.0), 0.5, 0.12])
+		cast.emit(slot)
+		return true
+	if id == "slick_floor":
+		var ahead := -player.player_model.global_basis.z
+		ahead.y = 0.0
+		var spot := player.global_position + ahead.normalized() * 4.0
+		var hd := HitData.new()
+		hd.damage = 4.0
+		hd.knockdown = true
+		hd.poise = 999.0
+		hd.knockback_force = 2.0
+		blast(spot + Vector3(0, 0.6, 0), 3.0, hd)
+		Net.fx("water_ring", [spot, 3.0, 0.9])
+		cast.emit(slot)
+		return true
 	# (1.27) the Storm Fruit: Thunder Step (a blink the way you face, stopped short of walls) and Chain Lightning
 	if id == "thunder_step":
 		thunder_step(STEP_DIST)
