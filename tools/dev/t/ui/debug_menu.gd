@@ -1,6 +1,6 @@
 extends SceneTree
 ## The debug menu (1.27, DebugMenu, F4 in a debug build): it lists every item and tree, gives items and gold, levels
-## the Captain and a tree, feeds you a Driftfruit, and spawns grunts ahead of you.
+## the Captain and a tree, feeds you a Driftfruit, spawns grunts and any theme's beast ahead of you (and lists the warps).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var m
@@ -50,10 +50,18 @@ func _process(_d: float) -> bool:
 			m._eat()
 			check("ate the Storm Fruit", p.power.fruit == "storm")
 			m._spawn(["sword", "rifle"])
+			check("every theme's beasts on the spawn list (%d)" % m._spawn_list.size(), m._spawn_list.size() >= 15)
+			for i in range(m._spawns.item_count):
+				if m._spawns.get_item_text(i) == "snow: rimeback":
+					m._spawns.select(i)
+			m._spawn_picked()
+			check("no warps off the chain (the light stage has none)", m._warp_list.is_empty())
 			until = TK.wait_secs(1.0)
 		2:
 			var camps: Array = p.get_parent().find_children("DebugCamp*", "", false, false)
 			check("two grunts spawned ahead of you (%d camps)" % camps.size(), camps.size() == 1)
+			var beasts: Array = p.get_parent().find_children("Debug_rimeback*", "", false, false)
+			check("the Rimeback spawned from the list (%d)" % beasts.size(), beasts.size() == 1)
 			return TK.done(fails)
 	step += 1
 	return false

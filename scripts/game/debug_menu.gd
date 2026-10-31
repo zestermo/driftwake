@@ -12,7 +12,13 @@ var _items: OptionButton
 var _qty: SpinBox
 var _trees: OptionButton
 var _fruits: OptionButton
+var _spawns: OptionButton
+var _warps: OptionButton
 var _status: Label
+## The spawn list: [label, Callable(at: Vector3, yaw: float)] filled by _refill (every theme's beasts, then
+## extra_spawns()). The warp list: [label, chain node id].
+var _spawn_list: Array = []
+var _warp_list: Array = []
 
 
 func _ready() -> void:
@@ -113,6 +119,14 @@ func _build() -> void:
 	_btn(row, "Grunt", func(): _spawn(["sword"]))
 	_btn(row, "Rifleman", func(): _spawn(["rifle"]))
 	_btn(row, "Squad of 4", func(): _spawn(["sword", "sword", "rifle", "sword"]))
+	_spawns = OptionButton.new()
+	v.add_child(_spawns)
+	_btn(v, "Spawn it", _spawn_picked)
+	# warps
+	_head(v, "Warp (the crew and the ship)")
+	_warps = OptionButton.new()
+	v.add_child(_warps)
+	_btn(v, "Go", _warp_picked)
 	# events
 	_head(v, "Events")
 	_btn(v, "Stronghold: on the chart", func(): _flag("stronghold_known"))
@@ -152,6 +166,25 @@ func _refill() -> void:
 	ids.sort()
 	for id in ids:
 		_items.add_item(str(id))
+	_spawns.clear()
+	_spawn_list = []
+	for th in IslandThemes.all():
+		for kind in (th as ThemeDef).beasts.keys():
+			_spawn_list.append(["%s: %s" % [th.name, kind], _spawn_beast.bind(th.name, str(kind))])
+	_spawn_list.append_array(extra_spawns())
+	for s in _spawn_list:
+		_spawns.add_item(str(s[0]))
+	_warps.clear()
+	_warp_list = []
+	var w := get_tree().get_first_node_in_group("world_gen")
+	if w and w.chain():
+		var c: Chain = w.chain()
+		for n in c.nodes:
+			_warp_list.append(["%s (%s, lv %d)" % [n["name"], n["theme"], int(n["level"])], int(n["id"])])
+		if c.stronghold_id() >= 0:
+			_warp_list.append(["%s (the stronghold)" % c.stronghold["name"], c.stronghold_id()])
+	for wp in _warp_list:
+		_warps.add_item(str(wp[0]))
 	_trees.clear()
 	for t in SkillTrees.nodes().values().map(func(n): return str(n["tree"])).reduce(func(acc, t): return acc if t in acc else acc + [t], []):
 		_trees.add_item(str(t))
@@ -227,6 +260,47 @@ func _spawn(roles: Array) -> void:
 	(get_tree().current_scene if get_tree().current_scene else p.get_parent()).add_child(camp)
 	camp.global_position = p.global_position
 	_say("Spawned %d" % roles.size())
+
+
+## More for the spawn list: [label, Callable(at: Vector3, yaw: float)]. New kinds of things to spawn (leviathans, ships,
+## sea stops) add a line here.
+func extra_spawns() -> Array:
+	return []
+
+
+func _spawn_picked() -> void:
+	var p := _player()
+	if _spawns.selected < 0 or p == null:
+		return
+	if not get_node("/root/Net").is_host():
+		_say("Spawns are the host's")
+		return
+	var fwd := -p.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var s: Array = _spawn_list[_spawns.selected]
+	(s[1] as Callable).call(p.global_position + fwd * 12.0, atan2(-fwd.x, -fwd.z) + PI)
+	_say("Spawned %s" % s[0])
+
+
+## A theme's beast, woken, the way BeastArena and the tests make one.
+func _spawn_beast(at: Vector3, yaw: float, theme: String, kind: String) -> void:
+	var info: Dictionary = IslandThemes.of(theme).beasts[kind]
+	var b: Node3D = load(str(info["script"])).new()
+	b.name = "Debug_%s_%d" % [kind, Engine.get_physics_frames()]
+	b.setup({"post": at, "yaw": yaw, "level": maxi(1, _player().progression.level), "name": (info["names"] as Array)[0]})
+	(get_tree().current_scene if get_tree().current_scene else _player().get_parent()).add_child(b)
+	b.global_position = at
+	if b.has_method("alert"):
+		b.alert()
+
+
+func _warp_picked() -> void:
+	if _warps.selected < 0 or _player() == null:
+		return
+	var wp: Array = _warp_list[_warps.selected]
+	_player().debug_to_island(int(wp[1]))
+	_say("Warping to %s" % wp[0])
 
 
 func _flag(f: String) -> void:

@@ -1960,21 +1960,36 @@ func _debug_to_next_island() -> void:
 
 
 func debug_to_capital() -> void:
+	var w := get_tree().get_first_node_in_group("world_gen")
+	debug_to_island(w.chain().capital_id())
+
+
+## Debug builds (Alt+F10, the F4 menu's warp list): the crew to chain node `id` (any island, the cities, the stronghold),
+## the ship moored and you at its harbour once it's built. The host's: a guest is told to ask the host.
+func debug_to_island(id: int) -> void:
 	if Net.is_client():
-		_toast("Debug: the host takes the crew to the capital")
+		_toast("Debug: the host takes the crew there")
 		return
 	var w := get_tree().get_first_node_in_group("world_gen")
-	var id: int = w.chain().capital_id()
 	if int(GameManager.chain_at) != id:
 		GameManager.chain_arrive(id)
 	_toast("Debug: to %s, once it's built" % w.chain().node(id)["name"])
+	var waited := 0
 	while not w.chain_islands.has(id):
 		await get_tree().create_timer(0.25).timeout
-	var isl: CapitalIsland = w.chain_islands[id]
+		waited += 1
+		if waited > 240:
+			_toast("Debug: %s wasn't built in a minute" % w.chain().node(id)["name"])
+			return
+	var isl: Node3D = w.chain_islands[id]
 	var moor: Array = isl.mooring()
 	(get_tree().get_first_node_in_group("ship") as Ship).place(moor[0], moor[1])
 	state_machine.force_state("Idle", {})
-	global_position = isl.harbour_spawn()
+	if isl.has_method("harbour_spawn"):
+		global_position = isl.harbour_spawn()
+	else:
+		var de: Vector2 = isl.sites["dock_end"] - isl.dock_dir * 3.0
+		global_position = isl.to_global(Vector3(de.x, GenIsland.DOCK_DECK_Y + 0.5, de.y))
 	reset_physics_interpolation()
 	_toast("Debug: at %s" % isl.island_name)
 
