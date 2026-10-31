@@ -107,3 +107,6 @@ func apply_hit_effects(hit_data: HitData, bodies: Array = []) -> void:
 		apply_hitstop(hit_data.hitstop_duration, bodies)
 	if hit_data.camera_shake_intensity > 0.0:
 		apply_camera_shake(hit_data.camera_shake_intensity)
+	# (1.28) a heavy blow (a long freeze or a knockdown) dips the music a beat so it lands over the mix
+	if hit_data.hitstop_duration >= 0.1 or hit_data.knockdown:
+		Music.punch(clampf(hit_data.hitstop_duration * 40.0, 3.0, 7.0))
