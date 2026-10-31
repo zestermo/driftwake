@@ -22,7 +22,7 @@ Everything uses Driftwake's own names (docs/originality_plan.md): the inspiratio
 ### Gadgets and tinkering
 | Decision | Choice | Why | Revisit when |
 |---|---|---|---|
-| Carrying | A **gadget belt**: 3 slots of their own, G fires the selected one, a key cycles; whatever weapon is held; drawn on the belt (crewmates see it) | Always at hand; doesn't fight skills for the bar | Play |
+| Carrying | A **gadget belt**: 3 slots of their own, U fires the selected one, Shift+U cycles (G is the ping: **assumed**); whatever weapon is held; drawn on the belt (crewmates see it) | Always at hand; doesn't fight skills for the bar | Play |
 | Kinds | All four: **combat tricks** (smoke and flash pellets, tar/pepper bombs, exploding stars, decoy, caltrops), **traversal** (grappling hook, spring boots, pocket glider, climbing spike), **utility** (spyglass marking, diving helmet, auto-reel, lockpick, lantern-bomb), **ship gadgets** (burst launcher, paddle boost, harpoon cannon, smoke screen) | Zach | - |
 | Making | **Blueprints + parts** at a workbench (aboard, at camps, the forge town). Blueprints from books, the forge town's master tinkerer, loot and the merchant ship; parts from salvage, ore, beast and leviathan parts. Tiers Mk I-III, each visibly different and stronger; tiers gated by Tinkering level | The inventor fantasy and an item economy | Play |
 | Limits | **Charges + a short cooldown**; charges refill at a workbench or camp from cheap parts; traversal gadgets cooldown only | Usopp's ammo pouch, no grind | Play |
