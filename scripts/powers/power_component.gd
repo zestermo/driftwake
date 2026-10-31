@@ -48,6 +48,8 @@ const SHADOW_STEP_COST := 8.0
 const FLICKER_SECS := 1.5
 ## (1.27) A fruit's awakened state (Ember's Sunborn).
 const AWAKENED_SECS := 30.0
+## (1.27) Iron Guard's Active form: how long the iron skin lasts.
+const IRON_GUARD_SECS := 3.0
 ## Buffs that are Will (an aura in the captain's Will colour when they start).
 const WILL_BUFFS := ["coat", "foresight"]
 ## Emission (Iron Will tier 2): a coated heavy attack strikes EMIT_RANGE m ahead (a line EMIT_WIDE m across) or a
@@ -352,6 +354,26 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) the Iron Fruit: Iron Guard (iron skin a while) and Iron Fist (a guard-breaking punch in front of you)
+	if id == "iron_guard":
+		add_buff("iron_guard", IRON_GUARD_SECS)
+		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.7, 0.72, 0.78), 0.4, 0.15])
+		cast.emit(slot)
+		return true
+	if id == "iron_fist":
+		var fwd := -player.player_model.global_basis.z
+		fwd.y = 0.0
+		var hd := HitData.new()
+		hd.damage = 28.0
+		hd.knockback_force = 9.0
+		hd.stagger_duration = 0.5
+		hd.breaker = true
+		hd.camera_shake_intensity = 0.3
+		blast(player.global_position + Vector3(0, 1.0, 0) + fwd.normalized() * 1.6, 1.8, hd)
+		Net.fx("impact", [player.global_position + Vector3(0, 1.2, 0) + fwd.normalized() * 1.4, Color(0.75, 0.78, 0.85)])
+		player.body_model.play("punch_r", 0.35)
+		cast.emit(slot)
+		return true
 	# (1.27) Ember's awakening: Sunborn, AWAKENED_SECS of it
 	if id == "sunborn":
 		add_buff("awakened", AWAKENED_SECS)

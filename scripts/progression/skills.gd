@@ -69,6 +69,11 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) the Iron Fruit's first powers: Iron Guard (its forms grow from its uses: FruitForms) and Iron Fist
+	"iron_guard": {"name": "Iron Guard", "tree": "Iron", "cost": 22.0, "cooldown": 10.0, "needs": "", "fruit": "iron",
+		"desc": "Your skin turns to iron for 3 s: blows do half damage and nothing staggers you. Used often, it starts to happen by itself against heavy blows, and in the end only a technique can shake you."},
+	"iron_fist": {"name": "Iron Fist", "tree": "Iron", "cost": 18.0, "cooldown": 4.0, "needs": "", "fruit": "iron",
+		"desc": "A punch of solid iron at whoever's in front of you: it breaks guards and shields and knocks them back."},
 	# (1.27) Ember's Flame Body, its Active form (FruitForms: Reflex and Nature grow from its uses)
 	"flicker": {"name": "Flicker", "tree": "Ember", "cost": 25.0, "cooldown": 12.0, "needs": "", "fruit": "ember",
 		"desc": "Your body turns to flame for a moment: blades and shot pass through you. Used often, it starts to happen by itself, and in the end it's simply what you are."},

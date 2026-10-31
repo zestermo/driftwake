@@ -8425,3 +8425,13 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - Reflex: `Player.vine_snare_reflex` from the hit path snares whoever hits you for 1.5 s (at most every 6 s).
   - Nature: PowerComponent._wounds briefly snares (slows) every blow's target.
   - Test: t/progression/vine_forms. t/progression and t/player (78) pass.
+- (same day) **The Iron Fruit, piece 1** (the first of the four new):
+  - resources/items/iron_fruit.tres (icon: the Wolf's for now, a placeholder);
+  - DevilFruits.FRUITS "iron" (Knack/paramecia), SkillTrees "iron" (cap 30) and `_build_iron` (the root, Iron Guard,
+    Iron Fist, a Plating step);
+  - Skills.ALL "iron_guard" and "iron_fist", cast straight in PowerComponent.try_cast (Iron Fist: a breaker blast in
+    front, 28);
+  - Player._iron_guard: Active halves damage with no stagger while cast (IRON_GUARD_SECS 3); Reflex hardens against a
+    heavy or knockdown blow at most every 8 s; Nature against anything under Poise.TECH_MIN.
+  - Test: t/progression/iron_forms. Still to come for Iron: the Cannonball Dive, the Anvil, Iron Skin, the ultimates,
+    the awakening, and its own icon and model.

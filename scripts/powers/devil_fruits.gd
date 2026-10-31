@@ -23,6 +23,10 @@ const FRUITS := {
 	"vine": {"id": "vine", "name": "Vine Fruit", "type": "paramecia", "color": Color(0.45, 0.85, 0.3),
 		"item": "vine_fruit", "start": ["vine_snare", "vine_swing"],
 		"passive": ["Photosynthesis", "Out of combat, on land, you slowly heal and regain energy."]},
+	# (1.27) the tank's fruit: iron at will (docs/v1_27_raids_fruits_plan.md "The six fruit kits")
+	"iron": {"id": "iron", "name": "Iron Fruit", "type": "paramecia", "color": Color(0.58, 0.6, 0.64),
+		"item": "iron_fruit", "start": ["iron_guard", "iron_fist"],
+		"passive": ["Iron Body", "Heavier than you were: blows push you less, and in deep water you sink like a stone."]},
 }
 
 const CURSE := ["The Sea's Curse", "You can never swim again: deep water drags you under. Fruit powers fizzle waist-deep in the sea."]

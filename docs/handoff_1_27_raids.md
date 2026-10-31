@@ -282,3 +282,10 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   - **Next:** the Wolf's other powers (Pounce, Howl, Scent, Moon Leap), Vine's, then the new fruits. Each new fruit
     needs an item .tres (copy ember_fruit.tres), a DevilFruits.FRUITS entry, Skills.ALL powers, a SkillTrees entry
     (cap 30) and a `_build_<fruit>` tree.
+- (latest) **Vine Snare's forms and the Iron Fruit's first piece are in** (Iron Guard with forms, Iron Fist, its item,
+  entry and tree).
+  - **The recipe for a new fruit:** copy iron_fruit.tres, add a FRUITS entry, Skills.ALL powers with cast branches in
+    try_cast (or a SkillState case for animated ones), their forms in the right path, and a SkillTrees entry plus
+    `_build_<fruit>`.
+  - **Next:** Storm, Bubble, then Gust, Bear, Clockwork and Echo; then each fruit's remaining powers, ultimates and
+    awakening; then IN_WORLD on with FruitPool.

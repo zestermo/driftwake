@@ -51,6 +51,7 @@ const HEADERS := {
 	"ember": ["Ember Fruit", "fruit", Color(1.0, 0.5, 0.15), 30],
 	"wolf": ["Wolf Fruit", "fruit", Color(0.75, 0.68, 0.55), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
 	"vine": ["Vine Fruit", "fruit", Color(0.45, 0.85, 0.3), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
+	"iron": ["Iron Fruit", "fruit", Color(0.58, 0.6, 0.64), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -219,6 +220,7 @@ static func _build() -> void:
 	_build_unarmed()
 	_build_black_leg()
 	_build_ember()
+	_build_iron()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1335,3 +1337,14 @@ static func _build_vine() -> void:
 	_step("p_bark", "Bark", "p_roots", 5, {"defense": 1.5}, "+1.5 defense a step.")
 	_step("p_spines", "Spines", "p_thorns", 5, {"thorn_hide": 1.5}, "Your thorns deal 1.5 more a step.")
 	_step("p_growth", "Quick Growth", "p_snare", 5, {"cdr_Vine": 0.03}, "Vine powers come back 3% sooner a step.")
+
+
+## (1.27) The Iron Fruit (Knack, the tank): Iron Guard and Iron Fist to begin with (its other powers to come: the
+## Cannonball Dive, the Anvil, Iron Skin; docs/v1_27_raids_fruits_plan.md "The six fruit kits").
+static func _build_iron() -> void:
+	_tree("iron", ["Guard", "Fist", "Weight"])
+	_root("i_root", "Iron Fruit (Knack)", {},
+		"Knack: iron at will. Blows push you less, and the sea takes you like a stone. Use its powers to grow them.")
+	_big("i_guard", "Iron Guard", "tech", 0, 1, {}, "", "iron_guard")
+	_big("i_fist", "Iron Fist", "tech", 1, 1, {}, "", "iron_fist")
+	_step("i_plate", "Plating", "i_root", 5, {"defense": 2.0}, "+2 defense a step.")

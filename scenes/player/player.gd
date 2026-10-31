@@ -596,6 +596,13 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if power.fruit == "ember" and _flame_body(hit):
 		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])
 		return
+	# (1.27) the Iron Fruit's Iron Guard, by its form: half damage and no stagger while it's on
+	if power.fruit == "iron" and _iron_guard(hit):
+		hit = hit.duplicate()
+		hit.damage *= 0.5
+		hit.stagger_duration = 0.0
+		hit.knockdown = false
+		hit.knockback_force = 0.0
 	# (1.27) Vine Snare at Reflex: whoever hits you is snared
 	if power.fruit == "vine" and attacker is Node3D and attacker != self:
 		vine_snare_reflex(attacker as Node3D)
@@ -3398,3 +3405,23 @@ func vine_snare_reflex(attacker: Node3D) -> bool:
 	power.root_enemy(attacker, SNARE_REFLEX_SECS)
 	Net.fx("dust_ring", [attacker.global_position, 10, 0.6])
 	return true
+
+
+## (1.27) Iron Guard by its form (FruitForms on its uses): does this blow meet iron? Active: while the cast lasts.
+## Reflex: a heavy or knockdown blow hardens you by itself (at most every IRON_REFLEX_EVERY s). Nature: anything short
+## of a technique (poise under Poise.TECH_MIN).
+const IRON_REFLEX_EVERY := 8.0
+var _iron_reflex_at := -1000000
+
+
+func _iron_guard(hit: HitData) -> bool:
+	if power.buff("iron_guard"):
+		return true
+	var f := FruitForms.form(progression, "iron_guard", "iron")
+	if f == FruitForms.NATURE:
+		return Poise.of(hit) < Poise.TECH_MIN
+	var heavy := hit.knockdown or Poise.of(hit) >= Poise.HEAVY
+	if f == FruitForms.REFLEX and heavy and Engine.get_physics_frames() >= _iron_reflex_at:
+		_iron_reflex_at = Engine.get_physics_frames() + int(IRON_REFLEX_EVERY * Engine.physics_ticks_per_second)
+		return true
+	return false
