@@ -199,6 +199,8 @@ var swappable_hands: bool = false
 var fists: bool = false
 ## Zoan hybrid extras (ears, snout, claws, tail).
 var _beast: Array = []
+## (1.27) The zoan hybrid this body is in ("wolf", "bear"; "" none): its gait (_feral or _lumber).
+var beast_kind := ""
 var _tail: Node3D
 var _left_prop: MeshInstance3D
 
@@ -932,6 +934,7 @@ func set_offhand(mesh: Mesh) -> void:
 ## `kind` "wolf" (a long snout and fangs, tall ears, a ruff at the neck, long claws, a bushy tail hung low) or "bear"
 ## (a broad short muzzle, small round ears, a hump of muscle over the shoulders, great hooked claws, a stub tail).
 func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wolf") -> void:
+	beast_kind = kind if on else ""
 	for n in _beast:
 		if is_instance_valid(n):
 			(n as Node).queue_free()
@@ -968,6 +971,9 @@ func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wo
 		hb.add_box(nose, Transform3D(Basis(), Vector3(0, 0.08, -0.275)), Vector3(0.05, 0.035, 0.035))
 		hb.add_box(dk, Transform3D(Basis(Vector3.RIGHT, -0.12), Vector3(0, -0.005, -0.155)), Vector3(0.08, 0.03, 0.16))
 		hb.add_box(fm, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.12, -0.08)), Vector3(0.16, 0.035, 0.07))
+	# cheek tufts flaring back from the jaw
+	for sx in [-1.0, 1.0]:
+		hb.add_cone(lt, Transform3D(Basis(Vector3.UP, sx * 0.9) * Basis(Vector3.RIGHT, -1.3), Vector3(sx * 0.1, 0.02, -0.03)), 0.03, 0.1 if bear else 0.12, 4)
 	var hm := hb.to_instance("BeastHead")
 	head.add_child(hm)
 	_beast.append(hm)
@@ -981,6 +987,20 @@ func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wo
 		for i in range(7):
 			var a := TAU * float(i) / 7.0
 			nb.add_cone(lt, Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, -1.1), Vector3(sin(a) * 0.16, sy + 0.04, cos(a) * 0.16)), 0.05, 0.14, 4)
+	# a ridge of fur down the spine (the wolf's spiky, the bear's shaggy) and tufts at the shoulders and on the chest
+	var back_z := 0.14 if bear else 0.12
+	for i in range(7):
+		var k := float(i) / 6.0
+		var ry := sy + 0.06 - k * 0.42
+		var sz := lerpf(0.11, 0.05, k) * (1.25 if bear else 1.0)
+		nb.add_cone(fm if i % 2 == 0 else lt, Transform3D(Basis(Vector3.RIGHT, -0.75 - k * 0.3), Vector3(0, ry, back_z + 0.01 * (1.0 - k))), sz * 0.45, sz * 1.6, 4)
+	for sx in [-1.0, 1.0]:
+		for j in range(3):
+			nb.add_cone(lt if j == 1 else fm, Transform3D(Basis(Vector3.BACK, sx * (1.2 + j * 0.25)), Vector3(sx * (0.2 + j * 0.03), sy + 0.03 - j * 0.04, 0.02 * j)), 0.035, 0.12 if bear else 0.1, 4)
+	if not bear:
+		for j in range(4):
+			var cx := (float(j) - 1.5) * 0.045
+			nb.add_cone(lt, Transform3D(Basis(Vector3.RIGHT, PI * 0.82), Vector3(cx, sy - 0.04 - absf(cx) * 0.4, -0.12)), 0.03, 0.13, 4)
 	var nm := nb.to_instance("BeastRuff")
 	torso.add_child(nm)
 	_beast.append(nm)
@@ -990,6 +1010,8 @@ func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wo
 		for i in range(3):
 			var x := (float(i) - 1.0) * (0.03 if bear else 0.024)
 			cb.add_cone(cl, Transform3D(Basis(Vector3.RIGHT, PI * (0.82 if bear else 0.88)), Vector3(x, -0.075, -0.035)), 0.016 if bear else 0.01, 0.11 if bear else 0.085, 4)
+		# a tuft at the wrist
+		cb.add_cone(fm, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 0.05, 0.03)), 0.03, 0.08, 4)
 		var cm := cb.to_instance("Claws")
 		(hand as Node3D).add_child(cm)
 		_beast.append(cm)
@@ -1465,6 +1487,17 @@ func _feral(p: Dictionary, walk: float, run: float, s: float) -> float:
 	for shin in ["shin_l", "shin_r"]:
 		move[shin] = (p[shin] as Vector3) * 1.2 + Vector3(-0.55, 0, 0)
 	var w := clampf(walk, 0.0, 1.0)
+	# (1.27) the wolf at a sprint: pitched right down, the arms reaching out ahead like front legs, near bounding on all
+	# fours; the head never still
+	if beast_kind == "wolf":
+		var r := clampf(run, 0.0, 1.0)
+		move["pivot"] = (move["pivot"] as Vector3).lerp(Vector3(-0.62, 0, 0), r)
+		move["arm_l"] = (move["arm_l"] as Vector3).lerp(Vector3(0.85 - s * 1.1, 0.2, -0.45), r)
+		move["arm_r"] = (move["arm_r"] as Vector3).lerp(Vector3(0.85 + s * 1.1, -0.2, 0.45), r)
+		move["fore_l"] = (move["fore_l"] as Vector3).lerp(Vector3(0.35 + maxf(s, 0.0) * 0.9, 0, 0), r)
+		move["fore_r"] = (move["fore_r"] as Vector3).lerp(Vector3(0.35 + maxf(-s, 0.0) * 0.9, 0, 0), r)
+		move["head"] = (move["head"] as Vector3) + Vector3(0.25 * r + sin(_t * 13.0) * 0.04, sin(_t * 7.0) * 0.06, 0)
+		idle["head"] = (idle["head"] as Vector3) + Vector3(0, sin(_t * 1.7) * 0.25 * float(sin(_t * 0.6) > 0.7), 0)
 	for j in idle.keys():
 		p[j] = (idle[j] as Vector3).lerp(move[j], w)
 	return lerpf(-0.44, lerpf(-0.3, -0.36, run), w) + br * 0.015 * (1.0 - w)
@@ -2602,7 +2635,11 @@ func _locomotion(delta: float) -> Dictionary:
 		# Zoan hybrid: a low feral crouch, claws out at the sides, and a
 		# forward-pitched, bounding run
 		elif armed and stance == "claw":
-			lift.y += _feral(p, walk, maxf(jog * 0.6, run), s)
+			# (1.27) the bear lumbers; the wolf (and any other hybrid) runs feral
+			if beast_kind == "bear":
+				lift.y += _lumber(p, walk, maxf(jog * 0.6, run), s)
+			else:
+				lift.y += _feral(p, walk, maxf(jog * 0.6, run), s)
 		# combat stance: the weapon's guard, its feet set and planted, breathing (StanceLife)
 		elif guard_up:
 			# (a hammer's weight: the chest rolling over each planted foot as it walks)
@@ -4171,3 +4208,36 @@ func net_event(what: String, args: Array) -> void:
 		"relax":
 			relax_ragdoll()
 
+
+
+## (1.27) The bear hybrid's lumber (stance "claw", beast_kind "bear"): upright-ish and wide, the arms hanging heavy in
+## front, the body rolling side to side over each planted foot with a drop at every footfall; at a sprint it goes down
+## into a pawing gallop, the arms swinging to the ground ahead. A slow, heavy breath at rest. Returns the hip drop.
+func _lumber(p: Dictionary, walk: float, run: float, s: float) -> float:
+	var br := sin(_t * 2.0)
+	var w := clampf(walk, 0.0, 1.0)
+	var r := clampf(maxf(run, 1.0 if sprinting else 0.0), 0.0, 1.0)
+	var idle := {
+		"pivot": Vector3(-0.12, 0, 0), "hips": Vector3.ZERO,
+		"torso": Vector3(-0.32 + br * 0.04, 0, br * 0.025), "head": Vector3(0.42 - br * 0.03, 0, 0),
+		"arm_l": Vector3(0.55 + br * 0.04, 0.15, -0.38), "fore_l": Vector3(0.65, 0, 0), "hand_l": Vector3(0.4, 0, 0),
+		"arm_r": Vector3(0.55 + br * 0.04, -0.15, 0.38), "fore_r": Vector3(0.65, 0, 0), "hand_r": Vector3(0.4, 0, 0),
+		"leg_l": Vector3(0.35, 0, -0.3), "shin_l": Vector3(-0.65, 0, 0),
+		"leg_r": Vector3(0.3, 0, 0.3), "shin_r": Vector3(-0.6, 0, 0)}
+	# the walk: a slow roll from foot to foot, the shoulders swinging the hanging arms
+	var swing := s * lerpf(0.45, 0.95, r)
+	var move := {
+		"pivot": Vector3(-lerpf(0.18, 0.62, r), 0, 0), "hips": (p["hips"] as Vector3) + Vector3(0, s * 0.18, 0),
+		"torso": Vector3(-lerpf(0.38, 0.55, r), s * 0.22, -s * lerpf(0.14, 0.05, r)),
+		"head": Vector3(lerpf(0.48, 0.95, r), -s * 0.1, s * 0.07),
+		"arm_l": Vector3(lerpf(0.5, 1.2, r) - swing, 0.15, -0.42), "fore_l": Vector3(lerpf(0.55, 0.25, r) + maxf(swing, 0.0) * 0.5, 0, 0), "hand_l": Vector3(0.5, 0, 0),
+		"arm_r": Vector3(lerpf(0.5, 1.2, r) + swing, -0.15, 0.42), "fore_r": Vector3(lerpf(0.55, 0.25, r) + maxf(-swing, 0.0) * 0.5, 0, 0), "hand_r": Vector3(0.5, 0, 0)}
+	for leg in ["leg_l", "leg_r"]:
+		var g: Vector3 = p[leg]
+		move[leg] = Vector3(g.x * lerpf(0.95, 1.15, r) + lerpf(0.2, 0.6, r), 0, g.z + (-0.3 if leg == "leg_l" else 0.3))
+	for shin in ["shin_l", "shin_r"]:
+		move[shin] = (p[shin] as Vector3) * 1.05 + Vector3(-lerpf(0.35, 0.8, r), 0, 0)
+	for j in idle.keys():
+		p[j] = (idle[j] as Vector3).lerp(move[j], w)
+	# (heavy: down onto each foot as it lands)
+	return lerpf(-0.08, lerpf(-0.16, -0.34, r), w) - absf(s) * 0.06 * w + br * 0.012 * (1.0 - w)

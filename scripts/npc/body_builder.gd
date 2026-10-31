@@ -140,7 +140,8 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	Hk *= float(lk.get("hand_k", 1.0))
 	Fk *= float(lk.get("foot_k", 1.0))
 	T *= float(lk.get("torso_k", 1.0))
-	m_skin = PSXMat.flat(_col("skin"))
+	# (1.27) a zoan hybrid's skin is fur: the streaked fur texture in the fur colour, not a flat tone
+	m_skin = PSXMat.lit("fur", _col("skin").lightened(0.15)) if lk.get("fur", false) else PSXMat.flat(_col("skin"))
 	# (pulled a touch toward the camera so the scalp never shows through it)
 	var hk := 1.25
 	var hc := _col("hair_color")

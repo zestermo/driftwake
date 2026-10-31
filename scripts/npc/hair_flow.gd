@@ -6,7 +6,7 @@ extends RefCounted
 ## shaded root to tip (an ombre when the look has "hair_tip"). Hanging locks are
 ## skinned to a few guide chains per mass so the hair swings with the body.
 
-const STYLES := ["cascade", "high_tail", "waves", "mane", "princess", "court_bun", "twin_low", "half_bun"]
+const STYLES := ["cascade", "high_tail", "waves", "mane", "princess", "court_bun", "twin_low", "half_bun", "wolf_mane", "bear_mane"]
 const SIDES := 6
 const COLS := ["head", "torso", "hair_sh"]
 
@@ -163,12 +163,23 @@ func build() -> void:
 				_band(c[1], (c[2] - c[0]).normalized(), 0.048, gb[0])
 				var k := int(c.size() * 0.72)
 				_band(c[k], (c[k + 1] - c[k - 1]).normalized(), 0.04, gb[gb.size() - 2])
-		"mane":
+		"mane", "wolf_mane", "bear_mane":
 			# a lion's mane: thick pointed locks standing out all round and sweeping back
 			# rows of thick pointed locks, crown to nape, all sweeping back and out
 			# [height, count, half arc from the back (deg), length, up, out, droop]
-			for row in [[top - 0.012, 9, 125.0, 0.3, 0.55, 0.35, 0.1], [0.3 * yk, 12, 140.0, 0.38, 0.25, 0.75, 0.15],
-					[0.23 * yk, 13, 120.0, 0.46, -0.05, 0.85, 0.22], [0.15 * yk, 9, 70.0, 0.42, -0.3, 0.5, 0.12]]:
+			# (1.27, the zoan hybrids: no crown row, so the beast's ears stand clear; the wolf's long, wild and swept back,
+			# the bear's short, heavy and shaggy, drooping round the head and the nape)
+			var rows: Array = [[top - 0.012, 9, 125.0, 0.3, 0.55, 0.35, 0.1], [0.3 * yk, 12, 140.0, 0.38, 0.25, 0.75, 0.15],
+					[0.23 * yk, 13, 120.0, 0.46, -0.05, 0.85, 0.22], [0.15 * yk, 9, 70.0, 0.42, -0.3, 0.5, 0.12]]
+			var thick := 0.2
+			if style == "wolf_mane":
+				rows = [[0.3 * yk, 13, 150.0, 0.46, 0.18, 0.85, 0.18], [0.23 * yk, 15, 135.0, 0.6, -0.05, 0.95, 0.28],
+					[0.15 * yk, 12, 95.0, 0.55, -0.3, 0.7, 0.2], [0.08 * yk, 8, 60.0, 0.45, -0.5, 0.5, 0.15]]
+			elif style == "bear_mane":
+				rows = [[0.28 * yk, 11, 155.0, 0.26, 0.05, 0.95, 0.4], [0.2 * yk, 13, 145.0, 0.34, -0.2, 0.95, 0.5],
+					[0.12 * yk, 11, 110.0, 0.32, -0.45, 0.75, 0.45]]
+				thick = 0.3
+			for row in rows:
 				var cnt: int = row[1]
 				if hatted and float(row[0]) > 0.2 * yk:
 					continue
@@ -179,9 +190,9 @@ func build() -> void:
 					var side := absf(sin(ar))
 					var dir := (rad * float(row[5]) + Vector3(0, float(row[4]), 0) + Vector3(0, 0, 0.75)).normalized()
 					var lgt: float = float(row[3]) * lerpf(1.0, 0.75, side) * rng.randf_range(0.85, 1.15)
-					_spike_lock(a, row[0], dir, lgt, minf(0.2 * lgt, 0.075), float(row[6]) * rng.randf_range(0.7, 1.3))
+					_spike_lock(a, row[0], dir, lgt, minf(thick * lgt, 0.075 if thick <= 0.2 else 0.1), float(row[6]) * rng.randf_range(0.7, 1.3))
 			# the fringe: big points over the brow, flicking out to the sides
-			for i in range(0 if hatted else 7):
+			for i in range(0 if hatted or style == "bear_mane" else 7):
 				var t := i / 6.0
 				_bang(lerpf(-20.0, 20.0, t), lerpf(-62.0, 62.0, t), lerpf(0.17, 0.2, absf(t - 0.5) * 2.0) * yk, 0.05, (t - 0.5) * 0.08, 1.1)
 			_mass(118.0, 242.0, 11, 0.7, {"y0": 0.2 * yk, "amp": 0.014, "freq": 1.6, "vol": 0.14, "flick": 0.06,
