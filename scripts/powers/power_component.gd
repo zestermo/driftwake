@@ -57,6 +57,10 @@ const IRON_GUARD_SECS := 3.0
 ## (1.27) The Bear Fruit: Bear Charge's rush, Roar's reach.
 ## (1.27) The Clockwork Fruit: how far back Rewind goes, how long Time Stop holds; the captain's recent places
 ## (sampled every TRAIL_EVERY s, REWIND_SECS of them, kept only for a Clockwork captain).
+## (1.27) The Echo Fruit: how far Echo Step looks for a foe; Shatter Note's line (length, half its width).
+const ECHO_REACH := 12.0
+const NOTE_LEN := 14.0
+const NOTE_HALF_W := 0.75
 const REWIND_SECS := 3.0
 const TRAIL_EVERY := 0.25
 const STOP_SECS := 3.0
@@ -390,6 +394,15 @@ func try_cast(slot: int) -> bool:
 			time_stop(foes[0], STOP_SECS)
 		cast.emit(slot)
 		return true
+	# (1.27) the Echo Fruit: Echo Step (out behind the nearest foe) and Shatter Note (a long, narrow line)
+	if id == "echo_step":
+		echo_step(ECHO_REACH)
+		cast.emit(slot)
+		return true
+	if id == "shatter_note":
+		shatter_note(player.global_position + Vector3(0, 0.9, 0), -player.player_model.global_basis.z, NOTE_LEN, NOTE_HALF_W, 8.0 * power_multiplier())
+		cast.emit(slot)
+		return true
 	# (1.27) the Bear Fruit: Bear Charge (a rush and a slam at its end) and Roar (everyone round you stunned)
 	if id == "bear_charge":
 		thunder_step(CHARGE_DIST)
@@ -505,7 +518,7 @@ func skill_cooldown(id: String, tier: int) -> float:
 func _process(delta: float) -> void:
 	_ult_lock = maxf(_ult_lock - delta, 0.0)
 	for k in cooldowns.keys():
-		cooldowns[k] = maxf(float(cooldowns[k]) - delta, 0.0)
+		cooldowns[k] = maxf(float(cooldowns[k]) - delta * (1.1 if fruit == "clockwork" else 1.0), 0.0)
 	for k in buffs.keys():
 		buffs[k] = maxf(float(buffs[k]) - delta, 0.0)
 	for k in _free_recast.keys():
@@ -1103,3 +1116,54 @@ func time_stop(e: Node3D, secs: float) -> void:
 		hd.poise = 40.0
 		hb.take_hit(hd, player)
 	Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.95, 0.8, 0.4), secs, 0.1])
+
+
+## (1.27, Echo) out behind the nearest foe within `reach`, facing them; nothing near, nothing happens.
+func echo_step(reach: float) -> Node3D:
+	var best: Node3D = null
+	var bd := reach
+	for e in enemies_in(player.global_position, reach):
+		var d := player.global_position.distance_to((e as Node3D).global_position)
+		if d < bd:
+			bd = d
+			best = e
+	if best == null:
+		return null
+	var away := best.global_position - player.global_position
+	away.y = 0.0
+	away = away.normalized() if away.length() > 0.1 else -player.player_model.global_basis.z
+	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.55, 0.75, 0.85), 0.35, 0.1])
+	player.global_position = best.global_position + away * 1.8 + Vector3(0, 0.2, 0)
+	player.reset_physics_interpolation()
+	player.player_model.look_at(player.player_model.global_position - away, Vector3.UP)
+	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.55, 0.75, 0.85), 0.35, 0.1])
+	return best
+
+
+## (1.27, Echo) a note down a line from `at` along `dir`, `length` long and 2 * `half_w` wide: everyone on it reels;
+## a foe already reeling takes double (Resonance, the fruit's passive).
+func shatter_note(at: Vector3, dir: Vector3, length: float, half_w: float, dmg: float) -> Array:
+	dir.y = 0.0
+	dir = dir.normalized()
+	var hit_list: Array = []
+	for e in enemies_in(at + dir * length * 0.5, length * 0.5 + half_w):
+		var to := (e as Node3D).global_position - at
+		to.y = 0.0
+		var along := to.dot(dir)
+		if along < -0.5 or along > length or (to - dir * along).length() > half_w + 0.6:
+			continue
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb == null:
+			continue
+		var hd := HitData.new()
+		var reeling: bool = e is PirateGrunt and int((e as PirateGrunt).state) in [PirateGrunt.S.STAGGER, PirateGrunt.S.HITSTUN]
+		hd.damage = dmg * (2.0 if reeling else 1.0)
+		hd.knockback_force = 1.0
+		hd.stagger_duration = 1.8
+		hd.unblockable = true
+		hd.poise = 40.0
+		hb.take_hit(hd, player)
+		hit_list.append(e)
+	for i in range(4):
+		Net.fx("ring", [at + dir * (2.0 + i * 3.5), dir, 0.9 + i * 0.25, Color(0.6, 0.8, 0.9), 0.3, 0.08])
+	return hit_list

@@ -74,6 +74,11 @@ const ALL := {
 		"desc": "Step back to where you stood 3 s ago, as if the last moments never happened to you."},
 	"time_stop": {"name": "Time Stop", "tree": "Clockwork", "cost": 26.0, "cooldown": 12.0, "needs": "", "fruit": "clockwork",
 		"desc": "Stop one foe in front of you in time for 3 s. Used often, time stops by itself for whoever strikes you."},
+	# (1.27) the Echo Fruit's first powers: Echo Step (its movement) and Shatter Note (its CC; its forms: FruitForms)
+	"echo_step": {"name": "Echo Step", "tree": "Echo", "cost": 20.0, "cooldown": 7.0, "needs": "", "fruit": "echo",
+		"desc": "Follow your own echo: step out behind the nearest foe within 12 m."},
+	"shatter_note": {"name": "Shatter Note", "tree": "Echo", "cost": 28.0, "cooldown": 9.0, "needs": "", "fruit": "echo",
+		"desc": "One hard note down a 14 m line: everyone on it reels. Used often, your dodges ring out by themselves."},
 	# (1.27) the Bear Fruit's first powers: Bear Charge (its movement) and Roar (its CC; its forms: FruitForms)
 	"bear_charge": {"name": "Bear Charge", "tree": "Bear", "cost": 20.0, "cooldown": 6.0, "needs": "", "fruit": "bear",
 		"desc": "Charge 8 m the way you face and slam into whoever is at the end of it, knocking them flat."},

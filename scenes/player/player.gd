@@ -3531,3 +3531,27 @@ func clock_reflex(attacker: Node3D) -> bool:
 	_clock_reflex_at = Engine.get_physics_frames() + int(CLOCK_REFLEX_EVERY * Engine.physics_ticks_per_second)
 	power.time_stop(attacker, 2.0)
 	return true
+
+
+## (1.27) The Echo Fruit's Shatter Note at Reflex (FruitForms on its uses): a dodge rings out where it ends, everyone
+## within ECHO_RING_R reeling (at most every ECHO_REFLEX_EVERY s).
+const ECHO_REFLEX_EVERY := 6.0
+const ECHO_RING_R := 3.0
+var _echo_reflex_at := -1000000
+
+
+func echo_dodge_reflex() -> bool:
+	if power.fruit != "echo" or FruitForms.form(progression, "shatter_note", "echo") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _echo_reflex_at or power.suppressed():
+		return false
+	_echo_reflex_at = Engine.get_physics_frames() + int(ECHO_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	var hd := HitData.new()
+	hd.damage = 3.0
+	hd.knockback_force = 2.0
+	hd.stagger_duration = 1.2
+	hd.unblockable = true
+	hd.poise = 40.0
+	Net.fx("ring", [global_position + Vector3.UP, Vector3.UP, ECHO_RING_R, Color(0.6, 0.8, 0.9), 0.4, 0.15])
+	power.blast(global_position + Vector3(0, 0.9, 0), ECHO_RING_R, hd)
+	return true

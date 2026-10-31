@@ -57,6 +57,7 @@ const HEADERS := {
 	"gust": ["Gust Fruit", "fruit", Color(0.7, 0.95, 0.75), 30],
 	"bear": ["Bear Fruit", "fruit", Color(0.55, 0.4, 0.28), 30],
 	"clockwork": ["Clockwork Fruit", "fruit", Color(0.85, 0.7, 0.35), 30],
+	"echo": ["Echo Fruit", "fruit", Color(0.55, 0.75, 0.85), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -231,6 +232,7 @@ static func _build() -> void:
 	_build_gust()
 	_build_bear()
 	_build_clockwork()
+	_build_echo()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1409,3 +1411,13 @@ static func _build_clockwork() -> void:
 	_big("cw_rewind", "Rewind", "tech", 0, 1, {}, "", "rewind")
 	_big("cw_stop", "Time Stop", "tech", 1, 1, {}, "", "time_stop")
 	_step("cw_spring", "Mainspring", "cw_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
+
+
+## (1.27) The Echo Fruit (Knack, sound): Echo Step and Shatter Note to begin with (to come: a sonar that shows what's
+## near, a resonance that breaks guards; docs/v1_27_raids_fruits_plan.md "The ten Driftfruits").
+static func _build_echo() -> void:
+	_tree("echo", ["Step", "Note", "Sonar"])
+	_root("ec_root", "Echo Fruit (Knack)", {}, "Knack: every sound is yours. Use its powers to grow them.")
+	_big("ec_step", "Echo Step", "tech", 0, 1, {}, "", "echo_step")
+	_big("ec_note", "Shatter Note", "tech", 1, 1, {}, "", "shatter_note")
+	_step("ec_ear", "Keen Ear", "ec_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
