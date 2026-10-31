@@ -340,11 +340,19 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   and Thorn Storm. Tree nodes at levels 20 and 24. Test t/progression/fruit_ults_a. The power tests now pause the
   grunt's thinking from placement to the cast (a red wind-up or getting-up poise immunity shrugged Maul's knockdown).
   (part 2: below)
-- (latest) **Ultimates, part 2: every fruit has two** (Ember: Great Inferno and Solar Flare). Iron Fortress and Meteor
+- **Ultimates, part 2: every fruit has two** (Ember: Great Inferno and Solar Flare). Iron Fortress and Meteor
   Drop (meta "iron_drop" = "meteor": Player._on_landed makes a 7 m crater), Bubble Prison and Bubble Sanctuary
   (Net._all_sanctuary: 30% and a 3-hit shield for each crewmate within 12 m; Player now pops bubbles for anyone with
   bubble_hits, not only Bubble eaters), Time Freeze and Overclock, Sonic Boom and Resonance Cascade, Solar Flare (floored
   and burning). Hamstring is unblockable now (a low cut under the guard). Test t/progression/fruit_ults_b.
   Known: the five power tests flake under heavy load (docs/todo.md; lines in flaky.txt).
-  **Next:** the awakenings (mastery 30; Ember's Sunborn is the model), then the trees to near weapon size (mechanics,
+  (awakenings: below.) Then the trees to near weapon size (mechanics,
   a variant pick, a crew technique, step chains, links), icons and models, the new powers' animations and their forms.
+- (latest) **Awakenings: every fruit has one** (mastery 30; nodes "<Name>born (Awakening)" at level 30, skills flagged
+  "awakening": true): Stormborn, Skyborn, Moonborn, Mountainborn, Rootborn, Ironborn, Foamborn, Timeborn, Soundborn,
+  beside Ember's Sunborn. The "awakened" buff (30 s) now means, for every fruit: FruitForms.form returns NATURE for that
+  fruit's powers (it reads pr.player), its powers cost half, cooldowns tick twice as fast. Each has a pillar in its
+  fruit's colour (an aura for Vine and Wolf). Bubble Trap's pop is unblockable (a guarding grunt blocked it).
+  Test t/progression/awakenings. **The fruit kits are complete by count:** 5 powers, 2 ultimates, 1 awakening each.
+  **Next:** the trees to near weapon size, then icons/models/animations, then the new powers' own Reflex/Nature forms
+  (only each fruit's first two have them; awakened Nature does nothing extra for the rest yet).

@@ -6,6 +6,7 @@ extends RefCounted
 ## - REFLEX (2): it also fires by itself when its moment comes (REFLEX_USES uses of that power, fruit mastery REFLEX_LV);
 ## - NATURE (3): always on, part of you (NATURE_USES uses, mastery NATURE_LV); its bar slot frees up.
 ## Uses are Progression's own count (note_use on every cast: saved, per captain); mastery is the fruit tree's.
+## Awakened (the fruit's awakening, a 30 s buff): every power of the fruit is at NATURE while it lasts.
 ## What each form does is each fruit's own (its kit); this is only which form a power is in.
 
 enum {ACTIVE = 1, REFLEX = 2, NATURE = 3}
@@ -19,6 +20,10 @@ const NAMES := {ACTIVE: "Active", REFLEX: "Reflex", NATURE: "Nature"}
 
 ## The form of power `skill_id` (of fruit `fruit_id`) for this captain's progression.
 static func form(pr, skill_id: String, fruit_id: String) -> int:
+	# (awakened, mastery 30: every power of that fruit at its Nature while it lasts)
+	var pl = pr.get("player") if pr is Object else null
+	if pl and is_instance_valid(pl) and pl.power and str(pl.power.fruit) == fruit_id and pl.power.buff("awakened"):
+		return NATURE
 	var n := int(pr.uses_of(skill_id))
 	var lv := int((pr.mastery.get(fruit_id, {"lv": 1}) as Dictionary).get("lv", 1))
 	if n >= NATURE_USES and lv >= NATURE_LV:

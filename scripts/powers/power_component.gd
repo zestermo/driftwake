@@ -424,6 +424,8 @@ func try_cast(slot: int) -> bool:
 			_ult_lock = ULT_LOCK
 		else:
 			var c := float(sk.get("cost", 0.0))
+			if buff("awakened") and str(sk.get("fruit", "")) == fruit:
+				c *= 0.5
 			energy = maxf(energy - c, 0.0)
 			_regen_wait = REGEN_DELAY
 			energy_spent.emit(c)
@@ -649,6 +651,17 @@ func try_cast(slot: int) -> bool:
 		player.body_model.play("punch_r", 0.35)
 		cast.emit(slot)
 		return true
+	# (1.27) the other fruits' awakenings (mastery 30): AWAKENED_SECS of every power at Nature, half the energy, twice
+	# as quick back (the "awakened" buff; Sunborn is Ember's)
+	if bool((Skills.ALL.get(id, {}) as Dictionary).get("awakening", false)):
+		add_buff("awakened", AWAKENED_SECS)
+		var col: Color = (DevilFruits.FRUITS.get(fruit, {}) as Dictionary).get("color", Color.WHITE)
+		Net.fx("light_pillar", [player.global_position, 16.0, 4.0, 1.2, col])
+		if fruit in ["vine", "wolf"]:
+			FX.power_aura.call_deferred(player.body_model, fruit, 3.0)
+		player.cam_shake(0.4, 0.5)
+		cast.emit(slot)
+		return true
 	# (1.27) Ember's awakening: Sunborn, AWAKENED_SECS of it
 	if id == "sunborn":
 		add_buff("awakened", AWAKENED_SECS)
@@ -692,7 +705,7 @@ func skill_cooldown(id: String, tier: int) -> float:
 func _process(delta: float) -> void:
 	_ult_lock = maxf(_ult_lock - delta, 0.0)
 	for k in cooldowns.keys():
-		cooldowns[k] = maxf(float(cooldowns[k]) - delta * (1.1 if fruit == "clockwork" else 1.0), 0.0)
+		cooldowns[k] = maxf(float(cooldowns[k]) - delta * (1.1 if fruit == "clockwork" else 1.0) * (2.0 if buff("awakened") else 1.0), 0.0)
 	for k in buffs.keys():
 		buffs[k] = maxf(float(buffs[k]) - delta, 0.0)
 	for k in _free_recast.keys():
@@ -1500,6 +1513,7 @@ func bubble_trap(e: Node3D) -> bool:
 		if hb:
 			var hd := HitData.new()
 			hd.damage = 6.0
+			hd.unblockable = true
 			hb.take_hit(hd, me))
 	return true
 
