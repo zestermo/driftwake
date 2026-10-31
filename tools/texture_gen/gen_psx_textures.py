@@ -2565,13 +2565,22 @@ def gen_move_icons():
         _icon("skill_move_" + name, fn)
 
 
-def gen_fruit_skins():
-    for name, base, dots, swirl, top in (("devil_fruit_wolf", "8a8478", ("a09a8c", "6a645a"), "2a2420", "c0b8a8"),
-                                          ("devil_fruit_vine", "4a9a36", ("62b04a", "36802a"), "1a4a14", "a0e070")):
+def gen_fruit_skins(only_new=False):
+    skins = [("devil_fruit_wolf", "8a8478", ("a09a8c", "6a645a"), "2a2420", "c0b8a8"),
+             ("devil_fruit_vine", "4a9a36", ("62b04a", "36802a"), "1a4a14", "a0e070")]
+    # (1.27) the new Driftfruits (seeded from their names: hash() changes from run to run)
+    new = [("devil_fruit_iron", "9aa0ab", ("b4bac4", "7a808a"), "3a404a", "e0e6ee"),
+           ("devil_fruit_storm", "5a7ad0", ("7a9ae8", "4060b0"), "fff280", "b8d6ff"),
+           ("devil_fruit_gust", "8ed0b8", ("aee8d4", "6ab09a"), "2a6a5a", "e0fff4"),
+           ("devil_fruit_bear", "7a5236", ("94684a", "5a3a24"), "2a1810", "b08a64"),
+           ("devil_fruit_bubble", "9ce0f8", ("c4f0ff", "7ac8e8"), "e8a0d8", "ffffff"),
+           ("devil_fruit_clockwork", "d0a038", ("e8c058", "a87c20"), "5a3c10", "f8d888"),
+           ("devil_fruit_echo", "6aaee0", ("8ac8f0", "4a8ec8"), "1e4a7a", "d0ecff")]
+    for name, base, dots, swirl, top in (new if only_new else skins + new):
         n = 32
         img = Image.new("RGB", (n, n), hexc(base))
         d = ImageDraw.Draw(img)
-        rng = np.random.default_rng(hash(name) % 9999)
+        rng = np.random.default_rng(sum(name.encode()) if name not in ("devil_fruit_wolf", "devil_fruit_vine") else hash(name) % 9999)
         for y in range(n):
             for x in range(n):
                 if rng.random() < 0.25:
@@ -3114,6 +3123,9 @@ def gen_perk_icons():
 
 
 def main():
+    if "fruit_skins" in sys.argv[1:]:
+        gen_fruit_skins(only_new=True)
+        return
     if "skill_icons" in sys.argv[1:]:
         gen_skill_icons()
         return
