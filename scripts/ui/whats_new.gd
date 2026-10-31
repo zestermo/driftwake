@@ -7,13 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Every weapon, more", "All 17 weapons get a second ultimate, a second crew technique, free alternate aerial, sprint and right-click attacks as their mastery grows, a launcher, an aerial heavy at mastery 10, and bridges between their branches."],
-	["A new beginning", "New captains wake on Brinehollow with nothing. Fight with your fists, pick your weapon from Sergeant Vey's rack, have your Edy read by Master Isao at the shrine, and cross the whole island before you sail."],
-	["The Edy tree", "One round tree of eight branches. Abilities rank up as you use them, passives switch off, Infusion puts your Edy into every blow, and subtler auras glow on your arms and legs (the whole body when you Reinforce)."],
-	["Islands worth landing on", "Side jobs weaken the island's villain, shops you walk into, a special place in every village, dojo masters who spar you for real, dice and arm wrestling at the inn, and villages the pirates have taken."],
-	["Saves without a limit", "As many saves as you like, each with its picture, place, crew and play time, and three backups kept of each. Host or join a crew without making a save first."],
-	["The sea pushes back", "Bounty hunters are announced before they walk in, Admiralty ships chase with bow chasers, blockades of three ships can be broken, and your sails come down when you're rammed."],
-	["Finding your way", "The compass stays up with your crew and objective, every captain carries a tonic flask, villagers glance instead of spinning round, and Vsync, a frame cap and Reduce flashing are in the options."],
+	["The Admiralty's stronghold", "One hidden fortress per world. Fight through its districts, beat Kesh, Marrow and Commodore Vane, raise your flags, loot the vault, then survive the Scouring and sail for it."],
+	["Ten Driftfruits", "Ember, Storm, Gust, Wolf, Bear, Vine, Iron, Bubble, Clockwork and Echo: five powers, two ultimates and an awakening each. Press V for your fruit's bar."],
+	["Powers that grow", "Use a power enough and it fires by itself at its moment (hit, surrounded, a dodge, a kill); master it and it fires even off your bar."],
+	["Bodies that change", "Iron arms, vine-wrapped limbs, and Wolf and Bear forms: switch the half-beast on and off, and become the full beast when you awaken."],
+	["Deeper cities", "Undercities, upper floors, a night life with lanterns and a watch, the palace's grand stair, and the Queen's own line of work."],
 ]
 
 

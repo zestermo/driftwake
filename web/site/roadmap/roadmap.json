@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.26",
+	"here": "1.27",
 	"versions": [
 		{
 			"v": "0.1",
@@ -866,16 +866,32 @@
 		},
 		{
 			"v": "1.27",
-			"name": "Strongholds and Driftfruits",
+			"name": "Fortresses and Fruit",
+			"date": "2026-10-31",
+			"status": "shipped",
+			"headline": "The Admiralty's stronghold as a raid ending in the Scouring, ten Driftfruits with five powers, two ultimates and an awakening each, and cities with undercities, upper floors and a night life.",
+			"img": "preview_127",
+			"alt": "Ironveil Hold seen from the sea, the Verdict's tower rising over it",
+			"github": true,
+			"added": [
+				["The stronghold", "A hidden Admiralty fortress per world: districts, sealed rooms, three officers, muster flags, the vault and the Scouring."],
+				["Ten Driftfruits", "Five powers, two ultimates and an awakening each, powers that grow by use, and a full tree per fruit."],
+				["Bodies that change", "Iron arms, vine-wrapped limbs, and Wolf and Bear half-beast and full-beast forms."],
+				["Cities", "Undercities, upper floors, a night life, the grand stair, city favour and the rulers' lines."]
+			]
+		},
+		{
+			"v": "1.28",
+			"name": "Fruit at Large",
 			"status": "building",
-			"headline": "Cities worth exploring first, then raids on an Admiralty stronghold and a great pirate's hideout, and Driftfruits back, done right.",
+			"headline": "Driftfruits out in the world, captains who wield them, and a great pirate's hideout to raid.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",
 			"plan": [
-				["Cities", "Rolled streets and alleys, interiors to explore, bell towers and undercities, city jobs and mysteries, and a reason to meet the Queen and the Doge."],
-				["Strongholds", "Admiralty strongholds and pirate hideouts as raids."],
-				["Driftfruits return", "Each fruit with its own moves, effects and tree, real trade-offs, and co-op rescues from the sea."],
-				["Fruit-user enemies", "Enemies who wield fruits, from one world pool: a fruit is free again when its user falls."]
+				["Fruit in the world", "Driftfruits in chests and on beaten captains, from one world pool: a fruit is free again when its user falls."],
+				["Fruit-user enemies", "Enemy captains and officers who wield fruits."],
+				["The sea's price", "Sinking, rescues from the sea, and the life buoy."],
+				["Pirate hideouts", "A great pirate's hideout as a raid."]
 			]
 		},
 		{
