@@ -63,6 +63,9 @@ const BUILD_F := {
 	"average": {"sh": 1.0, "ch": 1.0, "wa": 1.0, "hp": 1.0, "de": 1.0, "limb": 1.0},
 	"broad": {"sh": 1.12, "ch": 1.1, "wa": 1.02, "hp": 1.0, "de": 1.06, "limb": 1.1},
 	"stout": {"sh": 1.05, "ch": 1.14, "wa": 1.3, "hp": 1.15, "de": 1.28, "limb": 1.12},
+	# (1.27) the zoan hybrids (Player.set_hybrid): the wolf lean and long in the shoulders, the bear massive all through
+	"wolf": {"sh": 1.16, "ch": 1.14, "wa": 0.88, "hp": 0.94, "de": 1.12, "limb": 1.15},
+	"bear": {"sh": 1.38, "ch": 1.42, "wa": 1.32, "hp": 1.2, "de": 1.45, "limb": 1.45},
 }
 
 var h: Humanoid
@@ -131,6 +134,12 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	A = float(st["arm"]) * (0.97 if fem else 1.0)
 	Hk = float(st["hand"]) * (0.84 if fem else 1.0)
 	Fk = float(st["foot"]) * (0.86 if fem else 1.0)
+	# (1.27) a body's own proportions over its style's (the zoan hybrids: long arms, great hands and feet)
+	A *= float(lk.get("arm_k", 1.0))
+	Ls *= float(lk.get("leg_k", 1.0))
+	Hk *= float(lk.get("hand_k", 1.0))
+	Fk *= float(lk.get("foot_k", 1.0))
+	T *= float(lk.get("torso_k", 1.0))
 	m_skin = PSXMat.flat(_col("skin"))
 	# (pulled a touch toward the camera so the scalp never shows through it)
 	var hk := 1.25

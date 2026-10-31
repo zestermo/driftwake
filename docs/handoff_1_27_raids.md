@@ -398,3 +398,10 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Fortress and Ironborn (all over), Timeborn (brass arms); FruitFX.body_effect on every cast (vines round the casting
   arm and the legs on ground moves, iron fists, burning fists, brass arms on Clockwork's ultimates); Rootborn wraps
   every limb in vines for its 30 s. Next: the zoan beast forms (Zach: a half-beast wolf and bear that grow the body).
+  (later still) **Zoan beast forms (Zach: "a half-beast wolf and bear that grow the body").** Player.BEAST_FORMS per
+  fruit (fur, eyes, height x1.22 wolf / x1.38 bear, a BodyBuilder build "wolf"/"bear" and proportion keys arm_k, leg_k,
+  hand_k, foot_k, torso_k that BodyBuilder now reads over the style); Humanoid.set_beast(on, fur, kind) builds each
+  one's parts (wolf: long snout, fangs, tall ears, a ruff, a bushy tail; bear: broad muzzle, round ears, a shoulder
+  hump, heavy hooked claws, a stub tail; seeded). A guest's screen reads the form from the look's build. The bear
+  transforms with a roar, dust and debris. abilityshot AB_HYBRID=1 films a zoan power in its form. Not yet: clothes
+  torn or hidden in the form (the coat still shows), and the faces are best judged in-game (the cameras sit behind).

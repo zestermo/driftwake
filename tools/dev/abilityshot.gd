@@ -262,6 +262,9 @@ func _process(d: float) -> bool:
 				var fr := str(Skills.get_skill(skill).get("fruit", ""))
 				if fr != "":
 					pc.fruit = fr
+					# AB_HYBRID=1: a zoan's beast form first (Player.set_hybrid)
+					if OS.get_environment("AB_HYBRID") == "1" and DevilFruits.get_fruit(fr).get("type", "") == "zoan":
+						p.set_hybrid(true)
 					# (equip refuses a power whose node isn't owned: straight into the slot)
 					pc.loadout[slot] = skill
 				else:

@@ -928,9 +928,10 @@ func set_offhand(mesh: Mesh) -> void:
 	_attach_weapon(weapon_in_hand)
 
 
-## Zoan hybrid form extras: pointed ears, a muzzle, claws and a tail, in the
-## fur color (the body itself is re-skinned by the caller).
-func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44)) -> void:
+## Zoan hybrid form extras in the fur colour (the body itself is re-skinned and re-proportioned by the caller):
+## `kind` "wolf" (a long snout and fangs, tall ears, a ruff at the neck, long claws, a bushy tail hung low) or "bear"
+## (a broad short muzzle, small round ears, a hump of muscle over the shoulders, great hooked claws, a stub tail).
+func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wolf") -> void:
 	for n in _beast:
 		if is_instance_valid(n):
 			(n as Node).queue_free()
@@ -938,27 +939,57 @@ func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44)) -> void:
 	_tail = null
 	if not on:
 		return
+	var bear := kind == "bear"
+	# (seeded: the hump and the tail look the same on every screen)
+	var brng := RandomNumberGenerator.new()
+	brng.seed = 7
 	var fm := PSXMat.lit("hair", fur)
 	var dk := PSXMat.flat(fur.darkened(0.55))
+	var lt := PSXMat.lit("hair", fur.lightened(0.28))
+	var nose := PSXMat.flat(Color(0.08, 0.06, 0.06))
 	var cl := PSXMat.flat(Color(0.93, 0.9, 0.8))
-	# ears + muzzle on the head
 	var hb := MeshBuilder.new()
-	for sx in [-1.0, 1.0]:
-		hb.add_cone(fm, Transform3D(Basis(Vector3.FORWARD, -sx * 0.3), Vector3(sx * 0.085, 0.25, 0.0)), 0.06, 0.18, 4)
-		hb.add_cone(dk, Transform3D(Basis(Vector3.FORWARD, -sx * 0.3), Vector3(sx * 0.085, 0.255, -0.02)), 0.035, 0.12, 4)
-	var lt := PSXMat.lit("hair", fur.lightened(0.25))
-	hb.add_box(lt, Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0, 0.055, -0.13)), Vector3(0.1, 0.075, 0.13))
-	hb.add_box(dk, Transform3D(Basis(), Vector3(0, 0.085, -0.2)), Vector3(0.05, 0.035, 0.03))
-	hb.add_box(PSXMat.flat(Color(0.95, 0.93, 0.85)), Transform3D(Basis(), Vector3(0, 0.022, -0.17)), Vector3(0.07, 0.012, 0.04))
+	if bear:
+		# small round ears set wide, a broad short muzzle, a heavy brow
+		for sx in [-1.0, 1.0]:
+			hb.add_cylinder(fm, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(sx * 0.105, 0.2, 0.01)), 0.055, 0.055, 0.035, 8, 1.0)
+			hb.add_cylinder(dk, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(sx * 0.105, 0.2, -0.008)), 0.032, 0.032, 0.01, 8, 1.0)
+		hb.add_box(lt, Transform3D(Basis(), Vector3(0, 0.03, -0.14)), Vector3(0.15, 0.1, 0.13))
+		hb.add_box(nose, Transform3D(Basis(), Vector3(0, 0.07, -0.205)), Vector3(0.075, 0.045, 0.035))
+		hb.add_box(fm, Transform3D(Basis(Vector3.RIGHT, 0.2), Vector3(0, 0.13, -0.1)), Vector3(0.19, 0.04, 0.06))
+		hb.add_box(dk, Transform3D(Basis(), Vector3(0, -0.015, -0.16)), Vector3(0.11, 0.025, 0.08))
+	else:
+		# tall pointed ears, a long snout with a dark nose, a lower jaw and fangs
+		for sx in [-1.0, 1.0]:
+			hb.add_cone(fm, Transform3D(Basis(Vector3.FORWARD, -sx * 0.22), Vector3(sx * 0.085, 0.26, 0.02)), 0.065, 0.24, 4)
+			hb.add_cone(dk, Transform3D(Basis(Vector3.FORWARD, -sx * 0.22), Vector3(sx * 0.085, 0.265, 0.0)), 0.038, 0.17, 4)
+			hb.add_cone(cl, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(sx * 0.03, 0.005, -0.235)), 0.008, 0.035, 4)
+		hb.add_box(lt, Transform3D(Basis(Vector3.RIGHT, 0.1), Vector3(0, 0.045, -0.17)), Vector3(0.1, 0.08, 0.21))
+		hb.add_box(nose, Transform3D(Basis(), Vector3(0, 0.08, -0.275)), Vector3(0.05, 0.035, 0.035))
+		hb.add_box(dk, Transform3D(Basis(Vector3.RIGHT, -0.12), Vector3(0, -0.005, -0.155)), Vector3(0.08, 0.03, 0.16))
+		hb.add_box(fm, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.12, -0.08)), Vector3(0.16, 0.035, 0.07))
 	var hm := hb.to_instance("BeastHead")
 	head.add_child(hm)
 	_beast.append(hm)
-	# claws: three on each hand
+	# the neck and shoulders: the wolf's ruff, the bear's hump
+	var sy := arm_l.position.y
+	var nb := MeshBuilder.new()
+	if bear:
+		nb.add_blob(fm, Transform3D(Basis(), Vector3(0, sy + 0.03, 0.09)), Vector3(0.26, 0.15, 0.17), brng)
+	else:
+		nb.add_cylinder(fm, Transform3D(Basis(), Vector3(0, sy + 0.02, 0.01)), 0.2, 0.13, 0.17, 7, 1.0)
+		for i in range(7):
+			var a := TAU * float(i) / 7.0
+			nb.add_cone(lt, Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, -1.1), Vector3(sin(a) * 0.16, sy + 0.04, cos(a) * 0.16)), 0.05, 0.14, 4)
+	var nm := nb.to_instance("BeastRuff")
+	torso.add_child(nm)
+	_beast.append(nm)
+	# claws: three on each hand, the bear's longer and heavier, hooked
 	for hand in [hand_l, hand_r]:
 		var cb := MeshBuilder.new()
 		for i in range(3):
-			var x := (float(i) - 1.0) * 0.022
-			cb.add_cone(cl, Transform3D(Basis(Vector3.RIGHT, PI * 0.88), Vector3(x, -0.07, -0.03)), 0.009, 0.06, 4)
+			var x := (float(i) - 1.0) * (0.03 if bear else 0.024)
+			cb.add_cone(cl, Transform3D(Basis(Vector3.RIGHT, PI * (0.82 if bear else 0.88)), Vector3(x, -0.075, -0.035)), 0.016 if bear else 0.01, 0.11 if bear else 0.085, 4)
 		var cm := cb.to_instance("Claws")
 		(hand as Node3D).add_child(cm)
 		_beast.append(cm)
@@ -968,8 +999,14 @@ func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44)) -> void:
 	_tail.position = Vector3(0, -0.02, 0.13)
 	hips.add_child(_tail)
 	var tb := MeshBuilder.new()
-	tb.add_cylinder(fm, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.14)), 0.045, 0.06, 0.28, 5, 1.0)
-	tb.add_cone(fm, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.28)), 0.06, 0.2, 5)
+	if bear:
+		tb.add_blob(fm, Transform3D(Basis(), Vector3(0, 0.02, 0.04)), Vector3(0.06, 0.06, 0.05), brng)
+	else:
+		# (hung low and out behind, thick in the middle, a lighter tip)
+		var down := Basis(Vector3.RIGHT, PI * 0.5 + 0.55)
+		tb.add_cylinder(fm, Transform3D(down, (down * Vector3(0, 0.12, 0))), 0.04, 0.075, 0.24, 6, 1.0)
+		tb.add_cylinder(fm, Transform3D(down, (down * Vector3(0, 0.33, 0))), 0.075, 0.06, 0.18, 6, 1.0)
+		tb.add_cone(lt, Transform3D(down, (down * Vector3(0, 0.42, 0))), 0.06, 0.16, 6)
 	_tail.add_child(tb.to_instance("TailMesh"))
 	_beast.append(_tail)
 

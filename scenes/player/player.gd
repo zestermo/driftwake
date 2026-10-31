@@ -1104,6 +1104,14 @@ func update_coat_visual() -> void:
 # Zoan: hybrid form
 # --------------------------------------------------------------------------
 const FUR := Color(0.55, 0.5, 0.44)
+## (1.27) Each zoan's hybrid: its fur and eyes, how much taller, its build and proportions (BodyBuilder: build, arm_k, leg_k,
+## hand_k, foot_k, torso_k) and its beast parts (Humanoid.set_beast). The wolf long, lean and quick; the bear massive.
+const BEAST_FORMS := {
+	"wolf": {"kind": "wolf", "fur": Color(0.42, 0.43, 0.48), "eyes": Color(0.95, 0.78, 0.2), "height": 1.22,
+		"body": {"build": "wolf", "arm_k": 1.14, "leg_k": 1.06, "hand_k": 1.45, "foot_k": 1.3, "torso_k": 1.04}},
+	"bear": {"kind": "bear", "fur": Color(0.36, 0.26, 0.17), "eyes": Color(0.55, 0.32, 0.12), "height": 1.38,
+		"body": {"build": "bear", "arm_k": 1.06, "leg_k": 0.94, "hand_k": 1.65, "foot_k": 1.45, "torso_k": 1.1}},
+}
 
 
 func toggle_hybrid() -> void:
@@ -1117,17 +1125,19 @@ func set_hybrid(on: bool) -> void:
 		return
 	hybrid = on
 	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden)
+	var form: Dictionary = BEAST_FORMS.get(power.fruit, BEAST_FORMS["wolf"])
+	var fur: Color = form["fur"]
 	if on:
-		lk["skin"] = FUR
+		lk["skin"] = fur
 		lk["hair"] = "wild"
-		lk["hair_color"] = FUR.darkened(0.25)
+		lk["hair_color"] = fur.darkened(0.25)
 		lk["facial_hair"] = "beard"
-		lk["eye_color"] = Color(0.95, 0.75, 0.2)
+		lk["eye_color"] = form["eyes"]
 		lk["hat"] = "none"
-		lk["height"] = float(lk.get("height", 1.0)) * 1.1
-		lk["build"] = "broad"
+		lk["height"] = float(lk.get("height", 1.0)) * float(form["height"])
+		lk.merge(form["body"], true)
 	body_model.apply_look(lk)
-	body_model.set_beast(on, FUR)
+	body_model.set_beast(on, fur, str(form["kind"]))
 	# weapons stay sheathed in hybrid form: you fight with claws
 	if on:
 		body_model._attach_weapon(false)
@@ -1145,9 +1155,15 @@ func set_hybrid(on: bool) -> void:
 		body_model._attach_weapon(armed and equipped_weapon != null)
 	Net.fx("smoke", [global_position + Vector3(0, 1.0, 0), 10, 1.4, 1.2])
 	Net.fx("dust_ring", [global_position, 14, 0.9])
-	Net.fx("sfx", ["howl" if on else "whoosh_big", global_position, -4.0, 0.05, 1.15 if on else 0.8])
+	var bear := str(form["kind"]) == "bear"
+	Net.fx("sfx", [("roar" if bear else "howl") if on else "whoosh_big", global_position, -4.0, 0.05, (0.8 if bear else 1.15) if on else 0.8])
 	if on and is_inside_tree():
-		FX.power_aura.call_deferred(body_model, "wolf", 2.0)
+		if bear:
+			Net.fx("heavy_dust", [global_position, 18, 1.2])
+			Net.fx("debris", [global_position, Vector3.UP, 10, fur.darkened(0.3), 5.0])
+			cam_shake(0.3, 0.3)
+		else:
+			FX.power_aura.call_deferred(body_model, "wolf", 2.0)
 	cam_shake(0.12)
 	_recalc_stats()
 	weapon_changed.emit(equipped_weapon)
@@ -3105,8 +3121,11 @@ func net_event(what: String, args: Array) -> void:
 		"look":
 			if body_model and args.size() >= 2:
 				body_model.apply_look(args[0])
-				body_model.set_beast(bool(args[1]), FUR)
-				if bool(args[1]) and not hybrid and is_inside_tree():
+				# (the form is in the look: its build, "wolf" or "bear", and the fur on its skin)
+				var blk: Dictionary = args[0]
+				var bkind := "bear" if str(blk.get("build", "")) == "bear" else "wolf"
+				body_model.set_beast(bool(args[1]), blk.get("skin", FUR), bkind)
+				if bool(args[1]) and not hybrid and is_inside_tree() and bkind == "wolf":
 					FX.power_aura.call_deferred(body_model, "wolf", 2.0)
 				hybrid = bool(args[1])
 				net_profile["look"] = args[0]
