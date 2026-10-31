@@ -612,6 +612,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		hit.stagger_duration = 0.0
 		hit.knockdown = false
 		hit.knockback_force = 0.0
+	# (1.27) the forms of powers 3-5: the "hurt" moment, and "low" when it leaves you under LOW_HP
+	power.auto_moment("hurt", attacker)
+	if health_component.current_health - hit.damage < health_component.max_health * PowerComponent.LOW_HP:
+		power.auto_moment("low", attacker)
 	# (1.27) Clockwork's Time Stop at Reflex: time stops by itself for whoever strikes you
 	if power.fruit == "clockwork" and attacker is Node3D and attacker != self:
 		clock_reflex(attacker as Node3D)
@@ -1534,6 +1538,9 @@ const FALL_DAMAGE_PER_MS := 5.3
 
 func _on_landed(impact_vy: float) -> void:
 	ember_landing_ring(-impact_vy)
+	# (1.27) a hard landing: the "land" moment (the forms of powers 3-5)
+	if -impact_vy >= 12.0:
+		power.auto_moment("land")
 	# (1.27) Iron Drop comes down in a slam
 	if has_meta("iron_drop"):
 		var meteor: bool = str(get_meta("iron_drop")) == "meteor"

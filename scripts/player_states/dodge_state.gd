@@ -331,6 +331,7 @@ func exit() -> void:
 	player.hurtbox.set_deferred("monitorable", true)
 	player.ember_dodge_reflex()
 	player.echo_dodge_reflex()
+	player.power.auto_moment("dodge")
 	if _logia:
 		_logia = false
 		player.set_collision_mask_value(12, true)

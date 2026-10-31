@@ -729,6 +729,7 @@ func _process(delta: float) -> void:
 		_tick_emission(delta)
 	_ember_aura(delta)
 	_keep_trail(delta)
+	_check_surrounded(delta)
 	_tick_fields(delta)
 	if foresight_stance:
 		_update_stance(delta)
@@ -939,6 +940,10 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	# (1.27) Echo Strike: the blow comes again a moment later, half as hard (an echo never echoes)
 	if buff("echo_strike") and not hit.has_meta("echo") and target is Node3D:
 		_echo_blow(target as Node3D, hit)
+	# (1.27) a foe felled: the "kill" moment (the forms of powers 3-5)
+	var thc = target.get("health")
+	if thc is HealthComponent and (thc as HealthComponent).current_health <= 0.0 and not hit.has_meta("echo"):
+		auto_moment("kill", target)
 	player.crew_tech.on_hit(target, hit)
 	if player.is_local:
 		pr.on_hit(target, hit)
@@ -1993,3 +1998,131 @@ func _alt_hit(e: Node3D, dmg: float, down: bool, stagger: float) -> void:
 	hd.poise = 999.0 if down else 35.0
 	hd.unblockable = true
 	hb.take_hit(hd, player)
+
+
+# --------------------------------------------------------------------------
+# (1.27) The forms of each fruit's powers 3-5 (FruitForms; the first two have their own, in Player): every one has a
+# moment when it fires by itself, free. At REFLEX it has to be on one of your bars and waits AUTO_EVERY s between;
+# at NATURE it's part of you (on a bar or not) and waits half that. Moments: "hurt" (a blow lands on you, with who
+# struck), "low" (struck under LOW_HP of your health), "surrounded" (SURROUND_N foes within SURROUND_R, checked each
+# second), "dodge" (a dodge ends), "land" (a hard landing), "kill" (your blow fells a foe).
+# --------------------------------------------------------------------------
+const AUTO := {
+	"thundercloud": "hurt", "static_burst": "surrounded", "thunder_spear": "dodge",
+	"gust_updraft": "hurt", "pull_gale": "land", "gale_burst": "surrounded",
+	"hamstring": "hurt", "lunge": "kill", "howl": "low",
+	"bear_hug": "hurt", "maul": "surrounded", "second_wind": "low",
+	"root_field": "surrounded", "grasping_vine": "dodge", "thorn_whip": "kill",
+	"iron_slam": "surrounded", "iron_drop": "land", "anvil": "hurt",
+	"bubble_trap": "hurt", "bubble_bounce": "low", "bubble_bath": "kill",
+	"slow_field": "surrounded", "haste": "low", "accelerate": "kill",
+	"sonar": "hurt", "echo_strike": "kill", "ringing_ears": "surrounded",
+}
+const AUTO_EVERY := 12.0
+const LOW_HP := 0.3
+const SURROUND_N := 3
+const SURROUND_R := 4.0
+var _auto_at := {}
+var _surround_t := 0.0
+
+
+## A moment came (`by`: who struck, or the foe felled): every power of the fruit waiting on it fires by itself if its form
+## lets it. Our own captain only. Returns the ids that fired.
+func auto_moment(moment: String, by: Node = null) -> Array:
+	var fired: Array = []
+	if player == null or not player.is_local or fruit == "" or suppressed():
+		return fired
+	var now := Engine.get_physics_frames()
+	for id in AUTO:
+		if AUTO[id] != moment or str(Skills.get_skill(id).get("fruit", "")) != fruit:
+			continue
+		var f := FruitForms.form(player.progression, id, fruit)
+		if f < FruitForms.REFLEX or (f == FruitForms.REFLEX and not (id in loadout or id in other_loadout)):
+			continue
+		if now < int(_auto_at.get(id, -1000000)):
+			continue
+		_auto_at[id] = now + int(AUTO_EVERY * (0.5 if f == FruitForms.NATURE else 1.0) * Engine.physics_ticks_per_second)
+		auto_effect(id, by)
+		Net.fx("float_text", [player.global_position + Vector3(0, 2.2, 0), str(Skills.get_skill(id).get("name", id)), DevilFruits.get_fruit(fruit).get("color", Color.WHITE)])
+		fired.append(id)
+	return fired
+
+
+## Each power's effect fired by itself (as its cast, aimed at `by` where it has a target).
+func auto_effect(id: String, by: Node) -> void:
+	var m := power_multiplier()
+	var foe := by as Node3D if by is Node3D and by != player else null
+	var at := foe.global_position if foe else player.global_position - player.player_model.global_basis.z * 4.0
+	match id:
+		"thundercloud":
+			clouds.append([at, CLOUD_SECS + sv("cloud_secs"), 0.0, 10.0 * m])
+		"static_burst":
+			static_burst(4.5, 12.0 * m)
+		"thunder_spear":
+			thunder_spear(player.global_position + Vector3(0, 1.0, 0), -player.player_model.global_basis.z, SPEAR_LEN, 16.0 * m)
+		"gust_updraft":
+			updraft(at, UPDRAFT_R + sv("updraft_r"))
+		"pull_gale":
+			pull_gale(PULL_REACH)
+		"gale_burst":
+			gale_burst(5.0 + sv("burst_r"))
+		"hamstring":
+			hamstring(foe if foe else front_foe(3.0, 0.8), 8.0 * m)
+		"lunge":
+			hamstring(echo_step(10.0 + sv("lunge_reach")), 10.0 * m)
+		"howl":
+			add_buff("howl", 8.0)
+			player.call("_recalc_stats")
+		"bear_hug":
+			bear_hug(foe if foe and foe.global_position.distance_to(player.global_position) < HUG_REACH + 0.5 else front_foe(HUG_REACH, 0.7), (12.0 + sv("hug_dmg")) * m)
+		"maul":
+			maul((20.0 + sv("maul_dmg")) * m)
+		"second_wind":
+			player.health_component.heal(player.health_component.max_health * 0.2)
+		"root_field":
+			root_field(player.global_position, ROOTS_R)
+		"grasping_vine":
+			var held := front_foe(12.0 + sv("grasp_reach"), 0.4)
+			if held and held.has_method("vine_yank"):
+				held.call("vine_yank", player.global_position - player.player_model.global_basis.z * 1.5, 5.0, true)
+		"thorn_whip":
+			alt_power("thorn_lash")
+		"iron_slam":
+			iron_slam(SLAM_R + sv("slam_r"), 14.0 * m)
+		"iron_drop":
+			iron_slam(DROP_R + sv("drop_r"), 10.0 * m)
+		"anvil":
+			anvil(foe if foe and foe.global_position.distance_to(player.global_position) < 3.5 else front_foe(2.8, 0.8), (26.0 + sv("anvil_dmg")) * m)
+		"bubble_trap":
+			bubble_trap(foe)
+		"bubble_bounce":
+			leap(BOUNCE_UP + sv("bounce_up"), BOUNCE_FWD)
+		"bubble_bath":
+			Net.everyone("_all_bubble_bath", [player.global_position, 10.0, 0.08 + sv("bath_pct") * 0.5])
+		"slow_field":
+			fields.append([player.global_position, FIELD_SECS + sv("field_secs")])
+		"haste":
+			Net.everyone("_all_haste", [player.global_position, HASTE_R, HASTE_SECS + sv("haste_secs")])
+		"accelerate":
+			for k in cooldowns.keys():
+				cooldowns[k] = maxf(float(cooldowns[k]) - 2.0, 0.0)
+		"sonar":
+			sonar(SONAR_R)
+		"echo_strike":
+			add_buff("echo_strike", 4.0)
+		"ringing_ears":
+			for e in enemies_in(player.global_position, 6.0):
+				if e.has_method("slowed"):
+					e.call("slowed", 4.0 + sv("ears_secs"), 0.6)
+
+
+## (each second) surrounded: SURROUND_N or more foes within SURROUND_R.
+func _check_surrounded(delta: float) -> void:
+	if fruit == "" or player == null or not player.is_local:
+		return
+	_surround_t -= delta
+	if _surround_t > 0.0:
+		return
+	_surround_t = 1.0
+	if enemies_in(player.global_position, SURROUND_R).size() >= SURROUND_N:
+		auto_moment("surrounded")

@@ -367,7 +367,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   a miscount of its own table (20 rows). Tests t/progression/fruit_trees and fruit_alternates. The power-test flake
   was the captain turning during the wait (fixed: faced north again at the cast; flaky.txt lines gone).
   (crew techniques: below)
-- (latest) **Fruit crew techniques: the preview is fully built.** Each fruit tree has a node at mastery 26 (cost 6, effect
+- **Fruit crew techniques: the preview is fully built.** Each fruit tree has a node at mastery 26 (cost 6, effect
   "fruit_crew"); with it, C in the fruit stance plays the fruit's own (CrewTechniques.FRUIT_CREW, support kind:
   CrewTechniques.SUPPORT gives both captains its gift; new gift keys "buff", "heal", "bubbles", "wind"): Twin Flames,
   Lightning Rod, Tailwind, Pack Hunt, Bear Wall, Overgrowth, Iron Pact, Bubble Pair, Synchronise, Resonate. Their pose
@@ -375,3 +375,9 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Tested solo in t/progression/fruit_trees; the duet with a real second captain isn't covered by a test.
   **1.27 left:** icons and models for the fruits (placeholders), animations for the new powers, the new powers' own
   Reflex/Nature forms, the shared combat pool and IN_WORLD fruit sources (deferred), stronghold leftovers (above).
+- (latest) **Forms for every fruit's powers 3-5** (PowerComponent.AUTO / auto_moment / auto_effect): each power has a
+  moment (hurt, low, surrounded, dodge, land, kill) when it fires by itself, free: at Reflex if it's on a bar (12 s
+  between), at Nature even off the bar (6 s). Wired: Player._on_hit_received (hurt, low), _on_landed (land, 12+ m/s),
+  dodge_state exit (dodge), on_sword_hit (kill), PowerComponent._check_surrounded (each second, 3+ foes within 4 m).
+  Each fired power shows its name over you. Test t/progression/power_forms.
+  **Now:** Zach asked (2026-10-31) for a long polish pass: detailed, exaggerated animations and effects on every fruit.
