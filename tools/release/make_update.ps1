@@ -15,6 +15,8 @@ param(
 	[string]$Repo = "zestermo/driftwake",
 	[double]$MaxShare = 0.4
 )
+# (the workflow's env hands a bash-style path, /c/Users/...: PowerShell can't run that; v1.27's patch export failed on it)
+if ($Godot -match '^/([a-zA-Z])/(.*)$') { $Godot = "$($Matches[1]):/$($Matches[2])" }
 $ErrorActionPreference = "Continue"
 $root = Resolve-Path "$PSScriptRoot/../.."
 Set-Location $root

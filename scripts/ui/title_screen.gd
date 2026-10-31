@@ -84,6 +84,9 @@ func _ready() -> void:
 
 
 ## Something newer on GitHub: a patch to download here, or a new full version (the release page).
+var _installing := false
+
+
 func _on_update_found(kind: String, version: String, size_mb: float) -> void:
 	_update_kind = kind
 	_update_btn.visible = true
@@ -99,11 +102,19 @@ func _on_update_pressed() -> void:
 		"ready":
 			_updater.restart()
 		"full":
-			Updater.open_page()
+			# (1.27) the installer downloaded and run from here; the release page only when the release has none
+			if _updater.can_install():
+				_installing = true
+				_update_kind = "downloading"
+				_update_btn.text = "Downloading..."
+				_updater.download_installer()
+			else:
+				Updater.open_page()
 
 
 func _on_update_finished(ok: bool, message: String) -> void:
-	_update_kind = "ready" if ok else "patch"
+	# (a failed installer download is offered again as the full update)
+	_update_kind = "ready" if ok else ("full" if _installing else "patch")
 	_update_btn.text = ("%s: restart to play it" % message) if ok else message
 
 

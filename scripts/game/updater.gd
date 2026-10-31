@@ -175,3 +175,44 @@ static func newer(a: String, b: String) -> bool:
 		if x != y:
 			return x > y
 	return false
+
+
+## (1.27) A full update without the website: the release's installer downloaded to user://update/Driftwake-Setup.exe,
+## run silently (Inno Setup: it closes the game and installs over it), and the game quits for it. False when the release
+## has no installer (then open_page()).
+const INSTALLER := "Driftwake-Setup.exe"
+
+
+func can_install() -> bool:
+	return _assets.has(INSTALLER) and OS.get_name() == "Windows"
+
+
+func download_installer() -> void:
+	DirAccess.make_dir_recursive_absolute(DIR)
+	_http.download_file = DIR + INSTALLER + ".part"
+	if _http.request_completed.is_connected(_on_done):
+		_http.request_completed.disconnect(_on_done)
+	_http.request_completed.connect(_on_installer, CONNECT_ONE_SHOT)
+	if _http.request(_assets[INSTALLER], ["User-Agent: Driftwake"]) != OK:
+		finished.emit(false, "Couldn't start the download")
+		return
+	set_process(true)
+
+
+func _on_installer(result: int, code: int, _h: PackedStringArray, _b: PackedByteArray) -> void:
+	set_process(false)
+	_http.download_file = ""
+	var part := DIR + INSTALLER + ".part"
+	if result != HTTPRequest.RESULT_SUCCESS or code >= 400 or not FileAccess.file_exists(part):
+		DirAccess.remove_absolute(part)
+		finished.emit(false, "The download failed. Try again later.")
+		return
+	var d := DirAccess.open(DIR)
+	d.remove(INSTALLER)
+	d.rename(INSTALLER + ".part", INSTALLER)
+	var exe := ProjectSettings.globalize_path(DIR + INSTALLER)
+	if OS.create_process(exe, ["/SILENT", "/SP-", "/SUPPRESSMSGBOXES", "/CLOSEAPPLICATIONS"]) <= 0:
+		finished.emit(false, "Couldn't start the installer")
+		return
+	finished.emit(true, "Installing")
+	get_tree().quit()
