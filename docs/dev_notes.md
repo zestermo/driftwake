@@ -8492,3 +8492,30 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Tests:** t/progression fruit_forms, power_forms, fruit_cast, third_powers, fourth_powers(_b), fifth_powers,
   fruit_ults_a/b, awakenings, fruit_trees, fruit_alternates, the per-fruit *_forms. Renders: abilityshot (AB_HYBRID=1 for
   a beast form); the codex page https://claude.ai/artifact/T2QGzzpFsyqgvcpFLxQVXH .
+
+## 2026-10-31: gadgets, piece 1 - the belt, the smoke pellet and the tar bomb (1.28)
+- **What:** a gadget belt per captain (`scripts/gadgets/gadget_belt.gd`, `Player.gadgets`): blueprints known, gadgets
+  built (tier 0-2 = Mk I-III, charges), three slots. **U** fires the selected one (`gadget_fire`; pad LB+LT in Pad.LAYER),
+  **Shift+U** cycles (`gadget_cycle`, matched exactly and checked first since Shift+U also matches U; pad: the share
+  button). Usable whenever `is_free()` (Idle/Move/Jump/Fall), whatever's in hand. Charges per use (refilled at a bench
+  later), a cooldown after every use as a game-time timestamp (`PlayerState.now_s`), nothing per frame.
+- **Numbers:** all in `scripts/gadgets/gadget_data.gd` (GadgetData.GADGETS, per-tier arrays).
+- **Throw:** `gd_lob` (GadgetPoses via TechniquePoses' `gd_` prefix, upper body, release at u 0.52 of 0.42 s, the
+  gadget in the left hand: its mesh's "gadget:<id>:<tier>" model meta so HumanoidSync shows it on puppets). Auto-aim: the
+  foe nearest the camera's line within range (dot 0.8), else 70% of range ahead on the ground. GadgetThrow flies the arc
+  (only while flying), then GadgetZone.
+- **Zones** (`gadget_zone.gd`): smoke = a flip_emitter cloud (tint per tier, Mk III violet with sparkles); foes caught
+  are `blinded` once (PirateGrunt.blinded: drops the swing, staggers, coughs; others `stagger` if they have it); a captain
+  inside is veiled (`GadgetVeil`, autoload-free so Stealth can name it): Stealth.range_for gives 0 and the grunt's
+  `_player_ok` false (no new attacks, the 4 s give-up). Tar = a glossy black decal blot; foes in it `slowed(0.5, k)` each
+  0.25 s tick (only grunts have `slowed`: beasts and fauna aren't slowed yet).
+- **Co-op:** the thrower runs the lob and sends `Net.event(player, "gadget", [id, tier, from, to])`; every screen flies
+  its own throw and makes its own zone (visuals local), and only the host's zone touches foes (a Timer, host only). The
+  pouch on the back (GadgetModels.pouch, by the belt's best tier) rides the snapshot flags (`NF_POUCH`, bits 9-10 =
+  tier+1); Humanoid.pouch_tier re-wears it on a body rebuild.
+- **Saved:** SaveGame "gadgets" (GadgetBelt.to_dict). **HUD:** `scripts/ui/gadget_belt_hud.gd` right of the skill bar
+  (polls every 0.1 s real time, redraws on a change). **Debug menu (F4):** a Gadgets section (build any at any tier onto
+  the belt, refill all, learn every blueprint).
+- **Per frame/tick:** nothing while idle. While used: the HUD's 0.1 s poll; a flying throw's physics tick (~0.6 s); each
+  zone's 0.25 s host timer over the "enemies" group; one CPUParticles emitter per zone.
+- **Tests:** t/gadgets belt_fire, smoke, tar. Render: `abilityshot gadget:<id>:<tier>`.

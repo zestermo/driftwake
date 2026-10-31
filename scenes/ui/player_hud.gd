@@ -111,6 +111,8 @@ func _ready() -> void:
 	add_child(breath)
 	# on a pad: which skill is on which LB button
 	add_child(preload("res://scripts/ui/pad_skills.gd").new())
+	# (1.28) the gadget belt, right of the skill bar
+	add_child(preload("res://scripts/ui/gadget_belt_hud.gd").new())
 	# all of it on a crisp canvas (whole screen pixels per canvas pixel)
 	_pc = PixelCanvas.new()
 	_pc.mouse_filter = Control.MOUSE_FILTER_IGNORE

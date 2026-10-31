@@ -17,7 +17,7 @@ const LAYER := {
 	"skill_5": JOY_BUTTON_RIGHT_SHOULDER, "ultimate": [JOY_AXIS_TRIGGER_RIGHT, 1.0],
 	"lantern": JOY_BUTTON_DPAD_UP, "summon_ship": JOY_BUTTON_DPAD_DOWN, "log_pose": JOY_BUTTON_DPAD_LEFT,
 	"emote": JOY_BUTTON_DPAD_RIGHT, "ping_marker": JOY_BUTTON_RIGHT_STICK, "transform": JOY_BUTTON_LEFT_STICK,
-	"skill_map": JOY_BUTTON_BACK,
+	"skill_map": JOY_BUTTON_BACK, "gadget_fire": [JOY_AXIS_TRIGGER_LEFT, 1.0],
 }
 const MODIFIER := JOY_BUTTON_LEFT_SHOULDER
 const SPRINT := JOY_BUTTON_LEFT_STICK

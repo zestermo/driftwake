@@ -18,6 +18,9 @@ static func sneaking(p: Node) -> bool:
 ## `r` (an enemy's notice range) for captain `p`, seen from `from` facing `fwd`
 ## (flat; ZERO = it sees all round).
 static func range_for(p: Node3D, from: Vector3, fwd: Vector3, r: float) -> float:
+	# (1.28) inside a smoke pellet's cloud: not seen at all
+	if not GadgetVeil.clouds.is_empty() and GadgetVeil.veiled(p):
+		return 0.0
 	if not sneaking(p):
 		return r
 	return r * (BEHIND_K if behind(p, from, fwd) else CROUCH_K)

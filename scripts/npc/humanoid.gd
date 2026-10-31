@@ -420,6 +420,12 @@ func apply_look(look_dict: Dictionary) -> void:
 	_apply_fists()
 	if lantern != null:
 		wear_lantern()
+	if pouch_tier >= 0:
+		GadgetBelt.wear(self, pouch_tier)
+
+
+## The gadget pouch on the back (GadgetBelt.wear; -1 none), worn again on a rebuild.
+var pouch_tier := -1
 
 
 ## A captain's belt lantern (BeltLantern), hung again whenever the body is rebuilt.

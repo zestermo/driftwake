@@ -512,6 +512,8 @@ const SPECS := {
 	"dt_sleep": {"len": 0.4, "stance": "sword", "weapon": ""},
 	"dt_meditate": {"len": 0.6, "stance": "sword", "weapon": ""},
 	"dt_startle": {"len": 0.5, "stance": "sword", "weapon": ""},
+	# --- gadgets (GadgetPoses) ---
+	"gd_lob": {"len": 0.42, "stance": "sword", "weapon": "cutlass"},
 	# --- fishing (FishPoses, the rod and both hands on it FishRod's; Fishing's lengths) ---
 	"rod_cast": {"len": 1.1, "stance": "sword", "weapon": ""},
 	"rod_wait": {"len": 0.35, "stance": "sword", "weapon": ""},

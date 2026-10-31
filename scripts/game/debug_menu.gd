@@ -14,6 +14,8 @@ var _trees: OptionButton
 var _fruits: OptionButton
 var _spawns: OptionButton
 var _warps: OptionButton
+var _gadgets: OptionButton
+var _gtier: OptionButton
 var _status: Label
 ## The spawn list: [label, Callable(at: Vector3, yaw: float)] filled by _refill (every theme's beasts, then
 ## extra_spawns()). The warp list: [label, chain node id].
@@ -111,7 +113,24 @@ func _build() -> void:
 	v.add_child(row)
 	_btn(row, "Heal", _heal)
 	_btn(row, "Energy", func(): _player().power.energy = _player().power.max_energy())
-	_btn(row, "Cooldowns", func(): _player().power.cooldowns.clear())
+	_btn(row, "Cooldowns", func(): _player().power.cooldowns.clear(); _player().gadgets.ready_at.clear())
+	# (1.28) gadgets
+	_head(v, "Gadgets")
+	row = HBoxContainer.new()
+	v.add_child(row)
+	_gadgets = OptionButton.new()
+	for g in GadgetData.GADGETS.keys():
+		_gadgets.add_item(str(g))
+	row.add_child(_gadgets)
+	_gtier = OptionButton.new()
+	for t in GadgetData.TIER_NAMES:
+		_gtier.add_item(str(t))
+	row.add_child(_gtier)
+	row = HBoxContainer.new()
+	v.add_child(row)
+	_btn(row, "Build it", _give_gadget)
+	_btn(row, "Refill all", _refill_gadgets)
+	_btn(row, "All blueprints", _all_blueprints)
 	# spawns
 	_head(v, "Spawn (ahead of you)")
 	row = HBoxContainer.new()
@@ -237,6 +256,26 @@ func _eat(_x = null) -> void:
 	var f := _fruits.get_item_text(_fruits.selected)
 	_player().power.eat(f)
 	_say("Ate the %s fruit" % f)
+
+
+func _give_gadget() -> void:
+	var g := _gadgets.get_item_text(_gadgets.selected)
+	_player().gadgets.give(g, _gtier.selected)
+	_say("Built %s %s onto the belt" % [g, GadgetData.TIER_NAMES[_gtier.selected]])
+
+
+func _refill_gadgets() -> void:
+	var b: GadgetBelt = _player().gadgets
+	for g in b.owned.keys():
+		b.refill(g)
+	b.ready_at.clear()
+	_say("Gadgets refilled")
+
+
+func _all_blueprints() -> void:
+	for b in Gadgets.blueprint_ids():
+		Gadgets.teach(_player(), b)
+	_say("Every blueprint learned")
 
 
 func _heal() -> void:

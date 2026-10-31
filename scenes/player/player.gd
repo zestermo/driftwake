@@ -154,6 +154,8 @@ var power: PowerComponent
 var progression: Progression
 ## The weapon kind's crew technique (C in combat stance): cooldown, the join zone, marks.
 var crew_tech: CrewTechniques
+## (1.28) The gadget belt (U fires, Shift+U cycles): blueprints known, gadgets built, the three slots.
+var gadgets: GadgetBelt
 ## Off-hand weapon (dual wielding: a second sword or pistol), or null.
 var offhand_weapon: ItemData
 ## Zoan: in hybrid beast form.
@@ -272,6 +274,9 @@ const NF_EMBERS := 128
 ## The drawn blades' style tree awakened (BladeAura: dagger, dual wield, twin daggers, corsair).
 const NF_AURA := 256
 const AURA_TREES := ["dagger", "dual", "dual_dagger", "corsair"]
+## (1.28) The gadget pouch on the back: its tier + 1 in these two bits (0: none).
+const NF_POUCH := 512 | 1024
+const NF_POUCH_SHIFT := 9
 ## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
 var parry_tap := -10.0
 
@@ -305,6 +310,10 @@ func _ready() -> void:
 	crew_tech.name = "CrewTech"
 	crew_tech.player = self
 	add_child(crew_tech)
+	gadgets = GadgetBelt.new()
+	gadgets.name = "Gadgets"
+	gadgets.player = self
+	add_child(gadgets)
 	if not is_local:
 		_setup_puppet()
 		return
@@ -1911,6 +1920,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		place_marker()
 		get_viewport().set_input_as_handled()
 		return
+	# (1.28) the gadget belt: Shift+U the next slot (it matches U too, so first), U fires
+	if event.is_action_pressed("gadget_cycle", false, true):
+		gadgets.cycle()
+		get_viewport().set_input_as_handled()
+		return
+	if Pad.pressed(event, "gadget_fire"):
+		gadgets.fire()
+		get_viewport().set_input_as_handled()
+		return
 	# skills (1-5) and the ultimate (R)
 	for i in range(PowerComponent.SLOTS):
 		var act := "ultimate" if i == PowerComponent.ULT else "skill_%s" % PowerComponent.key_of(i)
@@ -3020,6 +3038,7 @@ func net_pack() -> Array:
 		flags |= NF_AURA
 	if fist_armed > 0.0:
 		flags |= NF_GALAXY
+	flags |= (body_model.pouch_tier + 1) << NF_POUCH_SHIFT
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else [], bounty]
@@ -3091,6 +3110,8 @@ func _puppet_process(delta: float) -> void:
 			update_coat_visual()
 		if changed & NF_LANTERN:
 			body_model.lantern.set_lit(bool(flags & NF_LANTERN))
+		if changed & NF_POUCH:
+			GadgetBelt.wear(body_model, ((flags & NF_POUCH) >> NF_POUCH_SHIFT) - 1)
 		_update_nameplate()
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
@@ -3137,6 +3158,8 @@ func net_power(kind: String, args: Array) -> void:
 
 func net_event(what: String, args: Array) -> void:
 	match what:
+		"gadget":
+			GadgetBelt.remote(self, args)
 		"power":
 			var a: Array = args[1]
 			match str(args[0]):

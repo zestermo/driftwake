@@ -643,6 +643,9 @@ func _target() -> Node3D:
 func _player_ok(p: Node3D) -> bool:
 	if p == null:
 		return false
+	# (1.28) hidden in a smoke pellet's cloud
+	if not GadgetVeil.clouds.is_empty() and GadgetVeil.veiled(p):
+		return false
 	if p.has_method("current_state_name") and str(p.call("current_state_name")) in ["Downed", "Helm", "Swim", "Climb"]:
 		return false
 	var hc := p.get_node_or_null("HealthComponent") as HealthComponent
@@ -2641,6 +2644,24 @@ func slowed(secs: float, k: float) -> void:
 	_slow_t = maxf(_slow_t, secs)
 	slow_k = k
 	humanoid.time_k = k
+
+
+## (1.28) caught in a smoke pellet's cloud (GadgetZone, the host's): it drops its swing and staggers, coughing.
+var blinded_at := -1.0
+
+
+func blinded(secs: float) -> void:
+	if state in [S.DEAD, S.DOWN, S.GETUP, S.SWIM]:
+		return
+	blinded_at = PlayerState.now_s()
+	hitbox.deactivate()
+	_drop_aim()
+	_release_token()
+	_stagger_len = secs
+	humanoid.play("stagger", secs)
+	velocity = Vector3.ZERO
+	_set_state(S.STAGGER)
+	bark(["*cough*", "My eyes!", "Can't see!"], 1.0)
 
 
 func rooted(secs: float) -> void:

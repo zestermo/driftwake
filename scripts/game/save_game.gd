@@ -295,6 +295,7 @@ static func save(player: Player) -> bool:
 		"items": items,
 		"quick": inv.quick,
 		"bait": inv.bait,
+		"gadgets": player.gadgets.to_dict(),
 		"worn": worn,
 		"equip_hidden": player.equipment.hidden.keys(),
 		"weapon": item_ref(player.equipped_weapon),
@@ -394,6 +395,7 @@ static func load_into(player: Player) -> bool:
 			inv.quick = str(id)
 			break
 	inv.bait = str(data.get("bait", ""))
+	player.gadgets.from_dict(data.get("gadgets", {}))
 	var lk = data.get("look", {})
 	if lk is Dictionary and not lk.is_empty():
 		player.appearance = (lk as Dictionary).duplicate(true)

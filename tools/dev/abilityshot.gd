@@ -223,6 +223,10 @@ func _process(d: float) -> bool:
 				p.reset_physics_interpolation()
 				p.state_machine.force_state("Plunge", {})
 				print("cast air: true (%s)" % p.state_machine.current_state.get("_mode"))
+			elif skill.begins_with("gadget:"):
+				# (1.28) a belt gadget by id and tier (0-2): "gadget:smoke:2"
+				p.gadgets.give(skill.get_slice(":", 1), int(skill.get_slice(":", 2)))
+				print("cast %s: %s" % [skill, p.gadgets.fire()])
 			elif skill.begins_with("plus:"):
 				# (1.26) a PlusArts move by id (an alternate or an aerial heavy; air ones from 2.5 m up)
 				var mid := skill.trim_prefix("plus:")

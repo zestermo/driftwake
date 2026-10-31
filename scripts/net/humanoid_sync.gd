@@ -24,6 +24,8 @@ static func mesh_for(model: String) -> Mesh:
 		return null
 	if model in ["bottle", "flask", "bowl", "food"]:
 		return Props.provision_mesh(model)
+	if model.begins_with("gadget:"):
+		return GadgetModels.from_model(model)
 	if model.begins_with("devil_fruit"):
 		return Props.devil_fruit_mesh(model)
 	return Props.weapon_mesh(model)
