@@ -235,3 +235,7 @@ func _lights_on() -> void:
 ## The garrison's squads and the sealed rooms.
 func _garrison() -> void:
 	garrison = StrongholdGarrison.build(self)
+	# (1.27) a muster flag in each fighting district
+	for d in StrongholdPlan.DISTRICTS:
+		if StrongholdMuster.AT.has(str(d[0])):
+			city.add_child(StrongholdMuster.build(self, str(d[0]), float(d[2])))

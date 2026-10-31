@@ -415,3 +415,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   and near-bounds at a sprint; speeds by form. Paws: Humanoid.paw_mesh (hooked claws along the fingers curling toward
   the palm, knuckles, pads, a wrist tuft; the bear's spread wide) and toe_mesh. Not yet: a full four-legged animal
   body (the full beast is the big hybrid). The stronghold leftovers are next.
+  (stronghold) **Muster flags in:** StrongholdMuster, one in the Ward, Arsenal, Prison and Keep (AT), flying the
+  Admiralty's banner; F raises the crew's ("sh_muster_<district>"); GameManager._respawn_player stands a captain who
+  fell on the stronghold back up at the nearest raised flag after 20 s instead of on the ship. t/stronghold/muster.
+  Stronghold left: Marrow's seastone net and catwalks, a world test of the escape with a real ship, the Queen's step 2.

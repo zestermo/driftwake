@@ -390,7 +390,23 @@ func grave_recovered(g: LootBag) -> void:
 
 
 func _respawn_player() -> void:
+	var fell_at: Vector3 = player.global_position if player else Vector3.ZERO
 	await get_tree().create_timer(3.0).timeout
+
+	# (1.27) fallen on a stronghold with a muster flag raised: back up at the nearest one (StrongholdMuster)
+	var muster: Vector3 = StrongholdMuster.nearest_raised(fell_at)
+	if player and muster != Vector3.INF:
+		await get_tree().create_timer(StrongholdMuster.RESPAWN_SECS - 3.0).timeout
+		if not player:
+			return
+		player.global_position = muster
+		player.reset_physics_interpolation()
+		player.velocity = Vector3.ZERO
+		player.health_component.current_health = player.health_component.max_health
+		player.health_component.health_changed.emit(player.health_component.current_health, player.health_component.max_health)
+		player.state_machine.force_state("Idle", {})
+		get_tree().call_group("hud", "show_toast", "Back on your feet at your crew's flag")
+		return
 
 	if not player or not _get_ship():
 		return
