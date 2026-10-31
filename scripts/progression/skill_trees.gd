@@ -1326,6 +1326,7 @@ static func _build_wolf() -> void:
 	_root("z_root", "Wolf Fruit (Feral)", {},
 		"Feral: press V to shift between your human and hybrid wolf form. Hybrid: claws instead of weapons, 25% more damage and 15% faster. Fight in hybrid form and use its powers to grow it.")
 	_big("z_fang", "Rending Fang", "tech", 0, 1, {}, "", "rending_fang")
+	_big("z_lunge", "Lunge", "tech", 0, 1, {}, "", "lunge")
 	_big("z_hunt", "Predator", "mech", 0, 9, {"hybrid_speed_pct": 0.1}, "Hybrid form is another 10% faster.")
 	_big("z_pelt", "Thick Pelt", "mech", 1, 5, {"hybrid_defense": 8.0}, "+8 defense in hybrid form.")
 	_big("z_howl", "Alpha Howl", "tech", 1, 12, {}, "", "howl")
@@ -1346,6 +1347,7 @@ static func _build_vine() -> void:
 	_big("p_roots", "Deep Roots", "mech", 1, 5, {"photo_mult": 1.0}, "Photosynthesis works twice as fast.")
 	_big("p_whip", "Thorn Whip", "tech", 1, 12, {}, "", "thorn_whip")
 	_big("p_swing", "Vine Swing", "tech", 2, 1, {}, "", "vine_swing")
+	_big("p_grasp", "Grasping Vine", "tech", 2, 1, {}, "", "grasping_vine")
 	_big("p_thorns", "Thorn Hide", "mech", 2, 9, {"thorn_hide": 6.0}, "Enemies that hit you in melee take 6 damage from your thorns.")
 	_step("p_sun", "Sunlight", "p_root", 5, {"photo_mult": 0.15}, "Photosynthesis 15% faster a step.")
 	_step("p_bark", "Bark", "p_roots", 5, {"defense": 1.5}, "+1.5 defense a step.")
@@ -1361,6 +1363,7 @@ static func _build_iron() -> void:
 		"Knack: iron at will. Blows push you less, and the sea takes you like a stone. Use its powers to grow them.")
 	_big("i_guard", "Iron Guard", "tech", 0, 1, {}, "", "iron_guard")
 	_big("i_fist", "Iron Fist", "tech", 1, 1, {}, "", "iron_fist")
+	_big("i_anvil", "Anvil", "tech", 1, 1, {}, "", "anvil")
 	_big("i_slam", "Iron Slam", "tech", 2, 1, {}, "", "iron_slam")
 	_big("i_drop", "Iron Drop", "tech", 0, 1, {}, "", "iron_drop")
 	_step("i_plate", "Plating", "i_root", 5, {"defense": 2.0}, "+2 defense a step.")
@@ -1376,6 +1379,7 @@ static func _build_storm() -> void:
 	_big("sm_chain", "Chain Lightning", "tech", 0, 1, {}, "", "chain_lightning")
 	_big("sm_spear", "Thunder Spear", "tech", 0, 1, {}, "", "thunder_spear")
 	_big("sm_cloud", "Thundercloud", "tech", 1, 1, {}, "", "thundercloud")
+	_big("sm_burst", "Static Burst", "tech", 1, 1, {}, "", "static_burst")
 	_step("sm_charge", "Charge", "sm_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1385,6 +1389,7 @@ static func _build_bubble() -> void:
 	_tree("bubble", ["Slick", "Float", "Pop"])
 	_root("bb_root", "Bubble Fruit (Knack)", {}, "Knack: bubbles at will. Use its powers to grow them.")
 	_big("bb_shield", "Bubble Shield", "tech", 2, 1, {}, "", "bubble_shield")
+	_big("bb_bath", "Bubble Bath", "tech", 2, 1, {}, "", "bubble_bath")
 	_big("bb_slick", "Slick Floor", "tech", 0, 1, {}, "", "slick_floor")
 	_big("bb_trap", "Bubble Trap", "tech", 1, 1, {}, "", "bubble_trap")
 	_big("bb_bounce", "Bubble Bounce", "tech", 2, 1, {}, "", "bubble_bounce")
@@ -1397,6 +1402,7 @@ static func _build_gust() -> void:
 	_tree("gust", ["Push", "Pull", "Air"])
 	_root("gu_root", "Gust Fruit (Flux)", {}, "Flux: your body is wind. Use its powers to grow them.")
 	_big("gu_dash", "Gale Dash", "tech", 2, 1, {}, "", "gale_dash")
+	_big("gu_burst", "Gale Burst", "tech", 2, 1, {}, "", "gale_burst")
 	_big("gu_cone", "Gust Cone", "tech", 0, 1, {}, "", "gust_cone")
 	_big("gu_updraft", "Updraft", "tech", 1, 1, {}, "", "gust_updraft")
 	_big("gu_pull", "Pull Gale", "tech", 1, 1, {}, "", "pull_gale")
@@ -1412,6 +1418,7 @@ static func _build_bear() -> void:
 	_big("be_maul", "Maul", "tech", 0, 1, {}, "", "maul")
 	_big("be_roar", "Roar", "tech", 1, 1, {}, "", "bear_roar")
 	_big("be_hug", "Bear Hug", "tech", 2, 1, {}, "", "bear_hug")
+	_big("be_wind", "Second Wind", "tech", 2, 1, {}, "", "second_wind")
 	_step("be_hide", "Thick Hide", "be_root", 5, {"defense": 2.0}, "+2 defense a step.")
 
 
@@ -1421,6 +1428,7 @@ static func _build_clockwork() -> void:
 	_tree("clockwork", ["Rewind", "Stop", "Haste"])
 	_root("cw_root", "Clockwork Fruit (Knack)", {}, "Knack: a few seconds at a time are yours. Use its powers to grow them.")
 	_big("cw_rewind", "Rewind", "tech", 0, 1, {}, "", "rewind")
+	_big("cw_accel", "Accelerate", "tech", 0, 1, {}, "", "accelerate")
 	_big("cw_stop", "Time Stop", "tech", 1, 1, {}, "", "time_stop")
 	_big("cw_field", "Slow Field", "tech", 2, 1, {}, "", "slow_field")
 	_big("cw_haste", "Haste", "tech", 2, 1, {}, "", "haste")
@@ -1433,6 +1441,7 @@ static func _build_echo() -> void:
 	_tree("echo", ["Step", "Note", "Sonar"])
 	_root("ec_root", "Echo Fruit (Knack)", {}, "Knack: every sound is yours. Use its powers to grow them.")
 	_big("ec_step", "Echo Step", "tech", 0, 1, {}, "", "echo_step")
+	_big("ec_ears", "Ringing Ears", "tech", 0, 1, {}, "", "ringing_ears")
 	_big("ec_note", "Shatter Note", "tech", 1, 1, {}, "", "shatter_note")
 	_big("ec_strike", "Echo Strike", "tech", 1, 1, {}, "", "echo_strike")
 	_big("ec_sonar", "Sonar", "tech", 2, 1, {}, "", "sonar")

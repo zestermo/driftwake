@@ -991,6 +991,14 @@ func _all_rival_plunder(share: float, crew_name: String) -> void:
 	get_tree().call_group("hud", "show_toast", "%s took %d gold" % [crew_name.capitalize(), n] if n > 0 else "%s found your purse empty" % crew_name.capitalize())
 
 
+## (1.27) Bubble Bath: our captain, if within `r` of `at`, healed `k` of their health.
+func _all_bubble_bath(at: Vector3, r: float, k: float) -> void:
+	var p := _me()
+	if p and p.global_position.distance_to(at) <= r:
+		p.health_component.heal(p.health_component.max_health * k)
+		FX.ring(p.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.75, 0.9, 1.0), 0.5, 0.1)
+
+
 ## (1.27) Clockwork's Haste: our captain, if within `r` of `at`, quicker for `secs`.
 func _all_haste(at: Vector3, r: float, secs: float) -> void:
 	var p := _me()

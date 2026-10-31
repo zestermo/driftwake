@@ -318,9 +318,18 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   and Iron now have their movement power. Test t/progression/fourth_powers. Left for fourth/fifth: Storm, Gust,
   Bear, Wolf, Vine, Echo (Echo's "repeat your last attack" from the plan is still open), Clockwork and Bubble/Iron's
   fifth; then two ultimates and an awakening each.
-- (latest) **Fourth powers, part 2: every fruit has four.** Storm's Thunder Spear (an 18 m line; PowerComponent.line_foes
+- **Fourth powers, part 2: every fruit has four.** Storm's Thunder Spear (an 18 m line; PowerComponent.line_foes
   is the shared line test, Shatter Note uses it too), Gust's Pull Gale (the cone ahead dragged in via vine_yank, no
   wrap), Bear's Maul (a wide arc floored), Wolf's Hamstring (hurt, slowed() to half for 4 s), Vine's Root Field (a
   ring held 2.5 s), Echo Strike (the plan's "repeat your last attack": 8 s in which each landed blow comes again 0.35 s
   later at half, from on_sword_hit; the echo is tagged "echo" so it never echoes). Test t/progression/fourth_powers_b.
-  **Next:** a fifth power each (Ember has its seven), then two ultimates and an awakening per fruit.
+  (fifth powers: below)
+- (latest) **Fifth powers: every fruit has its five.** Static Burst (Storm, a 4.5 m ring), Gale Burst (Gust, everyone
+  near thrown away), Second Wind (Bear, 20% health), Lunge (Wolf: echo_step then hamstring), Grasping Vine (Vine, the
+  foe ahead yanked in with a wrap), Anvil (Iron, one great blow), Bubble Bath (Bubble, Net._all_bubble_bath heals the
+  crew within 10 m 15%), Accelerate (Clockwork, other cooldowns -4 s), Ringing Ears (Echo, foes within 6 m at 60%).
+  Maul, Anvil and Echo Strike's echo are unblockable (a guarding grunt took them on its block: the test flaked).
+  Test t/progression/fifth_powers. **Next:** two ultimates per fruit (one equipped), then the awakening (mastery 30),
+  then trees to near weapon size (mechanics, a variant pick, a crew technique), icons and models. None of the new
+  powers has its own animation or forms yet: they cast from the stance with effects only; forms (Reflex/Nature) exist
+  only for each fruit's first two.

@@ -429,6 +429,53 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) fifth powers
+	if id == "static_burst":
+		static_burst(4.5, 12.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "gale_burst":
+		gale_burst(5.0)
+		cast.emit(slot)
+		return true
+	if id == "second_wind":
+		player.health_component.heal(player.health_component.max_health * 0.2)
+		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.6, Color(0.6, 0.9, 0.5), 0.5, 0.12])
+		cast.emit(slot)
+		return true
+	if id == "lunge":
+		var prey := echo_step(10.0)
+		hamstring(prey, 10.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "grasping_vine":
+		var held := front_foe(12.0, 0.4)
+		if held and held.has_method("vine_yank"):
+			held.call("vine_yank", player.global_position - player.player_model.global_basis.z * 1.5, 5.0, true)
+		cast.emit(slot)
+		return true
+	if id == "anvil":
+		anvil(front_foe(2.8, 0.8), 26.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "bubble_bath":
+		Net.everyone("_all_bubble_bath", [player.global_position, 10.0, 0.15])
+		cast.emit(slot)
+		return true
+	if id == "accelerate":
+		for k in cooldowns.keys():
+			if k != "accelerate":
+				cooldowns[k] = maxf(float(cooldowns[k]) - 4.0, 0.0)
+		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.4, 0.1])
+		cast.emit(slot)
+		return true
+	if id == "ringing_ears":
+		for e in enemies_in(player.global_position, 6.0):
+			if e.has_method("slowed"):
+				e.call("slowed", 4.0, 0.6)
+		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 6.0, Color(0.6, 0.8, 0.9), 0.5, 0.1])
+		cast.emit(slot)
+		return true
 	# (1.27) fourth powers, part 2: Thunder Spear, Pull Gale, Maul, Hamstring, Root Field, Echo Strike
 	if id == "thunder_spear":
 		thunder_spear(player.global_position + Vector3(0, 1.0, 0), -player.player_model.global_basis.z, SPEAR_LEN, 16.0 * power_multiplier())
@@ -1547,6 +1594,7 @@ func maul(dmg: float) -> Array:
 			hd.knockback_force = 8.0
 			hd.knockdown = true
 			hd.poise = 999.0
+			hd.unblockable = true
 			hd.camera_shake_intensity = 0.35
 			hb.take_hit(hd, player)
 			hit_list.append(e)
@@ -1594,7 +1642,51 @@ func _echo_blow(e: Node3D, hit: HitData) -> void:
 		hd.damage = dmg
 		hd.stagger_duration = 0.2
 		hd.set_meta("echo", true)
+		hd.unblockable = true
 		Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 0.9, Color(0.6, 0.8, 0.9), 0.25, 0.08])
 		hb.take_hit(hd, me)
 		# (counted as a landed blow for energy and the rest, but tagged so it never echoes again)
 		on_sword_hit(e, hd))
+
+
+## (1.27, Storm) a ring of shock round the captain: everyone within `r` struck and reeling.
+func static_burst(r: float, dmg: float) -> Array:
+	var hd := HitData.new()
+	hd.damage = dmg
+	hd.stagger_duration = 0.8
+	hd.poise = 40.0
+	hd.unblockable = true
+	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, r, Color(0.7, 0.8, 1.0), 0.35, 0.12])
+	return blast(player.global_position + Vector3(0, 0.9, 0), r, hd)
+
+
+## (1.27, Gust) a burst of wind: everyone within `r` thrown out and away.
+func gale_burst(r: float) -> Array:
+	var hit_list := enemies_in(player.global_position, r)
+	for e in hit_list:
+		var out := (e as Node3D).global_position - player.global_position
+		out.y = 0.0
+		out = out.normalized() if out.length() > 0.1 else Vector3.FORWARD
+		if e.has_method("launched"):
+			e.call("launched", out * 10.0 + Vector3.UP * 4.0)
+	Net.fx("dust_ring", [player.global_position, 18, 1.2])
+	return hit_list
+
+
+## (1.27, Iron) one great blow on `e`: hard, and floored.
+func anvil(e: Node3D, dmg: float) -> bool:
+	if e == null:
+		return false
+	var hb := e.get("hurtbox") as Hurtbox
+	if hb == null:
+		return false
+	var hd := HitData.new()
+	hd.damage = dmg
+	hd.knockback_force = 7.0
+	hd.knockdown = true
+	hd.poise = 999.0
+	hd.unblockable = true
+	hd.camera_shake_intensity = 0.4
+	hb.take_hit(hd, player)
+	Net.fx("impact", [e.global_position + Vector3.UP, Color(0.7, 0.72, 0.76)])
+	return true
