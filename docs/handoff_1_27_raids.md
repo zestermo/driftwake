@@ -324,7 +324,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   ring held 2.5 s), Echo Strike (the plan's "repeat your last attack": 8 s in which each landed blow comes again 0.35 s
   later at half, from on_sword_hit; the echo is tagged "echo" so it never echoes). Test t/progression/fourth_powers_b.
   (fifth powers: below)
-- (latest) **Fifth powers: every fruit has its five.** Static Burst (Storm, a 4.5 m ring), Gale Burst (Gust, everyone
+- **Fifth powers: every fruit has its five.** Static Burst (Storm, a 4.5 m ring), Gale Burst (Gust, everyone
   near thrown away), Second Wind (Bear, 20% health), Lunge (Wolf: echo_step then hamstring), Grasping Vine (Vine, the
   foe ahead yanked in with a wrap), Anvil (Iron, one great blow), Bubble Bath (Bubble, Net._all_bubble_bath heals the
   crew within 10 m 15%), Accelerate (Clockwork, other cooldowns -4 s), Ringing Ears (Echo, foes within 6 m at 60%).
@@ -333,3 +333,10 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   then trees to near weapon size (mechanics, a variant pick, a crew technique), icons and models. None of the new
   powers has its own animation or forms yet: they cast from the stance with effects only; forms (Reflex/Nature) exist
   only for each fruit's first two.
+- (latest) **Ultimates, part 1** (PowerComponent.fruit_ult, big_blast: a blast + light pillar + shake; poise 999 when
+  it floors, 40 when it holds): Storm's Tempest (a cloud over each foe within 15 m) and Judgement Bolt; Gust's Cyclone
+  (PowerComponent.cyclones: drags everyone within 9 m in for 5 s, then throws them up) and Hurricane; Bear's Avalanche
+  (id `bear_avalanche`: `avalanche` was taken) and Great Roar; Wolf's Blood Moon and Pack Fury; Vine's Forest Prison
+  and Thorn Storm. Tree nodes at levels 20 and 24. Test t/progression/fruit_ults_a. The power tests now pause the
+  grunt's thinking from placement to the cast (a red wind-up or getting-up poise immunity shrugged Maul's knockdown).
+  **Next:** ultimates part 2 (Iron, Bubble, Clockwork, Echo two each; Ember a second), then the awakenings.

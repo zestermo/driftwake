@@ -1327,6 +1327,8 @@ static func _build_wolf() -> void:
 		"Feral: press V to shift between your human and hybrid wolf form. Hybrid: claws instead of weapons, 25% more damage and 15% faster. Fight in hybrid form and use its powers to grow it.")
 	_big("z_fang", "Rending Fang", "tech", 0, 1, {}, "", "rending_fang")
 	_big("z_lunge", "Lunge", "tech", 0, 1, {}, "", "lunge")
+	_big("z_bloodmoon", "Blood Moon", "ult", 1, 20, {}, "", "blood_moon")
+	_big("z_packfury", "Pack Fury", "ult", 2, 24, {}, "", "pack_fury")
 	_big("z_hunt", "Predator", "mech", 0, 9, {"hybrid_speed_pct": 0.1}, "Hybrid form is another 10% faster.")
 	_big("z_pelt", "Thick Pelt", "mech", 1, 5, {"hybrid_defense": 8.0}, "+8 defense in hybrid form.")
 	_big("z_howl", "Alpha Howl", "tech", 1, 12, {}, "", "howl")
@@ -1348,6 +1350,8 @@ static func _build_vine() -> void:
 	_big("p_whip", "Thorn Whip", "tech", 1, 12, {}, "", "thorn_whip")
 	_big("p_swing", "Vine Swing", "tech", 2, 1, {}, "", "vine_swing")
 	_big("p_grasp", "Grasping Vine", "tech", 2, 1, {}, "", "grasping_vine")
+	_big("p_prison", "Forest Prison", "ult", 1, 20, {}, "", "forest_prison")
+	_big("p_thornstorm", "Thorn Storm", "ult", 0, 24, {}, "", "thorn_storm")
 	_big("p_thorns", "Thorn Hide", "mech", 2, 9, {"thorn_hide": 6.0}, "Enemies that hit you in melee take 6 damage from your thorns.")
 	_step("p_sun", "Sunlight", "p_root", 5, {"photo_mult": 0.15}, "Photosynthesis 15% faster a step.")
 	_step("p_bark", "Bark", "p_roots", 5, {"defense": 1.5}, "+1.5 defense a step.")
@@ -1380,6 +1384,8 @@ static func _build_storm() -> void:
 	_big("sm_spear", "Thunder Spear", "tech", 0, 1, {}, "", "thunder_spear")
 	_big("sm_cloud", "Thundercloud", "tech", 1, 1, {}, "", "thundercloud")
 	_big("sm_burst", "Static Burst", "tech", 1, 1, {}, "", "static_burst")
+	_big("sm_tempest", "Tempest", "ult", 1, 20, {}, "", "tempest")
+	_big("sm_judgement", "Judgement Bolt", "ult", 0, 24, {}, "", "judgement_bolt")
 	_step("sm_charge", "Charge", "sm_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1403,6 +1409,8 @@ static func _build_gust() -> void:
 	_root("gu_root", "Gust Fruit (Flux)", {}, "Flux: your body is wind. Use its powers to grow them.")
 	_big("gu_dash", "Gale Dash", "tech", 2, 1, {}, "", "gale_dash")
 	_big("gu_burst", "Gale Burst", "tech", 2, 1, {}, "", "gale_burst")
+	_big("gu_cyclone", "Cyclone", "ult", 1, 20, {}, "", "cyclone")
+	_big("gu_hurricane", "Hurricane", "ult", 2, 24, {}, "", "hurricane")
 	_big("gu_cone", "Gust Cone", "tech", 0, 1, {}, "", "gust_cone")
 	_big("gu_updraft", "Updraft", "tech", 1, 1, {}, "", "gust_updraft")
 	_big("gu_pull", "Pull Gale", "tech", 1, 1, {}, "", "pull_gale")
@@ -1419,6 +1427,8 @@ static func _build_bear() -> void:
 	_big("be_roar", "Roar", "tech", 1, 1, {}, "", "bear_roar")
 	_big("be_hug", "Bear Hug", "tech", 2, 1, {}, "", "bear_hug")
 	_big("be_wind", "Second Wind", "tech", 2, 1, {}, "", "second_wind")
+	_big("be_avalanche", "Avalanche", "ult", 0, 20, {}, "", "bear_avalanche")
+	_big("be_greatroar", "Great Roar", "ult", 1, 24, {}, "", "great_roar")
 	_step("be_hide", "Thick Hide", "be_root", 5, {"defense": 2.0}, "+2 defense a step.")
 
 

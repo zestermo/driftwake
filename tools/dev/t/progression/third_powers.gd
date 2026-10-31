@@ -37,6 +37,7 @@ func place(p, gs: Array, c: Array) -> void:
 	gs[0].global_position = Vector3(0, Y, -float(c[2]))
 	gs[1].global_position = Vector3(12, Y, 12)
 	for g in gs:
+		g.set_physics_process(false)
 		g.velocity = Vector3.ZERO
 		g.health.current_health = g.health.max_health
 	hp0 = gs[0].health.current_health
@@ -60,6 +61,7 @@ func _process(_d: float) -> bool:
 			place(p, gs, CASES[k])
 			until = TK.wait_ticks(3)
 		2:
+			g.set_physics_process(true)
 			p.state_machine.force_state("Idle", {})
 			check("%s casts" % CASES[k][1], p.power.try_cast(0))
 			until = TK.wait_secs([1.5, 0.15, 0.1, 0.1, 1.2][k])

@@ -80,6 +80,10 @@ const ROOTS_R := 4.0
 const ROOTS_SECS := 2.5
 const ECHO_STRIKE_SECS := 8.0
 const ECHO_K := 0.5
+## Gust's Cyclone: where it stands, how long, how far it drags.
+const CYCLONE_SECS := 5.0
+const CYCLONE_R := 9.0
+var cyclones: Array = []
 ## Haste: the crew within HASTE_R quicker (Player: HASTE_K) for HASTE_SECS. Bubble Bounce and Iron Drop: leaps (up, forward
 ## m/s); Iron Drop slams where it lands (DROP_R).
 const HASTE_R := 12.0
@@ -429,6 +433,11 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) ultimates, part 1: Storm, Gust, Bear, Wolf, Vine (two each; one equipped)
+	if id in ["tempest", "judgement_bolt", "cyclone", "hurricane", "bear_avalanche", "great_roar", "blood_moon", "pack_fury", "forest_prison", "thorn_storm"]:
+		fruit_ult(id)
+		cast.emit(slot)
+		return true
 	# (1.27) fifth powers
 	if id == "static_burst":
 		static_burst(4.5, 12.0 * power_multiplier())
@@ -1335,6 +1344,7 @@ func shatter_note(at: Vector3, dir: Vector3, length: float, half_w: float, dmg: 
 ## (1.27, Clockwork) the live Slow Fields: every half second each slows the foes in it (and shows its rim).
 func _tick_fields(delta: float) -> void:
 	_tick_clouds(delta)
+	_tick_cyclones(delta)
 	if fields.is_empty():
 		return
 	for f in fields:
@@ -1690,3 +1700,110 @@ func anvil(e: Node3D, dmg: float) -> bool:
 	hb.take_hit(hd, player)
 	Net.fx("impact", [e.global_position + Vector3.UP, Color(0.7, 0.72, 0.76)])
 	return true
+
+
+## (1.27) an ultimate's great blow: everyone within `r` of `at` struck for `dmg` (floored if `down`), with a pillar of
+## light in `col` and the camera shaken.
+func big_blast(at: Vector3, r: float, dmg: float, down: bool, col: Color) -> Array:
+	var hd := HitData.new()
+	hd.damage = dmg
+	hd.knockback_force = 9.0 if down else 2.0
+	hd.knockdown = down
+	hd.stagger_duration = 0.0 if down else 1.2
+	hd.poise = 999.0 if down else 40.0
+	hd.unblockable = true
+	hd.camera_shake_intensity = 0.6
+	Net.fx("light_pillar", [at, 12.0, r, 0.8, col])
+	player.cam_shake(0.4, 0.4)
+	return blast(at + Vector3(0, 0.9, 0), r, hd)
+
+
+## (1.27) the fruit ultimates (part 1).
+func fruit_ult(id: String) -> void:
+	var m := power_multiplier()
+	var at := player.global_position
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	match id:
+		# Storm: a cloud over every foe within 15 m (six at most), striking fast; or one bolt from the sky 8 m ahead
+		"tempest":
+			var n := 0
+			for e in enemies_in(at, 15.0):
+				if n >= 6:
+					break
+				clouds.append([(e as Node3D).global_position, 6.0, 0.0, 18.0 * m])
+				n += 1
+			Net.fx("light_pillar", [at, 14.0, 3.0, 0.6, Color(0.7, 0.8, 1.0)])
+		"judgement_bolt":
+			var spot := at + fwd * 8.0
+			Net.fx("bolt", [spot + Vector3.UP * 30.0, spot, Color(0.8, 0.88, 1.0), 0.4, 0.4])
+			big_blast(spot, 6.0, 60.0 * m, true, Color(0.7, 0.8, 1.0))
+		# Gust: a cyclone 7 m ahead that drags everyone near into it and throws them up when it dies; or a hurricane
+		# out of you
+		"cyclone":
+			cyclones.append([at + fwd * 7.0, CYCLONE_SECS, 0.0])
+		"hurricane":
+			big_blast(at, 10.0, 30.0 * m, false, Color(0.85, 0.95, 0.9))
+			gale_burst(10.0)
+		# Bear: a charge that floors everything in its path and mauls at its end; or a roar that stuns all round
+		"bear_avalanche":
+			for e in line_foes(at, fwd, 16.0, 1.5):
+				var hb := e.get("hurtbox") as Hurtbox
+				if hb:
+					var hd := HitData.new()
+					hd.damage = 20.0 * m
+					hd.knockdown = true
+					hd.knockback_force = 8.0
+					hd.poise = 999.0
+					hd.unblockable = true
+					hb.take_hit(hd, player)
+			thunder_step(16.0)
+			big_blast(player.global_position, 4.0, 35.0 * m, true, Color(0.75, 0.55, 0.35))
+		"great_roar":
+			big_blast(at, 12.0, 20.0 * m, false, Color(0.9, 0.8, 0.6))
+			for e in enemies_in(at, 12.0):
+				if e.has_method("grabbed"):
+					e.call("grabbed", 3.0)
+		# Wolf: the blood moon (Alpha Howl for 15 s and a quarter of your health back); or the pack's fury (every foe
+		# within 8 m cut low)
+		"blood_moon":
+			add_buff("howl", 15.0)
+			player.call("_recalc_stats")
+			player.health_component.heal(player.health_component.max_health * 0.25)
+			Net.fx("light_pillar", [at, 14.0, 3.0, 0.8, Color(0.85, 0.2, 0.15)])
+		"pack_fury":
+			for e in enemies_in(at, 8.0):
+				hamstring(e, 25.0 * m)
+			Net.fx("dust_ring", [at, 20, 1.4])
+			player.cam_shake(0.3, 0.3)
+		# Vine: a forest prison (everyone within 10 m held 5 s); or a storm of thorns (a ring of 8 m)
+		"forest_prison":
+			for e in enemies_in(at, 10.0):
+				root_enemy(e, 5.0)
+			big_blast(at, 10.0, 15.0 * m, false, Color(0.35, 0.65, 0.25))
+		"thorn_storm":
+			big_blast(at, 8.0, 40.0 * m, false, Color(0.45, 0.7, 0.3))
+
+
+## (1.27, Gust) the live Cyclones: every half second everyone within CYCLONE_R dragged in; at its end, thrown up.
+func _tick_cyclones(delta: float) -> void:
+	if cyclones.is_empty():
+		return
+	for c in cyclones:
+		c[1] = float(c[1]) - delta
+		c[2] = float(c[2]) - delta
+		var at: Vector3 = c[0]
+		if float(c[1]) <= 0.0:
+			updraft(at, 4.0)
+			big_blast(at, 4.0, 25.0 * power_multiplier(), true, Color(0.85, 0.95, 0.9))
+			continue
+		if float(c[2]) > 0.0:
+			continue
+		c[2] = 0.5
+		Net.fx("dust_ring", [at, 10, 1.0])
+		Net.fx("ring", [at + Vector3.UP * 1.5, Vector3.UP, 3.0, Color(0.85, 0.95, 0.9), 0.4, 0.15])
+		for e in enemies_in(at, CYCLONE_R):
+			if (e as Node3D).global_position.distance_to(at) > 1.5 and e.has_method("vine_yank"):
+				e.call("vine_yank", at, 2.0, false)
+	cyclones = cyclones.filter(func(c): return float(c[1]) > 0.0)
