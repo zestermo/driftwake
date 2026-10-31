@@ -27,6 +27,8 @@ func _ready() -> void:
 	if not OS.is_debug_build():
 		set_process_unhandled_input(false)
 		return
+	# (1.27) the debug menu on F4 (DebugMenu), debug builds only
+	add_child(DebugMenu.new())
 	var t := Timer.new()
 	t.wait_time = HISTORY_STEP
 	t.process_callback = Timer.TIMER_PROCESS_PHYSICS
