@@ -158,6 +158,8 @@ var crew_tech: CrewTechniques
 var offhand_weapon: ItemData
 ## Zoan: in hybrid beast form.
 var hybrid: bool = false
+## (1.27) ...and in the full beast (the awakening), not the half-beast.
+var beast_full := false
 ## Loaded shots per pistol [main, off-hand].
 var ammo: Array[int] = [2, 2]
 var _reload_t: float = 0.0
@@ -546,7 +548,8 @@ func _recalc_stats() -> void:
 	var sprint_k := 1.0 + (pr.stat("sprint_pct") if pr else 0.0)
 	if hybrid:
 		# (1.27) the wolf quicker than you, the bear slower: it lumbers
-		var hk := float(BEAST_FORMS.get(power.fruit, BEAST_FORMS["wolf"]).get("speed", 1.15)) + (pr.stat("hybrid_speed_pct") if pr else 0.0)
+		var bf: Dictionary = BEAST_FORMS.get(power.fruit, BEAST_FORMS["wolf"])
+		var hk := float(bf["speed"] if beast_full else bf["half"]["speed"]) + (pr.stat("hybrid_speed_pct") if pr else 0.0)
 		move_k *= hk
 		sprint_k *= hk
 	if power and power.buff("howl"):
@@ -1111,10 +1114,12 @@ const FUR := Color(0.55, 0.5, 0.44)
 const BEAST_FORMS := {
 	"wolf": {"kind": "wolf", "fur": Color(0.42, 0.43, 0.48), "eyes": Color(0.95, 0.78, 0.2), "height": 1.22, "speed": 1.2,
 		"body": {"build": "wolf", "arm_k": 1.14, "leg_k": 1.06, "hand_k": 1.45, "foot_k": 1.3, "torso_k": 1.04,
-			"hair": "wolf_mane", "fur": true, "top": "bare", "coat": "none", "vest": "none", "feet": "barefoot", "gloves": false, "cape": false, "cloak": false, "mantle": false}},
+			"hair": "wolf_mane", "fur": true, "top": "bare", "coat": "none", "vest": "none", "feet": "barefoot", "gloves": false, "cape": false, "cloak": false, "mantle": false},
+		"half": {"height": 1.08, "speed": 1.1, "body": {"hair": "wolf_mane", "fur": true, "feet": "barefoot", "gloves": false, "hand_k": 1.25, "foot_k": 1.15}}},
 	"bear": {"kind": "bear", "fur": Color(0.36, 0.26, 0.17), "eyes": Color(0.55, 0.32, 0.12), "height": 1.38, "speed": 0.95,
 		"body": {"build": "bear", "arm_k": 1.06, "leg_k": 0.94, "hand_k": 1.65, "foot_k": 1.45, "torso_k": 1.1,
-			"hair": "bear_mane", "fur": true, "top": "bare", "coat": "none", "vest": "none", "feet": "barefoot", "gloves": false, "cape": false, "cloak": false, "mantle": false}},
+			"hair": "bear_mane", "fur": true, "top": "bare", "coat": "none", "vest": "none", "feet": "barefoot", "gloves": false, "cape": false, "cloak": false, "mantle": false},
+		"half": {"height": 1.12, "speed": 1.0, "body": {"hair": "bear_mane", "fur": true, "feet": "barefoot", "gloves": false, "hand_k": 1.35, "foot_k": 1.25, "build": "broad"}}},
 }
 
 
@@ -1124,10 +1129,13 @@ func toggle_hybrid() -> void:
 	set_hybrid(not hybrid)
 
 
-func set_hybrid(on: bool) -> void:
-	if on == hybrid:
+## `full`: the full beast (the awakening): bigger, furred all over, out of its clothes; otherwise the half-beast (Wolf
+## Form, Bear Form): a little bigger, the beast's head and mane, furred clawed hands and paws, the clothes kept.
+func set_hybrid(on: bool, full: bool = false) -> void:
+	if on == hybrid and (not on or full == beast_full):
 		return
 	hybrid = on
+	beast_full = on and full
 	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden)
 	var form: Dictionary = BEAST_FORMS.get(power.fruit, BEAST_FORMS["wolf"])
 	var fur: Color = form["fur"]
@@ -1138,10 +1146,14 @@ func set_hybrid(on: bool) -> void:
 		lk["facial_hair"] = "beard"
 		lk["eye_color"] = form["eyes"]
 		lk["hat"] = "none"
-		lk["height"] = float(lk.get("height", 1.0)) * float(form["height"])
-		lk.merge(form["body"], true)
+		var shape: Dictionary = form if full else form["half"]
+		lk["height"] = float(lk.get("height", 1.0)) * float(shape["height"])
+		lk.merge(shape["body"], true)
+		if not full:
+			# (the half-beast keeps its hat off for the ears, its face and beard beast's; the rest as worn)
+			lk["hat"] = "none"
 	body_model.apply_look(lk)
-	body_model.set_beast(on, fur, str(form["kind"]))
+	body_model.set_beast(on, fur, str(form["kind"]), full)
 	# weapons stay sheathed in hybrid form: you fight with claws
 	if on:
 		body_model._attach_weapon(false)
@@ -1788,12 +1800,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
 		get_viewport().set_input_as_handled()
 		return
-	# (1.27) the fruit stance, any fruit: the bar swaps to its powers; a zoan also shifts into its hybrid form
+	# (1.27) the fruit stance, any fruit: the bar swaps to its powers (a zoan's beast form is its own power: Wolf Form,
+	# Bear Form; the awakening is the full beast)
 	if event.is_action_pressed("transform"):
 		if power.fruit != "":
 			power.set_fruit_stance(not power.fruit_stance)
-		if power.fruit_type() == "zoan":
-			toggle_hybrid()
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("lantern"):
@@ -3127,8 +3138,8 @@ func net_event(what: String, args: Array) -> void:
 				body_model.apply_look(args[0])
 				# (the form is in the look: its build, "wolf" or "bear", and the fur on its skin)
 				var blk: Dictionary = args[0]
-				var bkind := "bear" if str(blk.get("build", "")) == "bear" else "wolf"
-				body_model.set_beast(bool(args[1]), blk.get("skin", FUR), bkind)
+				var bkind := "bear" if str(blk.get("hair", "")) == "bear_mane" or str(blk.get("build", "")) == "bear" else "wolf"
+				body_model.set_beast(bool(args[1]), blk.get("skin", FUR), bkind, str(blk.get("build", "")) in ["wolf", "bear"])
 				if bool(args[1]) and not hybrid and is_inside_tree() and bkind == "wolf":
 					FX.power_aura.call_deferred(body_model, "wolf", 2.0)
 				hybrid = bool(args[1])

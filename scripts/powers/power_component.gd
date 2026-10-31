@@ -437,6 +437,10 @@ func try_cast(slot: int) -> bool:
 	player.progression.note_use(id)
 	# (1.27) a Driftfruit power plays its cast (FruitCastState: its pose, the wind-up, the power going off on the strike
 	# key through _fire); everything else goes off now
+	# (1.27) a zoan power used out of its beast form: just the limbs it uses turn, for as long as it takes
+	if fruit in ["wolf", "bear"] and not player.hybrid and ZOAN_PARTS.has(id):
+		var lasts := (float(FruitCastState.CASTS[id][1]) if FruitCastState.CASTS.has(id) else 1.0) + 0.4
+		Net.fx("fruit_skin", [player.body_model, "fur_" + fruit, ZOAN_PARTS[id], lasts])
 	if FruitCastState.CASTS.has(id) and player.state_machine.has_node("FruitCast") and not instant_casts:
 		player.state_machine.force_state("FruitCast", {"slot": slot, "id": id})
 		cast.emit(slot)
@@ -447,6 +451,11 @@ func try_cast(slot: int) -> bool:
 ## (1.27) A skill going off (try_cast once it's paid for; FruitCastState on its strike key). Returns true.
 func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) a zoan's half-beast form: on, or off again (out of the full beast too)
+	if id in ["wolf_form", "bear_form"]:
+		player.set_hybrid(not player.hybrid, false)
+		cast.emit(slot)
+		return true
 	# (1.27) the fruit trees' alternates (mastery 16): a second take on one of the fruit's powers
 	if id in ALTERNATES:
 		alt_power(id)
@@ -686,6 +695,16 @@ func _fire(slot: int, id: String, sk: Dictionary) -> bool:
 	# as quick back (the "awakened" buff; Sunborn is Ember's)
 	if bool((Skills.ALL.get(id, {}) as Dictionary).get("awakening", false)):
 		FruitFX.aura(player, fruit, "reinforce", AWAKENED_SECS)
+		if fruit in ["wolf", "bear"]:
+			# the full beast for the awakening, then back to the form you were in
+			var was: bool = player.hybrid
+			player.set_hybrid(true, true)
+			var me := player
+			player.get_tree().create_timer(AWAKENED_SECS, false).timeout.connect(func():
+				if is_instance_valid(me) and me.beast_full:
+					me.set_hybrid(false)
+					if was:
+						me.set_hybrid(true, false))
 		if fruit == "iron":
 			Net.fx("fruit_skin", [player.body_model, "iron", "body", AWAKENED_SECS])
 		elif fruit == "clockwork":
@@ -2180,3 +2199,9 @@ func _check_surrounded(delta: float) -> void:
 	_surround_t = 1.0
 	if enemies_in(player.global_position, SURROUND_R).size() >= SURROUND_N:
 		auto_moment("surrounded")
+
+
+## (1.27) The zoan powers that transform one part of you when you use them out of the beast form: the arms (claws,
+## swipes, grabs) or the legs (pounces, charges, lunges).
+const ZOAN_PARTS := {"rending_fang": "arms", "hamstring": "arms", "maul": "arms", "bear_hug": "arms", "overhead_smash": "arms",
+	"pack_fury": "arms", "pounce": "legs", "lunge": "legs", "shadow_pounce": "legs", "bear_charge": "legs", "bear_avalanche": "legs"}

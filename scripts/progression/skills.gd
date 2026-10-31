@@ -121,6 +121,11 @@ const ALL := {
 		"desc": "The other Shatter Note: the note rung out in a 5 m ring round you."},
 	"flare_burst": {"name": "Flare Burst", "tree": "Ember", "cost": 22.0, "cooldown": 8.0, "needs": "", "fruit": "ember",
 		"desc": "The other Cinder Fist: a burst of flame round you (3.5 m) that sets everyone in it burning."},
+	# (1.27) the zoans' half-beast forms, their own power (a toggle; the awakening is the full beast)
+	"wolf_form": {"name": "Wolf Form", "tree": "Wolf", "cost": 0.0, "cooldown": 1.0, "needs": "", "fruit": "wolf",
+		"desc": "Shift into the half-wolf and back: the wolf's head and mane, clawed hands and paws, a little bigger and quicker, your clothes kept. Claws instead of weapons, harder to hurt."},
+	"bear_form": {"name": "Bear Form", "tree": "Bear", "cost": 0.0, "cooldown": 1.0, "needs": "", "fruit": "bear",
+		"desc": "Shift into the half-bear and back: the bear's head and mane, great clawed paws, bigger and heavier, your clothes kept. Claws instead of weapons, harder to hurt."},
 	# (1.27) the awakenings (fruit mastery 30), Sunborn's sisters
 	"stormborn": {"name": "Stormborn", "tree": "Storm", "cost": 0.0, "cooldown": 3.0, "needs": "", "fruit": "storm", "ult": true, "awakening": true,
 		"desc": "The fruit awakened: for 30 s you are the storm. Every Storm power at its Nature, half the energy, back twice as fast."},

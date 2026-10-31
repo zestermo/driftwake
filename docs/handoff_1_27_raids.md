@@ -405,3 +405,13 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   hump, heavy hooked claws, a stub tail; seeded). A guest's screen reads the form from the look's build. The bear
   transforms with a roar, dust and debris. abilityshot AB_HYBRID=1 films a zoan power in its form. Not yet: clothes
   torn or hidden in the form (the coat still shows), and the faces are best judged in-game (the cameras sit behind).
+  (2026-10-31, zoan pass) **Three tiers of beast:** the half-beast is its own power now (Wolf Form, Bear Form: free at
+  mastery 1, a toggle; V is just the fruit stance): a little bigger (x1.08/x1.12), the beast's head and mane (HairFlow
+  wolf_mane/bear_mane), furred clawed hands and paws, the clothes kept (Player.BEAST_FORMS[f]["half"]). The awakening
+  (Moonborn, Mountainborn) is the full beast for its 30 s (set_hybrid(true, true): bigger, furred all over, out of the
+  clothes, ruff/hump/spine ridge/tufts), then back to the form you were in. A zoan power used out of the form turns only
+  the limbs it uses (PowerComponent.ZOAN_PARTS -> FX.fruit_skin "fur_wolf"/"fur_bear" on "arms" with claws, or "legs").
+  Fur is the fur texture (BodyBuilder "fur" look key). Gaits: the bear lumbers (Humanoid._lumber), the wolf runs feral
+  and near-bounds at a sprint; speeds by form. Paws: Humanoid.paw_mesh (hooked claws along the fingers curling toward
+  the palm, knuckles, pads, a wrist tuft; the bear's spread wide) and toe_mesh. Not yet: a full four-legged animal
+  body (the full beast is the big hybrid). The stronghold leftovers are next.

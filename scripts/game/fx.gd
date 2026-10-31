@@ -3166,7 +3166,8 @@ func sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, pitch_jitter:
 ## (1.27) A Driftfruit turning the body itself for `secs`: `kind` "iron" (polished steel: Iron Guard on the arms, Iron
 ## Fortress and Ironborn all over) or "brass" (Timeborn's clockwork arms); `part` "arms" or "body". Each mesh's own
 ## material comes back after (whatever it had: Armament Coat's black included); a newer skin outlasts an older one.
-const FRUIT_SKINS := {"iron": [Color(0.8, 0.84, 0.92), Color(0.32, 0.35, 0.42)], "brass": [Color(1.0, 0.8, 0.42), Color(0.45, 0.3, 0.08)]}
+const FRUIT_SKINS := {"iron": [Color(0.8, 0.84, 0.92), Color(0.32, 0.35, 0.42)], "brass": [Color(1.0, 0.8, 0.42), Color(0.45, 0.3, 0.08)],
+	"fur_wolf": [Color(0.5, 0.51, 0.57), Color.BLACK], "fur_bear": [Color(0.44, 0.32, 0.21), Color.BLACK]}
 
 
 func fruit_skin(body: Node3D, kind: String, part: String, secs: float) -> void:
@@ -3174,7 +3175,9 @@ func fruit_skin(body: Node3D, kind: String, part: String, secs: float) -> void:
 		return
 	var h := body as Humanoid
 	var c: Array = FRUIT_SKINS[kind]
-	var mat := PSXMat.lit("metal", c[0], {"emission": c[1], "emission_energy": 0.55, "emission_pulse": 0.35, "vertex_color": false})
+	# (a zoan power used out of its beast form, "fur_*": the fur over just that limb, and claws on the hands)
+	var fur := kind.begins_with("fur")
+	var mat := PSXMat.lit("fur", c[0], {"vertex_color": false}) if fur else PSXMat.lit("metal", c[0], {"emission": c[1], "emission_energy": 0.55, "emission_pulse": 0.35, "vertex_color": false})
 	var meshes: Array = []
 	if part == "arms":
 		var ab = h.torso.get_node_or_null("ArmBody")
@@ -3184,6 +3187,14 @@ func fruit_skin(body: Node3D, kind: String, part: String, secs: float) -> void:
 			for ch in (bone as Node3D).get_children():
 				if ch is MeshInstance3D and ch != h.weapon and ch != h.offhand:
 					meshes.append(ch)
+	elif part == "legs":
+		# (the hips down: everything under the hips but the torso's, and the skinned lower body)
+		for g in h.find_children("*", "MeshInstance3D", true, false):
+			var path := str(h.get_path_to(g))
+			if "Aura" in path or "Edy" in path or g == h.weapon or g == h.offhand:
+				continue
+			if "LowerBody" in path or (h.hips.is_ancestor_of(g) and not h.torso.is_ancestor_of(g)):
+				meshes.append(g)
 	else:
 		for g in h.find_children("*", "MeshInstance3D", true, false):
 			# (nothing of an aura, PowerAura or EdyAura (its EdyGround disc, its EdyShell outlines): they stay their own)
@@ -3198,10 +3209,23 @@ func fruit_skin(body: Node3D, kind: String, part: String, secs: float) -> void:
 			before[m] = (m as MeshInstance3D).get_meta("skin_before") if (m as MeshInstance3D).has_meta("skin_before") else (m as MeshInstance3D).material_override
 			(m as MeshInstance3D).set_meta("skin_before", before[m])
 			(m as MeshInstance3D).material_override = mat
+	var claws: Array = []
+	if fur and part == "arms":
+		for hand in [h.hand_l, h.hand_r]:
+			var cm := Humanoid.paw_mesh(kind == "fur_bear", c[0], 1.0, 1.0 if hand == h.hand_l else -1.0)
+			cm.name = "SkinClaws"
+			(hand as Node3D).add_child(cm)
+			claws.append(cm)
 	# the change running over the body: a glint and sparks of it
-	flash(h.global_position + Vector3(0, 1.2, 0), 1.6, c[0], "glint", 0.25)
-	muzzle_sparks(h.global_position + Vector3(0, 1.2, 0), Vector3.UP, 14, c[0].lightened(0.3))
+	if fur:
+		smoke(h.global_position + Vector3(0, 0.6 if part == "legs" else 1.2, 0), 5, 0.6, 0.6, c[0])
+	else:
+		flash(h.global_position + Vector3(0, 1.2, 0), 1.6, c[0], "glint", 0.25)
+		muzzle_sparks(h.global_position + Vector3(0, 1.2, 0), Vector3.UP, 14, c[0].lightened(0.3))
 	get_tree().create_timer(secs, false).timeout.connect(func():
+		for cm in claws:
+			if is_instance_valid(cm):
+				cm.queue_free()
 		if not is_instance_valid(h) or int(h.get_meta("fruit_skin_token", 0)) != token:
 			return
 		for m in before:

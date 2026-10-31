@@ -933,7 +933,7 @@ func set_offhand(mesh: Mesh) -> void:
 ## Zoan hybrid form extras in the fur colour (the body itself is re-skinned and re-proportioned by the caller):
 ## `kind` "wolf" (a long snout and fangs, tall ears, a ruff at the neck, long claws, a bushy tail hung low) or "bear"
 ## (a broad short muzzle, small round ears, a hump of muscle over the shoulders, great hooked claws, a stub tail).
-func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wolf") -> void:
+func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wolf", full: bool = true) -> void:
 	beast_kind = kind if on else ""
 	for n in _beast:
 		if is_instance_valid(n):
@@ -977,44 +977,45 @@ func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44), kind: String = "wo
 	var hm := hb.to_instance("BeastHead")
 	head.add_child(hm)
 	_beast.append(hm)
-	# the neck and shoulders: the wolf's ruff, the bear's hump
+	# (the half-beast: head, hands, paws and tail; the body under its clothes stays as it was)
 	var sy := arm_l.position.y
 	var nb := MeshBuilder.new()
-	if bear:
-		nb.add_blob(fm, Transform3D(Basis(), Vector3(0, sy + 0.03, 0.09)), Vector3(0.26, 0.15, 0.17), brng)
-	else:
-		nb.add_cylinder(fm, Transform3D(Basis(), Vector3(0, sy + 0.02, 0.01)), 0.2, 0.13, 0.17, 7, 1.0)
+	# the full beast: the wolf's ruff or the bear's hump, a ridge of fur down the spine, tufts at the shoulders and chest
+	if full:
+		if bear:
+			nb.add_blob(fm, Transform3D(Basis(), Vector3(0, sy + 0.03, 0.09)), Vector3(0.26, 0.15, 0.17), brng)
+		else:
+			nb.add_cylinder(fm, Transform3D(Basis(), Vector3(0, sy + 0.02, 0.01)), 0.2, 0.13, 0.17, 7, 1.0)
+			for i in range(7):
+				var a := TAU * float(i) / 7.0
+				nb.add_cone(lt, Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, -1.1), Vector3(sin(a) * 0.16, sy + 0.04, cos(a) * 0.16)), 0.05, 0.14, 4)
+		# a ridge of fur down the spine (the wolf's spiky, the bear's shaggy) and tufts at the shoulders and on the chest
+		var back_z := 0.14 if bear else 0.12
 		for i in range(7):
-			var a := TAU * float(i) / 7.0
-			nb.add_cone(lt, Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, -1.1), Vector3(sin(a) * 0.16, sy + 0.04, cos(a) * 0.16)), 0.05, 0.14, 4)
-	# a ridge of fur down the spine (the wolf's spiky, the bear's shaggy) and tufts at the shoulders and on the chest
-	var back_z := 0.14 if bear else 0.12
-	for i in range(7):
-		var k := float(i) / 6.0
-		var ry := sy + 0.06 - k * 0.42
-		var sz := lerpf(0.11, 0.05, k) * (1.25 if bear else 1.0)
-		nb.add_cone(fm if i % 2 == 0 else lt, Transform3D(Basis(Vector3.RIGHT, -0.75 - k * 0.3), Vector3(0, ry, back_z + 0.01 * (1.0 - k))), sz * 0.45, sz * 1.6, 4)
-	for sx in [-1.0, 1.0]:
-		for j in range(3):
-			nb.add_cone(lt if j == 1 else fm, Transform3D(Basis(Vector3.BACK, sx * (1.2 + j * 0.25)), Vector3(sx * (0.2 + j * 0.03), sy + 0.03 - j * 0.04, 0.02 * j)), 0.035, 0.12 if bear else 0.1, 4)
-	if not bear:
-		for j in range(4):
-			var cx := (float(j) - 1.5) * 0.045
-			nb.add_cone(lt, Transform3D(Basis(Vector3.RIGHT, PI * 0.82), Vector3(cx, sy - 0.04 - absf(cx) * 0.4, -0.12)), 0.03, 0.13, 4)
-	var nm := nb.to_instance("BeastRuff")
-	torso.add_child(nm)
-	_beast.append(nm)
-	# claws: three on each hand, the bear's longer and heavier, hooked
+			var k := float(i) / 6.0
+			var ry := sy + 0.06 - k * 0.42
+			var sz := lerpf(0.11, 0.05, k) * (1.25 if bear else 1.0)
+			nb.add_cone(fm if i % 2 == 0 else lt, Transform3D(Basis(Vector3.RIGHT, -0.75 - k * 0.3), Vector3(0, ry, back_z + 0.01 * (1.0 - k))), sz * 0.45, sz * 1.6, 4)
+		for sx in [-1.0, 1.0]:
+			for j in range(3):
+				nb.add_cone(lt if j == 1 else fm, Transform3D(Basis(Vector3.BACK, sx * (1.2 + j * 0.25)), Vector3(sx * (0.2 + j * 0.03), sy + 0.03 - j * 0.04, 0.02 * j)), 0.035, 0.12 if bear else 0.1, 4)
+		if not bear:
+			for j in range(4):
+				var cx := (float(j) - 1.5) * 0.045
+				nb.add_cone(lt, Transform3D(Basis(Vector3.RIGHT, PI * 0.82), Vector3(cx, sy - 0.04 - absf(cx) * 0.4, -0.12)), 0.03, 0.13, 4)
+		var nm := nb.to_instance("BeastRuff")
+		torso.add_child(nm)
+		_beast.append(nm)
+	# paws: hooked claws, knuckles, pads and a wrist tuft on the hands (Humanoid.paw_mesh); toes and claws on the feet
+	var hk := (1.65 if full else 1.35) if bear else (1.45 if full else 1.25)
 	for hand in [hand_l, hand_r]:
-		var cb := MeshBuilder.new()
-		for i in range(3):
-			var x := (float(i) - 1.0) * (0.03 if bear else 0.024)
-			cb.add_cone(cl, Transform3D(Basis(Vector3.RIGHT, PI * (0.82 if bear else 0.88)), Vector3(x, -0.075, -0.035)), 0.016 if bear else 0.01, 0.11 if bear else 0.085, 4)
-		# a tuft at the wrist
-		cb.add_cone(fm, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 0.05, 0.03)), 0.03, 0.08, 4)
-		var cm := cb.to_instance("Claws")
+		var cm := paw_mesh(bear, fur, hk, 1.0 if hand == hand_l else -1.0)
 		(hand as Node3D).add_child(cm)
 		_beast.append(cm)
+	for shin in [shin_l, shin_r]:
+		var tm := toe_mesh(bear, fur, hk * 0.85, shin_l.position.y)
+		(shin as Node3D).add_child(tm)
+		_beast.append(tm)
 	# tail off the hips
 	_tail = Node3D.new()
 	_tail.name = "Tail"
@@ -4241,3 +4242,48 @@ func _lumber(p: Dictionary, walk: float, run: float, s: float) -> float:
 		p[j] = (idle[j] as Vector3).lerp(move[j], w)
 	# (heavy: down onto each foot as it lands)
 	return lerpf(-0.08, lerpf(-0.16, -0.34, r), w) - absf(s) * 0.06 * w + br * 0.012 * (1.0 - w)
+
+
+## (1.27) A beast's paw on a hand (`k` the hand's size, `side` +1 the left hand, -1 the right): the fingers hang down -y
+## with the palm turned in to the body (+x on the left hand, -x on the right), so the row of fingers runs front to back
+## (z) and each hooked claw (a curved tapering tube; the bear's five and heavier, the wolf's four) curls down and in
+## toward the palm. A furred knuckle over each finger so the hand stops reading as a block, dark pads on the palm, a tuft
+## on the back of the wrist.
+static func paw_mesh(bear: bool, fur: Color, k: float, side: float = 1.0) -> MeshInstance3D:
+	var fm := PSXMat.lit("fur", fur)
+	var pad := PSXMat.flat(fur.darkened(0.7))
+	var cl := PSXMat.flat(Color(0.8, 0.76, 0.66))
+	var b := MeshBuilder.new()
+	var n := 5 if bear else 4
+	# (the bear's great paws spread their claws wide)
+	var span := (0.115 if bear else 0.06) * k
+	for i in range(n):
+		var z := lerpf(-span * 0.5, span * 0.5, float(i) / float(n - 1)) - 0.01 * k
+		var root := Vector3(0, -0.072 * k, z)
+		b.add_box(fm, Transform3D(Basis(Vector3.FORWARD, side * 0.3), root + Vector3(-side * 0.004, 0.02 * k, 0)), Vector3(0.04 * k, 0.03 * k, span / float(n) * 1.05))
+		var r0 := (0.008 if bear else 0.006) * k
+		var lg := (0.045 if bear else 0.04) * k
+		var pts := PackedVector3Array([root, root + Vector3(side * lg * 0.45, -lg * 0.35, 0), root + Vector3(side * lg * 0.55, -lg * 0.85, 0),
+			root + Vector3(side * lg * 0.3, -lg * 1.15, 0)])
+		b.add_tube(cl, pts, r0, r0 * 0.15, 4)
+	b.add_box(pad, Transform3D(Basis(), Vector3(side * 0.025 * k, -0.045 * k, -0.01 * k)), Vector3(0.012, 0.035 * k, span * 0.8))
+	b.add_cone(fm, Transform3D(Basis(Vector3.FORWARD, side * 0.6), Vector3(-side * 0.035 * k, 0.03 * k, 0)), 0.03 * k, 0.09 * k, 4)
+	return b.to_instance("Claws")
+
+
+## ...and on a foot (`ankle` the shin's foot height, `k` the foot's size): a row of toes, each with a hooked claw.
+static func toe_mesh(bear: bool, fur: Color, k: float, ankle: float) -> MeshInstance3D:
+	var fm := PSXMat.lit("fur", fur)
+	var cl := PSXMat.flat(Color(0.95, 0.92, 0.82))
+	var b := MeshBuilder.new()
+	var n := 5 if bear else 4
+	var span := (0.11 if bear else 0.09) * k
+	for i in range(n):
+		var x := lerpf(-span * 0.5, span * 0.5, float(i) / float(n - 1))
+		var toe := Vector3(x, ankle - 0.075, -0.17 * k)
+		b.add_box(fm, Transform3D(Basis(), toe), Vector3(span / float(n) * 1.1, 0.04, 0.05 * k))
+		var r0 := (0.012 if bear else 0.009) * k
+		var lg := (0.06 if bear else 0.05) * k
+		var pts := PackedVector3Array([toe + Vector3(0, 0.0, -0.02 * k), toe + Vector3(0, -0.005, -0.02 * k - lg * 0.6), toe + Vector3(0, -0.03, -0.02 * k - lg)])
+		b.add_tube(cl, pts, r0, r0 * 0.15, 4)
+	return b.to_instance("ToeClaws")
