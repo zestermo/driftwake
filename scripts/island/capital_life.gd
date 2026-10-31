@@ -563,6 +563,17 @@ func _talk_palace(petition: Dictionary, signet: Dictionary, audience: Dictionary
 		"next_ask": "What else does the Crown need?",
 		"next": ["The Admiralty keeps a fortress on an island of this chain, and in its vault something that belongs to me.", "When you've found where it stands, come back. I'll have a writ for you, and a reason to use it."]},
 		audience["id"])
+	# (1.27) the Queen's line, step 2: the writ for the Admiralty's fortress once you've found it, and her thanks once it's fallen
+	var jr := get_node("/root/Journal")
+	qmenu["choices"].insert(3, {"text": "I've found the Admiralty's fortress, Majesty.", "next": "writ",
+		"if": func(): return jr.perks.has("line:capital:1") and Chain.stronghold_known(get_tree()) and not jr.perks.has("line:capital:writ")})
+	qnodes["writ"] = {"text": ["Then you'll need this. A writ under my seal: whatever you take from that fortress, you take for the Crown, and no court of mine will call it piracy.",
+		"In its vault there's a sword the Admiralty took from my father's armoury. Bring the fortress down and keep the blade, Captain. I want the Admiralty to know who sent you."],
+		"event": "ruler:capital:writ", "next": "menu"}
+	qmenu["choices"].insert(4, {"text": "The fortress has fallen, Majesty.", "next": "fallen",
+		"if": func(): return jr.perks.has("line:capital:writ") and GameManager.world_flags.has("sh_seal_keep") and not jr.perks.has("line:capital:2")})
+	qnodes["fallen"] = {"text": ["I heard the Scouring from my balcony. Half the sea heard it.", "The Admiralty will want your head now, and mine with it. Good. Let them come asking. Take this: the Crown's purse is open to you, and so is my door."],
+		"event": "ruler:capital:2", "next": "menu"}
 	# (1.27 C5) where you stand with the Crown (CityFavour); asking applies its perks
 	qmenu["choices"].append({"text": "How does the Crown regard me?", "next": "favour"})
 	qnodes["favour"] = {"text": ["{capital_favour}"], "event": "favour:capital", "next": "menu"}
@@ -795,6 +806,10 @@ func _on_favour(ev: String) -> void:
 		CityFavour.apply("capital", self, favour_shops())
 	elif ev == "ruler:capital":
 		CityFavour.thank("capital", self)
+	elif ev == "ruler:capital:writ":
+		CityFavour.writ(self)
+	elif ev == "ruler:capital:2":
+		CityFavour.thank_fortress(self)
 
 
 func favour_shops() -> Array:

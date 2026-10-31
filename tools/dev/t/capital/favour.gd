@@ -62,6 +62,21 @@ func _process(_d: float) -> bool:
 			check("the forger found: the Crown's thanks, once (%d gold)" % (inv.count("gold") - g0), inv.count("gold") - g0 == 400 and J.perks.has("line:capital:1"))
 			var km: Array = _choices(canal.canal_life._key("doge"), "Can I serve the Republic?")
 			check("the Doge points at Grane's smugglers", km.size() == 1 and km[0]["if"].call())
+			# (1.27) the Queen's line, step 2: the writ once the Admiralty's fortress is found, her thanks once it's fallen
+			var GM = root.get_node("GameManager")
+			var wm: Array = _choices(life._key("queen"), "I've found the Admiralty's fortress, Majesty.")
+			check("the writ waits until you've found the fortress", wm.size() == 1 and not wm[0]["if"].call())
+			GM.world_flags["stronghold_known"] = true
+			check("...found: she'll give it", wm[0]["if"].call())
+			D.dialogue_event.emit("ruler:capital:writ")
+			var fm: Array = _choices(life._key("queen"), "The fortress has fallen, Majesty.")
+			check("the writ given; the fortress not fallen yet", J.perks.has("line:capital:writ") and fm.size() == 1 and not fm[0]["if"].call())
+			GM.world_flags["sh_seal_keep"] = true
+			var g1: int = inv.count("gold")
+			check("...fallen: you can tell her", fm[0]["if"].call())
+			D.dialogue_event.emit("ruler:capital:2")
+			D.dialogue_event.emit("ruler:capital:2")
+			check("...and the Crown pays, once (%d gold)" % (inv.count("gold") - g1), inv.count("gold") - g1 == 2000)
 			return TK.done(fails)
 	step += 1
 	return false

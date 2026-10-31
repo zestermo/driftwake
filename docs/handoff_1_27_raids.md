@@ -419,3 +419,7 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   Admiralty's banner; F raises the crew's ("sh_muster_<district>"); GameManager._respawn_player stands a captain who
   fell on the stronghold back up at the nearest raised flag after 20 s instead of on the ship. t/stronghold/muster.
   Stronghold left: Marrow's seastone net and catwalks, a world test of the escape with a real ship, the Queen's step 2.
+  (stronghold, done) Marrow's seastone net and catwalks, the escape tested with the real ship (t/stronghold/scouring
+  now has one: Ship.place, not a position set), and the Queen's line step 2 (capital_life: "I've found the Admiralty's
+  fortress" gives the writ once Chain.stronghold_known; "The fortress has fallen" pays CityFavour.FORTRESS_REWARD once
+  "sh_seal_keep"; t/capital/favour). **1.27's scope is built.** Release next.

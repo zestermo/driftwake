@@ -80,3 +80,28 @@ static func thank(city: String, life) -> void:
 	var p = n.get_tree().get_first_node_in_group("player")
 	if p:
 		QuestRewards.give(LINE_REWARD, p)
+
+
+## (1.27) The Queen's line, step 2: her writ for the Admiralty's fortress (a journal perk, a toast), then her thanks once
+## it's fallen ("sh_seal_keep"): FORTRESS_REWARD and the Crown's favour, once per save.
+const FORTRESS_REWARD := {"gold": 2000, "xp": 2.0}
+
+
+static func writ(life) -> void:
+	var n := life as Node
+	var j := n.get_node("/root/Journal")
+	if j.perks.has("line:capital:writ"):
+		return
+	j.perks["line:capital:writ"] = true
+	n.get_tree().call_group("hud", "show_toast", "The Queen's writ: the Admiralty's fortress is the Crown's quarrel now")
+
+
+static func thank_fortress(life) -> void:
+	var n := life as Node
+	var j := n.get_node("/root/Journal")
+	if j.perks.has("line:capital:2"):
+		return
+	j.perks["line:capital:2"] = true
+	var p = n.get_tree().get_first_node_in_group("player")
+	if p:
+		QuestRewards.give(FORTRESS_REWARD, p)
