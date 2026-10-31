@@ -79,6 +79,17 @@ const ALL := {
 		"desc": "Follow your own echo: step out behind the nearest foe within 12 m."},
 	"shatter_note": {"name": "Shatter Note", "tree": "Echo", "cost": 28.0, "cooldown": 9.0, "needs": "", "fruit": "echo",
 		"desc": "One hard note down a 14 m line: everyone on it reels. Used often, your dodges ring out by themselves."},
+	# (1.27) third powers for Storm, Gust, Iron, Bubble and Bear
+	"thundercloud": {"name": "Thundercloud", "tree": "Storm", "cost": 30.0, "cooldown": 15.0, "needs": "", "fruit": "storm",
+		"desc": "A cloud 5 m ahead for 6 s, striking whoever stands under it every 1.2 s."},
+	"gust_updraft": {"name": "Updraft", "tree": "Gust", "cost": 24.0, "cooldown": 10.0, "needs": "", "fruit": "gust",
+		"desc": "Wind straight up from the ground 5 m ahead: everyone over it thrown into the air."},
+	"iron_slam": {"name": "Iron Slam", "tree": "Iron", "cost": 26.0, "cooldown": 11.0, "needs": "", "fruit": "iron",
+		"desc": "Both iron fists into the ground: everyone within 5 m floored."},
+	"bubble_trap": {"name": "Bubble Trap", "tree": "Bubble", "cost": 22.0, "cooldown": 10.0, "needs": "", "fruit": "bubble",
+		"desc": "Blow a bubble round the foe in front of you (9 m): it's held 3 s, then pops."},
+	"bear_hug": {"name": "Bear Hug", "tree": "Bear", "cost": 24.0, "cooldown": 9.0, "needs": "", "fruit": "bear",
+		"desc": "Seize the foe right in front of you, lift them, and throw them 10 m. Not bosses."},
 	# (1.27) the Clockwork and Echo Fruits' third powers: Slow Field and Sonar
 	"slow_field": {"name": "Slow Field", "tree": "Clockwork", "cost": 30.0, "cooldown": 16.0, "needs": "", "fruit": "clockwork",
 		"desc": "A ring of slow time 4 m ahead of you for 5 s: foes in it move and swing at 40% speed."},

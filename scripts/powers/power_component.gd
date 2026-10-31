@@ -71,6 +71,24 @@ const FIELD_SECS := 5.0
 const FIELD_K := 0.4
 var fields: Array = []
 var _field_t := 0.0
+## Thundercloud: a cloud CLOUD_AHEAD in front for CLOUD_SECS, striking a foe under it (CLOUD_R) every CLOUD_EVERY s.
+const CLOUD_AHEAD := 5.0
+const CLOUD_SECS := 6.0
+const CLOUD_R := 4.5
+const CLOUD_EVERY := 1.2
+const CLOUD_H := 7.0
+var clouds: Array = []
+## Updraft: foes within UPDRAFT_R of a spot UPDRAFT_AHEAD in front thrown straight up.
+const UPDRAFT_AHEAD := 5.0
+const UPDRAFT_R := 3.5
+const UPDRAFT_V := 11.0
+## Iron Slam: a ring SLAM_R round you, everyone in it floored. Bubble Trap: the foe ahead within TRAP_REACH held
+## TRAP_SECS in a bubble, then popped. Bear Hug: the foe ahead within HUG_REACH lifted, then thrown HUG_THROW.
+const SLAM_R := 5.0
+const TRAP_REACH := 9.0
+const TRAP_SECS := 3.0
+const HUG_REACH := 2.8
+const HUG_THROW := Vector3(0, 5.0, -10.0)
 ## Sonar: how far it reaches and how long its marks stay.
 const SONAR_R := 30.0
 const SONAR_SECS := 6.0
@@ -393,6 +411,27 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) third powers: Storm's Thundercloud, Gust's Updraft, Iron Slam, Bubble Trap, Bear Hug
+	if id == "thundercloud":
+		clouds.append([player.global_position - player.player_model.global_basis.z * CLOUD_AHEAD, CLOUD_SECS, 0.0, 10.0 * power_multiplier()])
+		cast.emit(slot)
+		return true
+	if id == "gust_updraft":
+		updraft(player.global_position - player.player_model.global_basis.z * UPDRAFT_AHEAD, UPDRAFT_R)
+		cast.emit(slot)
+		return true
+	if id == "iron_slam":
+		iron_slam(SLAM_R, 14.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "bubble_trap":
+		bubble_trap(front_foe(TRAP_REACH, 0.5))
+		cast.emit(slot)
+		return true
+	if id == "bear_hug":
+		bear_hug(front_foe(HUG_REACH, 0.7), 12.0 * power_multiplier())
+		cast.emit(slot)
+		return true
 	if id == "slow_field":
 		var ahead := player.global_position - player.player_model.global_basis.z * FIELD_AHEAD
 		fields.append([ahead, FIELD_SECS])
@@ -1191,6 +1230,7 @@ func shatter_note(at: Vector3, dir: Vector3, length: float, half_w: float, dmg: 
 
 ## (1.27, Clockwork) the live Slow Fields: every half second each slows the foes in it (and shows its rim).
 func _tick_fields(delta: float) -> void:
+	_tick_clouds(delta)
 	if fields.is_empty():
 		return
 	for f in fields:
@@ -1254,3 +1294,118 @@ func _sonar_mark(n: Node3D, col: Color) -> void:
 	mi.position = Vector3(0, 3.0, 0)
 	n.add_child(mi)
 	n.get_tree().create_timer(SONAR_SECS, false).timeout.connect(func(): if is_instance_valid(mi): mi.queue_free())
+
+
+## (1.27) the nearest foe within `reach` in front of the captain (within `half` radians of where they face), or null.
+func front_foe(reach: float, half: float) -> Node3D:
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	var best: Node3D = null
+	var bd := reach
+	for e in enemies_in(player.global_position, reach):
+		var to := (e as Node3D).global_position - player.global_position
+		to.y = 0.0
+		var d := to.length()
+		if d < bd and (d < 0.5 or fwd.angle_to(to) <= half):
+			bd = d
+			best = e
+	return best
+
+
+## (1.27, Storm) the live Thunderclouds: each strikes the nearest foe under it every CLOUD_EVERY s.
+func _tick_clouds(delta: float) -> void:
+	if clouds.is_empty():
+		return
+	for c in clouds:
+		c[1] = float(c[1]) - delta
+		c[2] = float(c[2]) - delta
+		if float(c[2]) > 0.0:
+			continue
+		c[2] = CLOUD_EVERY
+		var at: Vector3 = c[0]
+		var foes := enemies_in(at, CLOUD_R)
+		Net.fx("smoke", [at + Vector3.UP * CLOUD_H, 6, 1.6, 1.0])
+		if foes.is_empty():
+			continue
+		var e := foes[0] as Node3D
+		Net.fx("bolt", [at + Vector3.UP * CLOUD_H, e.global_position + Vector3.UP, Color(0.7, 0.8, 1.0), 0.12, 0.25])
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = float(c[3])
+			hd.stagger_duration = 0.5
+			hd.poise = 30.0
+			hd.unblockable = true
+			hb.take_hit(hd, player)
+	clouds = clouds.filter(func(c): return float(c[1]) > 0.0)
+
+
+## (1.27, Gust) everyone within `r` of `at` thrown straight up.
+func updraft(at: Vector3, r: float) -> Array:
+	var hit_list := enemies_in(at, r)
+	for e in hit_list:
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = 4.0
+			hd.poise = 999.0
+			hb.take_hit(hd, player)
+		if e.has_method("launched"):
+			e.call("launched", Vector3(0, UPDRAFT_V, 0))
+	Net.fx("dust_ring", [at, 14, r * 0.4])
+	Net.fx("ring", [at + Vector3.UP * 0.2, Vector3.UP, r, Color(0.85, 0.95, 0.9), 0.5, 0.1])
+	return hit_list
+
+
+## (1.27, Iron) a slam: everyone within `r` floored.
+func iron_slam(r: float, dmg: float) -> Array:
+	var hd := HitData.new()
+	hd.damage = dmg
+	hd.knockback_force = 6.0
+	hd.knockdown = true
+	hd.poise = 999.0
+	hd.camera_shake_intensity = 0.4
+	Net.fx("dust_ring", [player.global_position, 18, r * 0.4])
+	Net.fx("ring", [player.global_position + Vector3.UP * 0.1, Vector3.UP, r, Color(0.6, 0.62, 0.66), 0.4, 0.15])
+	return blast(player.global_position + Vector3(0, 0.6, 0), r, hd)
+
+
+## (1.27, Bubble) `e` held TRAP_SECS in a bubble, then popped (a little damage).
+func bubble_trap(e: Node3D) -> bool:
+	if e == null or not e.has_method("grabbed"):
+		return false
+	e.call("grabbed", TRAP_SECS)
+	Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.1, Color(0.75, 0.9, 1.0), TRAP_SECS, 0.05])
+	var me := player
+	player.get_tree().create_timer(TRAP_SECS, false).timeout.connect(func():
+		if not is_instance_valid(e) or not is_instance_valid(me):
+			return
+		Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.6, Color(0.75, 0.9, 1.0), 0.3, 0.1])
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = 6.0
+			hb.take_hit(hd, me))
+	return true
+
+
+## (1.27, Bear) `e` lifted a moment, then thrown HUG_THROW (in the captain's frame) for `dmg`.
+func bear_hug(e: Node3D, dmg: float) -> bool:
+	if e == null or not e.has_method("grabbed") or e.is_in_group("bosses"):
+		return false
+	e.call("grabbed", 0.8)
+	var me := player
+	var throw := player.player_model.global_basis * HUG_THROW
+	player.get_tree().create_timer(0.6, false).timeout.connect(func():
+		if not is_instance_valid(e) or not is_instance_valid(me):
+			return
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = dmg
+			hd.poise = 999.0
+			hb.take_hit(hd, me)
+		if e.has_method("launched"):
+			e.call("launched", throw)
+		Net.fx("dust", [e.global_position, 8, 0.6]))
+	return true

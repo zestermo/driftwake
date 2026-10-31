@@ -301,8 +301,14 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   GROUND_Y); a teleport to y 0.2 sinks a grunt into the floor and it "swims".
   **Next:** each fruit's remaining powers (to five with forms), two ultimates and an awakening each, trees to near
   weapon size, icons and models (all ten use placeholder icons); then the shared combat pool and IN_WORLD sources.
-- (latest) **Third powers: Clockwork's Slow Field and Echo's Sonar.** Slow Field: a 5 m ring 4 m ahead for 5 s, foes in
+- **Third powers: Clockwork's Slow Field and Echo's Sonar.** Slow Field: a 5 m ring 4 m ahead for 5 s, foes in
   it at 40% (PirateGrunt.slowed(secs, k): its own delta and Humanoid.time_k scaled; forwarded to the host, "slowed"
   is in Net.HOST_CALLS; a guest's puppets still animate at full speed, only their motion slows). Sonar: foes and
-  loot bags within 30 m marked 6 s through walls (a no-depth-test pillar, the caster's screen only). Seven powers to
-  go for those two, more for the rest.
+  loot bags within 30 m marked 6 s through walls (a no-depth-test pillar, the caster's screen only). (Each fruit still
+  needs two more powers, two ultimates and an awakening.)
+- (latest) **Every fruit has three powers now.** New: Storm's Thundercloud (PowerComponent.clouds: a cloud 5 m ahead
+  for 6 s, a bolt at the foe under it every 1.2 s), Gust's Updraft (skill id `gust_updraft`: `updraft` is the
+  greatsword technique's), Iron Slam (a 5 m ring, floored), Bubble Trap (the foe ahead held 3 s via grabbed(), then
+  popped), Bear Hug (the foe ahead grabbed, thrown 10 m; not bosses). PowerComponent.front_foe(reach, half) picks the
+  foe ahead. Test: t/progression/third_powers (casting right after a teleport hits nothing: the physics server sees the
+  move a tick later, so the test places, waits 3 ticks, then casts). Next: the fourth and fifth powers, then ultimates.

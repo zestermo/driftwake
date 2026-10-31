@@ -1359,6 +1359,7 @@ static func _build_iron() -> void:
 		"Knack: iron at will. Blows push you less, and the sea takes you like a stone. Use its powers to grow them.")
 	_big("i_guard", "Iron Guard", "tech", 0, 1, {}, "", "iron_guard")
 	_big("i_fist", "Iron Fist", "tech", 1, 1, {}, "", "iron_fist")
+	_big("i_slam", "Iron Slam", "tech", 2, 1, {}, "", "iron_slam")
 	_step("i_plate", "Plating", "i_root", 5, {"defense": 2.0}, "+2 defense a step.")
 
 
@@ -1370,6 +1371,7 @@ static func _build_storm() -> void:
 		"Flux: your body is lightning. Use its powers to grow them.")
 	_big("sm_step", "Thunder Step", "tech", 2, 1, {}, "", "thunder_step")
 	_big("sm_chain", "Chain Lightning", "tech", 0, 1, {}, "", "chain_lightning")
+	_big("sm_cloud", "Thundercloud", "tech", 1, 1, {}, "", "thundercloud")
 	_step("sm_charge", "Charge", "sm_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1380,6 +1382,7 @@ static func _build_bubble() -> void:
 	_root("bb_root", "Bubble Fruit (Knack)", {}, "Knack: bubbles at will. Use its powers to grow them.")
 	_big("bb_shield", "Bubble Shield", "tech", 2, 1, {}, "", "bubble_shield")
 	_big("bb_slick", "Slick Floor", "tech", 0, 1, {}, "", "slick_floor")
+	_big("bb_trap", "Bubble Trap", "tech", 1, 1, {}, "", "bubble_trap")
 	_step("bb_foam", "Foam", "bb_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1390,6 +1393,7 @@ static func _build_gust() -> void:
 	_root("gu_root", "Gust Fruit (Flux)", {}, "Flux: your body is wind. Use its powers to grow them.")
 	_big("gu_dash", "Gale Dash", "tech", 2, 1, {}, "", "gale_dash")
 	_big("gu_cone", "Gust Cone", "tech", 0, 1, {}, "", "gust_cone")
+	_big("gu_updraft", "Updraft", "tech", 1, 1, {}, "", "gust_updraft")
 	_step("gu_breeze", "Breeze", "gu_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1400,6 +1404,7 @@ static func _build_bear() -> void:
 	_root("be_root", "Bear Fruit (Feral)", {}, "Feral: a great bear lives in you. Use its powers to grow them.")
 	_big("be_charge", "Bear Charge", "tech", 0, 1, {}, "", "bear_charge")
 	_big("be_roar", "Roar", "tech", 1, 1, {}, "", "bear_roar")
+	_big("be_hug", "Bear Hug", "tech", 2, 1, {}, "", "bear_hug")
 	_step("be_hide", "Thick Hide", "be_root", 5, {"defense": 2.0}, "+2 defense a step.")
 
 
