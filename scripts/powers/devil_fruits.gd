@@ -27,6 +27,10 @@ const FRUITS := {
 	"storm": {"id": "storm", "name": "Storm Fruit", "type": "logia", "color": Color(0.55, 0.72, 1.0),
 		"item": "storm_fruit", "start": ["thunder_step", "chain_lightning"],
 		"passive": ["Static Body", "Lightning in your veins: you move a step quicker, and the air crackles when you're hit."]},
+	# (1.27) the great bear: huge slow swings, a charge, a roar that stuns (docs/v1_27_raids_fruits_plan.md "The ten Driftfruits")
+	"bear": {"id": "bear", "name": "Bear Fruit", "type": "zoan", "color": Color(0.55, 0.4, 0.28),
+		"item": "bear_fruit", "start": ["bear_charge", "bear_roar"],
+		"passive": ["Hybrid Form", "Press V to shift into a hybrid bear form and back: claws instead of weapons, heavier and harder to stagger."]},
 	# (1.27) wind: cones and lines that push and pull, the best of the air (docs/v1_27_raids_fruits_plan.md "The ten Driftfruits")
 	"gust": {"id": "gust", "name": "Gust Fruit", "type": "logia", "color": Color(0.7, 0.95, 0.75),
 		"item": "gust_fruit", "start": ["gale_dash", "gust_cone"],

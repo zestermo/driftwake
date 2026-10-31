@@ -55,6 +55,7 @@ const HEADERS := {
 	"storm": ["Storm Fruit", "fruit", Color(0.55, 0.72, 1.0), 30],
 	"bubble": ["Bubble Fruit", "fruit", Color(0.75, 0.9, 1.0), 30],
 	"gust": ["Gust Fruit", "fruit", Color(0.7, 0.95, 0.75), 30],
+	"bear": ["Bear Fruit", "fruit", Color(0.55, 0.4, 0.28), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -227,6 +228,7 @@ static func _build() -> void:
 	_build_storm()
 	_build_bubble()
 	_build_gust()
+	_build_bear()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1385,3 +1387,13 @@ static func _build_gust() -> void:
 	_big("gu_dash", "Gale Dash", "tech", 2, 1, {}, "", "gale_dash")
 	_big("gu_cone", "Gust Cone", "tech", 0, 1, {}, "", "gust_cone")
 	_step("gu_breeze", "Breeze", "gu_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
+
+
+## (1.27) The Bear Fruit (Feral, the great bear): Bear Charge and Roar to begin with (to come: grabs and throws, a maul,
+## the ultimates; docs/v1_27_raids_fruits_plan.md "The ten Driftfruits").
+static func _build_bear() -> void:
+	_tree("bear", ["Claw", "Roar", "Hide"])
+	_root("be_root", "Bear Fruit (Feral)", {}, "Feral: a great bear lives in you. Use its powers to grow them.")
+	_big("be_charge", "Bear Charge", "tech", 0, 1, {}, "", "bear_charge")
+	_big("be_roar", "Roar", "tech", 1, 1, {}, "", "bear_roar")
+	_step("be_hide", "Thick Hide", "be_root", 5, {"defense": 2.0}, "+2 defense a step.")

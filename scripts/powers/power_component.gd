@@ -54,6 +54,9 @@ const IRON_GUARD_SECS := 3.0
 ## (each within CHAIN_HOP of the last) and its damage at each.
 ## (1.27) Bubble Shield: how many hits it takes; the bubble's hits left now.
 ## (1.27) The Gust Fruit: Gale Dash's reach, Gust Cone's reach and half-angle.
+## (1.27) The Bear Fruit: Bear Charge's rush, Roar's reach.
+const CHARGE_DIST := 8.0
+const ROAR_R := 6.0
 const GALE_DIST := 12.0
 const GUST_REACH := 8.0
 const GUST_HALF := 0.6
@@ -368,6 +371,21 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) the Bear Fruit: Bear Charge (a rush and a slam at its end) and Roar (everyone round you stunned)
+	if id == "bear_charge":
+		thunder_step(CHARGE_DIST)
+		var slam := HitData.new()
+		slam.damage = 22.0
+		slam.knockdown = true
+		slam.poise = 999.0
+		slam.knockback_force = 10.0
+		blast(player.global_position + Vector3(0, 0.9, 0) - player.player_model.global_basis.z * 1.2, 2.4, slam)
+		cast.emit(slot)
+		return true
+	if id == "bear_roar":
+		bear_roar(ROAR_R)
+		cast.emit(slot)
+		return true
 	# (1.27) the Gust Fruit: Gale Dash (Thunder Step's blink, further) and Gust Cone (a cone ahead blown back and down)
 	if id == "gale_dash":
 		thunder_step(GALE_DIST)
@@ -1015,3 +1033,15 @@ func gust_cone(at: Vector3, dir: Vector3, reach: float, dmg: float) -> Array:
 			hit_list.append(e)
 	Net.fx("dust_ring", [at + dir * 3.0, 14, 1.2])
 	return hit_list
+
+
+## (1.27) The Bear's Roar: everyone within `r` stunned (a long stagger, no damage to speak of).
+func bear_roar(r: float) -> Array:
+	var hd := HitData.new()
+	hd.damage = 2.0
+	hd.knockback_force = 3.0
+	hd.stagger_duration = 1.6
+	hd.unblockable = true
+	hd.poise = 40.0
+	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, r, Color(0.9, 0.8, 0.6), 0.5, 0.2])
+	return blast(player.global_position + Vector3(0, 0.9, 0), r, hd)

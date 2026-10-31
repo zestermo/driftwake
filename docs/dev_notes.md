@@ -8458,3 +8458,10 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - **Gust Cone:** PowerComponent.gust_cone, a cone 8 m ahead blowing foes back and down (poise 999). Its CC.
   - **Reflex:** Player.gust_reflex, whoever hits you is blown back (at most every 6 s).
   - Test: t/progression/gust_forms (from storm_forms); t/progression and t/player (83) pass.
+- (same day) **The Bear Fruit, piece 1.**
+  - bear_fruit.tres, FRUITS "bear" (Feral: V's hybrid form, as the Wolf's), and a tree (`be_*`).
+  - **Bear Charge:** an 8 m rush and a slam at its end (poise 999 knockdown). Its movement power.
+  - **Roar:** PowerComponent.bear_roar, everyone within 6 m stunned 1.6 s. Its CC.
+  - **Reflex:** Player.bear_roar_reflex, asked on each hit you take. Surrounded (3+ foes within 4 m), you roar by
+    yourself (at most every 10 s).
+  - Test: t/progression/bear_forms.

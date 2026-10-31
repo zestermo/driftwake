@@ -607,6 +607,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		hit.stagger_duration = 0.0
 		hit.knockdown = false
 		hit.knockback_force = 0.0
+	# (1.27) the Bear's Roar at Reflex: surrounded, you roar by yourself
+	if power.fruit == "bear":
+		bear_roar_reflex()
 	# (1.27) Gust Cone at Reflex: the wind blows back whoever hits you
 	if power.fruit == "gust" and attacker is Node3D and attacker != self:
 		gust_reflex(attacker as Node3D)
@@ -3488,4 +3491,24 @@ func gust_reflex(attacker: Node3D) -> bool:
 		return false
 	_gust_reflex_at = Engine.get_physics_frames() + int(GUST_REFLEX_EVERY * Engine.physics_ticks_per_second)
 	power.gust_cone(global_position, attacker.global_position - global_position, 4.0, 6.0)
+	return true
+
+
+## (1.27) The Bear Fruit's Roar at Reflex (FruitForms on its uses): surrounded (ROAR_CROWD foes within ROAR_CLOSE m) you
+## roar by yourself (at most every ROAR_REFLEX_EVERY s). Asked each hit you take.
+const ROAR_CROWD := 3
+const ROAR_CLOSE := 4.0
+const ROAR_REFLEX_EVERY := 10.0
+var _roar_reflex_at := -1000000
+
+
+func bear_roar_reflex() -> bool:
+	if power.fruit != "bear" or FruitForms.form(progression, "bear_roar", "bear") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _roar_reflex_at or power.suppressed():
+		return false
+	if power.enemies_in(global_position, ROAR_CLOSE).size() < ROAR_CROWD:
+		return false
+	_roar_reflex_at = Engine.get_physics_frames() + int(ROAR_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	power.bear_roar(power.ROAR_R)
 	return true

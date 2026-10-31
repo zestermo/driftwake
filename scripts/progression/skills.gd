@@ -69,6 +69,11 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) the Bear Fruit's first powers: Bear Charge (its movement) and Roar (its CC; its forms: FruitForms)
+	"bear_charge": {"name": "Bear Charge", "tree": "Bear", "cost": 20.0, "cooldown": 6.0, "needs": "", "fruit": "bear",
+		"desc": "Charge 8 m the way you face and slam into whoever is at the end of it, knocking them flat."},
+	"bear_roar": {"name": "Roar", "tree": "Bear", "cost": 24.0, "cooldown": 12.0, "needs": "", "fruit": "bear",
+		"desc": "A roar that stuns everyone round you. Used often, you roar by yourself when you're surrounded."},
 	# (1.27) the Gust Fruit's first powers: Gale Dash (its movement) and Gust Cone (its CC; its forms: FruitForms)
 	"gale_dash": {"name": "Gale Dash", "tree": "Gust", "cost": 18.0, "cooldown": 4.0, "needs": "", "fruit": "gust",
 		"desc": "Ride a rush of wind 12 m the way you face (not through walls)."},

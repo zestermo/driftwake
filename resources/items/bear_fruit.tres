@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/wolf_fruit.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "bear_fruit"
+display_name = "Bear Fruit"
+description = "A heavy brown fruit with a coarse, furred rind that smells of pine and river water. A Feral Driftfruit: eat it and a great bear lives in you - and the sea will never let you swim again."
+value = 0
+rarity = 3
+stackable = false
+max_stack = 1
+item_type = 2
+icon = ExtResource("2")
+use_time = 1.6
+devil_fruit = "bear"
