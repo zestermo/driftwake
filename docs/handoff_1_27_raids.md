@@ -312,9 +312,15 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   popped), Bear Hug (the foe ahead grabbed, thrown 10 m; not bosses). PowerComponent.front_foe(reach, half) picks the
   foe ahead. Test: t/progression/third_powers (casting right after a teleport hits nothing: the physics server sees the
   move a tick later, so the test places, waits 3 ticks, then casts). Next: the fourth and fifth powers, then ultimates.
-- (latest) **Fourth powers, part 1:** Clockwork's Haste (Net._all_haste: each captain within 12 m gets the "haste" buff,
+- **Fourth powers, part 1:** Clockwork's Haste (Net._all_haste: each captain within 12 m gets the "haste" buff,
   Player.HASTE_K 1.25 in _recalc_stats, in the speed buff key), Bubble Bounce and Iron Drop (PowerComponent.leap(up,
   fwd): velocity then the Fall state; Iron Drop sets meta "iron_drop" and Player._on_landed slams on landing). Bubble
   and Iron now have their movement power. Test t/progression/fourth_powers. Left for fourth/fifth: Storm, Gust,
   Bear, Wolf, Vine, Echo (Echo's "repeat your last attack" from the plan is still open), Clockwork and Bubble/Iron's
   fifth; then two ultimates and an awakening each.
+- (latest) **Fourth powers, part 2: every fruit has four.** Storm's Thunder Spear (an 18 m line; PowerComponent.line_foes
+  is the shared line test, Shatter Note uses it too), Gust's Pull Gale (the cone ahead dragged in via vine_yank, no
+  wrap), Bear's Maul (a wide arc floored), Wolf's Hamstring (hurt, slowed() to half for 4 s), Vine's Root Field (a
+  ring held 2.5 s), Echo Strike (the plan's "repeat your last attack": 8 s in which each landed blow comes again 0.35 s
+  later at half, from on_sword_hit; the echo is tagged "echo" so it never echoes). Test t/progression/fourth_powers_b.
+  **Next:** a fifth power each (Ember has its seven), then two ultimates and an awakening per fruit.

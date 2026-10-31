@@ -71,6 +71,15 @@ const FIELD_SECS := 5.0
 const FIELD_K := 0.4
 var fields: Array = []
 var _field_t := 0.0
+## Thunder Spear's line; Pull Gale's reach (a cone, GUST_HALF); Root Field (a ring ROOTS_R, ROOTS_AHEAD in front, held
+## ROOTS_SECS); Echo Strike's time and how hard its echo is.
+const SPEAR_LEN := 18.0
+const PULL_REACH := 10.0
+const ROOTS_AHEAD := 4.0
+const ROOTS_R := 4.0
+const ROOTS_SECS := 2.5
+const ECHO_STRIKE_SECS := 8.0
+const ECHO_K := 0.5
 ## Haste: the crew within HASTE_R quicker (Player: HASTE_K) for HASTE_SECS. Bubble Bounce and Iron Drop: leaps (up, forward
 ## m/s); Iron Drop slams where it lands (DROP_R).
 const HASTE_R := 12.0
@@ -420,6 +429,32 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) fourth powers, part 2: Thunder Spear, Pull Gale, Maul, Hamstring, Root Field, Echo Strike
+	if id == "thunder_spear":
+		thunder_spear(player.global_position + Vector3(0, 1.0, 0), -player.player_model.global_basis.z, SPEAR_LEN, 16.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "pull_gale":
+		pull_gale(PULL_REACH)
+		cast.emit(slot)
+		return true
+	if id == "maul":
+		maul(20.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "hamstring":
+		hamstring(front_foe(3.0, 0.8), 8.0 * power_multiplier())
+		cast.emit(slot)
+		return true
+	if id == "root_field":
+		root_field(player.global_position - player.player_model.global_basis.z * ROOTS_AHEAD, ROOTS_R)
+		cast.emit(slot)
+		return true
+	if id == "echo_strike":
+		add_buff("echo_strike", ECHO_STRIKE_SECS)
+		Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.4, Color(0.6, 0.8, 0.9), 0.4, 0.1])
+		cast.emit(slot)
+		return true
 	# (1.27) fourth powers: Clockwork's Haste (the crew near you quicker), Bubble Bounce and Iron Drop (their movement)
 	if id == "haste":
 		Net.everyone("_all_haste", [player.global_position, HASTE_R, HASTE_SECS])
@@ -819,6 +854,9 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	add_ult(hit.damage)
 	player.fought()
 	TraitMoves.landed(player, target, hit)
+	# (1.27) Echo Strike: the blow comes again a moment later, half as hard (an echo never echoes)
+	if buff("echo_strike") and not hit.has_meta("echo") and target is Node3D:
+		_echo_blow(target as Node3D, hit)
 	player.crew_tech.on_hit(target, hit)
 	if player.is_local:
 		pr.on_hit(target, hit)
@@ -1229,12 +1267,7 @@ func shatter_note(at: Vector3, dir: Vector3, length: float, half_w: float, dmg: 
 	dir.y = 0.0
 	dir = dir.normalized()
 	var hit_list: Array = []
-	for e in enemies_in(at + dir * length * 0.5, length * 0.5 + half_w):
-		var to := (e as Node3D).global_position - at
-		to.y = 0.0
-		var along := to.dot(dir)
-		if along < -0.5 or along > length or (to - dir * along).length() > half_w + 0.6:
-			continue
+	for e in line_foes(at, dir, length, half_w):
 		var hb := e.get("hurtbox") as Hurtbox
 		if hb == null:
 			continue
@@ -1443,3 +1476,125 @@ func leap(up: float, fwd: float) -> void:
 	player.velocity = f * fwd + Vector3.UP * up
 	player.air_speed = fwd
 	player.state_machine.force_state("Fall", {})
+
+
+## (1.27) the foes on a line from `at` along `dir`, `length` long and 2 * `half_w` wide (Shatter Note, Thunder Spear).
+func line_foes(at: Vector3, dir: Vector3, length: float, half_w: float) -> Array:
+	dir.y = 0.0
+	dir = dir.normalized()
+	var out: Array = []
+	for e in enemies_in(at + dir * length * 0.5, length * 0.5 + half_w):
+		var to := (e as Node3D).global_position - at
+		to.y = 0.0
+		var along := to.dot(dir)
+		if along < -0.5 or along > length or (to - dir * along).length() > half_w + 0.6:
+			continue
+		out.append(e)
+	return out
+
+
+## (1.27, Storm) a bolt thrown down a line: everyone on it struck.
+func thunder_spear(at: Vector3, dir: Vector3, length: float, dmg: float) -> Array:
+	dir.y = 0.0
+	dir = dir.normalized()
+	var hit_list := line_foes(at, dir, length, 0.9)
+	for e in hit_list:
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = dmg
+			hd.stagger_duration = 0.6
+			hd.poise = 35.0
+			hd.unblockable = true
+			hb.take_hit(hd, player)
+	Net.fx("bolt", [at, at + dir * length, Color(0.7, 0.8, 1.0), 0.14, 0.3])
+	return hit_list
+
+
+## (1.27, Gust) the wind turned round: everyone in the cone ahead dragged in to you.
+func pull_gale(reach: float) -> Array:
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var hit_list: Array = []
+	for e in enemies_in(player.global_position, reach):
+		var to := (e as Node3D).global_position - player.global_position
+		to.y = 0.0
+		if to.length() < 2.0 or fwd.angle_to(to.normalized()) > GUST_HALF:
+			continue
+		if e.has_method("vine_yank"):
+			e.call("vine_yank", player.global_position + fwd * 1.6, 3.0, false)
+			hit_list.append(e)
+	Net.fx("dust_ring", [player.global_position + fwd * 4.0, 12, 1.0])
+	return hit_list
+
+
+## (1.27, Bear) one huge swing: everyone in a wide arc ahead (3.5 m) floored.
+func maul(dmg: float) -> Array:
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var hit_list: Array = []
+	for e in enemies_in(player.global_position, 3.5):
+		var to := (e as Node3D).global_position - player.global_position
+		to.y = 0.0
+		if to.length() > 0.5 and fwd.angle_to(to.normalized()) > 1.0:
+			continue
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = dmg
+			hd.knockback_force = 8.0
+			hd.knockdown = true
+			hd.poise = 999.0
+			hd.camera_shake_intensity = 0.35
+			hb.take_hit(hd, player)
+			hit_list.append(e)
+	Net.fx("dust_ring", [player.global_position + fwd * 2.0, 14, 0.9])
+	return hit_list
+
+
+## (1.27, Wolf) `e` cut low: hurt and slowed (half speed, 4 s).
+func hamstring(e: Node3D, dmg: float) -> bool:
+	if e == null:
+		return false
+	var hb := e.get("hurtbox") as Hurtbox
+	if hb:
+		var hd := HitData.new()
+		hd.damage = dmg
+		hd.stagger_duration = 0.3
+		hb.take_hit(hd, player)
+	if e.has_method("slowed"):
+		e.call("slowed", 4.0, 0.5)
+	Net.fx("impact", [e.global_position + Vector3(0, 0.4, 0), Color(0.8, 0.15, 0.1)])
+	return true
+
+
+## (1.27, Vine) roots up out of the ground: everyone within `r` of `at` held ROOTS_SECS.
+func root_field(at: Vector3, r: float) -> Array:
+	var hit_list := enemies_in(at, r)
+	for e in hit_list:
+		root_enemy(e, ROOTS_SECS)
+	Net.fx("dust_ring", [at, 12, r * 0.3])
+	Net.fx("ring", [at + Vector3.UP * 0.1, Vector3.UP, r, Color(0.35, 0.6, 0.25), 0.6, 0.15])
+	return hit_list
+
+
+## (1.27, Echo) the blow `hit` on `e` again ECHO_K as hard, a moment later.
+func _echo_blow(e: Node3D, hit: HitData) -> void:
+	var me := player
+	var dmg := hit.damage * ECHO_K
+	player.get_tree().create_timer(0.35, false).timeout.connect(func():
+		if not is_instance_valid(e) or not is_instance_valid(me):
+			return
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb == null:
+			return
+		var hd := HitData.new()
+		hd.damage = dmg
+		hd.stagger_duration = 0.2
+		hd.set_meta("echo", true)
+		Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 0.9, Color(0.6, 0.8, 0.9), 0.25, 0.08])
+		hb.take_hit(hd, me)
+		# (counted as a landed blow for energy and the rest, but tagged so it never echoes again)
+		on_sword_hit(e, hd))
