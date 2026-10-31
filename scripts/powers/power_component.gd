@@ -46,6 +46,8 @@ const REFLEX_COOLDOWN := 15.0
 const SHADOW_STEP_COST := 8.0
 ## (1.27) Ember's Flicker: how long blows pass through.
 const FLICKER_SECS := 1.5
+## (1.27) A fruit's awakened state (Ember's Sunborn).
+const AWAKENED_SECS := 30.0
 ## Buffs that are Will (an aura in the captain's Will colour when they start).
 const WILL_BUFFS := ["coat", "foresight"]
 ## Emission (Iron Will tier 2): a coated heavy attack strikes EMIT_RANGE m ahead (a line EMIT_WIDE m across) or a
@@ -350,6 +352,13 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) Ember's awakening: Sunborn, AWAKENED_SECS of it
+	if id == "sunborn":
+		add_buff("awakened", AWAKENED_SECS)
+		FX.power_aura.call_deferred(player.body_model, "ember", 3.0)
+		Net.fx("fire_pillar", [player.global_position, 6.0])
+		cast.emit(slot)
+		return true
 	# (1.27) Ember's Flicker: no state of its own, the flame body for a moment (its forms grow from these uses)
 	if id == "flicker":
 		add_buff("flicker", FLICKER_SECS)
@@ -844,7 +853,7 @@ func _ember_aura(delta: float) -> void:
 	if _aura_t > 0.0:
 		return
 	_aura_t = AURA_EVERY
-	if FruitForms.form(player.progression, "fire_ring", "ember") < FruitForms.NATURE:
+	if FruitForms.form(player.progression, "fire_ring", "ember") < FruitForms.NATURE and not buff("awakened"):
 		return
 	var hd := HitData.new()
 	hd.damage = 3.0

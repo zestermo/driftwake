@@ -80,6 +80,9 @@ const ALL := {
 		"desc": "Burst forward in a streak of fire, untouchable, scorching anyone in the way and leaving a trail of flame."},
 	"ember_field": {"name": "Ember Field", "tree": "Ember", "cost": 28.0, "cooldown": 12.0, "needs": "", "fruit": "ember",
 		"desc": "Set the ground ahead ablaze. Enemies won't walk through it, and those caught inside burn."},
+	# (1.27) Ember's awakening (mastery 30): Sunborn, an ultimate
+	"sunborn": {"name": "Sunborn", "tree": "Ember", "cost": 0.0, "cooldown": 3.0, "needs": "", "fruit": "ember", "ult": true,
+		"desc": "The fruit awakened: for 30 s you burn like the sun. Everything near you catches, and blows pass through you half the time (shot always)."},
 	"inferno": {"name": "Great Inferno", "tree": "Ember", "cost": 0.0, "cooldown": 3.0, "needs": "", "fruit": "ember", "ult": true,
 		"desc": "Ultimate. Leap up wreathed in flame and slam down: a pillar of fire floors everything around you and leaves the ground burning."},
 	# --- Wolf Fruit (Zoan) ---

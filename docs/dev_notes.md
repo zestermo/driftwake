@@ -8414,3 +8414,8 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Ember so far:** Flame Body (Flicker), Cinder Fist and Blazing Ring have their three forms. Still to do: Blaze Step
   (flight: hover, then phase through walls, then fly on Space) and Pillar of Flame, the awakening "Sunborn", and the
   tree rebuilt to the plan's shape.
+- (same day) **Ember's awakening, Sunborn.**
+  - An ultimate (Skills.ALL "sunborn", the e_sunborn node at mastery 30). It sets the "awakened" buff for
+    AWAKENED_SECS 30: the ember aura burns whatever the form, and blows pass through half the time (shot always).
+  - The fruit trees' caps are now 30 (Ember, Wolf, Vine), like a weapon's.
+  - Checked in t/progression/ember_flame_body; t/progression passes.

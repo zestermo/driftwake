@@ -3325,6 +3325,8 @@ var _flame_reflex_at := -1000000
 func _flame_body(hit: HitData) -> bool:
 	if power.buff("flicker"):
 		return true
+	if power.buff("awakened"):
+		return hit.ranged or randf() < 0.5
 	var f := FruitForms.form(progression, "flicker", "ember")
 	if f == FruitForms.NATURE:
 		return hit.ranged or randf() < 0.25

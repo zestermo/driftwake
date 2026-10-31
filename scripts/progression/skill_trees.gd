@@ -48,9 +48,9 @@ const HEADERS := {
 	"fish": ["Fishing", "adventure", Color(0.55, 0.9, 0.75), 20],
 	"stealth": ["Stealth", "adventure", Color(0.63, 0.55, 0.85), 20],
 	"tinker": ["Tinkering", "adventure", Color(0.85, 0.66, 0.37), 20],
-	"ember": ["Ember Fruit", "fruit", Color(1.0, 0.5, 0.15), 20],
-	"wolf": ["Wolf Fruit", "fruit", Color(0.75, 0.68, 0.55), 20],
-	"vine": ["Vine Fruit", "fruit", Color(0.45, 0.85, 0.3), 20],
+	"ember": ["Ember Fruit", "fruit", Color(1.0, 0.5, 0.15), 30],
+	"wolf": ["Wolf Fruit", "fruit", Color(0.75, 0.68, 0.55), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
+	"vine": ["Vine Fruit", "fruit", Color(0.45, 0.85, 0.3), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -1297,6 +1297,8 @@ static func _build_ember() -> void:
 	_big("e_kindled", "Kindled Blade", "mech", 1, 4, {"kindled_blade": 1}, "Every melee hit sears: the target burns for a moment.")
 	_big("e_smolder", "Smoldering Body", "mech", 1, 11, {"smoldering": 1}, "Your flame-form dodge leaves burning embers behind.")
 	_big("e_inferno", "Great Inferno", "ult", 1, 20, {}, "", "inferno")
+	# (1.27) the awakening, at mastery 30
+	_big("e_sunborn", "Sunborn (Awakening)", "ult", 2, 30, {}, "", "sunborn")
 	_big("e_ring", "Blazing Ring", "tech", 2, 1, {}, "", "fire_ring")
 	_big("e_field", "Ember Field", "tech", 2, 8, {}, "", "ember_field")
 	_step("e_heat", "Searing Heat", "e_root", 5, {"fire_pct": 0.04}, "+4% fire damage a step.")

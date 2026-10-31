@@ -73,6 +73,17 @@ func _process(_d: float) -> bool:
 			check("...not twice in 4 s", not p.ember_dodge_reflex())
 			# Blazing Ring's Reflex: a real landing rings by itself (not a hop, not twice in 5 s)
 			pr.uses["fire_ring"] = 150
+			# the awakening: Sunborn, 30 s of the aura and the flames
+			pr.uses["flicker"] = 0
+			p.power.loadout[4] = "sunborn"
+			p.power.ult = p.power.ULT_MAX
+			p.state_machine.force_state("Idle", {})
+			check("Sunborn cast: awakened (%s)" % p.power.can_cast(4), p.power.try_cast(4) and p.power.buff("awakened"))
+			var sh := 0
+			for i in range(6):
+				if _hit(true) == 0.0:
+					sh += 1
+			check("...shot passes through the sun (%d of 6)" % sh, sh == 6)
 			check("Blazing Ring at Reflex: a hop doesn't ring, a real landing does, not twice in 5 s", not p.ember_landing_ring(2.0) and p.ember_landing_ring(9.0) and not p.ember_landing_ring(9.0))
 			return TK.done(fails)
 	step += 1
