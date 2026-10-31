@@ -434,7 +434,8 @@ func try_cast(slot: int) -> bool:
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
 	# (1.27) ultimates, part 1: Storm, Gust, Bear, Wolf, Vine (two each; one equipped)
-	if id in ["tempest", "judgement_bolt", "cyclone", "hurricane", "bear_avalanche", "great_roar", "blood_moon", "pack_fury", "forest_prison", "thorn_storm"]:
+	if id in ["tempest", "judgement_bolt", "cyclone", "hurricane", "bear_avalanche", "great_roar", "blood_moon", "pack_fury", "forest_prison", "thorn_storm",
+			"iron_fortress", "meteor_drop", "bubble_prison", "bubble_sanctuary", "time_freeze", "overclock", "sonic_boom", "resonance_cascade", "solar_flare"]:
 		fruit_ult(id)
 		cast.emit(slot)
 		return true
@@ -1621,6 +1622,7 @@ func hamstring(e: Node3D, dmg: float) -> bool:
 		var hd := HitData.new()
 		hd.damage = dmg
 		hd.stagger_duration = 0.3
+		hd.unblockable = true
 		hb.take_hit(hd, player)
 	if e.has_method("slowed"):
 		e.call("slowed", 4.0, 0.5)
@@ -1784,6 +1786,56 @@ func fruit_ult(id: String) -> void:
 			big_blast(at, 10.0, 15.0 * m, false, Color(0.35, 0.65, 0.25))
 		"thorn_storm":
 			big_blast(at, 8.0, 40.0 * m, false, Color(0.45, 0.7, 0.3))
+		# Iron: a fortress (Iron Guard for 10 s, everyone near floored); or a meteor (a great leap, a crater where it lands)
+		"iron_fortress":
+			add_buff("iron_guard", 10.0)
+			big_blast(at, 6.0, 25.0 * m, true, Color(0.62, 0.64, 0.68))
+		"meteor_drop":
+			leap(18.0, 8.0)
+			player.set_meta("iron_drop", "meteor")
+		# Bubble: every foe within 10 m bubbled; or a sanctuary for the crew (health and a bubble shield each)
+		"bubble_prison":
+			for e in enemies_in(at, 10.0):
+				bubble_trap(e)
+			Net.fx("light_pillar", [at, 10.0, 4.0, 0.7, Color(0.75, 0.9, 1.0)])
+		"bubble_sanctuary":
+			Net.everyone("_all_sanctuary", [at, 12.0])
+		# Clockwork: time stopped for every foe within 15 m; or overclocked (every power ready, the crew quicker)
+		"time_freeze":
+			for e in enemies_in(at, 15.0):
+				time_stop(e, 5.0)
+			Net.fx("light_pillar", [at, 14.0, 5.0, 1.0, Color(0.95, 0.8, 0.4)])
+		"overclock":
+			cooldowns.clear()
+			Net.everyone("_all_haste", [at, 12.0, 12.0])
+		# Echo: a sonic boom down a 25 m line; or a resonance cascade (sonar, every foe within 15 m slowed, Echo Strike)
+		"sonic_boom":
+			for e in line_foes(at, fwd, 25.0, 1.5):
+				var hb := e.get("hurtbox") as Hurtbox
+				if hb:
+					var hd := HitData.new()
+					hd.damage = 45.0 * m
+					hd.knockdown = true
+					hd.knockback_force = 9.0
+					hd.poise = 999.0
+					hd.unblockable = true
+					hb.take_hit(hd, player)
+			for i in range(6):
+				Net.fx("ring", [at + Vector3.UP + fwd * (3.0 + i * 4.0), fwd, 1.4 + i * 0.3, Color(0.6, 0.8, 0.9), 0.4, 0.15])
+			player.cam_shake(0.4, 0.4)
+		"resonance_cascade":
+			sonar(40.0)
+			for e in enemies_in(at, 15.0):
+				if e.has_method("slowed"):
+					e.call("slowed", 6.0, 0.5)
+			add_buff("echo_strike", 15.0)
+			Net.fx("light_pillar", [at, 12.0, 6.0, 0.8, Color(0.6, 0.8, 0.9)])
+		# Ember: a solar flare (everyone within 9 m floored and set burning)
+		"solar_flare":
+			big_blast(at, 9.0, 45.0 * m, true, Color(1.0, 0.6, 0.2))
+			var burn := HitData.new()
+			burn.damage = 0.0
+			blast(at + Vector3(0, 0.9, 0), 9.0, burn, 4.0, 6.0)
 
 
 ## (1.27, Gust) the live Cyclones: every half second everyone within CYCLONE_R dragged in; at its end, thrown up.

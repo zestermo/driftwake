@@ -289,6 +289,10 @@ backported there).
 - t/island/beast_moves: "rimeback lands a blow and fights by its own moves" fails ([sweep, stampede, sweep]: two
   kinds, MIN_MOVES wants more); seen 2026-10-30 alongside the cities work, which doesn't touch beasts. Look at it with
   the 1.25.1 poise retune (the beasts' flinch/break) in mind.
+- **The fruit power tests (t/progression third_powers, fourth_powers_b, fifth_powers, fruit_ults_a/b) flake under heavy
+  load** (2026-10-30): one case now and then finds the grunt untouched (Grasping Vine not hauling it, Maul or Anvil not
+  flooring it) when three groups run at once; alone and on seeds 4242 and 7 they pass. Hardened: the grunt paused from
+  placement to the cast, fresh poise, set idle, waited until up. Not found: why the cast sees no foe. Lines in flaky.txt.
 - **powertest: the captain ends up swimming** before "holding parry settles into a block (Swim)" (2026-10-30, found
   fixing the stale suites). Probably knocked into the water by an earlier step's fight. Pin the captain on land
   (teleport and Idle) before the parry steps, or find what throws them. Time-boxed and left red.

@@ -37,6 +37,12 @@ func place(p, g, c: Array) -> void:
 	g.global_position = Vector3(0, Y, -float(c[2]))
 	# (the grunt stands still from here until the cast: what its AI is up to mustn't decide the check)
 	g.set_physics_process(false)
+	# (fresh poise: a foe floored by the last case is immune to the next knockdown for Poise.IMMUNE s)
+	g.poise._immune_until = -1
+	g.poise.value = g.poise.full
+	# (and calm: not mid-swing or guarding, as a foe stood waiting would be)
+	g.hitbox.deactivate()
+	g._set_state(g.S.IDLE)
 	g.velocity = Vector3.ZERO
 	g.health.current_health = g.health.max_health
 	hp0 = g.health.current_health
@@ -55,6 +61,9 @@ func _process(_d: float) -> bool:
 		0:
 			until = TK.wait_secs(2.0)
 		1:
+			# (a foe still down from the last case gets up where its body lies: wait till it's up)
+			if int(g.state) in [int(g.S.DOWN), int(g.S.GETUP)]:
+				return false
 			place(p, g, CASES[k])
 			until = TK.wait_ticks(3)
 		2:

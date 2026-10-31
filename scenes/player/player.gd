@@ -601,7 +601,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])
 		return
 	# (1.27) the Bubble Fruit: a bubble takes the hit (Bubble Shield's, its Reflex's, its Nature's one in five)
-	if power.fruit == "bubble" and _bubble_pops(hit):
+	# (a crewmate under Bubble Sanctuary has bubbles too)
+	if (power.fruit == "bubble" or power.bubble_hits > 0) and _bubble_pops(hit):
 		Net.fx("water_ring", [global_position + Vector3.UP, 1.2, 0.5])
 		return
 	# (1.27) the Iron Fruit's Iron Guard, by its form: half damage and no stagger while it's on
@@ -1535,8 +1536,13 @@ func _on_landed(impact_vy: float) -> void:
 	ember_landing_ring(-impact_vy)
 	# (1.27) Iron Drop comes down in a slam
 	if has_meta("iron_drop"):
+		var meteor: bool = str(get_meta("iron_drop")) == "meteor"
 		remove_meta("iron_drop")
-		power.iron_slam(PowerComponent.DROP_R, 10.0 * power.power_multiplier())
+		if meteor:
+			# (the Meteor Drop ultimate: a crater)
+			power.big_blast(global_position, 7.0, 50.0 * power.power_multiplier(), true, Color(0.62, 0.64, 0.68))
+		else:
+			power.iron_slam(PowerComponent.DROP_R, 10.0 * power.power_multiplier())
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
 	if sky_leap_fall:

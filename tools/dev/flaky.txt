@@ -15,3 +15,6 @@ r8test | ...and fires a broadside
 net-board | the men still aboard her are the host's
 net-five | watcher: sees the host and the other clients
 t.player.afterimage | its blow shattered the decoy before it faded
+t.progression.fifth_powers | ...the foe hauled in
+t.progression.fifth_powers | ...the foe floored
+t.progression.fourth_powers_b | ...the foe ahead floored
