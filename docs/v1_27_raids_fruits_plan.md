@@ -654,3 +654,39 @@ floor). **The shape is shared by type:**
 - Links between neighbouring powers, so the map is a web rather than three branches.
 
 **The forms (decided):** Reflex at 150 uses of that power and fruit mastery 12; Nature at 400 uses and mastery 24.
+
+## Preview for Zach's OK: the fruit trees at near weapon size (2026-10-31, not built)
+Where things stand: every fruit has its 5 powers, 2 ultimates and an awakening (handoff_1_27_raids.md), but its tree is
+only those plus a root and a step or two: 10-15 nodes, against a weapon tree's ~44 (9 mechanics, 5 variants, 10
+versions, 8 step chains). Points: a fruit's own, 2 a mastery level and a bonus every 5 (**39 at mastery 18, 66 at
+30**). Prices today: power 3, mechanic 2, variant 4, ultimate 8 (+1 a 10 levels), step 1 a step.
+
+**The proposed shape, every fruit** (~32 nodes, ~85 points to own all of it, so at 30 you've chosen ~3/4 of it):
+| Node | Count | Price | Unlocks at mastery | Notes |
+|---|---|---|---|---|
+| Root | 1 | 0 | 1 | the passive (Flame Body, Static Body...) |
+| Powers | 5 | 3 each = 15 | 1, 1, 4, 8, 12 | the first two free with the fruit (start) |
+| Ultimates | 2 | 10 each = 20 | 20, 24 | one equipped |
+| Awakening | 1 | 11 | 30 | |
+| Mechanics | 4 | 2 each = 8 | 5, 9, 14, 18 | each changes one power (below) |
+| Alternate | 1 | 4 | 16 | a second version of one power, picked at the bunk (like the katana's Twin Waves) |
+| Variant pick | 1 (2 options) | 4 | 22 | choose one of two |
+| Crew technique | 1 | 6 | 26 | a combo with a crewmate (CrewTechniqueState) |
+| Step chains | 4 x 4 steps | 16 | 2, 6, 10, 15 | energy regen, power damage, cooldown, the fruit's own stat |
+| Links | | | | each power linked to its neighbours, so the map is a web, not three branches |
+Total ~84 points: 66 at mastery 30 buys everything but ~18 points of it (two mechanics and a step chain, say).
+
+**Worked example: Storm** (the rest follow the same shape with their own picks):
+- Powers: Thunder Step (1, start), Chain Lightning (1, start), Thundercloud (4), Static Burst (8), Thunder Spear (12).
+- Mechanics: *Forked* (Chain Lightning jumps once more), *Afterimage Step* (Thunder Step leaves a shock where you
+  left), *Long Cloud* (Thundercloud lasts 9 s), *Overcharge* (Static Burst floors when your energy is full).
+- Alternate (16): *Ball Lightning*, a slow orb down the line instead of Thunder Spear's instant bolt.
+- Variant (22): *Grounded* (your bolts stagger longer) or *Skyward* (Thunder Step goes up as well as forward).
+- Crew technique (26): *Lightning Rod*: a crewmate's weapon struck, their next 3 blows chain.
+- Ultimates: Tempest (20), Judgement Bolt (24). Awakening: Stormborn (30).
+- Steps: Charge (energy regen +3%/step), Voltage (fruit damage +3%/step), Static (cooldowns -2%/step), Conductor (shock
+  damage taken -3%/step).
+
+**What I'd like your call on:** (1) the shape and ~84-point total against 66 at mastery 30; (2) whether the first two
+powers stay free; (3) the mechanic style (one tweak per power, as above) vs bigger "rule changes"; (4) whether the
+variant pick and crew technique belong in every fruit or only the logia/zoan.
