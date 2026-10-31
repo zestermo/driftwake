@@ -607,6 +607,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		hit.stagger_duration = 0.0
 		hit.knockdown = false
 		hit.knockback_force = 0.0
+	# (1.27) Clockwork's Time Stop at Reflex: time stops by itself for whoever strikes you
+	if power.fruit == "clockwork" and attacker is Node3D and attacker != self:
+		clock_reflex(attacker as Node3D)
 	# (1.27) the Bear's Roar at Reflex: surrounded, you roar by yourself
 	if power.fruit == "bear":
 		bear_roar_reflex()
@@ -3511,4 +3514,20 @@ func bear_roar_reflex() -> bool:
 		return false
 	_roar_reflex_at = Engine.get_physics_frames() + int(ROAR_REFLEX_EVERY * Engine.physics_ticks_per_second)
 	power.bear_roar(power.ROAR_R)
+	return true
+
+
+## (1.27) The Clockwork Fruit's Time Stop at Reflex (FruitForms on its uses): whoever strikes you is stopped in time
+## (at most every CLOCK_REFLEX_EVERY s).
+const CLOCK_REFLEX_EVERY := 10.0
+var _clock_reflex_at := -1000000
+
+
+func clock_reflex(attacker: Node3D) -> bool:
+	if power.fruit != "clockwork" or FruitForms.form(progression, "time_stop", "clockwork") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _clock_reflex_at or power.suppressed():
+		return false
+	_clock_reflex_at = Engine.get_physics_frames() + int(CLOCK_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	power.time_stop(attacker, 2.0)
 	return true

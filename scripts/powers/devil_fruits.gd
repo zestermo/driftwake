@@ -27,6 +27,10 @@ const FRUITS := {
 	"storm": {"id": "storm", "name": "Storm Fruit", "type": "logia", "color": Color(0.55, 0.72, 1.0),
 		"item": "storm_fruit", "start": ["thunder_step", "chain_lightning"],
 		"passive": ["Static Body", "Lightning in your veins: you move a step quicker, and the air crackles when you're hit."]},
+	# (1.27) time on a small scale: rewinds, stops, hastes; little damage of its own (docs/v1_27_raids_fruits_plan.md "The ten Driftfruits")
+	"clockwork": {"id": "clockwork", "name": "Clockwork Fruit", "type": "paramecia", "color": Color(0.85, 0.7, 0.35),
+		"item": "clockwork_fruit", "start": ["rewind", "time_stop"],
+		"passive": ["Borrowed Seconds", "Your skills come back a little sooner."]},
 	# (1.27) the great bear: huge slow swings, a charge, a roar that stuns (docs/v1_27_raids_fruits_plan.md "The ten Driftfruits")
 	"bear": {"id": "bear", "name": "Bear Fruit", "type": "zoan", "color": Color(0.55, 0.4, 0.28),
 		"item": "bear_fruit", "start": ["bear_charge", "bear_roar"],

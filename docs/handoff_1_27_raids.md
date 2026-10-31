@@ -292,4 +292,5 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
 - (latest) **Storm piece 1 in** (Thunder Step, Chain Lightning with its Reflex). Next: Bubble, then Gust, Bear, Clockwork, Echo (the recipe above).
 - (latest) **Bubble piece 1 in** (Bubble Shield with its forms, Slick Floor). Six fruits exist now: Ember, Wolf, Vine, Iron, Storm, Bubble. Next: Gust, Bear, Clockwork, Echo (the recipe above), then each fruit's remaining powers, ultimates, awakenings, icons and models.
 - (latest) **Gust piece 1 in.** Seven fruits exist: Ember, Wolf, Vine, Iron, Storm, Bubble, Gust. Next: Bear, Clockwork, Echo.
-- (latest) **Bear piece 1 in.** Eight fruits exist. Next: Clockwork and Echo.
+- **Bear piece 1 in.**
+- (latest) **Clockwork piece 1 in:** Rewind (back 3 s along a trail kept only for a Clockwork captain) and Time Stop (a 3 s stagger, poise 40: 100 knocks a grunt down); its Reflex stops whoever strikes you. Nine fruits. Next: Echo.

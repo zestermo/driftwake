@@ -69,6 +69,11 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) the Clockwork Fruit's first powers: Rewind (its movement) and Time Stop (its CC; its forms: FruitForms)
+	"rewind": {"name": "Rewind", "tree": "Clockwork", "cost": 22.0, "cooldown": 10.0, "needs": "", "fruit": "clockwork",
+		"desc": "Step back to where you stood 3 s ago, as if the last moments never happened to you."},
+	"time_stop": {"name": "Time Stop", "tree": "Clockwork", "cost": 26.0, "cooldown": 12.0, "needs": "", "fruit": "clockwork",
+		"desc": "Stop one foe in front of you in time for 3 s. Used often, time stops by itself for whoever strikes you."},
 	# (1.27) the Bear Fruit's first powers: Bear Charge (its movement) and Roar (its CC; its forms: FruitForms)
 	"bear_charge": {"name": "Bear Charge", "tree": "Bear", "cost": 20.0, "cooldown": 6.0, "needs": "", "fruit": "bear",
 		"desc": "Charge 8 m the way you face and slam into whoever is at the end of it, knocking them flat."},

@@ -55,6 +55,13 @@ const IRON_GUARD_SECS := 3.0
 ## (1.27) Bubble Shield: how many hits it takes; the bubble's hits left now.
 ## (1.27) The Gust Fruit: Gale Dash's reach, Gust Cone's reach and half-angle.
 ## (1.27) The Bear Fruit: Bear Charge's rush, Roar's reach.
+## (1.27) The Clockwork Fruit: how far back Rewind goes, how long Time Stop holds; the captain's recent places
+## (sampled every TRAIL_EVERY s, REWIND_SECS of them, kept only for a Clockwork captain).
+const REWIND_SECS := 3.0
+const TRAIL_EVERY := 0.25
+const STOP_SECS := 3.0
+var trail: Array = []
+var _trail_t := 0.0
 const CHARGE_DIST := 8.0
 const ROAR_R := 6.0
 const GALE_DIST := 12.0
@@ -371,6 +378,18 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	if id == "rewind":
+		rewind()
+		cast.emit(slot)
+		return true
+	if id == "time_stop":
+		var fwd := -player.player_model.global_basis.z
+		var foes := enemies_in(player.global_position + fwd * 3.0, 3.5)
+		if not foes.is_empty():
+			time_stop(foes[0], STOP_SECS)
+		cast.emit(slot)
+		return true
 	# (1.27) the Bear Fruit: Bear Charge (a rush and a slam at its end) and Roar (everyone round you stunned)
 	if id == "bear_charge":
 		thunder_step(CHARGE_DIST)
@@ -497,6 +516,7 @@ func _process(delta: float) -> void:
 	if buff("coat") and player and player.is_local:
 		_tick_emission(delta)
 	_ember_aura(delta)
+	_keep_trail(delta)
 	if foresight_stance:
 		_update_stance(delta)
 	elif not suppressed() and player and _regen_wait <= 0.0:
@@ -1045,3 +1065,41 @@ func bear_roar(r: float) -> Array:
 	hd.poise = 40.0
 	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, r, Color(0.9, 0.8, 0.6), 0.5, 0.2])
 	return blast(player.global_position + Vector3(0, 0.9, 0), r, hd)
+
+
+## (1.27, Clockwork) the captain's recent places, for Rewind.
+func _keep_trail(delta: float) -> void:
+	if fruit != "clockwork" or player == null:
+		return
+	_trail_t -= delta
+	if _trail_t > 0.0:
+		return
+	_trail_t = TRAIL_EVERY
+	trail.append(player.global_position)
+	while trail.size() > int(REWIND_SECS / TRAIL_EVERY) + 1:
+		trail.pop_front()
+
+
+## (1.27, Clockwork) back to the oldest place on the trail (REWIND_SECS ago).
+func rewind() -> void:
+	if trail.is_empty():
+		return
+	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.4, 0.12])
+	player.global_position = trail[0]
+	player.reset_physics_interpolation()
+	trail.clear()
+	Net.fx("ring", [player.global_position + Vector3.UP, Vector3.UP, 1.2, Color(0.95, 0.8, 0.4), 0.4, 0.12])
+
+
+## (1.27, Clockwork) a foe stopped in time for `secs` (held in place, its blow interrupted).
+func time_stop(e: Node3D, secs: float) -> void:
+	var hb := e.get("hurtbox") as Hurtbox
+	if hb:
+		var hd := HitData.new()
+		hd.damage = 1.0
+		hd.knockback_force = 0.0
+		hd.stagger_duration = secs
+		hd.unblockable = true
+		hd.poise = 40.0
+		hb.take_hit(hd, player)
+	Net.fx("ring", [e.global_position + Vector3.UP, Vector3.UP, 1.0, Color(0.95, 0.8, 0.4), secs, 0.1])

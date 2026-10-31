@@ -56,6 +56,7 @@ const HEADERS := {
 	"bubble": ["Bubble Fruit", "fruit", Color(0.75, 0.9, 1.0), 30],
 	"gust": ["Gust Fruit", "fruit", Color(0.7, 0.95, 0.75), 30],
 	"bear": ["Bear Fruit", "fruit", Color(0.55, 0.4, 0.28), 30],
+	"clockwork": ["Clockwork Fruit", "fruit", Color(0.85, 0.7, 0.35), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -229,6 +230,7 @@ static func _build() -> void:
 	_build_bubble()
 	_build_gust()
 	_build_bear()
+	_build_clockwork()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1397,3 +1399,13 @@ static func _build_bear() -> void:
 	_big("be_charge", "Bear Charge", "tech", 0, 1, {}, "", "bear_charge")
 	_big("be_roar", "Roar", "tech", 1, 1, {}, "", "bear_roar")
 	_step("be_hide", "Thick Hide", "be_root", 5, {"defense": 2.0}, "+2 defense a step.")
+
+
+## (1.27) The Clockwork Fruit (Knack, time on a small scale): Rewind and Time Stop to begin with (to come: a slow
+## field, a haste for the crew; docs/v1_27_raids_fruits_plan.md "The ten Driftfruits").
+static func _build_clockwork() -> void:
+	_tree("clockwork", ["Rewind", "Stop", "Haste"])
+	_root("cw_root", "Clockwork Fruit (Knack)", {}, "Knack: a few seconds at a time are yours. Use its powers to grow them.")
+	_big("cw_rewind", "Rewind", "tech", 0, 1, {}, "", "rewind")
+	_big("cw_stop", "Time Stop", "tech", 1, 1, {}, "", "time_stop")
+	_step("cw_spring", "Mainspring", "cw_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
