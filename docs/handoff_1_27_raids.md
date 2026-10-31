@@ -276,3 +276,9 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   - Every new active skill needs a tree node (t/progression/tree_shape checks it).
 - (latest) **Ember:** Flame Body, Cinder Fist and Blazing Ring are done with forms (dev notes). Next: Blaze Step's
   flight, Pillar of Flame, the awakening, Ember's tree. Then the same for the other nine fruits.
+- (latest) **Ember's awakening Sunborn and the Wolf's Rending Fang forms are in** (fruit trees cap at 30 now).
+  - **Pattern per power:** Skills.ALL Active, a tree node, then its Reflex and Nature in the path they belong to (hit,
+    dodge, landing, wounds, aura), reading FruitForms.form.
+  - **Next:** the Wolf's other powers (Pounce, Howl, Scent, Moon Leap), Vine's, then the new fruits. Each new fruit
+    needs an item .tres (copy ember_fruit.tres), a DevilFruits.FRUITS entry, Skills.ALL powers, a SkillTrees entry
+    (cap 30) and a `_build_<fruit>` tree.

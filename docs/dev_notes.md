@@ -8419,3 +8419,5 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     AWAKENED_SECS 30: the ember aura burns whatever the form, and blows pass through half the time (shot always).
   - The fruit trees' caps are now 30 (Ember, Wolf, Vine), like a weapon's.
   - Checked in t/progression/ember_flame_body; t/progression passes.
+- (same day) **The Wolf's Rending Fang forms** (the zoan template). PowerComponent._wounds: claws in hybrid form bleed
+  on a crit at Reflex and on every hit at Nature (FruitForms on rending_fang's uses). Test: t/progression/wolf_forms.

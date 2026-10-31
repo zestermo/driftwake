@@ -666,6 +666,11 @@ func _wounds(target: Node3D, hit: HitData, st: String) -> void:
 	var secs := float(hit.get_meta("bleed", 0.0))
 	if secs <= 0.0 and (buff("bleeding_edge") or randf() < pr.style_stat("bleed", st)):
 		secs = 3.0
+	# (1.27) the Wolf's Rending Fang by its form (FruitForms), claws in hybrid form: Reflex, a crit bleeds; Nature, every claw
+	if fruit == "wolf" and player.hybrid and secs <= 0.0:
+		var wf := FruitForms.form(pr, "rending_fang", "wolf")
+		if wf == FruitForms.NATURE or (wf == FruitForms.REFLEX and hit.has_meta("crit")):
+			secs = 3.0
 	if secs > 0.0:
 		BleedStatus.apply(target, secs, 2.5 + hit.damage * 0.15, player)
 	var bs := pr.style_stat("backstab", st)
