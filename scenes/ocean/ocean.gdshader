@@ -112,6 +112,10 @@ uniform float whitecaps = 0.0;
 uniform vec2 wind_dir = vec2(1.0, 0.0);
 uniform float time_val = 0.0;
 uniform float near_alpha = 0.82;
+// The glitter path (Weather): toward the sun by day, the moon by night; rgb its colour, a its strength (0 = none:
+// under cloud, in storms, below the horizon).
+uniform vec3 glint_dir = vec3(0.0, 1.0, 0.0);
+uniform vec4 glint_color = vec4(1.0, 0.95, 0.8, 0.0);
 // the camera is under the sea (Weather): the surface's underside is drawn, otherwise its back faces aren't
 uniform float under_sea = 0.0;
 // The horizon haze (Weather): rgb = the fog colour (sRGB), a = how far up the
@@ -213,6 +217,15 @@ void fragment() {
 	vec3 haze_lin = mix(hc / 12.92, pow((hc + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), hc));
 	ALBEDO = base_color * cloud_shade(world_pos.xz) * (1.0 - hz);
 	EMISSION = haze_lin * hz;
+	// the glitter path: where a wave's face mirrors the sun (or moon) to the eye, sparks flicker on in PSX blocks,
+	// a few cells lit at a time and each for a beat, so it reads as a path of glints, not a smooth sheen
+	if (glint_color.a > 0.001) {
+		vec3 lv = normalize((VIEW_MATRIX * vec4(glint_dir, 0.0)).xyz);
+		float align = dot(reflect(-VIEW, NORMAL), lv);
+		float spark = cell_noise(floor(wuv * 1.6) + floor(time_val * 5.0) * 17.0);
+		float glint = smoothstep(0.965, 0.995, align + (spark - 0.5) * 0.05) * step(0.62, spark);
+		EMISSION += glint_color.rgb * glint * glint_color.a * (1.0 - hz) * (1.0 - surf);
+	}
 	// (clearer over the shoals: the sand shows through)
 	// (foam is opaque white water)
 	ALPHA = mix(mix(near_alpha - shoal * 0.22, 1.0, fresnel), 1.0, max(hz, max(surf, caps) * 0.7));

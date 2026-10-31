@@ -557,6 +557,8 @@ func _update_sun(h: float) -> void:
 ## Home's storm sky and storm light; a themed island's storm_color takes over across its reach.
 const STORM_GREY := Color(0.36, 0.38, 0.42)
 const STORM_LIGHT := Color(0.75, 0.8, 0.9)
+## How bright the sea's glitter path is at its best (a clear sky, the sun up; the shader's glint_color.a).
+const GLINT := 2.2
 
 
 ## The fog's colour from the horizon's: leaning to the place's haze_color (by its alpha x weight `k`) and, as a heavy
@@ -646,6 +648,13 @@ func _update_env() -> void:
 		_ocean_mat.set_shader_parameter("whitecaps", whitecaps())
 		_ocean_mat.set_shader_parameter("wind_dir", wind_dir())
 		_ocean_mat.set_shader_parameter("under_sea", 1.0 if under_water else 0.0)
+		# the glitter path: the sun's while it's up, the moon's (fainter, blue-white) at night; gone under cloud and storm
+		var by_moon := sun_dir.y < 0.02
+		var gd := Vector3(-sun_dir.x, -sun_dir.y, sun_dir.z * 0.6 + 0.3).normalized() if by_moon else sun_dir
+		var clear := (1.0 - storm) * (1.0 - in_cloud) * (1.0 - coverage * 0.6) * (1.0 - misty)
+		var gc := Color(0.7, 0.8, 1.0) * 0.55 if by_moon else _sun_col
+		_ocean_mat.set_shader_parameter("glint_dir", gd)
+		_ocean_mat.set_shader_parameter("glint_color", Color(gc.r, gc.g, gc.b, clampf((gd.y + 0.02) * 10.0, 0.0, 1.0) * clear * GLINT))
 	if _overlay:
 		_overlay.color = Color(0.9, 0.92, 0.95, in_cloud * 0.55)
 		if under_water:
