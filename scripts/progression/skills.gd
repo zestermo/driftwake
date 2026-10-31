@@ -539,6 +539,10 @@ static func icon(id: String) -> Texture2D:
 		var img := Image.load_from_file(path)
 		if img and not img.is_empty():
 			tex = ImageTexture.create_from_image(img)
+	# (1.27) a Driftfruit power without a picture of its own shows its fruit
+	var fr := str(get_skill(id).get("fruit", ""))
+	if tex == null and fr != "" and ResourceLoader.exists(ICON_DIR + fr + "_fruit.png"):
+		tex = load(ICON_DIR + fr + "_fruit.png") as Texture2D
 	if tex:
 		_icon_cache[id] = tex
 	return tex
