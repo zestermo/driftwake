@@ -294,10 +294,15 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
 - (latest) **Gust piece 1 in.** Seven fruits exist: Ember, Wolf, Vine, Iron, Storm, Bubble, Gust. Next: Bear, Clockwork, Echo.
 - **Bear piece 1 in.**
 - **Clockwork piece 1 in:** Rewind (back 3 s along a trail kept only for a Clockwork captain) and Time Stop (a 3 s stagger, poise 40: 100 knocks a grunt down); its Reflex stops whoever strikes you. Nine fruits. Next: Echo.
-- (latest) **Echo piece 1 in: all ten fruits exist** (Ember, Storm, Gust; Wolf, Bear; Vine, Iron, Bubble, Clockwork,
+- **Echo piece 1 in: all ten fruits exist** (Ember, Storm, Gust; Wolf, Bear; Vine, Iron, Bubble, Clockwork,
   Echo). Echo Step (out behind the nearest foe within 12 m), Shatter Note (a 14 m x 1.5 m line, double on a reeling
   foe: its passive, Resonance); at Reflex a dodge rings out (dodge_state exit -> Player.echo_dodge_reflex). Clockwork's
   passive is real now (cooldowns tick 10% faster). Test gotcha: the light stage's ground is at y = 3 (stage.gd
   GROUND_Y); a teleport to y 0.2 sinks a grunt into the floor and it "swims".
   **Next:** each fruit's remaining powers (to five with forms), two ultimates and an awakening each, trees to near
   weapon size, icons and models (all ten use placeholder icons); then the shared combat pool and IN_WORLD sources.
+- (latest) **Third powers: Clockwork's Slow Field and Echo's Sonar.** Slow Field: a 5 m ring 4 m ahead for 5 s, foes in
+  it at 40% (PirateGrunt.slowed(secs, k): its own delta and Humanoid.time_k scaled; forwarded to the host, "slowed"
+  is in Net.HOST_CALLS; a guest's puppets still animate at full speed, only their motion slows). Sonar: foes and
+  loot bags within 30 m marked 6 s through walls (a no-depth-test pillar, the caster's screen only). Seven powers to
+  go for those two, more for the rest.

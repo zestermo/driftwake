@@ -1,7 +1,7 @@
 extends SceneTree
 ## The Clockwork Fruit (1.27): its item, fruit and tree; Rewind puts you back where you stood 3 s ago; Time Stop holds
 ## the foe in front of you; at Reflex (150 uses, mastery 12) whoever strikes you is stopped by itself, at most once
-## every 10 s.
+## every 10 s. Slow Field slows the foe in it, and lets go when it ends.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -62,6 +62,22 @@ func _process(_d: float) -> bool:
 			pr.mastery["clockwork"] = {"lv": 12, "xp": 0}
 			check("Reflex: whoever strikes you is stopped", p.clock_reflex(g))
 			check("...not twice in 10 s", not p.clock_reflex(g))
+			# Slow Field: the grunt 4 m ahead
+			p.player_model.global_basis = Basis.IDENTITY
+			g.global_position = p.global_position + Vector3(0, 0, -4)
+			p.power.loadout[2] = "slow_field"
+			p.power.cooldowns.clear()
+			p.power.energy = p.power.max_energy()
+			p.state_machine.force_state("Idle", {})
+			check("Slow Field casts", p.power.try_cast(2))
+			until = TK.wait_secs(0.8)
+		4:
+			var g = stage.camp.grunts[0]
+			check("...the foe in it slowed (%.2f, its body %.2f)" % [g.slow_k, g.humanoid.time_k], g.slow_k < 0.5 and g.humanoid.time_k < 0.5)
+			until = TK.wait_secs(5.5)
+		5:
+			var g = stage.camp.grunts[0]
+			check("...and back to speed once it ends (%.2f)" % g.slow_k, g.slow_k == 1.0 and g.humanoid.time_k == 1.0)
 			return TK.done(fails)
 	step += 1
 	return false

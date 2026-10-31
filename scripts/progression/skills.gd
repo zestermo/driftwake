@@ -79,6 +79,11 @@ const ALL := {
 		"desc": "Follow your own echo: step out behind the nearest foe within 12 m."},
 	"shatter_note": {"name": "Shatter Note", "tree": "Echo", "cost": 28.0, "cooldown": 9.0, "needs": "", "fruit": "echo",
 		"desc": "One hard note down a 14 m line: everyone on it reels. Used often, your dodges ring out by themselves."},
+	# (1.27) the Clockwork and Echo Fruits' third powers: Slow Field and Sonar
+	"slow_field": {"name": "Slow Field", "tree": "Clockwork", "cost": 30.0, "cooldown": 16.0, "needs": "", "fruit": "clockwork",
+		"desc": "A ring of slow time 4 m ahead of you for 5 s: foes in it move and swing at 40% speed."},
+	"sonar": {"name": "Sonar", "tree": "Echo", "cost": 15.0, "cooldown": 12.0, "needs": "", "fruit": "echo",
+		"desc": "One pulse out to 30 m: every foe and cache in it marked for 6 s, through walls."},
 	# (1.27) the Bear Fruit's first powers: Bear Charge (its movement) and Roar (its CC; its forms: FruitForms)
 	"bear_charge": {"name": "Bear Charge", "tree": "Bear", "cost": 20.0, "cooldown": 6.0, "needs": "", "fruit": "bear",
 		"desc": "Charge 8 m the way you face and slam into whoever is at the end of it, knocking them flat."},

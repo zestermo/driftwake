@@ -64,6 +64,16 @@ const NOTE_HALF_W := 0.75
 const REWIND_SECS := 3.0
 const TRAIL_EVERY := 0.25
 const STOP_SECS := 3.0
+## Slow Field: a ring FIELD_R across, FIELD_AHEAD in front, FIELD_SECS long; foes in it at FIELD_K of their speed.
+const FIELD_R := 5.0
+const FIELD_AHEAD := 4.0
+const FIELD_SECS := 5.0
+const FIELD_K := 0.4
+var fields: Array = []
+var _field_t := 0.0
+## Sonar: how far it reaches and how long its marks stay.
+const SONAR_R := 30.0
+const SONAR_SECS := 6.0
 var trail: Array = []
 var _trail_t := 0.0
 const CHARGE_DIST := 8.0
@@ -383,6 +393,15 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	if id == "slow_field":
+		var ahead := player.global_position - player.player_model.global_basis.z * FIELD_AHEAD
+		fields.append([ahead, FIELD_SECS])
+		cast.emit(slot)
+		return true
+	if id == "sonar":
+		sonar(SONAR_R)
+		cast.emit(slot)
+		return true
 	if id == "rewind":
 		rewind()
 		cast.emit(slot)
@@ -530,6 +549,7 @@ func _process(delta: float) -> void:
 		_tick_emission(delta)
 	_ember_aura(delta)
 	_keep_trail(delta)
+	_tick_fields(delta)
 	if foresight_stance:
 		_update_stance(delta)
 	elif not suppressed() and player and _regen_wait <= 0.0:
@@ -1167,3 +1187,70 @@ func shatter_note(at: Vector3, dir: Vector3, length: float, half_w: float, dmg: 
 	for i in range(4):
 		Net.fx("ring", [at + dir * (2.0 + i * 3.5), dir, 0.9 + i * 0.25, Color(0.6, 0.8, 0.9), 0.3, 0.08])
 	return hit_list
+
+
+## (1.27, Clockwork) the live Slow Fields: every half second each slows the foes in it (and shows its rim).
+func _tick_fields(delta: float) -> void:
+	if fields.is_empty():
+		return
+	for f in fields:
+		f[1] = float(f[1]) - delta
+	fields = fields.filter(func(f): return float(f[1]) > 0.0)
+	_field_t -= delta
+	if _field_t > 0.0:
+		return
+	_field_t = 0.5
+	for f in fields:
+		var at: Vector3 = f[0]
+		for e in enemies_in(at, FIELD_R):
+			if e.has_method("slowed"):
+				e.call("slowed", 0.7, FIELD_K)
+		Net.fx("ring", [at + Vector3.UP * 0.1, Vector3.UP, FIELD_R, Color(0.95, 0.8, 0.4), 0.5, 0.06])
+
+
+## (1.27, Echo) a pulse out to `reach`: every foe and cache in it marked for SONAR_SECS, through walls, on this
+## captain's screen only. Returns how many it marked.
+func sonar(reach: float) -> int:
+	var at := player.global_position
+	var marks: Array = []
+	for e in enemies_in(at, reach):
+		marks.append([e, Color(1.0, 0.35, 0.3)])
+	for b in player.get_tree().get_nodes_in_group("loot_bags"):
+		if (b as Node3D).global_position.distance_to(at) <= reach:
+			marks.append([b, Color(1.0, 0.85, 0.35)])
+	if not player.is_local:
+		return marks.size()
+	Net.fx("ring", [at + Vector3.UP, Vector3.UP, 4.0, Color(0.6, 0.8, 0.9), 0.6, 0.1])
+	for m in marks:
+		_sonar_mark(m[0], m[1])
+	return marks.size()
+
+
+static var _sonar_mesh: Mesh
+var _sonar_mats := {}
+
+
+func _sonar_mark(n: Node3D, col: Color) -> void:
+	if _sonar_mesh == null:
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.06
+		cm.bottom_radius = 0.06
+		cm.height = 2.4
+		cm.radial_segments = 4
+		cm.rings = 1
+		_sonar_mesh = cm
+	if not _sonar_mats.has(col):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.no_depth_test = true
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(col, 0.75)
+		_sonar_mats[col] = mat
+	var mi := MeshInstance3D.new()
+	mi.name = "SonarMark"
+	mi.mesh = _sonar_mesh
+	mi.material_override = _sonar_mats[col]
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0, 3.0, 0)
+	n.add_child(mi)
+	n.get_tree().create_timer(SONAR_SECS, false).timeout.connect(func(): if is_instance_valid(mi): mi.queue_free())

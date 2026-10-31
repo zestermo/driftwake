@@ -739,6 +739,13 @@ func _physics_process(delta: float) -> void:
 		if state == S.DEAD:
 			_dead_update(delta)
 		return
+	# (1.27) slowed in time (Clockwork's Slow Field): its own clock runs at slow_k, its steps and its body's with it
+	if _slow_t > 0.0:
+		_slow_t -= delta
+		delta *= slow_k
+		if _slow_t <= 0.0:
+			slow_k = 1.0
+			humanoid.time_k = 1.0
 	st_t += delta
 	_cooldown -= delta
 	_peril_cd -= delta
@@ -1208,8 +1215,8 @@ func _move_tail(want: Vector3, accel: float, turn: float, running: bool, hv: Vec
 		hv = _yank_v
 		if _yank <= 0.0:
 			hv *= 0.15
-	velocity.x = hv.x
-	velocity.z = hv.z
+	velocity.x = hv.x * slow_k
+	velocity.z = hv.z * slow_k
 	move_and_slide()
 	facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(turn * delta, 1.0))
 
@@ -2621,6 +2628,19 @@ func vine_yank(to: Vector3, dmg: float = 4.0, wrap: bool = true) -> void:
 	health.take_damage(dmg)
 	if wrap:
 		Net.fx("vine_wrap", [self, secs + 0.3, 0.32])
+
+
+## (1.27) slowed in time for `secs` (Clockwork's Slow Field): moves, thinks and swings at `k` of its speed.
+var slow_k := 1.0
+var _slow_t := 0.0
+
+
+func slowed(secs: float, k: float) -> void:
+	if Net.forward(self, "slowed", [secs, k]):
+		return
+	_slow_t = maxf(_slow_t, secs)
+	slow_k = k
+	humanoid.time_k = k
 
 
 func rooted(secs: float) -> void:

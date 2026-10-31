@@ -1410,6 +1410,7 @@ static func _build_clockwork() -> void:
 	_root("cw_root", "Clockwork Fruit (Knack)", {}, "Knack: a few seconds at a time are yours. Use its powers to grow them.")
 	_big("cw_rewind", "Rewind", "tech", 0, 1, {}, "", "rewind")
 	_big("cw_stop", "Time Stop", "tech", 1, 1, {}, "", "time_stop")
+	_big("cw_field", "Slow Field", "tech", 2, 1, {}, "", "slow_field")
 	_step("cw_spring", "Mainspring", "cw_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1420,4 +1421,5 @@ static func _build_echo() -> void:
 	_root("ec_root", "Echo Fruit (Knack)", {}, "Knack: every sound is yours. Use its powers to grow them.")
 	_big("ec_step", "Echo Step", "tech", 0, 1, {}, "", "echo_step")
 	_big("ec_note", "Shatter Note", "tech", 1, 1, {}, "", "shatter_note")
+	_big("ec_sonar", "Sonar", "tech", 2, 1, {}, "", "sonar")
 	_step("ec_ear", "Keen Ear", "ec_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")

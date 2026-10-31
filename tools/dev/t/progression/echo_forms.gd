@@ -1,7 +1,7 @@
 extends SceneTree
 ## The Echo Fruit (1.27): its item, fruit and tree; Echo Step puts you behind the nearest foe; Shatter Note's long,
 ## narrow line staggers whoever is on it and misses whoever is beside it; at Reflex (150 uses, mastery 12) a dodge
-## rings out by itself, at most once every 6 s.
+## rings out by itself, at most once every 6 s. Sonar marks the foes near you.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -66,6 +66,12 @@ func _process(_d: float) -> bool:
 			pr.mastery["echo"] = {"lv": 12, "xp": 0}
 			check("Reflex: a dodge rings out by itself", p.echo_dodge_reflex())
 			check("...not twice in 6 s", not p.echo_dodge_reflex())
+			p.power.loadout[2] = "sonar"
+			p.power.cooldowns.clear()
+			p.power.energy = p.power.max_energy()
+			p.state_machine.force_state("Idle", {})
+			check("Sonar casts", p.power.try_cast(2))
+			check("...every foe near marked (%d)" % gs.filter(func(e): return e.get_node_or_null("SonarMark") != null).size(), gs.all(func(e): return e.get_node_or_null("SonarMark") != null))
 			return TK.done(fails)
 	step += 1
 	return false
