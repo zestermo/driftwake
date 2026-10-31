@@ -1105,12 +1105,15 @@ func update_coat_visual() -> void:
 # --------------------------------------------------------------------------
 const FUR := Color(0.55, 0.5, 0.44)
 ## (1.27) Each zoan's hybrid: its fur and eyes, how much taller, its build and proportions (BodyBuilder: build, arm_k, leg_k,
-## hand_k, foot_k, torso_k) and its beast parts (Humanoid.set_beast). The wolf long, lean and quick; the bear massive.
+## hand_k, foot_k, torso_k), what it bursts out of (coat, vest, boots, gloves: the wolf in a sleeveless shirt, the bear bare),
+## and its beast parts (Humanoid.set_beast). The wolf long, lean and quick; the bear massive.
 const BEAST_FORMS := {
 	"wolf": {"kind": "wolf", "fur": Color(0.42, 0.43, 0.48), "eyes": Color(0.95, 0.78, 0.2), "height": 1.22,
-		"body": {"build": "wolf", "arm_k": 1.14, "leg_k": 1.06, "hand_k": 1.45, "foot_k": 1.3, "torso_k": 1.04}},
+		"body": {"build": "wolf", "arm_k": 1.14, "leg_k": 1.06, "hand_k": 1.45, "foot_k": 1.3, "torso_k": 1.04,
+			"coat": "none", "vest": "none", "sleeves": "none", "feet": "barefoot", "gloves": false, "cape": false, "cloak": false, "mantle": false}},
 	"bear": {"kind": "bear", "fur": Color(0.36, 0.26, 0.17), "eyes": Color(0.55, 0.32, 0.12), "height": 1.38,
-		"body": {"build": "bear", "arm_k": 1.06, "leg_k": 0.94, "hand_k": 1.65, "foot_k": 1.45, "torso_k": 1.1}},
+		"body": {"build": "bear", "arm_k": 1.06, "leg_k": 0.94, "hand_k": 1.65, "foot_k": 1.45, "torso_k": 1.1,
+			"top": "bare", "coat": "none", "vest": "none", "feet": "barefoot", "gloves": false, "cape": false, "cloak": false, "mantle": false}},
 }
 
 
