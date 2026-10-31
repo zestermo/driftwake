@@ -607,6 +607,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		hit.stagger_duration = 0.0
 		hit.knockdown = false
 		hit.knockback_force = 0.0
+	# (1.27) Gust Cone at Reflex: the wind blows back whoever hits you
+	if power.fruit == "gust" and attacker is Node3D and attacker != self:
+		gust_reflex(attacker as Node3D)
 	# (1.27) Chain Lightning at Reflex: it leaps from you to whoever hits you
 	if power.fruit == "storm" and attacker is Node3D and attacker != self:
 		storm_reflex(attacker as Node3D)
@@ -3470,3 +3473,19 @@ func _bubble_pops(_hit: HitData) -> bool:
 		_bubble_reflex_at = Engine.get_physics_frames() + int(BUBBLE_REFLEX_EVERY * Engine.physics_ticks_per_second)
 		return true
 	return false
+
+
+## (1.27) The Gust Fruit's Gust Cone at Reflex (FruitForms on its uses): whoever hits you is blown back by a burst of wind
+## (at most every GUST_REFLEX_EVERY s).
+const GUST_REFLEX_EVERY := 6.0
+var _gust_reflex_at := -1000000
+
+
+func gust_reflex(attacker: Node3D) -> bool:
+	if power.fruit != "gust" or FruitForms.form(progression, "gust_cone", "gust") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _gust_reflex_at or power.suppressed():
+		return false
+	_gust_reflex_at = Engine.get_physics_frames() + int(GUST_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	power.gust_cone(global_position, attacker.global_position - global_position, 4.0, 6.0)
+	return true

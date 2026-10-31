@@ -69,6 +69,11 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) the Gust Fruit's first powers: Gale Dash (its movement) and Gust Cone (its CC; its forms: FruitForms)
+	"gale_dash": {"name": "Gale Dash", "tree": "Gust", "cost": 18.0, "cooldown": 4.0, "needs": "", "fruit": "gust",
+		"desc": "Ride a rush of wind 12 m the way you face (not through walls)."},
+	"gust_cone": {"name": "Gust Cone", "tree": "Gust", "cost": 24.0, "cooldown": 7.0, "needs": "", "fruit": "gust",
+		"desc": "A blast of wind in a cone ahead: everyone in it is blown back and off their feet. Used often, the wind answers by itself when you're struck."},
 	# (1.27) the Bubble Fruit's first powers: Bubble Shield (its forms: FruitForms) and Slick Floor (its CC)
 	"bubble_shield": {"name": "Bubble Shield", "tree": "Bubble", "cost": 24.0, "cooldown": 14.0, "needs": "", "fruit": "bubble",
 		"desc": "A bubble round you that takes the next 3 hits. Used often, one forms by itself when you're hurt, and in the end one hit in five just pops a bubble."},

@@ -8452,3 +8452,9 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     - Reflex: one forms by itself under 30% health, at most every 20 s;
     - Nature: one hit in five pops a bubble.
   - Test: t/progression/bubble_forms; t/progression and t/player (82) pass.
+- (same day) **The Gust Fruit, piece 1.**
+  - gust_fruit.tres, FRUITS "gust" (Flux), and a tree (`gu_*`).
+  - **Gale Dash:** a 12 m wind rush on thunder_step's blink. Its movement power.
+  - **Gust Cone:** PowerComponent.gust_cone, a cone 8 m ahead blowing foes back and down (poise 999). Its CC.
+  - **Reflex:** Player.gust_reflex, whoever hits you is blown back (at most every 6 s).
+  - Test: t/progression/gust_forms (from storm_forms); t/progression and t/player (83) pass.

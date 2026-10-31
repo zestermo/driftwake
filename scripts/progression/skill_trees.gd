@@ -54,6 +54,7 @@ const HEADERS := {
 	"iron": ["Iron Fruit", "fruit", Color(0.58, 0.6, 0.64), 30],
 	"storm": ["Storm Fruit", "fruit", Color(0.55, 0.72, 1.0), 30],
 	"bubble": ["Bubble Fruit", "fruit", Color(0.75, 0.9, 1.0), 30],
+	"gust": ["Gust Fruit", "fruit", Color(0.7, 0.95, 0.75), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -225,6 +226,7 @@ static func _build() -> void:
 	_build_iron()
 	_build_storm()
 	_build_bubble()
+	_build_gust()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1373,3 +1375,13 @@ static func _build_bubble() -> void:
 	_big("bb_shield", "Bubble Shield", "tech", 2, 1, {}, "", "bubble_shield")
 	_big("bb_slick", "Slick Floor", "tech", 0, 1, {}, "", "slick_floor")
 	_step("bb_foam", "Foam", "bb_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
+
+
+## (1.27) The Gust Fruit (Flux, wind): Gale Dash and Gust Cone to begin with (to come: an updraft, a pull, a cyclone
+## ultimate; docs/v1_27_raids_fruits_plan.md "The ten Driftfruits").
+static func _build_gust() -> void:
+	_tree("gust", ["Push", "Pull", "Air"])
+	_root("gu_root", "Gust Fruit (Flux)", {}, "Flux: your body is wind. Use its powers to grow them.")
+	_big("gu_dash", "Gale Dash", "tech", 2, 1, {}, "", "gale_dash")
+	_big("gu_cone", "Gust Cone", "tech", 0, 1, {}, "", "gust_cone")
+	_step("gu_breeze", "Breeze", "gu_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")

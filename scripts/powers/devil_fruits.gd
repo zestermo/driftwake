@@ -27,6 +27,10 @@ const FRUITS := {
 	"storm": {"id": "storm", "name": "Storm Fruit", "type": "logia", "color": Color(0.55, 0.72, 1.0),
 		"item": "storm_fruit", "start": ["thunder_step", "chain_lightning"],
 		"passive": ["Static Body", "Lightning in your veins: you move a step quicker, and the air crackles when you're hit."]},
+	# (1.27) wind: cones and lines that push and pull, the best of the air (docs/v1_27_raids_fruits_plan.md "The ten Driftfruits")
+	"gust": {"id": "gust", "name": "Gust Fruit", "type": "logia", "color": Color(0.7, 0.95, 0.75),
+		"item": "gust_fruit", "start": ["gale_dash", "gust_cone"],
+		"passive": ["Wind Body", "You fall slowly and jump higher: the wind holds you up."]},
 	# (1.27) the joke that isn't: soap and bubbles (docs/v1_27_raids_fruits_plan.md "The six fruit kits")
 	"bubble": {"id": "bubble", "name": "Bubble Fruit", "type": "paramecia", "color": Color(0.75, 0.9, 1.0),
 		"item": "bubble_fruit", "start": ["bubble_shield", "slick_floor"],

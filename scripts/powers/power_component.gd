@@ -53,6 +53,10 @@ const IRON_GUARD_SECS := 3.0
 ## (1.27) The Storm Fruit: Thunder Step's blink, Chain Lightning's reach to its first foe, how many more it leaps on to
 ## (each within CHAIN_HOP of the last) and its damage at each.
 ## (1.27) Bubble Shield: how many hits it takes; the bubble's hits left now.
+## (1.27) The Gust Fruit: Gale Dash's reach, Gust Cone's reach and half-angle.
+const GALE_DIST := 12.0
+const GUST_REACH := 8.0
+const GUST_HALF := 0.6
 const BUBBLE_HITS := 3
 var bubble_hits := 0
 const STEP_DIST := 9.0
@@ -364,6 +368,15 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) the Gust Fruit: Gale Dash (Thunder Step's blink, further) and Gust Cone (a cone ahead blown back and down)
+	if id == "gale_dash":
+		thunder_step(GALE_DIST)
+		cast.emit(slot)
+		return true
+	if id == "gust_cone":
+		gust_cone(player.global_position, -player.player_model.global_basis.z, GUST_REACH, 16.0)
+		cast.emit(slot)
+		return true
 	# (1.27) the Bubble Fruit: Bubble Shield (the next BUBBLE_HITS hits) and Slick Floor (a patch ahead: foes slip and fall)
 	if id == "bubble_shield":
 		bubble_hits = BUBBLE_HITS
@@ -979,3 +992,26 @@ func chain_lightning(at: Vector3, reach: float, jumps: int, dmg: float) -> Array
 		from = best.global_position
 		r = CHAIN_HOP
 	return struck
+
+
+## (1.27) Gust Cone from `at` along `dir`: every foe within `reach` and GUST_HALF of the line is blown back and down.
+func gust_cone(at: Vector3, dir: Vector3, reach: float, dmg: float) -> Array:
+	dir.y = 0.0
+	dir = dir.normalized()
+	var hit_list: Array = []
+	for e in enemies_in(at, reach):
+		var to := (e as Node3D).global_position - at
+		to.y = 0.0
+		if to.length() > 0.1 and dir.angle_to(to.normalized()) > GUST_HALF:
+			continue
+		var hb := e.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = dmg
+			hd.knockback_force = 12.0
+			hd.knockdown = true
+			hd.poise = 999.0
+			hb.take_hit(hd, player)
+			hit_list.append(e)
+	Net.fx("dust_ring", [at + dir * 3.0, 14, 1.2])
+	return hit_list
