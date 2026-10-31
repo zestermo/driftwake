@@ -52,6 +52,7 @@ const HEADERS := {
 	"wolf": ["Wolf Fruit", "fruit", Color(0.75, 0.68, 0.55), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
 	"vine": ["Vine Fruit", "fruit", Color(0.45, 0.85, 0.3), 30],  # (1.27: fruit trees go to 30 like a weapon's; the awakening at 30)
 	"iron": ["Iron Fruit", "fruit", Color(0.58, 0.6, 0.64), 30],
+	"storm": ["Storm Fruit", "fruit", Color(0.55, 0.72, 1.0), 30],
 }
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
@@ -221,6 +222,7 @@ static func _build() -> void:
 	_build_black_leg()
 	_build_ember()
 	_build_iron()
+	_build_storm()
 	_build_wolf()
 	_build_vine()
 	for t in WeaponPlus.TREES.keys():
@@ -1348,3 +1350,14 @@ static func _build_iron() -> void:
 	_big("i_guard", "Iron Guard", "tech", 0, 1, {}, "", "iron_guard")
 	_big("i_fist", "Iron Fist", "tech", 1, 1, {}, "", "iron_fist")
 	_step("i_plate", "Plating", "i_root", 5, {"defense": 2.0}, "+2 defense a step.")
+
+
+## (1.27) The Storm Fruit (Flux, lightning): Thunder Step and Chain Lightning to begin with (its other powers to come:
+## the Thundercloud, Static Guard, lightning flight; docs/v1_27_raids_fruits_plan.md "The six fruit kits").
+static func _build_storm() -> void:
+	_tree("storm", ["Bolt", "Cloud", "Step"])
+	_root("sm_root", "Storm Fruit (Flux)", {},
+		"Flux: your body is lightning. Use its powers to grow them.")
+	_big("sm_step", "Thunder Step", "tech", 2, 1, {}, "", "thunder_step")
+	_big("sm_chain", "Chain Lightning", "tech", 0, 1, {}, "", "chain_lightning")
+	_step("sm_charge", "Charge", "sm_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")

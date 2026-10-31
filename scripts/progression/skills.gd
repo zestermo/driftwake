@@ -69,6 +69,11 @@ const ALL := {
 	"will_berserk": {"name": "Berserk", "tree": "base", "cost": 20.0, "cooldown": 40.0, "needs": "", "fruit": "", "state": "Technique",
 		"desc": "Fury Will. Throw your guard away for 10 s: every blow you land heals you 4% of its damage, and blows on you land 20% harder."},
 	# --- Ember Fruit (Logia) ---
+	# (1.27) the Storm Fruit's first powers: Thunder Step (its movement) and Chain Lightning (its forms: FruitForms)
+	"thunder_step": {"name": "Thunder Step", "tree": "Storm", "cost": 20.0, "cooldown": 5.0, "needs": "", "fruit": "storm",
+		"desc": "Blink 9 m the way you face as a bolt of lightning, through the air and past foes (not through walls)."},
+	"chain_lightning": {"name": "Chain Lightning", "tree": "Storm", "cost": 26.0, "cooldown": 7.0, "needs": "", "fruit": "storm",
+		"desc": "A bolt at the nearest foe ahead that leaps on to three more close by. Used often, it starts leaping from you to whoever hits you."},
 	# (1.27) the Iron Fruit's first powers: Iron Guard (its forms grow from its uses: FruitForms) and Iron Fist
 	"iron_guard": {"name": "Iron Guard", "tree": "Iron", "cost": 22.0, "cooldown": 10.0, "needs": "", "fruit": "iron",
 		"desc": "Your skin turns to iron for 3 s: blows do half damage and nothing staggers you. Used often, it starts to happen by itself against heavy blows, and in the end only a technique can shake you."},

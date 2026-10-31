@@ -8435,3 +8435,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
     heavy or knockdown blow at most every 8 s; Nature against anything under Poise.TECH_MIN.
   - Test: t/progression/iron_forms. Still to come for Iron: the Cannonball Dive, the Anvil, Iron Skin, the ultimates,
     the awakening, and its own icon and model.
+- (same day) **The Storm Fruit, piece 1.**
+  - storm_fruit.tres (the Ember's icon as a placeholder), FRUITS "storm" (Flux), SkillTrees "storm" (cap 30) and
+    `_build_storm` (ids `sm_*`: `st_` was taken by Stealth).
+  - **Thunder Step:** PowerComponent.thunder_step, a 9 m blink stopped short of walls. Its movement power.
+  - **Chain Lightning:** PowerComponent.chain_lightning, the nearest foe within 14 m, then 3 more each within 6 m, 14
+    each.
+  - **Reflex:** Player.storm_reflex, lightning leaps from you to whoever hits you (at most every 6 s).
+  - Test: t/progression/storm_forms; t/progression and t/player (81) pass.

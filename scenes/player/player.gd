@@ -603,6 +603,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		hit.stagger_duration = 0.0
 		hit.knockdown = false
 		hit.knockback_force = 0.0
+	# (1.27) Chain Lightning at Reflex: it leaps from you to whoever hits you
+	if power.fruit == "storm" and attacker is Node3D and attacker != self:
+		storm_reflex(attacker as Node3D)
 	# (1.27) Vine Snare at Reflex: whoever hits you is snared
 	if power.fruit == "vine" and attacker is Node3D and attacker != self:
 		vine_snare_reflex(attacker as Node3D)
@@ -3425,3 +3428,19 @@ func _iron_guard(hit: HitData) -> bool:
 		_iron_reflex_at = Engine.get_physics_frames() + int(IRON_REFLEX_EVERY * Engine.physics_ticks_per_second)
 		return true
 	return false
+
+
+## (1.27) The Storm Fruit's Chain Lightning at Reflex (FruitForms on its uses): whoever hits you is struck by it, leaping
+## on from them (at most every STORM_REFLEX_EVERY s).
+const STORM_REFLEX_EVERY := 6.0
+var _storm_reflex_at := -1000000
+
+
+func storm_reflex(attacker: Node3D) -> bool:
+	if power.fruit != "storm" or FruitForms.form(progression, "chain_lightning", "storm") < FruitForms.REFLEX:
+		return false
+	if Engine.get_physics_frames() < _storm_reflex_at or power.suppressed():
+		return false
+	_storm_reflex_at = Engine.get_physics_frames() + int(STORM_REFLEX_EVERY * Engine.physics_ticks_per_second)
+	power.chain_lightning(attacker.global_position, 2.0, 2, 10.0)
+	return true

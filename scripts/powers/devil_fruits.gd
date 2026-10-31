@@ -23,6 +23,10 @@ const FRUITS := {
 	"vine": {"id": "vine", "name": "Vine Fruit", "type": "paramecia", "color": Color(0.45, 0.85, 0.3),
 		"item": "vine_fruit", "start": ["vine_snare", "vine_swing"],
 		"passive": ["Photosynthesis", "Out of combat, on land, you slowly heal and regain energy."]},
+	# (1.27) lightning: blinks, chains between foes (docs/v1_27_raids_fruits_plan.md "The six fruit kits"; the Lagoon Prince's)
+	"storm": {"id": "storm", "name": "Storm Fruit", "type": "logia", "color": Color(0.55, 0.72, 1.0),
+		"item": "storm_fruit", "start": ["thunder_step", "chain_lightning"],
+		"passive": ["Static Body", "Lightning in your veins: you move a step quicker, and the air crackles when you're hit."]},
 	# (1.27) the tank's fruit: iron at will (docs/v1_27_raids_fruits_plan.md "The six fruit kits")
 	"iron": {"id": "iron", "name": "Iron Fruit", "type": "paramecia", "color": Color(0.58, 0.6, 0.64),
 		"item": "iron_fruit", "start": ["iron_guard", "iron_fist"],

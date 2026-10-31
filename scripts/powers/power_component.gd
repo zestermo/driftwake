@@ -50,6 +50,13 @@ const FLICKER_SECS := 1.5
 const AWAKENED_SECS := 30.0
 ## (1.27) Iron Guard's Active form: how long the iron skin lasts.
 const IRON_GUARD_SECS := 3.0
+## (1.27) The Storm Fruit: Thunder Step's blink, Chain Lightning's reach to its first foe, how many more it leaps on to
+## (each within CHAIN_HOP of the last) and its damage at each.
+const STEP_DIST := 9.0
+const CHAIN_REACH := 14.0
+const CHAIN_HOP := 6.0
+const CHAIN_JUMPS := 3
+const CHAIN_DMG := 14.0
 ## Buffs that are Will (an aura in the captain's Will colour when they start).
 const WILL_BUFFS := ["coat", "foresight"]
 ## Emission (Iron Will tier 2): a coated heavy attack strikes EMIT_RANGE m ahead (a line EMIT_WIDE m across) or a
@@ -354,6 +361,15 @@ func try_cast(slot: int) -> bool:
 		if id == "soru" and tier >= 2:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
+	# (1.27) the Storm Fruit: Thunder Step (a blink the way you face, stopped short of walls) and Chain Lightning
+	if id == "thunder_step":
+		thunder_step(STEP_DIST)
+		cast.emit(slot)
+		return true
+	if id == "chain_lightning":
+		chain_lightning(player.global_position, CHAIN_REACH, CHAIN_JUMPS, CHAIN_DMG)
+		cast.emit(slot)
+		return true
 	# (1.27) the Iron Fruit: Iron Guard (iron skin a while) and Iron Fist (a guard-breaking punch in front of you)
 	if id == "iron_guard":
 		add_buff("iron_guard", IRON_GUARD_SECS)
@@ -892,3 +908,52 @@ func _ember_aura(delta: float) -> void:
 	hd.dot = true
 	if not blast(player.global_position + Vector3(0, 0.8, 0), AURA_R, hd, 1.0, 2.0).is_empty():
 		Net.fx("flame", [player.global_position + Vector3(0, 0.6, 0), 6, 0.6, 0.4, AURA_R * 0.5])
+
+
+## (1.27) Thunder Step: a blink of up to `dist` the way the captain faces, stopped 0.6 m short of a wall.
+func thunder_step(dist: float) -> void:
+	var fwd := -player.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var from := player.global_position + Vector3.UP * 1.0
+	var q := PhysicsRayQueryParameters3D.create(from, from + fwd * dist, 1)
+	q.exclude = [player.get_rid()]
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	var go := dist if hit.is_empty() else maxf(from.distance_to(hit["position"]) - 0.6, 0.0)
+	Net.fx("impact", [player.global_position + Vector3.UP, Color(0.6, 0.75, 1.0)])
+	player.global_position += fwd * go
+	player.reset_physics_interpolation()
+	Net.fx("impact", [player.global_position + Vector3.UP, Color(0.6, 0.75, 1.0)])
+
+
+## (1.27) Chain Lightning from `at`: the nearest foe within `reach` (ahead of the captain when cast), then up to `jumps`
+## more, each the nearest unstruck within CHAIN_HOP of the last; `dmg` to each. Returns those struck.
+func chain_lightning(at: Vector3, reach: float, jumps: int, dmg: float) -> Array:
+	var struck: Array = []
+	var from := at
+	var r := reach
+	for i in range(jumps + 1):
+		var best: Node3D = null
+		var bd := r
+		for e in enemies_in(from, r):
+			if e in struck:
+				continue
+			var d := (e as Node3D).global_position.distance_to(from)
+			if d < bd:
+				bd = d
+				best = e
+		if best == null:
+			break
+		var hb := best.get("hurtbox") as Hurtbox
+		if hb:
+			var hd := HitData.new()
+			hd.damage = dmg
+			hd.knockback_force = 2.0
+			hd.stagger_duration = 0.35
+			hd.ranged = true
+			hb.take_hit(hd, player)
+		Net.fx("impact", [best.global_position + Vector3.UP, Color(0.6, 0.75, 1.0)])
+		struck.append(best)
+		from = best.global_position
+		r = CHAIN_HOP
+	return struck
