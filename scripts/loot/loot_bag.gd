@@ -177,6 +177,24 @@ func take(idx: int, player: Player, qty: int = -1) -> void:
 	_changed()
 
 
+## Quick-stack (1.28): every bag stack of a kind this container already holds goes in (never what's in your hands or
+## the quick slot), through store() so the crew's shared chest stays the host's. Returns how many stacks moved.
+func quick_stack(player: Player) -> int:
+	if player == null:
+		return 0
+	var have := {}
+	for c in contents:
+		have[c.item.id] = true
+	var inv := player.inventory_component
+	var mask := inv.held_mask()
+	var moved := 0
+	for i in range(inv.items.size() - 1, -1, -1):
+		if not mask[i] and have.has(inv.items[i].item.id):
+			store(player, i)
+			moved += 1
+	return moved
+
+
 ## Put (part of) a bag stack into this container.
 func store(player: Player, bag_idx: int, qty: int = -1) -> void:
 	if player == null:

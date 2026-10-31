@@ -1542,10 +1542,17 @@ func _build_loot() -> void:
 	sc.add_child(_loot_grid)
 	vb.add_child(sc)
 	_grow_loot(20)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.alignment = BoxContainer.ALIGNMENT_END
+	var stack := UIStyle.button("Quick stack", 90)
+	stack.tooltip_text = "Put in everything from your bag that this already holds"
+	stack.pressed.connect(func(): quick_stack())
+	row.add_child(stack)
 	var take := UIStyle.button("Take all", 80)
-	take.size_flags_horizontal = Control.SIZE_SHRINK_END
 	take.pressed.connect(func(): take_all())
-	vb.add_child(take)
+	row.add_child(take)
+	vb.add_child(row)
 
 
 func _grow_loot(n: int) -> void:
@@ -1623,6 +1630,17 @@ func take_all() -> void:
 	if pl and has_container():
 		_container.take_all(pl)
 		menu._play("equip")
+		if has_container():
+			refresh()
+
+
+func quick_stack() -> void:
+	var pl := _player()
+	if pl and has_container():
+		var n: int = _container.quick_stack(pl)
+		menu._play("equip" if n > 0 else "select")
+		if n == 0:
+			pl.call("_toast", "Nothing in your bag that's stored here")
 		if has_container():
 			refresh()
 
