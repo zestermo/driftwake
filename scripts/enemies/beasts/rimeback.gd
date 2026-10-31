@@ -81,7 +81,7 @@ func _table() -> Dictionary:
 			"rec": 1.0, "col": snow, "fx": "quake", "say": ["bellow", 0.7], "pose": [{"rear": 0.7, "head": 0.5, "jaw": 1.0}, {"head": 0.3}, {}]},
 		"sweep": {"max": 5.5, "cd": [2.0, 3.0], "tell": 0.6, "shape": "cone", "r": 5.5, "deg": 110.0, "dmg": 20.0, "kb": 9.0, "parry": true, "rec": 0.8,
 			"pose": [{"head": -0.4, "crouch": 0.15}, {"head": 0.45}, {"head": -0.1}]},
-		"toss": {"min": 5.0, "max": 14.0, "cd": [5.0, 7.0], "tell": 0.5, "shape": "lane", "len": 14.0, "w": 0.8, "dmg": 14.0, "kb": 6.0, "rec": 0.8,
+		"toss": {"min": 3.5, "max": 14.0, "cd": [5.0, 7.0], "tell": 0.5, "shape": "lane", "len": 14.0, "w": 0.8, "dmg": 14.0, "kb": 6.0, "rec": 0.8,
 			"fx": "sparkle", "col": snow, "pose": [{"head": -0.6, "crouch": 0.3}, {"head": 0.5}, {}]},
 		"trample": {"min": 6.0, "max": 20.0, "cd": [7.0, 9.0], "tell": 0.9, "shape": "charge", "len": 18.0, "w": 2.0, "speed": 12.0, "dmg": 30.0, "knock": true,
 			"rec": 1.6, "say": ["bellow", 0.8], "pose": [{"rear": 0.8, "head": 0.4}, {"head": -0.2, "stretch": 0.4}, {"crouch": 0.4, "head": -0.3}]},
