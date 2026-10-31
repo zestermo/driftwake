@@ -67,6 +67,40 @@ static func release(a: String) -> void:
 	Input.parse_input_event(e)
 
 
+## A foe made a fair target for the next check: still (its AI off until `wake`), fresh poise (not immune to a
+## knockdown from the last case), not mid-swing or guarding, full health, facing `face` (north by default).
+## Most load flakes in effect tests were a grunt doing something of its own mid-check.
+static func calm(g: Node, face := Vector3.FORWARD) -> void:
+	g.set_physics_process(false)
+	if "poise" in g and g.poise != null:
+		g.poise._immune_until = -1
+		g.poise.value = g.poise.full
+	if "hitbox" in g and g.hitbox != null:
+		g.hitbox.deactivate()
+	if g.has_method("_set_state") and "S" in g:
+		g._set_state(g.S.IDLE)
+	if "velocity" in g:
+		g.velocity = Vector3.ZERO
+	if "health" in g and g.health != null:
+		g.health.current_health = g.health.max_health
+	if g is Node3D and face != Vector3.ZERO:
+		var at: Vector3 = g.global_position - face
+		at.y = g.global_position.y
+		g.look_at(at, Vector3.UP)
+		g.reset_physics_interpolation()
+
+
+## Let a calmed foe's AI run again.
+static func wake(g: Node) -> void:
+	g.set_physics_process(true)
+
+
+## A captain ready to cast anything: full energy, every cooldown cleared, out of whatever state it was in.
+static func ready_caster(p: Node) -> void:
+	p.power.energy = p.power.max_energy()
+	p.power.cooldowns.clear()
+
+
 ## The test's last line ("RESULT OK" / "RESULT FAILED (n)"); _process returns it to quit.
 static func done(fails: int) -> bool:
 	print("RESULT OK" if fails == 0 else "RESULT FAILED (%d)" % fails)

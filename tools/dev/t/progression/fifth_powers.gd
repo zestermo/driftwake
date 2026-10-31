@@ -34,16 +34,8 @@ func place(p, g, c: Array) -> void:
 	p.reset_physics_interpolation()
 	p.player_model.global_basis = Basis.IDENTITY
 	g.global_position = Vector3(0, Y, -float(c[2]))
-	# (the grunt stands still from here until the cast: what its AI is up to mustn't decide the check)
-	g.set_physics_process(false)
-	# (fresh poise: a foe floored by the last case is immune to the next knockdown for Poise.IMMUNE s)
-	g.poise._immune_until = -1
-	g.poise.value = g.poise.full
-	# (and calm: not mid-swing or guarding, as a foe stood waiting would be)
-	g.hitbox.deactivate()
-	g._set_state(g.S.IDLE)
-	g.velocity = Vector3.ZERO
-	g.health.current_health = g.health.max_health
+	# (the grunt stands still, fresh poise, not mid-swing: what its AI is up to mustn't decide the check)
+	TK.calm(g, Vector3.ZERO)
 	hp0 = g.health.current_health
 	p.health_component.current_health = p.health_component.max_health * 0.5
 	me0 = p.health_component.current_health
