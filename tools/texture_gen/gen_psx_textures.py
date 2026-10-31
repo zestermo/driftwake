@@ -1528,6 +1528,12 @@ def gen_skill_icons():
     _icon("skill_thorn_whip", thorn_whip)
     _icon("wolf_fruit", fruit_icon(hexc("8a8478") + (255,), hexc("b0aa9c") + (255,), hexc("3a3430") + (255,), hexc("4a9a30") + (255,)))
     _icon("vine_fruit", fruit_icon(hexc("4a9a36") + (255,), hexc("7ac85a") + (255,), hexc("1e5a18") + (255,), hexc("9ad860") + (255,)))
+    # (1.27) the new Driftfruits, each in its own colours (FruitFX.COLS)
+    for fid, base, light, line_c in (("iron", "9aa0ab", "d8dee8", "4a505a"), ("storm", "5a7ad0", "b8d6ff", "fff280"),
+                                     ("gust", "8ed0b8", "e0fff4", "3a7a6a"), ("bear", "7a5236", "a87e58", "3a2416"),
+                                     ("bubble", "9ce0f8", "ffffff", "e8a0d8"), ("clockwork", "d0a038", "f8d888", "6a4a18"),
+                                     ("echo", "6aaee0", "d0ecff", "1e4a7a")):
+        _icon(fid + "_fruit", fruit_icon(hexc(base) + (255,), hexc(light) + (255,), hexc(line_c) + (255,), hexc("4a9a30") + (255,)))
 
 
 def gen_technique_icons():
@@ -3108,6 +3114,9 @@ def gen_perk_icons():
 
 
 def main():
+    if "skill_icons" in sys.argv[1:]:
+        gen_skill_icons()
+        return
     if "perk_icons" in sys.argv[1:]:
         gen_perk_icons()
         return
