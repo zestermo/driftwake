@@ -551,6 +551,10 @@ func _recalc_stats() -> void:
 	if power and power.buff("howl"):
 		move_k *= 1.15
 		sprint_k *= 1.15
+	# (1.27) Clockwork's Haste
+	if power and power.buff("haste"):
+		move_k *= HASTE_K
+		sprint_k *= HASTE_K
 	# Reinforce: Edy through the body, a step quicker
 	if power and power.buff("reinforce"):
 		move_k *= 1.1
@@ -1036,7 +1040,7 @@ func _tick_body(delta: float) -> void:
 				at = shin.global_position - shin.global_basis.y.normalized() * randf_range(0.2, 0.45)
 			Net.fx("sparkle", [at + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, progression.will_tint().lightened(0.25)])
 	# buffs that change speed come and go
-	var buff_key := "%s|%s|%s" % [power.buff("howl"), power.buff("tekkai"), power.buff("reinforce")]
+	var buff_key := "%s|%s|%s|%s" % [power.buff("howl"), power.buff("tekkai"), power.buff("reinforce"), power.buff("haste")]
 	if buff_key != _buff_key:
 		_buff_key = buff_key
 		_recalc_stats()
@@ -1529,6 +1533,10 @@ const FALL_DAMAGE_PER_MS := 5.3
 
 func _on_landed(impact_vy: float) -> void:
 	ember_landing_ring(-impact_vy)
+	# (1.27) Iron Drop comes down in a slam
+	if has_meta("iron_drop"):
+		remove_meta("iron_drop")
+		power.iron_slam(PowerComponent.DROP_R, 10.0 * power.power_multiplier())
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
 	if sky_leap_fall:
@@ -3555,3 +3563,7 @@ func echo_dodge_reflex() -> bool:
 	Net.fx("ring", [global_position + Vector3.UP, Vector3.UP, ECHO_RING_R, Color(0.6, 0.8, 0.9), 0.4, 0.15])
 	power.blast(global_position + Vector3(0, 0.9, 0), ECHO_RING_R, hd)
 	return true
+
+
+## (1.27) Clockwork's Haste (Net._all_haste): this much quicker.
+const HASTE_K := 1.25

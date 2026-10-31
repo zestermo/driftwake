@@ -79,6 +79,13 @@ const ALL := {
 		"desc": "Follow your own echo: step out behind the nearest foe within 12 m."},
 	"shatter_note": {"name": "Shatter Note", "tree": "Echo", "cost": 28.0, "cooldown": 9.0, "needs": "", "fruit": "echo",
 		"desc": "One hard note down a 14 m line: everyone on it reels. Used often, your dodges ring out by themselves."},
+	# (1.27) fourth powers: Clockwork's Haste, Bubble's and Iron's movement
+	"haste": {"name": "Haste", "tree": "Clockwork", "cost": 30.0, "cooldown": 20.0, "needs": "", "fruit": "clockwork",
+		"desc": "Wind the crew's clocks: everyone within 12 m of you 25% quicker for 8 s."},
+	"bubble_bounce": {"name": "Bubble Bounce", "tree": "Bubble", "cost": 15.0, "cooldown": 5.0, "needs": "", "fruit": "bubble",
+		"desc": "Off a bubble underfoot: high into the air and forward."},
+	"iron_drop": {"name": "Iron Drop", "tree": "Iron", "cost": 22.0, "cooldown": 9.0, "needs": "", "fruit": "iron",
+		"desc": "Leap ahead and come down like an anchor: everyone within 3.5 m of where you land floored."},
 	# (1.27) third powers for Storm, Gust, Iron, Bubble and Bear
 	"thundercloud": {"name": "Thundercloud", "tree": "Storm", "cost": 30.0, "cooldown": 15.0, "needs": "", "fruit": "storm",
 		"desc": "A cloud 5 m ahead for 6 s, striking whoever stands under it every 1.2 s."},

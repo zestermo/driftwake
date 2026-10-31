@@ -1360,6 +1360,7 @@ static func _build_iron() -> void:
 	_big("i_guard", "Iron Guard", "tech", 0, 1, {}, "", "iron_guard")
 	_big("i_fist", "Iron Fist", "tech", 1, 1, {}, "", "iron_fist")
 	_big("i_slam", "Iron Slam", "tech", 2, 1, {}, "", "iron_slam")
+	_big("i_drop", "Iron Drop", "tech", 0, 1, {}, "", "iron_drop")
 	_step("i_plate", "Plating", "i_root", 5, {"defense": 2.0}, "+2 defense a step.")
 
 
@@ -1383,6 +1384,7 @@ static func _build_bubble() -> void:
 	_big("bb_shield", "Bubble Shield", "tech", 2, 1, {}, "", "bubble_shield")
 	_big("bb_slick", "Slick Floor", "tech", 0, 1, {}, "", "slick_floor")
 	_big("bb_trap", "Bubble Trap", "tech", 1, 1, {}, "", "bubble_trap")
+	_big("bb_bounce", "Bubble Bounce", "tech", 2, 1, {}, "", "bubble_bounce")
 	_step("bb_foam", "Foam", "bb_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 
@@ -1416,6 +1418,7 @@ static func _build_clockwork() -> void:
 	_big("cw_rewind", "Rewind", "tech", 0, 1, {}, "", "rewind")
 	_big("cw_stop", "Time Stop", "tech", 1, 1, {}, "", "time_stop")
 	_big("cw_field", "Slow Field", "tech", 2, 1, {}, "", "slow_field")
+	_big("cw_haste", "Haste", "tech", 2, 1, {}, "", "haste")
 	_step("cw_spring", "Mainspring", "cw_root", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
 
 

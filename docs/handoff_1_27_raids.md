@@ -306,9 +306,15 @@ strongholds, then build **ten Driftfruits** (plan doc "Zach's direction (2026-10
   is in Net.HOST_CALLS; a guest's puppets still animate at full speed, only their motion slows). Sonar: foes and
   loot bags within 30 m marked 6 s through walls (a no-depth-test pillar, the caster's screen only). (Each fruit still
   needs two more powers, two ultimates and an awakening.)
-- (latest) **Every fruit has three powers now.** New: Storm's Thundercloud (PowerComponent.clouds: a cloud 5 m ahead
+- **Every fruit has three powers now.** New: Storm's Thundercloud (PowerComponent.clouds: a cloud 5 m ahead
   for 6 s, a bolt at the foe under it every 1.2 s), Gust's Updraft (skill id `gust_updraft`: `updraft` is the
   greatsword technique's), Iron Slam (a 5 m ring, floored), Bubble Trap (the foe ahead held 3 s via grabbed(), then
   popped), Bear Hug (the foe ahead grabbed, thrown 10 m; not bosses). PowerComponent.front_foe(reach, half) picks the
   foe ahead. Test: t/progression/third_powers (casting right after a teleport hits nothing: the physics server sees the
   move a tick later, so the test places, waits 3 ticks, then casts). Next: the fourth and fifth powers, then ultimates.
+- (latest) **Fourth powers, part 1:** Clockwork's Haste (Net._all_haste: each captain within 12 m gets the "haste" buff,
+  Player.HASTE_K 1.25 in _recalc_stats, in the speed buff key), Bubble Bounce and Iron Drop (PowerComponent.leap(up,
+  fwd): velocity then the Fall state; Iron Drop sets meta "iron_drop" and Player._on_landed slams on landing). Bubble
+  and Iron now have their movement power. Test t/progression/fourth_powers. Left for fourth/fifth: Storm, Gust,
+  Bear, Wolf, Vine, Echo (Echo's "repeat your last attack" from the plan is still open), Clockwork and Bubble/Iron's
+  fifth; then two ultimates and an awakening each.

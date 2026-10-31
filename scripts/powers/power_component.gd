@@ -71,6 +71,15 @@ const FIELD_SECS := 5.0
 const FIELD_K := 0.4
 var fields: Array = []
 var _field_t := 0.0
+## Haste: the crew within HASTE_R quicker (Player: HASTE_K) for HASTE_SECS. Bubble Bounce and Iron Drop: leaps (up, forward
+## m/s); Iron Drop slams where it lands (DROP_R).
+const HASTE_R := 12.0
+const HASTE_SECS := 8.0
+const BOUNCE_UP := 15.0
+const BOUNCE_FWD := 7.0
+const DROP_UP := 11.0
+const DROP_FWD := 9.0
+const DROP_R := 3.5
 ## Thundercloud: a cloud CLOUD_AHEAD in front for CLOUD_SECS, striking a foe under it (CLOUD_R) every CLOUD_EVERY s.
 const CLOUD_AHEAD := 5.0
 const CLOUD_SECS := 6.0
@@ -411,6 +420,21 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	# (1.27) the Clockwork Fruit: Rewind (back to where you were REWIND_SECS ago) and Time Stop (the foe ahead frozen)
+	# (1.27) fourth powers: Clockwork's Haste (the crew near you quicker), Bubble Bounce and Iron Drop (their movement)
+	if id == "haste":
+		Net.everyone("_all_haste", [player.global_position, HASTE_R, HASTE_SECS])
+		cast.emit(slot)
+		return true
+	if id == "bubble_bounce":
+		leap(BOUNCE_UP, BOUNCE_FWD)
+		Net.fx("ring", [player.global_position + Vector3.UP * 0.3, Vector3.UP, 1.4, Color(0.75, 0.9, 1.0), 0.4, 0.1])
+		cast.emit(slot)
+		return true
+	if id == "iron_drop":
+		leap(DROP_UP, DROP_FWD)
+		player.set_meta("iron_drop", true)
+		cast.emit(slot)
+		return true
 	# (1.27) third powers: Storm's Thundercloud, Gust's Updraft, Iron Slam, Bubble Trap, Bear Hug
 	if id == "thundercloud":
 		clouds.append([player.global_position - player.player_model.global_basis.z * CLOUD_AHEAD, CLOUD_SECS, 0.0, 10.0 * power_multiplier()])
@@ -1409,3 +1433,13 @@ func bear_hug(e: Node3D, dmg: float) -> bool:
 			e.call("launched", throw)
 		Net.fx("dust", [e.global_position, 8, 0.6]))
 	return true
+
+
+## (1.27) the captain thrown up `up` and forward `fwd` (m/s), falling from there (Bubble Bounce, Iron Drop).
+func leap(up: float, fwd: float) -> void:
+	var f := -player.player_model.global_basis.z
+	f.y = 0.0
+	f = f.normalized()
+	player.velocity = f * fwd + Vector3.UP * up
+	player.air_speed = fwd
+	player.state_machine.force_state("Fall", {})
