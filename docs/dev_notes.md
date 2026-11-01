@@ -8855,3 +8855,25 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Per tick: one merchant at most per standing leg: its sailing and swell (5 wave samples), 3 humanoids (LOD), no
   test_move; asleep past 420 m. Cargo mesh: one surface set, visibility 260 m, no shadow.
 - Tests: `t/sea/stop_rolls`, `t/sea/merchant`. legtest (world suite) maps to sea_legs.gd: expect it at prepush.
+
+## 1.28 sea stops, piece 2: the floating restaurant (2026-11-01)
+- **FloatingRestaurant** (scripts/sea/floating_restaurant.gd, a SeaVessel at anchor: no heave or roll): a 42 x 21 m
+  barge (deck at local y 0, 2.2 m over the sea) with a painted fish's head for a bow (eyes, crest and pectoral fins),
+  a timber dining hall (15 x 22 m, lit windows, tiled gable roof, a lantern tower to ~16 m with a pennant), four
+  banner poles, a striped awning over the stern terrace, ladders on three sides. Landing stage on the starboard side:
+  a pontoon 0.35-0.7 m over the water (a crew ship comes alongside it, swimmers climb its ladder) and a ramp up to a
+  gap in the rail. One mesh outside (visibility 2.4 km), one inside (tables, counter, stoves; 120 m, no shadow).
+- **Inside:** the head chef (NPC, shop "restaurant_<seed>": stew, rum, three of the galley dishes, exotic
+  ingredients) behind the counter; Interactables: recipes (`_recipes`: the Captain's Feast 150 g, then the house
+  `tidewater_bouillabaisse` 400 g, a new taught meal in Food.MEALS), a room (`_rest`: GameManager.rest, which heals
+  and saves), the rumour board (`_rumours`: the stops Chain.sea_stop rolls on the next legs, up to three), the
+  cook-off table (`FloatingRestaurant.cookoff`: a Callable the cooking timing game sets; unset, the chef says it's
+  not on). Four seated diners and the cook-off judge (scenery) when she's not raided.
+- **Under attack** (ATTACK_CHANCE 0.4 from the seed, until world flag "stop<seed>_saved"): a GruntCamp "Raiders" on her
+  deck (3-5 grunts, warm start, no respawn) and an EnemyFleet "Raiders" with a sloop standing 80 m off. The host sets
+  the flag once the camp's down (Net.world_flag: every captain, saved); each screen then teaches its captain the
+  bouillabaisse free (`_favour`: banner, bell) and the chef's lines change.
+- Per tick: nothing moves; a 1 s poll for the raid; NPCs (up to 6) sleep past 160 m like villagers.
+- Tests: `t/sea/restaurant` (floor on the pontoon, ramp, deck and hall; the pontoon's height; a captain inside aboard
+  and standing; the chef's dishes; rest heals; recipes for gold; a raided one's grunts on her deck; beating them
+  sets the flag and teaches the recipe). Render: `seastopshot` (merchant and restaurant shots).

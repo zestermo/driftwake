@@ -44,4 +44,10 @@ static func build(leg: Node3D, kind: String, at: Vector2, level: int, seed_value
 			leg.add_child(m)
 			m.place(Vector3(at.x, 0.0, at.y), float(seed_value % 628) * 0.01)
 			return m
+		"restaurant":
+			var r := FloatingRestaurant.new().setup(Vector3(at.x, 0.0, at.y), level, seed_value)
+			r.name = "Stop"
+			leg.add_child(r)
+			r.place(Vector3(at.x, 0.0, at.y), float(seed_value % 628) * 0.01)
+			return r
 	return null

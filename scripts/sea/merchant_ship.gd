@@ -124,7 +124,13 @@ func _dress() -> void:
 			mb.add_cylinder(pole, Transform3D(Basis(), Vector3(x, y, z0 + dz)), 0.06, 0.06, 2.6, 5, 1.0)
 	for i in range(6):
 		var x := -2.4 + i * 0.8
-		mb.add_box(cloth_a if i % 2 == 0 else cloth_b, Transform3D(Basis(Vector3.BACK, 0.0), Vector3(x + 0.4, y + 2.65, z0)), Vector3(0.8, 0.05, 3.6), 1.0)
+		var m: Material = cloth_a if i % 2 == 0 else cloth_b
+		var a := Vector3(x, y + 2.75, z0 - 1.8)
+		var b := Vector3(x + 0.8, y + 2.75, z0 - 1.8)
+		var c := Vector3(x + 0.8, y + 2.55, z0 + 1.8)
+		var d := Vector3(x, y + 2.55, z0 + 1.8)
+		mb.add_quad(m, a, b, c, d, Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, Vector3.UP)
+		mb.add_quad(m, d, c, b, a, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0), Color(0.8, 0.8, 0.8), Vector3.DOWN)
 	mb.add_box(crate, Transform3D(Basis(), Vector3(0.0, y + 0.45, z0 + 1.0)), Vector3(2.4, 0.9, 0.6), 1.0)
 	var spots := [[2.6, -7.0, 0.3], [-2.7, -6.4, -0.2], [2.9, 1.8, 0.5], [-2.9, 2.6, 0.1], [2.2, -9.6, 0.0]]
 	for s in spots:
