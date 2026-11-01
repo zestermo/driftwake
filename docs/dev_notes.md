@@ -8673,3 +8673,33 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   before landing, a captain on a bomb's spot burned and one clear of them not, the host's count, a guest following it).
   Render: `tools/dev/volcanoshot.gd -- <out> 2 6` (genshot's shots plus the eruption from over its sector).
 - Per tick: one countdown a second on the host; the bomb queue only during an eruption.
+
+## 1.28: the volcanic isle, piece 5 (the magma salamander) (2026-10-31)
+- **The boss** (`scripts/enemies/beasts/volcanic_salamander.gd`, on the basilisk's quadruped rig and move tables; the
+  theme's only boss, three looks: ember, white-hot, blue-flame): crust plates with fire in the seams, flame gills, a
+  paddle tail. **On the beast pass** (`_pass_moves`), so its fight erupts in phases (at 2/3 and 1/3 health: the moment,
+  a ring pushing everyone back, new moves): phase 1 bite (parry), spit (lane), tail (behind); phase 2 **dive** and
+  **eruption** (6 magma spots round you); phase 3 **firestorm** (three magma lanes across the floor).
+- **The dive** (`_table_tick`): after its tell it sinks out of sight (model hidden, hurtbox off, body layer off so
+  nobody bumps it: `Net.event(self, "under")` on every screen), swims at its quarry for 2.4 s leaving a wake of embers
+  and dust (Net.fx), stops 3 m short, lays a red ring where the captain stands (0.9 s), then bursts up through it
+  (28, its one knockdown), back in sight. (Rising at the captain's feet: `ground_at` from 6 m up hit a dressing
+  collider and stood it on top of them.)
+- **Its ground** (`VolcanicTheme._dress_caldera`, ThemeDef.arena_dress): the caldera's floor (piece 1's site_at),
+  basalt spires and boulders with black glass round the edge on the way in's sides, the back left open to the lava
+  crescent, glowing cracks across the floor, charred bones. Its banner: "The Caldera".
+- **Tests:** t/island/volcanic_salamander (the theme's boss, its ground the caldera's floor, dressed, asleep, on the
+  pass; the dive hides it and makes it unhittable, then bursts up under the captain; the phase change); beast_moves'
+  KINDS has it. Render: beastsheet `salamander`.
+
+## 1.28: the volcanic isle, piece 6 (music and the ambience bed) (2026-10-31)
+- **Music** (`tools/texture_gen/gen_volcanic_music.py`, gen_psx_music.py's Song, instruments, helpers and build()
+  with its own table, so the shared generator's tracks don't move): `volcanic` (the wilds: 4/4 72 bpm D Phrygian,
+  taiko under a dark horn, low strings and choir, timpani rolls; 32 bars) and `volcanic_night` (the same form hushed:
+  ney and a dark harp over the drone, the horn far off, no drums); `volcanic_town` (the forge town: 4/4 100 bpm A minor,
+  a work song on the fiddle then the accordion, a brass chorus, the anvil (clave) on two and four, kick and bass) and
+  `volcanic_town_night` (guitar and flute, a soft frame drum). Each loops (seams under 0.01) at -18 LU. Music.TRACKS has
+  the four; the style's music / music_town name them (the night ones by Music's "_night" rule).
+- **The bed** `volcanic_loop` (gen_volcanic_audio.py `bed`: a low breathing rumble, vents hissing in and out, crackle and
+  pops; -20 LUFS, circular): Ambience.LOOPS / TOP_DB "volcanic" (-13), the style's ambience.
+- Not run here (world suites, the push gate's): musictest, r8test, ambiencetest, skytest map to music.gd / ambience.gd.

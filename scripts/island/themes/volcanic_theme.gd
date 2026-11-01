@@ -87,9 +87,9 @@ const STYLE := {
 			"hat_color": [Color(0.62, 0.18, 0.1), Color(0.24, 0.22, 0.22), Color(0.5, 0.44, 0.38), Color(0.78, 0.5, 0.16)]},
 		"set": {"eyepatch": false, "scarf": false},
 	},
-	"music": "desert_night",
-	"music_town": "desert_town_night",
-	"ambience": "desert",
+	"music": "volcanic",
+	"music_town": "volcanic_town",
+	"ambience": "volcanic",
 	"ground": {"grass": "volcanic_ash", "sand": "volcanic_sand", "wet_sand": "volcanic_sand", "dirt": "volcanic_cinder", "rock": "volcanic_basalt",
 		"seafloor": "seafloor", "cliff": "volcanic_basalt"},
 	"arena": "open",
@@ -167,14 +167,14 @@ func _init() -> void:
 	props = {}
 	life = preload("res://scripts/island/themes/volcanic_life.gd").TEXT
 	encounters = preload("res://scripts/island/themes/volcanic_encounters.gd").TEXT
-	bosses = ["basilisk", "serpent"]
+	# (one boss: every volcanic isle's caldera holds a magma salamander, each its own look and name)
+	bosses = ["salamander"]
 	minis = ["obsidian_golem", "ash_alpha"]
 	roamers = ["cinderhorn"]
+	arena_dress = _dress_caldera
 	beasts = {
-		"basilisk": {"script": "res://scripts/enemies/beasts/basilisk.gd", "names": ["The Cinder Basilisk", "Old Slagjaw", "The Ash-Eye"], "looks": 3,
-			"banner": ["The Caldera", "The ground is warm through your boots. Something big has worn a path round the lava."]},
-		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Ash Coil", "Old Brimstone", "The Cinder Serpent"], "looks": 3,
-			"banner": ["The Smoking Hollow", "Scales the size of shields in the ash. The smoke here coils as if something breathes it."]},
+		"salamander": {"script": "res://scripts/enemies/beasts/volcanic_salamander.gd", "names": ["The Magma Salamander", "Old Emberback", "The Caldera's Child", "Slagtongue"], "looks": 3,
+			"banner": ["The Caldera", "The floor is warm through your boots, and the lava at the back is moving. Something is swimming in it."]},
 		"obsidian_golem": {"script": "res://scripts/enemies/beasts/volcanic_golem.gd", "names": ["The Obsidian Golem", "Old Glassback", "The Slag Heap", "Kilnwight"], "site": "ruins"},
 		"ash_alpha": {"script": "res://scripts/enemies/beasts/volcanic_hound.gd", "names": ["Cinderfang", "Old Smoulder", "Ashmaw", "The Ember Hound"], "site": "lair"},
 		"cinderhorn": {"script": "res://scripts/enemies/beasts/volcanic_cinderhorn.gd", "names": ["The Cinderhorn", "Old Slagback", "The Ash Grazer"]},
@@ -256,6 +256,52 @@ func meshes() -> Dictionary:
 		"broadleaf": [VolcanicPlants.charred_log(1181), VolcanicPlants.ash_drift(1182), VolcanicPlants.pumice(1183), VolcanicPlants.ash_drift(1184)],
 		"shrub": [VolcanicPlants.whip(1191), VolcanicPlants.whip(1192)],
 	}
+
+
+## The salamander's ground in the caldera (ThemeDef.arena_dress): basalt spires and boulders round the floor's edge on
+## the way in's sides (the back left open to the lava crescent), black glass jutting among them, glowing cracks across
+## the floor, a few charred bones. Arena-local (the floor's middle at 0, its ground y0).
+static func _dress_caldera(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var rock := PSXMat.lit("volcanic_basalt", Color.WHITE, {"affine": 0.6})
+	var glass := VolcanicPlants.obsidian()
+	var fire := PSXMat.glow(Color(1.0, 0.42, 0.1), 2.0)
+	var bone := PSXMat.flat(Color(0.82, 0.78, 0.7))
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	var ea: float = (arena._ground()["entry"] as Vector2).angle()
+	for k in range(22):
+		var a := TAU * k / 22.0
+		var off := absf(wrapf(a - ea, -PI, PI))
+		if off < 0.45 or off > PI - 1.0:
+			continue
+		var d := r + rng.randf_range(2.0, 4.5)
+		var q := Vector2.from_angle(a) * d
+		var h := rng.randf_range(2.5, 6.5)
+		var base := Vector3(q.x, float(gy.call(q)) - 0.4, q.y)
+		var b := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.15, 0.15))
+		mb.add_blob(rock, Transform3D(b, base + Vector3(0, h * 0.45, 0)), Vector3(rng.randf_range(1.0, 1.8), h * 0.5, rng.randf_range(1.0, 1.6)), rng, 0.3, 3, 6, 0.6)
+		KitLandmarks.box_col_xf(body, Vector3(2.4, h, 2.4), Transform3D(Basis(), base + Vector3(0, h * 0.5, 0)))
+		if rng.randf() < 0.5:
+			var tilt := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(0.1, 0.5))
+			mb.add_cylinder(glass, Transform3D(tilt, base + Vector3(rng.randf_range(-0.8, 0.8), 0.3, rng.randf_range(-0.8, 0.8))), rng.randf_range(0.2, 0.4), 0.0, rng.randf_range(1.5, 3.0), 4, 1.0)
+	# glowing cracks across the floor
+	for k in range(7):
+		var a := rng.randf() * TAU
+		var p0 := Vector2.from_angle(a) * rng.randf_range(3.0, r - 4.0)
+		var dir := Vector2.from_angle(a + rng.randf_range(-1.2, 1.2))
+		var pts := PackedVector3Array()
+		var p := p0
+		for j in range(5):
+			pts.append(Vector3(p.x, float(gy.call(p)) + 0.04, p.y))
+			p += dir.rotated(rng.randf_range(-0.5, 0.5)) * rng.randf_range(0.8, 1.6)
+		mb.add_tube(fire, pts, 0.07, 0.03, 3, 1.0)
+	# a few charred bones of what came before
+	for k in range(4):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.4, r - 2.0)
+		var at := Vector3(q.x, float(gy.call(q)) + 0.1, q.y)
+		var yaw := rng.randf() * TAU
+		mb.add_tube(bone, PackedVector3Array([at, at + Vector3(cos(yaw), 0.4, sin(yaw)) * 1.2, at + Vector3(cos(yaw), 0.0, sin(yaw)) * 2.2]), 0.12, 0.06, 4, 1.0, Color(0.5, 0.45, 0.4))
 
 
 ## A volcano: a cone with a notch in its top and a puff of smoke.

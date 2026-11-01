@@ -35,6 +35,10 @@ const TRACKS := {
 	"desert_town_night": ["res://assets/audio/music_desert_town_night.ogg", 64],
 	"forest": ["res://assets/audio/music_forest.ogg", 56],
 	"forest_night": ["res://assets/audio/music_forest_night.ogg", 56],
+	"volcanic": ["res://assets/audio/music_volcanic.ogg", 32],
+	"volcanic_night": ["res://assets/audio/music_volcanic_night.ogg", 32],
+	"volcanic_town": ["res://assets/audio/music_volcanic_town.ogg", 32],
+	"volcanic_town_night": ["res://assets/audio/music_volcanic_town_night.ogg", 32],
 }
 const FIGHTS := ["combat", "boss"]
 const VICTORY := "res://assets/audio/music_victory.ogg"
