@@ -9,6 +9,8 @@ extends Node3D
 ##   pepper a red cloud: foes in it take the tier's damage a second and break off to cough every so often
 ##   star   a burst at once: damage in the radius, Mk III knocks down
 ##   caltrops  spikes strewn on the ground: foes on them slowed and cut, Mk III's draw blood
+##   lantern_bomb  a burst of light, then the lamp burning on in its own light (radius = the tier's "light"): foes in
+##          it are marked on the compass (GadgetMarks) and revealed; by night the host's sends beasts off (scare)
 ## Damage goes through the foes' hurtboxes (a query on the enemies' layer) as the thrower's (`by`).
 
 const TICK := 0.25
@@ -23,6 +25,15 @@ const TAR := Color(0.035, 0.03, 0.028, 0.96)
 
 ## Every zone alive on this machine (the smoke also in GadgetVeil.clouds).
 static var active: Array = []
+## The lantern bomb: its light (a real one, no shadow; at most MAX_LANTERNS burning on a machine, the oldest goes out
+## first), how often it looks for foes to reveal and flickers, the light's colour and strength.
+const MAX_LANTERNS := 3
+const LANTERN_TICK := 0.5
+const LANTERN := Color(1.0, 0.72, 0.38)
+const LANTERN_ENERGY := 2.4
+static var lanterns: Array = []
+var _light: OmniLight3D
+var _age := 0.0
 
 var kind := ""
 var tier := 0
@@ -40,7 +51,7 @@ static func spawn(tree: SceneTree, gid: String, t: int, at: Vector3, thrower: No
 	z.kind = gid
 	z.tier = t
 	z.by = thrower
-	z.radius = float(GadgetData.tier_val(gid, "radius", t))
+	z.radius = float(GadgetData.tier_val(gid, "radius" if GadgetData.GADGETS[gid].has("radius") else "light", t))
 	z.secs = float(GadgetData.tier_val(gid, "secs", t)) if GadgetData.GADGETS[gid].has("secs") else BURST_SECS
 	(tree.current_scene if tree.current_scene else tree.root).add_child(z)
 	z.global_position = at
@@ -69,12 +80,23 @@ func _ready() -> void:
 			_star_burst()
 		"caltrops":
 			_caltrops_strew()
+		"lantern_bomb":
+			_lantern_burst()
 	var life := Timer.new()
 	life.one_shot = true
 	life.wait_time = secs
 	life.timeout.connect(_end)
 	add_child(life)
 	life.start()
+	if kind == "lantern_bomb":
+		# (every screen: the marks and the flicker are its own; the host also keeps the night's beasts off)
+		var t := Timer.new()
+		t.wait_time = LANTERN_TICK
+		t.timeout.connect(_lantern_tick)
+		add_child(t)
+		t.start()
+		_lantern_tick.call_deferred()
+		return
 	if Net.is_host():
 		if kind in ["flash", "star"]:
 			_burst_hits.call_deferred()
@@ -89,6 +111,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	active.erase(self)
 	GadgetVeil.clouds.erase(self)
+	lanterns.erase(self)
 
 
 func _smoke_burst() -> void:
@@ -180,6 +203,68 @@ func _caltrops_strew() -> void:
 	FX.puff_ring(global_position, "dust_low", 6, 0.3, 0.7, 0.5, Color(0.8, 0.75, 0.65, 0.7), 4.0)
 
 
+## The lantern bomb lands: a burst of light (a flash, sparks), then the lamp lying lit in a pool of warm light.
+func _lantern_burst() -> void:
+	var c := global_position + Vector3(0, 0.5, 0)
+	FX.flash(c, 2.2 + 0.5 * tier, Color(1.0, 0.85, 0.55), "glint", 0.3)
+	FX.flash_light(c, Color(1.0, 0.85, 0.6), 5.0 + tier, radius * 1.6, 0.35)
+	FX.ring(global_position + Vector3(0, 0.1, 0), Vector3.UP, radius * 0.6, Color(1.0, 0.85, 0.5, 0.8), 0.35, 0.12)
+	FX.embers(c, Vector3.UP, 12 + 4 * tier, Color(1.0, 0.6, 0.2), 3.5)
+	FX.sfx("fire_burst", c, -6.0, 0.1, 1.2)
+	FX.sfx("clack", c, -6.0, 0.1, 1.5)
+	var lamp := MeshInstance3D.new()
+	lamp.mesh = GadgetModels.mesh("lantern_bomb", tier)
+	lamp.scale = Vector3.ONE * 2.2
+	lamp.position = Vector3(0, 0.1, 0)
+	lamp.rotation = Vector3(0.0, 0.0, 1.2)
+	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	lamp.visibility_range_end = 120.0
+	add_child(lamp)
+	_pool = lamp
+	_light = OmniLight3D.new()
+	_light.light_color = LANTERN
+	_light.light_energy = LANTERN_ENERGY
+	_light.omni_range = radius
+	_light.omni_attenuation = 1.2
+	_light.shadow_enabled = false
+	_light.distance_fade_enabled = true
+	_light.distance_fade_begin = 70.0
+	_light.distance_fade_length = 20.0
+	_light.position = Vector3(0, 0.9, 0)
+	add_child(_light)
+	_emit = FX.flip_emitter(self, "dust", 3 + tier, 0.18, 1.0, {"radius": 0.15, "spread": 15.0, "vel_min": 0.3, "vel_max": 0.7,
+		"gravity": Vector3(0, 0.5, 0), "fade": 0.5, "color": Color(1.0, 0.6, 0.25, 0.9), "range": 60.0})
+	_emit.position = Vector3(0, 0.3, 0)
+	lanterns.append(self)
+	while lanterns.size() > MAX_LANTERNS:
+		(lanterns.pop_front() as GadgetZone)._end()
+
+
+## The lantern's beat: its flame flickers, every foe its light falls on is marked on the compass (and revealed, if it
+## hides: `revealed(secs)`) for as long as it burns; the host's sends the night's beasts and wildlife off (`scare`).
+func _lantern_tick() -> void:
+	if _light == null or not is_inside_tree():
+		return
+	_light.light_energy = LANTERN_ENERGY * randf_range(0.85, 1.1)
+	var left := maxf(secs - _age, 1.0)
+	_age += LANTERN_TICK
+	var night: bool = float(Weather.night) > 0.5
+	var fresh: Array = []
+	for e in get_tree().get_nodes_in_group("enemies"):
+		var n := e as Node3D
+		if n == null or n.global_position.distance_to(global_position) > radius:
+			continue
+		if not _hit.has(n):
+			_hit[n] = true
+			fresh.append(n)
+			if n.has_method("revealed"):
+				n.call("revealed", left)
+		if night and Net.is_host() and n.has_method("scare"):
+			n.call("scare")
+	if not fresh.is_empty():
+		GadgetMarks.mark(fresh, left)
+
+
 ## The caltrops: `n` little four-pointed spikes scattered over radius `r` (one mesh).
 func _spikes(r: float, n: int) -> ArrayMesh:
 	var mb := MeshBuilder.new()
@@ -238,20 +323,25 @@ func _stun(n: Node, secs: float) -> void:
 
 ## Hit every foe whose hurtbox is in the zone with `hd` (as the thrower's).
 func _hurt(hd: HitData) -> void:
+	hurt_at(self, global_position, radius, hd, by if by and is_instance_valid(by) else self)
+
+
+## Hit every foe whose hurtbox is within `r` of `at` with `hd`, as `from`'s (`n` any node in the world).
+static func hurt_at(n: Node3D, at: Vector3, r: float, hd: HitData, from: Node) -> void:
 	var q := PhysicsShapeQueryParameters3D.new()
 	var sph := SphereShape3D.new()
-	sph.radius = radius
+	sph.radius = r
 	q.shape = sph
-	q.transform = Transform3D(Basis.IDENTITY, global_position + Vector3(0, 0.6, 0))
+	q.transform = Transform3D(Basis.IDENTITY, at + Vector3(0, 0.6, 0))
 	q.collision_mask = FOE_MASK
 	q.collide_with_areas = true
 	q.collide_with_bodies = false
 	var struck: Array = []
-	for res in get_world_3d().direct_space_state.intersect_shape(q, 16):
+	for res in n.get_world_3d().direct_space_state.intersect_shape(q, 16):
 		var area := res["collider"] as Hurtbox
 		if area and area.owner and not (area.owner in struck) and not area.owner.is_in_group("players"):
 			struck.append(area.owner)
-			area.take_hit(hd, by if by and is_instance_valid(by) else self)
+			area.take_hit(hd, from)
 
 
 ## An uneven round blot lying flat (the tar pool).
@@ -318,10 +408,19 @@ func _tick() -> void:
 
 
 func _end() -> void:
+	if not active.has(self):
+		return
 	active.erase(self)
 	GadgetVeil.clouds.erase(self)
+	lanterns.erase(self)
+	for c in get_children():
+		if c is Timer:
+			(c as Timer).stop()
 	if _emit:
 		_emit.emitting = false
-	if _pool:
+	if _light:
+		_light.create_tween().tween_property(_light, "light_energy", 0.0, 1.2)
+		FX.puff(global_position + Vector3(0, 0.4, 0), "smoke", 2, 0.4, 1.0, Color(0.4, 0.38, 0.36, 0.7), 0.3)
+	elif _pool:
 		_pool.create_tween().tween_property(_pool, "scale", Vector3(0.01, 1, 0.01), 1.0)
 	get_tree().create_timer(2.8).timeout.connect(queue_free)

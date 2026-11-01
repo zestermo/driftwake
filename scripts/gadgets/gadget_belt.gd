@@ -26,6 +26,16 @@ var slots: Array = ["", "", ""]
 var sel := 0
 ## gadget id -> game time (s) it's ready again
 var ready_at: Dictionary = {}
+## The diving helmet worn: until (game time) and its breath factor (SwimState).
+var helmet_until := -1.0
+var helmet_k := 1.0
+## The auto-reel on the rod: bites it still reels in, and how much faster (FishState).
+var reel_left := 0
+var reel_k := 0.0
+
+
+func breath_k() -> float:
+	return helmet_k if PlayerState.now_s() < helmet_until else 1.0
 
 
 func gadget() -> String:
@@ -96,7 +106,9 @@ func fire() -> bool:
 	if gid == "":
 		player.call("_toast", "No gadget on the belt: build one at a workbench")
 		return false
-	if not player.is_free() or player.body_model.current_action() == "gd_lob":
+	# (the diving helmet goes on in the water too)
+	var swim_ok: bool = gid == "diving_helmet" and player.current_state_name() == "Swim"
+	if not (player.is_free() or swim_ok) or player.body_model.current_action() in ["gd_lob", "gd_spy"]:
 		return false
 	if cooldown_left(gid) > 0.0:
 		return false
@@ -113,8 +125,10 @@ func fire() -> bool:
 	_changed()
 	if GadgetData.GADGETS[gid].get("throw", false):
 		_lob(gid, tier_of(gid))
-	elif GadgetData.GADGETS[gid]["kind"] == "traversal":
+	elif GadgetData.GADGETS[gid]["kind"] == "traversal" or gid == "lockpick":
 		player.state_machine.force_state("Gadget", {"id": gid, "tier": tier_of(gid), "at": why[1]})
+	else:
+		GadgetUtility.use(player, gid, tier_of(gid))
 	return true
 
 
@@ -132,7 +146,8 @@ func _ready() -> void:
 
 
 func _lob(gid: String, t: int) -> void:
-	var to := aim_point(float(GadgetData.tier_val(gid, "range", t)))
+	# (the decoy stands short of the foes, between them and you, rather than on one)
+	var to := aim_point(float(GadgetData.tier_val(gid, "range", t)), gid != "decoy")
 	var flat: Vector3 = to - player.global_position
 	flat.y = 0.0
 	if flat.length() > 0.1:
@@ -151,7 +166,7 @@ func _lob(gid: String, t: int) -> void:
 
 ## Where a throw of reach `r` lands: on the foe nearest the camera's line within reach, else straight ahead
 ## (the camera's way) at 70% of the reach, dropped to the ground.
-func aim_point(r: float) -> Vector3:
+func aim_point(r: float, foes := true) -> Vector3:
 	var at: Vector3 = player.global_position
 	var fwd: Vector3 = -player.player_model.global_basis.z
 	var cam := player.get_viewport().get_camera_3d()
@@ -161,7 +176,7 @@ func aim_point(r: float) -> Vector3:
 	fwd = fwd.normalized()
 	var best: Node3D = null
 	var best_dot := AIM_DOT
-	for e in player.get_tree().get_nodes_in_group("enemies"):
+	for e in player.get_tree().get_nodes_in_group("enemies") if foes else []:
 		var n := e as Node3D
 		if n == null or not n.visible:
 			continue

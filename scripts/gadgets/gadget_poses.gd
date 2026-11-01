@@ -31,6 +31,11 @@ static func pose(h, n: String, u: float) -> Array:
 				"torso": Vector3(-0.25, 0, 0), "head": Vector3(-0.35, 0, 0), "hips": Vector3(-0.2, 0, 0),
 				"leg_l": Vector3(-0.35, 0, 0.0), "shin_l": Vector3(-0.3, 0, 0), "leg_r": Vector3(-0.3, 0, 0.0), "shin_r": Vector3(-0.4, 0, 0)}
 			return [h._keys(minf(u * T / 0.2, 1.0), [[0.0, {}], [1.0, glide, "out"]]), "full", lift]
+		"gd_spy":
+			# the glass snapped up to the eye in the off hand, the chin dipped to it, a beat held, then down
+			var look := {"arm_l": Vector3(2.0, 0.55, 0.25), "fore_l": Vector3(2.1, 0, 0), "hand_l": Vector3(-0.3, 0, 0),
+				"torso": Vector3(-0.06, 0.12, 0), "head": Vector3(-0.08, -0.12, 0.08), "arm_r": Vector3(0.25, 0, 0.3), "fore_r": Vector3(0.9, 0, 0)}
+			return [h._keys(u, [[0.0, {}], [0.2, look, "out"], [0.8, look], [1.0, {}]]), "upper", lift]
 		"gd_hang":
 			# one hand on the spike over the head, the other reaching, feet against the wall
 			var hang := {"arm_r": Vector3(2.9, 0.0, 0.1), "fore_r": Vector3(0.3, 0, 0), "arm_l": Vector3(1.6, 0.3, -0.35), "fore_l": Vector3(0.9, 0, 0),

@@ -8,6 +8,7 @@ const IRON := Color(0.3, 0.3, 0.33)
 const LACQUER := Color(0.72, 0.14, 0.1)
 const CLAY := Color(0.62, 0.5, 0.4)
 const LEATHER := Color(0.36, 0.22, 0.13)
+const STRAW := Color(0.86, 0.72, 0.38)
 
 static var _meshes: Dictionary = {}
 static var _icons: Dictionary = {}
@@ -130,7 +131,151 @@ static func _build(gid: String, tier: int) -> ArrayMesh:
 				var a := i * TAU / 8.0
 				ring.append(Vector3(cos(a) * 0.022, 0.09 + sin(a) * 0.022, 0))
 			mb.add_tube(PSXMat.lit("metal", IRON), ring, 0.004, 0.004, 4)
+		"decoy":
+			# the straw captain folded up: a bound bundle of straw with its coat round it
+			var band: Color = [Color(0.45, 0.3, 0.18), BRASS, LACQUER][tier]
+			mb.add_cylinder(PSXMat.flat(STRAW), Transform3D(Basis(Vector3.FORWARD, 0.3), Vector3.ZERO), 0.04, 0.045, 0.13, 6, 4.0)
+			mb.add_cylinder(PSXMat.lit("canvas", Color(0.55, 0.2, 0.15)), Transform3D(Basis(Vector3.FORWARD, 0.3), Vector3(0.0, -0.01, 0)), 0.047, 0.05, 0.06, 6, 4.0, Color.WHITE, false, false)
+			for y in [-0.045, 0.045]:
+				mb.add_cylinder(PSXMat.lit("metal", band), Transform3D(Basis(Vector3.FORWARD, 0.3), Vector3(-y * 0.3, y, 0)), 0.048, 0.048, 0.01, 6, 4.0, Color.WHITE, false, false)
+		"spyglass":
+			var body: Color = [Color(0.45, 0.3, 0.18), BRASS, LACQUER][tier]
+			var rot := Basis(Vector3.RIGHT, PI * 0.5)
+			mb.add_cylinder(PSXMat.lit("metal", body), Transform3D(rot, Vector3(0, 0, -0.05)), 0.022, 0.022, 0.1, 8, 4.0)
+			mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(rot, Vector3(0, 0, 0.03)), 0.017, 0.017, 0.08, 8, 4.0)
+			mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(rot, Vector3(0, 0, 0.09)), 0.013, 0.013, 0.05, 8, 4.0, Color.WHITE, true, true)
+			mb.add_cylinder(PSXMat.glow(Color(0.7, 0.9, 1.0), 0.6), Transform3D(rot, Vector3(0, 0, -0.101)), 0.019, 0.019, 0.004, 8, 4.0, Color.WHITE, true, true)
+			if tier == 2:
+				mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(rot, Vector3(0, 0, -0.085)), 0.025, 0.025, 0.014, 8, 4.0, Color.WHITE, false, false)
+		"diving_helmet":
+			return helmet(tier, 0.35)
+		"auto_reel":
+			var drum: Color = [Color(0.5, 0.45, 0.4), BRASS, LACQUER][tier]
+			mb.add_cylinder(PSXMat.lit("metal", drum), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3.ZERO), 0.045, 0.045, 0.04, 10, 4.0)
+			mb.add_cylinder(PSXMat.lit("rope"), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3.ZERO), 0.03, 0.03, 0.042, 8, 4.0, Color.WHITE, false, false)
+			mb.add_box(PSXMat.lit("metal", IRON), Transform3D(Basis(), Vector3(0.03, 0.03, 0.0)), Vector3(0.01, 0.06, 0.012), 4.0)
+			mb.add_cylinder(PSXMat.lit("planks", Color(0.5, 0.35, 0.2)), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.04, 0.06, 0.0)), 0.009, 0.009, 0.03, 5, 4.0)
+		"lockpick":
+			var roll: Color = [LEATHER, Color(0.3, 0.2, 0.12), LACQUER][tier]
+			mb.add_cylinder(PSXMat.flat(roll), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3.ZERO), 0.025, 0.025, 0.1, 6, 4.0)
+			for k in range(3):
+				var x := -0.02 + k * 0.02
+				mb.add_tube(PSXMat.lit("metal", BRASS if tier >= 1 else Color(0.7, 0.7, 0.72)), PackedVector3Array([Vector3(x, 0.02, 0), Vector3(x, 0.08, 0), Vector3(x + 0.01, 0.09, 0)]), 0.003, 0.003, 3)
+		"lantern_bomb":
+			var cage: Color = [Color(0.35, 0.3, 0.26), BRASS, LACQUER][tier]
+			mb.add_blob(PSXMat.glow(Color(1.0, 0.75, 0.35), 1.2), Transform3D.IDENTITY, Vector3(0.035, 0.045, 0.035), rng, 0.0, 4, 6, 4.0)
+			mb.add_cylinder(PSXMat.lit("metal", cage), Transform3D(Basis(), Vector3(0, 0.05, 0)), 0.03, 0.04, 0.02, 6, 4.0)
+			mb.add_cylinder(PSXMat.lit("metal", cage), Transform3D(Basis(), Vector3(0, -0.05, 0)), 0.04, 0.035, 0.015, 6, 4.0)
+			for k in range(4):
+				var a := k * TAU / 4.0
+				mb.add_tube(PSXMat.lit("metal", cage), PackedVector3Array([Vector3(cos(a) * 0.04, -0.045, sin(a) * 0.04), Vector3(cos(a) * 0.045, 0.0, sin(a) * 0.045), Vector3(cos(a) * 0.037, 0.045, sin(a) * 0.037)]), 0.004, 0.004, 3)
+			var ring := PackedVector3Array()
+			for i in range(7):
+				var a := i * PI / 6.0
+				ring.append(Vector3(cos(a) * 0.02, 0.065 + sin(a) * 0.02, 0))
+			mb.add_tube(PSXMat.lit("metal", cage), ring, 0.003, 0.003, 3)
+		"burst_launcher":
+			var tube: Color = [IRON, BRASS, LACQUER][tier]
+			for k in range(3):
+				var x := (k - 1) * 0.04
+				mb.add_cylinder(PSXMat.lit("metal", tube), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(x, 0, 0)), 0.018, 0.018, 0.12, 6, 4.0, Color.WHITE, true, true)
+				mb.add_cone(PSXMat.flat(Color(0.82, 0.76, 0.6)), Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(x, 0, -0.06)), 0.018, 0.03, 6)
+			mb.add_box(PSXMat.lit("planks", Color(0.5, 0.35, 0.2)), Transform3D(Basis(), Vector3(0, -0.025, 0.0)), Vector3(0.14, 0.015, 0.1), 4.0)
+		"paddle_boost":
+			var hub: Color = [Color(0.45, 0.3, 0.18), BRASS, LACQUER][tier]
+			mb.add_cylinder(PSXMat.lit("metal", hub), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3.ZERO), 0.02, 0.02, 0.05, 8, 4.0)
+			for k in range(6):
+				var a := k * TAU / 6.0
+				mb.add_box(PSXMat.lit("planks", Color(0.55, 0.4, 0.25)), Transform3D(Basis(Vector3.RIGHT, a), Vector3(0, cos(a), sin(a)) * 0.05), Vector3(0.045, 0.06, 0.008), 4.0)
+		"harpoon":
+			var barrel: Color = [IRON, BRASS, LACQUER][tier]
+			mb.add_cylinder(PSXMat.lit("metal", barrel), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.02, 0)), 0.02, 0.026, 0.14, 8, 4.0, Color.WHITE, true, true)
+			mb.add_cone(PSXMat.lit("metal", IRON), Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.02, -0.08)), 0.02, 0.05, 4)
+			mb.add_box(PSXMat.lit("planks", Color(0.5, 0.35, 0.2)), Transform3D(Basis(), Vector3(0, -0.02, 0.02)), Vector3(0.03, 0.04, 0.05), 4.0)
+		"smoke_screen":
+			var pot: Color = [CLAY, Color(0.5, 0.5, 0.52), Color(0.16, 0.15, 0.17)][tier]
+			for k in range(3):
+				var x := (k - 1) * 0.05
+				mb.add_cylinder(PSXMat.flat(pot), Transform3D(Basis(), Vector3(x, 0, 0)), 0.02, 0.026, 0.05, 6, 4.0, Color.WHITE, true, true)
+				mb.add_cylinder(PSXMat.lit("metal", BRASS if tier >= 1 else IRON), Transform3D(Basis(), Vector3(x, 0.028, 0)), 0.021, 0.021, 0.008, 6, 4.0, Color.WHITE, false, false)
 	return mb.commit()
+
+
+## The decoy as it stands: a straw captain on a post, its coat in `coat` (the thrower's colours), a hat; Mk II's spring
+## at the foot banded in brass, Mk III's powder keg strapped to its back.
+static func decoy_figure(tier: int, coat: Color) -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77 + tier
+	var straw := PSXMat.flat(STRAW)
+	var wood := PSXMat.lit("planks", Color(0.5, 0.36, 0.22))
+	var sack := PSXMat.lit("canvas", Color(0.78, 0.68, 0.5))
+	var cloth := PSXMat.lit("canvas", coat)
+	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, 0.55, 0)), 0.035, 0.04, 1.1, 5, 4.0)
+	mb.add_cylinder(wood, Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0, 1.38, 0)), 0.03, 0.03, 1.1, 5, 4.0)
+	# the straw body and the coat over it
+	mb.add_cylinder(straw, Transform3D(Basis(), Vector3(0, 1.15, 0)), 0.17, 0.22, 0.65, 7, 4.0)
+	mb.add_cylinder(cloth, Transform3D(Basis(), Vector3(0, 1.2, 0)), 0.2, 0.25, 0.55, 7, 4.0, Color.WHITE, false, false)
+	mb.add_cylinder(cloth, Transform3D(Basis(), Vector3(0, 0.82, 0)), 0.25, 0.3, 0.2, 7, 4.0, Color.WHITE, false, false)
+	for s in [-1.0, 1.0]:
+		mb.add_cylinder(cloth, Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(s * 0.38, 1.38, 0)), 0.07, 0.07, 0.36, 6, 4.0, Color.WHITE, true, true)
+		for k in range(3):
+			var d := Vector3(s, rng.randf_range(-0.4, 0.3), rng.randf_range(-0.4, 0.4)).normalized()
+			mb.add_cone(straw, Transform3D(Basis(Vector3.UP.cross(d).normalized(), Vector3.UP.angle_to(d)), Vector3(s * 0.56, 1.38, 0)), 0.03, 0.14, 3)
+	for k in range(5):
+		var a := k * TAU / 5.0 + 0.3
+		var d := Vector3(cos(a) * 0.5, -1.0, sin(a) * 0.5).normalized()
+		mb.add_cone(straw, Transform3D(Basis(Vector3.UP.cross(d).normalized(), Vector3.UP.angle_to(d)), Vector3(cos(a) * 0.18, 0.84, sin(a) * 0.18)), 0.04, 0.16, 3)
+	# the sack head: a stitched face, a tricorn
+	mb.add_blob(sack, Transform3D(Basis(), Vector3(0, 1.66, 0)), Vector3(0.15, 0.17, 0.15), rng, 0.08, 5, 7, 4.0)
+	for x in [-0.05, 0.05]:
+		mb.add_box(PSXMat.flat(Color(0.12, 0.08, 0.06)), Transform3D(Basis(Vector3.FORWARD, 0.785), Vector3(x, 1.69, -0.145)), Vector3(0.04, 0.012, 0.01), 4.0)
+		mb.add_box(PSXMat.flat(Color(0.12, 0.08, 0.06)), Transform3D(Basis(Vector3.FORWARD, -0.785), Vector3(x, 1.69, -0.145)), Vector3(0.04, 0.012, 0.01), 4.0)
+	mb.add_box(PSXMat.flat(Color(0.12, 0.08, 0.06)), Transform3D(Basis(), Vector3(0, 1.6, -0.145)), Vector3(0.1, 0.012, 0.01), 4.0)
+	var hat := PSXMat.lit("canvas", Color(0.14, 0.12, 0.12))
+	mb.add_cylinder(hat, Transform3D(Basis(), Vector3(0, 1.8, 0)), 0.3, 0.3, 0.03, 3, 4.0)
+	mb.add_cylinder(hat, Transform3D(Basis(), Vector3(0, 1.88, 0)), 0.12, 0.15, 0.14, 6, 4.0)
+	if tier >= 1:
+		var pts := PackedVector3Array()
+		for i in range(19):
+			var a := i * TAU / 6.0
+			pts.append(Vector3(cos(a) * 0.09, 0.05 + i * 0.012, sin(a) * 0.09))
+		mb.add_tube(PSXMat.lit("metal", Color(0.7, 0.7, 0.72)), pts, 0.012, 0.012, 3)
+		mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(Basis(), Vector3(0, 1.0, 0)), 0.235, 0.235, 0.04, 7, 4.0, Color.WHITE, false, false)
+	if tier == 2:
+		mb.add_cylinder(PSXMat.lit("planks", Color(0.4, 0.26, 0.16)), Transform3D(Basis(), Vector3(0, 1.15, 0.26)), 0.1, 0.1, 0.24, 7, 4.0)
+		for y in [1.06, 1.24]:
+			mb.add_cylinder(PSXMat.lit("metal", LACQUER), Transform3D(Basis(), Vector3(0, y, 0.26)), 0.104, 0.104, 0.025, 7, 4.0, Color.WHITE, false, false)
+		mb.add_tube(PSXMat.flat(Color(0.82, 0.76, 0.6)), MeshBuilder.curve_points(Vector3(0, 1.27, 0.26), Vector3(0.04, 1.36, 0.3), Vector3(0.1, 1.38, 0.34), 4), 0.008, 0.006, 4)
+	mb.add_box(PSXMat.lit("planks", Color(0.45, 0.32, 0.2)), Transform3D(Basis(), Vector3(0, 0.03, 0)), Vector3(0.4, 0.06, 0.4), 4.0)
+	return mb.commit()
+
+
+## The diving helmet as worn (`s` its scale: 1 on a head, smaller for the icon): a copper dome, a round glass port in
+## front, a collar; Mk II brass-banded, Mk III with red-lacquered bolts and a second port.
+static func helmet(tier: int, s := 1.0) -> ArrayMesh:
+	var key := "helmet:%d:%.2f" % [tier, s]
+	if _meshes.has(key):
+		return _meshes[key]
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	var copper := PSXMat.lit("metal", Color(0.72, 0.42, 0.24))
+	var band := PSXMat.lit("metal", [Color(0.5, 0.3, 0.18), BRASS, LACQUER][tier])
+	mb.add_blob(copper, Transform3D(Basis(), Vector3(0, 0.0, 0)), Vector3(0.2, 0.21, 0.2) * s, rng, 0.0, 6, 8, 4.0)
+	mb.add_cylinder(band, Transform3D(Basis(), Vector3(0, -0.17 * s, 0)), 0.2 * s, 0.22 * s, 0.07 * s, 10, 4.0, Color.WHITE, false, true)
+	var port := Basis(Vector3.RIGHT, PI * 0.5)
+	mb.add_cylinder(band, Transform3D(port, Vector3(0, 0.0, -0.19 * s)), 0.09 * s, 0.09 * s, 0.03 * s, 10, 4.0, Color.WHITE, false, false)
+	mb.add_cylinder(PSXMat.glow(Color(0.55, 0.8, 0.9), 0.35), Transform3D(port, Vector3(0, 0.0, -0.2 * s)), 0.075 * s, 0.075 * s, 0.01 * s, 10, 4.0, Color.WHITE, true, true)
+	if tier >= 1:
+		mb.add_cylinder(band, Transform3D(Basis(), Vector3(0, 0.1 * s, 0)), 0.165 * s, 0.165 * s, 0.025 * s, 10, 4.0, Color.WHITE, false, false)
+	if tier == 2:
+		for x in [-1.0, 1.0]:
+			var b := Basis(Vector3.FORWARD, PI * 0.5)
+			mb.add_cylinder(band, Transform3D(b, Vector3(x * 0.19 * s, 0.0, 0)), 0.05 * s, 0.05 * s, 0.03 * s, 8, 4.0, Color.WHITE, false, false)
+			mb.add_cylinder(PSXMat.glow(Color(0.55, 0.8, 0.9), 0.35), Transform3D(b, Vector3(x * 0.2 * s, 0.0, 0)), 0.04 * s, 0.04 * s, 0.01 * s, 8, 4.0, Color.WHITE, true, true)
+	mb.add_tube(PSXMat.lit("rope", Color(0.3, 0.28, 0.25)), MeshBuilder.curve_points(Vector3(0, 0.05, 0.2) * s, Vector3(0, 0.0, 0.32) * s, Vector3(0, -0.25, 0.3) * s, 5), 0.02 * s, 0.02 * s, 4)
+	_meshes[key] = mb.commit()
+	return _meshes[key]
 
 
 ## The pocket glider's wing as worn open over the captain (in their torso's space): canvas over two spars, a bar to

@@ -222,7 +222,7 @@ func sleep_ok() -> bool:
 func _apply_raided(on: bool) -> void:
 	raided = on
 	if _chest:
-		_chest.interactable.enabled = on
+		_chest.locked = "" if on else "the garrison holds the key"
 		_chest.interactable.prompt_text = "Open the armoury" if on else "Locked (the garrison holds the key)"
 	if _cell_bars:
 		_cell_bars.visible = not on

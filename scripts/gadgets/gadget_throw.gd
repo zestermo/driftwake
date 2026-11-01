@@ -50,8 +50,12 @@ func _physics_process(delta: float) -> void:
 	var u := minf(_t / _secs, 1.0)
 	global_position = _from.lerp(_to, u) + Vector3.UP * (4.0 * _arc * u * (1.0 - u))
 	_mesh.rotation += _spin * delta
-	if gid in ["smoke", "flash", "star", "pepper"] and Engine.get_physics_frames() % 3 == 0:
+	if gid in ["smoke", "flash", "star", "pepper", "lantern_bomb"] and Engine.get_physics_frames() % 3 == 0:
 		FX.puff(global_position, "dust", 1, 0.25, 0.4, Color(1.0, 0.8, 0.5, 0.8), 0.2)
 	if u >= 1.0:
-		GadgetZone.spawn(get_tree(), gid, tier, _to, by if by and is_instance_valid(by) else null)
+		var who: Node = by if by and is_instance_valid(by) else null
+		if gid == "decoy":
+			GadgetDecoy.landed(get_tree(), tier, _to, who)
+		else:
+			GadgetZone.spawn(get_tree(), gid, tier, _to, who)
 		queue_free()

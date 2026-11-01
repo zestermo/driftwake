@@ -8580,6 +8580,33 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Caltrops:** one mesh of 14-26 little spikes strewn in the radius; slows (grunts) and cuts each tick; Mk III bleeds.
 - **Not yet:** the decoy (needs foes to take it as a target: grunt/creature targeting), and the utility gadgets.
 - **Tests:** t/gadgets/tricks (five grunts, one zone each). Renders: `abilityshot gadget:star:2`, `gadget:pepper:1`.
+
+## 2026-11-01: gadgets, piece 4b - the decoy and the utility gadgets (1.28)
+- **Decoy** (`scripts/gadgets/gadget_decoy.gd`, GadgetDecoy extends the Afterimage's Decoy with `sturdy`): thrown short
+  (aim_point with no foe auto-aim, 70% of range ahead); a straw captain in the thrower's coat colour
+  (GadgetModels.decoy_figure: Mk II spring + brass band, Mk III powder keg) springs up. Host: every 0.4 s
+  `PirateGrunt.lure(d)` for foes within the tier's lure: a sturdy decoy draws any non-rifle role, rouses idle ones
+  (alert), and a blow on it calls `struck` (straw puff, wobble) instead of shattering it. Lured grunts skip pistols and
+  the brute grab. Shakes its last 1.2 s, then falls apart; Mk III bursts (GadgetZone.hurt_at, now static, r 3).
+- **Spyglass** (GadgetUtility, pose `gd_spy`): marks foes and unopened chests in a 60-degree view cone within reach with
+  a clear ray (GadgetMarks); the crew get the keys through Player.net_event "gadget_use" ["marks"]. Drawn on the
+  CompassStrip (`_draw_gadget_marks`: foes red pips, caches gold diamonds). Expiry by now_s.
+- **Diving helmet:** usable while swimming too; a copper helmet on the head (GadgetModels.helmet, crew see it via
+  "gadget_use"); SwimState spends breath / `gadgets.breath_k()` while it lasts.
+- **Auto-reel:** sets `gadgets.reel_left/reel_k`; FishState strikes a bite itself and reels at REEL_LEN x (1 - k).
+- **Lockpick:** `LootBag.locked` (why, "" open): a locked bag refuses opening with a toast. GadgetState "lockpick" needs one
+  within 2.6 m (refused, nothing spent otherwise), holds `dt_tinker`, clicks, after pick_secs unlocks and opens it;
+  moving gives up with the charge back. The Marine outpost's armoury now uses `locked` (was interactable.enabled off),
+  so a lockpick opens it before the raid (t/island/outpost updated).
+- **Lantern bomb** (GadgetZone kind, radius = "light"): a burst, the lamp lying lit, one OmniLight (no shadow,
+  distance-faded at 70 m), at most 3 per machine. Every 0.5 s on every screen: flicker, mark foes in its light
+  (and `revealed(secs)` on any that has it, for future hidden foes); by night (Weather.night > 0.5) the host calls
+  `scare()` on foes in it that have one (boars today).
+- **Open:** no other locked chests in the world yet (only the outpost armoury); the lantern only scares what has
+  `scare()`.
+- **Per frame/tick:** the decoy's _process (wobble) while it stands; its 0.4 s host lure timer; each lantern's 0.5 s
+  timer over "enemies"; the compass draws the live marks (only when any exist).
+- **Tests:** t/gadgets decoy, spyglass, helmet, autoreel, lockpick, lantern_bomb. Render: `abilityshot gadget:decoy:2`.
 ## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
 - **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
   apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by

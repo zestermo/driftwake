@@ -3166,6 +3166,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"gadget":
 			GadgetBelt.remote(self, args)
+		"gadget_use":
+			GadgetUtility.remote(self, args)
 		"power":
 			var a: Array = args[1]
 			match str(args[0]):

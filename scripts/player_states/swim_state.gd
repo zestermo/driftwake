@@ -546,7 +546,8 @@ func _update_breath(delta: float, fast: bool) -> void:
 		if breath > breath_max() * BREATH_WARN:
 			_breath_warned = false
 		return
-	breath = maxf(breath - delta * (FAST_BREATH if fast else 1.0), 0.0)
+	# (1.28) the diving helmet makes it last its tier's times longer
+	breath = maxf(breath - delta * (FAST_BREATH if fast else 1.0) / player.gadgets.breath_k(), 0.0)
 	_bubble_t -= delta
 	if _bubble_t <= 0.0:
 		_bubble_t = 0.25 if gasping else randf_range(0.9, 1.6)
