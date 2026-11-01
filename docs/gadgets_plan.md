@@ -111,7 +111,22 @@ The rest come from the forge town's master tinkerer (`Gadgets.teach`), books and
 - `Gadgets.teach(player, blueprint_id) -> bool`, `Gadgets.blueprint_ids()` ("bp_<gadget>"), `Gadgets.part_ids()`.
   A blueprint id is also an item id (a scroll in the bag; a workbench studies it).
 - `Workbench.place(parent, at, yaw, opts)`; opts "style": "forge" | "ship" | "camp" (default: a plain bench).
-- **Harpoon Cannon (for the leviathans):** see the section added with piece 5.
+- **Harpoon Cannon (for the leviathans):** see "Harpoon contract" below.
+
+## Harpoon contract (2026-11-01, `scripts/ship/harpoon_cannon.gd`)
+- `HarpoonCannon.harpoon(ship: Node3D, target: Node3D, tier := 0, by: Node = null) -> bool`: tethers `target` to `ship`
+  (false when there's no target or it's dead). Call it on every machine (ShipGadgets does, from the helmsman's
+  "gadget_use" event): each shows its own line; only the host's bites and reels.
+- `HarpoonCannon.target_ahead(ship, range) -> Node3D`: what the bow gun would hit (groups `enemy_ships`, `sea_kings`,
+  `harpoonable`; within 35 degrees of the bow).
+- A target: in one of those groups, with a `hurtbox` (Hurtbox) property (the bite is a `siege` HitData of the tier's
+  damage, as the helmsman's). Optional methods, called on the host: `harpooned(ship)` once when it bites,
+  `reel_toward(at: Vector3, speed: float, delta: float)` every physics tick while reeled (else its global_position is
+  moved), `released()` when the line goes (hold over, ship or target gone), `is_dead()` (a dead one is let go).
+- Every HarpoonCannon node (group `harpoons`) emits `released` on every machine when its line goes. Reeling stops 14 m
+  off (REEL_CLOSE). EnemyShip implements all of it (`harpooned_by`).
+- **For a leviathan:** join `harpoonable`, have a `hurtbox`, and implement `reel_toward` (a big beast might pull back:
+  move toward the ship at less than `speed`, or drag the ship: that's the leviathan agent's call).
 
 ## Assumed (revisit in play)
 - Every number above. O for cycling (a free key next to I; Shift+U clashed with sprint).

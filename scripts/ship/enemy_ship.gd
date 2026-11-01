@@ -801,7 +801,28 @@ func _keeps_chasing(tgt: Node3D, dist: float) -> bool:
 
 
 func _huntable(t: Node3D) -> bool:
-	return huntable_at(t.global_position)
+	# (1.28) not inside a smoke screen's cloud (ShipGadgets): her gunners have lost her
+	return huntable_at(t.global_position) and not ShipGadgets.hidden(t)
+
+
+## (1.28, HarpoonCannon's contract; host) On the crew's harpoon line: reeled in toward their ship until let go.
+var harpooned_by: Node3D = null
+
+
+func harpooned(by: Node3D) -> void:
+	harpooned_by = by
+	bark(["Harpoon! Cut it loose!", "They've hooked us!"][_rng.randi() % 2], 2.0)
+
+
+func released() -> void:
+	harpooned_by = null
+
+
+func reel_toward(at: Vector3, v: float, delta: float) -> void:
+	var d := Vector3(at.x - _pos.x, 0.0, at.z - _pos.z)
+	var step := d.normalized() * v * delta
+	_pos += step
+	global_position += step
 
 
 ## Out at sea, clear of land: somewhere they'll chase and fire on a ship.

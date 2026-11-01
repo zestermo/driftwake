@@ -32,6 +32,8 @@ var helmet_k := 1.0
 ## The auto-reel on the rod: bites it still reels in, and how much faster (FishState).
 var reel_left := 0
 var reel_k := 0.0
+## The ship gadget picked at the wheel (an index into ShipGadgets.fitted).
+var ship_sel := 0
 
 
 func breath_k() -> float:
@@ -65,7 +67,8 @@ func cooldown_len(gid: String) -> float:
 ## Build (or set) gadget `gid` at `tier` with full charges, and put it on the belt's first free slot.
 func give(gid: String, tier: int) -> void:
 	owned[gid] = {"tier": tier, "charges": int(GadgetData.tier_val(gid, "charges", tier))}
-	if not gid in slots:
+	# (a ship gadget is fitted to her, fired from the wheel: no belt slot)
+	if not gid in slots and GadgetData.GADGETS[gid]["kind"] != "ship":
 		var i := slots.find("")
 		if i >= 0:
 			slots[i] = gid
@@ -89,6 +92,9 @@ func put(i: int, gid: String) -> void:
 
 
 func cycle() -> void:
+	if player.current_state_name() == "Helm":
+		ShipGadgets.cycle(player)
+		return
 	for k in range(1, GadgetData.SLOTS + 1):
 		var i := (sel + k) % GadgetData.SLOTS
 		if slots[i] != "":
@@ -102,6 +108,8 @@ func cycle() -> void:
 
 ## The selected gadget used. False (and a word why) when it can't be.
 func fire() -> bool:
+	if player.current_state_name() == "Helm":
+		return ShipGadgets.fire(player)
 	var gid := gadget()
 	if gid == "":
 		player.call("_toast", "No gadget on the belt: build one at a workbench")

@@ -68,6 +68,9 @@ var sail_shown: float = 0.0
 ## seconds left and the share of hull damage it turns.
 const WIND_K := 1.25
 var will_wind := 0.0
+## (1.28) The paddle boost (ShipGadgets): its seconds left and its share of more speed.
+var paddle_t := 0.0
+var paddle_k := 0.0
 var will_guard := 0.0
 var will_guard_k := 0.0
 var _turn_in: float = 0.0
@@ -251,6 +254,9 @@ func _physics_process(delta: float) -> void:
 	if not lines.is_empty():
 		top = minf(top, LASHED_SPEED)
 	var want := top * sail_shown
+	# (1.28) a ship gadget's paddle boost (ShipGadgets, on every machine)
+	if paddle_t > 0.0:
+		want = ShipGadgets.paddle(self, want, delta)
 	_fair_wind_note()
 	if summoning():
 		want = _summon_drive(delta)

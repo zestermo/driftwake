@@ -8615,6 +8615,29 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - The belt cycles on **O** (project.godot `gadget_cycle`, no Shift): Shift+U collided with sprint (Shift held, U cycled
   instead of firing). O is free (I inventory, P/J/Y are the skill map, journal and duel answer). Pad unchanged (share).
 - **Tests:** t/gadgets/tar_beasts (a wolf in tar, a strangler on caltrops), belt_fire (O, and that it isn't Shift+U).
+
+## 2026-11-01: gadgets, piece 5 - the ship gadgets and the harpoon contract (1.28)
+- **ShipGadgets** (`scripts/ship/ship_gadgets.gd`): burst launcher, paddle boost, smoke screen, harpoon cannon. Built and
+  upgraded only at the bench aboard (GadgetBenchScreen refuses elsewhere: style "ship"); kept in GadgetBelt.owned (tier,
+  charges) but take no belt slot (GadgetBelt.give). At the wheel **U** fires the picked one and **O** picks the next
+  (GadgetBelt.fire/cycle hand off in Helm; `gadgets.ship_sel`); the helm's toast names it.
+- **Co-op:** the helmsman's machine checks and spends, then Player.net_event "gadget_use" ["ship", tier, [id, target key]];
+  every machine runs `ShipGadgets.apply` (the ship sim runs everywhere from the helmsman's inputs, so the push/boost
+  must too); the host's enemy ships and harpoon do the rest.
+- **Burst launcher:** `ship.speed += impulse` (12/16/20; the drag's quadratic term bleeds it off in ~4 s), a blast,
+  smoke plume, spray and splash astern, a shake aboard.
+- **Paddle boost:** Ship.paddle_t/paddle_k; `ShipGadgets.paddle` makes her want max(sails' speed, 0.6 x top) x (1 + k).
+- **Smoke screen:** a cloud (one flip_emitter) laid 6 m astern now and every 2 s for its secs; `ShipGadgets.hidden(n)`
+  (n within a cloud's radius while the screen lasts). EnemyShip._huntable asks it, so a hunter drops the chase (pursuers
+  _lost, others PATROL) and won't take it up in the smoke; once she's out of it (or it's over) she can be found again.
+- **Harpoon cannon** (`scripts/ship/harpoon_cannon.gd`, HarpoonCannon): the contract is in docs/gadgets_plan.md
+  "Harpoon contract". The line is a GadgetRope (new `thick`, 3.5x) with the harpoon head; EnemyShip got
+  `harpooned_by`, `harpooned`, `released`, `reel_toward`. The bite is a `siege` hit (hulls only take those).
+- **Bench:** the list scrolls now (20 gadgets; LIST_H 300).
+- **Per frame/tick:** a harpoon's physics tick only while its line is out; Ship one compare (paddle_t); each smoke cloud
+  a CPUParticles emitter while it lasts (up to ~9 at Mk III); `hidden()` is called by hunting enemy ships each tick
+  (returns at once with no clouds).
+- **Tests:** t/ship burst_launcher, smoke_screen, harpoon_cannon. Render: `tools/dev/shipgadgetshot.gd <out> [tier]`.
 ## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
 - **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
   apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by

@@ -69,6 +69,11 @@ static func remote(p: Node, args: Array) -> void:
 			GadgetMarks.mark_keys(args[2][0], float(args[2][1]))
 		"diving_helmet":
 			wear_helmet(p.body_model, t, float(GadgetData.tier_val("diving_helmet", "secs", t)))
+		"ship":
+			var ship := p.get_tree().get_first_node_in_group("ship") as Ship
+			var k := str(args[2][1])
+			if ship:
+				ShipGadgets.apply(ship, str(args[2][0]), t, _net().node_of(k) as Node3D if k != "" else null, p)
 
 
 ## The copper helmet on `body`'s head for `secs` (then it comes off in a puff).

@@ -10,9 +10,9 @@ extends RefCounted
 ## A blueprint id is also an item ("bp_<gadget>", a scroll): carried to a workbench, it's studied (learned, used up).
 ## No autoloads by name here (ItemDB calls make_items before they exist).
 
-## The gadgets made so far (the bench offers only these; the rest of GadgetData is still to build).
+## The gadgets the bench offers (all of GadgetData since piece 5).
 const WORKING := ["smoke", "tar", "flash", "pepper", "star", "decoy", "caltrops", "grapple", "spring_boots", "glider", "spike",
-	"spyglass", "diving_helmet", "auto_reel", "lockpick", "lantern_bomb"]
+	"spyglass", "diving_helmet", "auto_reel", "lockpick", "lantern_bomb", "burst_launcher", "paddle_boost", "smoke_screen", "harpoon"]
 
 
 static func teach(player: Node, blueprint_id: String) -> bool:

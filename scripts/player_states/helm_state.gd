@@ -45,7 +45,8 @@ func enter(_data: Dictionary) -> void:
 			ship_cam.current = true
 	var steer := "Left stick: sails and rudder" if Glyphs.pad() else "W/S: sails   A/D: rudder"
 	player.call("_toast", ("Lashing cast off.   " if was_lashed else "") + "   ".join([steer, Glyphs.hint("jump", "anchor"),
-		Glyphs.hint("light_attack", "broadside"), Glyphs.hint("action_wheel", "lash the helm"), Glyphs.hint("interact", "leave")]))
+		Glyphs.hint("light_attack", "broadside"), Glyphs.hint("action_wheel", "lash the helm"), Glyphs.hint("interact", "leave")]
+		+ ([Glyphs.hint("gadget_fire", ShipGadgets.selected(player).replace("_", " "))] if not ShipGadgets.fitted(player).is_empty() else [])))
 
 
 ## Stand at the wheel, facing the bow.
