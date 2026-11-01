@@ -8543,3 +8543,34 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Tests:** t/gadgets workbench_build, workbench_upgrade, workbench_refill; t/economy/harbour_vendor updated (the
   chandler's stock now ends with the parts). Renders: modelshot `Workbench.mesh("plain"|"ship"|"camp"|"forge")`,
   `uishots ... belt,workbench`.
+## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
+- **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
+  apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by
+  `Chain._apart`; every other island of every chain stays as it was, and the smoketest's first islands can't roll it).
+- **Land** (`scripts/island/themes/volcanic_land.gd`): one cone near the middle (rim 70-95 m, lower on small islands so
+  the gully stays walkable: h <= foot x 0.42), a caldera floor 25-33 m under the rim, the rim breached toward the
+  village by a gully at an even grade (lerped to `_ramp` within BREACH_W of the axis). New hook `ThemeDef.site_at(isl,
+  site, p)` (GenIsland._plan_sites, themes with a land plan): the boss's ground is the caldera's floor, the summit's
+  lookout on the rim beside the breach, camp/lair/ruins pushed to the cone's foot and off the gully; `village_at` puts
+  the town past the foot. Gotcha: the cone's "land" factor is by distance from the coast (`_coast_t`), not the base's
+  height: smoothstep(0.5, 4, h) wavered with the base's noise on this low island and put 1-2 m steps in the flanks.
+  The bearing-cliff tear under the middle is taken out as on the snow's peak.
+- **Lava flows:** 3-5 channels with levees from side vents to near the foot (a distance grid with the nearest flow's
+  index, `flow_near`). Hot stretches (one emissive flow-shader mesh, no lights) except: a flow aimed at the breach,
+  near the village or dock (55 m), where a path crosses (4.5 m), on a place's or cave's ground, and the last segments
+  (a cooled lobe): those are basalt crust. A crescent of lava in the caldera's back (for the salamander, piece 5).
+  `volcanic_hazard.gd`: 5 Hz, the local captain in hot lava takes 15 and is thrown 7 m/s out and 9 up (0.8 s grace);
+  embers/sfx through Net.fx; one distance check while off the island. The plume: 14 CPU puffs high over the caldera
+  (seen to 1600 m), 10 embers over the crescent.
+- **Plants** (`scripts/props/volcanic_plants.gd`, VolcanicPlants): charred trees (an ember glowing in a split), ash
+  pines (ForestPlants._tier tiers), scorched giants and great pines (few: canopy 0.18), ash shrubs, fire lilies, wiry ash
+  grass, fumaroles, pumice, basalt and obsidian rocks. Five forests (ash barrens, scorched woods, cinder fields, ash
+  pine slopes, fumarole flats).
+- **Style:** stone and dark timber houses under `volcanic_slate`, cinder paving, orange lamps, ash/black sand/cinder/
+  basalt ground; its text (volcanic_life.gd: smiths, tinkers, quarrymen, ash farmers, fire-keepers) and encounters.
+  Placeholders until their pieces: music desert_night/desert_town_night, ambience desert, beasts reused (basilisk and
+  serpent as bosses, alpha boar, behemoth), fauna from the shared roster (monitor lizards, scorpions, crabs...).
+- **Textures:** `tools/texture_gen/gen_volcanic_textures.py` (volcanic_ash, _sand, _cinder, _basalt, _lava, _slate,
+  _grass, _lily).
+- **Tests:** t/island/volcanic_land (three islands; the burn on the light stage). Render: genshot chain seed 2 node 6
+  (`genshot.gd -- <out> 2 6`). Per tick: the hazard's 5 Hz check (a distance test off the island); no new lights.

@@ -389,6 +389,15 @@ func _build_panel() -> void:
 	_gold_label = small("", UIStyle.ACCENT)
 	_gold_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(_gold_label)
+	var sort := UIStyle.button("Sort", 44)
+	sort.focus_mode = Control.FOCUS_NONE
+	sort.tooltip_text = "Sort the bag: weapons, gear, food, then the rest; best first"
+	sort.pressed.connect(func():
+		if _player():
+			_player().inventory_component.sort_bag()
+			menu._play("select")
+			refresh())
+	head.add_child(sort)
 	vb.add_child(_rule())
 
 	var inv := HBoxContainer.new()

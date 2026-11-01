@@ -68,6 +68,9 @@ var _streams: Dictionary = {}
 var _check_t: float = 0.0
 var _combat_hold: float = 0.0
 var _duck: float = 0.0
+## A heavy blow's dip (1.28: punch()): dB under the mix, recovering at PUNCH_RECOVER dB a second.
+var _punch_db: float = 0.0
+const PUNCH_RECOVER := 14.0
 var _fade_rate: float = 1.0 / FADE
 ## By context (day and night share): [position, when left].
 var _left: Dictionary = {}
@@ -142,6 +145,15 @@ func play(track: String, fade: float = FADE) -> void:
 	_active = next
 
 
+## A heavy blow landed near you: the music dips `db` for a beat so the hit cuts through (a sidechain feel).
+func punch(db: float) -> void:
+	_punch_db = maxf(_punch_db, db)
+
+
+func punch_tick(delta: float) -> void:
+	_punch_db = maxf(_punch_db - PUNCH_RECOVER * delta, 0.0)
+
+
 ## A short fanfare (a boss beaten); the music dips under it.
 func victory() -> void:
 	_sting.stream = load(VICTORY)
@@ -159,7 +171,8 @@ func _process(delta: float) -> void:
 	else:
 		_cue = -1.0
 	_duck = maxf(_duck - delta, 0.0)
-	var target := BASE_DB - (14.0 if _duck > 0.0 else 0.0)
+	punch_tick(delta)
+	var target := BASE_DB - (14.0 if _duck > 0.0 else 0.0) - _punch_db
 	for p in [_a, _b]:
 		var ap := p as AudioStreamPlayer
 		if ap == _active and ap.playing:

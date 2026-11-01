@@ -1650,7 +1650,13 @@ func _on_footstep(strength: float) -> void:
 	# sneaking: soft steps, no dust
 	var sneak := current_state_name() == "Crouch"
 	var surf := ground_surface()
-	FX.sfx("step_" + surf, global_position, -16.0 + 16.0 * strength - (10.0 if sneak else 0.0), 0.06)
+	# (1.28) a beast form's own tread: the bear heavy and low with a thud, the wolf light quick pads
+	var bk: String = body_model.beast_kind
+	var tread := {"bear": [4.0, 0.72], "wolf": [-5.0, 1.18]}.get(bk, [0.0, 1.0]) as Array
+	FX.sfx("step_" + surf, global_position, -16.0 + 16.0 * strength - (10.0 if sneak else 0.0) + float(tread[0]), 0.06, float(tread[1]))
+	if bk == "bear" and not sneak and _step_count % 2 == 0:
+		FX.sfx("thud", global_position, -14.0 + 6.0 * strength, 0.05, 0.6)
+		FX.dust(global_position + Vector3(0, 0.05, 0), 3, 0.45)
 	# (snow or sand on a theme's island: a print, and its own puff instead of the dust)
 	var soft := GroundLayer.step(self, surf, _step_count, 0.0 if sneak else strength, sprinting or (not is_local and body_model.sprinting))
 	if sneak or soft:

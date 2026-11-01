@@ -39,6 +39,25 @@ func held_mask() -> Array[bool]:
 	return out
 
 
+## Sort the bag (1.28, the inventory's Sort): weapons, gear, food and drink, then loot; within each the rarest first,
+## then by name. The hands and the quick slot go by item id, so sorting never changes what's held.
+const SORT_ORDER := {ItemData.ItemType.WEAPON: 0, ItemData.ItemType.GEAR: 1, ItemData.ItemType.CONSUMABLE: 2, ItemData.ItemType.LOOT: 3}
+
+
+func sort_bag() -> void:
+	items.sort_custom(func(a: ItemStack, b: ItemStack) -> bool:
+		var ka := int(SORT_ORDER.get(a.item.item_type, 9))
+		var kb := int(SORT_ORDER.get(b.item.item_type, 9))
+		if ka != kb:
+			return ka < kb
+		if a.item.rarity != b.item.rarity:
+			return a.item.rarity > b.item.rarity
+		if a.item.display_name != b.item.display_name:
+			return a.item.display_name < b.item.display_name
+		return a.quantity > b.quantity)
+	inventory_changed.emit()
+
+
 ## The bag positions shown in the bag grid, in order.
 func bag_view() -> Array[int]:
 	var out: Array[int] = []

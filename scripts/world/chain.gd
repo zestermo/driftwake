@@ -288,7 +288,7 @@ func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
 ## draw on the chain's stream: every other island stays as it was); `theme` (the draw's) when none does.
 func _apart(layer: int, branch: int, avoid: Array, theme: String) -> String:
 	for t in IslandThemes.all():
-		if not t.apart or avoid.has(t.name):
+		if not t.apart or avoid.has(t.name) or layer < t.from_layer:
 			continue
 		var roll := float(hash([seed_value, layer, branch, t.name]) & 0xffffff) / 16777216.0
 		if roll < float(t.weight):

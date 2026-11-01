@@ -1,6 +1,6 @@
 extends SceneTree
 ## Quick stack (1.28): a chest's "Quick stack" puts in every bag stack of a kind it already holds, and nothing else
-## (never the quick slot's item).
+## (never the quick slot's item); the bag's Sort puts weapons first.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -39,6 +39,14 @@ func _process(_d: float) -> bool:
 			check("the crab meat stayed in the bag (%d)" % inv.count("crab_meat"), inv.count("crab_meat") == 3)
 			check("a second quick stack moves nothing", bag.quick_stack(p) == 0)
 			bag.queue_free()
+			# Sort: weapons before loot, the rarest first
+			inv.add_item(db.get_item("fish"), 2)
+			var sword = db.get_item("cutlass")
+			if sword:
+				inv.add_item(sword, 1)
+			inv.sort_bag()
+			var first_type: int = inv.items[0].item.item_type
+			check("Sort puts weapons first (%s first)" % inv.items[0].item.id, sword == null or first_type == 1)
 			return TK.done(fails)
 	step += 1
 	return false
