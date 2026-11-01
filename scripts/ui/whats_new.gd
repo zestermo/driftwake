@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["The Admiralty's stronghold", "One hidden fortress per world. Fight through its districts, beat Kesh, Marrow and Commodore Vane, raise your flags, loot the vault, then survive the Scouring and sail for it."],
-	["Ten Driftfruits", "Ember, Storm, Gust, Wolf, Bear, Vine, Iron, Bubble, Clockwork and Echo: five powers, two ultimates and an awakening each. Press V for your fruit's bar."],
-	["Powers that grow", "Use a power enough and it fires by itself at its moment (hit, surrounded, a dodge, a kill); master it and it fires even off your bar."],
-	["Bodies that change", "Iron arms, vine-wrapped limbs, and Wolf and Bear forms: switch the half-beast on and off, and become the full beast when you awaken."],
-	["Deeper cities", "Undercities, upper floors, a night life with lanterns and a watch, the palace's grand stair, and the Queen's own line of work."],
+	["Gadgets", "A belt of three on U (O picks the next): smoke, tar, flash and pepper bombs, burst stars, caltrops, a decoy, a grappling hook, spring boots, a glider, a climbing spike, a spyglass, a diving helmet and more."],
+	["The workbench", "Build, upgrade (Mk I to III) and refill gadgets from blueprints and parts, on your ship's deck or by any camp fire."],
+	["Ship gadgets", "At the wheel: a burst launcher, a paddle boost, a smoke screen to lose a chase, and a harpoon cannon that reels a ship in."],
+	["The volcanic isle", "Black sand and lava flows, a forge town and its Master Tinkerer, eruptions that rain lava bombs, and the Magma Salamander in the caldera."],
+	["Polish", "Beasts glint white for a blow you can parry and red for one you can't, the sea glitters toward the sun, Quick stack and Sort in your bag, and heavy hits that land over the music."],
 ]
 
 

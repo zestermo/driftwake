@@ -2,7 +2,7 @@ class_name GadgetBelt
 extends Node
 ## A captain's gadget belt (1.28): the blueprints they know, the gadgets they've built (each at a tier, with its
 ## charges), and three belt slots. U fires the selected slot's gadget (whatever weapon is held, on foot and free,
-## mid-jump too), Shift+U picks the next filled slot. Charges are spent per use and refilled at a workbench or camp;
+## mid-jump too), O picks the next filled slot. Charges are spent per use and refilled at a workbench or camp;
 ## a short cooldown (game time: PlayerState.now_s) follows every use. Saved with the captain (SaveGame "gadgets").
 ## Nothing here runs per frame: cooldowns are timestamps, the HUD polls.
 ## Co-op: each captain's own. The throw plays on every screen from the thrower's event (Player.net_event
@@ -26,6 +26,18 @@ var slots: Array = ["", "", ""]
 var sel := 0
 ## gadget id -> game time (s) it's ready again
 var ready_at: Dictionary = {}
+## The diving helmet worn: until (game time) and its breath factor (SwimState).
+var helmet_until := -1.0
+var helmet_k := 1.0
+## The auto-reel on the rod: bites it still reels in, and how much faster (FishState).
+var reel_left := 0
+var reel_k := 0.0
+## The ship gadget picked at the wheel (an index into ShipGadgets.fitted).
+var ship_sel := 0
+
+
+func breath_k() -> float:
+	return helmet_k if PlayerState.now_s() < helmet_until else 1.0
 
 
 func gadget() -> String:
@@ -55,7 +67,8 @@ func cooldown_len(gid: String) -> float:
 ## Build (or set) gadget `gid` at `tier` with full charges, and put it on the belt's first free slot.
 func give(gid: String, tier: int) -> void:
 	owned[gid] = {"tier": tier, "charges": int(GadgetData.tier_val(gid, "charges", tier))}
-	if not gid in slots:
+	# (a ship gadget is fitted to her, fired from the wheel: no belt slot)
+	if not gid in slots and GadgetData.GADGETS[gid]["kind"] != "ship":
 		var i := slots.find("")
 		if i >= 0:
 			slots[i] = gid
@@ -79,6 +92,9 @@ func put(i: int, gid: String) -> void:
 
 
 func cycle() -> void:
+	if player.current_state_name() == "Helm":
+		ShipGadgets.cycle(player)
+		return
 	for k in range(1, GadgetData.SLOTS + 1):
 		var i := (sel + k) % GadgetData.SLOTS
 		if slots[i] != "":
@@ -86,17 +102,21 @@ func cycle() -> void:
 			break
 	if gadget() != "":
 		player.call("_toast", "%s %s" % [GadgetData.GADGETS[gadget()]["name"], GadgetData.TIER_NAMES[tier_of(gadget())]])
-	FX.sfx("blip", player.global_position, -14.0, 0.05, 1.3)
+	player.get_node("/root/FX").sfx("blip", player.global_position, -14.0, 0.05, 1.3)
 	changed.emit()
 
 
 ## The selected gadget used. False (and a word why) when it can't be.
 func fire() -> bool:
+	if player.current_state_name() == "Helm":
+		return ShipGadgets.fire(player)
 	var gid := gadget()
 	if gid == "":
 		player.call("_toast", "No gadget on the belt: build one at a workbench")
 		return false
-	if not player.is_free() or player.body_model.current_action() == "gd_lob":
+	# (the diving helmet goes on in the water too)
+	var swim_ok: bool = gid == "diving_helmet" and player.current_state_name() == "Swim"
+	if not (player.is_free() or swim_ok) or player.body_model.current_action() in ["gd_lob", "gd_spy"]:
 		return false
 	if cooldown_left(gid) > 0.0:
 		return false
@@ -113,8 +133,10 @@ func fire() -> bool:
 	_changed()
 	if GadgetData.GADGETS[gid].get("throw", false):
 		_lob(gid, tier_of(gid))
-	elif GadgetData.GADGETS[gid]["kind"] == "traversal":
+	elif GadgetData.GADGETS[gid]["kind"] == "traversal" or gid == "lockpick":
 		player.state_machine.force_state("Gadget", {"id": gid, "tier": tier_of(gid), "at": why[1]})
+	else:
+		GadgetUtility.use(player, gid, tier_of(gid))
 	return true
 
 
@@ -132,7 +154,8 @@ func _ready() -> void:
 
 
 func _lob(gid: String, t: int) -> void:
-	var to := aim_point(float(GadgetData.tier_val(gid, "range", t)))
+	# (the decoy stands short of the foes, between them and you, rather than on one)
+	var to := aim_point(float(GadgetData.tier_val(gid, "range", t)), gid != "decoy")
 	var flat: Vector3 = to - player.global_position
 	flat.y = 0.0
 	if flat.length() > 0.1:
@@ -146,12 +169,12 @@ func _lob(gid: String, t: int) -> void:
 		body.hide_left_prop()
 		var from: Vector3 = player.global_position + Vector3(0, 1.75, 0) - player.player_model.global_basis.z * 0.3
 		GadgetThrow.launch(get_tree(), gid, t, from, to, player)
-		Net.event(player, "gadget", [gid, t, from, to]))
+		player.get_node("/root/Net").event(player, "gadget", [gid, t, from, to]))
 
 
 ## Where a throw of reach `r` lands: on the foe nearest the camera's line within reach, else straight ahead
 ## (the camera's way) at 70% of the reach, dropped to the ground.
-func aim_point(r: float) -> Vector3:
+func aim_point(r: float, foes := true) -> Vector3:
 	var at: Vector3 = player.global_position
 	var fwd: Vector3 = -player.player_model.global_basis.z
 	var cam := player.get_viewport().get_camera_3d()
@@ -161,7 +184,7 @@ func aim_point(r: float) -> Vector3:
 	fwd = fwd.normalized()
 	var best: Node3D = null
 	var best_dot := AIM_DOT
-	for e in player.get_tree().get_nodes_in_group("enemies"):
+	for e in player.get_tree().get_nodes_in_group("enemies") if foes else []:
 		var n := e as Node3D
 		if n == null or not n.visible:
 			continue

@@ -46,7 +46,7 @@ func _process(_d: float) -> bool:
 			o = load("res://scripts/island/marine_outpost.gd").make(stage, Vector2(lp.x, lp.z), 30.0, "t_outpost", 1, 2, rng)
 			o.global_position = p.global_position + Vector3(0, 0, -22.0)
 			check("guards at the door, the armoury locked, the prisoner behind bars",
-				o._guards.size() == 2 and not o._chest.interactable.enabled and o._cell_bars.visible)
+				o._guards.size() == 2 and o._chest.locked != "" and o._cell_bars.visible)
 			TK.act("ready_weapon")
 			until = TK.wait_secs(1.2)
 		1:
@@ -60,7 +60,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(2.0)
 		3:
 			check("the squad beaten: raided (a world flag), the armoury open, the bars gone",
-				o.raided and root.get_node("GameManager").world_flags.has("t_outpost") and o._chest.interactable.enabled and not o._cell_bars.visible)
+				o.raided and root.get_node("GameManager").world_flags.has("t_outpost") and o._chest.locked == "" and not o._cell_bars.visible)
 			check("...its orders captured: the Admiralty's stronghold known (1.27)", root.get_node("GameManager").world_flags.has("stronghold_known"))
 			gold0 = p.inventory_component.count("gold")
 			o._free_prisoner(p)

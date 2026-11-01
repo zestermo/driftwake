@@ -368,6 +368,18 @@ func _physics_process(delta: float) -> void:
 	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
 
 
+## (1.28) In a tar pool or on caltrops (GadgetZone, the host's): its steps at `k` of their speed for `secs`.
+var slow_k := 1.0
+var _slow_t := 0.0
+
+
+func slowed(secs: float, k: float) -> void:
+	if Net.forward(self, "slowed", [secs, k]):
+		return
+	_slow_t = maxf(_slow_t, secs)
+	slow_k = k
+
+
 ## The creature's own thinking: set _want (flat velocity), _accel, _turn, _face(), states.
 func _brain(_delta: float) -> void:
 	_wander(1.2)
@@ -393,6 +405,9 @@ func _after_daze() -> void:
 
 
 func _walk(delta: float) -> void:
+	if _slow_t > 0.0:
+		_slow_t -= delta
+		_want *= slow_k
 	var hv := flat(velocity).move_toward(_want, _accel * delta)
 	if _yank > 0.0:
 		_yank -= delta

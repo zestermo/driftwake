@@ -20,6 +20,7 @@ var _nibble_count := 0
 var _window := 0.0
 var _catch := ""
 var _hp := 0.0
+var _reel_len := 1.0
 
 
 func enter(_data: Dictionary) -> void:
@@ -77,11 +78,18 @@ func physics_update(delta: float) -> void:
 				player.body_model.play("rod_strike", Fishing.STRIKE_LEN)
 				_go("out")
 		"bite":
-			if reel:
+			# (1.28) an auto-reel on the rod strikes for you and reels faster
+			var auto: bool = player.gadgets.reel_left > 0
+			if reel or auto:
 				# (where the float is now: cast from a deck under way it has trolled along with her)
 				_catch = Fishing.roll_catch(player, _tier, _rod()._bob_at, _bait)
 				_rod().reel()
-				player.body_model.play("rod_reel", Fishing.REEL_LEN)
+				_reel_len = Fishing.REEL_LEN
+				if auto:
+					player.gadgets.reel_left -= 1
+					_reel_len *= 1.0 - player.gadgets.reel_k
+					FX.sfx("clack", player.global_position + Vector3(0, 1.0, 0), -8.0, 0.05, 1.6)
+				player.body_model.play("rod_reel", _reel_len)
 				_go("reel")
 			elif _t >= _window:
 				Fishing.lost(player)
@@ -89,7 +97,7 @@ func physics_update(delta: float) -> void:
 				_rod().escape()
 				_wait()
 		"reel":
-			if _t >= Fishing.REEL_LEN:
+			if _t >= _reel_len:
 				_rod().land(_catch)
 				player.body_model.play("rod_land", Fishing.LAND_LEN)
 				_go("land")

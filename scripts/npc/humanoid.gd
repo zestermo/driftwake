@@ -421,7 +421,8 @@ func apply_look(look_dict: Dictionary) -> void:
 	if lantern != null:
 		wear_lantern()
 	if pouch_tier >= 0:
-		GadgetBelt.wear(self, pouch_tier)
+		# (loaded, not named: humanoid.gd compiles before the autoloads in a --script run, and the gadgets name them)
+		load("res://scripts/gadgets/gadget_belt.gd").wear(self, pouch_tier)
 
 
 ## The gadget pouch on the back (GadgetBelt.wear; -1 none), worn again on a rebuild.

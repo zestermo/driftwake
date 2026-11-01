@@ -10,6 +10,8 @@ const COLOR := Color(0.72, 0.86, 1.0)
 
 var captain: Node3D
 var spot := Vector3.ZERO
+## (1.28) A gadget decoy (GadgetDecoy) takes blows and stands until its time's up; an afterimage shatters at the first.
+var sturdy := false
 var life := 1.6
 var _t := 0.0
 var _mat: StandardMaterial3D
@@ -88,6 +90,11 @@ func _process(delta: float) -> void:
 	_mat.albedo_color.a = a
 	if _t >= life:
 		queue_free()
+
+
+## (host) A foe's blow came down on a sturdy decoy (GadgetDecoy shows it).
+func struck(_by: Node) -> void:
+	pass
 
 
 ## Struck: it bursts into pale shards and is gone.

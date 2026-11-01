@@ -23,6 +23,9 @@ const SPIKE_KICK := Vector3(0, 8.0, 0)
 const SPIKE_AWAY := 3.0
 ## The glider turns this fraction of a normal turn (face_direction's turn_speed) a tick.
 const GLIDE_TURN := 0.25
+## The lockpick works on a locked chest this close, clicking every PICK_CLICK s.
+const PICK_REACH := 2.6
+const PICK_CLICK := 0.35
 
 var id := ""
 var tier := 0
@@ -33,6 +36,7 @@ var _rope: GadgetRope
 var _wing: MeshInstance3D
 var _stuck := 0.0
 var _look := 0.0
+var _bag: LootBag
 
 
 ## (made at runtime: GadgetBelt hands it the captain instead of PlayerState waiting on the scene's owner)
@@ -51,7 +55,19 @@ static func reason(p: Player, gid: String, t: int) -> Array:
 		"spike":
 			var w := wall_ahead(p)
 			return ["No wall in front to drive it into", Vector3.ZERO] if w.is_empty() else ["", w["position"]]
+		"lockpick":
+			var b := lock_near(p)
+			return ["No lock here to pick: stand at a locked chest", Vector3.ZERO] if b == null else ["", b.global_position]
 	return ["", Vector3.ZERO]
+
+
+## The locked chest within PICK_REACH of the captain (null none).
+static func lock_near(p: Player) -> LootBag:
+	for b in p.get_tree().get_nodes_in_group("loot_bags"):
+		var bag := b as LootBag
+		if bag.locked != "" and bag.global_position.distance_to(p.global_position) < PICK_REACH:
+			return bag
+	return null
 
 
 ## Where the camera's line of sight meets the world within `r` of the captain (INF: nothing).
@@ -132,6 +148,13 @@ func enter(data: Dictionary) -> void:
 			Net.fx("parry_sparks", [_at, _normal])
 			Net.fx("sfx", ["clash", _at, -4.0, 0.08, 1.4])
 			player.cam_shake(0.08, 0.12)
+		"lockpick":
+			_bag = lock_near(player)
+			_face(_bag.global_position - player.global_position)
+			player.velocity = Vector3.ZERO
+			player.sheathe_weapon(true)
+			h.hold("dt_tinker")
+			_look = 0.0
 
 
 func exit() -> void:
@@ -141,8 +164,11 @@ func exit() -> void:
 	if _wing and is_instance_valid(_wing):
 		_wing.queue_free()
 	_wing = null
-	if player.body_model.current_action().begins_with("gd_"):
+	if player.body_model.current_action().begins_with("gd_") or (id == "lockpick" and player.body_model.current_action() == "dt_tinker"):
 		player.body_model.stop_action()
+	if id == "lockpick":
+		player.get_tree().call_group("hud", "show_prompt", "")
+	_bag = null
 
 
 func physics_update(delta: float) -> void:
@@ -156,6 +182,40 @@ func physics_update(delta: float) -> void:
 			_glide(delta)
 		"spike":
 			_hang(delta)
+		"lockpick":
+			_pick(delta)
+
+
+## Picking the lock: the picks click at it for the tier's time, then it springs open and the chest opens. Moving,
+## jumping or a dodge gives up (the charge back).
+func _pick(delta: float) -> void:
+	apply_gravity(delta)
+	player.velocity.x = 0.0
+	player.velocity.z = 0.0
+	player.move_and_slide()
+	if not is_instance_valid(_bag) or _bag.locked == "":
+		transitioned.emit(self, "Idle", {})
+		return
+	if get_movement_input().length() > 0.3 or player.inp.just_pressed("jump") or input_buffer.has_action("dodge"):
+		player.gadgets.owned["lockpick"]["charges"] = player.gadgets.charges("lockpick") + 1
+		player.gadgets.changed.emit()
+		player.call("_toast", "You stop picking the lock")
+		transitioned.emit(self, "Idle", {})
+		return
+	_look -= delta
+	if _look <= 0.0:
+		_look = PICK_CLICK
+		Net.fx("sfx", ["clack", _bag.global_position + Vector3(0, 0.5, 0), -10.0, 0.2, 1.8])
+	var secs := float(GadgetData.tier_val("lockpick", "pick_secs", tier))
+	player.get_tree().call_group("hud", "show_prompt", "Picking the lock...", t / secs)
+	if t >= secs:
+		_bag.locked = ""
+		Net.fx("sparkle", [_bag.global_position + Vector3(0, 0.6, 0), 10, GadgetModels.BRASS])
+		Net.fx("sfx", ["clack", _bag.global_position + Vector3(0, 0.5, 0), -2.0, 0.05, 0.7])
+		Net.fx("sfx", ["blip_high", _bag.global_position + Vector3(0, 0.5, 0), -8.0, 0.02, 1.2])
+		var bag := _bag
+		transitioned.emit(self, "Idle", {})
+		bag.interactable.interacted.emit(player)
 
 
 func _grapple(delta: float) -> void:

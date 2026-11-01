@@ -8580,6 +8580,64 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Caltrops:** one mesh of 14-26 little spikes strewn in the radius; slows (grunts) and cuts each tick; Mk III bleeds.
 - **Not yet:** the decoy (needs foes to take it as a target: grunt/creature targeting), and the utility gadgets.
 - **Tests:** t/gadgets/tricks (five grunts, one zone each). Renders: `abilityshot gadget:star:2`, `gadget:pepper:1`.
+
+## 2026-11-01: gadgets, piece 4b - the decoy and the utility gadgets (1.28)
+- **Decoy** (`scripts/gadgets/gadget_decoy.gd`, GadgetDecoy extends the Afterimage's Decoy with `sturdy`): thrown short
+  (aim_point with no foe auto-aim, 70% of range ahead); a straw captain in the thrower's coat colour
+  (GadgetModels.decoy_figure: Mk II spring + brass band, Mk III powder keg) springs up. Host: every 0.4 s
+  `PirateGrunt.lure(d)` for foes within the tier's lure: a sturdy decoy draws any non-rifle role, rouses idle ones
+  (alert), and a blow on it calls `struck` (straw puff, wobble) instead of shattering it. Lured grunts skip pistols and
+  the brute grab. Shakes its last 1.2 s, then falls apart; Mk III bursts (GadgetZone.hurt_at, now static, r 3).
+- **Spyglass** (GadgetUtility, pose `gd_spy`): marks foes and unopened chests in a 60-degree view cone within reach with
+  a clear ray (GadgetMarks); the crew get the keys through Player.net_event "gadget_use" ["marks"]. Drawn on the
+  CompassStrip (`_draw_gadget_marks`: foes red pips, caches gold diamonds). Expiry by now_s.
+- **Diving helmet:** usable while swimming too; a copper helmet on the head (GadgetModels.helmet, crew see it via
+  "gadget_use"); SwimState spends breath / `gadgets.breath_k()` while it lasts.
+- **Auto-reel:** sets `gadgets.reel_left/reel_k`; FishState strikes a bite itself and reels at REEL_LEN x (1 - k).
+- **Lockpick:** `LootBag.locked` (why, "" open): a locked bag refuses opening with a toast. GadgetState "lockpick" needs one
+  within 2.6 m (refused, nothing spent otherwise), holds `dt_tinker`, clicks, after pick_secs unlocks and opens it;
+  moving gives up with the charge back. The Marine outpost's armoury now uses `locked` (was interactable.enabled off),
+  so a lockpick opens it before the raid (t/island/outpost updated).
+- **Lantern bomb** (GadgetZone kind, radius = "light"): a burst, the lamp lying lit, one OmniLight (no shadow,
+  distance-faded at 70 m), at most 3 per machine. Every 0.5 s on every screen: flicker, mark foes in its light
+  (and `revealed(secs)` on any that has it, for future hidden foes); by night (Weather.night > 0.5) the host calls
+  `scare()` on foes in it that have one (boars today).
+- **Open:** no other locked chests in the world yet (only the outpost armoury); the lantern only scares what has
+  `scare()`.
+- **Per frame/tick:** the decoy's _process (wobble) while it stands; its 0.4 s host lure timer; each lantern's 0.5 s
+  timer over "enemies"; the compass draws the live marks (only when any exist).
+- **Tests:** t/gadgets decoy, spyglass, helmet, autoreel, lockpick, lantern_bomb. Render: `abilityshot gadget:decoy:2`.
+
+## 2026-11-01: gadgets - tar/caltrops slow beasts and fauna; O cycles the belt (1.28)
+- `slowed(secs, k)` (Net.forward, then a timer) on JungleBeast (scales `want` before the steer) and Creature (scales
+  `_want` in `_walk`), so the tar pool and caltrops (GadgetZone's `has_method("slowed")`) slow every beast and wild
+  animal, not only grunts. Per tick: one compare while not slowed.
+- The belt cycles on **O** (project.godot `gadget_cycle`, no Shift): Shift+U collided with sprint (Shift held, U cycled
+  instead of firing). O is free (I inventory, P/J/Y are the skill map, journal and duel answer). Pad unchanged (share).
+- **Tests:** t/gadgets/tar_beasts (a wolf in tar, a strangler on caltrops), belt_fire (O, and that it isn't Shift+U).
+
+## 2026-11-01: gadgets, piece 5 - the ship gadgets and the harpoon contract (1.28)
+- **ShipGadgets** (`scripts/ship/ship_gadgets.gd`): burst launcher, paddle boost, smoke screen, harpoon cannon. Built and
+  upgraded only at the bench aboard (GadgetBenchScreen refuses elsewhere: style "ship"); kept in GadgetBelt.owned (tier,
+  charges) but take no belt slot (GadgetBelt.give). At the wheel **U** fires the picked one and **O** picks the next
+  (GadgetBelt.fire/cycle hand off in Helm; `gadgets.ship_sel`); the helm's toast names it.
+- **Co-op:** the helmsman's machine checks and spends, then Player.net_event "gadget_use" ["ship", tier, [id, target key]];
+  every machine runs `ShipGadgets.apply` (the ship sim runs everywhere from the helmsman's inputs, so the push/boost
+  must too); the host's enemy ships and harpoon do the rest.
+- **Burst launcher:** `ship.speed += impulse` (12/16/20; the drag's quadratic term bleeds it off in ~4 s), a blast,
+  smoke plume, spray and splash astern, a shake aboard.
+- **Paddle boost:** Ship.paddle_t/paddle_k; `ShipGadgets.paddle` makes her want max(sails' speed, 0.6 x top) x (1 + k).
+- **Smoke screen:** a cloud (one flip_emitter) laid 6 m astern now and every 2 s for its secs; `ShipGadgets.hidden(n)`
+  (n within a cloud's radius while the screen lasts). EnemyShip._huntable asks it, so a hunter drops the chase (pursuers
+  _lost, others PATROL) and won't take it up in the smoke; once she's out of it (or it's over) she can be found again.
+- **Harpoon cannon** (`scripts/ship/harpoon_cannon.gd`, HarpoonCannon): the contract is in docs/gadgets_plan.md
+  "Harpoon contract". The line is a GadgetRope (new `thick`, 3.5x) with the harpoon head; EnemyShip got
+  `harpooned_by`, `harpooned`, `released`, `reel_toward`. The bite is a `siege` hit (hulls only take those).
+- **Bench:** the list scrolls now (20 gadgets; LIST_H 300).
+- **Per frame/tick:** a harpoon's physics tick only while its line is out; Ship one compare (paddle_t); each smoke cloud
+  a CPUParticles emitter while it lasts (up to ~9 at Mk III); `hidden()` is called by hunting enemy ships each tick
+  (returns at once with no clouds).
+- **Tests:** t/ship burst_launcher, smoke_screen, harpoon_cannon. Render: `tools/dev/shipgadgetshot.gd <out> [tier]`.
 ## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
 - **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
   apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by
@@ -8737,3 +8795,8 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   tools/dev/out/rp_side_*, rp_front_* (animsheet), rp_models_sheet, rp_hilt_* (modelshot). posebench doesn't compile on
   main right now (scripts/gadgets/gadget_belt.gd:89 names FX in a static context: the gadgets agent's). Expect the chest-roll
   suites, Haldor's stock, the cutlass's design count and the story rack to want a look at the push.
+## 2026-11-01: v1.27.1, an unstable release (the first piece of 1.28)
+- What's in it: the gadgets (docs/gadgets_plan.md; the belt, the workbench, 20 gadgets, ship gadgets and the harpoon
+  contract), the volcanic isle (docs/volcanic_island_plan.md), and the lead's polish: the sea's glitter path, the beast
+  tell language (JungleBeast.wind_up_glint, ground fans for cone/behind moves), Quick stack and Sort, Music.punch on
+  heavy blows, beast-form footsteps; F4 warp/spawn lists; TK.calm. tools/release/UNSTABLE is back (delete for 1.28).

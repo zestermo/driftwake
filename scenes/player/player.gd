@@ -154,7 +154,7 @@ var power: PowerComponent
 var progression: Progression
 ## The weapon kind's crew technique (C in combat stance): cooldown, the join zone, marks.
 var crew_tech: CrewTechniques
-## (1.28) The gadget belt (U fires, Shift+U cycles): blueprints known, gadgets built, the three slots.
+## (1.28) The gadget belt (U fires, O cycles): blueprints known, gadgets built, the three slots.
 var gadgets: GadgetBelt
 ## Off-hand weapon (dual wielding: a second sword or pistol), or null.
 var offhand_weapon: ItemData
@@ -1926,7 +1926,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		place_marker()
 		get_viewport().set_input_as_handled()
 		return
-	# (1.28) the gadget belt: Shift+U the next slot (it matches U too, so first), U fires
+	# (1.28) the gadget belt: O the next slot (O, not Shift+U: Shift is sprint), U fires
 	if event.is_action_pressed("gadget_cycle", false, true):
 		gadgets.cycle()
 		get_viewport().set_input_as_handled()
@@ -3172,6 +3172,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"gadget":
 			GadgetBelt.remote(self, args)
+		"gadget_use":
+			GadgetUtility.remote(self, args)
 		"power":
 			var a: Array = args[1]
 			match str(args[0]):

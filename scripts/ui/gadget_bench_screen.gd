@@ -6,6 +6,7 @@ extends Control
 
 const W_LIST := 150
 const W_CARD := 250
+const LIST_H := 300
 
 var bench: Node3D
 var _menu: Node
@@ -56,9 +57,14 @@ func _init(menu: Node) -> void:
 	c1.custom_minimum_size = Vector2(W_LIST, 0)
 	body.add_child(c1)
 	c1.add_child(InventoryScreen.small("GADGETS", UIStyle.BORDER))
+	# (twenty gadgets: the list scrolls)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(W_LIST + 8, LIST_H)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	c1.add_child(scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
-	c1.add_child(_list)
+	scroll.add_child(_list)
 	for id in Gadgets.WORKING:
 		var b := UIStyle.button("", W_LIST)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -185,6 +191,9 @@ func _show_card() -> void:
 			_line("%d %s  (YOU HAVE %d)" % [int(e[1]), Gadgets._name(str(e[0])).to_upper(), have], UIStyle.GOOD if have >= int(e[1]) else UIStyle.DANGER_TEXT)
 		_build_btn.text = "Build" if nt == 0 else "Upgrade"
 		_build_btn.disabled = false
+		if GadgetData.GADGETS[_sel]["kind"] == "ship" and not _aboard():
+			_line("BUILT AND FITTED ONLY AT THE BENCH ABOARD YOUR SHIP", UIStyle.DANGER_TEXT)
+			_build_btn.disabled = true
 	_card.add_child(InventoryScreen._rule())
 	var mc := belt.max_charges(_sel) if t >= 0 else 0
 	if t >= 0 and mc > 0:
@@ -194,8 +203,13 @@ func _show_card() -> void:
 	_refill_btn.disabled = t < 0 or mc <= 0 or belt.charges(_sel) >= mc
 	for i in range(_slot_btns.size()):
 		var sb: Button = _slot_btns[i]
-		sb.disabled = t < 0
+		sb.disabled = t < 0 or g["kind"] == "ship"
 		sb.modulate = Color(1.0, 0.85, 0.4) if belt.slots[i] == _sel else Color.WHITE
+
+
+## At the bench aboard the ship (where ship gadgets are built and fitted).
+func _aboard() -> bool:
+	return bench != null and bench.get("style") == "ship"
 
 
 func _line(text: String, col: Color) -> void:
@@ -207,6 +221,9 @@ func _line(text: String, col: Color) -> void:
 
 func build_selected() -> void:
 	var pl := _player()
+	if GadgetData.GADGETS[_sel]["kind"] == "ship" and not _aboard():
+		_flash("Build it at the bench aboard your ship", true)
+		return
 	var was := pl.progression.mastery_level("tinker")
 	var why := Gadgets.build(pl, _sel)
 	if why != "":

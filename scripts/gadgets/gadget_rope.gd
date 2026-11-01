@@ -12,6 +12,8 @@ var _retracting := false
 var _line: MeshInstance3D
 var _hook: MeshInstance3D
 var tier := 0
+## How many times the plain line's thickness (the harpoon cannon's is a heavy one).
+var thick := 1.0
 
 static var _cyl: CylinderMesh
 
@@ -77,5 +79,5 @@ func _draw() -> void:
 	var len := maxf(d.length(), 0.01)
 	var up := d / len
 	var side := up.cross(Vector3.RIGHT if absf(up.x) < 0.9 else Vector3.FORWARD).normalized()
-	_line.global_transform = Transform3D(Basis(side, up, side.cross(up)) * Basis.from_scale(Vector3(1, len, 1)), _a + d * 0.5)
+	_line.global_transform = Transform3D(Basis(side, up, side.cross(up)) * Basis.from_scale(Vector3(thick, len, thick)), _a + d * 0.5)
 	_hook.global_transform = Transform3D(Basis(side, -up, side.cross(-up)) * Basis.from_scale(Vector3.ONE * 2.0), tip)

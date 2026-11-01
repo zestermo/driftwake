@@ -34,6 +34,8 @@ var label: String = ""
 ## first time they open it (Loot.chest); `rolled` once done (or to keep what's in it as it is).
 var rolls: bool = false
 var rolled: bool = false
+## (1.28) Locked: why, in words ("" open). A lockpick set picks it (GadgetState "lockpick"); the owner's code unlocks it too.
+var locked: String = ""
 
 @onready var interactable: Interactable = $Interactable
 @onready var mesh: MeshInstance3D = $MeshInstance3D
@@ -122,6 +124,10 @@ func roll() -> void:
 
 
 func _on_interact(player: Player) -> void:
+	if locked != "":
+		player.call("_toast", "Locked: %s. A lockpick set would open it" % locked)
+		FX.sfx("clack", global_position, -8.0, 0.05, 0.6)
+		return
 	roll()
 	# a single item (a dropped sword) is picked up straight away; anything
 	# more opens the loot window (headless test runs just take everything)

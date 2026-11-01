@@ -89,6 +89,7 @@ func _draw() -> void:
 		_draw_log_pose(heading, here)
 		_draw_lookout(heading, here, me)
 		_draw_treasure(heading, here, me)
+		_draw_gadget_marks(heading, here)
 		_draw_village(heading, here)
 		_draw_objective(heading, here)
 		_draw_crew(heading, here, me)
@@ -240,6 +241,23 @@ func _draw_treasure(heading: float, here: Vector2, me: Node3D) -> void:
 		if to.length() > reach or x == INF:
 			continue
 		draw_circle(Vector2(x, 15.0), 2.5, Color(1.0, 0.82, 0.3))
+
+
+## (1.28) What the marking spyglass and lantern bombs marked (GadgetMarks): foes a red pip, caches a gold diamond.
+func _draw_gadget_marks(heading: float, here: Vector2) -> void:
+	if GadgetMarks.marks.is_empty():
+		return
+	for e in GadgetMarks.live():
+		var n := e[0] as Node3D
+		var to := Vector2(n.global_position.x, n.global_position.z) - here
+		var x := _x(bearing(to), heading)
+		if x == INF:
+			continue
+		if e[1] == "foe":
+			draw_circle(Vector2(x, 7.0), 2.5, Color.BLACK)
+			draw_circle(Vector2(x, 7.0), 1.8, Color(1.0, 0.35, 0.3))
+		else:
+			draw_colored_polygon(PackedVector2Array([Vector2(x, 4), Vector2(x + 2.5, 6.5), Vector2(x, 9), Vector2(x - 2.5, 6.5)]), Color(1.0, 0.82, 0.3))
 
 
 ## A needle standing on the strip: the coloured point up, the dark tail down.

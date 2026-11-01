@@ -530,6 +530,7 @@ const SPECS := {
 	"gd_grapple": {"len": 0.25, "hold": true, "stance": "sword", "weapon": ""},
 	"gd_glide": {"len": 0.2, "hold": true, "stance": "sword", "weapon": ""},
 	"gd_hang": {"len": 0.15, "hold": true, "stance": "sword", "weapon": ""},
+	"gd_spy": {"len": 0.9, "stance": "sword", "weapon": "cutlass"},
 	# --- fishing (FishPoses, the rod and both hands on it FishRod's; Fishing's lengths) ---
 	"rod_cast": {"len": 1.1, "stance": "sword", "weapon": ""},
 	"rod_wait": {"len": 0.35, "stance": "sword", "weapon": ""},

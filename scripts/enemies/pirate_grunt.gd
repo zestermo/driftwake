@@ -844,7 +844,7 @@ func _physics_process(delta: float) -> void:
 				_face(nd)
 				if _want_rush(p, dist):
 					_start_rush()
-				elif _want_pistol(p, dist, delta):
+				elif not lured and _want_pistol(p, dist, delta):
 					_start_aim("pistol")
 				elif dist > CIRCLE_RANGE + 0.6:
 					want = nd * RUN_SPEED + _separation()
@@ -869,7 +869,7 @@ func _physics_process(delta: float) -> void:
 					radial = -2.4
 				var tangent := Vector3.UP.cross(dir_p) * _strafe_dir * STRAFE_SPEED * (1.35 if flank != 0.0 else 1.0)
 				want = dir_p * radial + tangent + _separation() * 1.5
-				if _want_pistol(p, dist, delta):
+				if not lured and _want_pistol(p, dist, delta):
 					_start_aim("pistol")
 				elif dist > CIRCLE_RANGE + 3.0:
 					_set_state(S.CHASE)
@@ -1146,7 +1146,7 @@ func _physics_process(delta: float) -> void:
 				want = dir_p * 2.5
 			elif not _swung:
 				_swung = true
-				if p and dist < 2.3 and _fwd().dot(dir_p) > 0.3 and p.has_node("Hurtbox") and (p.get_node("Hurtbox") as Hurtbox).monitorable:
+				if p and not lured and dist < 2.3 and _fwd().dot(dir_p) > 0.3 and p.has_node("Hurtbox") and (p.get_node("Hurtbox") as Hurtbox).monitorable:
 					var hd := HitData.new()
 					hd.grab = true
 					hd.damage = 0.0
@@ -1162,8 +1162,11 @@ func _physics_process(delta: float) -> void:
 
 	# its blow came down on the decoy: that shatters it
 	if lured and state == S.SWING and st_t > 0.24 and dist < _reach() + 1.2:
-		Net.fx("decoy_break", [_lure.spot])
-		_lure = null
+		if _lure.sturdy:
+			_lure.struck(self)
+		else:
+			Net.fx("decoy_break", [_lure.spot])
+			_lure = null
 
 	if elite_trait == "berserk" and state in [S.CHASE, S.CIRCLE, S.CLOSE]:
 		want *= EliteTraits.BERSERK_SPEED
@@ -2593,6 +2596,16 @@ var _lure: Decoy = null
 
 ## (host) A decoy of the captain it's after appeared close by: a blade grunt in the fight goes for it.
 func lure(d: Decoy) -> void:
+	# (1.28) a gadget decoy draws any blade (a rifle keeps its distance), and rouses one idle at its post
+	if d.sturdy:
+		if role == "rifle" or _lure == d or state in [S.DEAD, S.DOWN, S.GETUP, S.SWIM, S.STAGGER]:
+			return
+		if state in [S.IDLE, S.RETURN]:
+			alert()
+		if state not in [S.ALERT, S.CHASE, S.CIRCLE, S.CLOSE, S.WIND]:
+			return
+		_lure = d
+		return
 	if role != "sword" or state not in [S.ALERT, S.CHASE, S.CIRCLE, S.CLOSE, S.WIND] or _target() != d.captain:
 		return
 	_lure = d
