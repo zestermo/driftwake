@@ -681,3 +681,17 @@ scripts/island/stronghold_shell.gd      t/stronghold
 scripts/island/stronghold_island.gd     t/stronghold
 scripts/island/city_undercity.gd        t/canal/undercity t/capital/catacombs
 scripts/island/capital_crowd.gd         t/capital/night
+scripts/island/themes/volcanic_land.gd     t/island/volcanic_land t/island/volcanic_eruptions
+scripts/island/themes/volcanic_hazard.gd   t/island/volcanic_land
+scripts/island/themes/volcanic_theme.gd    t/island/volcanic_land t/island/theme_registry
+scripts/island/themes/volcanic_town.gd     t/island/volcanic_town
+scripts/island/themes/volcanic_tinkerer.gd t/island/volcanic_town
+scripts/island/themes/volcanic_anvil.gd    t/island/volcanic_town
+scripts/island/themes/volcanic_places.gd   t/island/volcanic_wilds
+scripts/island/themes/volcanic_vents.gd    t/island/volcanic_wilds
+scripts/island/themes/volcanic_eruptions.gd t/island/volcanic_eruptions
+scripts/enemies/beasts/volcanic_*.gd       t/island/beast_moves t/island/volcanic_wilds
+scripts/enemies/beasts/volcanic_salamander.gd t/island/volcanic_salamander t/island/beast_moves
+scripts/enemies/fauna/volcanic_*.gd        t/island/volcanic_wilds
+scripts/props/volcanic_plants.gd           t/island/volcanic_land
+scripts/island/village_vendors.gd          t/island/volcanic_town
