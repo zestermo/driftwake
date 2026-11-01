@@ -5,7 +5,7 @@ written 2026-10-31 while Zach is away (the feel-systems rule: numbers before the
 docs/v1_28_plan.md "Gadgets and tinkering".
 
 ## How it works
-- **The belt:** 3 slots. **U** fires the selected gadget, **Shift+U** cycles (pad: LB+LT fires, the share button
+- **The belt:** 3 slots. **U** fires the selected gadget, **O** cycles (was Shift+U until 2026-11-01: Shift is sprint) (pad: LB+LT fires, the share button
   cycles). Any weapon in hand, on foot, free (idle, moving, jumping, falling). The HUD shows the slots right of the
   skill bar; the pouch on the captain's back shows the belt's best tier to the crew.
 - **Charges + cooldown:** a use spends a charge and starts the cooldown (game time). Traversal gadgets, the spyglass
@@ -114,6 +114,6 @@ The rest come from the forge town's master tinkerer (`Gadgets.teach`), books and
 - **Harpoon Cannon (for the leviathans):** see the section added with piece 5.
 
 ## Assumed (revisit in play)
-- Every number above. Shift+U for cycling (it shares Shift with sprint: sprinting and pressing U cycles, not fires).
+- Every number above. O for cycling (a free key next to I; Shift+U clashed with sprint).
 - Auto-aim for throws (no aiming mode). Blueprints studied at a bench rather than read from the bag.
-- Beasts and fauna aren't slowed by tar (only grunts have `slowed`); they do stagger in smoke if they can.
+- Tar and caltrops slow grunts, beasts (JungleBeast) and wildlife (Creature) alike: each has `slowed(secs, k)`.

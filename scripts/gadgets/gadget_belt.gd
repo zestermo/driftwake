@@ -2,7 +2,7 @@ class_name GadgetBelt
 extends Node
 ## A captain's gadget belt (1.28): the blueprints they know, the gadgets they've built (each at a tier, with its
 ## charges), and three belt slots. U fires the selected slot's gadget (whatever weapon is held, on foot and free,
-## mid-jump too), Shift+U picks the next filled slot. Charges are spent per use and refilled at a workbench or camp;
+## mid-jump too), O picks the next filled slot. Charges are spent per use and refilled at a workbench or camp;
 ## a short cooldown (game time: PlayerState.now_s) follows every use. Saved with the captain (SaveGame "gadgets").
 ## Nothing here runs per frame: cooldowns are timestamps, the HUD polls.
 ## Co-op: each captain's own. The throw plays on every screen from the thrower's event (Player.net_event

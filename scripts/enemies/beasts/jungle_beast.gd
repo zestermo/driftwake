@@ -526,6 +526,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y = -0.5
 	else:
 		velocity.y -= GRAVITY * delta
+	if _slow_t > 0.0:
+		_slow_t -= delta
+		want *= slow_k
 	var hv := _flat(velocity).move_toward(want, 26.0 * delta)
 	velocity.x = hv.x
 	velocity.z = hv.z
@@ -791,6 +794,18 @@ func _part_name(n: String) -> String:
 ## Where hits show (numbers, sparks): the middle of the body.
 func _hit_point() -> Vector3:
 	return global_position + Vector3(0, 1.4, 0)
+
+
+## (1.28) In a tar pool or on caltrops (GadgetZone, the host's): its steps at `k` of their speed for `secs`.
+var slow_k := 1.0
+var _slow_t := 0.0
+
+
+func slowed(secs: float, k: float) -> void:
+	if Net.forward(self, "slowed", [secs, k]):
+		return
+	_slow_t = maxf(_slow_t, secs)
+	slow_k = k
 
 
 func stagger(secs: float) -> void:

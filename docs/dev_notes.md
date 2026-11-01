@@ -8607,6 +8607,14 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Per frame/tick:** the decoy's _process (wobble) while it stands; its 0.4 s host lure timer; each lantern's 0.5 s
   timer over "enemies"; the compass draws the live marks (only when any exist).
 - **Tests:** t/gadgets decoy, spyglass, helmet, autoreel, lockpick, lantern_bomb. Render: `abilityshot gadget:decoy:2`.
+
+## 2026-11-01: gadgets - tar/caltrops slow beasts and fauna; O cycles the belt (1.28)
+- `slowed(secs, k)` (Net.forward, then a timer) on JungleBeast (scales `want` before the steer) and Creature (scales
+  `_want` in `_walk`), so the tar pool and caltrops (GadgetZone's `has_method("slowed")`) slow every beast and wild
+  animal, not only grunts. Per tick: one compare while not slowed.
+- The belt cycles on **O** (project.godot `gadget_cycle`, no Shift): Shift+U collided with sprint (Shift held, U cycled
+  instead of firing). O is free (I inventory, P/J/Y are the skill map, journal and duel answer). Pad unchanged (share).
+- **Tests:** t/gadgets/tar_beasts (a wolf in tar, a strangler on caltrops), belt_fire (O, and that it isn't Shift+U).
 ## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
 - **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
   apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by
