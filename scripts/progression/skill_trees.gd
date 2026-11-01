@@ -33,6 +33,7 @@ const HEADERS := {
 	"hammer": ["Hammer", "combat", Color(0.88, 0.74, 0.54), 30],
 	"dual_axe": ["Twin Axes", "combat", Color(0.8, 0.88, 1.0), 30],
 	"greatsword": ["Greatsword", "combat", Color(0.72, 0.95, 0.84), 30],
+	"rapier": ["Rapier", "combat", Color(0.82, 0.88, 0.98), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"long_gun": ["Long Gun", "combat", Color(0.74, 0.84, 1.0), 30],
@@ -80,6 +81,7 @@ const ELEMENTS := {
 	"hammer": ["hm", "Rumbling Earth", "Mountain's Weight", "earth: rock thrown up off every blow, the shockwaves in sandstone and stone spikes heaving up out of the ground"],
 	"dual_axe": ["dx", "Hoarfrost", "Winter's Bite", "frost: rime and ice chips cracking off every chop, a cold mist, and Fimbulwinter heaves ice up out of the ground under your foes"],
 	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
+	"rapier": ["rp", "Quicksilver", "Hall of Glass", "quicksilver mirror: silver afterimages off the thrusts, mirror flashes at the point, mercury beading off the blade, and the phantom's double thrust drawn in silver"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"long_gun": ["lg", "Starlit Sights", "Falling Star", "starlight: silver shots with a moon-blue edge, star glints where they land, and Hawkeye's shots fall like shooting stars"],
 	"cannon": ["cn", "Brimstone", "Hellfire Shells", "brimstone: sulphur-yellow blasts, violet smoke and burning shrapnel, and the Leviathan Shell leaves the ground burning"],
@@ -218,6 +220,7 @@ static func _build() -> void:
 	_build_hammer()
 	_build_dual_axe()
 	_build_greatsword()
+	_build_rapier()
 	_build_corsair()
 	_build_pistol()
 	_build_long_gun()
@@ -1018,6 +1021,45 @@ static func _build_greatsword() -> void:
 	_step("gs_heft", "Heft", "gs_run", 3, {"heavy_greatsword": 0.08}, "Your cleave (right-click) hits 8% harder a step.")
 	_step("gs_draw", "Draw Breath", "gs_crescent", 3, {"flow_greatsword": 0.15}, "Greatsword hits give 15% more energy a step.")
 	_step("gs_recover", "Recovery", "gs_flow", 3, {"cdr_greatsword": 0.05}, "Greatsword techniques come back 5% sooner a step.")
+
+
+## Rapiers (rapier, swept rapier, smallsword, colichemarde, flamberge, quicksilver): a fencer's thrusts on footwork,
+## the parry answered by the riposte, mirror images; quicksilver as the element.
+static func _build_rapier() -> void:
+	_tree("rapier", ["Guard", "Mirror", "Footwork"])
+	_root("rp_root", "Rapier", {},
+		"A needle of a sword in one hand, the other up behind you: quick thrusts carried on footwork, a straight thrust, a disengage into the high line and the phantom double (your mirror's thrust, then the real one). Right-click lunges; a parry that lands answers at once with the riposte. Fight with a rapier in hand to build its mastery.")
+	_big("rp_bind", "The Bind", "mech", 0, 3, {"parryshot_rapier": 1, "parry_rapier": 0.06},
+		"Parry with a rapier and you turn gunshots aside too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("rp_glass", "Glass Step", "tech", 0, 8, {}, "", "glass_step")
+	_big("rp_measure", "Perfect Measure", "mech", 0, 20, {"riposte_rapier": 0.5, "def_rapier": 5.0},
+		"Your riposte off a landed parry hits 50% harder, and you have 5 more defense with a rapier in hand.")
+	_big("rp_needles", "Needle Rain", "tech", 1, 5, {}, "", "needle_rain")
+	_big("rp_feint", "Looking-Glass Feint", "tech", 1, 10, {}, "", "glass_feint")
+	_elem(1)
+	_elem(2)
+	_big("rp_hall", "Hall of Mirrors", "ult", 1, 30, {}, "", "hall_of_mirrors")
+	_big("rp_flurry", "Mercury Flurry", "move", 2, 2, {"mv_mercury_flurry": 1},
+		"Adds a fourth blow to your combo: three thrusts from the wrist, quick as a pulse, and a lunge behind the last.")
+	_big("rp_fleche", "Fleche", "move", 2, 4, {"mv_fleche": 1},
+		"Attack at a sprint: the arm thrown out first and a running leap behind it, the point arriving before your feet. It breaks their wind-up.")
+	_big("rp_reply", "Quick Reply", "mech", 2, 6, {"riposte_rapier": 0.3, "stam_rapier": 0.1},
+		"Your riposte hits 30% harder, and rapier attacks cost 10% less stamina.")
+	_big("rp_balestra", "Balestra", "tech", 2, 12, {}, "", "balestra")
+	_big("rp_flow", "Light Feet", "passive", 2, 13, {"finisher_rapier": 0.3, "heavy_rapier": 0.25},
+		"Passive (a slot). The last blow of your combo lands 30% harder, and your lunge (right-click) 25%.")
+	_variant("rp_way", "Duellist's Way", 2, [
+		["rp_first", "First Blood", 22, {"crit_rapier": 0.08, "bleed_rapier": 0.15}, "8% more of your hits land 50% harder, and 15% of them open a bleeding wound."],
+		["rp_word", "The Last Word", 22, {"riposte_rapier": 0.5, "cdr_rapier": 0.2}, "Your riposte hits 50% harder still, and rapier techniques come back 20% sooner."]],
+		"Two ways to settle a duel. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("rp_point", "Fine Point", "rp_root", 5, {"dmg_rapier": 0.05}, "+5% rapier damage a step.")
+	_step("rp_cloak", "Cloak Arm", "rp_bind", 3, {"def_rapier": 3.0}, "+3 defense with a rapier in hand a step.")
+	_step("rp_keen", "Keen Silver", "rp_elem", 5, {"crit_rapier": 0.03}, "3% more of your rapier hits land 50% harder, a step.")
+	_step("rp_carry", "Follow Through", "rp_feint", 5, {"finisher_rapier": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("rp_wind", "Second Wind", "rp_flurry", 3, {"stam_rapier": 0.05}, "Rapier attacks cost 5% less stamina a step.")
+	_step("rp_drive", "Drive", "rp_fleche", 3, {"heavy_rapier": 0.08}, "Your lunge (right-click) hits 8% harder a step.")
+	_step("rp_draw", "Draw Breath", "rp_needles", 3, {"flow_rapier": 0.15}, "Rapier hits give 15% more energy a step.")
+	_step("rp_recover", "Recovery", "rp_flow", 3, {"cdr_rapier": 0.05}, "Rapier techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.

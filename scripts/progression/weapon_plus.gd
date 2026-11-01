@@ -80,6 +80,9 @@ const CREW := {
 	"pouch_pass": {"name": "Pouch Pass", "styles": [], "tree": "slingshot", "kind": "support", "solo": "Sleight",
 		"desc": "Toss your crewmate a handful of trick pellets: you both get energy (they 25, you 10) and hit 20% harder for 8 s.",
 		"solo_desc": "12 energy, and 20% harder for 8 s."},
+	"through_sleeve": {"name": "Through the Sleeve", "styles": [], "tree": "rapier", "kind": "setup", "solo": "Pin and Reply",
+		"desc": "Your point goes through the sleeve of the foe ahead and into the ground, pinning it; your crewmate is beside it in a blink with a blow nothing blocks.",
+		"solo_desc": "The pinning thrust, then your own lunge."},
 	"hold_down": {"name": "Hold Him Down", "styles": [], "tree": "unarmed", "kind": "setup", "solo": "Suplex",
 		"desc": "Grab the foe ahead and hold it in a full nelson; your crewmate is in front of it in a blink with the biggest punch they have.",
 		"solo_desc": "The grab, then a throw over your head into the ground."},
@@ -104,6 +107,7 @@ const CREW_FIRST := {
 	"cannon": ["Cannon Ride", "Your crewmate climbs onto the barrel and you fire: they ride the blast far along your aim and land in a slam."],
 	"slingshot": ["Sling Launch", "Plant the fork and draw the band right back with your crewmate in the pouch: they're flung high over everything ahead."],
 	"unarmed": ["Human Cannonball", "Cup your hands: your crewmate launches from your grip, short and fast, through anything in the way."],
+	"rapier": ["Mirror Match", "You and your crewmate thrust into the foe ahead from opposite sides on the same beat, like a reflection: a flash of mirrors bursts on everyone round it."],
 }
 
 const TREES := {
@@ -293,6 +297,17 @@ const TREES := {
 			["u_breath2", "Breath Control", {"skill_unarmed": 0.06, "parry_unarmed": 0.04}],
 			["u_hands2", "Heavy Hands II", {"skill_unarmed": 0.06}],
 			["u_wind", "Wind in the Fists", {"flow_unarmed": 0.2, "cdr_unarmed": 0.1}]],
+	},
+	"rapier": {
+		"lead_a": ["rp_polish", "Polished Glass", {"ult_charge_pct": 0.1}],
+		"lead_b": ["rp_true", "True Line", {"skill_rapier": 0.08}],
+		"ult_b": ["rp_meridian", "silver_meridian"],
+		"crew": "through_sleeve",
+		"alts": ["glass_dive", "phantom_rush", "rising_needle"], "air_heavy": "mirror_fall",
+		"bridges": [["rp_steady", "Steady Hand", {"def_rapier": 3.0, "parry_rapier": 0.03}],
+			["rp_cold", "Cold Reflection", {"skill_rapier": 0.06, "parry_rapier": 0.04}],
+			["rp_fine", "Fine Point", {"skill_rapier": 0.06}],
+			["rp_quick", "Quick Silver", {"flow_rapier": 0.2, "cdr_rapier": 0.1}]],
 	},
 }
 

@@ -157,12 +157,14 @@ const STYLES := {
 		"reach": "kick_fly", "color": Color(1.0, 0.94, 0.86), "breaker": true, "trip": true, "legs": true,
 		"winds": [[0.0, 1.0, 0.0, true]]},
 	# rapier: quick thrusts carried on footwork (RapierMoves): the straight thrust on an advance, the disengage into the
-	# high line, and the phantom double (the mirror's thrust, a snap back, the real one on a lunge: "phantoms" hits
-	# again at RapierMoves.PHANTOM_AT[1] for "phantom_damage"); "fence": the design's speed, reach and bleed (RapierArts)
-	"rapier": {"anims": ["rp_1", "rp_2", "rp_3"], "trails": ["", "", ""],
-		"durations": [0.3, 0.32, 0.6], "impulses": [5.5, 5.5, 4.0],
-		"damages": [9.0, 10.0, 8.0], "hitstops": [0.04, 0.045, 0.05], "shakes": [0.06, 0.07, 0.08],
-		"reach": "rapier", "color": Color(0.9, 0.93, 1.0), "fence": true, "phantoms": [false, false, true], "phantom_damage": 16.0},
+	# high line, the phantom double (the mirror's thrust, a snap back, the real one on a lunge) and (Mercury Flurry) three
+	# thrusts from the wrist and a lunge; "rehits": the later thrusts' damage, each at RapierMoves.REHITS[anim]; "mirrors":
+	# the first thrust is the mirror's (a silver afterimage); "fence": the design's speed, reach and bleed (RapierArts)
+	"rapier": {"anims": ["rp_1", "rp_2", "rp_3", "rp_4"], "trails": ["", "", "", ""],
+		"durations": [0.3, 0.32, 0.6, 0.8], "impulses": [5.5, 5.5, 4.0, 3.0],
+		"damages": [9.0, 10.0, 8.0, 6.0], "hitstops": [0.04, 0.045, 0.05, 0.03], "shakes": [0.06, 0.07, 0.08, 0.05],
+		"reach": "rapier", "color": Color(0.9, 0.93, 1.0), "fence": true,
+		"rehits": [[], [], [16.0], [6.0, 7.0, 18.0]], "mirrors": [false, false, true, false]},
 	# rapier, attacked at a sprint (the Fleche): the arm thrown out and a running leap behind it, the point arriving
 	# first; it breaks a wind-up
 	"rp_dash": {"anims": ["rp_dash"], "trails": [""],
@@ -188,7 +190,7 @@ const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], 
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
 	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin",
-	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin"}
+	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin", "rapier": "mercury_flurry"}
 ## A greatsword blow chained straight out of the last one's follow-through: this much faster and harder per blow
 ## built (the second x1, the third x2, the turn x3).
 const MOMENTUM_SPEED := 0.07
@@ -228,8 +230,8 @@ var _spd := 1.0
 var _thud_t := -1.0
 ## A greatsword's momentum: blows built in an unbroken flow (0: this one started from the guard).
 var _mom := 0
-## When the rapier's phantom double lands its real thrust (s; < 0: this blow has none).
-var _phantom_t := -1.0
+## A rapier blow's later thrusts still to land: [s, damage] (RapierMoves.REHITS).
+var _rehits: Array = []
 
 
 func enter(data: Dictionary) -> void:
@@ -288,8 +290,11 @@ func enter(data: Dictionary) -> void:
 	_window = ActionSpecs.hit_seconds(anim) / _spd
 	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
 	_thud_t = float(HammerMoves.THUD[anim]) * ActionSpecs.length(anim) / _spd if HammerMoves.THUD.has(anim) else -1.0
-	_phantom_t = float(RapierMoves.PHANTOM_AT[1]) * ActionSpecs.length(anim) / _spd \
-		if cfg.has("phantoms") and bool(cfg["phantoms"][combo_index]) else -1.0
+	_rehits = []
+	if cfg.has("rehits"):
+		var dmg: Array = cfg["rehits"][combo_index]
+		for i in dmg.size():
+			_rehits.append([float(RapierMoves.REHITS[anim][i]) * ActionSpecs.length(anim) / _spd, float(dmg[i])])
 	_swooshed = false
 	_shot_t = ActionSpecs.shot_seconds(anim) if _kind != "cut" else -1.0
 	player.body_model.play(anim, ActionSpecs.length(anim) / _spd)
@@ -406,31 +411,33 @@ func physics_update(delta: float) -> void:
 		if cfg.get("legs", false):
 			BlackLegArts.kick_fx(player, str(cfg["anims"][combo_index]))
 		if cfg.get("fence", false):
-			if _phantom_t >= 0.0:
+			if cfg.has("mirrors") and bool(cfg["mirrors"][combo_index]):
 				RapierArts.phantom(player)
 			else:
-				RapierArts.thrust_fx(player, last or cfg.get("breaker", false))
+				RapierArts.thrust_fx(player, (last and _rehits.is_empty()) or cfg.get("breaker", false))
 
 	if _thud_t >= 0.0 and timer >= _thud_t:
 		_thud_t = -1.0
 		HammerArts.thud(player, str(cfg["anims"][combo_index]) == "ham_spin")
 
-	# (the rapier's phantom double: the hitbox off a moment after the mirror's thrust, then on again for the real one)
-	if _phantom_t >= 0.0 and hitbox_activated and timer >= _phantom_t - 0.05 and player.sword_hitbox.active:
+	# (a rapier blow's later thrusts: the hitbox off a moment before each, then on again with a fresh hit; the last the
+	# big one)
+	if not _rehits.is_empty() and hitbox_activated and timer >= float(_rehits[0][0]) - 0.05 and player.sword_hitbox.active:
 		player.sword_hitbox.deactivate()
-	if _phantom_t >= 0.0 and timer >= _phantom_t:
-		_phantom_t = -1.0
-		var real := player.melee_hit(float(cfg["phantom_damage"]), "finisher")
-		real.hitstop_duration = 0.08
-		real.camera_shake_intensity = 0.14
-		real.knockback_force = 7.0
-		real.stagger_duration = 0.6
-		real.sever = true
-		RapierArts.shape_hit(player, real)
-		player.sword_hitbox.activate(real)
-		Net.fx("sfx", ["whoosh", player.global_position, -5.0, 0.08, 1.3])
-		player.squash(2.0)
-		RapierArts.thrust_fx(player, true)
+	if not _rehits.is_empty() and timer >= float(_rehits[0][0]):
+		var big := _rehits.size() == 1
+		var again := player.melee_hit(float(_rehits[0][1]), "finisher" if big else "")
+		_rehits.pop_front()
+		again.hitstop_duration = 0.08 if big else 0.03
+		again.camera_shake_intensity = 0.14 if big else 0.05
+		again.knockback_force = 7.0 if big else 2.0
+		again.stagger_duration = 0.6 if big else 0.3
+		again.sever = true
+		RapierArts.shape_hit(player, again)
+		player.sword_hitbox.activate(again)
+		Net.fx("sfx", ["whoosh", player.global_position, -5.0 if big else -8.0, 0.08, 1.3 if big else 1.5])
+		player.squash(2.0 if big else 1.0)
+		RapierArts.thrust_fx(player, big)
 
 	if timer >= _window.y and not hitbox_deactivated:
 		hitbox_deactivated = true

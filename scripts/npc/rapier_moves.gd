@@ -36,6 +36,9 @@ const SINK := {"leg_l": Vector3(-0.2, 0, -0.2), "shin_l": Vector3(-0.95, 0, 0), 
 ## The phantom double thrust (the combo's third): the first (the mirror's) at PHANTOM_AT[0] of the move, the real one
 ## at [1] (u).
 const PHANTOM_AT := [0.3, 0.6]
+## Combo blows that land more than once: the later thrusts' strike keys (u; the first is the hit window's start).
+## Mercury Flurry (rp_4): three quick thrusts on the spot and the lunge.
+const REHITS := {"rp_3": [0.6], "rp_4": [0.3, 0.45, 0.62]}
 ## The riposte's thrust out of a landed parry (u of rp_deflect).
 const RIPOSTE_AT := 0.32
 
@@ -148,6 +151,41 @@ static func pose(h, n: String, u: float) -> Array:
 			var b := float(PHANTOM_AT[1])
 			return [h._keys(u, [[0.0, g], [a - 0.12, set, "out"], [a, _whip(one, Vector3(0.97, 1.0, 1.08)), "out"], [a + 0.06, one],
 				[b - 0.1, back, "out"], [b, _whip(two, Vector3(0.96, 0.98, 1.12), 1.0), "out"], [b + 0.08, two], [b + 0.24, two], [1.0, g]]), "full", lift]
+		"rp_4":
+			# Mercury Flurry: three thrusts from the wrist on the spot, quick as a pulse, each a hair higher, then the
+			# lunge behind the last
+			var set := _p([{"hips": Vector3(0, 0.8, 0), "torso": Vector3(0.04, 0.2, 0), "head": Vector3(0.0, -0.95, 0),
+				"arm": Vector3(0.12, -0.5, -0.85), "fore": 1.0, "blade": Vector3(0.0, 0.15, -1.0),
+				"off": Vector3(-0.1, 0.2, 1.0), "fore_l": 1.7, "_lift": Vector3(0, -0.18, 0)}, LEGS])
+			var outs: Array = []
+			var backs: Array = []
+			for i in 3:
+				var hy := -0.06 + 0.08 * i
+				outs.append(_p([{"pivot": Vector3(-0.05, 0, 0), "hips": Vector3(0, 0.84, 0), "torso": Vector3(-0.04, 0.24 + 0.03 * i, 0),
+					"head": Vector3(0.06, -1.0, 0), "arm": Vector3(0.05, hy, -1.0), "fore": 0.1, "blade": Vector3(0.0, hy * 0.5, -1.0),
+					"off": Vector3(-0.1, 0.1, 1.0), "fore_l": 1.3, "_lift": Vector3(0, -0.2, 0)}, ADVANCE]))
+				backs.append(_p([{"hips": Vector3(0, 0.8, 0), "torso": Vector3(0.0, 0.22, 0), "head": Vector3(0.02, -0.95, 0),
+					"arm": Vector3(0.12, -0.45 + 0.1 * i, -0.88), "fore": 0.8, "blade": Vector3(0.0, 0.1, -1.0),
+					"off": Vector3(-0.1, 0.15, 1.0), "fore_l": 1.5, "_lift": Vector3(0, -0.2, 0)}, LEGS]))
+			var lunge := _p([{"pivot": Vector3(-0.2, 0, 0), "hips": Vector3(0, 0.92, 0), "torso": Vector3(-0.08, 0.3, 0), "head": Vector3(0.22, -1.12, 0),
+				"arm": Vector3(0.04, 0.0, -1.0), "fore": 0.04, "blade": Vector3(0.0, -0.02, -1.0),
+				"off": Vector3(-0.05, -0.4, 1.0), "fore_l": 0.3, "_lift": Vector3(0, -0.38, 0)}, LUNGE])
+			var r: Array = REHITS["rp_4"]
+			var keys: Array = [[0.0, g], [0.1, set, "out"], [0.18, _whip(outs[0], Vector3(0.98, 1.0, 1.05)), "out"], [0.24, backs[0], "out"],
+				[float(r[0]), _whip(outs[1], Vector3(0.98, 1.0, 1.05)), "out"], [float(r[0]) + 0.07, backs[1], "out"],
+				[float(r[1]), _whip(outs[2], Vector3(0.98, 1.0, 1.05)), "out"], [float(r[1]) + 0.07, backs[2], "out"],
+				[float(r[2]), _whip(lunge, Vector3(0.95, 0.98, 1.14), 1.1), "out"], [float(r[2]) + 0.08, lunge], [0.84, lunge], [1.0, g]]
+			return [h._keys(u, keys), "full", lift]
+		"rp_rise":
+			# Rising Needle: sunk under their guard, then the point driven straight up under the chin, up on the toes
+			var low := _p([{"pivot": Vector3(0.0, 0, 0), "hips": Vector3(0, 0.8, 0), "torso": Vector3(-0.2, 0.2, 0), "head": Vector3(0.15, -0.95, 0),
+				"arm": Vector3(0.1, -0.75, -0.65), "fore": 0.9, "blade": Vector3(0.0, -0.1, -1.0),
+				"off": Vector3(-0.1, 0.2, 1.0), "fore_l": 1.6, "_lift": Vector3(0, -0.36, 0), "_scale": Vector3(1.04, 0.92, 1.0)}, SINK])
+			var up := _p([{"pivot": Vector3(0.12, 0, 0), "hips": Vector3(0, 0.85, 0), "torso": Vector3(0.12, 0.25, 0), "head": Vector3(-0.2, -1.0, 0),
+				"arm": Vector3(0.05, 0.85, -0.55), "fore": 0.15, "blade": Vector3(0.0, 0.9, -0.45),
+				"off": Vector3(-0.1, -0.35, 1.0), "fore_l": 0.6, "_lift": Vector3(0, -0.06, 0)}, ADVANCE])
+			return [h._keys(u, [[0.0, g], [0.22, low, "out"], [0.3, low], [0.38, _whip(up, Vector3(0.97, 1.08, 1.0), 1.0), "out"],
+				[0.48, up], [0.7, up], [1.0, g]]), "full", lift]
 		"rp_heavy":
 			# the lunge: sunk back over the rear foot with the point held on them, a breath, then everything at once: the
 			# arm straight, the back leg kicked long, the front foot thrown a stride on, the body low behind the point

@@ -98,6 +98,10 @@ const ALL := {
 	"cannon_ride": {"name": "Cannon Ride", "styles": ["cannon"], "launch": true, "solo": "Recoil Jump",
 		"desc": "Your crewmate climbs onto the barrel and you fire: they ride the blast far along your aim and land in a slam that floors the crowd.",
 		"solo_desc": "Fire the cannon into the ground at your feet and ride the blast high, coming down in a slam."},
+	# (1.28) the rapier's: a duet (CrewTechniqueState.DUETS "combined"), not a launch
+	"mirror_match": {"name": "Mirror Match", "styles": ["rapier"], "kind": "combined", "solo": "Looking Glass",
+		"desc": "You and your crewmate thrust into the foe ahead from opposite sides on the same beat, like a reflection: a flash of mirrors bursts on everyone round it.",
+		"solo_desc": "A thrust into the foe ahead, a blink through to its far side and the reflection's thrust back, and the burst."},
 	"sling_launch": {"name": "Sling Launch", "styles": ["slingshot"], "launch": true, "solo": "Slingshot Hop",
 		"desc": "Plant the fork and draw the band right back with your crewmate in the pouch: they're flung high over everything ahead, coming down with a free plunge.",
 		"solo_desc": "A slide and a spring: you fling yourself up and on over the foes ahead."},

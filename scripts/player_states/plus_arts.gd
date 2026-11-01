@@ -19,7 +19,7 @@ extends RefCounted
 ##   the aimed foe, or -d ahead) · rain r dmg flags (streaks from the sky on everyone within r) · zone r dmg flags (bolts on everyone round the mark) · chase dmg flags
 ##   pose len (up to the last foe of the each, spiked down)
 ##   glint [size] · trail secs · spin secs · slam r · gather · vortex secs r · moment · flash a · invuln on · shake a
-##   kick a secs · sfx name db pitch · spray n
+##   kick a secs · sfx name db pitch · spray n · mirror (an afterimage and the thrust's mirror double) · decoy secs
 ## Per-foe ops (each): blinkcut dmg flags · erupt dmg flags · bolt dmg flags · bounce dmg flags · crash dmg flags ·
 ##   fire dmg flags. Flags (a space-separated string): down launch launch2 spike unblock breaker sever bleed pin pull
 ##   ranged; "grow" (bounce): harder each foe; "last_down": the last foe of an each knocked down.
@@ -284,6 +284,13 @@ static func _op(s, a: Array) -> void:
 			_net(s).fx("sfx", [str(a[1]), p.global_position, float(a[2]), 0.05, float(a[3])])
 		"spray":
 			s._spray(s._chest() + s._dir * 0.8, s._dir + Vector3.UP * 0.6, int(a[1]), 4.0)
+		"mirror":
+			# (the rapier's) a silver afterimage left where you are, and the thrust's line with its mirror double
+			_net(s).fx("afterimage", [p.body_model, s._col(FXS.CORE), 0.32])
+			_net(s).fx("mirror_thrust", [s._chest(), s._dir, 2.4, s._col(), p.player_model.global_basis.x, s._col(FXS.ACCENT)])
+		"decoy":
+			# (the rapier's Glass Step) an image of you left standing `secs` that the foes after you swing at
+			_net(s).fx("decoy", [p.body_model, float(a[1])])
 		_:
 			push_error("PlusArts: no op " + str(a[0]))
 

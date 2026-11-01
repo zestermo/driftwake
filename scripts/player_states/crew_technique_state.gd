@@ -106,6 +106,8 @@ const DUETS := {
 	"steady_bind": {"lead": ["sp_cut", 0.5, 0.18], "mate": ["parley_shot", 0.6, 0.3], "dmg": 16.0, "burst": 50.0, "flags": "pin", "fin": "down unblock"},
 	"pin_shoot": {"lead": ["lg_kneel_fire", 0.6, 0.25], "mate": ["lg_fire", 0.5, 0.2], "dmg": 18.0, "burst": 52.0, "flags": "pin ranged", "fin": "down unblock ranged", "stay": true},
 	"double_barrel": {"lead": ["cn_fire", 0.6, 0.25], "mate": ["cn_fire", 0.6, 0.25], "dmg": 24.0, "burst": 36.0, "flags": "down unblock", "stay": true},
+	"mirror_match": {"lead": ["rp_deflect", 0.45, 0.14], "mate": ["rp_deflect", 0.45, 0.14], "dmg": 22.0, "burst": 28.0, "flags": "breaker unblock"},
+	"through_sleeve": {"lead": ["rp_1", 0.5, 0.15], "mate": ["rp_heavy", 0.6, 0.28], "dmg": 14.0, "burst": 52.0, "flags": "pin", "fin": "down unblock"},
 	"hold_down": {"lead": ["fs_catch", 0.5, 0.2], "mate": ["fs_hay", 0.6, 0.3], "dmg": 10.0, "burst": 56.0, "flags": "pin", "fin": "down unblock"},
 }
 const DUET_REACH := 8.0

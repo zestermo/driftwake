@@ -101,7 +101,7 @@ static func riposte(p: Player, attacker: Node) -> void:
 		var hb := (attacker as Node).get("hurtbox") as Hurtbox
 		if hb == null or (attacker as Node3D).global_position.distance_to(p.global_position) > RIPOSTE_REACH:
 			return
-		var hd := p.melee_hit(RIPOSTE_DAMAGE, "finisher")
+		var hd := p.melee_hit(RIPOSTE_DAMAGE * (1.0 + p.progression.stat("riposte_rapier")), "finisher")
 		if not hd.has_meta("crit"):
 			hd.damage *= 1.5
 			hd.set_meta("crit", true)
