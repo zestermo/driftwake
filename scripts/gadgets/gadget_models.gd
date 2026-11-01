@@ -69,6 +69,31 @@ static func _build(gid: String, tier: int) -> ArrayMesh:
 					var a := k * TAU / 5.0
 					var d := Vector3(cos(a), 0, sin(a))
 					mb.add_cone(PSXMat.lit("metal", IRON), Transform3D(Basis(Vector3.UP.cross(d).normalized(), PI * 0.5), d * 0.048 + Vector3(0, -0.02, 0)), 0.007, 0.02, 4)
+		"flash":
+			var cap: Color = [Color(0.85, 0.85, 0.8), BRASS, LACQUER][tier]
+			mb.add_blob(PSXMat.glow(Color(1.0, 1.0, 0.85), 0.8), Transform3D.IDENTITY, Vector3(0.036, 0.036, 0.036), rng, 0.05, 4, 6, 4.0)
+			mb.add_cylinder(PSXMat.lit("metal", cap), Transform3D(Basis(), Vector3(0, 0.025, 0)), 0.03, 0.022, 0.025, 6, 4.0)
+			mb.add_cylinder(PSXMat.lit("metal", cap), Transform3D(Basis(), Vector3(0, -0.05, 0)), 0.022, 0.03, 0.025, 6, 4.0, Color.WHITE, false, true)
+			mb.add_tube(PSXMat.flat(Color(0.82, 0.76, 0.6)), MeshBuilder.curve_points(Vector3(0, 0.05, 0), Vector3(0.01, 0.07, 0), Vector3(0.02, 0.08, 0), 3), 0.004, 0.003, 4)
+		"pepper":
+			var paper: Color = [Color(0.9, 0.82, 0.6), Color(0.85, 0.35, 0.2), LACQUER][tier]
+			mb.add_blob(PSXMat.flat(paper), Transform3D.IDENTITY, Vector3(0.045, 0.05, 0.045), rng, 0.15, 4, 6, 4.0)
+			mb.add_cylinder(PSXMat.flat(Color(0.75, 0.62, 0.4)), Transform3D(Basis(), Vector3(0, 0.04, 0)), 0.018, 0.012, 0.03, 5, 4.0)
+			if tier >= 1:
+				mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(Basis(), Vector3(0, 0.035, 0)), 0.022, 0.022, 0.01, 6, 4.0, Color.WHITE, false)
+		"star":
+			var body: Color = [IRON, Color(0.35, 0.32, 0.3), Color(0.22, 0.2, 0.2)][tier]
+			mb.add_blob(PSXMat.lit("metal", body), Transform3D.IDENTITY, Vector3(0.035, 0.035, 0.035), rng, 0.05, 4, 6, 4.0)
+			var spikes: int = [6, 8, 10][tier]
+			for k in range(spikes):
+				var d := Vector3(cos(k * 2.4), sin(k * 1.7) * 0.8, sin(k * 2.4)).normalized()
+				mb.add_cone(PSXMat.lit("metal", BRASS if tier == 1 else (LACQUER if tier == 2 else IRON)), Transform3D(Basis(Vector3.UP.cross(d).normalized() if absf(d.y) < 0.99 else Vector3.RIGHT, Vector3.UP.angle_to(d)), d * 0.03), 0.012, 0.035, 4)
+		"caltrops":
+			var pouch: Color = [LEATHER, Color(0.3, 0.2, 0.12), LACQUER][tier]
+			mb.add_blob(PSXMat.flat(pouch), Transform3D.IDENTITY, Vector3(0.045, 0.04, 0.045), rng, 0.15, 4, 6, 4.0)
+			for k in range(4):
+				var d := Vector3(cos(k * 1.6), 0.9, sin(k * 1.6)).normalized()
+				mb.add_cone(PSXMat.lit("metal", IRON), Transform3D(Basis(Vector3.UP.cross(d).normalized(), Vector3.UP.angle_to(d)), d * 0.035), 0.008, 0.03, 3)
 		"grapple":
 			var reel: Color = [Color(0.45, 0.33, 0.22), BRASS, LACQUER][tier]
 			mb.add_cylinder(PSXMat.lit("metal", IRON), Transform3D(Basis(), Vector3(0, -0.02, 0)), 0.01, 0.01, 0.12, 5, 4.0)

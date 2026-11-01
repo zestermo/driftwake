@@ -145,7 +145,7 @@ func _lob(gid: String, t: int) -> void:
 			return
 		body.hide_left_prop()
 		var from: Vector3 = player.global_position + Vector3(0, 1.75, 0) - player.player_model.global_basis.z * 0.3
-		GadgetThrow.launch(get_tree(), gid, t, from, to)
+		GadgetThrow.launch(get_tree(), gid, t, from, to, player)
 		Net.event(player, "gadget", [gid, t, from, to]))
 
 
@@ -221,7 +221,7 @@ static func wear(body: Humanoid, tier: int) -> void:
 
 ## Another captain's throw arriving on this screen (Player.net_event "gadget").
 static func remote(p: Node, args: Array) -> void:
-	GadgetThrow.launch(p.get_tree(), str(args[0]), int(args[1]), args[2], args[3])
+	GadgetThrow.launch(p.get_tree(), str(args[0]), int(args[1]), args[2], args[3], p)
 
 
 func to_dict() -> Dictionary:

@@ -8566,6 +8566,20 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Per tick:** only while in the state (the grapple's ray once at fire; the spike's wall ray every 0.15 s while climbing).
 - **Tests:** t/gadgets grapple, spring_boots, glider, spike. Render: modelshot `GadgetModels.glider_wing(t)`,
   `GadgetModels.mesh("grapple"|"spring_boots"|"glider"|"spike", t)`.
+
+## 2026-10-31: gadgets, piece 4a - the rest of the combat tricks: flash, pepper, burst star, caltrops (1.28)
+- All thrown like the smoke pellet; GadgetZone kinds (host-run effects, visuals on every screen as before). The zone now
+  knows its thrower (`by`, the throw's event carries the captain), and hits go through the foes' hurtboxes (a sphere
+  query on layer 32, the crash landing's way) as theirs, so a guest's hits route to the host as usual.
+- **Flash:** a white burst (glint, muzzle sheet, a strong flash light, a ring, sparkles; a screen flash for a camera
+  within 3x its radius); on the host, foes within the radius whose facing looks toward it are `blinded` (or `stagger`).
+- **Pepper:** a red cloud; each 0.25 s tick hurts every foe in it (dps x tick, no knockback) and makes each break off
+  coughing (0.6 s blinded) every `cough_every` s.
+- **Burst star:** a blast (FX.blast, debris, a ring, a shake for a camera within 25 m; Mk III a glowing ground crack);
+  one hit on everything in reach; Mk III knocks down with poise 999 (floors whatever its poise, like the red glow).
+- **Caltrops:** one mesh of 14-26 little spikes strewn in the radius; slows (grunts) and cuts each tick; Mk III bleeds.
+- **Not yet:** the decoy (needs foes to take it as a target: grunt/creature targeting), and the utility gadgets.
+- **Tests:** t/gadgets/tricks (five grunts, one zone each). Renders: `abilityshot gadget:star:2`, `gadget:pepper:1`.
 ## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
 - **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
   apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by

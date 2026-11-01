@@ -11,7 +11,7 @@ extends RefCounted
 ## No autoloads by name here (ItemDB calls make_items before they exist).
 
 ## The gadgets made so far (the bench offers only these; the rest of GadgetData is still to build).
-const WORKING := ["smoke", "tar", "grapple", "spring_boots", "glider", "spike"]
+const WORKING := ["smoke", "tar", "flash", "pepper", "star", "caltrops", "grapple", "spring_boots", "glider", "spike"]
 
 
 static func teach(player: Node, blueprint_id: String) -> bool:

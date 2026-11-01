@@ -8,6 +8,7 @@ const SECS := [0.32, 0.028]
 const ARC := [0.8, 0.14]
 
 var gid := ""
+var by: Node
 var tier := 0
 var _from := Vector3.ZERO
 var _to := Vector3.ZERO
@@ -18,8 +19,9 @@ var _mesh: MeshInstance3D
 var _spin := Vector3.ZERO
 
 
-static func launch(tree: SceneTree, g: String, t: int, from: Vector3, to: Vector3) -> GadgetThrow:
+static func launch(tree: SceneTree, g: String, t: int, from: Vector3, to: Vector3, thrower: Node = null) -> GadgetThrow:
 	var n := GadgetThrow.new()
+	n.by = thrower
 	n.gid = g
 	n.tier = t
 	n._from = from
@@ -48,8 +50,8 @@ func _physics_process(delta: float) -> void:
 	var u := minf(_t / _secs, 1.0)
 	global_position = _from.lerp(_to, u) + Vector3.UP * (4.0 * _arc * u * (1.0 - u))
 	_mesh.rotation += _spin * delta
-	if gid == "smoke" and Engine.get_physics_frames() % 3 == 0:
+	if gid in ["smoke", "flash", "star", "pepper"] and Engine.get_physics_frames() % 3 == 0:
 		FX.puff(global_position, "dust", 1, 0.25, 0.4, Color(1.0, 0.8, 0.5, 0.8), 0.2)
 	if u >= 1.0:
-		GadgetZone.spawn(get_tree(), gid, tier, _to)
+		GadgetZone.spawn(get_tree(), gid, tier, _to, by if by and is_instance_valid(by) else null)
 		queue_free()
