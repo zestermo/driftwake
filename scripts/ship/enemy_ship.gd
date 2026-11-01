@@ -1624,6 +1624,7 @@ func _strike() -> void:
 	Net.award_xp(_xp(150), global_position, 60.0)
 	Net.bounty(_bounty_kind(), global_position, 60.0)
 	_prize()
+	Net.event(self, "prize", [])
 
 
 ## Does she come after the crew's ship? Pirates always; the Admiralty once the crew's bounties together are
@@ -1658,7 +1659,6 @@ const ADMIRALTY_FROM := 2
 ## What taking or sinking her raises a bounty by (Bounty.TABLE): an Admiralty ship more than a pirate's.
 func _bounty_kind() -> String:
 	return "admiralty_ship" if is_in_group("admiralty") else "ship"
-	Net.event(self, "prize", [])
 
 
 ## (every screen) The colours come down; each captain finds their own chest.
