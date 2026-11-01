@@ -149,6 +149,16 @@ func plan(from: int, to: int) -> Dictionary:
 				lay["bottles"].append(p)
 			"islet":
 				lay["islets"].append(p)
+	# (1.28) a sea stop now and then, from its own stream (everything above lies as it did)
+	lay["stop"] = ""
+	var sk := SeaStops.kind_for(c, from, to, get_tree())
+	if sk != "":
+		var srng := RandomNumberGenerator.new()
+		srng.seed = hash([lay["seed"], "stop"])
+		var sp := _spot(srng, c, a, b, used, SeaStops.ROOM, SeaStops.LANE, 0.3, 0.75)
+		if sp != Vector2.INF:
+			lay["stop"] = sk
+			lay["stop_at"] = sp
 	return lay
 
 
@@ -252,6 +262,9 @@ func _build_leg(key: Vector2i) -> void:
 		_build_islet(leg, i, lay["islets"][i], rng, _save_key(key, "islet%d" % i), picks)
 		nogo.append([lay["islets"][i], ISLET_R + 16.0])
 		Ocean.set_shore(_save_key(key, "islet%d" % i), islet_shore(), lay["islets"][i])
+	if lay["stop"] != "":
+		SeaStops.build(leg, lay["stop"], lay["stop_at"], lvl, int(lay["seed"]) + 77)
+		nogo.append([lay["stop_at"], 30.0])
 	var bottles: Array = []
 	var gm := get_node("/root/GameManager")
 	for i in range(lay["bottles"].size()):

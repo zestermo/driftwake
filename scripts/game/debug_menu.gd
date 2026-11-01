@@ -318,7 +318,10 @@ func _spawn(roles: Array) -> void:
 ## More for the spawn list: [label, Callable(at: Vector3, yaw: float)]. New kinds of things to spawn (leviathans, ships,
 ## sea stops) add a line here.
 func extra_spawns() -> Array:
-	return []
+	var out: Array = []
+	for k in Chain.STOP_KINDS:
+		out.append(["Sea stop: %s" % k, func(at: Vector3, yaw: float): SeaStops.debug_spawn(get_tree(), k, at, yaw)])
+	return out
 
 
 func _spawn_picked() -> void:

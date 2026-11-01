@@ -8800,3 +8800,28 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   contract), the volcanic isle (docs/volcanic_island_plan.md), and the lead's polish: the sea's glitter path, the beast
   tell language (JungleBeast.wind_up_glint, ground fans for cone/behind moves), Quick stack and Sort, Music.punch on
   heavy blows, beast-form footsteps; F4 warp/spawn lists; TK.calm. tools/release/UNSTABLE is back (delete for 1.28).
+## 1.28 sea stops, piece 1: the stop roll and the wandering merchant (2026-11-01, docs/v1_28_plan.md "The sea")
+- **The roll:** `Chain.sea_stop(from, to, tier)` from its own stream (hash of the chain seed and the leg): chance by the
+  destination's layer `STOP_CHANCE` (0 on layers 1-2, 0.22 at 3 up to 0.58 at 9), kinds `STOP_KINDS` weighted
+  `STOP_WEIGHTS` [restaurant 3, merchant 4, warlord 2, lieutenant 1 + 1.2 per bounty tier]. Over 60 chains: none
+  early, ~29% of mid legs, ~55% of late ones. `SeaStops.kind_for` passes the crew's hottest bounty tier (bounties ride
+  in the captains' snapshots, so screens agree unless a bounty tier changes while a leg is being laid out: known
+  edge); `SeaStops.force` makes every leg have one (debug, tests).
+- **Placing:** `SeaLegs.plan` adds "stop"/"stop_at" after everything else from its own rng (every existing leg's
+  layout is unchanged), on open water 30-75% along the leg within LANE 160 m of the route (`_spot`, room 70 m);
+  `_build_leg` builds it (`SeaStops.build`, node "Stop", seed = leg seed + 77) and puts it in EnemyShip.no_go.
+- **SeaVessel** (scripts/sea/sea_vessel.gd): the floating stops' base: its own sailing like EnemyShip (`_pos`/`_heading`,
+  `place()`), the swell, group "decks" (aboard by a ship-local `bounds` AABB, deck_delta, hull_velocity), net_sync
+  (host sails; guests ease onto its snapshots: [pos, heading, speed, yaw rate, net_extra()]), ActorSleep SHIP radii.
+- **MerchantShip** (scripts/sea/merchant_ship.gd): TraderShips.merchantman's three-master with a striped awning, crates
+  and bales on deck, ladders both sides. Sails a slow round (CRUISE 3.5 m/s, ROUND_R 90) about her spot; heaves to
+  and hails (a bark, the bell) when the crew's ship is within HAIL_R 130 with a captain aboard, or a captain within
+  SWIM_R 60; sails on WAIT 30 s after nobody's near or aboard. Her factor (NPC, a shop) trades from Shops.extra
+  "merchant_<seed>": a fine weapon (tier + 1, with a trait), two rare gear pieces, two blueprints, three parts, two
+  exotic ingredients, and `MerchantShip.book_pool` (empty: the books agent fills it, BOOKS_SHOWN 2). Rerolled per
+  visit (each leg's merchant is a new seed). Two scenery deckhands.
+- **F4:** "Sea stop: <kind>" in the spawn list (`SeaStops.debug_spawn`: ~60 m ahead on the water; host only, not
+  mirrored to guests). Kinds not built yet spawn nothing.
+- Per tick: one merchant at most per standing leg: its sailing and swell (5 wave samples), 3 humanoids (LOD), no
+  test_move; asleep past 420 m. Cargo mesh: one surface set, visibility 260 m, no shadow.
+- Tests: `t/sea/stop_rolls`, `t/sea/merchant`. legtest (world suite) maps to sea_legs.gd: expect it at prepush.

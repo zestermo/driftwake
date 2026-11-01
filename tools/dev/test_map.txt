@@ -697,3 +697,7 @@ scripts/enemies/beasts/volcanic_salamander.gd t/island/volcanic_salamander t/isl
 scripts/enemies/fauna/volcanic_*.gd        t/island/volcanic_wilds
 scripts/props/volcanic_plants.gd           t/island/volcanic_land
 scripts/island/village_vendors.gd          t/island/volcanic_town
+tools/dev/t/sea/*                       t/sea
+scripts/sea/*                           t/sea
+scripts/world/chain.gd                  t/sea/stop_rolls
+scripts/world/sea_legs.gd               t/sea

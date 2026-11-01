@@ -77,6 +77,35 @@ func next_of(id: int) -> Array:
 	return nodes[id]["next"]
 
 
+## (1.28) Sea stops between islands (docs/v1_28_plan.md, The sea): the chance a leg toward a layer has one (none on the
+## first two legs, more later), and their weights: [restaurant, merchant, warlord, lieutenant].
+const STOP_CHANCE := [0.0, 0.0, 0.0, 0.22, 0.28, 0.34, 0.4, 0.46, 0.52, 0.58]
+const STOP_KINDS := ["restaurant", "merchant", "warlord", "lieutenant"]
+const STOP_WEIGHTS := [3.0, 4.0, 2.0, 1.0]
+## The lieutenant's weight goes up this much per bounty tier of the crew's hottest captain.
+const STOP_LIEUTENANT_PER_TIER := 1.2
+
+
+## The stop on the leg from `from` (-1: Brinehollow) to `to`, or "" (seeded by the chain and the leg, apart from every
+## other roll). `tier`: the crew's bounty tier (the lieutenant comes more often to a wanted crew).
+func sea_stop(from: int, to: int, tier: int) -> String:
+	var n: Dictionary = node(to)
+	if not n.has("layer"):
+		return ""
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_value, from, to, "sea_stop"])
+	if rng.randf() >= float(STOP_CHANCE[mini(int(n["layer"]), STOP_CHANCE.size() - 1)]):
+		return ""
+	var w: Array = STOP_WEIGHTS.duplicate()
+	w[3] = float(w[3]) + STOP_LIEUTENANT_PER_TIER * tier
+	var r := rng.randf() * (w.reduce(func(a, b): return a + b, 0.0) as float)
+	for i in range(w.size()):
+		r -= float(w[i])
+		if r < 0.0:
+			return STOP_KINDS[i]
+	return STOP_KINDS[-1]
+
+
 func _build(origin: Vector2, heading: Vector2) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
