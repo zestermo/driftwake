@@ -222,8 +222,10 @@ void fragment() {
 	if (glint_color.a > 0.001) {
 		vec3 lv = normalize((VIEW_MATRIX * vec4(glint_dir, 0.0)).xyz);
 		float align = dot(reflect(-VIEW, NORMAL), lv);
-		float spark = cell_noise(floor(wuv * 1.6) + floor(time_val * 5.0) * 17.0);
+		float spark = cell_noise(floor(wuv * 3.2) + floor(time_val * 5.0) * 17.0);
 		float glint = smoothstep(0.965, 0.995, align + (spark - 0.5) * 0.05) * step(0.62, spark);
+		// (close by the cells would read as white tiles at your feet: the path shows on the water ahead)
+		glint *= smoothstep(8.0, 25.0, dist);
 		EMISSION += glint_color.rgb * glint * glint_color.a * (1.0 - hz) * (1.0 - surf);
 	}
 	// (clearer over the shoals: the sand shows through)
