@@ -82,6 +82,19 @@ var _font: Font
 var _mouse := Vector2.ZERO
 ## The tree whose refund was clicked once (a second click pays for it).
 var _respec_armed := ""
+# (1.28) the Edy tree as a map: drawn into its own clipped view (_draw_edy_view), bigger than the panel, dragged to pan,
+# the wheel zooms round the mouse, C recentres; a pick made by the arrows off the edge brings the view round to it
+const EDY_ZOOM := 0.72
+const EDY_ZOOMS := Vector2(0.35, 1.3)
+## Names under the nodes from this zoom.
+const EDY_NAMES_FROM := 0.6
+var _edy_view: Control
+var _edy_rect := Rect2()
+var _edy_tint := Color.WHITE
+var _edy_k := EDY_ZOOM
+## The tree point (EdyTree "pos" units) at the view's centre.
+var _edy_pan := Vector2.ZERO
+var _edy_drag := false
 
 
 func _init(owner_menu: Node) -> void:
@@ -91,6 +104,13 @@ func _init(owner_menu: Node) -> void:
 	focus_mode = Control.FOCUS_ALL
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_font = UIStyle.get_theme().default_font
+	_edy_view = Control.new()
+	_edy_view.clip_contents = true
+	_edy_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_edy_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_edy_view.visible = false
+	_edy_view.draw.connect(_draw_edy_view)
+	add_child(_edy_view)
 
 
 func _player() -> Player:
@@ -274,6 +294,10 @@ func _process(delta: float) -> void:
 		return
 	_t += delta
 	_msg_t = maxf(_msg_t - delta, 0.0)
+	_edy_view.visible = tab == "captain" and not perks_open
+	if _edy_view.visible:
+		_edy_follow(delta)
+		_edy_view.queue_redraw()
 	queue_redraw()
 
 
@@ -293,6 +317,9 @@ func inspected() -> String:
 func _hit_at(p: Vector2) -> String:
 	var best := ""
 	for h in _drawn:
+		# (the Edy tree's nodes panned out of its view aren't there to click)
+		if str(h[1]).begins_with("n:e_") and not _edy_rect.has_point(p):
+			continue
 		if (h[0] as Rect2).has_point(p):
 			if str(h[1]).begins_with("v:"):
 				return h[1]
@@ -337,6 +364,9 @@ func _nav(d: Vector2) -> void:
 # Input
 # --------------------------------------------------------------------------
 func _gui_input(event: InputEvent) -> void:
+	if tab == "captain" and not perks_open and _edy_input(event):
+		accept_event()
+		return
 	if event is InputEventMouseMotion:
 		_mouse = (event as InputEventMouseMotion).position
 		var h := _hit_at(_mouse)
@@ -415,6 +445,10 @@ func _input(event: InputEvent) -> void:
 		_act(sel)
 	elif (k == KEY_P or k == KEY_TAB) and tab == "captain":
 		_set_perks(not perks_open)
+	elif k == KEY_C and tab == "captain" and not perks_open:
+		_edy_pan = Vector2.ZERO
+		_edy_k = EDY_ZOOM
+		menu._play("select")
 	elif k == KEY_TAB and tab == "combat":
 		chart = not chart
 		if chart:
@@ -1179,43 +1213,77 @@ func _dashed(r: Rect2, col: Color) -> void:
 		draw_dashed_line(e[0], e[1], col, 1.0, 3.0)
 
 
-## (1.26) The Edy tree (EdyTree): the core in your Edy's colour, the eight branches round it with their names at the
-## rim, every link (lit between two you own), and each node by its kind: a stat a square, a passive that works by itself a
-## circle, a passive you slot a diamond, an ability a hexagon. Yours: filled in your colour; to buy now: a gold rim; switched
-## off: dashed; ranked: pips under it. Each is a hit ("n:<id>"): Enter buys, switches, or slots it (_act_edy).
+## (1.26) The Edy tree (EdyTree), since 1.28 a map in its own clipped view (_draw_edy_view) bigger than the panel: the
+## frame here, the tree drawn there, panned and zoomed (_edy_input).
 func _draw_edy_tree(r: Rect2, tint: Color) -> void:
-	var p := _pr()
 	_box(r, Color(WILL_DARK, 0.85), tint.darkened(0.45))
-	var c := r.get_center() + Vector2(0, 4)
-	# (an oval: the wide panel stretches it sideways; the branch names sit out past the capstones)
-	var kv := Vector2((r.size.x - 140.0) / (2.0 * 560.0), (r.size.y - 30.0) / (2.0 * 560.0))
-	var k := minf(kv.x, kv.y)
-	var all := EdyTree.all()
-	var at := func(id: String) -> Vector2: return c + (all[id]["pos"] as Vector2) * kv
+	_edy_rect = r.grow(-2.0)
+	_edy_tint = tint
+	_edy_view.position = _edy_rect.position
+	_edy_view.size = _edy_rect.size
+	# every node is a hit (the arrows can walk to one off the edge; a click only lands inside the view: _hit_at)
+	var s := _edy_s()
+	for id in EdyTree.cached().keys():
+		if id != EdyTree.CORE:
+			hit(Rect2(_edy_at(id) - Vector2(s, s) * 1.4, Vector2(s, s) * 2.8), "n:" + id)
+
+
+## A tree node's place on the screen (this screen's coordinates).
+func _edy_at(id: String) -> Vector2:
+	return _edy_rect.get_center() + ((EdyTree.info(id)["pos"] as Vector2) - _edy_pan) * _edy_k
+
+
+## A node's half-size at this zoom.
+func _edy_s() -> float:
+	return clampf(15.0 * _edy_k, 6.0, 16.0)
+
+
+## The tree in its view (local coordinates): faint rings, the eight branches with their names and subtitles past the
+## capstones, every link (lit between two you own), the core in your Edy's colour, and each node by its kind (a stat a
+## square, a passive that works by itself a circle, a passive you slot a diamond, an ability a hexagon) with its icon:
+## an ability's skill icon, a stat's glyph for what it raises, a passive its branch's glyph. Yours: filled in your colour;
+## to buy now: a gold glow; switched off: dashed; ranked: pips; its name under it from EDY_NAMES_FROM zoom.
+func _draw_edy_view() -> void:
+	var v := _edy_view
+	var p := _pr()
+	if p == null:
+		return
+	var tint := _edy_tint
+	var off_v := _edy_rect.position
+	var at := func(id: String) -> Vector2: return _edy_at(id) - off_v
+	var c: Vector2 = at.call(EdyTree.CORE)
+	var k := _edy_k
+	for rr in EdyTree.RING:
+		if rr > 0.0:
+			v.draw_arc(c, rr * k, 0.0, TAU, 64, Color(WILL_DIM, 0.35), 1.0)
 	for i in range(EdyTree.BRANCHES.size()):
 		var b: String = EdyTree.BRANCHES[i]
-		var lp: Vector2 = c + EdyTree.pos_of(i, 520.0, 0.0) * kv
-		var side := EdyTree.pos_of(i, 1.0, 0.0).x
-		# (the side ones grow outward, off the capstone)
-		var al := HORIZONTAL_ALIGNMENT_LEFT if side > 0.4 else (HORIZONTAL_ALIGNMENT_RIGHT if side < -0.4 else HORIZONTAL_ALIGNMENT_CENTER)
-		var lx := lp.x + 4.0 if side > 0.4 else (lp.x - 124.0 if side < -0.4 else lp.x - 60.0)
-		draw_string(SILK, Vector2(lx, lp.y + 3.0), "CAPTAIN'S" if b == "conq" else str(EdyTree.BRANCH_NAMES[b]).to_upper(), al, 120.0, 8, UIStyle.CREAM)
+		var lp: Vector2 = c + EdyTree.pos_of(i, 545.0, 0.0) * k
+		_edy_glyph(v, lp + Vector2(0, -12), 6.0, b, "", tint.lightened(0.2))
+		v.draw_string(SILK, lp + Vector2(-80, 6), str(EdyTree.BRANCH_NAMES[b]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 160.0, 8, UIStyle.CREAM)
+		if k >= EDY_NAMES_FROM:
+			v.draw_string(SILK, lp + Vector2(-80, 15), str(EdyTree.BRANCH_SUBS[b]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 160.0, 8, Color(UIStyle.CREAM, 0.5))
+	var all := EdyTree.cached()
 	for id in all.keys():
 		for l in all[id]["links"]:
 			var a_own: bool = id == EdyTree.CORE or p.bought.has(id)
 			var b_own: bool = str(l) == EdyTree.CORE or p.bought.has(str(l))
-			draw_line(at.call(id), at.call(str(l)), tint if a_own and b_own else (tint.darkened(0.45) if a_own or b_own else WILL_DIM), 2.0 if a_own and b_own else 1.0)
+			v.draw_line(at.call(id), at.call(str(l)), tint if a_own and b_own else (tint.darkened(0.45) if a_own or b_own else WILL_DIM), 3.0 if a_own and b_own else 1.0)
 	# the core: your Edy
-	var core := at.call(EdyTree.CORE) as Vector2
-	draw_circle(core, 15.0, WILL_DARK)
-	draw_arc(core, 15.0, 0, TAU, 28, tint, 2.0)
-	draw_string(SILK, Vector2(core.x - 30.0, core.y + 3.0), EdyTypes.name_of(p.will_color).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 60.0, 8, UIStyle.CREAM)
-	var s := clampf(8.0 * k * 1.9, 5.0, 10.0)
+	var cr := 34.0 * k
+	v.draw_circle(c, cr, WILL_DARK)
+	v.draw_arc(c, cr, 0, TAU, 36, tint, 2.0)
+	v.draw_arc(c, cr - 4.0, 0, TAU, 36, Color(tint, 0.35 + 0.2 * sin(_t * 2.0)), 1.0)
+	v.draw_string(SILK, c + Vector2(-40, 3), EdyTypes.name_of(p.will_color).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 80.0, 8, UIStyle.CREAM)
+	var s := _edy_s()
+	var vr := Rect2(Vector2.ZERO, v.size).grow(s * 3.0)
 	for id in all.keys():
 		if id == EdyTree.CORE:
 			continue
-		var e: Dictionary = all[id]
 		var pos := at.call(id) as Vector2
+		if not vr.has_point(pos):
+			continue
+		var e: Dictionary = all[id]
 		var mine: bool = p.bought.has(id)
 		var can: bool = not mine and p.buy_why(id) == ""
 		var off: bool = mine and p.edy_off.has(id)
@@ -1225,32 +1293,162 @@ func _draw_edy_tree(r: Rect2, tint: Color) -> void:
 		var shape := PackedVector2Array()
 		match str(e["kind"]):
 			"stat":
-				shape = PackedVector2Array([pos + Vector2(-s, -s) * 0.8, pos + Vector2(s, -s) * 0.8, pos + Vector2(s, s) * 0.8, pos + Vector2(-s, s) * 0.8])
+				shape = PackedVector2Array([pos + Vector2(-s, -s) * 0.85, pos + Vector2(s, -s) * 0.85, pos + Vector2(s, s) * 0.85, pos + Vector2(-s, s) * 0.85])
 			"auto":
-				for i in range(12):
-					shape.append(pos + Vector2.from_angle(TAU * i / 12.0) * s)
+				for i in range(16):
+					shape.append(pos + Vector2.from_angle(TAU * i / 16.0) * s)
 			"equip":
-				shape = PackedVector2Array([pos + Vector2(0, -s * 1.15), pos + Vector2(s * 1.15, 0), pos + Vector2(0, s * 1.15), pos + Vector2(-s * 1.15, 0)])
+				shape = PackedVector2Array([pos + Vector2(0, -s * 1.2), pos + Vector2(s * 1.2, 0), pos + Vector2(0, s * 1.2), pos + Vector2(-s * 1.2, 0)])
 			_:
 				for i in range(6):
-					shape.append(pos + Vector2.from_angle(TAU * i / 6.0) * s * 1.25)
+					shape.append(pos + Vector2.from_angle(TAU * i / 6.0 + PI / 6.0) * s * 1.25)
 		if can:
 			var a := 0.5 + 0.5 * sin(_t * 3.5)
-			draw_circle(pos, s * 1.9, Color(UIStyle.GILT, 0.12 + 0.12 * a))
-		draw_colored_polygon(shape, fill)
+			v.draw_circle(pos, s * 1.9, Color(UIStyle.GILT, 0.12 + 0.12 * a))
+		v.draw_colored_polygon(shape, fill)
+		# the icon: an ability's own, else a glyph
+		var ic: Texture2D = Skills.icon(str(e["skill"])) if str(e["skill"]) != "" else null
+		var ink := UIStyle.CREAM if mine and not off else (Color(UIStyle.GILT, 0.9) if can else Color(UIStyle.CREAM, 0.45))
+		if ic:
+			var isz := s * 1.5
+			v.draw_texture_rect(ic, Rect2(pos - Vector2(isz, isz) * 0.5, Vector2(isz, isz)), false, Color.WHITE if mine or can else Color(1, 1, 1, 0.45))
+		else:
+			_edy_glyph(v, pos, s * 0.55, str(e["branch"]), _edy_stat_glyph(e) if str(e["kind"]) == "stat" else "", ink)
 		var loop := shape.duplicate()
 		loop.append(shape[0])
 		if off:
 			for i in range(shape.size()):
-				draw_dashed_line(loop[i], loop[i + 1], rim, 1.0, 2.0)
+				v.draw_dashed_line(loop[i], loop[i + 1], rim, 1.0, 2.0)
 		else:
-			draw_polyline(loop, rim, 2.0 if on else 1.0)
+			v.draw_polyline(loop, rim, 2.0 if on else 1.0)
 		var tiers: Array = e["tiers"]
+		var below := s * 1.35
 		if mine and not tiers.is_empty():
 			var rk := EdyTree.rank(p, id)
 			for i in range(tiers.size() + 1):
-				draw_rect(Rect2(pos.x - (tiers.size() + 1) * 2.5 + i * 5.0, pos.y + s * 1.4, 4, 2), tint.lightened(0.3) if i < rk else WILL_DIM)
-		hit(Rect2(pos - Vector2(s, s) * 1.4, Vector2(s, s) * 2.8), "n:" + id)
+				v.draw_rect(Rect2(pos.x - (tiers.size() + 1) * 3.0 + i * 6.0, pos.y + below, 5, 2), tint.lightened(0.3) if i < rk else WILL_DIM)
+			below += 4.0
+		if k >= EDY_NAMES_FROM or on:
+			v.draw_string(SILK, pos + Vector2(-45, below + 8.0), str(e["name"]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 90.0, 8, Color.WHITE if on else (UIStyle.CREAM if mine or can else Color(UIStyle.CREAM, 0.5)))
+	# how to move it, on a strip along the bottom
+	v.draw_rect(Rect2(0, v.size.y - 13.0, v.size.x, 13.0), Color(WILL_DARK, 0.85))
+	v.draw_string(SILK, Vector2(6, v.size.y - 4.0), "DRAG: MOVE   WHEEL: ZOOM   C: CENTRE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(UIStyle.CREAM, 0.6))
+
+
+## Which glyph a stat node gets, by what it raises.
+func _edy_stat_glyph(e: Dictionary) -> String:
+	var keys := ",".join((e["effects"] as Dictionary).keys())
+	for g in [["hp", "heart"], ["regen", "heart"], ["revive", "heart"], ["defense", "shield"], ["block", "shield"], ["parry", "shield"],
+			["guard", "shield"], ["crit", "blade"], ["damage", "blade"], ["dmg", "blade"], ["move", "boot"], ["sprint", "boot"],
+			["dodge", "boot"], ["swim", "wave"], ["stamina", "boot"], ["energy", "spark"], ["ult", "spark"], ["haste", "clock"]]:
+		if keys.contains(g[0]):
+			return g[1]
+	return ""
+
+
+## A small drawn glyph at `c`, `r` across: `kind` ("heart", "shield", "blade", "boot", "wave", "spark", "clock") or, when
+## "", branch `b`'s own (Iron a shield, Sense an eye, Captain's a crown, Tide a wave, Tempo a clock, Fury a flame, Bond two
+## figures, Infusion a spark).
+func _edy_glyph(v: CanvasItem, c: Vector2, r: float, b: String, kind: String, col: Color) -> void:
+	if kind == "":
+		kind = {"iron": "shield", "sense": "eye", "conq": "crown", "tide": "wave", "tempo": "clock", "fury": "flame",
+			"bond": "crew", "infuse": "spark"}.get(b, "spark")
+	match kind:
+		"heart":
+			v.draw_circle(c + Vector2(-r * 0.45, -r * 0.25), r * 0.5, col)
+			v.draw_circle(c + Vector2(r * 0.45, -r * 0.25), r * 0.5, col)
+			v.draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.95, -r * 0.1), c + Vector2(r * 0.95, -r * 0.1), c + Vector2(0, r)]), col)
+		"shield":
+			v.draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 0.8, -r * 0.8), c + Vector2(r * 0.8, -r * 0.8), c + Vector2(r * 0.8, 0), c + Vector2(0, r), c + Vector2(-r * 0.8, 0)]), col)
+		"blade":
+			v.draw_line(c + Vector2(-r * 0.8, r * 0.8), c + Vector2(r * 0.8, -r * 0.8), col, 2.0)
+			v.draw_line(c + Vector2(-r * 0.7, r * 0.1), c + Vector2(-r * 0.1, r * 0.7), col, 2.0)
+		"boot":
+			for dx in [-0.5, 0.2]:
+				v.draw_polyline(PackedVector2Array([c + Vector2(r * (dx - 0.3), -r * 0.7), c + Vector2(r * (dx + 0.3), 0), c + Vector2(r * (dx - 0.3), r * 0.7)]), col, 2.0)
+		"wave":
+			var pts := PackedVector2Array()
+			for i in range(9):
+				var x := -1.0 + i / 4.0
+				pts.append(c + Vector2(x * r, sin(x * PI * 1.5) * r * 0.4))
+			v.draw_polyline(pts, col, 2.0)
+		"clock":
+			v.draw_arc(c, r * 0.85, 0, TAU, 14, col, 1.5)
+			v.draw_line(c, c + Vector2(0, -r * 0.6), col, 1.5)
+			v.draw_line(c, c + Vector2(r * 0.45, 0), col, 1.5)
+		"eye":
+			var up := PackedVector2Array()
+			var dn := PackedVector2Array()
+			for i in range(9):
+				var x := -1.0 + i / 4.0
+				up.append(c + Vector2(x * r, -(1.0 - x * x) * r * 0.55))
+				dn.append(c + Vector2(x * r, (1.0 - x * x) * r * 0.55))
+			v.draw_polyline(up, col, 1.5)
+			v.draw_polyline(dn, col, 1.5)
+			v.draw_circle(c, r * 0.3, col)
+		"crown":
+			v.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, r * 0.6), c + Vector2(-r, -r * 0.5), c + Vector2(-r * 0.5, 0), c + Vector2(0, -r * 0.8),
+				c + Vector2(r * 0.5, 0), c + Vector2(r, -r * 0.5), c + Vector2(r, r * 0.6)]), col)
+		"flame":
+			v.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -r), c + Vector2(r * 0.6, 0), c + Vector2(r * 0.45, r * 0.7), c + Vector2(0, r),
+				c + Vector2(-r * 0.45, r * 0.7), c + Vector2(-r * 0.6, 0), c + Vector2(-r * 0.15, -r * 0.3)]), col)
+		"crew":
+			for dx in [-0.45, 0.45]:
+				v.draw_circle(c + Vector2(r * dx, -r * 0.45), r * 0.3, col)
+				v.draw_colored_polygon(PackedVector2Array([c + Vector2(r * (dx - 0.4), r * 0.8), c + Vector2(r * dx, -r * 0.05), c + Vector2(r * (dx + 0.4), r * 0.8)]), col)
+		_:
+			v.draw_line(c + Vector2(0, -r), c + Vector2(0, r), col, 1.5)
+			v.draw_line(c + Vector2(-r, 0), c + Vector2(r, 0), col, 1.5)
+			v.draw_line(c + Vector2(-r, -r) * 0.55, c + Vector2(r, r) * 0.55, col, 1.0)
+			v.draw_line(c + Vector2(-r, r) * 0.55, c + Vector2(r, -r) * 0.55, col, 1.0)
+
+
+## Mouse on the Edy map: the wheel zooms round the pointer, a drag (left on empty space, or right / middle anywhere)
+## pans. True when it took the event.
+func _edy_input(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		var inside := _edy_rect.has_point(mb.position)
+		if not mb.pressed:
+			if _edy_drag:
+				_edy_drag = false
+				return true
+			return false
+		if not inside:
+			return false
+		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			var k0 := _edy_k
+			_edy_k = clampf(_edy_k * (1.15 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15), EDY_ZOOMS.x, EDY_ZOOMS.y)
+			# (the point under the pointer stays put)
+			var m := mb.position - _edy_rect.get_center()
+			_edy_pan += m / k0 - m / _edy_k
+			return true
+		if mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE] or (mb.button_index == MOUSE_BUTTON_LEFT and _hit_at(mb.position) == ""):
+			_edy_drag = true
+			return true
+	elif event is InputEventMouseMotion and _edy_drag:
+		_edy_pan -= (event as InputEventMouseMotion).relative / _edy_k
+		_edy_clamp()
+		return true
+	return false
+
+
+## Keep the tree on the map (its capstones' ring within the view's reach).
+func _edy_clamp() -> void:
+	_edy_pan = _edy_pan.limit_length(EdyTree.RING[EdyTree.RING.size() - 1] + 60.0)
+
+
+## A pick made by the arrows (or a hover) near the edge: the map eases round to it.
+func _edy_follow(delta: float) -> void:
+	if _edy_drag or not sel.begins_with("n:e_") or _edy_rect.size == Vector2.ZERO:
+		return
+	var at := _edy_at(sel.substr(2))
+	var safe := _edy_rect.grow(-40.0)
+	if safe.has_point(at):
+		return
+	var want := _edy_pan + (at - safe.get_center()) / _edy_k * 0.5
+	_edy_pan = _edy_pan.lerp(want, clampf(6.0 * delta, 0.0, 1.0))
+	_edy_clamp()
 
 
 ## Enter on an Edy tree node: buy it; once yours, a switchable passive flips on or off, a slotted passive goes in a free

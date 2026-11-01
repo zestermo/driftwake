@@ -111,9 +111,16 @@ func _process(_d: float) -> bool:
 			act("ui_accept")
 			check("Enter buys it for 1 Edy", pr.bought.has("e_iron_0") and pr.pool("will") == 2)
 			check("...Infuse, linked to it, can be bought now (%s); one further out can't" % pr.buy_why("e_iron_1"), pr.buy_why("e_iron_1") == "" and pr.buy_why("e_iron_5") != "")
+			# (1.28: the tree is a map bigger than its view) pan to Infuse, then click it once it's drawn there
+			sm._edy_pan = EdyTree.info("e_iron_1")["pos"]
+			until = TK.wait_ticks(2)
+			step = 51
+			return false
+		51:
 			click("n:e_iron_1")
 			act("ui_accept")
 			check("Enter buys Infuse: its skill known", pr.bought.has("e_iron_1") and pr.knows("armament_coat") and pr.pool("will") == 0)
+			step = 5
 			until = TK.wait_ticks(3)
 		6:
 			check("the tree draws every branch's nodes and the bridges", ["n:e_iron_6", "n:e_sense_3", "n:e_conq_6", "n:e_tide_6", "n:e_tempo_5", "n:e_fury_6", "n:e_bond_6", "n:e_infuse_6", "n:e_br0_0", "n:e_br7_1"].all(func(id): return drawn(id)))

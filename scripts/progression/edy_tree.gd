@@ -194,6 +194,12 @@ static func info(id: String) -> Dictionary:
 	return _all.get(id, {})
 
 
+## Every node (all()), built once: for drawing it every frame.
+static func cached() -> Dictionary:
+	info(CORE)
+	return _all
+
+
 static func is_edy(id: String) -> bool:
 	return id.begins_with("e_") and not info(id).is_empty()
 

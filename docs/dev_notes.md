@@ -8940,3 +8940,13 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   galley table). Ingredients go only once the game's played through; Esc (GameMenu sees it first: `give_up`) cooks nothing.
 - The PixelCanvas is 640x360 at 720p (not 800x450): overlay rows sit at fractions of the screen's size.
 - Tests: `t/food/cook_game`. Render: `cookshot`.
+
+## 2026-11-01 The Edy tree as a pannable map (Captain page)
+- `skill_map_screen.gd`: the tree draws into its own clipped child Control (`_edy_view`, `_draw_edy_view`) at ~3x the
+  old scale (EDY_ZOOM 0.72, wheel 0.35-1.3 round the pointer), dragged to pan (left on empty space, right / middle
+  anywhere), C recentres; an arrow-key pick near the edge eases the map round to it (`_edy_follow`). Faint ring guides,
+  branch glyph + name + subtitle past each capstone, each node's icon (an ability's skill icon; a stat's glyph by what
+  it raises: heart/shield/blade/boot/wave/spark/clock; a passive its branch's: shield, eye, crown, wave, clock, flame,
+  crew, spark) and its name under it from zoom 0.6. Hits are registered for every node (arrow nav reaches off-view
+  ones) but `_hit_at` takes an Edy node only inside the view. `EdyTree.cached()` replaces a per-frame `all()`.
+- The view hides under the perks popup. Tests: `t/ui/skills_captain_forks` pans to Infuse before clicking it.
