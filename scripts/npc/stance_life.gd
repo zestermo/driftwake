@@ -6,7 +6,7 @@ class_name StanceLife
 
 ## Side-on stances: the hips' turn in the guard (y+ = the right hip forward), added to the guard while it's up and
 ## taken out again under a full-body move (Humanoid._process), so the moves keep the square start they were made from.
-const HIPS := {"sword": Vector3(0, 0.55, 0), "sword_pistol": Vector3(0, 0.5, 0), "pistol": Vector3(0, 0.25, 0)}
+const HIPS := {"sword": Vector3(0, 0.55, 0), "sword_pistol": Vector3(0, 0.5, 0), "pistol": Vector3(0, 0.25, 0), "rapier": RapierMoves.HIPS}
 ## Stance -> [breaths a second as rad/s, depth]. Unlisted stances take "".
 const BREATH := {"": [2.4, 1.0], "sword": [2.4, 1.0], "sword_pistol": [2.4, 1.0], "dual_sword": [2.5, 1.0],
 	"katana": [2.0, 1.1], "axe": [1.9, 1.4], "dagger": [3.6, 0.8], "dual_dagger": [3.8, 0.8], "pistol": [2.2, 0.8],

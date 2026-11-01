@@ -41,7 +41,8 @@ class_name ActionSpecs
 const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
 	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"],
-	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"], "slingshot": ["sl_parry", "sl_deflect"]}
+	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"], "slingshot": ["sl_parry", "sl_deflect"],
+	"rapier": ["rp_parry", "rp_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -267,6 +268,18 @@ const SPECS := {
 	"gs_parry": {"len": 0.66, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_deflect": {"len": 0.45, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_block": {"len": 0.24, "hold": true, "stance": "greatsword", "weapon": "greatsword"},
+	# --- rapier (RapierMoves: keyed thrusts, the point aimed by direction; footwork carries every blow) ---
+	"rp_stance": {"len": 1.0, "stance": "rapier", "weapon": "rapier"},
+	"rp_1": {"len": 0.5, "hit": [0.26, 0.48], "chain": 0.3, "swoosh": [0.2, 0.44], "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "rapier", "weapon": "rapier"},
+	"rp_2": {"len": 0.52, "hit": [0.28, 0.48], "chain": 0.32, "swoosh": [0.2, 0.44], "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "rapier", "weapon": "rapier", "extras": {"after": "rp_1"}},
+	"rp_3": {"len": 0.72, "hit": [0.24, 0.7], "chain": 0.6, "swoosh": [0.5, 0.7], "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "rapier", "weapon": "rapier", "extras": {"after": "rp_2"}},
+	"rp_heavy": {"len": 0.8, "hit": [0.42, 0.62], "swoosh": [0.4, 0.6], "sharp": 52.0, "lead": {"hips": 0.03, "torso": 0.015}, "stance": "rapier", "weapon": "rapier"},
+	"rp_dash": {"len": 0.65, "hit": [0.3, 0.6], "swoosh": [0.28, 0.58], "sharp": 50.0, "stance": "rapier", "weapon": "rapier"},
+	"rp_parry": {"len": 0.66, "stance": "rapier", "weapon": "rapier"},
+	"rp_deflect": {"len": 0.5, "hit": [0.28, 0.44], "swoosh": [0.24, 0.46], "stance": "rapier", "weapon": "rapier"},
 	# --- long guns (GunMoves): shouldered aim (held), the shot, the ramrod reload, the butt stroke, the rush ---
 	"lg_stance": {"len": 1.0, "stance": "long_gun", "weapon": "longgun"},
 	"lg_aim": {"len": 0.12, "hold": true, "stance": "long_gun", "weapon": "longgun"},

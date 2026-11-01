@@ -373,6 +373,8 @@ scripts/npc/dual_axe_moves.gd           t/weapons
 scripts/player_states/dual_axe_arts.gd  t/weapons
 scripts/npc/greatsword_moves.gd         t/weapons
 scripts/player_states/greatsword_arts.gd t/weapons
+scripts/npc/rapier_moves.gd             t/weapons
+scripts/player_states/rapier_arts.gd    t/weapons
 scripts/npc/black_leg_moves.gd          t/weapons
 scripts/player_states/black_leg_arts.gd t/weapons
 data/dialogue/gus.json                  t/weapons

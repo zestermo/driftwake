@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot"}
+	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot", "rapier": "rapier"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -25,9 +25,6 @@ const DESIGNS := {
 		"broadsword": {"id": "broadsword", "name": "Broadsword", "desc": "Straight, wide and heavy, with a basket of iron round the hand.",
 			"dmg": 1.12, "worth": 1.8, "len": 0.74, "tip": 0.1, "w": 0.075, "curve": 0.0, "guard": "basket",
 			"fit": Color(0.55, 0.55, 0.58), "grip": Color(0.3, 0.2, 0.12), "grip_tex": "leather", "pommel": "ball"},
-		"rapier": {"id": "rapier", "name": "Rapier", "desc": "A needle of a sword behind a steel cup. Quick to the point, slow to break.",
-			"dmg": 0.95, "worth": 1.7, "len": 0.88, "tip": 0.08, "w": 0.024, "th": 0.016, "curve": 0.0, "guard": "cup",
-			"fit": Color(0.82, 0.84, 0.9), "grip": Color(0.18, 0.14, 0.12), "grip_tex": "leather", "pommel": "ball"},
 		"falchion": {"id": "falchion", "name": "Falchion", "desc": "Short and wide with a clipped point. Chops through rope, oars and pirates.",
 			"dmg": 1.1, "worth": 1.4, "len": 0.44, "tip": 0.14, "w": 0.095, "taper": 1.15, "curve": 0.1, "clip": true, "guard": "cross", "guard_size": 0.18,
 			"fit": Color(0.5, 0.48, 0.45), "grip": Color(0.35, 0.22, 0.12), "grip_tex": "planks_dark", "pommel": "cap"},
@@ -243,6 +240,28 @@ const DESIGNS := {
 		"beetle": {"id": "beetle_slingshot", "name": "Beetle Slingshot", "desc": "A great horned fork lacquered like a beetle's shell. Its tricks hit like a thunderclap.",
 			"dmg": 1.2, "worth": 2.4, "w": 0.075, "horn": true, "trick": 1.3, "rare": true, "wood": Color(0.16, 0.3, 0.2), "fit": Color(0.85, 0.7, 0.2)},
 	},
+	# (the base is a cup-hilt rapier: a long needle of a blade behind a steel bowl; _rapier). Rapiers add "len" (the
+	# blade), "hilt" ("cup", "swept", "shell"), "forte" (a colichemarde's broad first third), "wave" (a flamberge's), "speed"
+	# (x how fast its moves play), "reach" (x the thrusts' reach), "bleed" (s: its thrusts open a wound); "rare" drops less often
+	"rapier": {
+		"swept": {"id": "swept_rapier", "name": "Swept-Hilt Rapier", "desc": "Rings and bars of steel swept round the hand like a cage of ribbon. The duellist's classic.",
+			"dmg": 1.04, "worth": 1.5, "len": 0.96, "hilt": "swept", "fit": Color(0.78, 0.8, 0.86), "grip": Color(0.12, 0.1, 0.1)},
+		"smallsword": {"id": "smallsword", "name": "Smallsword", "desc": "A court sword, short and light, two little shells for a guard. It thrusts before you've seen it move.",
+			"dmg": 0.92, "worth": 1.3, "len": 0.74, "w": 0.018, "hilt": "shell", "speed": 1.1, "reach": 0.92,
+			"fit": Color(1.0, 0.8, 0.45), "grip": Color(0.86, 0.84, 0.8), "grip_tex": "fabric"},
+		"colichemarde": {"id": "colichemarde", "name": "Colichemarde", "desc": "A broad, stiff forte for the parry, then a sudden needle for the reply.",
+			"dmg": 1.06, "worth": 1.6, "len": 0.9, "w": 0.018, "forte": 0.042, "hilt": "shell", "reach": 1.04,
+			"fit": Color(0.55, 0.55, 0.6), "grip": Color(0.14, 0.12, 0.12)},
+		"flamberge": {"id": "flamberge_rapier", "name": "Flamberge Rapier", "desc": "Its blade ripples like a candle's flame. The thrust goes in clean; the wound doesn't close.",
+			"dmg": 1.04, "worth": 1.7, "len": 0.94, "w": 0.026, "wave": 0.07, "hilt": "swept", "bleed": 3.0,
+			"fit": Color(0.42, 0.4, 0.44), "grip": Color(0.42, 0.1, 0.1), "grip_tex": "fabric"},
+		# (rare: kept a third of the times it's rolled)
+		"quicksilver": {"id": "quicksilver_rapier", "name": "Quicksilver Rapier", "desc": "A blade that runs like mercury in the light, in a cage of silver. Its point is where your eye was a moment ago.",
+			"dmg": 1.22, "worth": 2.4, "len": 1.0, "hilt": "swept", "speed": 1.06, "reach": 1.06, "rare": true,
+			"blade": Color(1.18, 1.22, 1.3), "glow": Color(0.82, 0.9, 1.0), "fit": Color(0.95, 0.97, 1.05), "grip": Color(0.3, 0.34, 0.42)},
+		"gilded": {"id": "gilded_rapier", "name": "Gilded Rapier", "desc": "The cup-hilt rapier with its bowl and bow gilded and the grip wound in red silk.",
+			"dmg": 1.0, "worth": 2.2, "fit": Color(1.15, 0.9, 0.4), "grip": Color(0.62, 0.12, 0.1), "grip_tex": "fabric", "skin": true},
+	},
 }
 
 ## Each tier's fittings (guards, bands, locks) and gem; ultra and supreme
@@ -336,6 +355,15 @@ static func great(design: String, key: String, def: float = 1.0) -> float:
 ## A greatsword's blade length (m from the guard to the point).
 static func great_len(design: String) -> float:
 	return great(design, "len", GREAT_LEN)
+
+
+## A rapier design's number ("speed", "reach", "bleed"; `def` for the base rapier).
+static func rapier(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["rapier"] as Dictionary).get(design, {}).get(key, def))
+
+
+## The base rapier's blade (m from the ricasso to the point).
+const RAPIER_LEN := 0.92
 
 
 ## The base greatsword's blade, and where its guard sits ahead of the right hand (the hand rides at the pommel end
@@ -434,8 +462,8 @@ static func _mats(p: Dictionary, tier: int, fit_def: Color, grip_def: Color, gri
 	var edge: Material
 	if tier >= 5:
 		edge = PSXMat.glow(TIER_GEM[tier], 2.5)
-	elif p.has("venom"):
-		edge = PSXMat.glow(p["venom"], 1.8)
+	elif p.has("venom") or p.has("glow"):
+		edge = PSXMat.glow(p.get("venom", p.get("glow")), 1.8)
 	else:
 		edge = PSXMat.lit("metal", blade_tint.lightened(0.35) * 1.15)
 	return {
@@ -470,6 +498,8 @@ static func build(model: String) -> ArrayMesh:
 			_hammer(mb, p, tier)
 		"greatsword":
 			_greatsword(mb, p, tier)
+		"rapier":
+			_rapier(mb, p, tier)
 		"longgun":
 			GunModels.longgun(mb, p, tier)
 		"cannon":
@@ -800,6 +830,63 @@ static func _hammer(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 				mb.add_box(fit, Transform3D(Basis(), Vector3(s * 0.026, 0, hz + 0.16)), Vector3(0.01, 0.036, 0.22), 2.0)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, hz + 0.12)), Vector3(0.062, 0.03, 0.03), 2.0)
+
+
+## Rapiers: one-handed, the grip at the origin (knuckles toward -Y, as the cutlass), a square ricasso inside the guard
+## and a long narrow blade on along -Z to a needle point. Quillons across Y, the knuckle bow round the -Y side to the
+## pommel, then the hilt: "cup" (a deep steel bowl over the ricasso), "swept" (side rings and bars swept round the hand),
+## "shell" (a smallsword's two shell plates).
+static func _rapier(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats(p, tier, Color(0.82, 0.84, 0.9), Color(0.18, 0.14, 0.12), "leather")
+	var fit: Material = m["fit"]
+	var w := _f(p, "w", 0.022)
+	var th := _f(p, "th", 0.013)
+	var length := _f(p, "len", RAPIER_LEN)
+	var qz := -0.075
+	mb.add_box(m["blade"], Transform3D(Basis(), Vector3(0, 0, qz - 0.045)), Vector3(th * 1.4, w * 1.15, 0.09), 2.0)
+	var start := Vector3(0, 0, qz - 0.09)
+	var forte := _f(p, "forte", 0.0)
+	if forte > 0.0:
+		# (the colichemarde: a broad stiff third, then the needle)
+		var fl := length * 0.3
+		mb.add_box(m["blade"], Transform3D(Basis(), start + Vector3(0, 0, -fl * 0.5)), Vector3(th * 1.2, forte, fl), 2.0)
+		mb.add_box(m["edge"], Transform3D(Basis(), start + Vector3(0, -forte * 0.5, -fl * 0.5)), Vector3(th * 0.7, forte * 0.14, fl), 2.0)
+		start += Vector3(0, 0, -fl)
+		length -= fl
+	_blade(mb, m, start, length, w, th, 0.0, 0.5, 6, false, _f(p, "wave", 0.0))
+	# quillons, their ends turned, and the knuckle bow from the lower one round to the pommel
+	mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, qz)), Vector3(0.016, 0.24, 0.016), 2.0)
+	mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, qz)), Vector3(0.03, 0.034, 0.03), 2.0)
+	mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0.12, qz)), Vector3(0.024, 0.024, 0.024), 2.0)
+	mb.add_tube(fit, PackedVector3Array([Vector3(0, -0.12, qz), Vector3(0, -0.1, qz + 0.07), Vector3(0, -0.075, 0.03),
+		Vector3(0, -0.055, 0.1), Vector3(0, -0.02, 0.135)]), 0.007, -1.0, 4, 1.0)
+	match str(p.get("hilt", "cup")):
+		"cup":
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, qz - 0.075)), 0.024, 0.072, 0.07, 8, 2.0, Color.WHITE, true, true)
+		"swept":
+			# a ring out each side of the ricasso, and bars swept from the bow round the outside of the hand
+			for s in [-1.0, 1.0]:
+				var ring := PackedVector3Array()
+				for i in 7:
+					var a := PI * float(i) / 6.0
+					ring.append(Vector3(s * (0.012 + 0.05 * sin(a)), 0.03 * cos(a) - 0.01, qz - 0.012 - 0.03 * sin(a)))
+				mb.add_tube(fit, ring, 0.006, -1.0, 4, 1.0)
+			for k in [0.0, 1.0]:
+				var bar := PackedVector3Array()
+				for i in 7:
+					var a := PI * float(i) / 6.0
+					bar.append(Vector3(0.055 * sin(a), lerpf(-0.11, 0.0, float(i) / 6.0) - 0.02 * k, qz + 0.01 + (0.07 - 0.035 * k) * sin(a)))
+				mb.add_tube(fit, bar, 0.006, -1.0, 4, 1.0)
+		"shell":
+			for s in [-1.0, 1.0]:
+				mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5) * Basis(Vector3.FORWARD, s * 0.3), Vector3(s * 0.034, -0.006, qz - 0.01)),
+					0.044, 0.04, 0.01, 8, 2.0, Color.WHITE, true, true)
+	mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, 0.045)), Vector3(0.034, 0.04, 0.15), 2.0)
+	for z in [-0.01, 0.045, 0.1]:
+		mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, z)), Vector3(0.038, 0.044, 0.008), 2.0)
+	mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.12)), 0.022, 0.026, 0.04, 6, 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, qz)), Vector3(0.04, 0.026, 0.026), 2.0)
 
 
 ## Greatswords: held at the origin by the right hand at the pommel end of a long two-hand grip (the left slides up it

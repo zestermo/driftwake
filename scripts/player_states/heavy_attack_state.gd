@@ -89,6 +89,12 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.12, "shake": 0.26, "knockback": 6.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": false, "reach": "kick_axe",
 		"color": Color(1.0, 0.94, 0.86), "tree": "black_leg", "legs": true, "breaker": true},
+	# rapier (the Lunge): sunk back over the rear foot with the point on them, a breath, then the arm, the back leg and a
+	# stride thrown out at once, the body low behind the point: a long line through a wind-up, reeling them
+	"lunge": {"anim": "rp_heavy", "impulse": 13.0,
+		"damage": 28.0, "hitstop": 0.1, "shake": 0.18, "knockback": 9.0, "stagger": 0.9,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.3, "impact_fx": false, "reach": "rapier_lunge",
+		"color": Color(0.9, 0.93, 1.0), "tree": "rapier", "fence": true, "breaker": true},
 	# fists (the haymaker): rocked back with the fist drawn up behind the head, then a long step in and the overhand
 	# brought over the top and down through them; breaks a wind-up, knocks them flat
 	"haymaker": {"anim": "fs_hay", "impulse": 7.5, "wind": true,
@@ -179,7 +185,9 @@ static func style_for(weapon_model: String) -> String:
 			return "quake"
 		"greatsword":
 			return "cleave"
-		"cutlass", "sword", "rapier", "dagger":
+		"rapier":
+			return "lunge"
+		"cutlass", "sword", "dagger":
 			return "thrust"
 	return "slam"
 
@@ -241,6 +249,8 @@ func enter(data: Dictionary) -> void:
 		_spd = DualAxeArts.pair(player, "speed")
 	elif cfg.get("great", false):
 		_spd = WeaponDesigns.great(player.equipped_weapon.design, "speed")
+	elif cfg.get("fence", false):
+		_spd = WeaponDesigns.rapier(player.equipped_weapon.design, "speed")
 	_chop = 0
 	var length := ActionSpecs.length(anim) / _spd
 	var w := ActionSpecs.hit_seconds(anim) / _spd
@@ -339,7 +349,9 @@ func physics_update(delta: float) -> void:
 					player.velocity.z = face_dir.z * float(cfg["impulse"])
 				# (the whirlwind's first turn only staggers: the second knocks them flat;
 				# Powder Lunge's thrust holds them up for the shot)
-				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot") and not cfg.has("chops") and not cfg.has("charge"))
+				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot") and not cfg.has("chops") and not cfg.has("charge") and not cfg.has("fence"))
+				if cfg.has("fence"):
+					RapierArts.shape_hit(player, hit)
 				hit.breaker = hit.breaker or cfg.has("quake") or cfg.get("breaker", false)
 				if cfg.has("charge"):
 					hit.damage *= float(CHARGE_DAMAGE[_level]) / float(cfg["damage"])
@@ -505,6 +517,9 @@ func _strike_fx(second: bool = false) -> void:
 		return
 	if cfg["tree"] == "greatsword":
 		GreatswordArts.cleave_fx(player, _level)
+		return
+	if cfg["tree"] == "rapier":
+		RapierArts.lunge_fx(player, elem)
 		return
 	if cfg["tree"] in GunKinds.OWN:
 		GunKinds.art(str(cfg["tree"])).heavy_fx(player, elem)

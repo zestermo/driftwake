@@ -1356,6 +1356,9 @@ const TREE_FX := {
 	"cannon": [Color(1.0, 0.97, 0.75), Color(1.0, 0.8, 0.22), Color(0.62, 0.3, 0.88)],
 	# the slingshot: the trickster's spark - a pale pink core, hot-pink edge, a tangerine accent
 	"slingshot": [Color(1.0, 0.96, 0.96), Color(1.0, 0.38, 0.72), Color(1.0, 0.62, 0.2)],
+	# the rapier: quicksilver mirror - a bright silver-white core, a cool mercury grey-blue edge, a warm mirror flash (not
+	# the katana's pale steel or the long gun's moon-blue starlight): silver afterimages, phantom double thrusts
+	"rapier": [Color(0.95, 0.97, 1.0), Color(0.6, 0.69, 0.8), Color(1.0, 0.97, 0.86)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1495,6 +1498,8 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			heat(pos, dir, amount, speed)
 		"long_gun":
 			starlight(pos, dir, amount, speed)
+		"rapier":
+			quicksilver(pos, dir, amount, speed)
 		"cannon":
 			brimstone(pos, dir, amount, speed)
 		"slingshot":
@@ -1522,6 +1527,24 @@ func starlight(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0)
 	motes(pos, dir, maxi(amount / 3, 1), tree_col("long_gun", ACCENT), speed * 0.5)
 	if amount >= 6:
 		glint(pos, tree_col("long_gun", CORE), 0.5 + amount * 0.03)
+
+
+## Quicksilver thrown off a thrust (the rapier's element): beads of mercury flung bright along `dir`, slower grey-blue
+## ones beading behind, and a mirror's flash at the heart of it.
+func quicksilver(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	motes(pos, dir, maxi(amount * 2 / 3, 2), tree_col("rapier", CORE), speed * 1.2)
+	motes(pos, dir, maxi(amount / 3, 1), tree_col("rapier", EDGE), speed * 0.45)
+	if amount >= 6:
+		star_glint(pos, 0.4 + amount * 0.03, tree_col("rapier", ACCENT), 0.2, false, 1.4)
+
+
+## The rapier's phantom double thrust: the real line of the thrust from `from` along `dir` (`length` m), and its
+## mirror image a hand's width to the side (`side`), fainter and lingering; a mirror's flash at the point.
+func mirror_thrust(from: Vector3, dir: Vector3, length: float, color: Color, side: Vector3, flash: Color) -> void:
+	var d := dir.normalized()
+	streak(from, from + d * length, color, 0.06, 0.2)
+	streak(from + side * 0.24 + Vector3.UP * 0.06, from + side * 0.24 + Vector3.UP * 0.06 + d * length * 0.92, Color(color, 0.6), 0.05, 0.34)
+	star_glint(from + d * length, 0.5, flash, 0.2, false, 1.8)
 
 
 ## Heat thrown off a kick (black-leg's element): crimson flames tinted off the fire sheet (not the axe's orange
@@ -2946,6 +2969,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"long_gun":
 			starlight(pos, dir + Vector3.UP * 0.3, 7, 3.0)
 			ring(pos, dir, 0.7, edge, 0.14, 0.12)
+		"rapier":
+			quicksilver(pos, dir + Vector3.UP * 0.2, 7, 3.5)
+			star_glint(pos, 0.55, accent, 0.18, false, 1.6)
+			ring(pos, dir, 0.6, edge, 0.14, 0.1)
 		"cannon":
 			brimstone(pos, dir + Vector3.UP * 0.3, 8, 4.0)
 			ring(pos, dir, 1.0, edge, 0.18, 0.2)

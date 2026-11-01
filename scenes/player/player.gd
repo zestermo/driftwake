@@ -1782,7 +1782,7 @@ func try_summon() -> String:
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
 ## a pair for the twin axes). Each new kind adds its line (1.24: the ranged kinds). It also teaches black-leg (no item: learned).
-const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1, "slingshot": 1}
+const DEBUG_RACK := {"rapier": 1, "polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1, "slingshot": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2335,7 +2335,7 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 	match c:
 		"sword":
 			var main := main_hand.weapon_model
-			if main in ["katana", "polearm", "hammer", "greatsword"]:
+			if main in ["katana", "polearm", "hammer", "greatsword", "rapier"]:
 				return main
 			if dual:
 				if class_of(off_hand) == "gun":
@@ -2371,8 +2371,9 @@ func _offhand_valid(item: ItemData) -> bool:
 		and equipped_weapon.weapon_model != "axe"
 	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
-	# (the katana, polearms, hammers, greatswords and the 1.24 ranged kinds take both hands)
-	for two in ["katana", "polearm", "hammer", "greatsword"] + GunKinds.STYLE.keys():
+	# (the katana, polearms, hammers, greatswords and the 1.24 ranged kinds take both hands; the rapier fences with the
+	# free hand up behind it)
+	for two in ["katana", "polearm", "hammer", "greatsword", "rapier"] + GunKinds.STYLE.keys():
 		if two in [item.weapon_model, equipped_weapon.weapon_model]:
 			return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
@@ -2506,7 +2507,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy", "slingshot": "punch"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy", "slingshot": "punch", "rapier": "slice"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2598,6 +2599,9 @@ const REACH := {
 	"stock": [Vector3(1.8, 1.4, 2.0), Vector3(-0.15, 0.2, -1.05)],
 	# a cannon's barrel swung across the front, the ram's muzzle out ahead
 	"cannon": [Vector3(2.4, 1.6, 2.3), Vector3(-0.2, 0.25, -1.15)],
+	# rapiers: the thrust's long narrow line, the lunge's longer still (x the design's reach)
+	"rapier": [Vector3(1.1, 1.3, 2.9), Vector3(0.0, 0.2, -1.5)],
+	"rapier_lunge": [Vector3(1.2, 1.3, 4.1), Vector3(0.0, 0.15, -2.1)],
 }
 
 
@@ -2617,6 +2621,8 @@ func set_reach(kind: String) -> void:
 	elif kind.begins_with("great") and equipped_weapon:
 		var d := equipped_weapon.design
 		k = Vector3(WeaponDesigns.great(d, "sweep") if kind in ["great_wide", "great_spin", "great_low"] else 1.0, 1.0, WeaponDesigns.great(d, "reach"))
+	elif kind.begins_with("rapier") and equipped_weapon:
+		k = Vector3(1.0, 1.0, WeaponDesigns.rapier(equipped_weapon.design, "reach"))
 	elif kind == "hook" and equipped_weapon:
 		k = Vector3(1.0, 1.0, 1.0 + (DualAxeArts.pair(self, "hook") - 1.0) * 0.5)
 	(cs.shape as BoxShape3D).size = (r[0] as Vector3) * k

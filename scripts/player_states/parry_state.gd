@@ -93,6 +93,9 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 			# (black-leg drops onto a hand and sweeps their legs out)
 			elif player.style() == "black_leg":
 				BlackLegArts.parried(player, attacker)
+			# (a rapier answers at once: the riposte's thrust into the line they left open)
+			elif player.style() == "rapier":
+				RapierArts.riposte(player, attacker)
 		var pr := player.progression
 		player.stamina = minf(player.stamina + pr.stat("parry_stamina"), player.max_stamina)
 		pr.add_life("defense", 15)

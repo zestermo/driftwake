@@ -233,8 +233,8 @@ func _process(d: float) -> bool:
 						iconless += 1
 			print("   %d weapon designs" % n)
 			check("every weapon design is an item with its own icon (%d designs)" % n, n >= 24 and iconless == 0)
-			var rap = db.get_item("rapier@4")
-			check("a legendary rapier: its model carries design and tier", rap.model() == "cutlass:rapier:4" and str(Props.weapon_mesh(rap.model()).get_meta("model")) == "cutlass:rapier:4")
+			var sw = db.get_item("swept_rapier@4")
+			check("a legendary swept rapier: its model carries design and tier", sw.model() == "rapier:swept:4" and str(Props.weapon_mesh(sw.model()).get_meta("model")) == "rapier:swept:4")
 			p.state_machine.force_state("Idle", {})
 			p.inventory_component.add_item(db.get_item("nodachi"), 1)
 			p.equip_weapon(db.get_item("nodachi"))

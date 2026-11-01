@@ -41,7 +41,8 @@ const SHOPS := {
 			["musket"], ["boarding_carbine"], ["blunderbuss"], ["long_rifle@1"], ["fowling_piece@1"],
 			["hand_cannon"], ["swivel_gun"], ["carronade@1"],
 			["slingshot"], ["vine_slingshot"], ["bone_slingshot"], ["iron_slingshot@1"],
-			["sharkfin_cutlass"], ["marlinspike"], ["whalers_harpoon@1"], ["musketoon"]],
+			["sharkfin_cutlass"], ["marlinspike"], ["whalers_harpoon@1"], ["musketoon"],
+			["rapier", 75], ["smallsword", 60], ["swept_rapier@1", 160], ["colichemarde@1", 170]],
 		"size": 5,
 		"buys": {"weapon": 0.6},
 	},
@@ -151,7 +152,7 @@ const RARE_GEAR := [
 	["coat", "bosun_coat", Gear.LOOKS["bosun_coat"][1]],
 	["vest", "bulwark_brigandine", Gear.LOOKS["bulwark_brigandine"][1]],
 ]
-const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword", "longgun", "cannon", "slingshot"]
+const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword", "longgun", "cannon", "slingshot", "rapier"]
 ## The chance a treasure merchant also has a piece of rare gear on a given day.
 const RARE_GEAR_CHANCE := 0.6
 ## The chance a treasure merchant has a fine rod that day (half of them the master's: only ever here).

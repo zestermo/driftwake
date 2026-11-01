@@ -8703,3 +8703,37 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **The bed** `volcanic_loop` (gen_volcanic_audio.py `bed`: a low breathing rumble, vents hissing in and out, crackle and
   pops; -20 LUFS, circular): Ambience.LOOPS / TOP_DB "volcanic" (-13), the style's ambience.
 - Not run here (world suites, the push gate's): musictest, r8test, ambiencetest, skytest map to music.gd / ambience.gd.
+
+## 2026-11-01: the rapier, piece 1 (1.28 weapons; docs/v1_28_plan.md "Weapons", docs/weapons_126.md)
+- **Its own kind now** (WeaponDesigns "rapier", base resources/items/rapier.tres, id "rapier": the cutlass's old "rapier"
+  design moved here, so a saved rapier is the new kind; the cutlass has one design fewer). `_rapier`: grip at the origin,
+  quillons across Y, a knuckle bow round to the pommel, a square ricasso and a long needle of a blade (`_blade`, taper
+  0.5); hilts "cup" (a steel bowl), "swept" (side rings, bars round the hand), "shell" (two shell plates). Designs: swept
+  rapier, smallsword (short, "speed" 1.1), colichemarde (a broad "forte" third), flamberge ("wave" blade, "bleed" 3 s),
+  quicksilver (RARE: a glowing mercury edge), gilded (skin). `WeaponDesigns.rapier(design, key)`: speed, reach, bleed.
+  One-handed but takes no off hand (Player.style_of / _offhand_valid): the free hand fences. Worn on the hip.
+- **Moveset** (style and stance "rapier"; RapierMoves keyed poses written as directions: "arm" / "fore" / "blade" in the
+  root's frame, solved in the chest's frame (`_aim`), the wrist kept steady where the blade runs along the forearm and
+  written the short way round (`_wrist`) so keys blend through the line, not round the side). Guard side on (StanceLife.HIPS
+  0.75), the point at their eyes, the free hand up behind. Combo rp_1 the straight thrust on an advance / rp_2 the
+  disengage into the high line / rp_3 the phantom double (the mirror's thrust leaves a silver afterimage, a snap back, the
+  real thrust on a lunge 0.2 s later: LightAttackState "phantoms" re-arms the hitbox at RapierMoves.PHANTOM_AT[1], 16
+  finisher). Heavy **the Lunge** (HeavyAttackState "lunge", rp_heavy: sunk back, a breath, then 13 m/s into a deep lunge,
+  REACH "rapier_lunge" 4.1 m, a breaker that reels them, not a knockdown). **Parry-riposte**: the parry turns the wrist
+  (rp_parry); a landed one plays rp_deflect and RIPOSTE_DELAY 0.16 s later `RapierArts.riposte` puts the point into the
+  attacker within 3.2 m: 16 finisher, a sure crit, unblockable, stagger 0.8, a step in. The Fleche (rp_dash) is wired for
+  a sprint's attack behind move "fleche" (the tree, piece 2). REACH "rapier" 2.9 m deep, x the design's reach.
+- **Colours** FX.TREE_FX "rapier" quicksilver mirror: silver-white core, mercury grey-blue edge, a warm mirror-flash
+  accent. `FX.quicksilver` (mercury beads, a mirror glint) for element / elem_hit; `FX.mirror_thrust` (the thrust's line and
+  its fainter mirror double a hand to the side, a stretched star glint at the point). Without the element: plain steel
+  rings and glints at the point, the afterimages in plain white.
+- **Sources**: a chest that keeps a cutlass or dagger makes it a rapier RAPIER_CHANCE 0.15 (hoard 0.3) from its own stream
+  (`|rapier`); Haldor's pool rapier / smallsword / swept_rapier@1 / colichemarde@1; Shops.RARE_KINDS; WeaponDesigns
+  .random_item; story rack (Vey's) and Shift+F10's rack. Traits: gale, bloodthirsty, rushing, duellist's.
+- **Co-op**: nothing new on the wire (the stance, actions and model sync; hits through hurtboxes, effects through Net.fx;
+  the riposte runs on the parrying captain's machine like black-leg's sweep).
+- **Per frame/tick**: nothing new (keyed poses; a timer for the riposte).
+- Tests: t/weapons/rapier_combo, rapier_riposte; qoltest's legendary-design check now uses the swept rapier. Renders:
+  tools/dev/out/rp_side_*, rp_front_* (animsheet), rp_models_sheet, rp_hilt_* (modelshot). posebench doesn't compile on
+  main right now (scripts/gadgets/gadget_belt.gd:89 names FX in a static context: the gadgets agent's). Expect the chest-roll
+  suites, Haldor's stock, the cutlass's design count and the story rack to want a look at the push.

@@ -1085,6 +1085,8 @@ func _guard() -> Dictionary:
 			return HammerMoves.GUARD
 		"greatsword":
 			return GreatswordMoves.GUARD
+		"rapier":
+			return RapierMoves.GUARD
 		"long_gun":
 			return GunMoves.LG_GUARD
 		"cannon":
@@ -1121,6 +1123,7 @@ const STANCE_LEGS := {
 	"hammer": HammerMoves.LEGS,
 	"dual_axe": DualAxeMoves.LEGS,
 	"greatsword": GreatswordMoves.LEGS,
+	"rapier": RapierMoves.LEGS,
 	"black_leg": BlackLegMoves.LEGS,
 	"long_gun": GunMoves.LG_LEGS,
 	"cannon": GunMoves.CN_LEGS,
@@ -1309,6 +1312,8 @@ func _block_pose() -> Dictionary:
 			return DualAxeMoves.block()
 		"greatsword":
 			return GreatswordMoves.BLOCK
+		"rapier":
+			return RapierMoves.BLOCK
 		"long_gun":
 			return GunMoves.LG_BLOCK
 		"cannon":
@@ -2461,6 +2466,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return DualAxeMoves.pose(self, n, u)
 	if n.begins_with("gs_"):
 		return GreatswordMoves.pose(self, n, u)
+	if n.begins_with("rp_"):
+		return RapierMoves.pose(self, n, u)
 	if n.begins_with("lg_") or n.begins_with("cn_") or n.begins_with("sl_"):
 		return GunMoves.pose(self, n, u)
 	if n.begins_with("fs_"):

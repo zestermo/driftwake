@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rapier"
+display_name = "Rapier"
+description = "A needle of a sword behind a steel cup. Quick to the point, slow to break: it thrusts and lunges where a cutlass cuts, and a parry with it answers at once."
+value = 17
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "rapier"
+damage_mult = 0.95
