@@ -8618,3 +8618,27 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - genshot renders each theme place (`<kind>` shots, e.g. `GSHOT_ONLY=volcanic_forge`).
 - **Tests:** t/island/volcanic_town (the roll, the yard built, the tinkerer's gold check and teaching twice). Per tick: two
   anvil timers per forge town (a distance check each beat).
+
+## 1.28: the volcanic isle, piece 3 (creatures, places, the roamer and minibosses) (2026-10-31)
+- **Creatures** (the roster, rolled per island as every theme's): **ash hounds** (`fauna/volcanic_ash_hound.gd`: the
+  Wolf pack brain in a soot-dark hound with a line of embers down its back; a landed bite spits embers) and **ember
+  beetles** (`fauna/volcanic_ember_beetle.gd`: the RollerBug in black and gold with glowing seams; dies in a burst of
+  embers and a crack of fire, Net.fx), alongside monitor lizards, scorpions, snakes, crabs, mites and cave bats.
+- **Beasts** (all table-driven on the 1.20 move tables, so 1.28's glints and ground fans come with them):
+  the roamer **Cinderhorn** (`beasts/volcanic_cinderhorn.gd`, on the behemoth: gore cone (parry), magma spit lane,
+  trample charge (its knockdown), eruption spots in phase 2); minibosses the **obsidian golem** at the ruins
+  (`volcanic_golem.gd`, on the moss golem: slam cone (parry), shards spots, roll charge, rupture ring in phase 2) and
+  the **ash alpha** "Cinderfang" at the lair (`volcanic_hound.gd`, on the frost alpha: bite (parry), pounce leap,
+  cinder breath lane, flare ring in phase 2). t/island/beast_moves' KINDS has all three.
+- **Places** (`volcanic_places.gd`, VolcanicTheme.place_kind): the chain's waterfall / great tree become an
+  **obsidian quarry** (a pit cut 2.5 m down, stepped faces of black glass and basalt, blocks on sledges, a timber crane,
+  the quarrymen's hut and a strongbox; three slag-picker grunts working it, a GruntCamp with its nav zone); its cenote /
+  sunken village a **vent field** (fumaroles crusted in sulphur, steam, a chest in the middle). The vent field's bursts
+  (`volcanic_vents.gd`): every 3.2 s of `Ocean.clock()` one vent (from the field's seed and the slot: every screen the
+  same without a message) shows a ring for 1.3 s, then bursts; the local captain on it takes 18 and is thrown. The
+  chain's own volcano_vent set piece stays.
+- **Tests:** t/island/volcanic_wilds (roster rolls, both creatures build, the minis and roamer, the places planned and
+  built, a burst burning a captain on its vent), t/island/beast_moves. Render: beastsheet `cinderhorn`. Per tick: a vent
+  field's distance check (asleep past 60 m); creatures and beasts sleep as every Creature/QuadBeast does.
+- Open: the collapsed lava tube cave and the smugglers' den aren't built (the chain's caves and dens are used); the
+  encounters are the shared kinds with volcanic text.

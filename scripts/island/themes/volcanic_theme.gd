@@ -29,6 +29,7 @@ const LAND := {
 
 const LAND_FEATURES := preload("res://scripts/island/themes/volcanic_land.gd")
 const TOWN := preload("res://scripts/island/themes/volcanic_town.gd")
+const PLACES := preload("res://scripts/island/themes/volcanic_places.gd")
 
 ## The settlement style over KitStyle.BRINEHOLLOW: houses of basalt and dark timber under slate, iron lamps burning
 ## orange, soot on everything; leather, canvas and iron.
@@ -127,6 +128,8 @@ const STYLE := {
 ## Each kind: its zones, how likely an island has it, how many groups, a group's size. Hardy things: monitor lizards
 ## basking on the warm rock, scorpions and snakes in the cinders, crabs on the black sand, bats in the lava tubes.
 const FAUNA := {
+	"ash_hound": {"zones": ["floor"], "p": 0.7, "dens": [2, 3], "pack": [3, 5]},
+	"ember_beetle": {"zones": ["floor", "cave"], "p": 0.75, "dens": [3, 6]},
 	"lizard": {"zones": ["floor"], "p": 0.85, "dens": [2, 5], "pack": [1, 2], "young": 0.4},
 	"scorpion": {"zones": ["floor"], "p": 0.6, "dens": [2, 5], "pack": [1, 3], "young": 0.0},
 	"snake": {"zones": ["floor"], "p": 0.45, "dens": [1, 4]},
@@ -135,6 +138,8 @@ const FAUNA := {
 	"bat": {"zones": ["cave"], "p": 0.7, "dens": [1, 3]},
 }
 const CREATURES := {
+	"ash_hound": "res://scripts/enemies/fauna/volcanic_ash_hound.gd",
+	"ember_beetle": "res://scripts/enemies/fauna/volcanic_ember_beetle.gd",
 	"lizard": "res://scripts/enemies/fauna/monitor_lizard.gd",
 	"scorpion": "res://scripts/enemies/fauna/scorpion.gd",
 	"snake": "res://scripts/enemies/fauna/snake.gd",
@@ -163,19 +168,20 @@ func _init() -> void:
 	life = preload("res://scripts/island/themes/volcanic_life.gd").TEXT
 	encounters = preload("res://scripts/island/themes/volcanic_encounters.gd").TEXT
 	bosses = ["basilisk", "serpent"]
-	minis = ["boar"]
-	roamers = ["behemoth"]
+	minis = ["obsidian_golem", "ash_alpha"]
+	roamers = ["cinderhorn"]
 	beasts = {
 		"basilisk": {"script": "res://scripts/enemies/beasts/basilisk.gd", "names": ["The Cinder Basilisk", "Old Slagjaw", "The Ash-Eye"], "looks": 3,
 			"banner": ["The Caldera", "The ground is warm through your boots. Something big has worn a path round the lava."]},
 		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Ash Coil", "Old Brimstone", "The Cinder Serpent"], "looks": 3,
 			"banner": ["The Smoking Hollow", "Scales the size of shields in the ash. The smoke here coils as if something breathes it."]},
-		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Ashtusk", "Old Scorch", "Cindermaw", "Slagback"], "site": "lair"},
-		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Cinderhorn", "Old Slagback", "The Ash Grazer"]},
+		"obsidian_golem": {"script": "res://scripts/enemies/beasts/volcanic_golem.gd", "names": ["The Obsidian Golem", "Old Glassback", "The Slag Heap", "Kilnwight"], "site": "ruins"},
+		"ash_alpha": {"script": "res://scripts/enemies/beasts/volcanic_hound.gd", "names": ["Cinderfang", "Old Smoulder", "Ashmaw", "The Ember Hound"], "site": "lair"},
+		"cinderhorn": {"script": "res://scripts/enemies/beasts/volcanic_cinderhorn.gd", "names": ["The Cinderhorn", "Old Slagback", "The Ash Grazer"]},
 	}
 	fauna = FAUNA
 	creatures = CREATURES
-	cave_fauna = {"ceiling": "bat", "floor": ["mite", "scorpion", "snake"]}
+	cave_fauna = {"ceiling": "bat", "floor": ["ember_beetle", "mite", "scorpion", "snake"]}
 
 
 ## The land (volcanic_land.gd): the cone and its caldera, the breach, the lava flows.
@@ -216,11 +222,19 @@ func plan_places(isl, avoid: Array) -> Array:
 	return TOWN.plan_places(isl, avoid)
 
 
+## The chain's places that become the theme's own (volcanic_places.gd): an obsidian quarry, a vent field.
+func place_kind(kind: String) -> String:
+	return PLACES.KINDS.get(kind, "")
+
+
+func plan_place(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:
+	return PLACES.plan(isl, kind, rng, avoid)
+
+
 func place_steps(isl, ctx, pl: Dictionary) -> Array:
 	if str(pl["kind"]) == TOWN.KIND:
 		return TOWN.steps(isl, ctx, pl)
-	push_error("VolcanicTheme: no place %s" % pl["kind"])
-	return []
+	return PLACES.steps(isl, ctx, pl)
 
 
 func meshes() -> Dictionary:
