@@ -8543,6 +8543,29 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Tests:** t/gadgets workbench_build, workbench_upgrade, workbench_refill; t/economy/harbour_vendor updated (the
   chandler's stock now ends with the parts). Renders: modelshot `Workbench.mesh("plain"|"ship"|"camp"|"forge")`,
   `uishots ... belt,workbench`.
+
+## 2026-10-31: gadgets, piece 3 - traversal: grappling hook, spring boots, pocket glider, climbing spike (1.28)
+- **GadgetState** (`scripts/player_states/gadget_state.gd`, state "Gadget"): not in player.tscn; GadgetBelt._ready adds
+  it to the captain's StateMachine and registers it the way the machine registers its children, handing it `player`
+  and `input_buffer` itself (its `_ready` is empty: PlayerState's awaits the scene owner, which a runtime node hasn't).
+- **Fire:** GadgetBelt.fire asks `GadgetState.reason(p, id, tier)` first (["why not", where]); a refusal toasts and spends
+  nothing. Traversal gadgets have no charges (cooldown only) and force the state with {"id", "tier", "at"}.
+- **Grapple:** `hook_point` = the camera's line of sight within range, at least HOOK_ABOVE 1 m over your feet (not the
+  ground ahead). A GadgetRope (rope + the hook's own model, VineRope's calls so `Player._rope_end` shows it on puppets,
+  as a vine there) shoots out, then you're hauled at the tier's pull until the chest is HAUL_OVER 0.5 m over the hook,
+  2.2 s, or snagged (barely moving 0.25 s), then popped up 8.5 + 4 ahead (Fall). Speed lines while hauling.
+- **Spring boots:** velocity.y = the tier's jump (11/13/15) with a dust ring and a ring, squash and a camera kick (Fall).
+- **Glider:** only airborne; GadgetModels.glider_wing on the torso (Mk III red with brass tips), `gd_glide`; sinks toward
+  the tier's fall rate, flies ahead at its speed, the stick turns it slowly (GLIDE_TURN 0.25 of a normal turn); landing,
+  jump or the tier's time ends it. Keeps freefall_from fresh (no tumble).
+- **Spike:** a wall within 1.2 m of the chest (steep normal); `gd_hang`; hangs to the tier's hold, forward climbs 1.6
+  m/s (hopping over the top when the wall runs out), jump kicks off up 8 and away 3. Sparks and a clang going in.
+- **Poses:** GadgetPoses gd_grapple, gd_glide, gd_hang (held, blended in over their spec length; ActionSpecs "hold").
+- **Open:** a crewmate sees your hook's line as a vine (the puppet's rope is VineRope); a grapple aboard a moving ship
+  isn't ship-relative; the glider over water ends in a Fall once its time is up (then you swim).
+- **Per tick:** only while in the state (the grapple's ray once at fire; the spike's wall ray every 0.15 s while climbing).
+- **Tests:** t/gadgets grapple, spring_boots, glider, spike. Render: modelshot `GadgetModels.glider_wing(t)`,
+  `GadgetModels.mesh("grapple"|"spring_boots"|"glider"|"spike", t)`.
 ## 1.28: the volcanic isle, piece 1 (the land, lava flows, plants, textures) (2026-10-31)
 - **What:** a new island theme, `volcanic` (docs/volcanic_island_plan.md), registered in IslandThemes.SCRIPTS. Rolled
   apart like the fog isle (weight 0.22) and only from the chain's fourth layer on (new `ThemeDef.from_layer`, read by

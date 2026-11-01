@@ -3052,7 +3052,7 @@ func net_pack() -> Array:
 
 ## Where our vine (swing / grapple) is stretched to, or INF.
 func _rope_end() -> Vector3:
-	for key in ["swing", "skill"]:
+	for key in ["swing", "skill", "gadget"]:
 		var st = state_machine.states.get(key)
 		if st == null or st != state_machine.current_state:
 			continue

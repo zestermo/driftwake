@@ -514,6 +514,9 @@ const SPECS := {
 	"dt_startle": {"len": 0.5, "stance": "sword", "weapon": ""},
 	# --- gadgets (GadgetPoses) ---
 	"gd_lob": {"len": 0.42, "stance": "sword", "weapon": "cutlass"},
+	"gd_grapple": {"len": 0.25, "hold": true, "stance": "sword", "weapon": ""},
+	"gd_glide": {"len": 0.2, "hold": true, "stance": "sword", "weapon": ""},
+	"gd_hang": {"len": 0.15, "hold": true, "stance": "sword", "weapon": ""},
 	# --- fishing (FishPoses, the rod and both hands on it FishRod's; Fishing's lengths) ---
 	"rod_cast": {"len": 1.1, "stance": "sword", "weapon": ""},
 	"rod_wait": {"len": 0.35, "stance": "sword", "weapon": ""},

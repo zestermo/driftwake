@@ -69,7 +69,74 @@ static func _build(gid: String, tier: int) -> ArrayMesh:
 					var a := k * TAU / 5.0
 					var d := Vector3(cos(a), 0, sin(a))
 					mb.add_cone(PSXMat.lit("metal", IRON), Transform3D(Basis(Vector3.UP.cross(d).normalized(), PI * 0.5), d * 0.048 + Vector3(0, -0.02, 0)), 0.007, 0.02, 4)
+		"grapple":
+			var reel: Color = [Color(0.45, 0.33, 0.22), BRASS, LACQUER][tier]
+			mb.add_cylinder(PSXMat.lit("metal", IRON), Transform3D(Basis(), Vector3(0, -0.02, 0)), 0.01, 0.01, 0.12, 5, 4.0)
+			var prongs := 4 if tier == 2 else 3
+			for k in range(prongs):
+				var a := k * TAU / prongs
+				var d := Vector3(cos(a), 0, sin(a))
+				mb.add_tube(PSXMat.lit("metal", IRON), MeshBuilder.curve_points(Vector3(0, 0.1, 0), Vector3(0, 0.06, 0) + d * 0.06, Vector3(0, 0.11, 0) + d * 0.05, 4), 0.008, 0.005, 4)
+			mb.add_cylinder(PSXMat.lit("metal", reel), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.035, -0.04, 0)), 0.035, 0.035, 0.07, 8, 4.0, Color.WHITE, true, true)
+			mb.add_cylinder(PSXMat.lit("rope"), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.03, -0.04, 0)), 0.03, 0.03, 0.06, 8, 4.0, Color.WHITE, false, false)
+		"spring_boots":
+			var plate: Color = [Color(0.4, 0.28, 0.18), BRASS, LACQUER][tier]
+			mb.add_box(PSXMat.flat(LEATHER), Transform3D(Basis(), Vector3(0, 0.05, 0.01)), Vector3(0.07, 0.04, 0.16), 4.0)
+			mb.add_box(PSXMat.lit("metal", plate), Transform3D(Basis(), Vector3(0, 0.025, 0.01)), Vector3(0.075, 0.01, 0.17), 4.0, Color.WHITE, false)
+			for z in [-0.04, 0.05]:
+				var pts := PackedVector3Array()
+				for i in range(13):
+					var a := i * TAU / 6.0
+					pts.append(Vector3(cos(a) * 0.022, 0.02 - i * 0.003, z + sin(a) * 0.022))
+				mb.add_tube(PSXMat.lit("metal", Color(0.7, 0.7, 0.72)), pts, 0.004, 0.004, 3)
+		"glider":
+			var cloth: Color = [Color(0.88, 0.84, 0.72), Color(0.82, 0.78, 0.62), LACQUER][tier]
+			mb.add_cylinder(PSXMat.lit("canvas", cloth), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.08, 0, 0)), 0.03, 0.03, 0.16, 7, 4.0, Color.WHITE, true, true)
+			for x in [-0.05, 0.05]:
+				mb.add_cylinder(PSXMat.lit("planks", Color(0.7, 0.55, 0.38)), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.09, 0.0, x * 0.4)), 0.007, 0.007, 0.18, 4, 4.0)
+			if tier >= 1:
+				mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.01, 0, 0)), 0.033, 0.033, 0.015, 7, 4.0, Color.WHITE, false, false)
+		"spike":
+			var grip: Color = [LEATHER, BRASS, LACQUER][tier]
+			mb.add_cone(PSXMat.lit("metal", IRON), Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0, 0)), 0.012, 0.11, 5)
+			mb.add_cylinder(PSXMat.lit("metal", grip), Transform3D(Basis(), Vector3(0, 0, 0)), 0.016, 0.016, 0.07, 6, 4.0)
+			var ring := PackedVector3Array()
+			for i in range(9):
+				var a := i * TAU / 8.0
+				ring.append(Vector3(cos(a) * 0.022, 0.09 + sin(a) * 0.022, 0))
+			mb.add_tube(PSXMat.lit("metal", IRON), ring, 0.004, 0.004, 4)
 	return mb.commit()
+
+
+## The pocket glider's wing as worn open over the captain (in their torso's space): canvas over two spars, a bar to
+## hold; Mk II striped, Mk III red-lacquered with brass tips.
+static func glider_wing(tier: int) -> ArrayMesh:
+	var key := "wing:%d" % tier
+	if _meshes.has(key):
+		return _meshes[key]
+	var mb := MeshBuilder.new()
+	var cloth: Color = [Color(0.9, 0.86, 0.74), Color(0.86, 0.8, 0.62), Color(0.7, 0.16, 0.12)][tier]
+	var cm := PSXMat.lit("canvas", cloth)
+	var span: float = [1.1, 1.25, 1.4][tier]
+	var y := 0.75
+	for s in [-1.0, 1.0]:
+		var tip := Vector3(s * span, y - 0.12, 0.35)
+		mb.add_tri(cm, Vector3(0, y + 0.08, -0.45), tip, Vector3(0, y, 0.45), Vector3.UP, Vector3.UP, Vector3.UP,
+			Vector2(0.5, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, Vector3.UP)
+		mb.add_tri(cm, Vector3(0, y + 0.08, -0.45), Vector3(0, y, 0.45), tip, Vector3.DOWN, Vector3.DOWN, Vector3.DOWN,
+			Vector2(0.5, 0), Vector2(0, 1), Vector2(1, 1), Color.WHITE, Vector3.DOWN)
+		mb.add_tube(PSXMat.lit("planks", Color(0.6, 0.45, 0.3)), PackedVector3Array([Vector3(0, y + 0.09, -0.45), tip]), 0.015, 0.012, 4)
+		if tier == 1:
+			mb.add_tube(PSXMat.flat(Color(0.72, 0.16, 0.12)), PackedVector3Array([Vector3(0, y + 0.06, -0.15), tip * Vector3(0.9, 1.0, 0.9) + Vector3(0, 0.005, 0)]), 0.01, 0.01, 3)
+		if tier == 2:
+			mb.add_blob(PSXMat.lit("metal", BRASS), Transform3D(Basis(), tip), Vector3(0.03, 0.03, 0.03), RandomNumberGenerator.new(), 0.0, 3, 5, 4.0)
+	mb.add_tube(PSXMat.lit("planks", Color(0.6, 0.45, 0.3)), PackedVector3Array([Vector3(0, y + 0.09, -0.45), Vector3(0, y, 0.45)]), 0.018, 0.018, 4)
+	# the bar the hands hold, hung under it
+	mb.add_tube(PSXMat.lit("metal", IRON), PackedVector3Array([Vector3(-0.3, 0.42, -0.1), Vector3(0.3, 0.42, -0.1)]), 0.012, 0.012, 4)
+	for s in [-0.3, 0.3]:
+		mb.add_tube(PSXMat.lit("rope"), PackedVector3Array([Vector3(s, 0.42, -0.1), Vector3(s * 0.4, y, 0.0)]), 0.006, 0.006, 3)
+	_meshes[key] = mb.commit()
+	return _meshes[key]
 
 
 ## A part's (or "blueprint"'s) bag icon.

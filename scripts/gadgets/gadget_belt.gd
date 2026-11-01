@@ -15,6 +15,7 @@ const LOB := 0.42
 const RELEASE := 0.52
 ## Auto-aim: the foe closest to the line of sight within the throw's range and this cone.
 const AIM_DOT := 0.8
+const GADGET_STATE := preload("res://scripts/player_states/gadget_state.gd")
 
 var player: Node
 ## blueprint id -> true
@@ -102,13 +103,32 @@ func fire() -> bool:
 	if max_charges(gid) > 0 and charges(gid) <= 0:
 		player.call("_toast", "Out of %s: refill at a workbench or a camp" % GadgetData.GADGETS[gid]["name"])
 		return false
+	var why: Array = GADGET_STATE.reason(player, gid, tier_of(gid))
+	if why[0] != "":
+		player.call("_toast", why[0])
+		return false
 	if max_charges(gid) > 0:
 		owned[gid]["charges"] = charges(gid) - 1
 	ready_at[gid] = PlayerState.now_s() + cooldown_len(gid)
 	_changed()
 	if GadgetData.GADGETS[gid].get("throw", false):
 		_lob(gid, tier_of(gid))
+	elif GadgetData.GADGETS[gid]["kind"] == "traversal":
+		player.state_machine.force_state("Gadget", {"id": gid, "tier": tier_of(gid), "at": why[1]})
 	return true
+
+
+## The traversal gadgets' state ("Gadget"), put on the captain's state machine (its nodes come from player.tscn; this
+## one is added here, the way the machine itself registers a child).
+func _ready() -> void:
+	var sm: StateMachine = player.get_node("StateMachine")
+	var st: Node = GADGET_STATE.new()
+	st.name = "Gadget"
+	st.player = player
+	st.input_buffer = player.get_node("InputBuffer")
+	sm.add_child(st)
+	sm.states["gadget"] = st
+	st.transitioned.connect(sm._on_child_transitioned)
 
 
 func _lob(gid: String, t: int) -> void:
