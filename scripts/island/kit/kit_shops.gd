@@ -7,7 +7,7 @@ extends RefCounted
 ## facing the door) and Customer. Room space: front +Z, the floor at `fl`.
 
 const KINDS := ["smith", "armourer", "tailor", "luthier", "apothecary", "library", "onsen", "restaurant", "swordsmith",
-	"sea_shrine", "cartographer", "dojo", "curio"]
+	"sea_shrine", "cartographer", "dojo", "curio", "parts"]
 
 const CLOTHS := [Color(0.66, 0.14, 0.12), Color(0.2, 0.32, 0.62), Color(0.8, 0.62, 0.2), Color(0.16, 0.42, 0.44), Color(0.45, 0.25, 0.5)]
 

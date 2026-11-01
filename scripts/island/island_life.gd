@@ -89,7 +89,7 @@ static func plan(gi: GenIsland) -> IslandLife:
 	var vrng := RandomNumberGenerator.new()
 	vrng.seed = hash([int(gi.node["seed"]), 5108])
 	var used := L.folk.map(func(f): return str(f["name"]).get_slice(" ", str(f["name"]).get_slice_count(" ") - 1))
-	for t in VillageVendors.roll(int(gi.node["seed"]), IslandContent.tier(gi)):
+	for t in VillageVendors.roll(int(gi.node["seed"]), IslandContent.tier(gi), KitStyle.of(gi.theme)["vendors_always"]):
 		var nm: String = names[vrng.randi() % names.size()]
 		for k in range(8):
 			if not used.has(nm):

@@ -910,7 +910,7 @@ func _worn_fronts(prng: RandomNumberGenerator) -> void:
 ## the trader's or the place's kind (KitShops dresses its room).
 func _convert() -> void:
 	var want: Array = [["unique", UniquePlaces.of(gi)]]
-	for t in VillageVendors.roll(int(gi.node["seed"]), IslandContent.tier(gi)):
+	for t in VillageVendors.roll(int(gi.node["seed"]), IslandContent.tier(gi), KitStyle.of(gi.theme)["vendors_always"]):
 		want.append(["vshop", t])
 	var cands := blds.filter(func(b): return str(b["kind"]) in ["hut", "tall", "home"])
 	cands.sort_custom(func(a, b): return (a["p"] as Vector2).distance_to(c) < (b["p"] as Vector2).distance_to(c))

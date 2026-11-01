@@ -28,6 +28,7 @@ const LAND := {
 }
 
 const LAND_FEATURES := preload("res://scripts/island/themes/volcanic_land.gd")
+const TOWN := preload("res://scripts/island/themes/volcanic_town.gd")
 
 ## The settlement style over KitStyle.BRINEHOLLOW: houses of basalt and dark timber under slate, iron lamps burning
 ## orange, soot on everything; leather, canvas and iron.
@@ -67,6 +68,8 @@ const STYLE := {
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": true},
 	"props": {"crate": "crate", "barrel": "barrel", "lamp": "lantern_post", "marker": "notice_board"},
 	"yard_fences": 0.15,
+	# the forge town always has a smith and a parts dealer among its traders (VillageVendors.roll)
+	"vendors_always": ["smith", "parts"],
 	"village_layouts": {"town": 4, "hamlets": 1, "post": 2, "stilts": 0, "ruins": 1, "medina": 0},
 	"folk": {
 		"pick": {"skin": [Color(0.92, 0.78, 0.64), Color(0.84, 0.66, 0.5), Color(0.72, 0.54, 0.4), Color(0.58, 0.42, 0.3), Color(0.44, 0.3, 0.22)],
@@ -206,6 +209,18 @@ func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 func steps(isl) -> Array:
 	return LAND_FEATURES.steps(isl)
+
+
+## The forge town's smiths' yard and its master tinkerer (volcanic_town.gd).
+func plan_places(isl, avoid: Array) -> Array:
+	return TOWN.plan_places(isl, avoid)
+
+
+func place_steps(isl, ctx, pl: Dictionary) -> Array:
+	if str(pl["kind"]) == TOWN.KIND:
+		return TOWN.steps(isl, ctx, pl)
+	push_error("VolcanicTheme: no place %s" % pl["kind"])
+	return []
 
 
 func meshes() -> Dictionary:

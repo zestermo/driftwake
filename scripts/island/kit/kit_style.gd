@@ -74,6 +74,8 @@ const BRINEHOLLOW := {
 	"item_models": {},
 	# the chance each side of a village house's yard is fenced (a 4.4 m "fence" item along the side wall; VillageLayouts)
 	"yard_fences": 0.0,
+	# (1.28) traders its villages always have before the roll (VillageVendors: the forge town's smith and parts dealer)
+	"vendors_always": [],
 	# the village layouts it rolls from, by weight (VillageLayouts: town, hamlets, post, stilts, ruins, medina)
 	"village_layouts": {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1, "medina": 0},
 	# its people (KitStyle.folk_look): pools a villager's look picks from ("<key>_fem" for women), then fixed values

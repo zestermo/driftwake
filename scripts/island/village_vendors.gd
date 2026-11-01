@@ -28,6 +28,10 @@ const TRADES := {
 		"intro": ["A tune for the road? {name}, maker of noise.", "Every crew needs a fiddle. Most crews need a better one."],
 		"self": ["I built my first drum out of a rum barrel. It still smells of rum. So do I."],
 		"talk": ["Play near your crewmates and you'll fall into the same tune.", "A concertina's the sailor's friend: small, loud, hard to break.", "Music keeps the night watch awake. Mostly."]},
+	"parts": {"title": "Parts dealer", "from": "", "shop": "{n}'s Parts", "line": "Gears, springs, wire and good iron. Whatever your gadget's missing.",
+		"intro": ["Looking for a spring? A gear? {name}, parts and salvage.", "Tinkerers buy from me. So do people who wish they were tinkerers."],
+		"self": ["Half my stock came off wrecks, half out of the mountain. All of it works. Mostly."],
+		"talk": ["Brass for gears, steel for springs, copper for anything with a spark.", "Beast horn makes a fine trigger. Don't ask how I know.", "Bring me salvage and I'll pay you for it."]},
 	"apothecary": {"title": "Apothecary", "from": "", "shop": "{n}'s Remedies", "line": "Tonics, salves, and something for the seasickness.",
 		"intro": ["Bleeding? Sit. {name}, apothecary.", "You look like someone who gets hit a lot. I've just the thing."],
 		"self": ["I learned from the island's healers and the island's mistakes."],
@@ -59,14 +63,22 @@ const SKINS := {
 const SKIN_SIZE := 2
 
 
-## The trades a village with seed `seed_` has (its own stream: nothing else's draws move).
-static func roll(seed_: int, tier: int) -> Array:
+## The parts dealer's shop (the forge town's): the yard's iron and copper, and every gadget part (Gadgets.part_ids).
+static func _parts() -> Dictionary:
+	var parts: Array = Gadgets.part_ids().map(func(i): return [i])
+	return {"trade": "grocer", "stock": [["iron", 5], ["copper", 5]] + parts.slice(0, 3), "pool": parts, "size": mini(parts.size(), 3),
+		"buys": {"loot": 0.6, "ingredient": 0.3}}
+
+
+## The trades a village with seed `seed_` has (its own stream: nothing else's draws move); `always` (its style's
+## "vendors_always": the forge town's smith and parts dealer) first, the roll filling the rest.
+static func roll(seed_: int, tier: int, always: Array = []) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([seed_, 5107])
-	var pool := POOL.duplicate()
-	var out: Array = []
-	var n := clampi(rng.randi_range(COUNT[0], COUNT[1]) + (1 if tier >= 3 else 0), 0, pool.size())
-	for i in range(n):
+	var pool := POOL.filter(func(t): return not always.has(t))
+	var out: Array = always.duplicate()
+	var n := clampi(rng.randi_range(COUNT[0], COUNT[1]) + (1 if tier >= 3 else 0), 0, POOL.size())
+	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_at(rng.randi() % pool.size()))
 	return out
 
@@ -80,7 +92,7 @@ static func role(t: String) -> Dictionary:
 ## The shop for trade `t` kept by `who` (short name), from its home shop's stock (Shops.SHOPS).
 static func shop(t: String, who: String) -> Dictionary:
 	var d: Dictionary = TRADES[t]
-	var base: Dictionary = (Shops.SHOPS[d["from"]] as Dictionary).duplicate(true) if str(d["from"]) != "" else APOTHECARY.duplicate(true)
+	var base: Dictionary = (Shops.SHOPS[d["from"]] as Dictionary).duplicate(true) if str(d["from"]) != "" else (_parts() if t == "parts" else APOTHECARY.duplicate(true))
 	base["name"] = str(d["shop"]).replace("{n}", who)
 	base["line"] = d["line"]
 	var skins: Array = SKINS.get(t, [])
