@@ -29,7 +29,9 @@ const SHOP_DATA := preload("res://scripts/game/shops.gd")
 var _shop: Control
 # cooking (the ship's galley; a camp's fire)
 const GALLEY := preload("res://scripts/ui/galley_screen.gd")
+const BENCH := preload("res://scripts/ui/gadget_bench_screen.gd")
 var _galley: Control
+var _bench: Control
 # suggest an idea (a QR for the companion app)
 const IDEA := preload("res://scripts/ui/idea_screen.gd")
 var _idea: Control
@@ -71,6 +73,8 @@ func _ready() -> void:
 	_galley = GALLEY.new(self)
 	_screens["galley"] = _galley
 	_galley.register_wheel()
+	_bench = BENCH.new(self)
+	_screens["workbench"] = _bench
 	_idea = IDEA.new(_back)
 	_screens["idea"] = _idea
 	_crew = CREW.new(self)
@@ -211,6 +215,12 @@ func _on_dialogue_event(ev: String) -> void:
 			get_tree().call_group("hud", "show_toast", "The Leviathan's waters are on your chart (M)")
 
 
+## (1.28) A workbench's gadgets (Workbench.use).
+func open_workbench(at: Node3D) -> void:
+	_bench.bench = at
+	open("workbench")
+
+
 ## A trader's stall, now or (talking) when the talk ends.
 func open_shop(id: String) -> void:
 	# a wanted captain past what this trade will stand (Bounty.shop_k): turned away
@@ -281,6 +291,8 @@ func open(screen: String) -> void:
 		_shop.on_open()
 	elif screen == "galley":
 		_galley.on_open()
+	elif screen == "workbench":
+		_bench.on_open()
 	elif screen == "wanted":
 		_wanted.on_open()
 		_focus_first(_wanted)
@@ -307,7 +319,7 @@ func close() -> void:
 		_yard.end_preview()
 		if not Net.is_client():
 			SaveGame.save(_player())
-	elif _current in ["shop", "galley"]:
+	elif _current in ["shop", "galley", "workbench"]:
 		SaveGame.save(_player())
 	_current = ""
 	_play("close")

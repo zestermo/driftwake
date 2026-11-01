@@ -80,7 +80,9 @@ func _process(_d: float) -> bool:
 			HV.build(isl)
 			var cn: Array = isl.get_node("HarbourVendor").find_children("*", "NPC", true, false)
 			var sh: Dictionary = load("res://scripts/game/shops.gd").shop(cn[0].shop_id) if cn.size() == 1 else {}
-			check("the chandler sells the yard's materials", not sh.is_empty() and (sh["stock"] as Array).map(func(e): return e[0]) == ["timber", "canvas", "iron", "copper"])
+			check("the chandler sells the yard's materials", not sh.is_empty() and (sh["stock"] as Array).map(func(e): return e[0]).slice(0, 4) == ["timber", "canvas", "iron", "copper"])
+			# (1.28) and the tinker's cheap parts
+			check("...and a tinker's parts", (sh["stock"] as Array).map(func(e): return e[0]).has("black_powder"))
 			# a craftsman: their yard shows only their lines and no paint
 			menu._on_dialogue_event(HV.yard_event({"kind": "rig", "seed": 3}))
 			root.get_node("Dialogue").dialogue_ended.emit("vendor")

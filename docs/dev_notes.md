@@ -8519,3 +8519,27 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Per frame/tick:** nothing while idle. While used: the HUD's 0.1 s poll; a flying throw's physics tick (~0.6 s); each
   zone's 0.25 s host timer over the "enemies" group; one CPUParticles emitter per zone.
 - **Tests:** t/gadgets belt_fire, smoke, tar. Render: `abilityshot gadget:<id>:<tier>`.
+
+## 2026-10-31: gadgets, piece 2 - the numbers, the workbench, parts and blueprints (1.28)
+- **Numbers first:** `docs/gadgets_plan.md` (every gadget, tier, cost, refill, gate, blueprint source, part source); all
+  of it lives in `GadgetData` (GADGETS with per-tier cost/refill, PARTS, CHEST_*, SHOP_PARTS, TIER_TINKER [1, 6, 12],
+  BUILD_XP [60, 150, 300], REFILL_XP 10, STARTER ["bp_smoke"]).
+- **Items** (runtime, `Gadgets.make_items` from ItemDB): 7 new parts (black_powder, pitch, springs, brass, lens,
+  ember_ore, leviathan_scale; icons from GadgetModels.part_mesh) and a blueprint scroll per gadget ("bp_<id>"). The rest
+  of the parts are existing salvage/trophies (Gadgets.part_ids lists all 19).
+- **Workbench** (`scripts/gadgets/workbench.gd`): four styles (plain, ship, camp, forge) as one cached mesh each, a box
+  collider (opts "solid": false for a moving hull: the sloop adds the shape to herself with `_box_at`, since a
+  StaticBody of its own aboard stopped her dead: t/ship/seamanship caught it), an Interactable that studies carried
+  blueprints (Gadgets.study) and opens GameMenu "workbench" (`scripts/ui/gadget_bench_screen.gd`: the list, the card
+  with this tier's stats and the next tier's price against the bag, Build/Upgrade, Refill, belt slots 1-3, Refill all).
+  Placed: the sloop's deck against the cabin front under the port window (ship.gd `_build_cabin`), every captain's camp
+  (Camp._ready, a field bench to the fire's side, dropped to the ground), and the forge town (volcanic agent).
+- **Where parts come from:** chandlers (HarbourVendor.CHANDLER_STOCK + GadgetData.SHOP_PARTS: blackpowder, pitch,
+  springs), chests (Loot.chest -> Gadgets.chest_extras on its own "|gadget" stream: parts by kind of chest, sometimes a
+  blueprint the captain doesn't know). Ember ore and leviathan scales are for the volcanic and leviathan agents to drop.
+- **The bench offers only Gadgets.WORKING** (smoke, tar so far); the data for all 20 is in already.
+- **Debug (F4):** Gadgets section "Parts: 10 of each, 1000 gold, Tinkering 12".
+- **Per frame:** nothing (benches are a mesh, a collider and an Interactable; the screen only while open).
+- **Tests:** t/gadgets workbench_build, workbench_upgrade, workbench_refill; t/economy/harbour_vendor updated (the
+  chandler's stock now ends with the parts). Renders: modelshot `Workbench.mesh("plain"|"ship"|"camp"|"forge")`,
+  `uishots ... belt,workbench`.

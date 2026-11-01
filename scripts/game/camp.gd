@@ -100,6 +100,8 @@ func _ready() -> void:
 	add_child(t)
 	t.start()
 	FX.dust(global_position + Vector3.UP * 0.1, 5, 0.4)
+	# (1.28) a field workbench to the fire's side, facing it: gadgets refilled and built at camp
+	Workbench.place(self, Vector3(1.9, 0.0, 0.0), PI * 0.5, {"style": "camp"})
 
 
 func _tick() -> void:

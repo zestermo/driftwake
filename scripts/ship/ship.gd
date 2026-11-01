@@ -1492,6 +1492,11 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	Seat.add(ship_model, STORAGE_AT + Vector3(-0.4, 0.6, 1.0), 0.6)
 	Seat.add(ship_model, Vector3(2.1, DECK_Y + 0.6, -0.4), 0.6, Vector3(-1, 0, 0))
 	Seat.add(ship_model, Vector3(-2.2, DECK_Y + 0.5, -4.5), 0.5, Vector3(1, 0, 0))
+	# (1.28) the tinker's workbench on deck, against the cabin front under the port window (Workbench)
+	# (solid as one of her own shapes: a body of its own aboard would stop her dead)
+	var bench_at := Vector3(-1.75, DECK_Y, HullBuilder.QD_FRONT - Workbench.D * 0.5 - 0.02)
+	Workbench.place(ship_model, bench_at, 0.0, {"style": "ship", "solid": false})
+	_box_at(bench_at + Vector3(0, Workbench.TOP * 0.5, 0), Vector3(Workbench.W, Workbench.TOP, Workbench.D))
 	var lamp := OmniLight3D.new()
 	lamp.name = "CabinLight"
 	lamp.light_color = Color(1.0, 0.75, 0.45)

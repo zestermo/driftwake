@@ -131,6 +131,7 @@ func _build() -> void:
 	_btn(row, "Build it", _give_gadget)
 	_btn(row, "Refill all", _refill_gadgets)
 	_btn(row, "All blueprints", _all_blueprints)
+	_btn(v, "Parts: 10 of each, 1000 gold, Tinkering 12", _gadget_parts)
 	# spawns
 	_head(v, "Spawn (ahead of you)")
 	row = HBoxContainer.new()
@@ -270,6 +271,19 @@ func _refill_gadgets() -> void:
 		b.refill(g)
 	b.ready_at.clear()
 	_say("Gadgets refilled")
+
+
+func _gadget_parts() -> void:
+	var inv := _player().inventory_component
+	for id in Gadgets.part_ids():
+		inv.add_item(ItemDB.get_item(id), 10)
+	inv.add_item(ItemDB.get_item("gold"), 1000)
+	var pr := _player().progression
+	if pr.mastery_level("tinker") < 12:
+		pr.mastery["tinker"] = {"lv": 12, "xp": 0}
+		pr.call("_sync_tree", "tinker", false)
+		pr.changed.emit()
+	_say("Parts, gold and Tinkering 12")
 
 
 func _all_blueprints() -> void:

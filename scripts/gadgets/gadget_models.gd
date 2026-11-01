@@ -72,6 +72,49 @@ static func _build(gid: String, tier: int) -> ArrayMesh:
 	return mb.commit()
 
 
+## A part's (or "blueprint"'s) bag icon.
+static func part_icon(id: String) -> Texture2D:
+	var key := "part:" + id
+	if not _icons.has(key):
+		_icons[key] = WeaponDesigns.mesh_icon(part_mesh(id), Basis.from_euler(Vector3(0.5, 0.4, 0.0)), 0.0)
+	return _icons[key]
+
+
+static func part_mesh(id: String) -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(id)
+	match id:
+		"black_powder":
+			mb.add_blob(PSXMat.flat(Color(0.3, 0.27, 0.24)), Transform3D.IDENTITY, Vector3(0.05, 0.04, 0.05), rng, 0.15, 4, 6, 4.0)
+			mb.add_cylinder(PSXMat.flat(Color(0.75, 0.62, 0.4)), Transform3D(Basis(), Vector3(0, 0.03, 0)), 0.012, 0.02, 0.03, 5, 4.0)
+		"pitch":
+			mb.add_cylinder(PSXMat.lit("", Color(0.06, 0.05, 0.05), {"roughness": 0.15}), Transform3D.IDENTITY, 0.055, 0.05, 0.03, 8, 4.0)
+		"springs":
+			mb.add_cylinder(PSXMat.lit("metal", Color(0.6, 0.6, 0.62)), Transform3D.IDENTITY, 0.045, 0.045, 0.03, 8, 4.0)
+			for k in range(3):
+				var pts := PackedVector3Array()
+				for i in range(13):
+					var a := i * TAU / 6.0
+					pts.append(Vector3(cos(a) * 0.012 + (k - 1) * 0.026, 0.03 + i * 0.004, sin(a) * 0.012))
+				mb.add_tube(PSXMat.lit("metal", BRASS), pts, 0.003, 0.003, 3)
+		"brass":
+			mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D.IDENTITY, 0.045, 0.045, 0.02, 8, 4.0, Color.WHITE, true, true)
+			mb.add_box(PSXMat.lit("metal", BRASS), Transform3D(Basis(), Vector3(0.05, 0.01, 0)), Vector3(0.05, 0.012, 0.03), 4.0)
+		"lens":
+			mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO), 0.05, 0.05, 0.015, 10, 4.0, Color.WHITE, false, false)
+			mb.add_cylinder(PSXMat.glow(Color(0.7, 0.9, 1.0), 0.6), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -0.003)), 0.044, 0.044, 0.009, 10, 4.0, Color.WHITE, true, true)
+		"ember_ore":
+			mb.add_blob(PSXMat.flat(Color(0.3, 0.12, 0.1)), Transform3D.IDENTITY, Vector3(0.05, 0.04, 0.045), rng, 0.25, 4, 6, 4.0)
+			mb.add_blob(PSXMat.glow(Color(1.0, 0.4, 0.12), 1.5), Transform3D(Basis(), Vector3(0.02, 0.02, 0.0)), Vector3(0.02, 0.018, 0.02), rng, 0.2, 3, 5, 4.0)
+		"leviathan_scale":
+			mb.add_blob(PSXMat.lit("", Color(0.2, 0.5, 0.55), {"roughness": 0.3}), Transform3D.IDENTITY, Vector3(0.07, 0.015, 0.06), rng, 0.1, 4, 7, 4.0)
+		"blueprint":
+			mb.add_cylinder(PSXMat.flat(Color(0.32, 0.5, 0.85)), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.06, 0, 0)), 0.022, 0.022, 0.12, 7, 4.0, Color.WHITE, true, true)
+			mb.add_cylinder(PSXMat.flat(Color(0.85, 0.2, 0.15)), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.006, 0, 0)), 0.024, 0.024, 0.012, 7, 4.0, Color.WHITE, false, false)
+	return mb.commit()
+
+
 ## The pouch on the captain's back (the belt's three canisters): plain leather, Mk II's brass buckles, Mk III's
 ## red-lacquered caps (by the belt's best tier).
 static func pouch(tier: int) -> ArrayMesh:

@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment", "banner", "tree_banner"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment", "banner", "tree_banner", "belt", "workbench"]
 var si := 0
 
 
@@ -138,6 +138,17 @@ func _process(d: float) -> bool:
 					p.inventory_component.add_item(ItemDB.get_item("fiddle"), 1)
 					p.equip_gear_from_bag(p.inventory_component.find_index("fiddle"))
 					gm().open("inventory")
+				"belt", "workbench":
+					# (1.28) the gadget belt on the HUD (one cooling down), and the workbench with a Mk II to upgrade
+					p.gadgets.give("smoke", 1)
+					p.gadgets.give("tar", 0)
+					p.gadgets.owned["tar"]["charges"] = 1
+					p.gadgets.ready_at["tar"] = float(Engine.get_physics_frames()) / Engine.physics_ticks_per_second + 4.0
+					for e in [["gold", 300], ["black_powder", 5], ["brass", 1], ["pitch", 2]]:
+						p.inventory_component.add_item(ItemDB.get_item(e[0]), e[1])
+					if s == "workbench":
+						gm().open_workbench(null)
+						gm()._bench._pick("smoke")
 				"chat":
 					var net = root.get_node("Net")
 					net._all_chat(1, "Land ho! The island off the port bow.")
