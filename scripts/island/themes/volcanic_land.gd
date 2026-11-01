@@ -264,7 +264,16 @@ static func paint(isl, p: Vector2, _h: float, splat: Color) -> Color:
 
 
 static func steps(isl) -> Array:
-	return [["volcanic lava", func(): _lava(isl)], ["volcanic plume", func(): _plume(isl)]]
+	return [["volcanic lava", func(): _lava(isl)], ["volcanic plume", func(): _plume(isl)], ["volcanic eruptions", func(): _eruptions(isl)]]
+
+
+## The rumbles and bursts (volcanic_eruptions.gd).
+static func _eruptions(isl) -> void:
+	var e := Node3D.new()
+	e.set_script(load("res://scripts/island/themes/volcanic_eruptions.gd"))
+	e.name = "VolcanicEruptions"
+	e.set("isl", isl)
+	isl.add_child(e)
 
 
 ## Whether island point q is hot lava along flow `f` (its index): not on a cold flow, a path's crossing, near the

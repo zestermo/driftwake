@@ -8656,3 +8656,20 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   field's distance check (asleep past 60 m); creatures and beasts sleep as every Creature/QuadBeast does.
 - Open: the collapsed lava tube cave and the smugglers' den aren't built (the chain's caves and dens are used); the
   encounters are the shared kinds with volcanic text.
+
+## 1.28: the volcanic isle, piece 4 (rumbles and bursts) (2026-10-31)
+- **What** (`scripts/island/themes/volcanic_eruptions.gd`, a VolcanicLand step): while a captain is on or near the
+  island (radius + 120 m), the host sets an eruption off every 150-260 s (the first 45-70 s after arriving; gaps from
+  the island's seed and the eruption's number) and sends only its number (`Net.event(self, "erupt", [n])`). Every
+  machine then plays the same eruption from the seed and n (`plan(n)`): a camera shake and the volcano's rumble
+  (`volcano_rumble.wav`), embers and dust bursting from the caldera, then after 2.2 s 10-16 lava bombs over 6 s in one
+  sector (a seeded point 0.3-0.7 of the radius out, kept 90 m off the village and the dock, every bomb 60 m off them).
+  Each bomb: a warning 1.6 s ahead (the shared telegraph, plus a red circle laid on the ground with a bright rim and a
+  fill growing to it: the flat telegraph sank into slopes), the bomb falling in a glowing arc for its last 0.8 s, then
+  embers, dust and the `lava_bomb` sound (FX.SOUNDS). It hurts only inside its 3 m circle (22, thrown out), each
+  machine only its own captain. A late joiner picks up the next number from the host's event.
+- **Sounds:** `tools/texture_gen/gen_volcanic_audio.py` (volcano_rumble, lava_bomb_1/2, and the bed volcanic_loop).
+- **Tests:** t/island/volcanic_eruptions (plans the same from the same number, sectors clear of the town, red circles
+  before landing, a captain on a bomb's spot burned and one clear of them not, the host's count, a guest following it).
+  Render: `tools/dev/volcanoshot.gd -- <out> 2 6` (genshot's shots plus the eruption from over its sector).
+- Per tick: one countdown a second on the host; the bomb queue only during an eruption.

@@ -20,6 +20,7 @@ const SOUNDS := [
 	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash",
 	"fin_sting", "jelly_zap",
 	"fish_cast", "fish_plop", "fish_bite", "fish_reel", "fish_catch",
+	"lava_bomb",
 ]
 
 var _dust_mat: StandardMaterial3D
