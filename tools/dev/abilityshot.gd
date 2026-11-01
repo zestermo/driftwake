@@ -99,6 +99,8 @@ func arm() -> void:
 			p.equip_weapon(item("warhammer"), false)
 		"greatsword":
 			p.equip_weapon(item("greatsword"), false)
+		"rapier":
+			p.equip_weapon(item("rapier"), false)
 		"dual_axe":
 			for id in ["reavers_axe", "bearded_axe"]:
 				p.inventory_component.add_item(ItemDB.get_item(id), 1)

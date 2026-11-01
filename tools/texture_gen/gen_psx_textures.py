@@ -2400,6 +2400,64 @@ def gen_technique_icons():
                      ("bag_of_tricks", bag_of_tricks)):
         _icon("skill_" + name, fn)
 
+    # --- the rapier (1.28): quicksilver mirror - silver, a mercury grey-blue, a warm mirror flash ---
+    QS = hexc("eef2ff") + (255,)
+    MERC = hexc("98b0cc") + (255,)
+    MERC_D = hexc("5a6a80") + (255,)
+    FLASH = hexc("fff6d8") + (255,)
+
+    def rapier(d, a, b, col=STEEL):
+        # a needle of a blade from a to b, a little cup at a
+        d.line([a, b], fill=col, width=1)
+        d.ellipse([a[0] - 2, a[1] - 2, a[0] + 2, a[1] + 2], fill=MERC_D)
+
+    def star(d, x, y, r=3):
+        d.line([(x - r, y), (x + r, y)], fill=FLASH)
+        d.line([(x, y - r), (x, y + r)], fill=FLASH)
+        d.point((x, y), fill=W_)
+
+    def needle_rain(d):
+        # many thrusts at once, a fan of points converging ahead
+        for i, y in enumerate((5, 8, 11, 14, 17, 20)):
+            d.line([(3, y), (19, 12 + (y - 12) // 3)], fill=QS if i % 2 == 0 else MERC, width=1)
+        star(d, 20, 12)
+
+    def glass_step(d):
+        # a pale image left standing, you stepped to the side thrusting
+        d.rectangle([4, 7, 8, 18], fill=MERC_D)
+        d.ellipse([4, 3, 8, 7], fill=MERC_D)
+        d.rectangle([13, 9, 17, 20], fill=MERC)
+        d.ellipse([13, 5, 17, 9], fill=MERC)
+        rapier(d, (17, 12), (23, 7), QS)
+        star(d, 22, 8, 2)
+
+    def glass_feint(d):
+        # two blades from either side meeting in the middle
+        rapier(d, (2, 18), (12, 11), MERC)
+        rapier(d, (22, 18), (12, 11), QS)
+        star(d, 12, 10)
+
+    def balestra(d):
+        # a long lunge: speed lines, the point far ahead
+        for y in (9, 13, 17):
+            d.line([(1, y), (7, y)], fill=MERC_D)
+        rapier(d, (8, 13), (22, 13), QS)
+        star(d, 21, 13, 2)
+
+    def hall_of_mirrors(d):
+        # thrusts from all round into the centre
+        for k in range(6):
+            a = k * math.pi / 3
+            x, y = 12 + math.cos(a) * 10, 12 + math.sin(a) * 10
+            d.line([(x, y), (12 + math.cos(a) * 3, 12 + math.sin(a) * 3)], fill=QS if k % 2 == 0 else MERC, width=1)
+        star(d, 12, 12, 4)
+
+    def silver_meridian(d):
+        # one perfect line straight through, a flash at its end
+        d.line([(1, 20), (23, 4)], fill=MERC, width=3)
+        d.line([(1, 20), (23, 4)], fill=QS, width=1)
+        star(d, 20, 6, 4)
+
     for name, fn in (("riposte", riposte), ("iai_counter", iai_counter), ("cross_counter", cross_counter),
                      ("swordfish", swordfish), ("kraken_wake", kraken),
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),
@@ -2423,7 +2481,9 @@ def gen_technique_icons():
                      ("ravens_return", ravens_return), ("raiders_haul", raiders_haul),
                      ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns), ("updraft", updraft), ("gatekeeper", gatekeeper),
                      ("skysplitter", skysplitter), ("rising_heel", rising_heel), ("hailstorm_heels", hailstorm_heels),
-                     ("sky_chase", sky_chase), ("last_course", last_course)):
+                     ("sky_chase", sky_chase), ("last_course", last_course),
+                     ("needle_rain", needle_rain), ("glass_step", glass_step), ("glass_feint", glass_feint),
+                     ("balestra", balestra), ("hall_of_mirrors", hall_of_mirrors), ("silver_meridian", silver_meridian)):
         _icon("skill_" + name, fn)
 
 

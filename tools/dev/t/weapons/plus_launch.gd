@@ -7,7 +7,7 @@ const LAUNCHERS := [["sword", "cutlass", "boarding_hook", ""], ["katana", "katan
 	["axe", "boarding_axe", "uppercut_hew", ""], ["dagger", "dagger", "throat_flip", ""], ["dual_dagger", "dagger", "fang_lift", "same"],
 	["hammer", "warhammer", "upheaval", ""], ["dual_axe", "boarding_axe", "rising_hooks", "same"], ["corsair", "cutlass", "rising_shot", "pistol"],
 	["long_gun", "musket", "butt_lift", ""], ["cannon", "hand_cannon", "barrel_upswing", ""], ["slingshot", "slingshot", "kick_up", ""],
-	["unarmed", "", "dragon_uppercut", ""], ["black_leg", "", "flambe_lift", "kicks"]]
+	["unarmed", "", "dragon_uppercut", ""], ["black_leg", "", "flambe_lift", "kicks"], ["rapier", "rapier", "rising_needle", ""]]
 const GAP := 12.0
 var stage
 var p

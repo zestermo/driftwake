@@ -8795,6 +8795,36 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   tools/dev/out/rp_side_*, rp_front_* (animsheet), rp_models_sheet, rp_hilt_* (modelshot). posebench doesn't compile on
   main right now (scripts/gadgets/gadget_belt.gd:89 names FX in a static context: the gadgets agent's). Expect the chest-roll
   suites, Haldor's stock, the cutlass's design count and the story rack to want a look at the push.
+
+## 2026-11-01: the rapier, pieces 2-3 (its tree, techniques, ultimates, crew, alternates)
+- **Tree** (SkillTrees "rapier": Guard / Mirror / Footwork, element "rp" Quicksilver 16 / Hall of Glass 25; tab RAPIER): The
+  Bind 3 (parry window, parries shots) · Glass Step 8 · Crew Technique 12 (WeaponPlus) · Perfect Measure 20 (riposte +50%,
+  def); Needle Rain 5 · Looking-Glass Feint 10 · the split: Polished Glass -> Hall of Mirrors (ult A), True Line -> Silver
+  Meridian (ult B); Mercury Flurry 2 (the combo's fourth: three wrist thrusts and a lunge, RapierMoves.REHITS) · Fleche 4
+  (rp_dash at a sprint) · Quick Reply 6 · Mirror Fall 10 (aerial heavy) · Balestra 12 · Light Feet 13 (passive) · Duellist's
+  Way 22 (First Blood / The Last Word) and the alternates at 8/14/20. Steps 30. New stat key `riposte_rapier` (x the
+  riposte, RapierArts.riposte).
+- **Every technique is PlusMoves data** (played by PlusArts, Skills entries with state Technique): needle_rain (eight
+  thrusts on a 0.1 s tick in a 3.4 m line, a ninth that reels), glass_step (an Acrobatics-style decoy left standing 1.5 s,
+  a blink to their side, an unblockable thrust), glass_feint (a feint, the blink behind, the real thrust through the guard),
+  balestra (a hop and a 17 m/s lunge through the line), hall_of_mirrors (ult A, untouchable: up to six foes within 10 m,
+  a blinkcut each 0.2 s apart with an afterimage, then every image at once: a 4.5 m knockdown ring), silver_meridian (ult B:
+  sunk and still, the moment, one 38 m/s lunge 13 m through everything on a 14 m line: 64 unblockable knockdown, the beat
+  after it). PlusArts gained ops "mirror" (an afterimage and FX.mirror_thrust along the aim) and "decoy" (FX.decoy).
+- **Alternates** (PlusMoves, WeaponPlus "rapier"): Glass Dive (air 8), Phantom Rush (sprint 14: through them and the
+  mirror's thrust after), Rising Needle (right-click 20, rp_rise: the launcher); Mirror Fall the aerial heavy. Bridges
+  Steady Hand, Cold Reflection, Fine Point, Quick Silver.
+- **Crew**: first Mirror Match (CrewTechniques.ALL, styles ["rapier"], a "combined" duet: both thrust from opposite sides,
+  the burst), second Through the Sleeve (WeaponPlus.CREW, "setup": the pinning thrust, the crewmate's unblockable finisher).
+  Both play from CrewTechniqueState.DUETS; nothing new on the wire.
+- **Icons**: gen_psx_textures.py techniques: skill_needle_rain, glass_step, glass_feint, balestra, hall_of_mirrors,
+  silver_meridian (silver, mercury grey-blue, a warm flash).
+- Per frame/tick: nothing new outside a move in progress.
+- Tests: t/weapons rapier_tree (shape, every technique and both ultimates land, hurtbox and collision back after),
+  rapier_moves (Mercury Flurry four hits, the Fleche, both crew techniques solo), plus_rapier (on t/_plus_moves.gd),
+  plus_launch (Rising Needle). Renders: tools/dev/out/rp_ab_hall_of_mirrors, rp_ab_silver_meridian, rp_ab_needle_rain,
+  rp_ab_glass_step (abilityshot style "rapier"). Expect techtest (new skills: icons in), progtest, uitest (a new tab),
+  balancetest and nettest (the duets) to want a look at the push.
 ## 2026-11-01: v1.27.1, an unstable release (the first piece of 1.28)
 - What's in it: the gadgets (docs/gadgets_plan.md; the belt, the workbench, 20 gadgets, ship gadgets and the harpoon
   contract), the volcanic isle (docs/volcanic_island_plan.md), and the lead's polish: the sea's glitter path, the beast
