@@ -8574,3 +8574,24 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   _grass, _lily).
 - **Tests:** t/island/volcanic_land (three islands; the burn on the light stage). Render: genshot chain seed 2 node 6
   (`genshot.gd -- <out> 2 6`). Per tick: the hazard's 5 Hz check (a distance test off the island); no new lights.
+
+## 1.28: the volcanic isle, piece 2 (the forge town) (2026-10-31)
+- **The smiths' yard** (`scripts/island/themes/volcanic_town.gd`, a theme place `volcanic_forge` through
+  VolcanicTheme.plan_places / place_steps): 70-110 m out of the village toward the mountain, flat, off the flows (a trail
+  run to it by KitLandmarks). An open slate shed over the great forge (a basalt hearth with a lava trough: the flow
+  shader, one light from the budget), a smoking brick chimney, bellows, two anvils each with a smith (`volcanic_anvil.gd`:
+  the anvil takes and a spit of embers every ~1.3 s of game time while the captain is within 45 m; local ambience),
+  quench barrels, a blade rack, an ore cart and a slag heap with embers. Its three people's bodies are stocked on the
+  worker in the plan (a leak of three bodies if the island is let go before its step: GenIsland only unstocks its own).
+- **The master tinkerer** (`volcanic_tinkerer.gd`) at a gadget Workbench (`Workbench.place(..., {"style": "forge"})`):
+  "Teach me a blueprint (price gold)" teaches the first blueprint in his order (shuffled per island) that the captain
+  doesn't know (`Gadgets.teach`), paid only when one's learned; without the gold or with nothing left, "Come back...".
+  His answer is a dialogue token filled as the line shows (the event fires before the page). Price 120 + 60 x tier.
+  Each captain learns on their own machine.
+- **Traders:** a style key `vendors_always` (KitStyle; [] in Brinehollow's) puts its trades first in
+  `VillageVendors.roll` (the roll fills the rest on the same stream: every other theme's roll is unchanged). The volcanic
+  style always has a smith and a new trade, the **parts dealer** (`parts`: iron and copper and every `Gadgets.part_ids()`),
+  dressed as shelves (KitShops.KINDS gained "parts"; desert_shops' count now follows the list).
+- genshot renders each theme place (`<kind>` shots, e.g. `GSHOT_ONLY=volcanic_forge`).
+- **Tests:** t/island/volcanic_town (the roll, the yard built, the tinkerer's gold check and teaching twice). Per tick: two
+  anvil timers per forge town (a distance check each beat).

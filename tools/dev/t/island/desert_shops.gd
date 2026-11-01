@@ -47,7 +47,8 @@ func _process(_d: float) -> bool:
 					differ.append(k)
 				room.free()
 			store.free()
-			check("every trade and place has its own desert room, dressed, with its keeper's spot (%d of 13)" % differ.size(), differ.size() == 13)
+			var kinds: Array = load("res://scripts/island/kit/kit_shops.gd").KINDS
+			check("every trade and place has its own desert room, dressed, with its keeper's spot (%d of %d)" % [differ.size(), kinds.size()], differ.size() == kinds.size())
 			var U = load("res://scripts/island/unique_places.gd")
 			U.force = "dojo"
 			load("res://scripts/island/village_layouts.gd").force = "town"

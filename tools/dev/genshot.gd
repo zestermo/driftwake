@@ -158,6 +158,11 @@ func _setup(island) -> void:
 			shots.append(["shelf", "wading on the shelf, 12 m out", _g(dir * (wl + 12.0), 1.6), _g(dir * (wl - 30.0), 1.0), false, 0.0])
 			shots.append(["shelf_out", "the shelf from the sea", _g(dir * (wl + 70.0) + Vector2(-dir.y, dir.x) * 30.0, 8.0), _g(dir * (wl + 10.0), 0.0), false, 0.0])
 			break
+	# (1.28) each theme place (the fog's graveyard, the volcanic forge yard), from its way in
+	for pl in isl.places.filter(func(e): return str(e.get("role", "")) == "theme"):
+		var pa: Vector2 = pl["at"]
+		var pf: Vector2 = pl["face"]
+		shots.append([str(pl["kind"]), "the %s" % str(pl["kind"]).replace("_", " "), _g(pa + pf * (float(pl["r"]) + 6.0) + pf.orthogonal() * 5.0, 5.0), _g(pa, 1.2), false, 0.0])
 	var only := OS.get_environment("GSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))
