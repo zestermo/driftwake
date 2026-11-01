@@ -51,9 +51,16 @@ const KINDS := {
 	"frigate": {"speed": 11.0, "hull": 480.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [36.0, 60.0], "scatter": 0.6,
 		"boards": false, "rams": true, "double": true, "yields": false, "chain": true, "chaser": true,
 		"look": {"hull_tex": "planks_grey", "hull": Color(0.8, 0.83, 0.88), "deck": Color(0.78, 0.8, 0.85), "trim": Color(0.3, 0.34, 0.42), "sail": Color(0.85, 0.86, 0.9), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
+	# (1.28 sea stops: BigShip, drawn half as big again) a pirate warlord's flagship and an Admiralty lieutenant's warship
+	"flagship": {"speed": 10.0, "hull": 1300.0, "guns": [-7.2, -4.6, -2.0, 0.6], "crew": 8, "range": [34.0, 62.0], "scatter": 0.8,
+		"boards": false, "rams": false, "double": true, "yields": false, "chain": true,
+		"look": {"hull": Color(0.22, 0.17, 0.16), "deck": Color(0.6, 0.5, 0.42), "trim": Color(0.75, 0.55, 0.15), "sail": Color(0.45, 0.06, 0.07), "flag": Color(0.12, 0.1, 0.1), "emblem": "jolly"}},
+	"warship": {"speed": 10.5, "hull": 1400.0, "guns": [-7.2, -4.6, -2.0, 0.6], "crew": 8, "range": [36.0, 64.0], "scatter": 0.55,
+		"boards": false, "rams": false, "double": true, "yields": false, "chain": true, "chaser": true,
+		"look": {"hull_tex": "planks_grey", "hull": Color(0.92, 0.94, 0.98), "deck": Color(0.8, 0.82, 0.88), "trim": Color(0.2, 0.26, 0.42), "sail": Color(0.95, 0.96, 0.98), "flag": Color(0.2, 0.24, 0.36), "emblem": "marine"}},
 }
 ## The Admiralty's kinds (group "admiralty", grey crews, an Admiralty ship's bounty).
-const ADMIRALTY_KINDS := ["marine", "frigate"]
+const ADMIRALTY_KINDS := ["marine", "frigate", "warship"]
 
 const ACCEL := 2.6
 const MAX_TURN := 0.5
@@ -363,7 +370,7 @@ func _ready() -> void:
 	_bark.visible = false
 	add_child(_bark)
 	# her name and hull over the masthead, up for the whole fight
-	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter", "hunter": "Pirate Hunter", "frigate": "Admiralty Frigate"}.get(kind, "Pirate Ship")
+	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter", "hunter": "Pirate Hunter", "frigate": "Admiralty Frigate"}.get(kind, str(get_meta("title", "Pirate Ship")))
 	_bar = OverheadBar.new().setup(title, HullBuilder.MAST_TOP + 2.6, 5.5, 320.0)
 	_bar.visible = false
 	add_child(_bar)

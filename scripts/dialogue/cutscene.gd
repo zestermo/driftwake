@@ -72,6 +72,8 @@ static func scripted(tree: SceneTree, kind: String, args: Array) -> Array:
 			]
 		"rival_meet":
 			return RivalEncounter.meet_shots(tree, args)
+		"sea_captain":
+			return BigShip.intro_shots(tree, args)
 	return []
 
 

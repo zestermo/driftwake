@@ -50,4 +50,27 @@ static func build(leg: Node3D, kind: String, at: Vector2, level: int, seed_value
 			leg.add_child(r)
 			r.place(Vector3(at.x, 0.0, at.y), float(seed_value % 628) * 0.01)
 			return r
+		"warlord", "lieutenant":
+			var k := "flagship" if kind == "warlord" else "warship"
+			var c := Vector3(at.x, 0.0, at.y)
+			var w = load("res://scripts/sea/stop_warm.gd").new()
+			w.name = "StopWarm"
+			w.looks = EnemyShip.crew_plan(seed_value, k).map(func(e): return e[0])
+			w.make = func(): big(leg, k, c, level, seed_value)
+			leg.add_child(w)
+			return w
 	return null
+
+
+## A big named ship on patrol about `c` (her crew's bodies already built, or built now).
+static func big(leg: Node3D, k: String, c: Vector3, level: int, seed_value: int) -> BigShip:
+	var s := BigShip.new().setup_big(c, seed_value, k, level)
+	s.name = "Stop"
+	leg.add_child(s)
+	var a := float(seed_value % 628) * 0.01
+	var pos := c + Vector3(cos(a), 0.0, sin(a)) * 70.0
+	s.global_transform = Transform3D(Basis(Vector3.UP, a + PI * 0.5), Vector3(pos.x, HullBuilder.FREEBOARD, pos.z))
+	s._pos = Vector3(pos.x, 0.0, pos.z)
+	s._heading = a + PI * 0.5
+	s.reset_physics_interpolation()
+	return s

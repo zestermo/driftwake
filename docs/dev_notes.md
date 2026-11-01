@@ -8877,3 +8877,35 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Tests: `t/sea/restaurant` (floor on the pontoon, ramp, deck and hall; the pontoon's height; a captain inside aboard
   and standing; the chef's dishes; rest heals; recipes for gold; a raided one's grunts on her deck; beating them
   sets the flag and teaches the recipe). Render: `seastopshot` (merchant and restaurant shots).
+
+## 1.28 sea stops, piece 3: the big named ships (2026-11-01)
+- **BigShip** (scripts/sea/big_ship.gd) extends EnemyShip: new KINDS "flagship" (a warlord's: black hull, crimson sails,
+  1300 hull) and "warship" (an Admiralty lieutenant's: white and blue, 1400 hull, a bow chaser; in ADMIRALTY_KINDS),
+  both four guns a side with double broadsides, never boarding or ramming. Drawn K 1.5 times as big by scaling the body
+  in `_place_hull` (the model, collision, guns, ladders, hurtbox and the swell all follow; Jolt takes the uniform
+  scale): ~34 m long, her deck about level with ours. Her men are scaled back (1/K) and set back to 1 when they turn
+  grunt (`_turn_grunt`). Title over her: "<ship> (<captain>)".
+- **Cannons, board, duel:** she comes for the crew whatever their bounty (`_wants_crew`), trades broadsides at 34-64 m;
+  under BATTERED_AT 75% hull her rigging's shot through (a bark) and she can't make more than 2.5 m/s, so the crew can
+  come alongside. Board by her ladders or "Swing aboard" (an Interactable each side, 7 m round a spot off her rail,
+  usable from a deck alongside or the water: lands you inside her rail with a rope tracer). Her crew of eight turns to
+  fight on her deck (EnemyShip's DECK); with CAPTAIN_AT 2 or fewer up, or CAPTAIN_AFTER 25 s, her captain (an AI
+  captain via Net._all_spawn_rival / RivalDuel.build on the quarterdeck; health x CAPTAIN_HP 3.5 + level x 0.05,
+  elite poise, pace 1.2, skill 0.75 / 0.85, a weapon by kind) is introduced by a cutscene on every screen (Cutscene
+  kind "sea_captain": `BigShip.intro_shots`) and duels the nearest boarder. Beaten (`defeated`), the captain yields
+  (a bark), is gone 2.5 s later (`_all_rival_gone`) and she strikes: XP 500 (reach 200), bounty x BOUNTY_K 3 (4,500
+  for the warlord's, 3,000 for the lieutenant's), the captain's chest on her quarterdeck (gold 160-260, treasure,
+  rum, a tier+1 weapon, a gear piece, a blueprint, parts, salvage), and a "prize" Net.event for guests.
+- **Sunk from afar:** `_drop_chest` leaves only salvage (no flotsam chest): the hoard goes down with her.
+- **Fleeing:** as any EnemyShip (lost past LOSE 240 m).
+- **Rolls:** Chain.sea_stop's "warlord" / "lieutenant" -> SeaStops builds a "StopWarm" (scripts/sea/stop_warm.gd) that
+  prebuilds her crew's bodies on a worker thread and then makes her (`SeaStops.big`, node "Stop" on the leg,
+  patrolling 70 m about the spot). The lieutenant's weight grows with the crew's bounty tier (piece 1).
+- Seen in passing: EnemyShip._bounty_kind has a `Net.event(self, "prize", [])` after its return (dead code), so a
+  guest never runs `_prize` for an ordinary prize; BigShip sends its own event. Not fixed here.
+- Per tick: as an EnemyShip (asleep past 420 m on patrol); the captain is one AI Player only during the duel.
+- Tests: `t/sea/big_ship` (scale, her men's size, she hunts, battered she loses way, a captain on her deck stands, her
+  crew turns at their own size, the captain steps out after the intro on the quarterdeck, beaten she strikes with the
+  chest and the bounty; the warship's Admiralty, Swing aboard lands you on her, sunk she leaves no chest).
+  Render: `seastopshot` flagship_far / near / deck_fight / captain, warship_near. Expected to touch at prepush:
+  r8test, seatest, net (board mode) through enemy_ship.gd and cutscene.gd.

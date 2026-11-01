@@ -103,6 +103,50 @@ func _process(_d: float) -> bool:
 		11:
 			_look(stop, Vector3(-6.0, 5.0, 24.0), Vector3(0.0, 1.0, 10.0), "rest_raid")
 		12:
+			stop.queue_free()
+			stop = SeaStops.big(stage, "flagship", ship.global_position + Vector3(70, 0, -20), 12, 4242)
+			stop.set_meta("no_sleep", true)
+			until = TK.wait_secs(2.0)
+		13:
+			stop.set_physics_process(false)
+			cam.global_position = stop.global_position + Vector3(-300.0, 16.0, 200.0)
+			cam.look_at(stop.global_position + Vector3(0, 12.0, 0), Vector3.UP)
+			pending = "flagship_far"
+			until = TK.wait_ticks(4)
+		14:
+			cam.global_position = ship.to_global(Vector3(-2.0, 5.0, 10.0))
+			cam.look_at(stop.global_position + Vector3(0, 10.0, 0), Vector3.UP)
+			pending = "flagship_near"
+			until = TK.wait_ticks(4)
+		15:
+			stop.set_physics_process(true)
+			stop._set_state(stop.S.PRIZE)
+			stage.player.global_position = stop.to_global(Vector3(1.0, 0.6, -1.0))
+			stage.player.reset_physics_interpolation()
+			stop._start_deck_fight()
+			until = TK.wait_secs(1.5)
+		16:
+			_look(stop, Vector3(-2.5, 3.5, -9.0), Vector3(0.5, 0.8, 0.0), "flagship_deck_fight")
+		17:
+			for g in stop.deck_crew:
+				if is_instance_valid(g):
+					g.health.take_damage(99999.0)
+			until = TK.wait_secs(5.0)
+		18:
+			if is_instance_valid(stop.captain):
+				cam.global_position = stop.captain.global_position + stop.global_basis.z.normalized() * -5.0 + Vector3(0, 1.8, 0)
+				cam.look_at(stop.captain.global_position + Vector3(0, 1.4, 0), Vector3.UP)
+				pending = "flagship_captain"
+				until = TK.wait_ticks(4)
+		19:
+			stop.queue_free()
+			stop = SeaStops.big(stage, "warship", ship.global_position + Vector3(70, 0, -20), 12, 777)
+			stop.set_meta("no_sleep", true)
+			until = TK.wait_secs(2.0)
+		20:
+			stop.set_physics_process(false)
+			_look(stop, Vector3(30.0, 8.0, 20.0), Vector3(0.0, 8.0, 0.0), "warship_near")
+		21:
 			quit()
 			return true
 	step += 1
