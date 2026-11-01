@@ -102,7 +102,7 @@ func cycle() -> void:
 			break
 	if gadget() != "":
 		player.call("_toast", "%s %s" % [GadgetData.GADGETS[gadget()]["name"], GadgetData.TIER_NAMES[tier_of(gadget())]])
-	FX.sfx("blip", player.global_position, -14.0, 0.05, 1.3)
+	player.get_node("/root/FX").sfx("blip", player.global_position, -14.0, 0.05, 1.3)
 	changed.emit()
 
 
@@ -169,7 +169,7 @@ func _lob(gid: String, t: int) -> void:
 		body.hide_left_prop()
 		var from: Vector3 = player.global_position + Vector3(0, 1.75, 0) - player.player_model.global_basis.z * 0.3
 		GadgetThrow.launch(get_tree(), gid, t, from, to, player)
-		Net.event(player, "gadget", [gid, t, from, to]))
+		player.get_node("/root/Net").event(player, "gadget", [gid, t, from, to]))
 
 
 ## Where a throw of reach `r` lands: on the foe nearest the camera's line within reach, else straight ahead
