@@ -8761,3 +8761,9 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **The bed** `volcanic_loop` (gen_volcanic_audio.py `bed`: a low breathing rumble, vents hissing in and out, crackle and
   pops; -20 LUFS, circular): Ambience.LOOPS / TOP_DB "volcanic" (-13), the style's ambience.
 - Not run here (world suites, the push gate's): musictest, r8test, ambiencetest, skytest map to music.gd / ambience.gd.
+
+## 2026-11-01: v1.27.1, an unstable release (the first piece of 1.28)
+- What's in it: the gadgets (docs/gadgets_plan.md; the belt, the workbench, 20 gadgets, ship gadgets and the harpoon
+  contract), the volcanic isle (docs/volcanic_island_plan.md), and the lead's polish: the sea's glitter path, the beast
+  tell language (JungleBeast.wind_up_glint, ground fans for cone/behind moves), Quick stack and Sort, Music.punch on
+  heavy blows, beast-form footsteps; F4 warp/spawn lists; TK.calm. tools/release/UNSTABLE is back (delete for 1.28).

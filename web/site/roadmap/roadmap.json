@@ -881,17 +881,33 @@
 			]
 		},
 		{
+			"v": "1.27.1",
+			"name": "Gadgets and Fire",
+			"date": "2026-11-01",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The first piece of 1.28: an inventor's belt of gadgets and the workbench to build them, ship gadgets, and the volcanic isle.",
+			"img": "post",
+			"alt": "A trading post's palisade gate and watchtower (current build)",
+			"github": true,
+			"added": [
+				["Gadgets", "Twenty of them on a belt of three: bombs and pellets, a decoy, a grappling hook, a glider, a spyglass and more, built and upgraded at a workbench."],
+				["Ship gadgets", "A burst launcher, a smoke screen and a harpoon cannon, fired from the wheel."],
+				["The volcanic isle", "A forge town, lava bombs, and the Magma Salamander in the caldera."]
+			]
+		},
+		{
 			"v": "1.28",
-			"name": "Fruit at Large",
+			"name": "Tinkerers and the Open Sea",
 			"status": "building",
-			"headline": "Driftfruits out in the world, captains who wield them, and a great pirate's hideout to raid.",
+			"headline": "Gadgets and life skills, three new weapons, two new island types, stops and great ships between the islands, and leviathans.",
 			"img": "post",
 			"alt": "A trading post's palisade gate and watchtower (current build)",
 			"plan": [
-				["Fruit in the world", "Driftfruits in chests and on beaten captains, from one world pool: a fruit is free again when its user falls."],
-				["Fruit-user enemies", "Enemy captains and officers who wield fruits."],
-				["The sea's price", "Sinking, rescues from the sea, and the life buoy."],
-				["Pirate hideouts", "A great pirate's hideout as a raid."]
+				["Gadgets and life", "Gadgets at the workbench, collectible books, island dishes and crew feasts, fishing by island with legends to land."],
+				["Three weapons", "The rapier, the fighting staff and the chain sickle."],
+				["New islands", "The volcanic isle and the coral atoll."],
+				["The open sea", "A floating restaurant, a merchant ship, a warlord's flagship, an Admiralty lieutenant, and three leviathans."]
 			]
 		},
 		{
