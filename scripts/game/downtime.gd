@@ -6,7 +6,8 @@ extends RefCounted
 ## wheel. Danger ends them (danger()): a storm, a sail close by, a Sea King risen, enemies, a blow, the helm
 ## come loose. Progress per minute is real but less than the real thing (fighting for mastery, kills for XP).
 ##   train   weapon mastery of the weapon in your hand (ashore too)
-##   read    sat on a crate with a book: experience, sea lore now and then, and in time a recipe
+##   read    sat on a crate with a book: experience, sea lore now and then, and in time a recipe; a book carried
+##           and not read yet is read on the first interval (Books)
 ##   tinker  sat with mallet and lock: the kit tuned a while (a spare shot, quicker reloads, a little bite)
 ##   meditate  sat cross-legged on the deck: Will, a point every 3 game days of it (WillPaths.MEDITATE_SECS)
 ##   fish    (on the same wheel) the rod's minigame with the equipped rod (Fishing, FishState), at the rail aboard
@@ -72,6 +73,7 @@ static func register_wheel() -> void:
 	ActionWheel.register("meditate", KINDS["meditate"]["label"], "", _rest_ok, _meditate, KINDS["meditate"]["order"])
 	ActionWheel.register("fish", "Fish", "", _fish_ok, _fish, 60)
 	ActionWheel.register("sleep", _sleep_label, "", _sleep_ok, _sleep, KINDS["sleep"]["order"])
+	Books.install()
 
 
 static func _lash_ok(p) -> bool:
@@ -255,6 +257,11 @@ static func reward(p, kind: String) -> void:
 				pr.add_mastery(_train_tree(p), TRAIN_MASTERY)
 		"read":
 			pr.add_xp(READ_XP)
+			# (1.28) a book carried and not read yet is read first (Books)
+			var book := Books.next_unread(p)
+			if book != "":
+				Books.read(p, book)
+				return
 			var n := int(pr.downtime.get("read_n", 0)) + 1
 			pr.downtime["read_n"] = n
 			if n == RECIPE_AT and Food.teach(pr, RECIPE):

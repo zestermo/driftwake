@@ -14,11 +14,15 @@ var _said := ""
 func define() -> String:
 	var dlg := get_node("/root/Dialogue")
 	dlg.register_token(_token(), func() -> String: return _said)
+	# (1.28) his shelf of books (Books.tinker_shop)
+	preload("res://scripts/game/shops.gd").extra[key + "_books"] = Books.tinker_shop(who.get_slice(" ", who.get_slice_count(" ") - 1))
 	dlg.define(key, {"speaker": who, "voice": 0.8, "start": "intro", "return": "menu", "nodes": {
 		"intro": {"text": ["Mind the springs. Everything on this bench wants to fly apart, and some of it's supposed to.",
 			"I draw gadgets. Hooks, pellets, boots with a kick in them. You build them at a bench like this one. I teach the drawing."], "next": "menu"},
+		"books": {"text": ["Books. Every one of them has a gadget in it somewhere, if you read it right."], "event": "shop:" + key + "_books", "next": "end"},
 		"menu": {"text": ["What'll it be, Captain?"], "choices": [
 			{"text": "Teach me a blueprint. (%d gold)" % price, "next": "teach"},
+			{"text": "Any books?", "next": "books"},
 			{"text": "What's the bench for?", "next": "bench"},
 			{"text": "Goodbye.", "next": "end"}]},
 		"teach": {"text": ["{%s}" % _token()], "event": "volcanic_teach:" + key, "next": "menu"},

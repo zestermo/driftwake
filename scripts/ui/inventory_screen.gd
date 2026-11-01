@@ -930,6 +930,10 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		fx.append(["Cooks as " + Food.TAG_NAMES[it.ingredient], Color(0.95, 0.8, 0.55)])
 	if Bait.is_bait(it):
 		fx.append(["Bait: bites x%.2f, rare fish x%.2f. Click: on the hook" % [Bait.bite_k(it.id), Bait.rare_k(it.id, false)], UIStyle.ACCENT])
+	if BookData.is_book(it):
+		fx.append([Books.teaches_text(it.id), Color(1.0, 0.85, 0.45)])
+		if Books.has_read(pl.progression, it.id):
+			fx.append(["On your shelf already", UIStyle.TEXT_DIM])
 	if it.id != "gold":
 		_stat(grid, "WORTH", "%d G" % it.worth(), 0, false)
 	for f in fx:
@@ -1026,6 +1030,8 @@ func _hints_for(src: String, it: ItemData) -> Array:
 					out.append(["E", "QUICK ITEM"])
 			elif Bait.is_bait(it):
 				out = [["LMB", "ON THE HOOK"]]
+			elif BookData.is_book(it):
+				out = [["LMB", "READ"]]
 			if has_container():
 				out.append(["SHIFT", "STORE"])
 			out.append(["X", "DROP"])
@@ -1120,6 +1126,10 @@ func _use(idx: int) -> void:
 	elif Bait.is_bait(it):
 		pl.inventory_component.select_bait(it.id)
 		menu._play("equip")
+		refresh()
+	elif BookData.is_book(it):
+		menu._play("equip")
+		Books.read(pl, it.id)
 		refresh()
 
 

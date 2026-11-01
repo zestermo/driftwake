@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment", "banner", "tree_banner", "belt", "workbench"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment", "banner", "tree_banner", "belt", "workbench", "books"]
 var si := 0
 
 
@@ -149,6 +149,14 @@ func _process(d: float) -> bool:
 					if s == "workbench":
 						gm().open_workbench(null)
 						gm()._bench._pick("smoke")
+				"books":
+					# (1.28) the bookshelf with half the books read, a manual picked
+					var B = load("res://scripts/books/books.gd")
+					var ids: Array = load("res://scripts/books/book_data.gd").BOOKS.keys()
+					for i in range(0, ids.size(), 2):
+						B.read(p, str(ids[i]))
+					gm().open("books")
+					gm()._screens["books"].pick("manual_grip")
 				"chat":
 					var net = root.get_node("Net")
 					net._all_chat(1, "Land ho! The island off the port bow.")

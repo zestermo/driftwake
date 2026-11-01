@@ -76,3 +76,4 @@ static func _load_all() -> void:
 	FishTable.make_items(_items)
 	Bait.make_items(_items)
 	Gadgets.make_items(_items)
+	BookData.make_items(_items)

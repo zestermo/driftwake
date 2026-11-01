@@ -9,7 +9,8 @@ extends RefCounted
 ## and eats on their own machine. Ingredients and meals are made here as items (ItemDB). Numbers tuned in play.
 
 const TAGS := ["fish", "meat", "fruit", "grain", "spice", "greens"]
-const TAG_NAMES := {"fish": "fish", "meat": "meat", "fruit": "fruit", "grain": "grain", "spice": "spice", "greens": "greens"}
+const TAG_NAMES := {"fish": "fish", "meat": "meat", "fruit": "fruit", "grain": "grain", "spice": "spice", "greens": "greens",
+	"island": "island ingredients"}
 
 ## Raw ingredients: id -> [name, tag, value, description]. (Fish, crab, boar, tangerines, sunfruit and
 ## hardtack are food already and count as their tag too.)
@@ -54,6 +55,16 @@ const MEALS := {
 	"tidewater_bouillabaisse": {"name": "Tidewater Bouillabaisse", "desc": "The floating kitchen's own: two fish, kelp and saffron-hot spice, simmered all watch.",
 		"heal": 60.0, "min": 20.0, "buff": {"max_hp": 20.0, "regen_pct": 0.6, "defense": 3.0, "damage_pct": 0.04},
 		"recipe": {"fish": 2, "greens": 1, "spice": 1}, "taught": true, "icon": "fish_stew"},
+	# (1.28) crew feasts: cooked aboard, every captain aboard gets the buff (docs/life_systems_plan.md)
+	"harbour_feast": {"name": "Harbour Feast", "desc": "Fish from the rail, bread from the hold, a pot big enough to bathe in.",
+		"heal": 60.0, "min": 25.0, "buff": {"max_hp": 30.0, "regen_pct": 0.6, "damage_pct": 0.05},
+		"recipe": {"fish": 3, "grain": 2, "greens": 2, "spice": 1}, "feast": true, "icon": "fish_stew"},
+	"roast_feast": {"name": "Boar Roast Feast", "desc": "A whole boar turned over the galley fire all afternoon.",
+		"heal": 70.0, "min": 25.0, "buff": {"damage_pct": 0.08, "max_stamina": 25.0, "defense": 4.0},
+		"recipe": {"meat": 3, "fruit": 2, "grain": 2, "spice": 2}, "feast": true, "taught": true, "icon": "peppered_boar"},
+	"isles_feast": {"name": "Feast of the Isles", "desc": "A dish from every island you've sailed past, on one long table.",
+		"heal": 80.0, "min": 30.0, "buff": {"max_hp": 40.0, "damage_pct": 0.1, "crit_all": 0.05, "defense": 5.0},
+		"recipe": {"island": 3, "fish": 2, "meat": 2}, "feast": true, "taught": true, "icon": "captains_feast"},
 	# (1.25.5 unique places: services, not dishes; never in ORDER, never cooked) a village's hot spring and its sea shrine
 	"hot_spring": {"name": "Hot Spring Soak", "desc": "Warm to the bone.", "heal": 0.0, "min": 30.0,
 		"buff": {"max_hp": 25.0, "regen_pct": 1.0, "stamina_regen_pct": 0.2}, "recipe": {}, "taught": true, "icon": "fish_stew"},

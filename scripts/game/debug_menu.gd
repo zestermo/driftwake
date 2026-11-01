@@ -15,6 +15,7 @@ var _fruits: OptionButton
 var _spawns: OptionButton
 var _warps: OptionButton
 var _gadgets: OptionButton
+var _books: OptionButton
 var _gtier: OptionButton
 var _status: Label
 ## The spawn list: [label, Callable(at: Vector3, yaw: float)] filled by _refill (every theme's beasts, then
@@ -132,6 +133,23 @@ func _build() -> void:
 	_btn(row, "Refill all", _refill_gadgets)
 	_btn(row, "All blueprints", _all_blueprints)
 	_btn(v, "Parts: 10 of each, 1000 gold, Tinkering 12", _gadget_parts)
+	# (1.28) books
+	_head(v, "Books")
+	_books = OptionButton.new()
+	for b in BookData.BOOKS.keys():
+		_books.add_item(str(b))
+	v.add_child(_books)
+	row = HBoxContainer.new()
+	v.add_child(row)
+	_btn(row, "Give it", func(): _give(_books.get_item_text(_books.selected), 1))
+	_btn(row, "One of each", func():
+		for b in BookData.BOOKS.keys():
+			_give(str(b), 1))
+	_btn(row, "Read them all", func():
+		for b in BookData.BOOKS.keys():
+			if not Books.has_read(_player().progression, str(b)):
+				Books.read(_player(), str(b))
+		_say("Every book read"))
 	# spawns
 	_head(v, "Spawn (ahead of you)")
 	row = HBoxContainer.new()

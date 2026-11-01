@@ -17,7 +17,7 @@ const CHART := 40
 const PLACES := {
 	"library": {"title": "the old library", "keeper": "Archivist", "rumour": "There's a library on {name}, older than its harbour. A captain who reads the old logs there comes out knowing something about themselves.",
 		"intro": ["Quietly, please. These logs have outlived every captain who wrote them.", "Read, if you like. Some find a little of their own Edy in the margins."],
-		"choices": [["Let me read the old logs.", "read"]]},
+		"choices": [["Let me read the old logs.", "read"], ["Any books for sale?", "shop"]]},
 	"onsen": {"title": "the hot spring", "keeper": "Bath-keeper", "rumour": "They've a hot spring on {name}, under a roof. One soak and you'll fight like you slept a week.",
 		"intro": ["Leave your boots and your troubles at the door.", "%d gold, and the water does the rest. It'll stay with you a long while." % SOAK],
 		"choices": [["A soak, please. (%d gold)" % SOAK, "soak"]]},
@@ -90,6 +90,8 @@ static func define(id: String, place: String, keeper: String, isl_name: String, 
 ## The place's shop (restaurant, swordsmith, curio), into Shops.extra under `sid`.
 static func shop(place: String, sid: String, keeper: String, tier: int) -> Dictionary:
 	match place:
+		"library":
+			return Books.library_shop(keeper)
 		"restaurant":
 			return {"name": "%s's Table" % keeper, "line": "Tonight: everything.", "trade": "cook",
 				"stock": [["captains_feast", 60], ["sea_legend", 80], ["fish_stew", 22], ["forest_curry", 24], ["island_skewers", 20], ["citrus_tart", 20]],

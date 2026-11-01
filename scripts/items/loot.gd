@@ -194,4 +194,5 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 		out.append(g)
 	# (1.28) a tinker's parts now and then, rarely a blueprint (their own stream: nothing above changes)
 	Gadgets.chest_extras(out, kind_of_chest, rng_for(key + "|gadget"), (Engine.get_main_loop() as SceneTree).get_first_node_in_group("player"))
+	Books.chest_extras(out, kind_of_chest, rng_for(key + "|book"), (Engine.get_main_loop() as SceneTree).get_first_node_in_group("player"))
 	return out

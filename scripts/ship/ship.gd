@@ -1503,6 +1503,10 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	var bench_at := Vector3(-1.75, DECK_Y, HullBuilder.QD_FRONT - Workbench.D * 0.5 - 0.02)
 	Workbench.place(ship_model, bench_at, 0.0, {"style": "ship", "solid": false})
 	_box_at(bench_at + Vector3(0, Workbench.TOP * 0.5, 0), Vector3(Workbench.W, Workbench.TOP, Workbench.D))
+	# (1.28) the bookshelf against the cabin's front wall, starboard of the door (BookShelf)
+	var shelf_at := Vector3(2.0, DECK_Y, HullBuilder.QD_FRONT + 0.1)
+	BookShelf.place(ship_model, shelf_at, 0.0)
+	_box_at(shelf_at + Vector3(0, BookModels.SHELF_H * 0.5, BookModels.SHELF_D * 0.5), Vector3(BookModels.SHELF_W, BookModels.SHELF_H, BookModels.SHELF_D))
 	var lamp := OmniLight3D.new()
 	lamp.name = "CabinLight"
 	lamp.light_color = Color(1.0, 0.75, 0.45)

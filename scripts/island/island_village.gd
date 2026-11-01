@@ -410,7 +410,7 @@ func _unique_keeper() -> void:
 	var keeper := str(lk["name"])
 	var id := _key("unique")
 	var sid := _key("unique_shop")
-	if unique in ["restaurant", "swordsmith", "curio"]:
+	if unique in ["restaurant", "swordsmith", "curio", "library"]:
 		Shops.extra[sid] = UniquePlaces.shop(unique, sid, keeper.get_slice(" ", keeper.get_slice_count(" ") - 1), IslandContent.tier(isl))
 	Dialogue.register_token(id + "_said", func(): return _said)
 	UniquePlaces.define(id, unique, keeper, isl.island_name, sid)

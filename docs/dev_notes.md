@@ -8454,6 +8454,25 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   - Test: t/progression/bubble_forms; t/progression and t/player (82) pass.
 - (same day) **The Gust Fruit, piece 1.**
   - gust_fruit.tres, FRUITS "gust" (Flux), and a tree (`gu_*`).
+
+## 2026-11-01: life systems, piece 1: books (1.28, docs/life_systems_plan.md)
+- **Data** `scripts/books/book_data.gd` (BookData: 29 books, the lore sets, sources' odds; ItemDB makes them, so it names no
+  autoload class), **reading** `scripts/books/books.gd` (Books), models `book_models.gd`, the cabin's `book_shelf.gd`, the
+  screen `scripts/ui/bookshelf_screen.gd` (GameMenu "books"; GameMenu.open now calls any screen's `on_open`).
+- **Reading** (`Books.read(p, id)`, each captain's own): blueprint -> Gadgets.teach, recipe -> Food.teach, manual -> a perk
+  for good (`Books.perk` in Progression.stat), chart -> MapMarks on the legs CHART_DEPTH 2 layers ahead (SeaLegs.plan of each
+  leg: its stop, Sea King or wrecks; kept in downtime["chart_marks"] and re-put by Progression.from_dict), lore -> a volume of
+  a set, the set's reward on the last (Will point / gold + Feast of the Isles / +15% rare fish). Shelf: `downtime["books"]`
+  (id -> true; downtime is deep-copied in to_dict/from_dict now). From the bag: a click (READ). Downtime's Read: the first
+  interval reads the first unread book carried (charts count as unread), else the old XP-and-lore loop.
+- **Sources:** chests (`Books.chest_extras` in Loot.chest, own stream "|book": 4/10/25%), the village library's "Any books
+  for sale?" (UniquePlaces shop, 4 a day), the forge tinkerer's "Any books?" (shop `<key>_books`, 3 a day), the merchant ship
+  (`MerchantShip.book_pool`, filled by `Books.install()` from Downtime.register_wheel, loaded by path), F4's Books section.
+- **The shelf** (BookShelf, starboard of the cabin door against the front wall, a hull box for it in Ship): one spine per
+  book read; a 1 s Timer compares the local captain's count and rebuilds the spines mesh (one surface) on a change.
+- Food.MEALS gained the three feasts (harbour, roast, isles) as data; piece 2 cooks them.
+- Tests: t/books (read_teaches, shelf, lore_set). Render: `uishots <out> 1 0 books`. Per frame/tick: nothing; the shelf's
+  1 s timer; `Books.perk` adds a dictionary walk to each Progression.stat call (empty-shelf early out).
   - **Gale Dash:** a 12 m wind rush on thunder_step's blink. Its movement power.
   - **Gust Cone:** PowerComponent.gust_cone, a cone 8 m ahead blowing foes back and down (poise 999). Its CC.
   - **Reflex:** Player.gust_reflex, whoever hits you is blown back (at most every 6 s).

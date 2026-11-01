@@ -32,6 +32,7 @@ const GALLEY := preload("res://scripts/ui/galley_screen.gd")
 const BENCH := preload("res://scripts/ui/gadget_bench_screen.gd")
 var _galley: Control
 var _bench: Control
+const BOOKSHELF := preload("res://scripts/ui/bookshelf_screen.gd")
 # suggest an idea (a QR for the companion app)
 const IDEA := preload("res://scripts/ui/idea_screen.gd")
 var _idea: Control
@@ -81,6 +82,8 @@ func _ready() -> void:
 	_screens["crew"] = _crew
 	_wanted = WANTED.new(self)
 	_screens["wanted"] = _wanted
+	# (1.28 life systems) the bookshelf; their on_open runs on open
+	_screens["books"] = BOOKSHELF.new(self)
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -301,6 +304,8 @@ func open(screen: String) -> void:
 		_focus_first(_crew)
 	elif screen == "load":
 		_load.open("load", true)
+	elif _screens[screen].has_method("on_open"):
+		_screens[screen].on_open()
 	else:
 		_focus_first(_screens[screen])
 
@@ -319,7 +324,7 @@ func close() -> void:
 		_yard.end_preview()
 		if not Net.is_client():
 			SaveGame.save(_player())
-	elif _current in ["shop", "galley", "workbench"]:
+	elif _current in ["shop", "galley", "workbench", "books"]:
 		SaveGame.save(_player())
 	_current = ""
 	_play("close")

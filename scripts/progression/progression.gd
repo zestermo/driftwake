@@ -1071,7 +1071,7 @@ func stat(key: String) -> float:
 			if e.has(key):
 				total += float(e[key]) * int(steps[k])
 		_stats[key] = total
-	var v: float = _stats[key] + EdyTypes.bonus(will_color, key) + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0) + float(gear.get(key, 0.0))
+	var v: float = _stats[key] + EdyTypes.bonus(will_color, key) + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0) + float(gear.get(key, 0.0)) + Books.perk(self, key)
 	# Sea Dog: stamina twice as fast aboard
 	if key == "stamina_regen_pct" and stat("sea_dog") > 0.0 and player and Downtime.ship_under(player) != null:
 		v += 1.0
@@ -1219,7 +1219,7 @@ func to_dict() -> Dictionary:
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
 		"steps": steps.duplicate(), "versions": versions.duplicate(), "passives": Array(passives), "found": found.keys(),
 		"will_pts": will_earned, "will_color": will_color, "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
-		"kit": kit_left, "downtime": downtime.duplicate(), "guards": guards.keys(), "edy_uses": edy_uses.duplicate(), "edy_off": edy_off.keys()}
+		"kit": kit_left, "downtime": downtime.duplicate(true), "guards": guards.keys(), "edy_uses": edy_uses.duplicate(), "edy_off": edy_off.keys()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -1234,7 +1234,8 @@ func from_dict(d: Dictionary) -> void:
 		recipes[str(k)] = true
 	cooked = (d.get("cooked", {}) as Dictionary).duplicate()
 	kit_left = float(d.get("kit", 0.0))
-	downtime = (d.get("downtime", {}) as Dictionary).duplicate()
+	downtime = (d.get("downtime", {}) as Dictionary).duplicate(true)
+	Books.restore_marks(self)
 	guards = {}
 	for k in d.get("guards", []):
 		guards[str(k)] = true
