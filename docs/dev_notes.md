@@ -8928,3 +8928,15 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   chest and the bounty; the warship's Admiralty, Swing aboard lands you on her, sunk she leaves no chest).
   Render: `seastopshot` flagship_far / near / deck_fight / captain, warship_near. Expected to touch at prepush:
   r8test, seatest, net (board mode) through enemy_ship.gd and cutscene.gd.
+
+## 2026-11-01 Cooking piece A: the cooking game in first person (1.28 life systems)
+- The galley's **Cook** now plays the cooking game; **Quick cook** skips it (Fair). GameMenu screen "cook"
+  (`scripts/ui/cook_game_screen.gd`, `GameMenu.open_cook_game(title, done, opts)`) hides the HUD and the captain's
+  body and puts a camera at their eyes over a counter set out in front of them (`scripts/items/cook_scene.gd`,
+  CookScene: pot + spoon + rim glint, pan on a brazier with flames, a plate sliding under a held portion, one
+  warm OmniLight while it's up). Logic alone: `scripts/items/cook_timing.gd` (CookTiming, the plan's numbers).
+- Grades are items: `Food.graded(id, g)` -> `<meal>@0` Burnt, the meal itself Fair, `@2` Good, `@3` Perfect, made in
+  Food.make_items with `ItemData.meal_mult` (0.8/1/1.15/1.3 on buff and minutes, eaten in Player.use_item and on the
+  galley table). Ingredients go only once the game's played through; Esc (GameMenu sees it first: `give_up`) cooks nothing.
+- The PixelCanvas is 640x360 at 720p (not 800x450): overlay rows sit at fractions of the screen's size.
+- Tests: `t/food/cook_game`. Render: `cookshot`.

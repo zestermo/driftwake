@@ -30,6 +30,9 @@ var _shop: Control
 # cooking (the ship's galley; a camp's fire)
 const GALLEY := preload("res://scripts/ui/galley_screen.gd")
 const BENCH := preload("res://scripts/ui/gadget_bench_screen.gd")
+# (1.28) the cooking game in first person
+const COOK := preload("res://scripts/ui/cook_game_screen.gd")
+var _cook: Control
 var _galley: Control
 var _bench: Control
 const BOOKSHELF := preload("res://scripts/ui/bookshelf_screen.gd")
@@ -74,6 +77,8 @@ func _ready() -> void:
 	_galley = GALLEY.new(self)
 	_screens["galley"] = _galley
 	_galley.register_wheel()
+	_cook = COOK.new(self)
+	_screens["cook"] = _cook
 	_bench = BENCH.new(self)
 	_screens["workbench"] = _bench
 	_idea = IDEA.new(_back)
@@ -155,7 +160,9 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("pause"):
-		if _current == "":
+		if _current == "cook":
+			_cook.give_up()
+		elif _current == "":
 			open("pause")
 		elif _current in ["options", "controls", "load", "idea"]:
 			_play("back")
@@ -242,6 +249,14 @@ func open_galley(portions: int) -> void:
 	open("galley")
 
 
+## The cooking game (CookTiming, in first person over a counter): `done(quality, grade)` once it's over;
+## opts: "speed" x the beats' speed, "beats" a subset like ["stir", "plate"], "meal" the dish (its colours),
+## "back" the screen to return to ("" closes the menu). Esc gives up without calling `done`.
+func open_cook_game(title: String, done: Callable, opts: Dictionary = {}) -> void:
+	open("cook")
+	_cook.start(title, str(opts.get("meal", "")), done, opts, str(opts.get("back", "")))
+
+
 func shop_after_talk(id: String) -> void:
 	_after_talk = ["shop", id]
 
@@ -268,7 +283,7 @@ func open(screen: String) -> void:
 	_root.visible = true
 	Walkthrough.first(get_tree(), screen)
 	# the inventory sits on top of the game; other screens dim it
-	_dim.visible = screen not in ["inventory", "skills", "yard"]
+	_dim.visible = screen not in ["inventory", "skills", "yard", "cook"]
 	for n in _screens.keys():
 		_screens[n].visible = (n == screen)
 	_pc.visible = screen != "inventory"
@@ -318,6 +333,8 @@ func _fit_current() -> void:
 
 func close() -> void:
 	var was := _current
+	if _current == "cook" and _cook.timing != null:
+		_cook.clear()
 	if _current == "inventory":
 		_inventory.on_close()
 	elif _current == "yard":

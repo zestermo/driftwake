@@ -2798,7 +2798,7 @@ func _finish_use() -> void:
 		power.add_energy(item.energy_amount)
 		got.append("+%d energy" % int(item.energy_amount))
 	if item.meal != "":
-		progression.eat_meal(item.meal)
+		progression.eat_meal(item.meal, Food.strength(progression) * item.meal_mult, Food.seconds(progression, item.meal) * item.meal_mult)
 		Net.fx("sparkle", [global_position + Vector3(0, 1.3, 0), 22, Color(1.0, 0.82, 0.4)])
 		Net.fx("float_text", [global_position + Vector3(0, 2.3, 0), item.display_name + "!", Color(1.0, 0.85, 0.45), 20])
 		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -9.0, 0.05, 0.95])

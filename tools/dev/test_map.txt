@@ -86,6 +86,9 @@ scripts/ship/ship_lines.gd              t/economy t/ship
 tools/dev/t/food/*                      t/food
 scripts/items/food.gd                   t/food t/economy t/sea/restaurant
 scripts/ui/galley_screen.gd             t/food
+scripts/items/cook_timing.gd             t/food/cook_game
+scripts/items/cook_scene.gd              t/food/cook_game
+scripts/ui/cook_game_screen.gd           t/food/cook_game
 scripts/island/artisans.gd              t/economy
 scripts/island/harbour_vendor.gd        t/economy/harbour_vendor
 scripts/ui/shipwright_screen.gd         t/economy/harbour_vendor

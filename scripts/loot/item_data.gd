@@ -57,6 +57,8 @@ const RARITY_VALUE := [1.0, 1.6, 2.56, 4.1, 6.55, 10.49, 16.78]
 @export var energy_amount: float = 0.0
 ## A galley meal (Food.MEALS id): eating it gives that buff for its minutes.
 @export var meal: String = ""
+## (1.28) how well it was cooked (CookTiming.MULT: Burnt 0.8 ... Perfect 1.3): the meal's buff and minutes x this.
+@export var meal_mult: float = 1.0
 ## What it counts as in a recipe (Food.TAGS: fish, meat, fruit, grain, spice, greens); "" none.
 @export var ingredient: String = ""
 

@@ -116,6 +116,20 @@ static func make_items(items: Dictionary) -> void:
 		it.meal = id
 		it.icon = load("res://assets/textures/icons/%s.png" % m.get("icon", id))
 		items[id] = it
+		# (1.28) how well it was cooked (the cooking game): "<id>@0" Burnt, "@2" Good, "@3" Perfect; the meal itself is Fair
+		for g in [0, 2, 3]:
+			var gi := it.duplicate() as ItemData
+			gi.id = graded(id, g)
+			gi.display_name = "%s %s" % [CookTiming.GRADE_NAMES[g], it.display_name]
+			gi.meal_mult = float(CookTiming.MULT[g])
+			gi.rarity = g as ItemData.Rarity
+			gi.value = maxi(1, roundi(it.value * gi.meal_mult))
+			items[gi.id] = gi
+
+
+## The item id of `meal_id` cooked to grade `g` (CookTiming: 0 Burnt, 1 Fair = the meal itself, 2 Good, 3 Perfect).
+static func graded(meal_id: String, g: int) -> String:
+	return meal_id if g == 1 else "%s@%d" % [meal_id, g]
 
 
 static func ingredients_in(meal_id: String) -> int:
@@ -205,24 +219,32 @@ static func have(inv, tag: String) -> int:
 	return n
 
 
-## Cook `meal_id` `portions` times over from one set of ingredients: "" when done, or why not.
-static func cook(p, meal_id: String, portions: int) -> String:
-	var pr = p.progression
-	if not known(pr, meal_id):
+## Could `p` cook `meal_id` now? "" when they could, or why not.
+static func can_cook(p, meal_id: String, portions: int) -> String:
+	if not known(p.progression, meal_id):
 		return "You don't know that recipe"
 	var inv = p.inventory_component
-	var use := picks(inv, meal_id)
-	if use.is_empty():
+	if picks(inv, meal_id).is_empty():
 		return "Not enough ingredients"
-	var meal := ItemDB.get_item(meal_id)
-	if inv.room_for(meal) < portions:
+	if inv.room_for(ItemDB.get_item(meal_id)) < portions:
 		return "Your bag's full"
-	for u in use:
+	return ""
+
+
+## Cook `meal_id` `portions` times over from one set of ingredients, to grade `grade` (the cooking game's;
+## Quick cook and shops are Fair): "" when done, or why not. A Perfect first cook doubles the first time's XP again.
+static func cook(p, meal_id: String, portions: int, grade: int = 1) -> String:
+	var why := can_cook(p, meal_id, portions)
+	if why != "":
+		return why
+	var pr = p.progression
+	var inv = p.inventory_component
+	for u in picks(inv, meal_id):
 		inv.remove_item(u[0], int(u[1]))
-	inv.add_item(meal, portions)
+	inv.add_item(ItemDB.get_item(graded(meal_id, grade)), portions)
 	var first: bool = not pr.cooked.has(meal_id)
 	pr.cooked[meal_id] = int(pr.cooked.get(meal_id, 0)) + 1
-	pr.add_life("cook", (COOK_XP + COOK_XP_PER * ingredients_in(meal_id)) * (2 if first else 1))
+	pr.add_life("cook", (COOK_XP + COOK_XP_PER * ingredients_in(meal_id)) * (2 if first else 1) * (2 if first and grade == 3 else 1))
 	# (1.26) the galley's fire tops up the tonic flask too
 	if p.has_method("refill_flask"):
 		p.refill_flask()

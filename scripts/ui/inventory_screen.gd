@@ -925,7 +925,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		if it.energy_amount > 0.0:
 			_stat(grid, "ENERGY", "+%d" % int(it.energy_amount), 0, false)
 		if it.meal != "":
-			fx.append(["Meal, %d min: %s" % [roundi(Food.seconds(pl.progression, it.meal) / 60.0), Food.buff_text(it.meal, Food.strength(pl.progression))], Color(1.0, 0.85, 0.45)])
+			fx.append(["Meal, %d min: %s" % [roundi(Food.seconds(pl.progression, it.meal) * it.meal_mult / 60.0), Food.buff_text(it.meal, Food.strength(pl.progression) * it.meal_mult)], Color(1.0, 0.85, 0.45)])
 	if it.ingredient != "":
 		fx.append(["Cooks as " + Food.TAG_NAMES[it.ingredient], Color(0.95, 0.8, 0.55)])
 	if Bait.is_bait(it):

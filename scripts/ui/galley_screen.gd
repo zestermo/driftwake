@@ -14,6 +14,7 @@ var _level: Label
 var _list: VBoxContainer
 var _card: VBoxContainer
 var _cook_btn: Button
+var _quick_btn: Button
 var _hints: HBoxContainer
 var _buttons: Dictionary = {}
 var _sel := ""
@@ -74,9 +75,16 @@ func _init(menu: Node) -> void:
 	_card.add_theme_constant_override("separation", 2)
 	_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	c2.add_child(_card)
+	# (1.28) Cook plays the cooking game (the grade sets the meal's strength); Quick cook skips it (Fair)
+	var btns := HBoxContainer.new()
+	btns.add_theme_constant_override("separation", 6)
+	c2.add_child(btns)
 	_cook_btn = UIStyle.button("Cook", 90)
-	_cook_btn.pressed.connect(cook_selected)
-	c2.add_child(_cook_btn)
+	_cook_btn.pressed.connect(play_selected)
+	btns.add_child(_cook_btn)
+	_quick_btn = UIStyle.button("Quick cook", 100)
+	_quick_btn.pressed.connect(cook_selected)
+	btns.add_child(_quick_btn)
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 8)
 	vb.add_child(foot)
@@ -151,6 +159,7 @@ func _show_card() -> void:
 		l.custom_minimum_size = Vector2(W_CARD, 0)
 		_card.add_child(l)
 		_cook_btn.disabled = true
+		_quick_btn.disabled = true
 		return
 	var it := ItemDB.get_item(_sel)
 	var row := HBoxContainer.new()
@@ -182,6 +191,7 @@ func _show_card() -> void:
 		_line("USES " + ", ".join(names).to_upper(), UIStyle.TEXT_DIM)
 	_line("MAKES %d" % portions, UIStyle.ACCENT)
 	_cook_btn.disabled = use.is_empty() or inv.room_for(it) < portions
+	_quick_btn.disabled = _cook_btn.disabled
 
 
 func _line(text: String, col: Color) -> void:
@@ -191,20 +201,34 @@ func _line(text: String, col: Color) -> void:
 	_card.add_child(l)
 
 
-## Cook the picked dish (portions of it) out of the bag.
-func cook_selected() -> void:
+## Cook: the cooking game in first person (CookTiming); the ingredients go only once it's played through.
+func play_selected() -> void:
+	var pl := _player()
+	var why := Food.can_cook(pl, _sel, portions)
+	if why != "":
+		_flash(why, true)
+		return
+	var meal := _sel
+	_menu.open_cook_game(str(Food.MEALS[meal]["name"]), func(_q: float, grade: int):
+		_sel = meal
+		cook_selected(grade), {"meal": meal, "back": "galley"})
+
+
+## Cook the picked dish (portions of it) out of the bag, to `grade` (Quick cook: Fair).
+func cook_selected(grade: int = 1) -> void:
 	var pl := _player()
 	var lv := pl.progression.mastery_level("cook")
-	var why := Food.cook(pl, _sel, portions)
+	var why := Food.cook(pl, _sel, portions, grade)
 	if why != "":
 		_flash(why, true)
 		return
 	UIStyle.sfx("sizzle")
-	var name_ := str(Food.MEALS[_sel]["name"])
+	var name_ := ItemDB.get_item(Food.graded(_sel, grade)).display_name
+	var mult := float(CookTiming.MULT[grade])
 	# aboard, a pot of several portions goes on the galley table for the crew (the cook keeps one)
 	if portions > 1 and GalleyTable.of(get_tree()) != null:
-		pl.inventory_component.remove_item(ItemDB.get_item(_sel), portions - 1)
-		Net.table_serve(_sel, portions - 1, pl.display_name(), Food.strength(pl.progression), Food.seconds(pl.progression, _sel))
+		pl.inventory_component.remove_item(ItemDB.get_item(Food.graded(_sel, grade)), portions - 1)
+		Net.table_serve(_sel, portions - 1, pl.display_name(), Food.strength(pl.progression) * mult, Food.seconds(pl.progression, _sel) * mult)
 		_flash("Cooked %s: one for you, %d on the galley table" % [name_, portions - 1], false)
 		_refresh()
 		return
