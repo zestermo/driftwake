@@ -103,6 +103,12 @@ func site_at(_isl, _site: String, p: Vector2) -> Vector2:
 	return p
 
 
+## (1.28) The path from the village to `site` ("dock": the dock road, from the dock), as points for its curve; `pts` the
+## base's own (the coral atoll's run round its ring instead).
+func route(_isl, _site: String, pts: Array) -> Array:
+	return pts
+
+
 ## How overgrown p is (0..1; `c` the base's: the theme's "cover" over noise), before the sites are cleared.
 func cover(_isl, _p: Vector2, c: float) -> float:
 	return c

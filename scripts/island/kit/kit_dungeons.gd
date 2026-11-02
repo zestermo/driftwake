@@ -142,6 +142,8 @@ static func _plan_cave(isl: GenIsland, rng: RandomNumberGenerator, kind: String,
 	for relax in [1.0, 0.8, 0.62]:
 		for attempt in range(45):
 			var c := Vector2.from_angle(rng.randf() * TAU) * isl.radius * rng.randf_range(0.18, 0.7)
+			if not isl.land_plan.is_empty():
+				c = IslandThemes.of(isl.theme).site_at(isl, "cave", c)
 			if not site_clear(isl, c, 30.0, relax, taken):
 				continue
 			var lay := _layout(isl, rng, spec, c)

@@ -705,6 +705,14 @@ scripts/enemies/beasts/volcanic_salamander.gd t/island/volcanic_salamander t/isl
 scripts/enemies/fauna/volcanic_*.gd        t/island/volcanic_wilds
 scripts/props/volcanic_plants.gd           t/island/volcanic_land
 scripts/island/village_vendors.gd          t/island/volcanic_town
+scripts/island/themes/atoll_theme.gd       t/island/atoll_land t/island/theme_registry
+scripts/island/themes/atoll_land.gd        t/island/atoll_land
+scripts/island/themes/atoll_data.gd        t/island/atoll_land
+scripts/island/themes/atoll_town.gd        t/island/atoll_land
+scripts/island/themes/atoll_spots.gd       t/island/atoll_land
+scripts/island/themes/atoll_places.gd      t/island/atoll_places
+scripts/props/atoll_plants.gd              t/island/atoll_land
+scripts/island/kit/kit_dungeons.gd         t/island/atoll_land
 tools/dev/t/sea/*                       t/sea
 scripts/sea/*                           t/sea
 scripts/world/chain.gd                  t/sea/stop_rolls

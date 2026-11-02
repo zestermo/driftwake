@@ -658,10 +658,12 @@ func _settle(p: Vector2, inset: float) -> Vector2:
 # ==========================================================================
 func _define_paths() -> void:
 	var v: Vector2 = sites["village"]
-	_add_path([dock_shore - dock_dir * 2.0, _mid(dock_shore, v, 0.5, 12.0), v], 1.8)
+	var road := [dock_shore - dock_dir * 2.0, _mid(dock_shore, v, 0.5, 12.0), v]
+	_add_path(road if land_plan.is_empty() else _theme.route(self, "dock", road), 1.8)
 	for site in ["boss", "camp", "lair", "ruins", "summit"]:
 		var to: Vector2 = sites[site]
-		_add_path([v, _mid(v, to, 0.35, 30.0), _mid(v, to, 0.7, 30.0), to], 1.3)
+		var pts := [v, _mid(v, to, 0.35, 30.0), _mid(v, to, 0.7, 30.0), to]
+		_add_path(pts if land_plan.is_empty() else _theme.route(self, site, pts), 1.3)
 
 
 ## A point `k` of the way from a to b, pushed `wander` m to either side.

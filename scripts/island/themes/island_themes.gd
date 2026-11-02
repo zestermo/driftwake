@@ -14,6 +14,7 @@ const SCRIPTS := [
 	"res://scripts/island/themes/forest_theme.gd",
 	"res://scripts/island/themes/fog_theme.gd",
 	"res://scripts/island/themes/volcanic_theme.gd",
+	"res://scripts/island/themes/atoll_theme.gd",
 ]
 
 static var _all: Array = []
