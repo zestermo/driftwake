@@ -91,6 +91,8 @@ var _prompt := ""
 
 var _vy: float = 0.0
 var _diving: bool = false
+## (1.28) Spearfishing: the school round a deep dive (SpearSchool), the local captain's only.
+var school: SpearSchool
 var _dive_t: float = 0.0
 var _tick: float = 0.0
 var _warned: bool = false
@@ -279,6 +281,7 @@ func physics_update(delta: float) -> void:
 		if _dive_t > DIVE_MIN and want > 0.0 and player.global_position.y >= _float_y(false) - 0.08:
 			_surface()
 	player.body_model.diving = _diving
+	_school_tick()
 	_update_breath(delta, fast)
 
 	# stamina: strokes cost a little, treading water lets it creep back; cold water and a storm's swell sap it
@@ -402,6 +405,14 @@ func _strike_tick(delta: float, tired: bool) -> void:
 			player.sheathe_weapon(true)
 	if tired or _strike_cd > 0.0 or _strike_hit >= 0.0:
 		return
+	# (1.28) with a school round a dive, right mouse aims the spear and left mouse throws it (no strikes)
+	if school:
+		input_buffer.consume_action("heavy_attack")
+		school.aiming = player.inp.pressed("heavy_attack")
+		if school.aiming and input_buffer.consume_action("light_attack"):
+			school.throw()
+		if school.aiming:
+			return
 	var heavy := input_buffer.consume_action("heavy_attack")
 	if not heavy and not input_buffer.consume_action("light_attack"):
 		return
@@ -518,6 +529,23 @@ func _float_y(tired: bool) -> float:
 
 
 ## Back up through the surface: a gasp of air and a splash.
+## (1.28) A school comes round a dive in deep enough water (the local captain's), and goes when they surface.
+func _school_tick() -> void:
+	if not player.is_local:
+		return
+	if _diving and school == null and _dive_t > 0.6 and Engine.get_physics_frames() % 15 == 0 \
+			and player.get_node("/root/Ocean").depth_at(player.global_position, [], true) > SpearSchool.DEEP_M:
+		school = SpearSchool.make(player)
+	elif not _diving and school:
+		_end_school()
+
+
+func _end_school() -> void:
+	if school and is_instance_valid(school):
+		school.queue_free()
+	school = null
+
+
 func _surface() -> void:
 	_diving = false
 	_vy = minf(_vy, 1.5)
@@ -658,6 +686,7 @@ func _find_ledge() -> Dictionary:
 
 
 func exit() -> void:
+	_end_school()
 	player.body_model.swimming = false
 	player.body_model.swim_style = ""
 	player.body_model.diving = false
