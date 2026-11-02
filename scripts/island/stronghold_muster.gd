@@ -42,7 +42,7 @@ func raised() -> bool:
 func _ready() -> void:
 	all.append(self)
 	var pole := MeshBuilder.new()
-	pole.add_cylinder(PSXMat.lit("wood", Color(0.42, 0.34, 0.26)), Transform3D(Basis(), Vector3(0, POLE_H * 0.5, 0)), 0.07, 0.05, POLE_H, 6, 1.0)
+	pole.add_cylinder(PSXMat.lit("planks", Color(0.42, 0.34, 0.26)), Transform3D(Basis(), Vector3(0, POLE_H * 0.5, 0)), 0.07, 0.05, POLE_H, 6, 1.0)
 	pole.add_cylinder(PSXMat.lit("stone", Color(0.5, 0.54, 0.58)), Transform3D(Basis(), Vector3(0, 0.2, 0)), 0.4, 0.32, 0.4, 8, 1.0)
 	pole.add_box(PSXMat.lit("metal", Color(0.7, 0.66, 0.5)), Transform3D(Basis(), Vector3(0, POLE_H + 0.05, 0)), Vector3(0.14, 0.14, 0.14))
 	add_child(pole.to_instance("Pole"))

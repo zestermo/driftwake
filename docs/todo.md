@@ -303,4 +303,3 @@ backported there).
   the stronghold, while its garrison (warm_start camps, Humanoid.prebuild on workers) was still building bodies, and
   Godot never exited (the runner's 150 s stall). The test now waits 8 s. Check that freeing an island mid-prebuild
   (sailing away fast) doesn't hang too.
-- **Volcanic caldera black blob (found 2026-11-01, 1.28 batch):** in volcanoshot's caldera views ("the beast's ground", "the beast") a large black blocky mass hangs over the crater - likely the ash plume's material rendering unlit/black. Fix pass before the 1.28 stable.
