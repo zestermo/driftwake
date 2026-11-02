@@ -42,4 +42,15 @@ static func pose(h, n: String, u: float) -> Array:
 				"torso": Vector3(0.1, 0.15, 0), "head": Vector3(-0.3, -0.1, 0), "hips": Vector3.ZERO,
 				"leg_l": Vector3(0.7, 0, -0.1), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.3, 0, 0.1), "shin_r": Vector3(-0.7, 0, 0)}
 			return [h._keys(minf(u * T / 0.15, 1.0), [[0.0, {}], [1.0, hang, "out"]]), "full", lift]
+		"gd_skim":
+			# side-on at the boom: feet wide along the board (the nose to the left), knees soft, both hands out on the
+			# wishbone, hips and shoulders hung back against the sail's pull, the head turned to the nose; the knees
+			# flex slowly with the swell
+			var flex := sin(u * T * 2.3) * 0.08
+			var ride := {"arm_l": Vector3(1.1, 0.1, -0.35), "fore_l": Vector3(0.3, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+				"arm_r": Vector3(1.0, -0.1, 0.05), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+				"pivot": Vector3(0.2, 0, 0), "torso": Vector3(-0.05, 0.15, 0), "head": Vector3(-0.1, 0.55, 0),
+				"leg_l": Vector3(0.3 + flex, 0, -0.32), "shin_l": Vector3(-0.55 - flex * 2.0, 0, 0),
+				"leg_r": Vector3(0.25 + flex, 0, 0.32), "shin_r": Vector3(-0.5 - flex * 2.0, 0, 0)}
+			return [h._keys(minf(u * T / 0.25, 1.0), [[0.0, {}], [1.0, ride, "out"]]), "full", Vector3(0, -0.06 - flex * 0.3, 0)]
 	return []

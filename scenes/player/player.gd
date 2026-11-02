@@ -277,6 +277,9 @@ const AURA_TREES := ["dagger", "dual", "dual_dagger", "corsair"]
 ## (1.28) The gadget pouch on the back: its tier + 1 in these two bits (0: none).
 const NF_POUCH := 512 | 1024
 const NF_POUCH_SHIFT := 9
+## (1.28.1) Riding the skimmer: its tier + 1 in these two bits (0: not riding).
+const NF_SKIM := 2048 | 4096
+const NF_SKIM_SHIFT := 11
 ## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
 var parry_tap := -10.0
 
@@ -761,6 +764,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	get_node("/root/CombatManager").apply_hit_effects(hit, [self, attacker])
 	if health_component.current_health <= 0.0:
 		return  # _on_died ragdolls the body
+	# (1.28.1) a blow knocks you off the skimmer into the water
+	if current_state_name() == "Skimmer" and not hit.dot:
+		state_machine.current_state.call("throw_off", "hit")
+		return
 	if hit.dot or context == Context.HELM or current_state_name() in ["Talk", "Helm"]:
 		return
 	if power.buff("tekkai") or power.buff("berserk"):
@@ -1361,7 +1368,7 @@ func _ride_ship() -> void:
 
 
 ## States that hold you somewhere else (water, a ladder, a vine, a ragdoll).
-const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "Downtime"]
+const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "Downtime", "Skimmer"]
 
 
 ## States that drop into swimming when the water gets deep enough.
@@ -3060,6 +3067,8 @@ func net_pack() -> Array:
 	if fist_armed > 0.0:
 		flags |= NF_GALAXY
 	flags |= (body_model.pouch_tier + 1) << NF_POUCH_SHIFT
+	if current_state_name() == "Skimmer":
+		flags |= (int(state_machine.current_state.get("tier")) + 1) << NF_SKIM_SHIFT
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else [], bounty]
@@ -3133,6 +3142,8 @@ func _puppet_process(delta: float) -> void:
 			body_model.lantern.set_lit(bool(flags & NF_LANTERN))
 		if changed & NF_POUCH:
 			GadgetBelt.wear(body_model, ((flags & NF_POUCH) >> NF_POUCH_SHIFT) - 1)
+		if changed & NF_SKIM:
+			SkimmerModel.ride(self, ((flags & NF_SKIM) >> NF_SKIM_SHIFT) - 1)
 		_update_nameplate()
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
@@ -3140,6 +3151,8 @@ func _puppet_process(delta: float) -> void:
 	BladeEmbers.keep(body_model, bool(_net_flags & NF_EMBERS))
 	_keep_aura(bool(_net_flags & NF_AURA))
 	FistArts.keep_glow(body_model, bool(_net_flags & NF_GALAXY))
+	if _net_flags & NF_SKIM:
+		SkimmerModel.puppet_fx(self, delta)
 	# knocked down: the body lies (or floats) exactly where theirs does
 	if body_model.ragdoll and (b[11] as Array).size() > 0:
 		body_model.ragdoll.net_follow(a[11], b[11], f)

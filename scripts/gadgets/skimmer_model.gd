@@ -11,7 +11,7 @@ extends RefCounted
 const MAST_FOOT := Vector3(-0.42, 0.0, -0.05)
 ## Where the boom meets the mast, and its far end (the clew), in the rig's space (mast foot at the origin).
 const BOOM_H := 1.3
-const CLEW := Vector3(1.9, 1.22, -0.5)
+const CLEW := Vector3(2.2, 1.22, -1.05)
 const BOARD_LEN := [2.3, 2.45, 2.6]
 const BOARD_W := [0.62, 0.64, 0.66]
 const MAST_H := [3.2, 3.4, 3.7]
@@ -82,7 +82,7 @@ static func rig(tier: int) -> ArrayMesh:
 		return _meshes[key]
 	var mb := MeshBuilder.new()
 	var H: float = MAST_H[tier]
-	var top := Vector3(0.45, H, -0.25)
+	var top := Vector3(0.8, H, -1.3)
 	var foot := Vector3(0.0, 0.05, 0.0)
 	var mast_col: Color = [Color(0.85, 0.82, 0.74), Color(0.9, 0.88, 0.82), Color(0.2, 0.18, 0.18)][tier]
 	mb.add_tube(PSXMat.lit("planks", mast_col), PackedVector3Array([foot, top]), 0.035, 0.022, 5)
@@ -156,6 +156,38 @@ static func make(tier: int) -> Node3D:
 	r.visibility_range_end = 160.0
 	root.add_child(r)
 	return root
+
+
+## A crewmate's puppet riding at `tier` (-1: off it): the board on its lean node, as the rider's own.
+static func ride(p: Node, tier: int) -> void:
+	var old: Node = p.lean.get_node_or_null("Skimmer")
+	if old:
+		old.free()
+	if tier >= 0:
+		p.lean.add_child(make(tier))
+
+
+## The spray off the rails and the wake behind (each screen draws its own: the rider's from SkimmerState, a
+## crewmate's from their puppet's snapshot velocity).
+static func ride_fx(p: CharacterBody3D, spd: float) -> void:
+	if spd < 2.0:
+		return
+	var fwd := Vector3(p.velocity.x, 0.0, p.velocity.z).normalized()
+	var side := fwd.cross(Vector3.UP)
+	var at := p.global_position
+	var k := clampf(spd / 13.0, 0.0, 1.0)
+	var s := 1.0 if randf() < 0.5 else -1.0
+	p.get_node("/root/FX").spray(at + fwd * 0.9 + side * 0.32 * s, (side * s + Vector3.UP * 0.9 - fwd * 0.3).normalized(), 3 + int(5 * k), Color(0.9, 0.96, 1.0), 2.0 + 3.0 * k)
+	p.get_node("/root/Ocean").wake(p, at - fwd * 1.1, 0.25 + 0.5 * k)
+
+
+static func puppet_fx(p: CharacterBody3D, delta: float) -> void:
+	var t := float(p.get_meta("skim_fx", 0.0)) - delta
+	if t <= 0.0:
+		t = 0.08
+		if absf(p.velocity.y) < 2.0:
+			ride_fx(p, Vector3(p.velocity.x, 0.0, p.velocity.z).length())
+	p.set_meta("skim_fx", t)
 
 
 ## The skimmer packed (its icon and the bench's picture): the board with the mast laid along it and the sail rolled.

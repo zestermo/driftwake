@@ -551,6 +551,9 @@ scripts/ui/sea_chart.gd                 t/map
 tools/dev/t/gadgets/*                   t/gadgets
 scripts/gadgets/*                       t/gadgets
 scripts/ui/gadget_*                     t/gadgets
+scripts/player_states/gadget_state.gd   t/gadgets
+scripts/player_states/skimmer_state.gd  t/gadgets/skimmer_ride
+tools/dev/skimmershot.gd                t/gadgets/skimmer_ride
 # --- sailing downtime: the lashed helm, activities, Blender clips (v1.18 lane F) ---
 tools/dev/t/downtime/*                  t/downtime
 scripts/game/downtime.gd                t/downtime

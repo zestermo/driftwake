@@ -26,6 +26,7 @@ const GLIDE_TURN := 0.25
 ## The lockpick works on a locked chest this close, clicking every PICK_CLICK s.
 const PICK_REACH := 2.6
 const PICK_CLICK := 0.35
+const SKIMMER := preload("res://scripts/player_states/skimmer_state.gd")
 
 var id := ""
 var tier := 0
@@ -58,6 +59,8 @@ static func reason(p: Player, gid: String, t: int) -> Array:
 		"lockpick":
 			var b := lock_near(p)
 			return ["No lock here to pick: stand at a locked chest", Vector3.ZERO] if b == null else ["", b.global_position]
+		"skimmer":
+			return SKIMMER.launch_point(p)
 	return ["", Vector3.ZERO]
 
 

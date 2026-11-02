@@ -16,6 +16,7 @@ const RELEASE := 0.52
 ## Auto-aim: the foe closest to the line of sight within the throw's range and this cone.
 const AIM_DOT := 0.8
 const GADGET_STATE := preload("res://scripts/player_states/gadget_state.gd")
+const SKIMMER_STATE := preload("res://scripts/player_states/skimmer_state.gd")
 
 var player: Node
 ## blueprint id -> true
@@ -114,8 +115,8 @@ func fire() -> bool:
 	if gid == "":
 		player.call("_toast", "No gadget on the belt: build one at a workbench")
 		return false
-	# (the diving helmet goes on in the water too)
-	var swim_ok: bool = gid == "diving_helmet" and player.current_state_name() == "Swim"
+	# (the diving helmet goes on in the water too, and the skimmer launches from it)
+	var swim_ok: bool = gid in ["diving_helmet", "skimmer"] and player.current_state_name() == "Swim"
 	if not (player.is_free() or swim_ok) or player.body_model.current_action() in ["gd_lob", "gd_spy"]:
 		return false
 	if cooldown_left(gid) > 0.0:
@@ -133,6 +134,8 @@ func fire() -> bool:
 	_changed()
 	if GadgetData.GADGETS[gid].get("throw", false):
 		_lob(gid, tier_of(gid))
+	elif gid == "skimmer":
+		player.state_machine.force_state("Skimmer", {"tier": tier_of(gid), "at": why[1]})
 	elif GadgetData.GADGETS[gid]["kind"] == "traversal" or gid == "lockpick":
 		player.state_machine.force_state("Gadget", {"id": gid, "tier": tier_of(gid), "at": why[1]})
 	else:
@@ -144,13 +147,14 @@ func fire() -> bool:
 ## one is added here, the way the machine itself registers a child).
 func _ready() -> void:
 	var sm: StateMachine = player.get_node("StateMachine")
-	var st: Node = GADGET_STATE.new()
-	st.name = "Gadget"
-	st.player = player
-	st.input_buffer = player.get_node("InputBuffer")
-	sm.add_child(st)
-	sm.states["gadget"] = st
-	st.transitioned.connect(sm._on_child_transitioned)
+	for e in [[GADGET_STATE, "Gadget"], [SKIMMER_STATE, "Skimmer"]]:
+		var st: Node = (e[0] as GDScript).new()
+		st.name = e[1]
+		st.player = player
+		st.input_buffer = player.get_node("InputBuffer")
+		sm.add_child(st)
+		sm.states[str(e[1]).to_lower()] = st
+		st.transitioned.connect(sm._on_child_transitioned)
 
 
 func _lob(gid: String, t: int) -> void:
