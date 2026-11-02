@@ -9402,3 +9402,22 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - clothlab `pack`, `pack_drape` (net on): 265 / 480 segment-frames inside the body of ~1727 (mostly the sash, hair and
   draped panels, as before). Tests: t/gear/backpack (new). Renders: tools/dev/out/clothes/pack1_*.png (bare, a jacket,
   a draped long coat, under a cloak, over a greatcoat and cuirass), tools/dev/out/clothes/lab3/sheet_pack{,_drape}.png.
+## 2026-11-02: ship looks (1.29 'Shipshape', piece 5)
+- **Four paint channels** (ShipKit RAILS, SPARS, DECKS, STRIPES; kit keys rail, spar, deck, stripe, 0 = her old look):
+  Ship.apply_kit `_repaint`s the hull mesh's trim surface (rails, stair trims, the cabin's front and walls: "trim") and
+  spar surface (mast, bowsprit, nest floor; the yard by material_override), multiplies the wet-deck copy by `_deck_tint`
+  (_rain_on_deck), and builds `Stripe` under the layout root (a band on the bulwarks following the sheer, bow to
+  stern, a band across the transom and a diamond badge each side) in the second colour.
+- **Jolly roger builder** (kit skull 0-4, crossed 0-6, headpiece 0-5; skull 0 = the plain EMBLEMS flag, pixel for
+  pixel): ShipKit `_mark_at` -> `_jolly_at` draws what's crossed (bones, cutlasses, pistols, keys, oars, tridents),
+  the skull (round, grinning, horned, cracked; sockets, nose, teeth and a crack cut back to the field) and the
+  headpiece (straw hat, bandana, tricorn, crown, horns) into the 48x30 flag and the sail emblem. 168 combinations, all
+  different (t/ship/flag_builder writes them to tools/dev/out/shipshape/flags.png).
+- **Figureheads** (`scripts/ship/figureheads.gd`, Figureheads.build; ShipKit.FIGURES = Figureheads.NAMES, the old four
+  ids kept): mermaid, lion, sea serpent, eagle rebuilt from lofts, lathes, tubes and blobs; new ram (the Merry's nod),
+  dragon, shark, kraken (arms curling aft round the bow), crowned skull over crossed bones, a robed maiden holding out
+  a glowing lantern. One mesh each, folded to 3-4 surfaces, no shadow, visibility 220 m, 760-1700 tris.
+- Shipwright screen: seven more rows in Paint (Rails & trim, Masts & spars, Deck stain, Stripe & stern, Jolly roger,
+  Crossed behind, Headpiece). Co-op: all in the kit (Net.set_ship_kit), every screen paints the same.
+- Tests: t/ship/flag_builder (old kits keep their look, skull 0 = old flag, 168 distinct jolly rogers, the sail emblem,
+  the paint on her, ten figureheads build). Renders: tools/dev/out/shipshape/figures_* (modelshot), looks_*, fig10_bow.

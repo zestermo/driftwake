@@ -29,6 +29,10 @@ var _heads: Dictionary = {}
 const LOOKS := [
 	["hull", "Hull paint", ShipKit.HULL_PAINT], ["sail", "Sails", ShipKit.SAILS], ["field", "Flag", ShipKit.FIELDS],
 	["emblem", "Emblem", ShipKit.EMBLEMS], ["mark", "Emblem colour", ShipKit.MARKS], ["figure", "Figurehead", ShipKit.FIGURES],
+	# (1.29) the paint channels and the jolly roger builder
+	["rail", "Rails & trim", ShipKit.RAILS], ["spar", "Masts & spars", ShipKit.SPARS], ["deck", "Deck stain", ShipKit.DECKS],
+	["stripe", "Stripe & stern", ShipKit.STRIPES], ["skull", "Jolly roger", ShipKit.SKULLS], ["crossed", "Crossed behind", ShipKit.CROSSED],
+	["headpiece", "Headpiece", ShipKit.HEADPIECES],
 ]
 const SILK := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 

@@ -122,6 +122,10 @@ var _sea_m: float = 0.0
 var _psx_model: MeshInstance3D
 var _hull_mat: Material
 var _canvas_mat: Material
+## (1.29) Her trim, spars and deck stain as painted (ShipKit RAILS, SPARS, DECKS: apply_kit).
+var _trim_mat: Material
+var _spar_mat: Material
+var _deck_tint := Color.WHITE
 var _flag_node: MeshInstance3D
 var _flag_pivot: Node3D
 var _flag_t := 0.0
@@ -1394,10 +1398,11 @@ func _build_layout() -> void:
 	_layout_root.name = "Layout"
 	ship_model.add_child(_layout_root)
 	var mb := MeshBuilder.new()
-	var trim := PSXMat.lit("planks", Color(0.85, 0.65, 0.35))
+	_trim_mat = PSXMat.lit("planks", Color(0.85, 0.65, 0.35))
+	_spar_mat = PSXMat.lit("bark")
 	var glass := PSXMat.glow(Color(1.0, 0.8, 0.4), 2.5)
 	# hull, decks, quarterdeck over the cabin, stairs, mast, crow's nest, rigging
-	HullBuilder.hull(mb, {"hull": _hull_mat, "deck": _deck_mat, "trim": trim, "wood": PSXMat.lit("bark"), "rope": PSXMat.lit("rope")}, true, layout)
+	HullBuilder.hull(mb, {"hull": _hull_mat, "deck": _deck_mat, "trim": _trim_mat, "wood": _spar_mat, "rope": PSXMat.lit("rope")}, true, layout)
 	# windows either side of the cabin door, the stern lantern
 	for sx in [-2.0, 2.0]:
 		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
@@ -1749,7 +1754,7 @@ func _rain_on_deck(delta: float) -> void:
 		wet = minf(wet + rain * delta / WET_TIME, 1.0)
 	else:
 		wet = maxf(wet - delta / DRY_TIME, 0.0)
-	_wet_deck.set_shader_parameter("albedo_color", Color.WHITE.lerp(Color(0.55, 0.53, 0.56), clampf(wet * 1.5, 0.0, 1.0)))
+	_wet_deck.set_shader_parameter("albedo_color", _deck_tint * Color.WHITE.lerp(Color(0.55, 0.53, 0.56), clampf(wet * 1.5, 0.0, 1.0)))
 	# (rolled to starboard-up, the water runs to port; bow up, it runs aft)
 	_puddles.position = Vector3(clampf(-_roll * 7.0, -0.45, 0.45), 0.0, clampf(_pitch * 9.0, -0.5, 0.5))
 	for i in range(_puddles.get_child_count()):
@@ -1842,6 +1847,13 @@ func apply_kit(k: Dictionary) -> void:
 	for i in range(_psx_model.mesh.get_surface_count()):
 		if _psx_model.mesh.surface_get_material(i) == _hull_mat:
 			_psx_model.set_surface_override_material(i, paint)
+	# (1.29) her rails and trim, her masts and spars, her deck's stain, a stripe and stern accents
+	_repaint(_trim_mat, ShipKit.RAILS[int(kit["rail"])][1])
+	var spars := _repaint(_spar_mat, ShipKit.SPARS[int(kit["spar"])][1])
+	_yard_node.material_override = spars
+	_deck_tint = ShipKit.DECKS[int(kit["deck"])][1]
+	_rain_on_deck(0.0)
+	_stripe(int(kit["stripe"]))
 	var sails := (_canvas_mat as ShaderMaterial).duplicate() as ShaderMaterial
 	sails.set_shader_parameter("albedo_color", ShipKit.SAILS[int(kit["sail"])][1])
 	_sail_node.material_override = sails
@@ -1861,6 +1873,51 @@ func apply_kit(k: Dictionary) -> void:
 	var fig := ShipKit.figurehead(int(kit["figure"]))
 	if fig:
 		_figure_node.add_child(fig)
+
+
+## Her hull mesh's surfaces of `mat` in a copy of it painted `col` (returned).
+func _repaint(mat: Material, col: Color) -> ShaderMaterial:
+	var paint := (mat as ShaderMaterial).duplicate() as ShaderMaterial
+	paint.set_shader_parameter("albedo_color", col)
+	for i in range(_psx_model.mesh.get_surface_count()):
+		if _psx_model.mesh.surface_get_material(i) == mat:
+			_psx_model.set_surface_override_material(i, paint)
+	return paint
+
+
+## (1.29) A stripe in a second colour (ShipKit.STRIPES; 0 none) down both sides on the bulwark, following her sheer
+## from the bow to the stern, and across her transom with a diamond badge at each end.
+func _stripe(n: int) -> void:
+	var old := _layout_root.get_node_or_null("Stripe")
+	if old:
+		old.free()
+	if n <= 0:
+		return
+	var mat := PSXMat.lit("planks", ShipKit.STRIPES[n][1])
+	var mb := MeshBuilder.new()
+	var z0 := float(layout.rings[layout.rings.size() - 1][0]) + 0.5
+	var z1 := float(layout.rings[0][0]) - 0.02
+	var seg := 18
+	for sgn in [-1.0, 1.0]:
+		for i in range(seg):
+			var za := lerpf(z0, z1, float(i) / seg)
+			var zb := lerpf(z0, z1, float(i + 1) / seg)
+			var ra := layout.ring_at(za)
+			var rb := layout.ring_at(zb)
+			var ya := float(ra[3]) + 0.22
+			var yb := float(rb[3]) + 0.22
+			var a := Vector3(sgn * (float(ra[1]) + 0.015), ya - 0.08, za)
+			var b := Vector3(sgn * (float(rb[1]) + 0.015), yb - 0.08, zb)
+			mb.add_quad(mat, a, b, b + Vector3(0, 0.16, 0), a + Vector3(0, 0.16, 0), Vector2(za * 0.5, 0), Vector2(zb * 0.5, 0), Vector2(zb * 0.5, 0.1), Vector2(za * 0.5, 0.1), Color.WHITE, Vector3(sgn, 0, 0))
+	var st: Array = layout.rings[0]
+	var z := float(st[0]) + 0.02
+	mb.add_box(mat, Transform3D(Basis(), Vector3(0, layout.qd_y + 0.02, z)), Vector3(float(st[1]) * 2.0 - 0.1, 0.14, 0.03), 1.0)
+	for sx in [-3.3, 3.3]:
+		mb.add_box(mat, Transform3D(Basis(Vector3.BACK, PI * 0.25), Vector3(sx, layout.qd_y - 0.45, z)), Vector3(0.32, 0.32, 0.04), 1.0)
+	var mi := mb.to_instance("Stripe")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 400.0
+	_layout_root.add_child(mi)
 
 
 ## The caravel's lateen mizzen (ShipClasses): a mast at the stern, a long yard slanting up aft over the helm (well
