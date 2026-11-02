@@ -40,13 +40,13 @@ func _process(d: float) -> bool:
 			p.global_position = stage.ship.to_global(Vector3(0.5, 0.6, 3.0))
 			p.reset_physics_interpolation()
 			if kind == "eel":
-				root.get_node("Weather").set("debug_storm", true)
+				root.get_node("Weather").force(3)
 			lv = load("res://scripts/enemies/leviathan.gd").make(kind, Vector2(stage.ship.global_position.x + 30.0, stage.ship.global_position.z), 14)
 			stage.add_child(lv)
 			step = 1
 			t = 0.0
 		1:
-			if t > 4.0 and lv.state == 2:
+			if t > (9.0 if kind == "eel" else 4.0) and lv.state == 2:
 				lv.set("_next", 0.0)
 				step = 2
 				t = 0.0

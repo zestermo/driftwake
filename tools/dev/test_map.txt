@@ -715,3 +715,5 @@ scripts/ui/bookshelf_screen.gd          t/books/shelf
 scripts/game/downtime.gd                t/books/read_teaches t/downtime/read
 scripts/enemies/leviathan.gd            t/sea/squid
 scripts/enemies/colossal_squid.gd       t/sea/squid
+scripts/enemies/storm_eel.gd            t/sea/storm_eel
+scripts/enemies/leviathan.gd            t/sea/storm_eel
