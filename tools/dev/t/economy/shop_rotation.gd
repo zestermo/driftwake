@@ -50,7 +50,7 @@ func _process(_d: float) -> bool:
 			var nessa_rare := true
 			var trait_ok := true
 			for d in range(1, 11):
-				for id in ["haldor", "vey", "sela", "ida", "marlo", "gus"]:
+				for id in ["haldor", "sela", "ida", "marlo", "gus"]:
 					for e in SHOPS.stock_on(id, d):
 						if int(SHOPS.item_of(e).rarity) >= 2:
 							rare_in_trades.append("%s:%s" % [id, SHOPS.item_of(e).id])

@@ -6,13 +6,13 @@ const Shops := preload("res://scripts/game/shops.gd")
 ## a job). Each village rolls COUNT of them from POOL (seeded by the island, nothing guaranteed), each a named villager
 ## with a market spot, their own lines and a shop (Shops.extra) cut from the home island's shop of the same trade.
 
-const POOL := ["tailor", "smith", "armourer", "luthier", "apothecary"]
+const POOL := ["tailor", "smith", "luthier", "apothecary"]
 ## How many a village has: a range, more on later islands (tier).
 const COUNT := [2, 4]
 
 ## title, the home shop the stock comes from, the shop's name ("{n}" the vendor's name), its line, and the person's lines.
 const TRADES := {
-	"tailor": {"title": "Clothier", "from": "sela", "shop": "{n}'s Clothes", "line": "Cloth, leather and a needle that never sleeps.",
+	"tailor": {"title": "Outfitter", "from": "sela", "shop": "{n}'s Outfitters", "line": "Cloth, leather and steel to wear, and a needle that never sleeps.",
 		"intro": ["Clothes make the pirate. Bad clothes make the pirate laughed at.", "{name}. I dress half this island and mend the other half."],
 		"self": ["I came for a season and stayed for the cloth. The dyes out here are like nothing on the mainland."],
 		"talk": ["A good coat turns rain and blades both. Well. Rain.", "Bring me silk from the next island and I'll make you a legend.", "Wear red at sea and the gulls follow you. Superstition, mostly."]},
@@ -20,10 +20,6 @@ const TRADES := {
 		"intro": ["Mind the sparks. {name}, smith.", "You've a sword on you. Let me see the edge. Hm. Let me sell you a new one."],
 		"self": ["My hammer arm's stronger than my sense, my wife says. She's not wrong."],
 		"talk": ["Salt eats steel. Oil your blade every night.", "A heavier blade hits harder and swings slower. Choose your trouble.", "Pirates pay best. Pirates also pay last."]},
-	"armourer": {"title": "Armourer", "from": "vey", "shop": "{n}'s Armoury", "line": "Steel to wear. Keeping you alive in it is my trade.",
-		"intro": ["{name}. I make the things that stop the things the smith makes.", "Armour? You'll want armour, where you're going."],
-		"self": ["I fitted an Admiralty captain once. He paid in promises. I don't take promises now."],
-		"talk": ["Mail turns a cut, not a club. Plate turns both, and drowns you.", "A helm's worth more than a hat. Tell that to the fashionable.", "Light armour for the sea, heavy for the land."]},
 	"luthier": {"title": "Instrument maker", "from": "corin", "shop": "{n}'s Strings", "line": "Strings, skins and bellows. All in tune, give or take a gale.",
 		"intro": ["A tune for the road? {name}, maker of noise.", "Every crew needs a fiddle. Most crews need a better one."],
 		"self": ["I built my first drum out of a rum barrel. It still smells of rum. So do I."],

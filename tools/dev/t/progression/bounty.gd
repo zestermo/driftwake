@@ -60,13 +60,13 @@ func _process(_d: float) -> bool:
 					texts.append(c.text)
 			check("wanted: a poster on the board with their name and bounty (%s)" % str(texts),
 				"WANTED" in texts and p.display_name() in texts and "6,900" in texts)
-			check("prices: an armourer +15%%, a treasure dealer -8%%, a grocer as ever (%.2f, %.2f, %.2f)" % [B.shop_k("armourer", 6900), B.shop_k("treasure", 6900), B.shop_k("grocer", 6900)],
-				is_equal_approx(B.shop_k("armourer", 6900), 1.15) and is_equal_approx(B.shop_k("treasure", 6900), 0.92) and B.shop_k("grocer", 6900) == 1.0)
+			check("prices: a smith +15%%, a treasure dealer -8%%, a grocer as ever (%.2f, %.2f, %.2f)" % [B.shop_k("smith", 6900), B.shop_k("treasure", 6900), B.shop_k("grocer", 6900)],
+				is_equal_approx(B.shop_k("smith", 6900), 1.15) and is_equal_approx(B.shop_k("treasure", 6900), 0.92) and B.shop_k("grocer", 6900) == 1.0)
 			p.bounty = 60000
-			root.get_node("GameMenu").open_shop("vey")
+			root.get_node("GameMenu").open_shop("haldor")
 			until = TK.wait_ticks(2)
 		3:
-			check("Infamous: the armourer won't serve them (the shop stays shut)", root.get_node("GameMenu")._current != "shop")
+			check("Infamous: the smith won't serve them (the shop stays shut)", root.get_node("GameMenu")._current != "shop")
 			return TK.done(fails)
 	step += 1
 	return false

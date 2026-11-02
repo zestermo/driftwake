@@ -37,9 +37,9 @@ func _process(d: float) -> bool:
 		2:
 			snap("bag")
 			menu.close()
-			menu.open_shop("vey")
+			menu.open_shop("sela")
 		3:
-			snap("vey")
+			snap("sela_armour")
 			quit()
 	step += 1
 	return false

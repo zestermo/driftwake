@@ -54,7 +54,7 @@ func _process(_d: float) -> bool:
 		ok = ok and m.has("rod_driftwood")
 		marlo_bamboo += 1 if m.has("rod_bamboo") else 0
 		master_days += 1 if ids_on("nessa", day).has("rod_master") else 0
-		for s in ["marlo", "ida", "haldor", "gus", "sela", "vey"]:
+		for s in ["marlo", "ida", "haldor", "gus", "sela"]:
 			town_master += 1 if ids_on(s, day).has("rod_master") else 0
 	check("Marlo always has the driftwood rod", ok)
 	check("...and the bamboo some days (%d of 40)" % marlo_bamboo, marlo_bamboo > 3 and marlo_bamboo < 40)

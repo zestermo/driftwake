@@ -36,7 +36,7 @@ const PRICE_SHADY := [1.0, 0.92, 0.88, 0.85, 0.8]
 
 
 ## Who supplies the Admiralty (they charge a wanted captain more, then won't serve them) and who doesn't ask.
-const ADMIRALTY_TRADES := ["armourer", "smith"]
+const ADMIRALTY_TRADES := ["smith"]
 const SHADY_TRADES := ["treasure"]
 const REFUSE_LINES := ["I don't sell steel to wanted pirates. Off with you.", "Your face is on the board outside. Out.",
 	"The Admiralty buys from me. I'd like to keep it that way. Go."]

@@ -66,7 +66,7 @@ func _process(d: float) -> bool:
 				return false
 			var s: String = screens[si]
 			if s == "shop":
-				gm().open_shop("vey")
+				gm().open_shop("sela")
 			else:
 				gm().open(s)
 			until = TK.wait_ticks(8)

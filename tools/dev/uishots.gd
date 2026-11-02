@@ -87,7 +87,7 @@ func _process(d: float) -> bool:
 					sm.sel = "bar:0"
 				"shop_tip":
 					p.inventory_component.add_item(load("res://resources/items/cutlass.tres"), 1)
-					gm().open_shop("vey")
+					gm().open_shop("sela")
 					var shop = gm()._shop
 					var slot = shop._stock_slots[3]
 					shop._pick("shop", 3)

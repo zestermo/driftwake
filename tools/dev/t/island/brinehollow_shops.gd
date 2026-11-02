@@ -1,6 +1,6 @@
 extends SceneTree
 ## Brinehollow's traders after the shop moves (2026-10-17): Gus sells drink and food and no instrument, Vey's
-## Armoury armour and no weapon (and buys no blades), Haldor's Forge every blade Vey used to and buys spares,
+## Outfitters clothes and armour and no weapon (and buys no blades: Vey's armoury closed, 1.29), Haldor's Forge every blade Vey used to and buys spares,
 ## Corin's music shop all five instruments. On Brinehollow built: Haldor trades at his anvil, Corin keeps a
 ## shopfront on the market street at its counter.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -37,9 +37,9 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			check("Gus sells drink and food, no instrument (%s)" % str(_kinds("gus")), not _kinds("gus").has("instrument") and _kinds("gus").has("consumable"))
-			check("Vey sells armour, no weapon (%s)" % str(_kinds("vey")), not _kinds("vey").has("weapon") and _kinds("vey").count("gear") >= 10)
+			check("Sela sells clothes and armour, no weapon (%s)" % str(_kinds("sela")), not _kinds("sela").has("weapon") and _kinds("sela").count("gear") >= 10 and (SHOPS.SHOPS["sela"]["pool"] as Array).any(func(e): return str(e[1]) == "cuirass") and not SHOPS.SHOPS.has("vey"))
 			var blade: ItemData = ItemDB.get_item("cutlass@2")
-			check("Vey doesn't buy blades, Haldor does", SHOPS.offer("vey", blade) == 0 and SHOPS.offer("haldor", blade) > 0)
+			check("Sela doesn't buy blades, Haldor does", SHOPS.offer("sela", blade) == 0 and SHOPS.offer("haldor", blade) > 0)
 			check("Haldor sells only weapons, at least 16", _kinds("haldor").all(func(k): return k == "weapon") and _kinds("haldor").size() >= 16)
 			var sold: Array = []
 			for e in SHOPS.SHOPS["corin"]["stock"]:

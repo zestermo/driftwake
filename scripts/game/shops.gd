@@ -1,6 +1,6 @@
 extends RefCounted
 ## The traders (ShopScreen; the NPC's "shop" or a dialogue event "shop:<id>"), v1.18: every shop is a trade
-## (smith, armourer, tailor, grocer, cook, luthier, treasure merchant; an artisan in the wilds) with a short
+## (smith, tailor (the outfitter: clothes and armour), grocer, cook, luthier, treasure merchant; an artisan in the wilds) with a short
 ## stock that turns over each day. Each: a name, a line, its "trade", its staples ("stock", always there),
 ## a "pool" it shows "size" of on any one day (stock_on: seeded by the shop and Weather.day(), so every
 ## crewmate sees the same), and what it buys (item kind, Economy.kind_of -> the share of its worth paid).
@@ -53,7 +53,7 @@ const SHOPS := {
 		"buys": {"ingredient": 0.5},
 	},
 	"sela": {
-		"name": "Sela's Clothier", "line": "Clothes and leathers. I'll take your old ones off your hands, too.", "trade": "tailor", "size": 10,
+		"name": "Sela's Outfitters", "line": "Cloth, leather and steel to wear. I'll take your old ones off your hands, too.", "trade": "tailor", "size": 14,
 		"stock": [
 			["head", "bandana", {"hat": "bandana", "hat_color": Color(0.66, 0.14, 0.12)}, 0, 15],
 			["head", "tricorn", {"hat": "tricorn", "hat_color": Color(0.1, 0.09, 0.09)}, 0, 45],
@@ -62,6 +62,20 @@ const SHOPS := {
 			["vest", "vest", {"vest": "vest", "vest_color": Color(0.16, 0.42, 0.44)}, 0, 30],
 			["legs", "breeches", {"legs": "breeches", "legs_color": Color(0.9, 0.88, 0.8)}, 0, 30]],
 		"pool": [
+			["head", "kettle", {"hat": "kettle"}, 0, 80], ["feet", "sabatons", {"feet": "sabatons", "feet_color": Color(0.1, 0.08, 0.07)}, 0, 90], ["head", "morion", {"hat": "morion"}, 0, 90],
+			["vest", "brigandine", {"vest": "brigandine", "vest_color": Color(0.4, 0.26, 0.14)}, 0, 110],
+			["vest", "mail", {"vest": "mail"}, 0, 120],
+			["vest", "cuirass", {"vest": "cuirass", "vest_color": Color(0.55, 0.55, 0.58)}, 1, 260],
+			["hands", "gauntlets", {"gloves": true, "gloves_color": Color(0.1, 0.08, 0.07), "gauntlets": true}, 0, 70],
+			["feet", "greaves", {"feet": "greaves", "feet_color": Color(0.1, 0.08, 0.07)}, 1, 150],
+			["head", "coif", {"hat": "coif"}, 0, 85],
+			["vest", "scale", {"vest": "scale", "vest_color": Color(0.24, 0.15, 0.09)}, 1, 170],
+			["head", "helm", {"hat": "helm"}, 1, 150],
+			["head", "bulwark_helm", Gear.LOOKS["bulwark_helm"][1], 1],
+			["vest", "bulwark_brigandine", Gear.LOOKS["bulwark_brigandine"][1], 1],
+			["hands", "bulwark_gauntlets", Gear.LOOKS["bulwark_gauntlets"][1], 1],
+			["face", "iron_mask", {"face_wear": "iron_mask"}, 1, 140],
+			["face", "mouth_guard", {"face_wear": "mouth_guard", "face_color": Color(0.24, 0.15, 0.09)}, 0, 45],
 			["head", "bicorne", {"hat": "bicorne", "hat_color": Color(0.14, 0.18, 0.34)}, 1, 85],
 			["coat", "longcoat", {"coat": "longcoat", "coat_color": Color(0.36, 0.12, 0.1), "trim_color": Color(0.85, 0.7, 0.3)}, 0, 90],
 			["vest", "corset", {"vest": "corset", "vest_color": Color(0.24, 0.17, 0.12)}, 1, 70],
@@ -127,26 +141,7 @@ const SHOPS := {
 		"pool": [["flour"], ["pepper"], ["mushroom"], ["tonic"], ["egg"], ["coconut"], ["bait_worm"]], "size": 3,
 		"buys": {"ingredient": 0.5},
 	},
-	"vey": {
-		"name": "Vey's Armoury", "line": "Steel to wear. Blades are Haldor's business; keeping you alive in them is mine.", "trade": "armourer",
-		"stock": [["head", "kettle", {"hat": "kettle"}, 0, 80], ["feet", "sabatons", {"feet": "sabatons", "feet_color": Color(0.1, 0.08, 0.07)}, 0, 90]],
-		"size": 4,
-		"pool": [["head", "morion", {"hat": "morion"}, 0, 90],
-			["vest", "brigandine", {"vest": "brigandine", "vest_color": Color(0.4, 0.26, 0.14)}, 0, 110],
-			["vest", "mail", {"vest": "mail"}, 0, 120],
-			["vest", "cuirass", {"vest": "cuirass", "vest_color": Color(0.55, 0.55, 0.58)}, 1, 260],
-			["hands", "gauntlets", {"gloves": true, "gloves_color": Color(0.1, 0.08, 0.07), "gauntlets": true}, 0, 70],
-			["feet", "greaves", {"feet": "greaves", "feet_color": Color(0.1, 0.08, 0.07)}, 1, 150],
-			["head", "coif", {"hat": "coif"}, 0, 85],
-			["vest", "scale", {"vest": "scale", "vest_color": Color(0.24, 0.15, 0.09)}, 1, 170],
-			["head", "helm", {"hat": "helm"}, 1, 150],
-			["head", "bulwark_helm", Gear.LOOKS["bulwark_helm"][1], 1],
-			["vest", "bulwark_brigandine", Gear.LOOKS["bulwark_brigandine"][1], 1],
-			["hands", "bulwark_gauntlets", Gear.LOOKS["bulwark_gauntlets"][1], 1],
-			["face", "iron_mask", {"face_wear": "iron_mask"}, 1, 140],
-			["face", "mouth_guard", {"face_wear": "mouth_guard", "face_color": Color(0.24, 0.15, 0.09)}, 0, 45]],
-		"buys": {"gear": 0.5},
-	},
+
 }
 
 const KINDS := ["loot", "weapon", "consumable", "gear"]
