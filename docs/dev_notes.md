@@ -8969,3 +8969,24 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Icons: `tools/texture_gen/gen_dish_icons.py` (imports gen_psx_textures' `_icon`).
 - Tests: `t/food/island_dishes`, `t/food/crew_feast`, `t/sea/cookoff`. Expected at prepush: villagetest / isletest
   (the cookpot stock), net (feast RPC unexercised by nettest).
+
+## 2026-11-01 Fishing (1.28 life systems): new fish, legendaries' fights, the journal, spearfishing, contests
+- **Catches** (`FishTable.CATCHES`): 13 new (open sea + each theme; the plan's "coral" is the theme id `atoll`) and a
+  legendary per theme (7) with `LEGEND_PULL`; the atoll's rare odds x`ATOLL_RARE` (Fishing.roll_catch).
+- **The fight** (`scripts/fishing/fish_fight.gd`, FishFight; bars `fish_fight_hud.gd`): a legendary on the hook goes
+  to FishState's "fight" phase instead of the reel: hold F/mouse to wind it in (tension builds, fast while it runs),
+  let go to ease (it takes line while running); tension 1 snaps, 2.5 s slack throws the hook. FishRod.fight_pull draws
+  the float in (local only: crewmates see the float dipped). `FishState.rig` forces the next catch (tests, debug).
+- **Journal**: `Progression.fish_log` {id: n, best, where} + `fish_pages` (saved); `Fishing.record` on every landing
+  (length x0.75-1.4, `FishTable.where_at`: the chain island's name, home waters or the open sea), pages
+  (`FishTable.PAGES`) pay once (`pay_page`). Screen: GameMenu "fish_journal" (`scripts/ui/fish_journal_screen.gd`),
+  the action wheel's Fish journal and the crew journal's Fish button.
+- **Spearfishing** (`scripts/fishing/spear_school.gd`, SpearSchool): SwimState makes one on a dive over 2.5 m deep
+  (`_school_tick`, local captain), frees it on surfacing / exit; with it up, right mouse aims (no swim strikes), left
+  throws; the first fish the spear passes is landed through Fishing.land.
+- **Contests** (`scripts/fishing/fishing_contest.gd`): a sign beside each village's notice board (IslandVillage), 10 gold,
+  180 s, every landing scores worth x length ratio, three town anglers by tier, prizes by place, Net.banner of the
+  result. Simplified from the plan: each captain's contest is their own against the town (co-op crewmates don't
+  share a board); `held` (once a game day per town) isn't saved.
+- Tests: `t/fishing/legend_fight`, `journal_screen`, `spearfish`, `contest`. Expected at prepush: villagetest /
+  isletest (the contest sign), swimtest (SwimState), net.

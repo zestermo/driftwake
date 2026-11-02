@@ -218,6 +218,41 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	read.add_child(rcs)
 	board.add_child(read)
 	read.interacted.connect(func(_p): Dialogue.start(_key("board"), board))
+	# (1.28) the fishing contest's sign beside it: once a game day, ENTRY gold, LENGTH s (FishingContest)
+	var sign := Interactable.new()
+	sign.name = "FishingContest"
+	sign.collision_layer = 512
+	sign.collision_mask = 0
+	sign.prompt_text = "Fishing contest (%d gold)" % FishingContest.ENTRY
+	sign.gesture = "reach"
+	var scs := CollisionShape3D.new()
+	var ssph := SphereShape3D.new()
+	ssph.radius = 1.0
+	scs.shape = ssph
+	scs.position = Vector3(1.9, 1.0, 0.6)
+	sign.add_child(scs)
+	sign.add_child(_contest_sign())
+	board.add_child(sign)
+	var town := _key("contest")
+	var tier := IslandContent.tier(isl)
+	sign.interacted.connect(func(pl):
+		var why := FishingContest.enter(pl, town, tier)
+		if why != "":
+			pl.call("_toast", why))
+
+
+## (1.28) The contest's sign: a post with a painted fish board, beside the notice board.
+static func _contest_sign() -> MeshInstance3D:
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("wood", Color(0.62, 0.5, 0.38))
+	mb.add_box(wood, Transform3D(Basis(), Vector3(1.9, 0.75, 0.6)), Vector3(0.1, 1.5, 0.1))
+	mb.add_box(PSXMat.flat(Color(0.25, 0.45, 0.6)), Transform3D(Basis(), Vector3(1.9, 1.45, 0.66)), Vector3(0.7, 0.32, 0.04))
+	mb.add_box(PSXMat.flat(Color(0.95, 0.75, 0.3)), Transform3D(Basis(), Vector3(1.9, 1.45, 0.69)), Vector3(0.42, 0.12, 0.02))
+	var mi := MeshInstance3D.new()
+	mi.mesh = mb.commit()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 60.0
+	return mi
 
 
 func _build_people(rng: RandomNumberGenerator) -> void:

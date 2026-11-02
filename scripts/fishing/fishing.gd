@@ -126,7 +126,11 @@ static func land(p, id: String, bait := "", spot := Vector3.INF) -> int:
 	var item := ItemDB.get_item(id)
 	var r := FishTable.rarity_of(id)
 	pr.add_life("fish", FishTable.XP[r])
-	record(p, id, p.global_position if spot == Vector3.INF else spot)
+	var length := record(p, id, p.global_position if spot == Vector3.INF else spot)
+	# (1.28) a town's fishing contest counts it
+	var contest := FishingContest.of(p)
+	if contest:
+		contest.scored(id, length / maxf(float(FishTable.look_of(id)[1]), 0.01))
 	if bait != "" and inv.count(bait) > 0 and randf() >= pr.stat("fish_bait_save"):
 		inv.remove_item(ItemDB.get_item(bait), 1)
 	Net.fx("float_text", [p.global_position + Vector3.UP * 2.3, item.display_name, item.rarity_color(), 30 if r >= 3 else 24])
