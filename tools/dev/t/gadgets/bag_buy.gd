@@ -1,6 +1,6 @@
 extends SceneTree
 ## Getting a gadget bag (1.28.1): the four colours are items; the forge town's master tinkerer offers it for 250 gold
-## and the colour asked for; short of gold he won't, with it the bag's in yours and worn in that colour, six slots; a
+## and the colour asked for; short of gold he won't, with it the bag's in yours and worn in that colour, four slots; a
 ## second of the same colour he won't sell; hoards roll one now and then for a captain without one, ordinary chests never.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -63,7 +63,7 @@ func _process(_d: float) -> bool:
 			p.inventory_component.add_item(ItemDB.get_item("gold"), 100)
 			t._on_event("volcanic_bag:test_tinkerer:navy")
 			check("with 250 the navy bag is yours", p.inventory_component.count("gadget_bag_navy") == 1 and p.inventory_component.count("gold") == 50)
-			check("...worn in navy, six slots", p.body_model.bag_colour == "navy" and p.gadgets.capacity() == 6)
+			check("...worn in navy, four slots", p.body_model.bag_colour == "navy" and p.gadgets.capacity() == 4)
 			p.inventory_component.add_item(ItemDB.get_item("gold"), 300)
 			t._on_event("volcanic_bag:test_tinkerer:navy")
 			check("a second navy one he won't sell", p.inventory_component.count("gadget_bag_navy") == 1 and p.inventory_component.count("gold") == 350)

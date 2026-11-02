@@ -43,7 +43,7 @@ func _process(_d: float) -> bool:
 			p.inventory_component.add_item(ItemDB.get_item("gadget_bag_olive"), 1)
 			until = TK.wait_ticks(2)
 		1:
-			check("a bag gained takes the other two up again (%s)" % str(b.slots), b.slots.size() == 6 and "tar" in b.slots and "star" in b.slots and b.slots[0] == "smoke")
+			check("a bag gained takes the other two up again (%s)" % str(b.slots), b.slots.size() == 4 and "tar" in b.slots and "star" in b.slots and b.slots[0] == "smoke")
 			check("...the olive bag worn", p.body_model.bag_colour == "olive")
 			var d: Dictionary = b.to_dict()
 			p.inventory_component.add_item(ItemDB.get_item("gadget_bag_navy"), 1)
@@ -51,7 +51,7 @@ func _process(_d: float) -> bool:
 			b.fit()
 			check("carrying two, the one picked is worn (%s)" % p.body_model.bag_colour, p.body_model.bag_colour == "navy")
 			b.from_dict(d)
-			check("the save keeps the bag's colour and the six slots (%s, %s)" % [p.body_model.bag_colour, str(b.slots)], p.body_model.bag_colour == "olive" and b.slots.size() == 6 and "star" in b.slots)
+			check("the save keeps the bag's colour and the four slots (%s, %s)" % [p.body_model.bag_colour, str(b.slots)], p.body_model.bag_colour == "olive" and b.slots.size() == 4 and "star" in b.slots)
 			return TK.done(fails)
 	step += 1
 	return false

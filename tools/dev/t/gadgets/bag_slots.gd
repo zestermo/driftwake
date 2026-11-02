@@ -1,8 +1,8 @@
 extends SceneTree
 ## The gadget bag (1.28.1): without one the belt carries a single gadget (a second built stays off it), O only says a
-## bag carries more and holding it opens no wheel; with a bag carried there are six slots, the built gadgets taken up,
+## bag carries more and holding it opens no wheel; with a bag carried there are four slots, the built gadgets taken up,
 ## the bag worn at the left hip clasped shut; a tap of O takes up the next and throws the flap open a moment; held, the
-## wheel shows the gadgets with the flap open, and letting go on one takes it up; seven built, six carried; the bag
+## wheel shows the gadgets with the flap open, and letting go on one takes it up; seven built, four carried; the bag
 ## put away, back to one.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -55,7 +55,7 @@ func _process(_d: float) -> bool:
 			p.inventory_component.add_item(ItemDB.get_item("gadget_bag_mustard"), 1)
 			until = TK.wait_ticks(3)
 		3:
-			check("carrying a bag: six slots (%d)" % b.slots.size(), b.capacity() == 6 and b.slots.size() == 6)
+			check("carrying a bag: four slots (%d)" % b.slots.size(), b.capacity() == 4 and b.slots.size() == 4)
 			check("...the built gadgets taken up (%s)" % str(b.slots), "smoke" in b.slots and "tar" in b.slots)
 			check("...the bag worn at the left hip", _bag_node() != null and _bag_node().get_node("Skeleton").get_bone_global_pose(0).origin.x < -0.1)
 			check("...its strap over the shoulder", p.body_model.torso.get_node_or_null("GadgetBagStrap") != null)
@@ -84,7 +84,7 @@ func _process(_d: float) -> bool:
 			check("letting go on the smoke pellet takes it up", not w.is_open() and b.gadget() == "smoke")
 			for g in ["flash", "pepper", "star", "caltrops", "spike"]:
 				b.give(g, 0)
-			check("seven built, six carried (%s)" % str(b.slots), b.slots.size() == 6 and not "" in b.slots and b.owned.size() == 7)
+			check("seven built, four carried (%s)" % str(b.slots), b.slots.size() == 4 and not "" in b.slots and b.owned.size() == 7)
 			p.inventory_component.remove_item(ItemDB.get_item("gadget_bag_mustard"), 1)
 			until = TK.wait_ticks(3)
 		9:

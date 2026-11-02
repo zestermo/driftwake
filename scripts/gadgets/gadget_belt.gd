@@ -106,7 +106,7 @@ func cycle() -> void:
 		ShipGadgets.cycle(player)
 		return
 	if capacity() <= 1:
-		player.call("_toast", "A gadget bag lets you carry more")
+		player.call("_toast", "A gadget belt or a gadget bag lets you carry more")
 		return
 	for k in range(1, slots.size() + 1):
 		var i := (sel + k) % slots.size()
@@ -128,9 +128,11 @@ func pick(i: int) -> void:
 	changed.emit()
 
 
-## How many gadgets the captain carries: one on the belt, BAG_SLOTS with a bag.
+## How many gadgets the captain carries: one, BELT_SLOTS with a gadget belt in the bag, BAG_SLOTS with a gadget bag.
 func capacity() -> int:
-	return GadgetData.BAG_SLOTS if bag_colour() != "" else GadgetData.SLOTS
+	if bag_colour() != "":
+		return GadgetData.BAG_SLOTS
+	return GadgetData.BELT_SLOTS if player.inventory_component.count(GadgetData.BELT_ITEM) > 0 else GadgetData.SLOTS
 
 
 ## The colour of the bag carried ("" none): the one picked last if it's still in the bag.
@@ -212,6 +214,29 @@ func fire() -> bool:
 	else:
 		GadgetUtility.use(player, gid, tier_of(gid))
 	return true
+
+
+## (1.28.1, Zach) The skimmer once built goes anywhere there's water deep enough, slotted or not: the action wheel's
+## Launch the skimmer (ActionWheel.ensure_builtins). Static method callables, not lambdas.
+static func register_wheel() -> void:
+	ActionWheel.register("skimmer", "Launch the skimmer", "", _skim_ok, _skim, 62)
+
+
+static func _skim_ok(p):
+	if p.gadgets.tier_of("skimmer") < 0:
+		return false
+	if p.current_state_name() not in ["Idle", "Move", "Swim", "Sprint"]:
+		return "Not now"
+	var why: Array = SKIMMER_STATE.launch_point(p)
+	return "" if str(why[0]) == "" else str(why[0])
+
+
+static func _skim(p) -> void:
+	var why: Array = SKIMMER_STATE.launch_point(p)
+	if str(why[0]) != "":
+		p.call("_toast", str(why[0]))
+		return
+	p.state_machine.force_state("Skimmer", {"tier": p.gadgets.tier_of("skimmer"), "at": why[1]})
 
 
 ## The traversal gadgets' state ("Gadget"), put on the captain's state machine (its nodes come from player.tscn; this
@@ -301,24 +326,14 @@ func _changed() -> void:
 	changed.emit()
 
 
-## The pouch of canisters on `body`'s back at `tier` (-1: none). Humanoid.apply_look wears it again on a rebuild.
-static func wear(body: Humanoid, tier: int) -> void:
+## (1.28.1, Zach: the gadget belt is figurative, nothing drawn on the body) No pouch: one from an older build is taken off.
+static func wear(body: Humanoid, _tier: int) -> void:
 	if body == null:
 		return
-	body.pouch_tier = tier
+	body.pouch_tier = -1
 	var old := body.torso.get_node_or_null("GadgetPouch")
 	if old:
 		old.free()
-	if tier < 0:
-		return
-	var mi := MeshInstance3D.new()
-	mi.name = "GadgetPouch"
-	mi.mesh = GadgetModels.pouch(tier)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mi.visibility_range_end = 40.0
-	body.torso.add_child(mi)
-	var s := body.lantern_spot
-	mi.position = Vector3(0.0, s.y + 0.01, absf(s.z) / sin(0.4) * 0.92 + 0.02)
 
 
 ## Another captain's throw arriving on this screen (Player.net_event "gadget").

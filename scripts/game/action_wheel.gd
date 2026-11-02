@@ -123,6 +123,7 @@ static func ensure_builtins() -> void:
 		register("camp", _camp_label, "", _camp_ok, Camp.make, 10)
 	Downtime.register_wheel()
 	Fishing.register_wheel()
+	GadgetBelt.register_wheel()
 
 
 static func _camp_label(p: Node) -> String:

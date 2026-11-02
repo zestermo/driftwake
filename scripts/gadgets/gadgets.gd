@@ -87,7 +87,22 @@ static func buy_bag(player: Node, colour: String) -> String:
 	inv.remove_item(ItemDB.get_item("gold"), GadgetBag.PRICE)
 	player.gadgets.bag_pref = colour
 	inv.add_item(ItemDB.get_item(GadgetBag.item_id(colour)), 1)
-	return "There. Six pockets inside, and the clasp holds whatever you jump off. Tap for the next gadget, hold for the lot."
+	return "There. Four pockets inside, and the clasp holds whatever you jump off. Tap for the next gadget, hold for the lot."
+
+
+## (1.28.1) The gadget belt bought from the tinkerer: his answer.
+static func buy_belt(player: Node) -> String:
+	var inv = player.inventory_component
+	if inv.count(GadgetData.BELT_ITEM) > 0:
+		return "You've a belt already, Captain. Want more pockets? That's what the bag's for."
+	if inv.count("gold") < GadgetData.BELT_PRICE:
+		return "That's %d gold, Captain." % GadgetData.BELT_PRICE
+	if inv.used_slots() >= inv.slots():
+		return "Your pack's stuffed full, Captain. Make room and I'll hand it over."
+	inv.remove_item(ItemDB.get_item("gold"), GadgetData.BELT_PRICE)
+	inv.add_item(ItemDB.get_item(GadgetData.BELT_ITEM), 1)
+	player.gadgets.fit()
+	return "Loops for a second gadget. Tap the key to switch between them."
 
 
 ## What taking `gid` to `tier` costs: [[item id, n], ...] with the gold first.

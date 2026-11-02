@@ -22,13 +22,15 @@ func define() -> String:
 		"books": {"text": ["Books. Every one of them has a gadget in it somewhere, if you read it right."], "event": "shop:" + key + "_books", "next": "end"},
 		"menu": {"text": ["What'll it be, Captain?"], "choices": [
 			{"text": "Teach me a blueprint. (%d gold)" % price, "next": "teach"},
+			{"text": "A gadget belt. (%d gold)" % GadgetData.BELT_PRICE, "next": "belt"},
 			{"text": "A gadget bag. (%d gold)" % GadgetBag.PRICE, "next": "bag"},
 			{"text": "Any books?", "next": "books"},
 			{"text": "What's the bench for?", "next": "bench"},
 			{"text": "Goodbye.", "next": "end"}]},
 		"teach": {"text": ["{%s}" % _token()], "event": "volcanic_teach:" + key, "next": "menu"},
 		# (1.28.1) the gadget bag: one belt carries one gadget, his bag six; four colours, the same stitching
-		"bag": {"text": ["A belt holds one gadget. My bag holds six, and the clasp keeps them in when you're thrown about.",
+		"belt": {"text": ["{%s}" % _token()], "event": "volcanic_belt:" + key, "next": "menu"},
+		"bag": {"text": ["A belt holds two gadgets. My bag holds four, with a wheel to pick from, and the clasp keeps them in when you're thrown about.",
 			"Same cut, four cloths. Which?"], "choices": GadgetBag.ORDER.map(func(c): return {"text": c.capitalize() + ".", "next": "bag_" + c}) + [{"text": "Not now.", "next": "menu"}]},
 		"bench": {"text": ["Blueprint, parts, a steady hand. The bench does the rest. Use it, it's free. Parts aren't.",
 			"Salvage, ore, a beast's horn: it all goes into something. The traders by the quay sell the dull bits."], "next": "menu"},
@@ -48,6 +50,8 @@ func _on_event(ev: String) -> void:
 	var p := get_tree().get_first_node_in_group("player")
 	if ev == "volcanic_teach:" + key:
 		_said = teach(p)
+	elif ev == "volcanic_belt:" + key:
+		_said = Gadgets.buy_belt(p)
 	elif ev.begins_with("volcanic_bag:%s:" % key):
 		_said = Gadgets.buy_bag(p, ev.get_slice(":", ev.get_slice_count(":") - 1))
 

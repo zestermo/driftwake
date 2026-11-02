@@ -9187,3 +9187,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   outriggers on the canoes, conch shells, pearl baskets and fish racks on the open platforms; one mesh. The pearl trader
   sells sea_silk (30) and bp_skimmer (400) once those items exist (`_skimmer_stock`).
 - Tests: t/island/atoll_reef. Renders: atollshot reef_head, reef_clam, reef_arch, reef_moray (tools/dev/out/reef/).
+
+## 2026-11-02: gadget slots, Zach's rules (1.28.1)
+- One gadget by default (GadgetData.SLOTS); a **gadget belt** item (`gadget_belt`, 120 gold: chandlers' CHANDLER_STOCK,
+  the volcanic tinkerer's `Gadgets.buy_belt`) gives BELT_SLOTS 2, tap O to switch; a **gadget bag** BAG_SLOTS 4 (was 6) with
+  the wheel. The belt is figurative: nothing on the body (`GadgetBelt.wear` only takes an old pouch off; pouch_tier -1).
+- The skimmer once built launches anywhere the water's deep enough (SkimmerState.LAUNCH_DEPTH 0.8) whether slotted or not:
+  the action wheel's "Launch the skimmer" (`GadgetBelt.register_wheel`, ActionWheel.ensure_builtins).
+- Tests: t/gadgets/belt_item (new); bag_buy, bag_migration, bag_slots, belt_fire, workbench_upgrade to the new rules.

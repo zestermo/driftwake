@@ -26,6 +26,18 @@ static func colour_of(item: String) -> String:
 
 ## (Gadgets.make_items) the four bags into the item table.
 static func make_items(items: Dictionary) -> void:
+	# (1.28.1) the gadget belt: an item in the bag, never drawn on the body; two gadgets instead of one
+	var belt := ItemData.new()
+	belt.id = GadgetData.BELT_ITEM
+	belt.display_name = "Gadget Belt"
+	belt.value = GadgetData.BELT_PRICE
+	belt.rarity = ItemData.Rarity.UNCOMMON
+	belt.description = "Loops and clips for a second gadget. Carry it and you carry two gadgets instead of one: tap O to switch."
+	belt.item_type = ItemData.ItemType.LOOT
+	belt.max_stack = 1
+	belt.icon_kind = "part"
+	belt.icon = icon("olive")
+	items[belt.id] = belt
 	for c in ORDER:
 		var it := ItemData.new()
 		it.id = item_id(c)

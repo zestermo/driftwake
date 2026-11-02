@@ -6,9 +6,14 @@ extends RefCounted
 ## The Tinkering level each tier needs to build (or upgrade to).
 const TIER_TINKER := [1, 6, 12]
 const TIER_NAMES := ["Mk I", "Mk II", "Mk III"]
-## (1.28.1) The belt alone carries one gadget; a gadget bag (GadgetBag) carries BAG_SLOTS.
+## (1.28.1, Zach) The captain carries one gadget; a gadget belt (an item, never drawn on the body) two; a gadget bag
+## (GadgetBag) BAG_SLOTS, with the wheel to pick among them.
 const SLOTS := 1
-const BAG_SLOTS := 6
+const BELT_SLOTS := 2
+const BAG_SLOTS := 4
+## The gadget belt item: its id and price.
+const BELT_ITEM := "gadget_belt"
+const BELT_PRICE := 120
 ## A hoard rolls a gadget bag (a colour at random) this often, for a captain without one.
 const HOARD_BAG := 0.06
 ## Tinkering xp for building a gadget at a tier (Mk I) or upgrading to it, and for a refill.
