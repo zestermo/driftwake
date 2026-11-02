@@ -1,15 +1,13 @@
 extends SceneTree
 ## The hull layout as data (1.29 piece 1): the pirates' hull (HullBuilder.build / collide on HullLayout.base()) and a
 ## wreck build exactly what they built from the old constants (a fingerprint of every vertex and collision shape,
-## recorded before the change), and base()'s numbers are the old constants'. The crew's sloop's collision fingerprint is
-## WANT_SHIP (her Quarters 0 shapes since the 1.29 rework; her meshes change with every look pass, so they aren't kept).
+## recorded before the change), and base()'s numbers are the old constants'. (The crew's sloop was fingerprinted too until
+## her 1.29 rework changed her on purpose: cabin_step, hull_ladder and quarters_line cover her now.)
 const TK := preload("res://tools/dev/test_kit.gd")
 ## Fingerprints from the constants (before 1.29): the pirates' model, its collision, a wreck's model.
 const WANT := {"pirate": "af3fe69081a72339dedda874e72df152a7a49e53606758c85acdc7714f3279c7",
 	"pirate_col": "62b3335487bcceee44c2e307f582663ed0c7b3986e848df8e2b815e0e05de06d",
 	"wreck": "b9a01b15f661e15bc5b3233aaab05ccd52bb37769ed83ac18f2d4fda3553171d"}
-const WANT_SHIP := {
-	"ship_col": "051b2b2c6f5b019a98c6aafd81b66affa477a2560427d90b0386d89a54bb5b87"}
 var stage
 var step := 0
 var until := 0
@@ -83,8 +81,7 @@ func _process(_d: float) -> bool:
 			var wm := Node3D.new()
 			HB.build(wm, {"wreck": true})
 			got["wreck"] = meshes_print(wm)
-			got["ship_col"] = shapes_print(stage.ship)
-			var want := WANT.merged(WANT_SHIP)
+			var want := WANT
 			for k in want.keys():
 				print("   %s %s" % [k, str(got[k]).sha256_text()])
 				check("%s as before" % k, str(got[k]).sha256_text() == want[k])
