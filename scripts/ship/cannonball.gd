@@ -138,7 +138,7 @@ func _physics_process(delta: float) -> void:
 		_burst(hit["position"], hit["collider"] as Node, hit.get("normal", Vector3.UP))
 		return
 	if team == "crew":
-		for k in get_tree().get_nodes_in_group("sea_kings"):
+		for k in get_tree().get_nodes_in_group("sea_kings") + get_tree().get_nodes_in_group("leviathans"):
 			var at: Vector3 = k.struck(from, to)
 			if at != Vector3.INF and at.y > sea - 0.05:
 				_burst(at, k, (from - to).normalized())
@@ -233,7 +233,7 @@ func _burst(at: Vector3, col: Node, normal: Vector3) -> void:
 				hit_ship = true
 				if shooter and shooter == Seamanship.me(get_tree()):
 					Seamanship.xp(get_tree(), Seamanship.GUN_HIT)
-			elif col and col.is_in_group("sea_kings"):
+			elif col and (col.is_in_group("sea_kings") or col.is_in_group("leviathans")):
 				(col.get("hurtbox") as Hurtbox).take_hit(hd, shooter)
 				hit_ship = true
 			_burst_enemies(at, hit_ship)
@@ -292,7 +292,7 @@ func _burst_enemies(at: Vector3, skip_ships: bool) -> void:
 		var o := hb.owner
 		if o == null or done.has(o) or o is Cannonball:
 			continue
-		if o.is_in_group("enemy_ships") or o.is_in_group("sea_kings"):
+		if o.is_in_group("enemy_ships") or o.is_in_group("sea_kings") or o.is_in_group("leviathans"):
 			if skip_ships:
 				continue
 			# a near miss still rattles the hull a little

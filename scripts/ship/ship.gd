@@ -70,6 +70,9 @@ const WIND_K := 1.25
 var will_wind := 0.0
 ## (1.28) The paddle boost (ShipGadgets): its seconds left and its share of more speed.
 var paddle_t := 0.0
+## (1.28) A leviathan holding her (the colossal squid's arms on her rails): her top speed x this, set every frame by
+## it on every machine, eased back to 1 when nothing holds her.
+var held_k := 1.0
 var paddle_k := 0.0
 var will_guard := 0.0
 var will_guard_k := 0.0
@@ -253,6 +256,8 @@ func _physics_process(delta: float) -> void:
 	will_guard = maxf(will_guard - delta, 0.0)
 	if not lines.is_empty():
 		top = minf(top, LASHED_SPEED)
+	top *= held_k
+	held_k = move_toward(held_k, 1.0, delta * 0.5)
 	var want := top * sail_shown
 	# (1.28) a ship gadget's paddle boost (ShipGadgets, on every machine)
 	if paddle_t > 0.0:

@@ -713,3 +713,5 @@ tools/dev/t/books/*                     t/books
 scripts/books/*                         t/books
 scripts/ui/bookshelf_screen.gd          t/books/shelf
 scripts/game/downtime.gd                t/books/read_teaches t/downtime/read
+scripts/enemies/leviathan.gd            t/sea/squid
+scripts/enemies/colossal_squid.gd       t/sea/squid

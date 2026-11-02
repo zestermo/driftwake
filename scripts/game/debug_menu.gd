@@ -339,6 +339,13 @@ func extra_spawns() -> Array:
 	var out: Array = []
 	for k in Chain.STOP_KINDS:
 		out.append(["Sea stop: %s" % k, func(at: Vector3, yaw: float): SeaStops.debug_spawn(get_tree(), k, at, yaw)])
+	# (1.28) a leviathan's lair right here: it rises once the crew's ship is manned near it (the eel wants a storm, F6;
+	# the angler the night, F7)
+	for k in Leviathan.KINDS:
+		if ResourceLoader.exists(Leviathan.KINDS[k]):
+			out.append(["Leviathan: %s" % k, func(at: Vector3, _yaw: float):
+				var lv := Leviathan.make(k, Vector2(at.x, at.z), 14)
+				get_tree().current_scene.add_child(lv)])
 	return out
 
 

@@ -11,6 +11,8 @@ extends Node3D
 
 const SF := preload("res://scripts/world/sea_features.gd")
 const SEA_KING := preload("res://scripts/enemies/sea_king.gd")
+## (1.28) The base chance a leg has a leviathan's lair (+0.8% a level).
+const LEVIATHAN_CHANCE := 0.1
 ## Content keeps this far from every chain island's centre (GenIsland's widest
 ## radius, 450 m, and 150 m of open water)...
 const ISLE_CLEAR := 600.0
@@ -159,6 +161,17 @@ func plan(from: int, to: int) -> Dictionary:
 		if sp != Vector2.INF:
 			lay["stop"] = sk
 			lay["stop_at"] = sp
+	# (1.28) a leviathan's lair now and then, from its own stream: none on the first legs, more often later
+	lay["leviathan"] = ""
+	var lrng := RandomNumberGenerator.new()
+	lrng.seed = hash([lay["seed"], "leviathan"])
+	if from >= 1 and lrng.randf() < LEVIATHAN_CHANCE + lvl * 0.008:
+		var lkinds: Array = Leviathan.KINDS.keys().filter(func(k): return ResourceLoader.exists(Leviathan.KINDS[k]))
+		var lk: String = lkinds[lrng.randi() % lkinds.size()]
+		var lp := _spot(lrng, c, a, b, used, 80.0, 160.0, 0.25, 0.75)
+		if lp != Vector2.INF:
+			lay["leviathan"] = lk
+			lay["leviathan_at"] = lp
 	return lay
 
 
@@ -262,6 +275,8 @@ func _build_leg(key: Vector2i) -> void:
 		_build_islet(leg, i, lay["islets"][i], rng, _save_key(key, "islet%d" % i), picks)
 		nogo.append([lay["islets"][i], ISLET_R + 16.0])
 		Ocean.set_shore(_save_key(key, "islet%d" % i), islet_shore(), lay["islets"][i])
+	if lay.get("leviathan", "") != "":
+		leg.add_child(Leviathan.make(lay["leviathan"], lay["leviathan_at"], lvl))
 	if lay["stop"] != "":
 		SeaStops.build(leg, lay["stop"], lay["stop_at"], lvl, int(lay["seed"]) + 77)
 		nogo.append([lay["stop_at"], 30.0])

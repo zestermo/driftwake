@@ -237,6 +237,9 @@ static func danger(p, kind := "") -> String:
 	for k in tree.get_nodes_in_group("sea_kings"):
 		if k.state not in [SEA_KING.S.LURK, SEA_KING.S.DEAD] and (k as Node3D).global_position.distance_to(at) < KING_NEAR:
 			return "Something huge in the water!"
+	for lv in tree.get_nodes_in_group("leviathans"):
+		if lv.is_up() and (lv.core as Node3D).global_position.distance_to(at) < KING_NEAR:
+			return "Something huge in the water!"
 	for e in tree.get_nodes_in_group("enemies"):
 		if e.has_method("in_combat") and e.in_combat() and (e as Node3D).global_position.distance_to(at) < FOES_NEAR:
 			return "Enemies!"
