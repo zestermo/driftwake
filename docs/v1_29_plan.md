@@ -15,7 +15,7 @@ the thinnest island themes.
 |---|---|---|---|
 | Headline | **Ships to work toward** (Zach), split in two: **1.29** the layout system + the sloop's detail pass + clothing; **1.30** the brig and galleon on it + creatures | Zach plays the reworked sloop before bigger hulls are built on it; lean run mode can't carry it all at once | 1.30's own grill |
 | Run mode | **Lean**: this session plus at most one driftwake-feature agent at a time, landed in small pieces | Zach's rule from finishing 1.28 | - |
-| Perf | **Hitches + flakes**: a hitch logger (frames over 33 ms with what ran), far grunt brains on a staggered tick, and the island-free race behind the load-only shiptest / chaintest crashes (todo.md, 2026-11-02) | Real stutter first; the full 10 ms track is its own task | The bench at prepush |
+| Perf | **Hitches + flakes**: the spike logger (Perf, 1.23) and ~10 Hz brains already exist, so this is the load-only failures (todo.md 2026-11-02: shiptest's crash in NPC.setup from IslandLife._spawn, chaintest's locked-object free in WorldGenerator._free_some, t/gadgets/decoy) and the exit hang while GruntCamps prebuild; then whatever the batch-start bench's spike lines point at | Real stutter first; the full 10 ms track is its own task | The bench at prepush |
 | Hull layout | **Data, not constants**: HullBuilder's consts (cabin, stairs, quarterdeck, helm, mast, ladders) become a layout per ship class and cabin tier, read by every user (51 files today). The sloop first reproduced exactly, then changed | Every later hull and the growing cabin need it; Zach chose new layouts per ship for 1.30 | - |
 | The sloop's cabin | **Stepped down** into the hull (a step or two down from the main deck, so it has headroom under the quarterdeck) and **a little bigger** at its base level | Zach | Play |
 | Cabin growth | **Its own upgrade line**, "Quarters" in the shipwright's Cabin group: each level makes the cabin longer and taller and furnishes it more (table below, for Zach's OK) | Zach; visible, and chosen | Play |
@@ -57,9 +57,9 @@ For scale: a full sloop line costs ~950 at the yard, and the caravel 1,400.
 4. **Galley, bunks, kitchen, table detail, and the pantry** (agent; the pantry's container, stow-all, cooking from it).
 5. **Ship looks** (agent): the four paint channels, the jolly roger builder in the shipwright screen, the ten
    figureheads (modelshot sheet before/after).
-- **Clothing** (this session, alongside, a separate area: character_look, body_builder, spring_chains): the
+- **Clothing** (a second driftwake-feature agent, alongside, a separate area: character_look, body_builder, spring_chains): the
   shoulder-coat mode first, then the pieces, checked with outfitgrid / armorshot.
-- **Hitches + flakes** (this session or a driftwake-fixer between pieces).
+- **Hitches + flakes** (a driftwake-fixer, alongside).
 
 ### Open / deferred
 - Masks and face coverings take a new face-accessory slot that stacks with hats; a full mask hides the painted face. **assumed**
