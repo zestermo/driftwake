@@ -176,13 +176,13 @@ func _init() -> void:
 	life = preload("res://scripts/island/themes/atoll_life.gd").TEXT
 	encounters = preload("res://scripts/island/themes/atoll_encounters.gd").TEXT
 	bosses = ["hermit_crab"]
-	minis = ["reef_brute"]
-	roamers = ["reef_roamer"]
+	minis = ["salt_croc"]
+	roamers = ["tidemaw"]
 	beasts = {
 		"hermit_crab": {"script": "res://scripts/enemies/beasts/giant_scorpion.gd", "names": ["The Shell King", "Old Wreckback", "The Tide Hermit", "Barnaclehouse"], "looks": 3,
 			"banner": ["The Tidal Flat", "The flat is scored with furrows and littered with smashed shell. Out in the middle, something's house is moving."]},
-		"reef_brute": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Old Tusk"], "site": "ruins"},
-		"reef_roamer": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Reef Grazer"]},
+		"salt_croc": {"script": "res://scripts/enemies/beasts/atoll_croc.gd", "names": ["Old Saltjaw", "The Lagoon Croc", "Bonecrusher", "Mangrove Mother"], "site": "lair"},
+		"tidemaw": {"script": "res://scripts/enemies/beasts/atoll_tidemaw.gd", "names": ["The Tidemaw", "Old Barnacle", "The Reef Grazer"]},
 	}
 	fauna = FAUNA
 	creatures = CREATURES
