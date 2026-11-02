@@ -326,6 +326,11 @@ static func wear(body: Humanoid, tier: int) -> void:
 	mi.visibility_range_end = 40.0
 	body.torso.add_child(mi)
 	var s := body.lantern_spot
+	# (1.29: a backpack's bedroll hangs where it sat: the pouch moves to the front of the right hip, ahead of the lantern)
+	if body.look.get("backpack", false):
+		mi.position = Vector3(Vector2(s.x, s.z).length() + 0.015, s.y + 0.01, -0.05)
+		mi.rotation.y = PI * 0.5
+		return
 	mi.position = Vector3(0.0, s.y + 0.01, absf(s.z) / sin(0.4) * 0.92 + 0.02)
 
 

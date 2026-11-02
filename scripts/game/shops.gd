@@ -112,6 +112,8 @@ const SHOPS := {
 			["hands", "arm_wraps", {"arm_wraps": true, "wraps_color": Color(0.9, 0.88, 0.8)}, 0, 14],
 			["feet", "foot_wraps", {"feet": "foot_wraps", "feet_color": Color(0.82, 0.76, 0.62)}, 0, 10],
 			["legs", "parachute", {"legs": "parachute", "legs_color": Color(0.82, 0.76, 0.62)}, 0, 35],
+			["back", "backpack", {"backpack": true, "backpack_color": Color(0.62, 0.52, 0.38)}, 0, 80],
+			["back", "backpack", {"backpack": true, "backpack_color": Color(0.18, 0.34, 0.2)}, 0, 80],
 			["legs", "parachute", {"legs": "parachute", "legs_color": Color(0.66, 0.14, 0.12)}, 0, 35],
 			["head", "jester", {"hat": "jester", "hat_color": Color(0.66, 0.14, 0.12), "motley_color": Color(0.8, 0.62, 0.2)}, 1, 60],
 			["torso", "motley", {"top": "motley", "sleeves": "long", "top_color": Color(0.66, 0.14, 0.12), "motley_color": Color(0.8, 0.62, 0.2)}, 1, 70],

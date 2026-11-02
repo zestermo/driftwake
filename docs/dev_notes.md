@@ -9384,3 +9384,21 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   water barrel. Kept to the existing upgrade textures (upgrade_cost: +55 surfaces maxed).
 - Tests: t/ship/pantry; t/food all pass with the pantry-aware picks. Renders: tools/dev/out/shipshape/g3q0_*, g3q4_*
   (bigshipshot shots cabin_galley2, cabin_bunks).
+
+## 2026-11-02: 1.29 clothing, piece 4: the traveller's pack, and the gadget pouch's place while it's worn
+- **The pack** (look `backpack`, `backpack_color`): a new paper-doll slot "back" (Gear.SLOTS; BACK in the wardrobe, the
+  doll's right column now six too). `BodyBuilder._backpack`: a canvas pack on the shoulder blades, out past whatever's
+  worn on the back (`_back_z`: the body, a vest, a sleeved coat or a draped one), its top rolled and its flap buckled, a
+  pocket each side, two leather straps over the shoulders and under the arms; loose on short chains of the torso's set
+  (`_hang`: every vertex on the bone of its chain point nearest it): the bedroll strapped under it, a cook pot off the
+  right side, an unlit lantern (a glow glass, no light) off the left, swinging and bouncing as you run. A cape or cloak
+  hangs over the pack (a traveller's cloak). Medium (leather straps), +6 max stamina; at tailors (two colours), in
+  plunder, in the creator (Extras: Backpack), now and then on a random villager (`_add_1_29`).
+- **The gadget pouch** (docs/v1_29_plan.md "Open / deferred", kept as assumed): the gadget belt's pouch sat at the small
+  of the back, where the bedroll hangs; while a pack is worn `GadgetBelt.wear` puts it on the front of the right hip
+  (ahead of the belt lantern's spot, turned to face out), and back when it's off (a rebuild re-wears it from the look).
+  The gadget bag at the left hip is untouched. (The pouch is in gadget_belt.gd, not gadget_bag.gd: a three-line change.)
+- Per frame: three short chains (bedroll, pot, lantern) on the torso's set, sleeping with the body.
+- clothlab `pack`, `pack_drape` (net on): 265 / 480 segment-frames inside the body of ~1727 (mostly the sash, hair and
+  draped panels, as before). Tests: t/gear/backpack (new). Renders: tools/dev/out/clothes/pack1_*.png (bare, a jacket,
+  a draped long coat, under a cloak, over a greatcoat and cuirass), tools/dev/out/clothes/lab3/sheet_pack{,_drape}.png.

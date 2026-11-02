@@ -17,8 +17,8 @@ const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const LIGHT := preload("res://scripts/player_states/light_attack_state.gd")
 const HEAVY := preload("res://scripts/player_states/heavy_attack_state.gd")
 const SHOOT := preload("res://scripts/player_states/shoot_state.gd")
-const DOLL := [["head", "face", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "acc1", "acc2"]]
-const TAGS := {"head": "HEAD", "face": "FACE", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
+const DOLL := [["head", "face", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "back", "acc1", "acc2"]]
+const TAGS := {"head": "HEAD", "face": "FACE", "back": "BACK", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
 	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
 const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake", "cleave": "Charged cleave", "lunge": "The lunge"}
 ## Item cards from these places compare with what you hold or wear.

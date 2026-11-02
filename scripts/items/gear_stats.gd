@@ -27,7 +27,7 @@ const WEIGHT := {
 	"mantle": MEDIUM, "cloak": MEDIUM, "pauldron": HEAVY,
 	"bulwark_helm": HEAVY, "bulwark_brigandine": HEAVY, "bulwark_gauntlets": HEAVY,
 	"bosun_coat": MEDIUM,
-	"mouth_guard": MEDIUM, "iron_mask": HEAVY,
+	"mouth_guard": MEDIUM, "iron_mask": HEAVY, "backpack": MEDIUM,
 }
 
 ## Slot row -> [light, medium, heavy] stats (the approved table). Vests share the torso's row, feet the legs'.
@@ -52,7 +52,7 @@ const TRAITS := {
 	# (1.29) the face slot's, one each like an accessory's
 	"mask": {"crit_all": 0.04}, "oni": {"damage_pct": 0.04}, "half_mask": {"dodge_dist_pct": 0.05}, "iron_mask": {"defense": 5.0},
 	"kerchief": {"stamina_regen_pct": 0.05}, "mouth_guard": {"poise_pct": 0.08}, "bandage": {"regen_pct": 0.08},
-	"eye_wrap": {"block_cost_pct": 0.06},
+	"eye_wrap": {"block_cost_pct": 0.06}, "backpack": {"max_stamina": 6.0},
 }
 
 ## Purple and up: the second stat, rolled from these (one the piece hasn't got).
@@ -110,7 +110,7 @@ static func scale(tier: int) -> float:
 
 ## The piece's untiered stats: its slot and weight's row, or its trait (no bonus, no tier).
 static func base(item: ItemData) -> Dictionary:
-	if item.gear_slot in ["accessory", "belt", "face"]:
+	if item.gear_slot in ["accessory", "belt", "face", "back"]:
 		return (TRAITS.get(item.icon_kind, {}) as Dictionary).duplicate()
 	return (TABLE[ROW[item.gear_slot]][weight(item)] as Dictionary).duplicate()
 

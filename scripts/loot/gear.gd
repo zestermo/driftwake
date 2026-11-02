@@ -11,7 +11,7 @@ extends RefCounted
 ## Paper-doll slots: [slot id, label, accepted gear_slot kind].
 const SLOTS := [
 	["head", "Head", "head"], ["face", "Face", "face"], ["torso", "Torso", "torso"], ["vest", "Vest", "vest"],
-	["coat", "Coat", "coat"], ["belt", "Belt", "belt"],
+	["coat", "Coat", "coat"], ["belt", "Belt", "belt"], ["back", "Back", "back"],
 	["hands", "Hands", "hands"], ["legs", "Legs", "legs"], ["feet", "Feet", "feet"],
 	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"], ["equipment", "Equipment", "equipment"]]
 ## The equipment slot (was the instrument slot, v1.18): what's carried for the hands (an instrument, a fishing
@@ -29,6 +29,7 @@ const SLOT_KEYS := {
 	"legs": ["legs", "legs_color", "legs_pattern"],
 	"feet": ["feet", "feet_color"],
 	"belt": ["belt", "belt_color", "sash_color"],
+	"back": ["backpack", "backpack_color"],
 	"equipment": ["instrument", "rod", "equip_hidden"],
 }
 ## Accessories are on/off look flags (+ a color for some).
@@ -92,7 +93,7 @@ const NAMES := {
 	"bosun_coat": "Bosun's Coat", "powder_belt": "Powder Belt", "shark_tooth": "Shark's Tooth",
 	"mask": "Carved Mask", "oni": "Oni Mask", "half_mask": "Half Mask", "iron_mask": "Iron Faceplate", "kerchief": "Kerchief",
 	"mouth_guard": "Mouth Guard", "bandage": "Head Bandage", "eye_wrap": "Eye Wrap", "arm_wraps": "Arm Wraps", "foot_wraps": "Foot Wraps",
-	"parachute": "Parachute Pants", "jester": "Jester's Cap", "motley": "Motley Doublet", "motley_hose": "Motley Hose", "curled": "Curled Shoes",
+	"backpack": "Traveller's Pack", "parachute": "Parachute Pants", "jester": "Jester's Cap", "motley": "Motley Doublet", "motley_hose": "Motley Hose", "curled": "Curled Shoes",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -187,6 +188,7 @@ const DESCRIPTIONS := {
 	"eye_wrap": "A bandage wound round the head and over one eye. You'll see well enough with the other.",
 	"arm_wraps": "Cloth strips wound from the knuckles up the forearms. A brawler's gloves.",
 	"foot_wraps": "Strips of cloth bound round bare feet and ankles. Quiet on a deck and quick on rigging.",
+	"backpack": "A canvas pack on two straps, a bedroll under it and a pot and a lantern hung off its sides. Everything you need for a night ashore, rattling.",
 	"parachute": "Trousers with yards too much cloth, gathered at the ankle. They billow when you run and nobody sees your knees move.",
 	"jester": "A cap of two colours with three floppy points, a bell on each. Hard to be taken seriously in. That's the trick.",
 	"motley": "A doublet split down the middle in two colours, its collar cut into points hung with bells.",
@@ -223,7 +225,7 @@ const DEFENSE := {
 	"powder_belt": 1.0, "shark_tooth": 0.0,
 	"mask": 1.0, "oni": 1.0, "half_mask": 0.0, "iron_mask": 4.0, "kerchief": 0.0, "mouth_guard": 2.0, "bandage": 0.0, "eye_wrap": 0.0,
 	"arm_wraps": 1.0, "foot_wraps": 1.0,
-	"parachute": 2.0, "jester": 1.0, "motley": 1.0, "motley_hose": 1.0, "curled": 1.0,
+	"backpack": 1.0, "parachute": 2.0, "jester": 1.0, "motley": 1.0, "motley_hose": 1.0, "curled": 1.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -274,6 +276,7 @@ const PLUNDER := [
 	["face", "half_mask", {"face_wear": "half_mask", "face_color": Color(0.1, 0.09, 0.09)}],
 	["head", "jester", {"hat": "jester", "hat_color": Color(0.36, 0.2, 0.44), "motley_color": Color(0.8, 0.62, 0.2)}],
 	["legs", "parachute", {"legs": "parachute", "legs_color": Color(0.42, 0.42, 0.2)}],
+	["back", "backpack", {"backpack": true, "backpack_color": Color(0.42, 0.42, 0.2)}],
 ]
 
 
@@ -345,6 +348,7 @@ static func _main_color_key(kind: String, style: String) -> String:
 	match kind:
 		"head": return "hat_color"
 		"face": return "face_color"
+		"back": return "backpack_color"
 		"hands": return "wraps_color" if style == "arm_wraps" else ""
 		"torso": return "top_color"
 		"vest": return "vest_color"
@@ -392,6 +396,8 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 	var feet := str(lk.get("feet", "boots"))
 	if feet != "barefoot":
 		out["feet"] = make("feet", feet, {"feet": feet, "feet_color": lk.get("feet_color")}.merged(mot if feet in CharacterLook.JESTER else {}))
+	if lk.get("backpack", false):
+		out["back"] = make("back", "backpack", {"backpack": true, "backpack_color": lk.get("backpack_color", CharacterLook.CLOTH[2])})
 	var belt := str(lk.get("belt", "none"))
 	if belt != "none":
 		out["belt"] = make("belt", belt, {"belt": belt, "belt_color": lk.get("belt_color"), "sash_color": lk.get("sash_color")})
@@ -420,6 +426,7 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 	match kind:
 		"head": return {"hat": "none"}
 		"face": return {"face_wear": "none"}
+		"back": return {"backpack": false}
 		"torso":
 			# a plain sleeveless undershirt for feminine bodies, bare-chested otherwise
 			return {"top": "shirt", "sleeves": "none", "top_color": CharacterLook.CLOTH[1]} if fem else {"top": "bare"}

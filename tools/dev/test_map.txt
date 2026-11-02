@@ -753,3 +753,4 @@ scripts/island/themes/atoll_reef.gd     t/island/atoll_reef
 scripts/npc/body_builder.gd             t/gear/coat_drape
 scripts/loot/equipment_component.gd     t/gear/coat_drape
 scripts/ui/inventory_screen.gd          t/gear/coat_drape
+scripts/gadgets/gadget_belt.gd          t/gear/backpack

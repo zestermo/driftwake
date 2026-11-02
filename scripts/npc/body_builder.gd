@@ -3254,6 +3254,9 @@ func _cape(tr: Array, coated: bool, cloak: bool) -> void:
 		back = maxf(back, float(r[3]) + float(r[2]) * ky)
 	var g := 0.04 + (0.03 if coated else 0.0) + (0.05 if _draped() else 0.0)
 	var zb := back + g
+	# (over a backpack: a traveller's cloak)
+	if lk.get("backpack", false):
+		zb = maxf(zb, _back_z(tr) + PACK_DEPTH + 0.035)
 	var hw := float(rt[1]) + 0.05
 	var y1 := -0.02 - 0.42 * Ls * 0.9
 	var chain := PackedVector3Array([Vector3(0, top, zb), Vector3(0, tu(0.42), zb + 0.01), Vector3(0, 0.0, zb + 0.03), Vector3(0, y1, zb + 0.07)])
@@ -3553,6 +3556,8 @@ func _accessories() -> void:
 			var at := Vector3(s * 0.027, 0.242 * yk, zf)
 			hmb.add_cylinder(brass, Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), at), 0.021, 0.021, 0.02, 8, 3.0, Color.WHITE, true, true)
 			hmb.add_cylinder(lens, Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), at + Vector3(0, 0, -0.0205)), 0.015, 0.015, 0.003, 8, 3.0)
+	if lk.get("backpack", false):
+		_backpack(tr)
 	# (one drape on the back: a cloak worn with a cape covers it)
 	if lk.get("cloak", false) or lk.get("cape", false):
 		_cape(tr, coated, lk.get("cloak", false))
@@ -3813,3 +3818,110 @@ func _jester_cap(mb: MeshBuilder, m_hat: Material, y0: float, rw: float, rd: flo
 		sim.mb.add_tube(m, pts, 0.05, 0.012, 6, 3.0, Color.WHITE, true, true)
 		_bell(sim.mb, pts[pts.size() - 1] + Vector3(0, -0.02, 0), 0.016)
 		sim.mb.weight_fn = Callable()
+
+
+## How deep a backpack stands out behind (BACKPACK) and how far its back face is from the torso's centre: what a cape or
+## cloak over it hangs clear of.
+const PACK_DEPTH := 0.17
+
+
+## The back's furthest point (torso space) under whatever's worn there: the body's, a coat's (sleeved or draped), a vest.
+func _back_z(tr: Array) -> float:
+	var back := 0.0
+	for r in tr:
+		var prof: PackedVector2Array = r[5] if (r as Array).size() > 5 and r[5] is PackedVector2Array else P_BODY()
+		var ky := 1.0
+		for p in prof:
+			ky = maxf(ky, p.y)
+		back = maxf(back, float(r[3]) + float(r[2]) * ky)
+	if _draped():
+		var deep := 0.0
+		for r in tr:
+			deep = maxf(deep, float(r[2]) * 1.05)
+		return maxf(deep + _coat_off() + 0.03, _seat_back() + 0.07) + 0.012
+	if str(lk.get("coat", "none")) != "none":
+		return back + _coat_off() + 0.012
+	return back + maxf(_vest_out(false), 0.004) + 0.006
+
+
+## (1.29) The traveller's pack (look "backpack", the back slot): a canvas pack on the shoulder blades on two leather
+## straps over the shoulders and under the arms, its top rolled and buckled, a pocket on each side; under it a bedroll,
+## off its sides a cook pot and a lantern, each loose on a short chain of the torso's set so they bounce and swing.
+func _backpack(tr: Array) -> void:
+	var c: Color = lk.get("backpack_color", CharacterLook.CLOTH[2])
+	var m := _textured("canvas", c)
+	var dark := _textured("canvas", c.darkened(0.25))
+	var strap := _textured("leather", CharacterLook.LEATHER[1])
+	var brass := PSXMat.flat(Color(0.85, 0.7, 0.32))
+	var z0 := _back_z(tr)
+	var y0 := tu(0.18)
+	var y1 := tu(0.54)
+	var hw := 0.15 * (0.92 if fem else 1.0) * sh
+	var zc := z0 + PACK_DEPTH * 0.5
+	var hd := PACK_DEPTH * 0.5
+	var prof := MeshBuilder.profile_oct(0.78)
+	var mb := MeshBuilder.new()
+	mb.add_loft(m, Transform3D.IDENTITY, [[y0, hw * 0.94, hd * 0.9, zc], [y0 + 0.03, hw, hd, zc], [y1 - 0.04, hw, hd, zc], [y1, hw * 0.9, hd * 0.86, zc]],
+		prof, 3.0, Color.WHITE, true, false)
+	# the rolled top and its buckled flap
+	mb.add_cylinder(dark, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(hw * 0.92, y1 + 0.02, zc)), 0.035, 0.035, hw * 1.84, 7, 3.0, Color.WHITE, true, true, true)
+	mb.add_box(dark, Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0, y1 - 0.06, zc + hd + 0.008)), Vector3(hw * 1.3, 0.13, 0.012), 3.0, Color.WHITE, false)
+	for s in [-1.0, 1.0]:
+		mb.add_box(strap, Transform3D(Basis(), Vector3(s * hw * 0.4, y1 - 0.1, zc + hd + 0.016)), Vector3(0.025, 0.09, 0.008), 3.0, Color.WHITE, false)
+		mb.add_box(brass, Transform3D(Basis(), Vector3(s * hw * 0.4, y1 - 0.15, zc + hd + 0.02)), Vector3(0.03, 0.022, 0.008), 3.0)
+		# side pockets
+		mb.add_box(dark, Transform3D(Basis(), Vector3(s * (hw + 0.022), y0 + 0.1, zc)), Vector3(0.045, 0.12, hd * 1.3), 3.0, Color.WHITE, false)
+	# the straps: from the pack's top over each shoulder, down the chest and back under the arm to its foot
+	var sx: float = absf(h.arm_r.position.x)
+	var shy: float = h.arm_r.position.y
+	var rc := _at(tr, tu(0.42))
+	var over := (_coat_off() if str(lk.get("coat", "none")) != "none" else _vest_out(false)) + 0.016
+	for s in [-1.0, 1.0]:
+		var x: float = s * sx * 0.55
+		var zf := _surf_z(rc, x) - over - (0.05 if _draped() else 0.0)
+		var pts := PackedVector3Array([Vector3(s * hw * 0.55, y1 - 0.02, z0 + 0.01), Vector3(x, shy + 0.1 + (0.03 if _draped() else 0.0), 0.0),
+			Vector3(x * 1.05, shy - 0.06, zf - 0.01), Vector3(x * 1.1, tu(0.3), zf), Vector3(s * (sx + 0.02), tu(0.22), 0.0),
+			Vector3(s * hw * 0.85, y0 + 0.04, z0 + 0.01)])
+		mb.add_tube(strap, pts, 0.016, 0.016, 4, 3.0, Color.WHITE, false, false, true)
+	_mesh(h.torso, mb)
+	var sim := _sim(h.torso)
+	# the bedroll, strapped under the pack
+	var roll := PackedVector3Array([Vector3(0, y0, zc), Vector3(0, y0 - 0.07, zc + 0.01)])
+	_hang(sim, roll, func():
+		var e := roll[1]
+		sim.mb.add_cylinder(_textured("fabric", Color(0.55, 0.32, 0.22)), Transform3D(Basis(Vector3.BACK, PI * 0.5), e + Vector3(hw * 1.1, 0, 0)), 0.055, 0.055, hw * 2.2, 8, 3.0, Color.WHITE, true, true)
+		for s in [-1.0, 1.0]:
+			sim.mb.add_cylinder(strap, Transform3D(Basis(Vector3.BACK, PI * 0.5), e + Vector3(s * hw * 0.55 + 0.012, 0, 0)), 0.058, 0.058, 0.024, 8, 3.0, Color.WHITE, false, false))
+	# the cook pot off the right side, the lantern off the left, each on a cord
+	for s in [-1.0, 1.0]:
+		var top := Vector3(s * (hw + 0.035), y0 + 0.2, zc + 0.02)
+		var pts := PackedVector3Array([top, top + Vector3(s * 0.005, -0.06, 0.005), top + Vector3(s * 0.008, -0.11, 0.008)])
+		_hang(sim, pts, func():
+			var e := pts[2]
+			sim.mb.add_tube(_textured("rope", Color(0.8, 0.72, 0.56)), PackedVector3Array([pts[0], pts[1], e]), 0.005, 0.005, 3, 3.0)
+			if s > 0.0:
+				var iron := PSXMat.lit("metal", Color(0.35, 0.34, 0.33))
+				sim.mb.add_loft(iron, Transform3D.IDENTITY, [[e.y - 0.015, 0.03, 0.03, e.z, e.x], [e.y - 0.025, 0.05, 0.05, e.z, e.x], [e.y - 0.075, 0.048, 0.048, e.z, e.x],
+					[e.y - 0.09, 0.035, 0.035, e.z, e.x]], MeshBuilder.profile_circle(8), 3.0, Color.WHITE, true, true)
+				sim.mb.add_tube(iron, MeshBuilder.curve_points(e + Vector3(0, -0.02, -0.045), e + Vector3(0, 0.02, 0), e + Vector3(0, -0.02, 0.045), 5), 0.004, 0.004, 3, 3.0)
+			else:
+				sim.mb.add_box(brass, Transform3D(Basis(), e + Vector3(0, -0.02, 0)), Vector3(0.05, 0.012, 0.05), 3.0, Color.WHITE, false)
+				sim.mb.add_cylinder(PSXMat.glow(Color(0.95, 0.8, 0.45), 0.25), Transform3D(Basis(), e + Vector3(0, -0.085, 0)), 0.02, 0.02, 0.06, 6, 3.0, Color.WHITE, false, false)
+				for k in range(4):
+					var a := PI * 0.25 + PI * 0.5 * k
+					sim.mb.add_box(brass, Transform3D(Basis(), e + Vector3(cos(a) * 0.022, -0.055, sin(a) * 0.022)), Vector3(0.006, 0.065, 0.006), 3.0)
+				sim.mb.add_box(brass, Transform3D(Basis(), e + Vector3(0, -0.09, 0)), Vector3(0.055, 0.012, 0.055), 3.0, Color.WHITE, false))
+
+
+## A loose thing on a chain of `sim` through `pts` (rest, the anchor's space), built by `build` into the set's mesh with
+## every vertex on the bone of the chain point nearest it.
+func _hang(sim: SpringChains, pts: PackedVector3Array, build: Callable) -> void:
+	var bones := sim.add_chain(pts, 0.07, 0.04, 1.0, ["torso"])
+	sim.mb.weight_fn = func(v: Vector3) -> Array:
+		var best := 0
+		for i in range(1, pts.size()):
+			if v.distance_squared_to(pts[i]) < v.distance_squared_to(pts[best]):
+				best = i
+		return [PackedInt32Array([bones[best], 0, 0, 0]), PackedFloat32Array([1.0, 0.0, 0.0, 0.0])]
+	build.call()
+	sim.mb.weight_fn = Callable()

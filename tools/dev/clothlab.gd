@@ -33,6 +33,8 @@ const LOOKS := {
 	"drape_great": {"hair": "short", "hat": "none", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "coat_drape": true, "top": "bare"},
 	"drape_captain": {"hair": "long", "coat": "captain", "coat_color": Color(0.66, 0.14, 0.12), "coat_drape": true},
 	"drape_haori": {"hair": "topknot", "hat": "none", "top": "kimono", "coat": "haori", "coat_color": Color(0.1, 0.09, 0.09), "coat_drape": true},
+	"pack": {"hair": "ponytail", "hat": "none", "coat": "none", "backpack": true, "backpack_color": Color(0.62, 0.52, 0.38)},
+	"pack_drape": {"hair": "short", "coat": "longcoat", "coat_color": Color(0.14, 0.18, 0.34), "coat_drape": true, "backpack": true},
 	"drape_jacket": {"body": "fem", "hair": "ponytail", "coat": "jacket", "coat_color": Color(0.2, 0.32, 0.62), "coat_drape": true},
 }
 

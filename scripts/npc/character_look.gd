@@ -18,7 +18,7 @@ extends RefCounted
 ##   feet (see FEET), feet_color
 ##   belt (see BELTS), belt_color, sash_color
 ##   gloves bool, gloves_color, gauntlets bool, bracers bool, long_gloves bool, arm_wraps bool, wraps_color
-##   face_wear (see FACE_WEAR), face_color; coat_drape bool (the coat over the shoulders)
+##   face_wear (see FACE_WEAR), face_color; coat_drape bool (the coat over the shoulders); backpack bool, backpack_color
 ##   apron bool, apron_color, cape bool, cape_color, cloak bool, cloak_color, mantle bool, mantle_color
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
 ##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
@@ -110,7 +110,7 @@ const COLOR_PALETTES := {
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
 	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH",
-	"cloak_color": "CLOTH", "mantle_color": "CLOTH", "face_color": "CLOTH", "wraps_color": "CLOTH", "motley_color": "CLOTH"}
+	"cloak_color": "CLOTH", "mantle_color": "CLOTH", "face_color": "CLOTH", "wraps_color": "CLOTH", "motley_color": "CLOTH", "backpack_color": "CLOTH"}
 
 
 static func palette(key: String) -> Array:
@@ -276,6 +276,9 @@ static func _add_1_29(lk: Dictionary) -> void:
 		lk["feet"] = "foot_wraps"
 	if r.randf() < 0.05 and str(lk.get("legs", "")) in ["trousers", "slops"]:
 		lk["legs"] = "parachute"
+	if r.randf() < 0.04:
+		lk["backpack"] = true
+		lk["backpack_color"] = _pick(r, [CLOTH[1], CLOTH[2], CLOTH[3], CLOTH[12]])
 
 
 ## The 1.25 face options, drawn from the look so far rather than the caller's rng (which then goes on to place the

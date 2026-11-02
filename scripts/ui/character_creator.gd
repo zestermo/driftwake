@@ -318,6 +318,8 @@ func _show_tab(t: String) -> void:
 			_toggle("Earring", "earring")
 			_toggle("Eyepatch", "eyepatch")
 			_toggle("Belt pouch", "pouch")
+			_toggle("Backpack", "backpack")
+			_colors("Pack color", "backpack_color")
 			_toggle("Apron", "apron")
 			_colors("Apron color", "apron_color")
 
