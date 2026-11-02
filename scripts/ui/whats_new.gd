@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Gadgets", "A belt of three on U (O picks the next): smoke, tar, flash and pepper bombs, burst stars, caltrops, a decoy, a grappling hook, spring boots, a glider, a climbing spike, a spyglass, a diving helmet and more."],
-	["The workbench", "Build, upgrade (Mk I to III) and refill gadgets from blueprints and parts, on your ship's deck or by any camp fire."],
-	["Ship gadgets", "At the wheel: a burst launcher, a paddle boost, a smoke screen to lose a chase, and a harpoon cannon that reels a ship in."],
-	["The volcanic isle", "Black sand and lava flows, a forge town and its Master Tinkerer, eruptions that rain lava bombs, and the Magma Salamander in the caldera."],
-	["Polish", "Beasts glint white for a blow you can parry and red for one you can't, the sea glitters toward the sun, Quick stack and Sort in your bag, and heavy hits that land over the music."],
+	["Gadgets", "A belt of three on U (O picks the next), twenty of them built and upgraded at a workbench, and ship gadgets at the wheel, the harpoon cannon among them."],
+	["Cooking, books and fishing", "A cooking game whose grade sets the meal, dishes and a staple for every island, crew feasts; 29 books to read; fish by island, legendaries to fight on the line, spearfishing and contests."],
+	["Three weapons", "The rapier, the fighting staff and the chain sickle: full trees, two ultimates and crew techniques each. Shift+F10 for the rack."],
+	["New islands", "The volcanic isle with its forge town and Magma Salamander, and the coral atoll: a stilt town, a lagoon to wade and dive, and a giant hermit crab."],
+	["The open sea", "A floating restaurant, a merchant ship, great ships to board, and three leviathans to harpoon: the colossal squid, the storm eel and the abyssal angler."],
 ]
 
 

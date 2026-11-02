@@ -899,11 +899,13 @@
 		{
 			"v": "1.28",
 			"name": "Tinkerers and the Open Sea",
-			"status": "building",
+			"date": "2026-11-02",
+			"status": "shipped",
 			"headline": "Gadgets and life skills, three new weapons, two new island types, stops and great ships between the islands, and leviathans.",
-			"img": "post",
-			"alt": "A trading post's palisade gate and watchtower (current build)",
-			"plan": [
+			"img": "preview_128",
+			"alt": "A coral atoll's stilt town over a turquoise lagoon",
+			"github": true,
+			"added": [
 				["Gadgets and life", "Gadgets at the workbench, collectible books, island dishes and crew feasts, fishing by island with legends to land."],
 				["Three weapons", "The rapier, the fighting staff and the chain sickle."],
 				["New islands", "The volcanic isle and the coral atoll."],

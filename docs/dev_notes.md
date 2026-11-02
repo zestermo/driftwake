@@ -9119,3 +9119,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   (dormant when far); 3 static spare-shell bodies per boss.
 - **Known:** the lagoon reads grey-blue past ~2.8 m (the ocean shader's depth tint; turquoise shallows is the ocean
   polish item). The wreckers and the town's people are fixed per seed (no IslandLife routes for them).
+
+## 2026-11-02: v1.28 "Tinkerers and the Open Sea", a stable release
+- Everything in docs/v1_28_plan.md: gadgets, books, cooking (game, island dishes, feasts, the cook-off), fishing (fish by
+  island, legendaries fought, the journal, spearfishing, contests), the rapier, fighting staff and chain sickle, the
+  volcanic isle and coral atoll, sea stops and big ships, three leviathans, the Edy map, the temple-crash fix.
+  `tools/release/UNSTABLE` deleted: 1.28 is the site's Download. Release text: What's new, the releases page, the news
+  post (preview_128 from atollshot), roadmap. Review gallery: https://claude.ai/artifact/WRpM2HBCR297vVh1A1dyzY.
+- Known: the atoll's deeper water reads grey-blue; two load-only failures (docs/todo.md).

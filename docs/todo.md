@@ -303,3 +303,7 @@ backported there).
   the stronghold, while its garrison (warm_start camps, Humanoid.prebuild on workers) was still building bodies, and
   Godot never exited (the runner's 150 s stall). The test now waits 8 s. Check that freeing an island mid-prebuild
   (sailing away fast) doesn't hang too.
+- **Two load-only failures at the 1.28 prepush** (2026-11-02): with every slot busy, shiptest died in Godot
+  (a C++ crash in `NPC.setup` from `IslandLife._spawn`, an island built mid-test) and chaintest hit "Attempted to free
+  a locked object" in `WorldGenerator._free_some` (world_generator.gd:306). Both pass alone. Suspect: an island freed
+  (or an NPC set up) while a signal on it is still being emitted. Time-boxed; look first if it repeats.
