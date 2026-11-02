@@ -157,7 +157,7 @@ const RARE_GEAR := [
 	["coat", "bosun_coat", Gear.LOOKS["bosun_coat"][1]],
 	["vest", "bulwark_brigandine", Gear.LOOKS["bulwark_brigandine"][1]],
 ]
-const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword", "longgun", "cannon", "slingshot", "rapier"]
+const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm", "hammer", "greatsword", "longgun", "cannon", "slingshot", "rapier", "staff"]
 ## The chance a treasure merchant also has a piece of rare gear on a given day.
 const RARE_GEAR_CHANCE := 0.6
 ## The chance a treasure merchant has a fine rod that day (half of them the master's: only ever here).

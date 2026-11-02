@@ -50,7 +50,7 @@ func _process(_d: float) -> bool:
 			var models := {}
 			for k in SR.KINDS:
 				models[ItemDB.get_item(str(k[0])).weapon_model] = true
-			check("the rack holds every weapon kind (%d racked, %d kinds)" % [kinds.size(), models.size()], kinds.size() == 12 and models.size() == 12)
+			check("the rack holds every weapon kind (%d racked, %d kinds)" % [kinds.size(), models.size()], kinds.size() == 13 and models.size() == 13)
 			story.begin()
 			for id in ["find_town", "see_gus", "see_nessa", "lighthouse", "brawl", "see_vey"]:
 				story.complete(id)

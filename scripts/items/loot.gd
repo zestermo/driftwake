@@ -43,6 +43,9 @@ const CANNON_HOARD := 0.2
 ## (1.28) rapiers the same way: a kept cutlass or dagger (neither of the above) is one this often, their own stream.
 const RAPIER_CHANCE := 0.15
 const RAPIER_HOARD := 0.3
+## (1.28) A chest's polearm or axe made a fighting staff instead, from its own stream (a hoard twice as often).
+const STAFF_CHANCE := 0.15
+const STAFF_HOARD := 0.3
 
 
 ## The local captain's name: what makes a chest's roll theirs.
@@ -176,6 +179,8 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 					kind = "cannon"
 				elif kind in ["cutlass", "dagger"] and rng_for(key + "|rapier").randf() < (RAPIER_HOARD if hoard else RAPIER_CHANCE):
 					kind = "rapier"
+				elif kind in ["polearm", "spear", "axe"] and rng_for(key + "|staff").randf() < (STAFF_HOARD if hoard else STAFF_CHANCE):
+					kind = "staff"
 				it = weapon(kind, rarity_round(int(it.rarity), kind_of_chest, arms_rng), rng)
 				# (tomahawks and reavers' axes are carried in pairs: found two at a time, ready for both hands)
 				if WeaponDesigns.comes_paired(it.id.get_slice("+", 0).get_slice("@", 0)):

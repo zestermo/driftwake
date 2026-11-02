@@ -869,7 +869,7 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
-	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword", "longgun", "cannon"]:
+	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword", "longgun", "cannon", "staff"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
@@ -1082,6 +1082,8 @@ func _guard() -> Dictionary:
 			return KatanaMoves.guard(self)
 		"polearm":
 			return PoleMoves.GUARD
+		"staff":
+			return StaffMoves.GUARD
 		"hammer":
 			return HammerMoves.GUARD
 		"greatsword":
@@ -1121,6 +1123,7 @@ const STANCE_LEGS := {
 	"dual_sword": {"leg_l": Vector3(0.5, 0, -0.2), "leg_r": Vector3(-0.28, 0, 0.2), "shin_l": Vector3(-0.9, 0, 0), "shin_r": Vector3(-0.42, 0, 0), "_lift": Vector3(0, -0.14, 0)},
 	"dual_dagger": {"leg_l": Vector3(0.6, 0, -0.28), "leg_r": Vector3(-0.22, 0, 0.28), "shin_l": Vector3(-1.15, 0, 0), "shin_r": Vector3(-0.55, 0, 0), "_lift": Vector3(0, -0.195, 0)},
 	"polearm": PoleMoves.LEGS,
+	"staff": StaffMoves.LEGS,
 	"hammer": HammerMoves.LEGS,
 	"dual_axe": DualAxeMoves.LEGS,
 	"greatsword": GreatswordMoves.LEGS,
@@ -1305,7 +1308,7 @@ func _block_pose() -> Dictionary:
 			return WieldMoves.dual_block(WieldMoves.offhand_kind(self))
 		"dagger", "dual_dagger":
 			return DaggerMoves.block(stance == "dual_dagger")
-		"polearm":
+		"polearm", "staff":
 			return PoleMoves.BLOCK
 		"hammer":
 			return HammerMoves.BLOCK
@@ -2461,6 +2464,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return ClipPlayer.pose(self, n, u)
 	if n.begins_with("pole_"):
 		return PoleMoves.pose(self, n, u)
+	if n.begins_with("sf_"):
+		return StaffMoves.pose(self, n, u)
 	if n.begins_with("ham_"):
 		return HammerMoves.pose(self, n, u)
 	if n.begins_with("dx_"):
@@ -2661,7 +2666,7 @@ func _locomotion(delta: float) -> Dictionary:
 			# (a greatsword's: driven, leaning into the walk under the blade)
 			var great := stance == "greatsword"
 			var heavy := stance == "hammer" or great
-			if stance == "polearm" or carry_w > 0.0:
+			if stance in ["polearm", "staff"] or carry_w > 0.0:
 				gait = p.duplicate()
 			var gd := _guard()
 			for j in gd.keys():
@@ -3122,7 +3127,7 @@ func _pose(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	StanceLife.grip(self, delta)
-	if stance in ["polearm", "hammer", "greatsword", "long_gun", "cannon"] or pole_w > 0.0 or guard2 and stance in MASTERED:
+	if stance in ["polearm", "hammer", "greatsword", "long_gun", "cannon", "staff"] or pole_w > 0.0 or guard2 and stance in MASTERED:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)

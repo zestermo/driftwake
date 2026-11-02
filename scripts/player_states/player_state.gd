@@ -124,7 +124,7 @@ func combat_input() -> String:
 				or (st == "sword" and player.progression.has_move("dash_cut")) or (st == "polearm" and player.progression.has_move("leg_sweep"))
 				or (st == "hammer" and player.progression.has_move("rising_crush")) or (st == "dual_axe" and player.progression.has_move("raiders_leap"))
 				or (st == "greatsword" and player.progression.has_move("running_cleave")) or (st == "black_leg" and player.progression.has_move("arrow_kick"))
-				or (st == "rapier" and player.progression.has_move("fleche")))
+				or (st == "rapier" and player.progression.has_move("fleche")) or (st == "staff" and player.progression.has_move("vault_kick")))
 			return "LightAttack"
 		player.draw_weapon()
 		return ""

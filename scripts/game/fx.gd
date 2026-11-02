@@ -1359,6 +1359,9 @@ const TREE_FX := {
 	# the rapier: quicksilver mirror - a bright silver-white core, a cool mercury grey-blue edge, a warm mirror flash (not
 	# the katana's pale steel or the long gun's moon-blue starlight): silver afterimages, phantom double thrusts
 	"rapier": [Color(0.95, 0.97, 1.0), Color(0.6, 0.69, 0.8), Color(1.0, 0.97, 0.86)],
+	# the fighting staff: leaves and wind - a pale spring-green core, leaf-green edge, an autumn-gold accent; leaves
+	# whirled along each spin (not the greatsword's mint air crescents and pressure)
+	"staff": [Color(0.9, 1.0, 0.82), Color(0.42, 0.78, 0.3), Color(0.98, 0.78, 0.25)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1500,6 +1503,8 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			starlight(pos, dir, amount, speed)
 		"rapier":
 			quicksilver(pos, dir, amount, speed)
+		"staff":
+			leaf_whirl(pos, dir, amount, speed)
 		"cannon":
 			brimstone(pos, dir, amount, speed)
 		"slingshot":
@@ -1908,6 +1913,15 @@ func gust(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> v
 		punch_wind(pos, (d + off).normalized(), 0.8 + speed * 0.1, tree_col("greatsword", CORE))
 	if flipbooks:
 		puff(pos, "mist", 1, 0.8, 0.45, Color(0.85, 1.0, 0.93, 0.4), speed * 0.2, d)
+
+
+## Leaves and wind (the fighting staff's element): green and gold leaves whirled out along `dir` and drifting down,
+## a few pale wind motes round them.
+func leaf_whirl(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	petals(pos, d, maxi(amount * 2 / 3, 2), tree_col("staff", EDGE), speed)
+	petals(pos, d, maxi(amount / 3, 1), tree_col("staff", ACCENT), speed * 0.8)
+	motes(pos, d, maxi(amount / 3, 1), tree_col("staff", CORE), speed * 0.6)
 
 
 ## Frost thrown along `dir` (the twin axes' element): chips of ice that fly and fall hard, white rime motes that
@@ -2969,6 +2983,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"long_gun":
 			starlight(pos, dir + Vector3.UP * 0.3, 7, 3.0)
 			ring(pos, dir, 0.7, edge, 0.14, 0.12)
+		"staff":
+			leaf_whirl(pos, dir + Vector3.UP * 0.3, 8, 3.5)
+			ring(pos, dir, 0.8, edge, 0.16, 0.14)
 		"rapier":
 			quicksilver(pos, dir + Vector3.UP * 0.2, 7, 3.5)
 			star_glint(pos, 0.55, accent, 0.18, false, 1.6)

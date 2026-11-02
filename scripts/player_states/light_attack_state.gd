@@ -83,6 +83,19 @@ const STYLES := {
 		"damages": [6.0, 6.0, 11.0, 17.0], "hitstops": [0.03, 0.03, 0.05, 0.08], "shakes": [0.05, 0.05, 0.1, 0.16],
 		"reach": "dagger", "reaches": ["dagger", "dagger", "wide", "spin"], "color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7),
 		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0], "drawn": "dual_dagger"},
+	# fighting staff: an overhead blow, the rear end swung up through them (a launcher), a flat sweep and (Wind Wheel)
+	# one full turn clearing everyone round you; blunt: every blow drives them back ("knocks", x the design's knock)
+	"staff": {"anims": ["sf_1", "sf_2", "sf_3", "sf_4"], "trails": ["", "", "", ""],
+		"durations": [0.4, 0.42, 0.54, 0.7], "impulses": [5.0, 4.5, 4.0, 3.0],
+		"damages": [9.0, 10.0, 13.0, 17.0], "hitstops": [0.05, 0.06, 0.07, 0.09], "shakes": [0.08, 0.1, 0.12, 0.18],
+		"reach": "staff", "reaches": ["staff", "staff", "staff_wide", "staff_spin"], "color": Color(0.85, 1.0, 0.7), "staff": true,
+		"launch": [false, true, false, false], "knocks": [5.0, 0.0, 7.0, 9.0], "breakers": [false, false, false, false],
+		"downs": [false, false, false, true]},
+	# fighting staff, attacked at a sprint (Vault Kick): planted ahead and swung up on it, both feet through them
+	"staff_dash": {"anims": ["sf_dash"], "trails": [""],
+		"durations": [0.6], "impulses": [12.0],
+		"damages": [14.0], "hitstops": [0.07], "shakes": [0.15],
+		"reach": "staff_kick", "color": Color(0.85, 1.0, 0.7), "breaker": true, "staff": true},
 	# polearm: a thrust that hits from three paces, a rising cut, a wide flat sweep and (Wheel Sweep) the spear
 	# swung round once all about you; "pole": a design's speed and pierce apply (WeaponDesigns.pole)
 	"polearm": {"anims": ["pole_thrust", "pole_rise", "pole_sweep", "pole_wheel"], "trails": ["", "", "", ""],
@@ -190,7 +203,7 @@ const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], 
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
 	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin",
-	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin", "rapier": "mercury_flurry"}
+	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin", "rapier": "mercury_flurry", "staff": "wind_wheel"}
 ## A greatsword blow chained straight out of the last one's follow-through: this much faster and harder per blow
 ## built (the second x1, the third x2, the turn x3).
 const MOMENTUM_SPEED := 0.07
@@ -238,7 +251,7 @@ func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
 		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash", "greatsword": "gs_dash",
-			"black_leg": "bl_dash", "rapier": "rp_dash"}.get(st, "sword_dash")
+			"black_leg": "bl_dash", "rapier": "rp_dash", "staff": "staff_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -270,6 +283,8 @@ func enter(data: Dictionary) -> void:
 	_spd = 1.0
 	if cfg.get("pole", false):
 		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
+	elif cfg.get("staff", false):
+		_spd = WeaponDesigns.staff(player.equipped_weapon.design, "speed")
 	elif cfg.get("hammer", false):
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
 	elif cfg.get("pair", false):
@@ -357,7 +372,7 @@ func physics_update(delta: float) -> void:
 			hit.unblockable = hit.unblockable or WeaponDesigns.pole(player.equipped_weapon.design, "pierce", 0.0) > 0.0
 		if cfg.has("knocks"):
 			var d := player.equipped_weapon.design
-			var wt := WeaponDesigns.great(d, "weight") if cfg.get("great", false) else WeaponDesigns.hammer(d, "weight")
+			var wt := WeaponDesigns.great(d, "weight") if cfg.get("great", false) else (WeaponDesigns.staff(d, "knock") if cfg.get("staff", false) else WeaponDesigns.hammer(d, "weight"))
 			hit.knockback_force = float(cfg["knocks"][combo_index]) * wt
 			hit.breaker = hit.breaker or bool(cfg["breakers"][combo_index])
 			hit.knockdown = hit.knockdown or bool(cfg["downs"][combo_index])

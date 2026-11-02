@@ -878,6 +878,9 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				if WeaponDesigns.great(it.design, "bleed", 0.0) > 0.0:
 					fx.append(["Its cuts bleed", Color(1.0, 0.45, 0.4)])
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
+			"staff":
+				fx.append(["Blunt: every blow drives them back", Color(0.85, 1.0, 0.75)])
+				fx.append(["Two-handed", UIStyle.TEXT_DIM])
 			"rapier":
 				fx.append(["A landed parry ripostes at once", Color(0.82, 0.88, 0.98)])
 				if WeaponDesigns.rapier(it.design, "bleed", 0.0) > 0.0:
@@ -992,7 +995,7 @@ static func weapon_stats(it: ItemData) -> Dictionary:
 	if it.weapon_model in ["pistol", "rifle"]:
 		var rate := 1.0 / 0.34
 		return {"gun": true, "damage": SHOOT.SINGLE_DAMAGE * it.power(), "rate": rate, "speed": _speed_word(rate)}
-	var st: Dictionary = LIGHT.STYLES[{"katana": "katana", "axe": "axe", "dagger": "dagger", "polearm": "polearm", "hammer": "hammer", "greatsword": "greatsword", "rapier": "rapier"}.get(it.weapon_model, "sword")]
+	var st: Dictionary = LIGHT.STYLES[{"katana": "katana", "axe": "axe", "dagger": "dagger", "polearm": "polearm", "hammer": "hammer", "greatsword": "greatsword", "rapier": "rapier", "staff": "staff"}.get(it.weapon_model, "sword")]
 	var dmg := 0.0
 	for x in st["damages"]:
 		dmg += float(x)

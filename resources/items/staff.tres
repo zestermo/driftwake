@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "staff"
+display_name = "Quarterstaff"
+description = "Six feet of seasoned oak, iron at both ends. Overhead blows, sweeps and spins that drive them back; sprint and attack to vault-kick off it."
+value = 12
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "staff"
+damage_mult = 1.0

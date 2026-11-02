@@ -39,7 +39,7 @@ class_name ActionSpecs
 
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
-	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
+	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"], "staff": ["sf_parry", "sf_deflect"],
 	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"],
 	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"], "slingshot": ["sl_parry", "sl_deflect"],
 	"rapier": ["rp_parry", "rp_deflect"]}
@@ -173,6 +173,24 @@ const SPECS := {
 	"knife_rain": {"len": 0.7, "hit": [0.3, 0.34], "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
 	# --- polearm (PoleMoves: the body keyed, the two-handed grip solved; no "lead": its offset samples would
 	# overwrite the grip) ---
+	# --- the fighting staff (StaffMoves: keyed like the polearm, held near its middle) ---
+	"sf_stance": {"len": 1.0, "stance": "staff", "weapon": "staff"},
+	"sf_1": {"len": 0.56, "hit": [0.38, 0.6], "chain": 0.44, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "staff", "weapon": "staff"},
+	"sf_2": {"len": 0.58, "hit": [0.37, 0.58], "chain": 0.46, "swoosh": [0.34, 0.6], "sharp": 50.0, "stance": "staff", "weapon": "staff",
+		"extras": {"after": "sf_1"}},
+	"sf_3": {"len": 0.72, "hit": [0.4, 0.64], "chain": 0.58, "swoosh": [0.38, 0.66], "sharp": 50.0, "stance": "staff", "weapon": "staff",
+		"extras": {"after": "sf_2"}},
+	"sf_4": {"len": 0.9, "hit": [0.3, 0.7], "chain": 0.74, "swoosh": [0.28, 0.72], "sharp": 50.0, "stance": "staff", "weapon": "staff",
+		"extras": {"after": "sf_3"}},
+	"sf_heavy": {"len": 1.2, "hit": [0.2, 0.86], "swoosh": [0.2, 0.86], "sharp": 50.0, "stance": "staff", "weapon": "staff"},
+	"sf_dash": {"len": 0.75, "hit": [0.36, 0.56], "stance": "staff", "weapon": "staff"},
+	"sf_rise": {"len": 0.6, "hit": [0.37, 0.58], "stance": "staff", "weapon": "staff"},
+	"sf_low": {"len": 0.75, "hit": [0.32, 0.56], "swoosh": [0.3, 0.6], "sharp": 50.0, "stance": "staff", "weapon": "staff"},
+	"sf_dive": {"len": 0.6, "hit": [0.4, 0.98], "stance": "staff", "weapon": "staff", "extras": {"grounded": false}},
+	"sf_land": {"len": 0.5, "stance": "staff", "weapon": "staff"},
+	"sf_parry": {"len": 0.66, "stance": "staff", "weapon": "staff"},
+	"sf_deflect": {"len": 0.42, "stance": "staff", "weapon": "staff"},
+	"sf_block": {"len": 0.24, "hold": true, "stance": "staff", "weapon": "staff"},
 	"pole_stance": {"len": 1.0, "stance": "polearm", "weapon": "polearm"},
 	"pole_thrust": {"len": 0.6, "hit": [0.38, 0.6], "chain": 0.42, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "polearm", "weapon": "polearm"},
 	"pole_rise": {"len": 0.64, "hit": [0.39, 0.6], "chain": 0.46, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "polearm", "weapon": "polearm",

@@ -62,6 +62,12 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.09, "shake": 0.2, "knockback": 13.0, "stagger": 0.6,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.15, "impact_fx": false, "reach": "pole_long",
 		"color": Color(1.0, 0.93, 0.72), "tree": "polearm", "pole": true},
+	# fighting staff (Cyclone): spun round twice with the whole body, low and wide, everyone round you struck and
+	# driven off (a ring, not a line)
+	"cyclone": {"anim": "sf_heavy", "impulse": 2.0,
+		"damage": 26.0, "hitstop": 0.08, "shake": 0.2, "knockback": 12.0, "stagger": 0.6,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.1, "impact_fx": false, "reach": "staff_spin",
+		"color": Color(0.85, 1.0, 0.7), "tree": "staff", "staff": true},
 	# hammer (Earthquake): heaved overhead, a beat, then slammed into the ground ahead: the one under it knocked
 	# flat through any guard, and a shockwave ("quake" m, x the design's weight) knocks down everyone round it
 	"quake": {"anim": "ham_heavy", "impulse": 3.0,
@@ -181,6 +187,8 @@ static func style_for(weapon_model: String) -> String:
 			return "whirl"
 		"polearm":
 			return "skewer"
+		"staff":
+			return "cyclone"
 		"hammer":
 			return "quake"
 		"greatsword":
@@ -245,6 +253,8 @@ func enter(data: Dictionary) -> void:
 		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
 	elif cfg.get("hammer", false):
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
+	elif cfg.get("staff", false):
+		_spd = WeaponDesigns.staff(player.equipped_weapon.design, "speed")
 	elif cfg.get("pair", false):
 		_spd = DualAxeArts.pair(player, "speed")
 	elif cfg.get("great", false):

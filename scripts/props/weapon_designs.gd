@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot", "rapier": "rapier"}
+	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot", "rapier": "rapier", "staff": "staff"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -240,6 +240,23 @@ const DESIGNS := {
 		"beetle": {"id": "beetle_slingshot", "name": "Beetle Slingshot", "desc": "A great horned fork lacquered like a beetle's shell. Its tricks hit like a thunderclap.",
 			"dmg": 1.2, "worth": 2.4, "w": 0.075, "horn": true, "trick": 1.3, "rare": true, "wood": Color(0.16, 0.3, 0.2), "fit": Color(0.85, 0.7, 0.2)},
 	},
+	# (the base is a plain oak quarterstaff; _staff). Staves add "len" (x its length), "wood" (its colour), "tex", "caps"
+	# (its ends: "iron", "brass", "rings" a monk's jangling rings, "none"), "speed" (x how fast its moves play), "knock" (x how
+	# far its blows drive them), "wrap" (a cloth grip's colour); "rare" drops less often
+	"staff": {
+		"bo": {"id": "bo_staff", "name": "Bo Staff", "desc": "A straight, light staff of red oak, turned smooth. Quick in the hands; it whistles.",
+			"dmg": 0.95, "worth": 1.2, "len": 0.95, "speed": 1.08, "wood": Color(0.62, 0.32, 0.2), "caps": "none"},
+		"ironshod": {"id": "ironshod_staff", "name": "Iron-Shod Staff", "desc": "Ash bound in iron at both ends. Every blow lands like a door slammed.",
+			"dmg": 1.1, "worth": 1.5, "speed": 0.94, "knock": 1.25, "caps": "iron"},
+		"monk": {"id": "monks_staff", "name": "Monk's Staff", "desc": "A tall pilgrim's staff hung with iron rings that jangle on every turn. The temples teach with these.",
+			"dmg": 1.0, "worth": 1.6, "len": 1.08, "caps": "rings", "wood": Color(0.5, 0.36, 0.22)},
+		"bamboo": {"id": "bamboo_staff", "name": "Bamboo Staff", "desc": "A green-gold length of jungle bamboo, knotted and springy. Light enough to spin all day.",
+			"dmg": 0.9, "worth": 1.0, "speed": 1.12, "tex": "bamboo", "wood": Color(0.78, 0.8, 0.45), "caps": "none"},
+		# (rare: kept a third of the times it's rolled)
+		"jade": {"id": "jade_staff", "name": "Jade Wind Staff", "desc": "Green-black wood capped in jade and gold, wound in silk. Leaves gather round it when it turns.",
+			"dmg": 1.22, "worth": 2.5, "speed": 1.05, "knock": 1.15, "caps": "brass", "wood": Color(0.22, 0.32, 0.24), "wrap": Color(0.75, 0.12, 0.1),
+			"fit": Color(0.55, 0.9, 0.6), "rare": true},
+	},
 	# (the base is a cup-hilt rapier: a long needle of a blade behind a steel bowl; _rapier). Rapiers add "len" (the
 	# blade), "hilt" ("cup", "swept", "shell"), "forte" (a colichemarde's broad first third), "wave" (a flamberge's), "speed"
 	# (x how fast its moves play), "reach" (x the thrusts' reach), "bleed" (s: its thrusts open a wound); "rare" drops less often
@@ -355,6 +372,11 @@ static func great(design: String, key: String, def: float = 1.0) -> float:
 ## A greatsword's blade length (m from the guard to the point).
 static func great_len(design: String) -> float:
 	return great(design, "len", GREAT_LEN)
+
+
+## A staff design's number ("speed", "knock", "len"; `def` for the base staff).
+static func staff(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["staff"] as Dictionary).get(design, {}).get(key, def))
 
 
 ## A rapier design's number ("speed", "reach", "bleed"; `def` for the base rapier).
@@ -500,6 +522,8 @@ static func build(model: String) -> ArrayMesh:
 			_greatsword(mb, p, tier)
 		"rapier":
 			_rapier(mb, p, tier)
+		"staff":
+			_staff(mb, p, tier)
 		"longgun":
 			GunModels.longgun(mb, p, tier)
 		"cannon":
@@ -761,6 +785,43 @@ static func _polearm(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 			_blade(mb, m, Vector3(0, 0, h - 0.02), 0.2, 0.068, 0.02, 0.0, 0.62, 3, false)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, z0 + 0.08)), Vector3(0.058, 0.03, 0.03), 2.0)
+
+
+## Staves: a plain round shaft held at the origin by the right hand (PoleMoves' grip: the shaft along -z, slid back
+## StaffMoves.SHIFT through the hand so it's held near its middle), STAFF_BEHIND behind and STAFF_AHEAD ahead (x "len"),
+## both ends capped alike, a cloth wrap where the hands go.
+const STAFF_BEHIND := 0.3
+const STAFF_AHEAD := 1.55
+
+
+static func _staff(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats(p, tier, Color(0.6, 0.58, 0.55), Color(0.32, 0.22, 0.15), "fabric")
+	var wood := PSXMat.lit(str(p.get("tex", "planks")), _c(p, "wood", Color(0.64, 0.48, 0.3)))
+	var fit: Material = m["fit"]
+	var along := Basis(Vector3.RIGHT, -PI * 0.5)
+	var k := _f(p, "len", 1.0)
+	var back := STAFF_BEHIND * k
+	var ahead := STAFF_AHEAD * k
+	mb.add_cylinder(wood, Transform3D(along, Vector3(0, 0, back)), 0.022, 0.022, ahead + back, 6, 2.0, Color.WHITE, true, true)
+	var wrap := PSXMat.lit("fabric", _c(p, "wrap", Color(0.3, 0.22, 0.16)))
+	var mid := -(ahead - back) * 0.5
+	mb.add_box(wrap, Transform3D(Basis(), Vector3(0, 0, mid)), Vector3(0.05, 0.05, 0.5), 2.0)
+	if str(p.get("tex", "")) == "bamboo":
+		for i in range(1, 6):
+			mb.add_cylinder(wood, Transform3D(along, Vector3(0, 0, back - (ahead + back) * i / 6.0 + 0.012)), 0.026, 0.026, 0.024, 6, 2.0)
+	match str(p.get("caps", "iron")):
+		"iron", "brass":
+			for z in [back, -ahead]:
+				var s := 1.0 if z > 0.0 else -1.0
+				mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, z + 0.005 * s)), 0.027, 0.027, 0.12, 6, 2.0, Color.WHITE, true, true)
+		"rings":
+			mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, -ahead + 0.06)), 0.03, 0.03, 0.08, 6, 2.0, Color.WHITE, true, true)
+			for i in range(3):
+				var a := TAU * i / 3.0
+				mb.add_cylinder(fit, Transform3D(Basis(Vector3.BACK, a) * Basis(Vector3.RIGHT, PI * 0.5), Vector3(cos(a) * 0.05, sin(a) * 0.05, -ahead - 0.04)),
+					0.045, 0.045, 0.008, 8, 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, mid - 0.3)), Vector3(0.056, 0.03, 0.03), 2.0)
 
 
 ## Hammers: held at the origin by the right hand near the butt (HAMMER_BUTT behind it), the haft "haft" on
