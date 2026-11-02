@@ -305,7 +305,7 @@ func _gadget_parts() -> void:
 
 
 func _all_blueprints() -> void:
-	for b in Gadgets.blueprint_ids():
+	for b in Gadgets.all_blueprint_ids():
 		Gadgets.teach(_player(), b)
 	_say("Every blueprint learned")
 

@@ -82,6 +82,13 @@ const GADGETS := {
 		"charges": [0, 0, 0], "cd": [6.0, 5.0, 4.0], "hold": [4.0, 6.0, 8.0],
 		"cost": [[40, {"iron": 2}], [110, {"iron": 2, "springs": 1, "tusk": 1}], [280, {"brass": 1, "tusk": 2, "ember_ore": 1}]],
 		"refill": {}},
+	# (1.28.1) atoll-only: its parts and its blueprint come only from a coral atoll (the lead's atoll pass places them)
+	"skimmer": {"name": "Skimmer", "kind": "traversal", "region": "atoll", "from": "the atoll's pearl trader; a wreck in an atoll's lagoon",
+		"desc": "A coral-spar board under a sea-silk sail. Launch it on the water and ride it standing at the boom: fastest across the wind, slow into it. F stows it.",
+		"charges": [0, 0, 0], "cd": [3.0, 2.5, 2.0], "speed": [9.0, 11.0, 13.0], "hop": [0.0, 0.0, 7.0],
+		"cost": [[80, {"coral_spar": 4, "sea_silk": 2, "lagoon_pearl": 1}], [200, {"coral_spar": 6, "sea_silk": 3, "lagoon_pearl": 3, "brass": 1}],
+			[450, {"coral_spar": 8, "sea_silk": 5, "lagoon_pearl": 5, "brass": 2}]],
+		"refill": {}},
 	# --- utility ---
 	"spyglass": {"name": "Marking Spyglass", "kind": "utility", "from": "the forge town's tinkerer",
 		"desc": "A brass glass with a ranging lens: a look round marks every foe and hidden cache in sight on your compass.",
@@ -141,7 +148,12 @@ const PARTS := {
 	"lens": ["Ground Lens", 16, "A clear lens ground by a glassmaker. Spyglasses and flash powder want one."],
 	"ember_ore": ["Ember Ore", 18, "A warm red ore from the fire islands' forges. Mk III work needs it."],
 	"leviathan_scale": ["Leviathan Scale", 60, "A scale the size of a shield, harder than iron. Only the great beasts of the deep shed them."],
+	"coral_spar": ["Coral Spar", 8, "A straight, light branch of white coral, broken off a coral head under an atoll's lagoon. A skimmer's board and mast."],
+	"sea_silk": ["Sea-silk", 12, "A bolt of shimmering cloth spun from the threads of lagoon clams. Sold by an atoll's pearl trader: a skimmer's sail."],
+	"lagoon_pearl": ["Lagoon Pearl", 30, "A big rose-white pearl from a giant clam in an atoll's lagoon. Set in a skimmer's mast foot, it keeps her trim."],
 }
+## The parts only an atoll gives (not in ALL_PARTS: loot tables and merchants roll from that).
+const ATOLL_PARTS := ["coral_spar", "sea_silk", "lagoon_pearl"]
 ## Every part a gadget asks for (new and old): Gadgets.part_ids.
 const ALL_PARTS := ["black_powder", "pitch", "springs", "brass", "lens", "ember_ore", "leviathan_scale",
 	"iron", "copper", "timber", "canvas", "pepper", "chitin_shard", "snakeskin", "bear_claw", "tusk", "plume", "pearl", "ivory"]

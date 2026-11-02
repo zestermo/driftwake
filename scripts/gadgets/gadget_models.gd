@@ -149,6 +149,8 @@ static func _build(gid: String, tier: int) -> ArrayMesh:
 				mb.add_cylinder(PSXMat.lit("metal", BRASS), Transform3D(rot, Vector3(0, 0, -0.085)), 0.025, 0.025, 0.014, 8, 4.0, Color.WHITE, false, false)
 		"diving_helmet":
 			return helmet(tier, 0.35)
+		"skimmer":
+			return SkimmerModel.folded(tier)
 		"auto_reel":
 			var drum: Color = [Color(0.5, 0.45, 0.4), BRASS, LACQUER][tier]
 			mb.add_cylinder(PSXMat.lit("metal", drum), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3.ZERO), 0.045, 0.045, 0.04, 10, 4.0)
@@ -346,6 +348,26 @@ static func part_mesh(id: String) -> ArrayMesh:
 			mb.add_blob(PSXMat.glow(Color(1.0, 0.4, 0.12), 1.5), Transform3D(Basis(), Vector3(0.02, 0.02, 0.0)), Vector3(0.02, 0.018, 0.02), rng, 0.2, 3, 5, 4.0)
 		"leviathan_scale":
 			mb.add_blob(PSXMat.lit("", Color(0.2, 0.5, 0.55), {"roughness": 0.3}), Transform3D.IDENTITY, Vector3(0.07, 0.015, 0.06), rng, 0.1, 4, 7, 4.0)
+		"coral_spar":
+			# a straight white-pink coral branch with a few knobbed side shoots
+			var coral := PSXMat.flat(Color(0.95, 0.78, 0.74))
+			mb.add_tube(coral, PackedVector3Array([Vector3(-0.09, -0.02, 0), Vector3(0.0, 0.0, 0.004), Vector3(0.09, 0.02, 0)]), 0.014, 0.01, 5)
+			for k in range(4):
+				var x := -0.06 + k * 0.04
+				var s := 1.0 if k % 2 == 0 else -1.0
+				var a := Vector3(x, x * 0.22, 0)
+				mb.add_tube(coral, PackedVector3Array([a, a + Vector3(0.012, 0.025, s * 0.012), a + Vector3(0.02, 0.04, s * 0.02)]), 0.007, 0.005, 4)
+				mb.add_blob(PSXMat.flat(Color(1.0, 0.62, 0.6)), Transform3D(Basis(), a + Vector3(0.02, 0.042, s * 0.02)), Vector3(0.008, 0.008, 0.008), rng, 0.0, 3, 4, 4.0)
+		"sea_silk":
+			# a bolt of shimmering blue-green cloth, its loose end hanging
+			var silk := PSXMat.lit("canvas", Color(0.55, 0.85, 0.85))
+			mb.add_cylinder(silk, Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.06, 0, 0)), 0.035, 0.035, 0.12, 8, 4.0, Color.WHITE, true, true)
+			mb.add_box(silk, Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(0.0, -0.03, 0.04)), Vector3(0.11, 0.005, 0.07), 4.0, Color(0.9, 1.0, 1.0), false)
+			mb.add_cylinder(PSXMat.glow(Color(0.85, 1.0, 0.95), 0.4), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.0, 0, 0)), 0.037, 0.037, 0.012, 8, 4.0, Color.WHITE, false, false)
+		"lagoon_pearl":
+			# a big rose-white pearl sitting in its half shell
+			mb.add_blob(PSXMat.lit("", Color(0.82, 0.78, 0.72), {"roughness": 0.6}), Transform3D(Basis(), Vector3(0, -0.015, 0)), Vector3(0.07, 0.02, 0.06), rng, 0.12, 4, 7, 4.0)
+			mb.add_blob(PSXMat.glow(Color(1.0, 0.9, 0.92), 0.45), Transform3D(Basis(), Vector3(0, 0.022, 0)), Vector3(0.035, 0.035, 0.035), rng, 0.0, 5, 7, 4.0)
 		"blueprint":
 			mb.add_cylinder(PSXMat.flat(Color(0.32, 0.5, 0.85)), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.06, 0, 0)), 0.022, 0.022, 0.12, 7, 4.0, Color.WHITE, true, true)
 			mb.add_cylinder(PSXMat.flat(Color(0.85, 0.2, 0.15)), Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(0.006, 0, 0)), 0.024, 0.024, 0.012, 7, 4.0, Color.WHITE, false, false)

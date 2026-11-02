@@ -12,11 +12,11 @@ extends RefCounted
 
 ## The gadgets the bench offers (all of GadgetData since piece 5).
 const WORKING := ["smoke", "tar", "flash", "pepper", "star", "decoy", "caltrops", "grapple", "spring_boots", "glider", "spike",
-	"spyglass", "diving_helmet", "auto_reel", "lockpick", "lantern_bomb", "burst_launcher", "paddle_boost", "smoke_screen", "harpoon"]
+	"spyglass", "diving_helmet", "auto_reel", "lockpick", "lantern_bomb", "skimmer", "burst_launcher", "paddle_boost", "smoke_screen", "harpoon"]
 
 
 static func teach(player: Node, blueprint_id: String) -> bool:
-	if not blueprint_id in blueprint_ids() or knows(player, gadget_of(blueprint_id)):
+	if not blueprint_id in all_blueprint_ids() or knows(player, gadget_of(blueprint_id)):
 		return false
 	player.gadgets.known[blueprint_id] = true
 	player.gadgets.changed.emit()
@@ -24,7 +24,12 @@ static func teach(player: Node, blueprint_id: String) -> bool:
 	return true
 
 
+## (shops, books and loot tables: a regional gadget's blueprint, the skimmer's, is placed by its region alone)
 static func blueprint_ids() -> Array:
+	return GadgetData.GADGETS.keys().filter(func(g): return not GadgetData.GADGETS[g].has("region")).map(func(g): return "bp_" + str(g))
+
+
+static func all_blueprint_ids() -> Array:
 	return GadgetData.GADGETS.keys().map(func(g): return "bp_" + str(g))
 
 
@@ -54,7 +59,7 @@ static func make_items(items: Dictionary) -> void:
 		it.icon_kind = "part"
 		it.icon = GadgetModels.part_icon(id)
 		items[id] = it
-	for bp in blueprint_ids():
+	for bp in all_blueprint_ids():
 		var g: Dictionary = GadgetData.GADGETS[gadget_of(bp)]
 		var it := ItemData.new()
 		it.id = bp
@@ -125,7 +130,7 @@ const STAT_WORDS := {"range": "range %s m", "radius": "radius %s m", "secs": "la
 	"slow": "speed x%s", "stun": "stuns %s s", "dps": "%s dmg/s", "damage": "%s dmg", "lure": "lures from %s m",
 	"pull": "pulls %s m/s", "jump": "jump %s m/s", "fall": "falls %s m/s", "hold": "holds %s s", "reach": "marks to %s m",
 	"breath": "breath x%s", "reel": "reel +%s", "catches": "%s catches", "pick_secs": "picks in %s s", "light": "light %s m",
-	"impulse": "+%s m/s", "boost": "speed +%s", "bleed": "bleeds %s s", "burst": "bursts for %s"}
+	"impulse": "+%s m/s", "boost": "speed +%s", "bleed": "bleeds %s s", "burst": "bursts for %s", "speed": "%s m/s", "hop": "hops %s m/s"}
 
 
 static func _num(v) -> String:
@@ -189,7 +194,7 @@ static func _pay(inv, c: Array) -> void:
 static func study(player: Node) -> Array:
 	var out: Array = []
 	var inv = player.inventory_component
-	for bp in blueprint_ids():
+	for bp in all_blueprint_ids():
 		if inv.count(bp) > 0 and not knows(player, gadget_of(bp)):
 			inv.remove_item(ItemDB.get_item(bp), 1)
 			teach(player, bp)
