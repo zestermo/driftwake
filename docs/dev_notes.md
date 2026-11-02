@@ -9172,3 +9172,18 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Tests:** t/gadgets skimmer_parts, skimmer_ride, bag_slots, bag_migration, bag_buy; belt_fire now carries a bag; the
   decoy test's Mk III burst is placed right by the grunt (under load he'd walked out of a burst 1 m off). Renders:
   `skimmershot` (each tier riding, side/front/back), `bagshot` (four colours, open, running).
+## 2026-11-02: the atoll's reef and village pass (1.28.1)
+- **Reef** (`scripts/island/themes/atoll_reef.gd`, AtollReef, land step "atoll reef"): 75 garden patches (radius 4-9 m,
+  30-60 corals; heads 0.85, reef 0.55, floor 0.32 acceptance, 22 m apart) and 900 scattered corals, six kinds x two
+  colours (branch, brain, fan lattices, tube sponges, anemones, kelp) as MultiMeshes per kind/colour/60 m cell placed at
+  the cell's middle (a MultiMesh's range is measured from its origin: one at the island's middle drew nothing near
+  shore). ~3,000 corals, range 110 m, no collision, no shadows. 8 giant clams (a Lagoon Pearl, + 0-1 pearl) on the
+  deeper patches and 10 coral outcrops (2 Coral Spar) on the heads/reef: once each (GameManager.opened); a part the
+  game doesn't have yet becomes a plain pearl. 6 swim-through arches (StaticBody, box colliders), 7 morays (inner
+  class Moray: within 2.4 m the tell 0.55 s, then a 12 bite, 4 s cool; per machine; checks every 0.25 s near a swimmer,
+  1 s otherwise). Rays and turtles ride the shoal shader (AtollShoals._add). Plain coral-rock colours: driftstone reads
+  near black underwater.
+- **Village** (`atoll_town._details`): shell-bead curtains in the huts' doors, coral-stone footings, shell chimes,
+  outriggers on the canoes, conch shells, pearl baskets and fish racks on the open platforms; one mesh. The pearl trader
+  sells sea_silk (30) and bp_skimmer (400) once those items exist (`_skimmer_stock`).
+- Tests: t/island/atoll_reef. Renders: atollshot reef_head, reef_clam, reef_arch, reef_moray (tools/dev/out/reef/).

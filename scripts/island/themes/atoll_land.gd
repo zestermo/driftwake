@@ -300,4 +300,5 @@ static func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 
 static func steps(isl) -> Array:
-	return [["atoll spots", func(): AtollSpots.build(isl)], ["atoll shoals", func(): SHOALS.build(isl)]]
+	return [["atoll spots", func(): AtollSpots.build(isl)], ["atoll shoals", func(): SHOALS.build(isl)],
+		["atoll reef", func(): load("res://scripts/island/themes/atoll_reef.gd").build(isl)]]
