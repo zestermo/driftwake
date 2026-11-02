@@ -63,7 +63,24 @@ func _process(_d: float) -> bool:
 			check("...its glowing pearl gone", not pearl.visible)
 			R._take(p, key, R.CLAM_LOOT, "x", pearl)
 			check("...once", p.inventory_component.count("lagoon_pearl") + p.inventory_component.count("pearl") == after)
+			var arches: Array = reef.get_children().filter(func(m): return m.name.begins_with("Arch"))
+			var morays: Array = reef.get_children().filter(func(m): return m.name.begins_with("Moray"))
+			check("six swim-through arches, solid (%d)" % arches.size(), arches.size() == 6 and arches.all(func(m): return m is StaticBody3D and m.get_child_count() >= 4))
+			check("seven moray crevices (%d)" % morays.size(), morays.size() == 7)
+			# a diver in reach of a moray through its tell gets bitten
+			var m: Node3D = morays[0]
+			p.health_component.max_health = 500.0
+			p.health_component.current_health = 500.0
+			p.global_position = m.global_position + Vector3(0, 0.3, 1.2)
+			p.reset_physics_interpolation()
+			m.set("_phase", 1)
+			m.set("_t", 0.0)
+			m.set("_check", 0.0)
+			until = TK.wait_secs(0.9)
+			step = 1
+			return false
+		1:
+			check("a diver in reach through the moray's tell is bitten (%.0f)" % stage.player.health_component.current_health, stage.player.health_component.current_health < 500.0)
 			isl.queue_free()
 			return TK.done(fails)
-	step += 1
 	return false

@@ -8,7 +8,7 @@ extends "res://tools/dev/genshot.gd"
 
 func _setup(island) -> void:
 	if OS.get_environment("GSHOT_ONLY") == "":
-		OS.set_environment("GSHOT_ONLY", "aerial,boss,beast,atoll_stilts,atoll_wreck,atoll_pearls,wade,shoal,town,causeway,hole,reef_head,reef_clam")
+		OS.set_environment("GSHOT_ONLY", "aerial,boss,beast,atoll_stilts,atoll_wreck,atoll_pearls,wade,shoal,town,causeway,hole,reef_head,reef_clam,reef_arch,reef_moray")
 	super._setup(island)
 	var lp: Dictionary = isl.land_plan
 	var v: Vector2 = isl.sites["village"]
@@ -32,7 +32,7 @@ func _setup(island) -> void:
 	# (1.28.1) under the water: a coral head and its outcrop, a giant clam, the reef wall outside the ring
 	var reef: Node3D = isl.get_node_or_null("AtollReef")
 	if reef:
-		for e in [["reef_head", "Spar_", "a coral head under the water, an outcrop to break a spar from"], ["reef_clam", "Clam_", "a giant clam on the lagoon floor"]]:
+		for e in [["reef_head", "Spar_", "a coral head under the water, an outcrop to break a spar from"], ["reef_clam", "Clam_", "a giant clam on the lagoon floor"], ["reef_arch", "Arch", "a swim-through arch of coral rock"], ["reef_moray", "Moray", "a moray's crevice"]]:
 			var found: Array = reef.get_children().filter(func(m): return m.name.begins_with(e[1]))
 			if not found.is_empty():
 				var at: Vector3 = (found[0] as Node3D).position

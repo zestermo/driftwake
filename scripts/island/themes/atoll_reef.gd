@@ -36,6 +36,9 @@ const KINDS := [
 ]
 const CLAMS := 8
 const OUTCROPS := 10
+## Swim-through arches of coral rock on the patches, and moray eels in crevices on others.
+const ARCHES := 6
+const MORAYS := 7
 ## What each gives: [item id, least, most]; ids nobody has made yet (the skimmer's parts before they land) are skipped.
 const CLAM_LOOT := [["lagoon_pearl", 1, 1], ["pearl", 0, 1]]
 const SPAR_LOOT := [["coral_spar", 2, 2]]
@@ -105,6 +108,18 @@ static func build(isl) -> void:
 		var c: Vector3 = high[(i * 5 + 3) % high.size()][0]
 		var q := Vector2(c.x, c.z) + Vector2.from_angle(rng.randf() * TAU) * 1.2
 		_outcrop(node, Vector3(q.x, isl.hv(q), q.y), "atoll%d_spar%d" % [sid, i], rng)
+	# swim-through arches and moray crevices, on patches the clams and outcrops didn't take
+	for i in range(mini(ARCHES, centres.size())):
+		var c: Vector3 = centres[(i * 11 + 5) % centres.size()][0]
+		_arch(node, c, rng, isl)
+	for i in range(mini(MORAYS, centres.size())):
+		var c: Vector3 = centres[(i * 13 + 7) % centres.size()][0]
+		var q := Vector2(c.x, c.z) + Vector2.from_angle(rng.randf() * TAU) * 3.0
+		var m := Moray.new()
+		m.name = "Moray%d" % i
+		node.add_child(m)
+		m.position = Vector3(q.x, isl.hv(q), q.y)
+		m.rotation.y = rng.randf() * TAU
 	# the big life: eagle rays and sea turtles gliding round the lagoon
 	for i in range(4):
 		var a := rng.randf() * TAU
@@ -184,6 +199,32 @@ static func _outcrop(node: Node3D, at: Vector3, key: String, rng: RandomNumberGe
 	holder.add_child(tm)
 	var it := DIVE._pickup_area(holder, "Break off a coral spar", 1.8)
 	it.interacted.connect(func(player: Player): _take(player, key, SPAR_LOOT, "A spar of coral snaps off clean.", tm))
+
+
+## A swim-through arch: two pillars of coral rock and a crusted span over them, solid, tall enough to swim under.
+static func _arch(node: Node3D, at: Vector3, rng: RandomNumberGenerator, isl) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Arch%d" % node.get_child_count()
+	node.add_child(body)
+	body.position = at
+	body.rotation.y = rng.randf() * TAU
+	var h := clampf(-at.y - 0.6, 1.8, 4.0)
+	var gap := rng.randf_range(2.2, 3.0)
+	var mb := MeshBuilder.new()
+	var rock := PSXMat.lit("", Color(0.78, 0.7, 0.68))
+	var crust := PSXMat.lit("", Color.WHITE)
+	for sx in [-1.0, 1.0]:
+		mb.add_blob(rock, Transform3D(Basis(), Vector3(sx * gap, h * 0.5, 0)), Vector3(0.9, h * 0.6, 1.0), rng, 0.2, 4, 7)
+		DIVE._box_col(body, Vector3(sx * gap, h * 0.5, 0), Vector3(1.4, h, 1.6))
+	mb.add_blob(rock, Transform3D(Basis(), Vector3(0, h, 0)), Vector3(gap + 1.0, 0.55, 1.0), rng, 0.2, 3, 8)
+	DIVE._box_col(body, Vector3(0, h, 0), Vector3(gap * 2.0 + 1.4, 0.8, 1.6))
+	for k in range(10):
+		var o := Vector3(rng.randf_range(-gap - 0.6, gap + 0.6), h + 0.45, rng.randf_range(-0.6, 0.6))
+		mb.add_blob(crust, Transform3D(Basis(), o), Vector3.ONE * rng.randf_range(0.15, 0.3), rng, 0.1, 2, 6, 0.5,
+			[Color(1.0, 0.55, 0.62), Color(0.75, 0.35, 0.85), Color(1.0, 0.75, 0.25)][k % 3])
+	var mi := mb.to_instance("Arch")
+	DIVE._quiet(mi)
+	body.add_child(mi)
 
 
 ## One coral at `q` (ground height h), its kind picked by where it is (`col`: 1 a head, 2 the floor, 3 the reef).
@@ -308,3 +349,79 @@ static func _turtle() -> ArrayMesh:
 		mb.add_box(mat, Transform3D(Basis(Vector3.UP, s * 0.5), Vector3(s * 0.55, 0, -0.25)), Vector3(0.5, 0.04, 0.16), 0.5)
 		mb.add_box(mat, Transform3D(Basis(Vector3.UP, -s * 0.4), Vector3(s * 0.4, 0, 0.45)), Vector3(0.3, 0.04, 0.12), 0.5)
 	return mb.commit()
+
+
+
+## A moray eel in a crevice of coral rock: a diver who comes within REACH gets its tell (the head out, its jaws open),
+## then a bite if they're still there; it ducks back and waits COOL s. Judged on each captain's own machine (like the
+## jellyfish's sting), awake only while a swimmer is within WAKE.
+class Moray extends Node3D:
+	const REACH := 2.4
+	const WAKE := 30.0
+	const TELL := 0.55
+	const BITE := 12.0
+	const COOL := 4.0
+	var _head: Node3D
+	var _t := 0.0
+	var _phase := 0
+	var _check := 0.0
+
+	func _ready() -> void:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(name)
+		var mb := MeshBuilder.new()
+		var rock := PSXMat.lit("", Color(0.72, 0.66, 0.64))
+		mb.add_blob(rock, Transform3D(Basis(), Vector3(0, 0.45, 0)), Vector3(1.2, 0.7, 1.0), rng, 0.25, 4, 7)
+		mb.add_blob(PSXMat.flat(Color(0.04, 0.05, 0.06)), Transform3D(Basis(), Vector3(0, 0.45, -0.85)), Vector3(0.32, 0.25, 0.1), rng, 0.05, 2, 6)
+		var mi := mb.to_instance("Crevice")
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 90.0
+		add_child(mi)
+		_head = Node3D.new()
+		_head.position = Vector3(0, 0.45, -0.7)
+		add_child(_head)
+		var hb := MeshBuilder.new()
+		var skin := PSXMat.lit("leather", Color(0.45, 0.55, 0.25))
+		hb.add_cylinder(skin, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -0.25)), 0.13, 0.11, 0.6, 6, 0.5)
+		hb.add_cone(skin, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.02, -0.55)), 0.12, 0.22, 6)
+		hb.add_box(PSXMat.glow(Color(1.0, 0.85, 0.3), 1.0), Transform3D(Basis(), Vector3(0, 0.08, -0.5)), Vector3(0.2, 0.04, 0.04), 0.5)
+		var hm := hb.to_instance("Moray")
+		hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_head.add_child(hm)
+		_head.scale = Vector3(1, 1, 0.2)
+
+	func _physics_process(delta: float) -> void:
+		_check -= delta
+		var me := get_tree().get_first_node_in_group("player") as Player
+		if me == null:
+			return
+		if _phase == 0 and _check > 0.0:
+			return
+		_check = 0.25
+		var d := me.global_position.distance_to(global_position + Vector3(0, 0.45, 0))
+		if _phase == 0 and (d > WAKE or not me.is_swimming()):
+			_check = 1.0
+			return
+		_t += delta if _phase != 0 else 0.0
+		match _phase:
+			0:
+				if d < REACH:
+					_phase = 1
+					_t = 0.0
+					me.get_node("/root/FX").sfx("hiss", global_position, -4.0, 0.1, 1.3)
+			1:
+				_head.scale = Vector3(1, 1, lerpf(0.2, 0.75, minf(_t / TELL, 1.0)))
+				_head.look_at(me.global_position + Vector3(0, 0.9, 0), Vector3.UP)
+				if _t >= TELL:
+					if d < REACH + 0.6:
+						me.health_component.take_damage(BITE * (1.0 - me.damage_reduction()))
+						me.get_node("/root/FX").blood(me.global_position + Vector3(0, 0.9, 0), Vector3.UP, 8)
+						me.get_node("/root/CombatManager").apply_camera_shake(0.15)
+						me.call("_toast", "A moray bit you!")
+					_head.scale = Vector3(1, 1, 1.0)
+					_phase = 2
+					_t = 0.0
+			2:
+				_head.scale = Vector3(1, 1, lerpf(1.0, 0.2, minf(_t / 0.4, 1.0)))
+				if _t >= COOL:
+					_phase = 0
