@@ -5,7 +5,8 @@ extends SceneTree
 ## (BodyBuilder.cloth_net false: the plain chains) and on, filmed at the PSX pixel grid at the key moments. Run it at a
 ## fixed frame rate so the two runs line up frame for frame:
 ##   & $env:GODOT --path . --fixed-fps 144 --script res://tools/dev/clothlab.gd
-## Args: [out_dir=res://tools/dev/out/clothlab] [looks=hair,twin,coat,ties] (also duster, skirt). Env CL_NEAR: a close
+## Args: [out_dir=res://tools/dev/out/clothlab] [looks=hair,twin,coat,ties] (also duster, skirt, drape, drape_jacket:
+## coats worn over the shoulders, 1.29). Env CL_NEAR: a close
 ## look; CL_GD: the GDScript solver instead of the native one.
 ## Writes sheet_<look>.png (net off on top, on below; a column a moment) and metrics.txt (also printed): for every
 ## frame drawn, the chains' segments (as the bones draw them) inside the legs', hips' and torso's capsules, and the
@@ -24,6 +25,8 @@ const LOOKS := {
 	"duster": {"hair": "short", "coat": "duster", "belt": "wide_belt"},
 	"skirt": {"body": "fem", "hair": "short", "legs": "skirt", "coat": "none"},
 	"ties": {"hair": "braid", "hat": "bandana", "apron": true, "coat": "none"},
+	"drape": {"hair": "short", "hat": "none", "coat": "longcoat", "coat_color": Color(0.9, 0.88, 0.8), "coat_drape": true, "belt": "sash"},
+	"drape_jacket": {"body": "fem", "hair": "ponytail", "coat": "jacket", "coat_color": Color(0.2, 0.32, 0.62), "coat_drape": true},
 }
 
 var stage

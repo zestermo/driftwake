@@ -260,7 +260,7 @@ static func is_outfit_key(k: String) -> bool:
 	for keys in SLOT_KEYS.values():
 		if k in keys:
 			return true
-	return k in ACCESSORIES or k in ACC_COLOR.values() or k in ACC_TATTER.values()
+	return k in ACCESSORIES or k in ACC_COLOR.values() or k in ACC_TATTER.values() or k == "coat_drape"
 
 
 static func slot_label(kind: String) -> String:
@@ -396,8 +396,9 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 	return {}
 
 
-## Appearance + worn gear -> the full look for the body builder. `hidden`: item ids kept off the body.
-static func compose(appearance: Dictionary, equipped: Dictionary, hidden: Dictionary = {}) -> Dictionary:
+## Appearance + worn gear -> the full look for the body builder. `hidden`: item ids kept off the body; `draped`: coats
+## (item ids) worn over the shoulders, their sleeves empty (look "coat_drape").
+static func compose(appearance: Dictionary, equipped: Dictionary, hidden: Dictionary = {}, draped: Dictionary = {}) -> Dictionary:
 	var lk := appearance.duplicate(true)
 	var fem := str(lk.get("body", "masc")) == "fem"
 	for kind in SLOT_KEYS.keys():
@@ -410,6 +411,8 @@ static func compose(appearance: Dictionary, equipped: Dictionary, hidden: Dictio
 		lk.merge(it.look if it else bare(kind, fem), true)
 	var eq: ItemData = equipped.get("equipment")
 	lk["equip_hidden"] = eq != null and hidden.has(eq.id)
+	var ct: ItemData = equipped.get("coat")
+	lk["coat_drape"] = ct != null and draped.has(ct.id)
 	for a in ACCESSORIES:
 		lk[a] = false
 	for k in ACC_TATTER.values():

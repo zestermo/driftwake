@@ -43,7 +43,7 @@ const CREWS := {
 	"brine_wolves": {
 		"name": "the Brine Wolves", "captain": "Haskel Rourke", "title": "Ironjaw", "weapon": "warhammer",
 		"pitch": 0.78, "body": "masc", "build": "broad", "hair": "crop", "hair_color": Color(0.35, 0.33, 0.32),
-		"hat": "none", "coat": "greatcoat", "flag": Color(0.4, 0.5, 0.6),
+		"hat": "none", "coat": "greatcoat", "coat_drape": true, "flag": Color(0.4, 0.5, 0.6),
 		"palette": [Color(0.35, 0.42, 0.5), Color(0.55, 0.55, 0.52), Color(0.2, 0.2, 0.22)],
 		"mate_weapons": ["boarding_axe", "warhammer", "cutlass"],
 		"mate_names": ["Grell", "Bodie", "Kask", "Mallory", "Teague", "Ruck", "Hesketh", "Brann"],
@@ -72,7 +72,7 @@ const CREWS := {
 	"lantern_saints": {
 		"name": "the Lantern Saints", "captain": "Odessa Krane", "title": "the Quiet Lamp", "weapon": "katana",
 		"pitch": 0.95, "body": "fem", "build": "average", "hair": "hime", "hair_color": Color(0.08, 0.07, 0.08),
-		"hat": "none", "coat": "haori", "flag": Color(0.75, 0.15, 0.12),
+		"hat": "none", "coat": "haori", "coat_drape": true, "flag": Color(0.75, 0.15, 0.12),
 		"palette": [Color(0.12, 0.1, 0.12), Color(0.7, 0.14, 0.12), Color(0.85, 0.8, 0.7)],
 		"mate_weapons": ["katana", "spear", "dagger"],
 		"mate_names": ["Ivo", "Sabine", "Teodor", "Nell", "Corrie", "Aldous", "Ysa", "Marten"],
@@ -286,6 +286,7 @@ static func members(crew_id: String, save_seed: int, tier: int) -> Array:
 	_dress(cap, c, rng)
 	for k in ["body", "build", "hair", "hair_color", "hat", "coat"]:
 		cap[k] = c[k]
+	cap["coat_drape"] = c.get("coat_drape", false)
 	cap["name"] = str(c["captain"])
 	cap["coat_color"] = (c["palette"] as Array)[0]
 	cap["trim_color"] = c["flag"]

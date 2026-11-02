@@ -9195,3 +9195,28 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - The skimmer is an equipped gadget like any other (U), launching anywhere the water's deep enough (LAUNCH_DEPTH 0.8);
   the atoll is only where its parts and blueprint come from. (An action-wheel launch was tried and taken out: Zach.)
 - Tests: t/gadgets/belt_item (new); bag_buy, bag_migration, bag_slots, belt_fire, workbench_upgrade to the new rules.
+
+## 2026-11-02: 1.29 clothing, piece 1: coats draped over the shoulders (docs/v1_29_plan.md "Shoulder coat")
+- **What:** any coat can be worn over the shoulders, front open, the sleeves empty: the wardrobe's (inventory) DRAPE
+  tick box under the coat slot (`InventoryScreen._drape_toggle`, `Player.drape_coat`). Per coat: EquipmentComponent
+  `draped` (item ids, like `hidden`), saved as "coat_draped", and Gear.compose sets the look's `coat_drape`, so a
+  crewmate's screen drapes it from the look like any key (nothing new on the wire).
+- **Body** (`BodyBuilder._drape_coat`, `_draped()`): the arms take the top's sleeves (not the coat's) and no cuffs; a
+  yoke over the shoulders (the greatcoat cape's shape, wide of the deltoids, open front) under a wider collar, turned
+  in at the top; the coat's body hangs from under it in six panels on the torso's chains (DRAPE_SECTORS, open down the
+  front, a panel over each arm), wide of the arms (shoulder + the arm's radius + 6 cm, flaring 6 cm to the hem), its
+  facings (the captain's braid, the frock's trim, a darker cloth otherwise) down both front edges; the empty sleeves
+  hang from the shoulder seams behind the arms on their own chains. Every coat (jacket, haori, frock, the long coats,
+  the greatcoat's cape lifted over the yoke, epaulettes and the admiral's fringe on the yoke). Hem and length are the
+  coat's tails' (`_tails_of`); `_coat_tails()` / `_long_coat()` are off while draped (a skirt or tunic keeps its panels).
+  Belts and straps (bandolier, baldric) lie on the body under it; the cape and cloak stand 5 cm further out over it.
+- **Colliders:** only a draped body gets the arm capsules (arm_l/r, fore_l/r) the panels and sleeves are pushed by
+  (DRAPE_HIT): every capsule is one more transform a step.
+- **NPCs:** two rival captains (the Brine Wolves' greatcoat, the haori crew's) wear theirs draped; a smugglers' jacket
+  now and then (PirateGrunt.crew_look, from a hash of the look, not a draw).
+- Per frame: a draped coat is 8 chains (6 panels, 2 sleeves; a long coat's sleeved tails are 4) on the torso's set,
+  sleeping with the body like every set (Humanoid's SIMS_R / the lod rigs' nearest few).
+- clothlab (`drape`, `drape_jacket`, net on): segments inside the body in 142 / 222 of ~1727 frames (a sleeved long
+  coat ~950), the most swing 113-118 deg (the empty sleeves on the 180 turn).
+- Tests: t/gear/coat_drape (new). Renders: tools/dev/out/clothes/drape1_*.png (five coats draped; modelshot's
+  "back3" is the front), tools/dev/out/clothes/lab/sheet_drape{,_jacket}.png (moving).

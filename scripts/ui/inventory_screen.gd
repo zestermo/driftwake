@@ -158,6 +158,7 @@ var _weapon_slot: Slot
 var _offhand_slot: Slot
 ## The equipment piece's visibility box (ticked: drawn on the body).
 var _show_box: Button
+var _drape_box: Button
 var _doll_nodes: Array[Control] = []
 var _name_label: Label
 var _stats_label: Label
@@ -310,6 +311,8 @@ func _build_doll() -> void:
 		_doll_nodes.append(s)
 	_show_box = _show_toggle()
 	_ui.add_child(_show_box)
+	_drape_box = _drape_toggle()
+	_ui.add_child(_drape_box)
 	_name_label = _text("", UIStyle.GILT, UIStyle.TITLE_FONT)
 	_name_label.add_theme_font_size_override("font_size", 18)
 	_stats_label = small("", UIStyle.TEXT)
@@ -324,15 +327,38 @@ func _build_doll() -> void:
 
 ## A small tick box under the equipment slot: SHOW (drawn on the body) or not (carried out of sight).
 func _show_toggle() -> Button:
+	var b := _tick_box("ShowEquipment", "SHOW", "Show it on your captain (hidden, it still works)")
+	b.toggled.connect(func(on: bool):
+		var pl := _player()
+		if pl and pl.equipment.is_hidden(pl.equipment.get_item("equipment")) == on:
+			pl.show_equipment(on)
+			menu._play("equip")
+		b.queue_redraw())
+	return b
+
+
+## (1.29) Under the coat slot: DRAPE wears the coat over the shoulders, the sleeves empty.
+func _drape_toggle() -> Button:
+	var b := _tick_box("DrapeCoat", "DRAPE", "Wear it draped over your shoulders, the sleeves empty")
+	b.toggled.connect(func(on: bool):
+		var pl := _player()
+		if pl and pl.equipment.is_draped(pl.equipment.get_item("coat")) != on:
+			pl.drape_coat(on)
+			menu._play("equip")
+		b.queue_redraw())
+	return b
+
+
+func _tick_box(id: String, text: String, tip: String) -> Button:
 	var b := Button.new()
-	b.name = "ShowEquipment"
+	b.name = id
 	b.toggle_mode = true
 	b.flat = true
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(SLOT, 10)
 	b.size = b.custom_minimum_size
-	b.tooltip_text = "Show it on your captain (hidden, it still works)"
-	var l := small("SHOW", UIStyle.TEXT_DIM)
+	b.tooltip_text = tip
+	var l := small(text, UIStyle.TEXT_DIM)
 	l.position = Vector2(10, 0)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
@@ -342,12 +368,6 @@ func _show_toggle() -> Button:
 		b.draw_rect(r, UIStyle.ACCENT if b.is_hovered() else UIStyle.BORDER_DIM, false, 1.0)
 		if b.button_pressed:
 			b.draw_polyline(PackedVector2Array([Vector2(2.5, 4.5), Vector2(4, 6.5), Vector2(7, 2.5)]), UIStyle.ACCENT, 1.0))
-	b.toggled.connect(func(on: bool):
-		var pl := _player()
-		if pl and pl.equipment.is_hidden(pl.equipment.get_item("equipment")) == on:
-			pl.show_equipment(on)
-			menu._play("equip")
-		b.queue_redraw())
 	return b
 
 
@@ -495,6 +515,8 @@ func _layout() -> void:
 	_park(_offhand_slot, Vector2(wx + SLOT + 2, wy), 2.0, false)
 	_park(_doll["equipment"], Vector2(wx + SLOT * 2 + 10, wy), 2.0, false)
 	_park(_show_box, Vector2(wx + SLOT * 2 + 10, wy + SLOT + 2), 2.0, false)
+	var cp: Vector2 = _par[_doll["coat"]][0]
+	_park(_drape_box, cp + Vector2(0, SLOT + 2), 2.0, false)
 	for l in [_name_label, _stats_label]:
 		l.size = Vector2(260, 0)
 	_park(_name_label, Vector2(_cx - 130, y0 - 42), 1.0, false)
@@ -684,6 +706,10 @@ func refresh() -> void:
 	_show_box.visible = eq != null and _container == null
 	_show_box.set_pressed_no_signal(eq != null and not pl.equipment.is_hidden(eq))
 	_show_box.queue_redraw()
+	var ct := pl.equipment.get_item("coat")
+	_drape_box.visible = ct != null and _container == null
+	_drape_box.set_pressed_no_signal(pl.equipment.is_draped(ct))
+	_drape_box.queue_redraw()
 	_weapon_slot.show_item(pl.equipped_weapon, 1 if pl.equipped_weapon else 0, "", pl.armed and pl.equipped_weapon != null)
 	_weapon_slot.tag.text = "KICK" if pl.kicks else TAGS["weapon"]
 	_weapon_slot.tooltip_text = ("Black Leg: click for fists" if pl.kicks else "Fists: click for black-leg kicks") \

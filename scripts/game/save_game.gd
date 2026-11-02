@@ -298,6 +298,7 @@ static func save(player: Player) -> bool:
 		"gadgets": player.gadgets.to_dict(),
 		"worn": worn,
 		"equip_hidden": player.equipment.hidden.keys(),
+		"coat_draped": player.equipment.draped.keys(),
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
 		"kicks": player.kicks,
@@ -409,6 +410,9 @@ static func load_into(player: Player) -> bool:
 	player.equipment.hidden.clear()
 	for id in data.get("equip_hidden", []):
 		player.equipment.hidden[str(id)] = true
+	player.equipment.draped.clear()
+	for id in data.get("coat_draped", []):
+		player.equipment.draped[str(id)] = true
 	player.refresh_look()
 	var w := item_from(data.get("weapon", []))
 	if w:

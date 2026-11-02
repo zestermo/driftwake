@@ -407,6 +407,8 @@ static func crew_look(rng: RandomNumberGenerator) -> Dictionary:
 	if rng.randf() < 0.07:
 		lk["hat"] = ["morion", "kettle", "coif"][rng.randi() % 3]
 	lk["bandolier"] = rng.randf() < 0.18
+	# (1.29: a jacket now and then worn over the shoulders; from the look, not a draw, so the stream's later draws stay put)
+	lk["coat_drape"] = lk["coat"] != "none" and absi(hash(str(lk))) % 3 == 0
 	return lk
 
 

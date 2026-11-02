@@ -11,6 +11,25 @@ var slots: Dictionary = {}
 var hidden: Dictionary = {}
 
 
+## (1.29) Coats (item ids) worn draped over the shoulders, the sleeves empty (the wardrobe's DRAPE box under the coat
+## slot; in the look as "coat_drape", so crewmates see it the same).
+var draped: Dictionary = {}
+
+
+func is_draped(item: ItemData) -> bool:
+	return item != null and draped.has(item.id)
+
+
+func set_draped(item: ItemData, on: bool) -> void:
+	if on == is_draped(item):
+		return
+	if on:
+		draped[item.id] = true
+	else:
+		draped.erase(item.id)
+	equipment_changed.emit()
+
+
 func is_hidden(item: ItemData) -> bool:
 	return item != null and hidden.has(item.id)
 
