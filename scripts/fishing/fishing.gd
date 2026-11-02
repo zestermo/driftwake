@@ -109,21 +109,24 @@ static func rare_k(p, tier: String, bait: String, is_night: bool) -> float:
 static func roll_catch(p, tier: String, spot: Vector3, bait := "") -> String:
 	var tree: SceneTree = p.get_tree()
 	var is_night := night(p)
-	var ids := FishTable.pool(FishTable.water_at(tree, spot), FishTable.theme_at(tree, spot), is_night)
+	var theme := FishTable.theme_at(tree, spot)
+	var ids := FishTable.pool(FishTable.water_at(tree, spot), theme, is_night)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = randi()
-	return FishTable.roll(ids, rare_k(p, tier, bait, is_night), 1.0 + p.progression.stat("fish_legend"), rng)
+	return FishTable.roll(ids, rare_k(p, tier, bait, is_night) * (FishTable.ATOLL_RARE if theme == "atoll" else 1.0),
+		1.0 + p.progression.stat("fish_legend"), rng)
 
 
 ## The catch landed: into the bag (two on an Old Salt roll), the bait used (unless Bait Saver keeps it), Fishing
 ## mastery by its rarity, its name in its rarity's colour over the captain's head for everyone, and the first
 ## legendary teaches a recipe. Returns how many went in the bag.
-static func land(p, id: String, bait := "") -> int:
+static func land(p, id: String, bait := "", spot := Vector3.INF) -> int:
 	var pr = p.progression
 	var inv = p.inventory_component
 	var item := ItemDB.get_item(id)
 	var r := FishTable.rarity_of(id)
 	pr.add_life("fish", FishTable.XP[r])
+	record(p, id, p.global_position if spot == Vector3.INF else spot)
 	if bait != "" and inv.count(bait) > 0 and randf() >= pr.stat("fish_bait_save"):
 		inv.remove_item(ItemDB.get_item(bait), 1)
 	Net.fx("float_text", [p.global_position + Vector3.UP * 2.3, item.display_name, item.rarity_color(), 30 if r >= 3 else 24])
@@ -138,6 +141,37 @@ static func land(p, id: String, bait := "") -> int:
 	inv.add_item(item, n)
 	p.call("_toast", "Caught: %s%s (%s)" % [item.display_name, " x2" if n == 2 else "", item.rarity_name()])
 	return n
+
+
+## (1.28) The fish journal: `id` caught at `spot` (its length rolled, the biggest kept, where it was first caught);
+## a page completed by it pays its reward once (FishTable.PAGES). Returns the length (m).
+static func record(p, id: String, spot: Vector3) -> float:
+	var pr = p.progression
+	var length := float(FishTable.look_of(id)[1]) * randf_range(FishTable.LENGTH_ROLL.x, FishTable.LENGTH_ROLL.y)
+	var e: Dictionary = pr.fish_log.get(id, {"n": 0, "best": 0.0, "where": FishTable.where_at(p.get_tree(), spot)})
+	e["n"] = int(e["n"]) + 1
+	if length > float(e["best"]):
+		e["best"] = length
+	pr.fish_log[id] = e
+	for page in FishTable.PAGES:
+		if not pr.fish_pages.has(page[0]) and (page[2] as Array).all(func(f): return pr.fish_log.has(f)):
+			pay_page(p, page)
+	return length
+
+
+## A journal page done: its reward, once.
+static func pay_page(p, page: Array) -> void:
+	var pr = p.progression
+	pr.fish_pages[page[0]] = true
+	var rw: Dictionary = page[3]
+	var inv = p.inventory_component
+	inv.add_item(ItemDB.get_item("gold"), int(rw["gold"]))
+	var it: Array = rw["item"]
+	var item := ItemDB.get_item(str(it[0]))
+	if item:
+		inv.add_item(item, int(it[1]))
+	p.get_tree().call_group("hud", "show_banner", "Fish journal: %s" % page[1], "Page complete! %d gold and %s" % [int(rw["gold"]),
+		item.display_name if item else ""], false)
 
 
 ## The action wheel's Cut bait (order 65; ActionWheel.ensure_builtins). Static method callables, not lambdas.

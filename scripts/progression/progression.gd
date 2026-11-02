@@ -1092,6 +1092,10 @@ var cooked: Dictionary = {}
 ## Sailing downtime (Downtime): the tinkered kit's seconds left (game time) and the activities' counts.
 var kit_left := 0.0
 var downtime: Dictionary = {}
+## (1.28) The fish journal: catch id -> {"n": times caught, "best": the longest (m), "where": first caught}, and the
+## journal pages already paid (FishTable.PAGES).
+var fish_log: Dictionary = {}
+var fish_pages: Dictionary = {}
 ## Weapon trees whose mastered guard (the "guard2_<tree>" node) is the one up (MasteredGuard): tree -> true.
 var guards: Dictionary = {}
 
@@ -1219,7 +1223,8 @@ func to_dict() -> Dictionary:
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
 		"steps": steps.duplicate(), "versions": versions.duplicate(), "passives": Array(passives), "found": found.keys(),
 		"will_pts": will_earned, "will_color": will_color, "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
-		"kit": kit_left, "downtime": downtime.duplicate(true), "guards": guards.keys(), "edy_uses": edy_uses.duplicate(), "edy_off": edy_off.keys()}
+		"kit": kit_left, "downtime": downtime.duplicate(true), "guards": guards.keys(), "edy_uses": edy_uses.duplicate(), "edy_off": edy_off.keys(),
+		"fish_log": fish_log.duplicate(true), "fish_pages": fish_pages.keys()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -1235,6 +1240,10 @@ func from_dict(d: Dictionary) -> void:
 	cooked = (d.get("cooked", {}) as Dictionary).duplicate()
 	kit_left = float(d.get("kit", 0.0))
 	downtime = (d.get("downtime", {}) as Dictionary).duplicate(true)
+	fish_log = (d.get("fish_log", {}) as Dictionary).duplicate(true)
+	fish_pages = {}
+	for k in d.get("fish_pages", []):
+		fish_pages[str(k)] = true
 	Books.restore_marks(self)
 	guards = {}
 	for k in d.get("guards", []):

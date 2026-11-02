@@ -37,6 +37,7 @@ scripts/combat/sparring_partner.gd      t/crew/yard_partner
 tools/dev/t/items/*                     t/items
 tools/dev/t/fishing/*                   t/fishing
 scripts/fishing/*                       t/fishing
+scripts/player_states/fish_state.gd     t/fishing
 scripts/game/action_wheel.gd            t/ui t/downtime t/food
 tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons

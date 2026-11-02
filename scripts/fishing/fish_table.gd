@@ -57,7 +57,69 @@ const CATCHES := {
 		"The king of the open sea. Landing one is a story for the rest of your life."],
 	"fish_abyss_eel": ["Abyss Eel", 4, 22, ["deep", "sea"], "", "night", "long", 1.6, Color(0.12, 0.08, 0.15), Color(0.5, 0.2, 0.7),
 		"Comes up from where the light ends, its eyes aglow. Nobody knows how deep it lives."],
+	# (1.28) the open sea and each theme's own waters (docs/life_systems_plan.md, Fishing)
+	"fish_flying": ["Flying Fish", 0, 3, ["sea", "deep"], "", "day", "slim", 0.3, Color(0.35, 0.5, 0.75), Color(0.75, 0.85, 0.95),
+		"Leaps clear of the waves on fins like wings. Sometimes it lands on deck by itself."],
+	"fish_mahi": ["Mahi-Mahi", 2, 9, ["sea", "deep"], "", "", "deep", 0.9, Color(0.35, 0.75, 0.35), Color(0.95, 0.85, 0.2),
+		"Gold and green, flashing blue as it fights. Fades grey once it's landed."],
+	"fish_tarpon": ["Jungle Tarpon", 1, 6, ["shore", "sea"], "jungle", "", "slim", 0.8, Color(0.72, 0.76, 0.8), Color(0.45, 0.55, 0.5),
+		"Silver scales as big as coins. It jumps when hooked, every time."],
+	"fish_frost_char": ["Frost Char", 1, 6, ["shore"], "snow", "", "slim", 0.45, Color(0.45, 0.5, 0.6), Color(0.9, 0.45, 0.35),
+		"Red-bellied under a grey back. Bites through holes in the ice."],
+	"fish_sand_mullet": ["Sand Mullet", 0, 3, ["shore"], "desert", "", "slim", 0.32, Color(0.78, 0.72, 0.55), Color(0.62, 0.55, 0.4),
+		"Grubs in the warm shallows by the dunes. Plain and plentiful."],
+	"fish_speckled_char": ["Speckled Char", 1, 6, ["shore", "sea"], "forest", "", "slim", 0.42, Color(0.4, 0.45, 0.3), Color(0.85, 0.6, 0.3),
+		"Gold freckles on olive. Comes down the forest rivers in autumn."],
+	"fish_pale_smelt": ["Pale Smelt", 0, 3, ["shore", "sea"], "fog", "", "slim", 0.2, Color(0.82, 0.85, 0.86), Color(0.65, 0.7, 0.72),
+		"Almost see-through. Smells of cucumber, oddly."],
+	"fish_gloom_perch": ["Gloom Perch", 2, 9, ["sea"], "fog", "night", "deep", 0.45, Color(0.2, 0.24, 0.28), Color(0.5, 0.75, 0.7),
+		"Its eyes catch a lantern from forty yards. Only bites in the dark."],
+	"fish_ash_goby": ["Ash Goby", 0, 3, ["shore"], "volcanic", "", "slim", 0.18, Color(0.3, 0.28, 0.28), Color(0.55, 0.3, 0.2),
+		"A little grey fish that lives on warm black sand. Tough and bony."],
+	"fish_ember_bass": ["Ember Bass", 2, 9, ["shore", "sea"], "volcanic", "", "deep", 0.55, Color(0.55, 0.15, 0.1), Color(1.0, 0.55, 0.15),
+		"Red-black and warm to the touch. It lives where the lava meets the sea."],
+	"fish_blue_tang": ["Blue Tang", 0, 3, ["shore"], "atoll", "day", "deep", 0.25, Color(0.15, 0.35, 0.85), Color(0.95, 0.85, 0.2),
+		"Bright blue with a yellow tail. The lagoon's full of them."],
+	"fish_coral_trout": ["Coral Trout", 1, 6, ["shore", "sea"], "atoll", "", "deep", 0.55, Color(0.85, 0.3, 0.25), Color(0.3, 0.55, 0.85),
+		"Red with blue spots, lurking in the coral heads."],
+	"fish_clown_wrasse": ["Clown Wrasse", 2, 9, ["shore"], "atoll", "", "slim", 0.35, Color(0.95, 0.55, 0.2), Color(0.95, 0.95, 0.9),
+		"Painted like a jester. Divers say it follows them about."],
+	# (1.28) one legendary per theme, fought on the line (FishFight; its pull in LEGEND_PULL)
+	"fish_jade_gar": ["Jade Gar", 4, 24, ["shore", "sea"], "jungle", "", "long", 1.5, Color(0.2, 0.55, 0.35), Color(0.6, 0.85, 0.4),
+		"A green-scaled gar with a needle mouth full of teeth, older than the jungle's oldest tree."],
+	"fish_glacier_sturgeon": ["Glacier Sturgeon", 4, 24, ["sea", "deep"], "snow", "", "long", 1.9, Color(0.55, 0.62, 0.7), Color(0.85, 0.92, 0.98),
+		"Armoured in bony plates, slow and immense. They say it remembers the ice before the sea."],
+	"fish_mirage_sailfish": ["Mirage Sailfish", 4, 24, ["sea", "deep"], "desert", "day", "long", 1.7, Color(0.3, 0.4, 0.75), Color(0.95, 0.65, 0.3),
+		"Its sail shimmers like heat over sand. You see it before it's there."],
+	"fish_elder_pike": ["Elder Pike", 4, 24, ["shore", "sea"], "forest", "", "long", 1.4, Color(0.35, 0.42, 0.25), Color(0.75, 0.65, 0.3),
+		"Moss grows on its back. The river folk leave it offerings."],
+	"fish_lantern_wraith": ["Lantern Wraith", 4, 26, ["sea", "deep"], "fog", "night", "deep", 1.0, Color(0.15, 0.18, 0.2), Color(0.6, 1.0, 0.85),
+		"A lure of cold light on a stalk over its head, and a mouth below it. The fog's own fish."],
+	"fish_cinder_koi": ["Cinder Koi", 4, 26, ["shore", "sea"], "volcanic", "", "deep", 0.9, Color(0.9, 0.3, 0.1), Color(0.15, 0.1, 0.1),
+		"Orange as a coal with black fins, swimming where the water steams."],
+	"fish_reef_emperor": ["Reef Emperor", 4, 28, ["shore", "sea"], "atoll", "", "deep", 1.2, Color(0.55, 0.25, 0.75), Color(0.95, 0.8, 0.3),
+		"Violet and gold with a crown of fins. The reef parts for it."],
 }
+## (1.28) How hard each legendary fights on the line (FishFight: tension and line taken x this).
+const LEGEND_PULL := {"fish_jade_gar": 1.0, "fish_glacier_sturgeon": 1.1, "fish_mirage_sailfish": 1.15, "fish_elder_pike": 1.0,
+	"fish_lantern_wraith": 1.2, "fish_cinder_koi": 1.2, "fish_reef_emperor": 1.25, "fish_king_marlin": 1.3, "fish_abyss_eel": 1.3}
+## (1.28) The atoll's waters are the chain's best fishing: the rare odds x this there.
+const ATOLL_RARE := 1.5
+## (1.28) A catch's length rolls this much of its size (the journal keeps the biggest).
+const LENGTH_ROLL := Vector2(0.75, 1.4)
+## (1.28) The fish journal's pages: [id, title, catches, reward {"gold", "item": [id, n]}]; a page done pays once.
+const PAGES := [
+	["home", "Home waters", ["fish_sardine", "fish_mackerel", "fish_bream", "fish_snapper", "fish_flounder", "fish_bass", "fish_tuna",
+		"fish_swordfish", "fish_moonfish", "fish_ghost_ray", "fish_golden_carp", "fish_flying", "fish_mahi"], {"gold": 150, "item": ["rod_steel", 1]}],
+	["jungle", "Jungle", ["fish_parrotfish", "fish_lionfish", "fish_tarpon", "fish_jade_gar"], {"gold": 120, "item": ["bait_glow", 6]}],
+	["snow", "Snow", ["fish_ice_cod", "fish_frost_char", "fish_glacier_sturgeon"], {"gold": 120, "item": ["bait_glow", 6]}],
+	["desert", "Desert", ["fish_grouper", "fish_sand_mullet", "fish_mirage_sailfish"], {"gold": 120, "item": ["bait_glow", 6]}],
+	["forest", "Forest", ["fish_trout", "fish_speckled_char", "fish_elder_pike"], {"gold": 120, "item": ["bait_glow", 6]}],
+	["fog", "Fog", ["fish_pale_smelt", "fish_gloom_perch", "fish_lantern_wraith"], {"gold": 120, "item": ["bait_glow", 6]}],
+	["volcanic", "Volcanic", ["fish_ash_goby", "fish_ember_bass", "fish_cinder_koi"], {"gold": 120, "item": ["bait_glow", 6]}],
+	["atoll", "Coral atoll", ["fish_blue_tang", "fish_coral_trout", "fish_clown_wrasse", "fish_reef_emperor"], {"gold": 200, "item": ["rod_master", 1]}],
+	["legends", "Legends of the deep", ["fish_king_marlin", "fish_abyss_eel"], {"gold": 300, "item": ["lore_deep_3", 1]}],
+]
 ## The first legendary a captain lands teaches this galley recipe (Food.MEALS).
 const LEGEND_RECIPE := "sea_legend"
 
@@ -99,6 +161,16 @@ static func icon(id: String) -> Texture2D:
 		var lk := look_of(id)
 		_icons[id] = WeaponDesigns.mesh_icon(FishModels.fish(str(lk[0]), float(lk[1]), lk[2], lk[3]), Basis(), -0.35)
 	return _icons[id]
+
+
+## (1.28) Where a catch at `spot` was made, for the journal: the chain island's name off its coast, else home or the open sea.
+static func where_at(tree: SceneTree, spot: Vector3) -> String:
+	var wg := tree.get_first_node_in_group("world_gen")
+	if wg != null and ("chain_islands" in wg):
+		for isl in wg.chain_islands.values():
+			if Vector2(spot.x - isl.position.x, spot.z - isl.position.z).length() < float(isl.radius) + 120.0:
+				return str(isl.node.get("name", "an island"))
+	return "the open sea" if water_at(tree, spot) == "deep" else "home waters"
 
 
 ## The water under a float at `spot` (the calm sea level): "shore", "sea" or "deep".

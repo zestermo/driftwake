@@ -69,6 +69,9 @@ var _twitch := 0.0
 var _tip := Vector3.ZERO
 var _bob_at := Vector3.ZERO
 var _catch := ""
+## (1.28) A legendary being fought: how far in it is (the float drawn that much nearer) and whether it's running.
+var _fight_k := 0.0
+var _fight_run := false
 
 
 func _ready() -> void:
@@ -288,6 +291,12 @@ func land(id: String) -> void:
 	FX.sfx("fish_catch", _tip, -2.0, 0.05)
 
 
+## (1.28) A legendary's fight on the captain's own screen: the float drawn `k` of the way in, thrashing while it runs.
+func fight_pull(k: float, running: bool) -> void:
+	_fight_k = k
+	_fight_run = running
+
+
 ## The line's out of the water: everything put away.
 func stop() -> void:
 	_send("stop", [])
@@ -378,6 +387,10 @@ func _line_tick(delta: float) -> void:
 				FX.sfx("fish_plop", _bob_at, -2.0, 0.1)
 		"float", "bite":
 			var to := _target()
+			if _fight_k > 0.0 or _fight_run:
+				to = to.lerp(_tip_ground(), _fight_k * 0.8)
+				if _fight_run and fmod(_pt, 0.12) < delta:
+					FX.splash(to, 2, 0.4)
 			_dip = move_toward(_dip, 1.0 if phase == "bite" else 0.0, delta * (9.0 if phase == "bite" else 3.0))
 			var bob := 0.015 * sin(_pt * 2.3) - 0.07 * _twitch * absf(sin(_pt * 18.0)) - 0.2 * _dip
 			_bob_at = to + Vector3(0, 0.02 + bob, 0)
