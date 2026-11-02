@@ -1,12 +1,15 @@
 class_name GadgetBelt
 extends Node
 ## A captain's gadget belt (1.28): the blueprints they know, the gadgets they've built (each at a tier, with its
-## charges), and three belt slots. U fires the selected slot's gadget (whatever weapon is held, on foot and free,
-## mid-jump too), O picks the next filled slot. Charges are spent per use and refilled at a workbench or camp;
+## charges), and the slots they carry: one on the belt alone, GadgetData.BAG_SLOTS with a gadget bag (GadgetBag, an
+## item in the bag; 1.28.1). U fires the selected slot's gadget (whatever weapon is held, on foot and free, mid-jump
+## too); O (GadgetWheel) taps to the next filled slot, held opens the wheel to pick one; without a bag it says a bag
+## carries more. Gadgets off the slots stay built (the workbench lists them; a bag gained takes them up).
+## Charges are spent per use and refilled at a workbench or camp;
 ## a short cooldown (game time: PlayerState.now_s) follows every use. Saved with the captain (SaveGame "gadgets").
 ## Nothing here runs per frame: cooldowns are timestamps, the HUD polls.
 ## Co-op: each captain's own. The throw plays on every screen from the thrower's event (Player.net_event
-## "gadget"); the pouch on the back rides the snapshot's flags (Player.NF_POUCH).
+## "gadget"); the pouch on the back and the bag (its colour, the flap open) ride the snapshot's flags.
 
 signal changed
 
@@ -23,8 +26,14 @@ var player: Node
 var known: Dictionary = {}
 ## gadget id -> {"tier": 0-2, "charges": n}
 var owned: Dictionary = {}
-var slots: Array = ["", "", ""]
+var slots: Array = [""]
 var sel := 0
+## The bag colour picked last (worn first when more than one is carried).
+var bag_pref := ""
+## The flap is open while the wheel is up, and a moment after a cycle (game time).
+var wheel_open := false
+var open_until := -1.0
+const OPEN_SECS := 0.9
 ## gadget id -> game time (s) it's ready again
 var ready_at: Dictionary = {}
 ## The diving helmet worn: until (game time) and its breath factor (SwimState).
@@ -96,15 +105,77 @@ func cycle() -> void:
 	if player.current_state_name() == "Helm":
 		ShipGadgets.cycle(player)
 		return
-	for k in range(1, GadgetData.SLOTS + 1):
-		var i := (sel + k) % GadgetData.SLOTS
+	if capacity() <= 1:
+		player.call("_toast", "A gadget bag lets you carry more")
+		return
+	for k in range(1, slots.size() + 1):
+		var i := (sel + k) % slots.size()
 		if slots[i] != "":
 			sel = i
 			break
+	pick(sel)
+
+
+## Slot `i` taken up (O's tap, the wheel): its name said, the bag's flap thrown open a moment.
+func pick(i: int) -> void:
+	sel = i
 	if gadget() != "":
 		player.call("_toast", "%s %s" % [GadgetData.GADGETS[gadget()]["name"], GadgetData.TIER_NAMES[tier_of(gadget())]])
 	player.get_node("/root/FX").sfx("blip", player.global_position, -14.0, 0.05, 1.3)
+	open_until = PlayerState.now_s() + OPEN_SECS
+	_bag_look()
+	get_tree().create_timer(OPEN_SECS + 0.05, false, true).timeout.connect(_bag_look)
 	changed.emit()
+
+
+## How many gadgets the captain carries: one on the belt, BAG_SLOTS with a bag.
+func capacity() -> int:
+	return GadgetData.BAG_SLOTS if bag_colour() != "" else GadgetData.SLOTS
+
+
+## The colour of the bag carried ("" none): the one picked last if it's still in the bag.
+func bag_colour() -> String:
+	var inv = player.inventory_component
+	if bag_pref != "" and inv.count(GadgetBag.item_id(bag_pref)) > 0:
+		return bag_pref
+	for c in GadgetBag.ORDER:
+		if inv.count(GadgetBag.item_id(c)) > 0:
+			return c
+	return ""
+
+
+func bag_open() -> bool:
+	return wheel_open or PlayerState.now_s() < open_until
+
+
+func _bag_look() -> void:
+	var body: Humanoid = player.body_model
+	if body and body.bag_colour != "" and body.bag_open != bag_open():
+		GadgetBag.set_open(body, bag_open())
+
+
+## The slots fitted to what's carried (a bag gained or lost; an older save's three slots): shrinking keeps the first
+## filled ones (the rest stay built, off the slots); growing takes up the built gadgets off them. The bag worn to match.
+func fit() -> void:
+	var cap := capacity()
+	if slots.size() != cap:
+		var cur := gadget() if sel < slots.size() else ""
+		var keep: Array = slots.filter(func(g): return g != "")
+		if cap > slots.size():
+			for gid in owned.keys():
+				if not gid in keep and GadgetData.GADGETS[gid]["kind"] != "ship":
+					keep.append(gid)
+		keep.resize(mini(keep.size(), cap))
+		while keep.size() < cap:
+			keep.append("")
+		slots = keep
+		sel = maxi(slots.find(cur), 0) if cur != "" else 0
+		if gadget() == "":
+			var f := slots.find_custom(func(g): return g != "")
+			sel = maxi(f, 0)
+		_changed()
+	elif player.body_model and player.body_model.bag_colour != bag_colour():
+		_changed()
 
 
 ## The selected gadget used. False (and a word why) when it can't be.
@@ -155,6 +226,7 @@ func _ready() -> void:
 		sm.add_child(st)
 		sm.states[str(e[1]).to_lower()] = st
 		st.transitioned.connect(sm._on_child_transitioned)
+	player.inventory_component.inventory_changed.connect(fit)
 
 
 func _lob(gid: String, t: int) -> void:
@@ -223,6 +295,9 @@ func best_tier() -> int:
 
 func _changed() -> void:
 	wear(player.body_model, best_tier())
+	var body: Humanoid = player.body_model
+	if body and body.bag_colour != bag_colour():
+		GadgetBag.wear(body, bag_colour(), bag_open())
 	changed.emit()
 
 
@@ -252,14 +327,21 @@ static func remote(p: Node, args: Array) -> void:
 
 
 func to_dict() -> Dictionary:
-	return {"known": known.keys(), "owned": owned.duplicate(true), "slots": slots.duplicate(), "sel": sel}
+	return {"known": known.keys(), "owned": owned.duplicate(true), "slots": slots.duplicate(), "sel": sel, "bag": bag_pref}
 
 
+## (a 1.28 save had three belt slots: with no bag the first filled one stays on and the rest stay built, off the slots)
 func from_dict(d: Dictionary) -> void:
 	known.clear()
 	for id in d.get("known", []):
 		known[str(id)] = true
 	owned = (d.get("owned", {}) as Dictionary).duplicate(true)
-	slots = (d.get("slots", ["", "", ""]) as Array).duplicate()
-	sel = int(d.get("sel", 0))
+	slots = (d.get("slots", [""]) as Array).duplicate()
+	sel = clampi(int(d.get("sel", 0)), 0, slots.size() - 1)
+	bag_pref = str(d.get("bag", ""))
+	var was: int = slots.filter(func(g): return g != "").size()
+	fit()
 	_changed()
+	var off: int = was - slots.filter(func(g): return g != "").size()
+	if off > 0:
+		player.call("_toast", "The belt carries one gadget now: your other %d wait, built, until you carry a gadget bag" % off)

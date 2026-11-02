@@ -1,5 +1,5 @@
 extends Control
-## The gadget belt on the HUD (1.28), right of the skill bar: three slots, each its gadget's icon, its tier (I-III),
+## The gadget belt on the HUD (1.28), right of the skill bar: its slots (one, six with a gadget bag), each its gadget's icon, its tier (I-III),
 ## the charges left and the cooldown sweeping down; the selected one framed in gold with its key over it. Hidden
 ## with nothing on the belt or off foot. Looks at the belt every LOOK_EVERY (real time) and redraws on a change.
 
@@ -7,7 +7,7 @@ const FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const FS := 8
 const SLOT := 26.0
 const GAP := 3.0
-const W := SLOT * 3.0 + GAP * 2.0
+const W := SLOT * GadgetData.BAG_SLOTS + GAP * (GadgetData.BAG_SLOTS - 1)
 const H := SLOT + 12.0
 const LOOK_EVERY := 0.1
 const ROMAN := ["I", "II", "III"]
@@ -50,7 +50,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var belt: GadgetBelt = _p.gadgets
-	for i in range(GadgetData.SLOTS):
+	for i in range(belt.slots.size()):
 		var r := Rect2(Vector2(i * (SLOT + GAP), 10.0), Vector2(SLOT, SLOT))
 		var on: bool = i == belt.sel
 		draw_rect(r, UIStyle.BG_DARK)

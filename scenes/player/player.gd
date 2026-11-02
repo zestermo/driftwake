@@ -280,6 +280,10 @@ const NF_POUCH_SHIFT := 9
 ## (1.28.1) Riding the skimmer: its tier + 1 in these two bits (0: not riding).
 const NF_SKIM := 2048 | 4096
 const NF_SKIM_SHIFT := 11
+## (1.28.1) The gadget bag: its colour (GadgetBag.ORDER index + 1, 0 none) in three bits, and its flap open.
+const NF_BAG := 8192 | 16384 | 32768
+const NF_BAG_SHIFT := 13
+const NF_BAG_OPEN := 65536
 ## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
 var parry_tap := -10.0
 
@@ -337,6 +341,7 @@ func _ready() -> void:
 	item_wheel = _wheel("res://scripts/ui/item_wheel.gd", "ItemWheel")
 	action_wheel = _wheel("res://scripts/ui/action_wheel_ui.gd", "ActionWheel")
 	loadout_wheel = _wheel("res://scripts/ui/loadout_wheel.gd", "LoadoutWheel")
+	gadget_wheel = _wheel("res://scripts/ui/gadget_wheel.gd", "GadgetWheel")
 	if is_local:
 		chat_box = _wheel("res://scripts/ui/chat_box.gd", "ChatBox")
 	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
@@ -1933,11 +1938,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		place_marker()
 		get_viewport().set_input_as_handled()
 		return
-	# (1.28) the gadget belt: O the next slot (O, not Shift+U: Shift is sprint), U fires
-	if event.is_action_pressed("gadget_cycle", false, true):
-		gadgets.cycle()
-		get_viewport().set_input_as_handled()
-		return
+	# (1.28) the gadget belt: U fires (O, the next one or the wheel, is GadgetWheel's)
 	if Pad.pressed(event, "gadget_fire"):
 		gadgets.fire()
 		get_viewport().set_input_as_handled()
@@ -2121,6 +2122,8 @@ const LOADOUTS := 3
 const LOADOUTS_FREE := 2
 signal loadout_changed
 var loadout_wheel
+## (1.28.1) O: a tap the next gadget, held the gadget wheel (GadgetWheel).
+var gadget_wheel
 ## Each slot: [main hand id ("" = fists, BLACK_LEG = kicks), off hand id ("" = none)], or [] never set up. The slot in
 ## use (loadout_at) is whatever you put in your hands meanwhile (the bag, I).
 var loadouts: Array = [[], [], []]
@@ -3069,6 +3072,9 @@ func net_pack() -> Array:
 	flags |= (body_model.pouch_tier + 1) << NF_POUCH_SHIFT
 	if current_state_name() == "Skimmer":
 		flags |= (int(state_machine.current_state.get("tier")) + 1) << NF_SKIM_SHIFT
+	flags |= (GadgetBag.ORDER.find(body_model.bag_colour) + 1) << NF_BAG_SHIFT
+	if body_model.bag_open:
+		flags |= NF_BAG_OPEN
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else [], bounty]
@@ -3144,6 +3150,11 @@ func _puppet_process(delta: float) -> void:
 			GadgetBelt.wear(body_model, ((flags & NF_POUCH) >> NF_POUCH_SHIFT) - 1)
 		if changed & NF_SKIM:
 			SkimmerModel.ride(self, ((flags & NF_SKIM) >> NF_SKIM_SHIFT) - 1)
+		if changed & NF_BAG:
+			var bi := ((flags & NF_BAG) >> NF_BAG_SHIFT) - 1
+			GadgetBag.wear(body_model, GadgetBag.ORDER[bi] if bi >= 0 else "", bool(flags & NF_BAG_OPEN))
+		elif changed & NF_BAG_OPEN:
+			GadgetBag.set_open(body_model, bool(flags & NF_BAG_OPEN))
 		_update_nameplate()
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))

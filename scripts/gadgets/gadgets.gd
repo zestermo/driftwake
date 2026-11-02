@@ -72,6 +72,22 @@ static func make_items(items: Dictionary) -> void:
 		it.icon_kind = "blueprint"
 		it.icon = GadgetModels.part_icon("blueprint")
 		items[bp] = it
+	GadgetBag.make_items(items)
+
+
+## (1.28.1) The forge town's master tinkerer sells a gadget bag in `colour`: his answer (the bag in yours if paid).
+static func buy_bag(player: Node, colour: String) -> String:
+	var inv = player.inventory_component
+	if inv.count(GadgetBag.item_id(colour)) > 0:
+		return "You've a %s one already, Captain. One bag's plenty for one pair of hips." % colour
+	if inv.count("gold") < GadgetBag.PRICE:
+		return "That's %d gold, Captain. The stitching alone took me a week." % GadgetBag.PRICE
+	if inv.used_slots() >= inv.slots():
+		return "Your pack's stuffed full, Captain. Make room and I'll hand it over."
+	inv.remove_item(ItemDB.get_item("gold"), GadgetBag.PRICE)
+	player.gadgets.bag_pref = colour
+	inv.add_item(ItemDB.get_item(GadgetBag.item_id(colour)), 1)
+	return "There. Six pockets inside, and the clasp holds whatever you jump off. Tap for the next gadget, hold for the lot."
 
 
 ## What taking `gid` to `tier` costs: [[item id, n], ...] with the gold first.
@@ -213,6 +229,9 @@ static func chest_extras(out: Array, kind: String, rng: RandomNumberGenerator, p
 		var unknown: Array = (GadgetData.CHEST_POOLS[kind] as Array).filter(func(g): return player == null or not knows(player, str(g)))
 		if not unknown.is_empty():
 			_stack(out, "bp_" + str(unknown[rng.randi() % unknown.size()]), 1)
+	# (1.28.1) now and then a hoard holds a gadget bag, for a captain without one
+	if kind == "hoard" and rng.randf() < GadgetData.HOARD_BAG and (player == null or player.gadgets.bag_colour() == ""):
+		_stack(out, GadgetBag.item_id(GadgetBag.ORDER[rng.randi() % GadgetBag.ORDER.size()]), 1)
 
 
 static func _stack(out: Array, id: String, n: int) -> void:

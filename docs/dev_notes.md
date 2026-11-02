@@ -9127,3 +9127,48 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   `tools/release/UNSTABLE` deleted: 1.28 is the site's Download. Release text: What's new, the releases page, the news
   post (preview_128 from atollshot), roadmap. Review gallery: https://claude.ai/artifact/WRpM2HBCR297vVh1A1dyzY.
 - Known: the atoll's deeper water reads grey-blue; two load-only failures (docs/todo.md).
+
+## 2026-11-02: the skimmer and the gadget bag (1.28.1 gadgets)
+- **The skimmer** (`scripts/player_states/skimmer_state.gd`, `scripts/gadgets/skimmer_model.gd`; data in GadgetData
+  "skimmer", numbers in docs/gadgets_plan.md): an atoll-only traversal gadget, a windsurfing board. U launches it from
+  the shore's edge or the ship's side (SkimmerState.launch_point: water >= 0.8 m deep 2-6.5 m ahead, a clear line to it;
+  a 0.45 s hop out onto it) or right where you swim. The "Skimmer" state is added to the captain's state machine at
+  runtime by GadgetBelt, like "Gadget". WASD steers camera-relative (TURN 2.6 rad/s); held, it runs up to the tier's
+  9/11/13 m/s times `wind_k` (Weather.wind_dir against the heading: beam 1.0, running 0.8, into it 0.45, by the wind's
+  strength 0.85-1.0), let go it eases to COAST 0.35 of that. The board floats on `player.water_surface()` (the
+  wave clock), the body aligned to the wave normal banked into turns (Player.align_up/align_hold), the rig raked by the
+  turn. Mk III hops on Space (7 m/s). A blow (Player._on_hit_received), running into a wall (a slide normal within 45
+  degrees of level faster than 2.5 m/s) or aground (< 0.3 m under it twice in a row) throws you into Swim; F stows it.
+  The captain stands side-on (the model yawed -90 degrees off the board's heading), the gd_skim pose (GadgetPoses).
+- **Its parts** (GadgetData.PARTS, ATOLL_PARTS; icons in GadgetModels.part_mesh): coral_spar, sea_silk, lagoon_pearl;
+  bp_skimmer. Kept out of `Gadgets.blueprint_ids()` and `part_ids()` (the tinkerer's order, the merchant, big ships
+  and chests roll from those): a gadget with a "region" key is placed by its region (the lead's atoll pass places all
+  four). `Gadgets.all_blueprint_ids()` has it (items, teach, study, the debug menu). Mk I 80g + 4 spar, 2 silk, 1 pearl;
+  Mk III totals 9 pearls, more than one atoll's 8.
+- **The gadget bag** (`scripts/gadgets/gadget_bag.gd`, `scripts/ui/gadget_wheel.gd`): the belt alone now carries one
+  gadget (GadgetData.SLOTS 1); carrying a bag item (`gadget_bag_<mustard|olive|oxblood|navy>`) six (BAG_SLOTS).
+  GadgetBelt.fit() sizes the slots to what's carried on every inventory change: shrinking keeps the first filled ones,
+  growing takes up the built gadgets that were off the slots. Gadgets off the slots stay built (owned), at their tier
+  and charges. **Migration:** a 1.28 save's three slots go through the same fit() on load: the first filled one stays,
+  the rest wait (a toast says so) and come back with a bag. O is GadgetWheel's (a RadialWheel, tap_ok): a tap
+  GadgetBelt.cycle() (no bag: "A gadget bag lets you carry more"; at the helm the ship gadgets as before), held with a
+  bag and two or more gadgets the wheel (entries are gadget ids). The old O handler in Player._unhandled_input is gone.
+- **Getting it:** the forge town's master tinkerer (volcanic_tinkerer.gd: "A gadget bag. (250 gold)", then a colour;
+  `Gadgets.buy_bag`), and hoards (Gadgets.chest_extras: 6% for a captain without one, a random colour, rolled last
+  on the chest's own stream).
+- **The look:** a strap tube over the right shoulder, across the chest and the back to the left hip (on the torso),
+  and the sack on a three-point SpringChains chain at the left hip (skinned loft, a darker patch; its own thigh_l
+  capsule keeps it off the leg), added to the body's `_sims` so it swings only within SIMS_R of the camera like hair
+  and coats. The flap is a mesh on a BoneAttachment3D on the sack's top bone, tweened open (FLAP_OPEN, the gadgets in
+  the mouth shown) while the wheel is up and OPEN_SECS after a pick; clasped otherwise. Humanoid.bag_colour/bag_open
+  wear it again on a rebuild (apply_look), like the pouch.
+- **Co-op:** a crewmate's screen builds the board on the puppet's lean node from NF_SKIM (the tier) and draws its
+  spray and wake from the snapshot velocity (SkimmerModel.puppet_fx); the bag from NF_BAG (colour index) and
+  NF_BAG_OPEN. Not nettested (no nettest in the build tier).
+- **Per frame/tick added:** riding: one physics tick of steering, a wave height and normal, a move_and_slide, a depth ray
+  every 3 ticks, spray + Ocean.wake every 0.08 s; a riding puppet the same spray/wake timer. The bag: one 2-segment
+  spring chain per captain inside the body's sims radius; nothing when it's still far. No new lights; the board and rig
+  have visibility ranges (120/160 m), the bag's parts 40 m and no shadows.
+- **Tests:** t/gadgets skimmer_parts, skimmer_ride, bag_slots, bag_migration, bag_buy; belt_fire now carries a bag; the
+  decoy test's Mk III burst is placed right by the grunt (under load he'd walked out of a burst 1 m off). Renders:
+  `skimmershot` (each tier riding, side/front/back), `bagshot` (four colours, open, running).

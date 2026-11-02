@@ -5,7 +5,8 @@ written 2026-10-31 while Zach is away (the feel-systems rule: numbers before the
 docs/v1_28_plan.md "Gadgets and tinkering".
 
 ## How it works
-- **The belt:** 3 slots. **U** fires the selected gadget, **O** cycles (was Shift+U until 2026-11-01: Shift is sprint) (pad: LB+LT fires, the share button
+- **The belt:** 1 slot; a **gadget bag** (1.28.1: the forge tinkerer's, 250 gold, four colours; hoards 6%) carries 6.
+  **U** fires the selected gadget, **O** taps to the next, held opens the gadget wheel (was Shift+U until 2026-11-01: Shift is sprint) (pad: LB+LT fires, the share button
   cycles). Any weapon in hand, on foot, free (idle, moving, jumping, falling). The HUD shows the slots right of the
   skill bar; the pouch on the captain's back shows the belt's best tier to the crew.
 - **Charges + cooldown:** a use spends a charge and starts the cooldown (game time). Traversal gadgets, the spyglass

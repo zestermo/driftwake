@@ -55,8 +55,9 @@ func _process(_d: float) -> bool:
 			for x in g:
 				TK.calm(x)
 			hp = g[0].health.current_health
-			d = load("res://scripts/gadgets/gadget_decoy.gd").landed(self, 2, g[0].global_position + Vector3(1.0, 0, 0), p)
-			d.life = 0.4
+			# (right by him and quick: walking back to the captain under load he'd left a burst 1 m off behind)
+			d = load("res://scripts/gadgets/gadget_decoy.gd").landed(self, 2, g[0].global_position + Vector3(0.3, 0, 0), p)
+			d.life = 0.15
 			until = TK.wait_secs(1.0)
 		4:
 			check("a Mk III goes off when it falls apart (%.0f -> %.0f)" % [hp, g[0].health.current_health], g[0].health.current_health < hp)

@@ -423,10 +423,15 @@ func apply_look(look_dict: Dictionary) -> void:
 	if pouch_tier >= 0:
 		# (loaded, not named: humanoid.gd compiles before the autoloads in a --script run, and the gadgets name them)
 		load("res://scripts/gadgets/gadget_belt.gd").wear(self, pouch_tier)
+	if bag_colour != "":
+		load("res://scripts/gadgets/gadget_bag.gd").wear(self, bag_colour, bag_open)
 
 
 ## The gadget pouch on the back (GadgetBelt.wear; -1 none), worn again on a rebuild.
 var pouch_tier := -1
+## (1.28.1) The gadget bag at the left hip (GadgetBag.wear; "" none) and whether its flap is open.
+var bag_colour := ""
+var bag_open := false
 
 
 ## A captain's belt lantern (BeltLantern), hung again whenever the body is rebuilt.

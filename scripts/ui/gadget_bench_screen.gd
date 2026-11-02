@@ -95,7 +95,7 @@ func _init(menu: Node) -> void:
 	slots.add_theme_constant_override("separation", 4)
 	c2.add_child(slots)
 	slots.add_child(InventoryScreen.small("ON THE BELT:", UIStyle.TEXT_DIM))
-	for i in range(GadgetData.SLOTS):
+	for i in range(GadgetData.BAG_SLOTS):
 		var sb := UIStyle.button(str(i + 1), 30)
 		sb.pressed.connect(func(): slot_selected(i))
 		slots.add_child(sb)
@@ -203,6 +203,9 @@ func _show_card() -> void:
 	_refill_btn.disabled = t < 0 or mc <= 0 or belt.charges(_sel) >= mc
 	for i in range(_slot_btns.size()):
 		var sb: Button = _slot_btns[i]
+		sb.visible = i < belt.slots.size()
+		if not sb.visible:
+			continue
 		sb.disabled = t < 0 or g["kind"] == "ship"
 		sb.modulate = Color(1.0, 0.85, 0.4) if belt.slots[i] == _sel else Color.WHITE
 

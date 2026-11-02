@@ -16,19 +16,26 @@ func define() -> String:
 	dlg.register_token(_token(), func() -> String: return _said)
 	# (1.28) his shelf of books (Books.tinker_shop)
 	preload("res://scripts/game/shops.gd").extra[key + "_books"] = Books.tinker_shop(who.get_slice(" ", who.get_slice_count(" ") - 1))
-	dlg.define(key, {"speaker": who, "voice": 0.8, "start": "intro", "return": "menu", "nodes": {
+	var nodes := {
 		"intro": {"text": ["Mind the springs. Everything on this bench wants to fly apart, and some of it's supposed to.",
 			"I draw gadgets. Hooks, pellets, boots with a kick in them. You build them at a bench like this one. I teach the drawing."], "next": "menu"},
 		"books": {"text": ["Books. Every one of them has a gadget in it somewhere, if you read it right."], "event": "shop:" + key + "_books", "next": "end"},
 		"menu": {"text": ["What'll it be, Captain?"], "choices": [
 			{"text": "Teach me a blueprint. (%d gold)" % price, "next": "teach"},
+			{"text": "A gadget bag. (%d gold)" % GadgetBag.PRICE, "next": "bag"},
 			{"text": "Any books?", "next": "books"},
 			{"text": "What's the bench for?", "next": "bench"},
 			{"text": "Goodbye.", "next": "end"}]},
 		"teach": {"text": ["{%s}" % _token()], "event": "volcanic_teach:" + key, "next": "menu"},
+		# (1.28.1) the gadget bag: one belt carries one gadget, his bag six; four colours, the same stitching
+		"bag": {"text": ["A belt holds one gadget. My bag holds six, and the clasp keeps them in when you're thrown about.",
+			"Same cut, four cloths. Which?"], "choices": GadgetBag.ORDER.map(func(c): return {"text": c.capitalize() + ".", "next": "bag_" + c}) + [{"text": "Not now.", "next": "menu"}]},
 		"bench": {"text": ["Blueprint, parts, a steady hand. The bench does the rest. Use it, it's free. Parts aren't.",
 			"Salvage, ore, a beast's horn: it all goes into something. The traders by the quay sell the dull bits."], "next": "menu"},
-	}})
+	}
+	for c in GadgetBag.ORDER:
+		nodes["bag_" + c] = {"text": ["{%s}" % _token()], "event": "volcanic_bag:%s:%s" % [key, c], "next": "menu"}
+	dlg.define(key, {"speaker": who, "voice": 0.8, "start": "intro", "return": "menu", "nodes": nodes})
 	dlg.dialogue_event.connect(_on_event)
 	return key
 
@@ -38,10 +45,11 @@ func _token() -> String:
 
 
 func _on_event(ev: String) -> void:
-	if ev != "volcanic_teach:" + key:
-		return
 	var p := get_tree().get_first_node_in_group("player")
-	_said = teach(p)
+	if ev == "volcanic_teach:" + key:
+		_said = teach(p)
+	elif ev.begins_with("volcanic_bag:%s:" % key):
+		_said = Gadgets.buy_bag(p, ev.get_slice(":", ev.get_slice_count(":") - 1))
 
 
 ## Teaches the captain `p` the first blueprint in his order they don't know, if they can pay; his answer.

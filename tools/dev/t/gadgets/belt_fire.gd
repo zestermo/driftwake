@@ -1,7 +1,7 @@
 extends SceneTree
 ## The gadget belt (1.28): gadgets built onto it show on the HUD and on the captain's back; U fires the selected one
 ## (a charge spent, the cooldown started, the lob played, the gadget lands), the cooldown and an empty pouch refuse
-## a use, O picks the next slot, and the belt survives a save round trip.
+## a use, O picks the next slot (carrying a gadget bag: 1.28.1), and the belt survives a save round trip.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -29,6 +29,7 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			check("an empty belt to start", p.gadgets.gadget() == "")
+			p.inventory_component.add_item(ItemDB.get_item("gadget_bag_mustard"), 1)
 			p.gadgets.give("smoke", 0)
 			p.gadgets.give("tar", 1)
 			until = TK.wait_secs(0.3)
@@ -36,7 +37,7 @@ func _process(_d: float) -> bool:
 			var hud = root.find_child("GadgetBelt", true, false)
 			check("the belt shows on the HUD", hud != null and hud.visible)
 			check("the pouch is worn on the back", p.body_model.torso.get_node_or_null("GadgetPouch") != null)
-			check("built gadgets fill the slots, the first selected", b.slots == ["smoke", "tar", ""] and b.gadget() == "smoke")
+			check("built gadgets fill the slots, the first selected", b.slots == ["smoke", "tar", "", "", "", ""] and b.gadget() == "smoke")
 			check("a Mk I smoke pellet holds 3 charges", b.charges("smoke") == 3)
 			TK.act("gadget_fire")
 			until = TK.wait_ticks(2)
@@ -73,7 +74,7 @@ func _process(_d: float) -> bool:
 			b.from_dict({})
 			check("a cleared belt wears no pouch", p.body_model.torso.get_node_or_null("GadgetPouch") == null)
 			b.from_dict(d)
-			check("the belt comes back from its save", b.slots == ["smoke", "tar", ""] and b.tier_of("tar") == 1 and b.charges("smoke") == 0)
+			check("the belt comes back from its save", b.slots == ["smoke", "tar", "", "", "", ""] and b.tier_of("tar") == 1 and b.charges("smoke") == 0)
 			return TK.done(fails)
 	step += 1
 	return false
