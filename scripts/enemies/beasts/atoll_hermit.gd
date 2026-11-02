@@ -51,7 +51,11 @@ func _spec() -> Dictionary:
 	return {"hip_h": BODY_Y + 0.3, "chest_r": 1.35, "hip_r": 1.35, "len": 2.6}
 
 
-## (its model is built in the world, not ahead on a worker: the rig is its own, not QuadBeast's)
+## (its model is built in the world, not ahead on a worker: the rig is its own, not QuadBeast's; t/island/beast_prebuild
+## skips a beast with builds_ahead false)
+var builds_ahead := false
+
+
 func prebuild() -> void:
 	model = Node3D.new()
 	model.name = "Model"
@@ -108,6 +112,8 @@ func _build() -> void:
 	var soft: Color = look[2]
 	var skin := own(PSXMat.lit("scales", Color.WHITE))
 	var flesh := own(PSXMat.lit("leather", Color.WHITE))
+	# (its coat is its carapace: GiantBeast's prebuild and flash read spec's)
+	spec["coat_mat"] = skin
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7731 + variant
 	_body = Node3D.new()

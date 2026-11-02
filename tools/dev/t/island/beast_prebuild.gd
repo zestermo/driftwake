@@ -55,7 +55,8 @@ func _process(_d: float) -> bool:
 					var info: Dictionary = th.beasts[k]
 					if info.has("script") and not info.has("stock") and not info.get("camp", false) and not kinds.has(info["script"]):
 						var probe: Node = load(info["script"]).new()
-						if probe.has_method("prebuild"):
+						# (a beast that builds its own rig in the world says so: the atoll's hermit crab)
+						if probe.has_method("prebuild") and probe.get("builds_ahead") != false:
 							kinds.append(info["script"])
 						probe.free()
 			check("kinds that build ahead: %d" % kinds.size(), kinds.size() >= 10)

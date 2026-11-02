@@ -3,7 +3,7 @@ extends SceneTree
 ## be done, the rest greyed with why (and an entry another feature registers joins in). Picking Make camp lays a campfire in front of you and sits you by it; sitting there a
 ## moment rests you (health back, the game saved) and the entry reads "Rest by the fire". The fire burns out.
 const TK := preload("res://tools/dev/test_kit.gd")
-const ALL := ["camp", "train", "cook", "read", "meditate", "tinker", "fish", "cut_bait", "sleep"]
+const ALL := ["camp", "train", "cook", "read", "meditate", "tinker", "fish", "cut_bait", "fish_journal", "sleep"]
 var stage
 var p
 var w
@@ -53,7 +53,7 @@ func _process(_d: float) -> bool:
 			save.use_test_file("user://t_action_wheel_%d.dat" % OS.get_process_id())
 			check("ashore: the place is the island", AW.place(p) == "island")
 			check("ashore: the whole list (%s)" % str(AW.entries_for(p)), AW.entries_for(p) == ALL)
-			check("...Make camp and Train can be done (%s)" % str(AW.ready_for(p)), AW.ready_for(p) == ["camp", "train"])
+			check("...Make camp, Train and the Fish journal can be done (%s)" % str(AW.ready_for(p)), AW.ready_for(p) == ["camp", "train", "fish_journal"])
 			AW.register("t_wave", "Wave", "", func(pl): return AW.place(pl) == "island", func(_pl): ran += 1, 5)
 			check("a registered entry joins in its order", AW.entries_for(p) == ["t_wave"] + ALL)
 			AW.run("t_wave", p)
