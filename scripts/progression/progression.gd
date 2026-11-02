@@ -124,15 +124,11 @@ func _ready() -> void:
 	# (Edy: a master's questions are answered here, on the captain's own machine)
 	if not Dialogue.dialogue_event.is_connected(_on_edy_event):
 		Dialogue.dialogue_event.connect(_on_edy_event)
-	Dialogue.register_token("edy_read", func(): return str(EdyTypes.info(_local_edy()).get("read", "")))
-	Dialogue.register_token("edy_says", func(): return "Your Edy is %s. %s" % [EdyTypes.name_of(_local_edy()), EdyTypes.info(_local_edy()).get("says", "")])
-	Dialogue.register_token("edy_price", func(): return str(EdyTypes.REREAD_GOLD))
-
-
-## The local captain's Edy type (the tokens ask whoever's talking).
-func _local_edy() -> String:
-	var lp := get_tree().get_first_node_in_group("player") if is_inside_tree() else null
-	return str(lp.progression.will_color) if lp and lp.get("progression") else will_color
+	# (static, bound to nothing: every Progression runs this, AI captains' too, and a lambda bound to one that's
+	# since been freed crashed the game when the master read the captain's Edy)
+	Dialogue.register_token("edy_read", EdyTypes.token_read)
+	Dialogue.register_token("edy_says", EdyTypes.token_says)
+	Dialogue.register_token("edy_price", EdyTypes.token_price)
 
 
 ## The quiz's answers so far (type -> count) and the last answer's types.

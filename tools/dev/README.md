@@ -278,6 +278,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `padshot`: The pad's skill list (bottom left) on the light stage's HUD with four skills and an ultimate: pad.png (dim, playing) and layer.png (LB held). Args: <out dir> [WxH]. Opens a window.
 - `barshot`: the skill bar across loadouts on the light stage (katana in hand, pistols in loadout 2, a greyed cutlass skill): `<prefix>_screen.png` and `<prefix>_bar.png` (cropped, x3). Args: <out_prefix>.
 - `leviathanshot`: a leviathan on the light stage beside the crew's ship, risen and fighting (`<prefix>_<kind>_far/_deck.png`). Args: <out_prefix> [squid|eel|angler].
+- `edyshot`: every Edy type's attunement played in a window, one shot each (`<prefix>_<type>.png`). Args: <out_prefix>.
 - `cookshot`: the cooking game in first person on the light stage, one shot per beat and the plated result (`<prefix>_stir/_flip/_plate/_done.png`). Args: <out_prefix>.
 - `iconsheet`: (no description)
 - `ikshot`: Foot IK shots: standing across a step and on a slope, IK off vs on. Args: <out_prefix>

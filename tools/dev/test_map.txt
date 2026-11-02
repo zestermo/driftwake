@@ -727,3 +727,5 @@ scripts/enemies/storm_eel.gd            t/sea/storm_eel
 scripts/enemies/leviathan.gd            t/sea/storm_eel
 scripts/enemies/abyssal_angler.gd       t/sea/angler
 scripts/enemies/leviathan.gd            t/sea/angler
+scripts/dialogue/dialogue_manager.gd    t/story/edy_tokens
+scripts/progression/edy_types.gd        t/story/edy_tokens

@@ -9009,3 +9009,12 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - F4 spawn list: "Leviathan: <kind>" (a lair where you stand). `Downtime` counts an up leviathan as "something huge".
 - Tests: `t/sea/squid`, `t/sea/storm_eel`, `t/sea/angler`. Render: `leviathanshot <out> <kind>`. Expected at prepush:
   seatest / r-suites through cannonball.gd and ship.gd (held_k), net (leviathans are unexercised by nettest).
+
+## 2026-11-01 The temple crash: the Edy reading's tokens
+- Zach's game died as Master Isao read his Edy. Every Progression's `_ready` registered `{edy_read}` / `{edy_says}` /
+  `{edy_price}` as lambdas bound to itself, the last one winning; AI captains (rivals, officers) have a Progression too,
+  so after one was made and freed the reading's last line called into a freed object. Now they're static
+  (`EdyTypes.token_read/says/price`, reading the local captain), and `DialogueManager._fill_tokens` skips a provider
+  that's no longer valid (the island tokens are lambdas bound to island nodes: one sailed away from says nothing).
+- Not reproduced from Zach's own session (his log was gone); the mechanism matches. `tools/dev/edyshot.gd` plays every
+  type's attunement in a window (no GPU fault there). Test: `t/story/edy_tokens`.
