@@ -4,7 +4,7 @@ extends SceneTree
 ## its own moves (taken to its last phase partway), never the same twice running; their close blows speak the tell
 ## language (a fan on the ground as a cone winds up).
 const TK := preload("res://tools/dev/test_kit.gd")
-const KINDS := ["salt_croc", "tidemaw"]
+const KINDS := ["salt_croc", "tidemaw", "hermit_crab"]
 const MIN_MOVES := 3
 const FIGHT_S := 16.0
 var stage

@@ -710,6 +710,7 @@ scripts/island/themes/atoll_shoals.gd      t/island/atoll_life
 shaders/atoll_shoal.gdshader               t/island/atoll_life
 scripts/enemies/fauna/atoll_*.gd           t/island/atoll_life
 scripts/enemies/beasts/atoll_*.gd          t/island/atoll_beasts t/island/beast_moves
+scripts/enemies/beasts/atoll_hermit.gd     t/island/atoll_hermit t/island/atoll_beasts
 scripts/island/themes/atoll_land.gd        t/island/atoll_land
 scripts/island/themes/atoll_data.gd        t/island/atoll_land
 scripts/island/themes/atoll_town.gd        t/island/atoll_land

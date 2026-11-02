@@ -179,11 +179,12 @@ func _init() -> void:
 	minis = ["salt_croc"]
 	roamers = ["tidemaw"]
 	beasts = {
-		"hermit_crab": {"script": "res://scripts/enemies/beasts/giant_scorpion.gd", "names": ["The Shell King", "Old Wreckback", "The Tide Hermit", "Barnaclehouse"], "looks": 3,
+		"hermit_crab": {"script": "res://scripts/enemies/beasts/atoll_hermit.gd", "names": ["The Shell King", "Old Wreckback", "The Tide Hermit", "Barnaclehouse"], "looks": 3,
 			"banner": ["The Tidal Flat", "The flat is scored with furrows and littered with smashed shell. Out in the middle, something's house is moving."]},
 		"salt_croc": {"script": "res://scripts/enemies/beasts/atoll_croc.gd", "names": ["Old Saltjaw", "The Lagoon Croc", "Bonecrusher", "Mangrove Mother"], "site": "lair"},
 		"tidemaw": {"script": "res://scripts/enemies/beasts/atoll_tidemaw.gd", "names": ["The Tidemaw", "Old Barnacle", "The Reef Grazer"]},
 	}
+	arena_dress = _dress_flat
 	fauna = FAUNA
 	creatures = CREATURES
 	cave_fauna = {"ceiling": "bat", "floor": ["mite", "snake", "crab"]}
@@ -268,6 +269,46 @@ func meshes() -> Dictionary:
 		"broadleaf": [AtollPlants.driftwood(1481), AtollPlants.beach_litter(1482), AtollPlants.driftwood(1483)],
 		"shrub": [AtollPlants.sprout(1491), AtollPlants.sprout(1492)],
 	}
+
+
+## The hermit crab's tidal flat (ThemeDef.arena_dress): tide pools left in its hollows, its ground scored in furrows
+## by the crab's legs, smashed shell and coral rubble everywhere, a stove-in canoe and driftwood at the edge.
+## Arena-local (the floor's middle at 0, its ground y0).
+static func _dress_flat(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	var pool := PSXMat.lit("atoll_seafloor", Color(0.5, 0.82, 0.86))
+	var shell := PSXMat.lit("atoll_coral", Color(1.15, 1.08, 1.0))
+	var furrow := PSXMat.flat(Color(0.58, 0.52, 0.4))
+	for k in range(6):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.35, r - 3.0)
+		KitLandmarks.water_disc(mb, pool, Vector3(q.x, float(gy.call(q)) + 0.03, q.y), rng.randf_range(1.2, 2.6), 10, 0.3)
+	for k in range(9):
+		var a := rng.randf() * TAU
+		var p0 := Vector2.from_angle(a) * rng.randf_range(2.0, r - 4.0)
+		var dir := Vector2.from_angle(a + rng.randf_range(-0.6, 0.6))
+		var ln := rng.randf_range(2.5, 5.0)
+		for s in [-0.35, 0.35]:
+			var o: Vector2 = dir.orthogonal() * s
+			var w: Vector2 = dir.orthogonal() * 0.08
+			var pa: Vector2 = p0 + o
+			var pb: Vector2 = p0 + o + dir * ln
+			var ya := float(gy.call(pa)) + 0.03
+			var yb := float(gy.call(pb)) + 0.03
+			mb.add_quad(furrow, Vector3(pa.x - w.x, ya, pa.y - w.y), Vector3(pa.x + w.x, ya, pa.y + w.y), Vector3(pb.x + w.x, yb, pb.y + w.y), Vector3(pb.x - w.x, yb, pb.y - w.y),
+				Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, Vector3.UP)
+	for k in range(40):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(1.0, r + 2.0)
+		var s := rng.randf_range(0.1, 0.35)
+		mb.add_blob(shell, Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.6, 0.6)), Vector3(q.x, float(gy.call(q)) + s * 0.2, q.y)),
+			Vector3(s * 1.3, s * 0.5, s), rng, 0.35, 2, 5, 0.5, Color.WHITE.lerp(Color(1.0, 0.7, 0.62), rng.randf() * 0.6))
+	for k in range(3):
+		var a := rng.randf() * TAU
+		var q := Vector2.from_angle(a) * (r + rng.randf_range(1.0, 3.0))
+		var at := Vector3(q.x, float(gy.call(q)), q.y)
+		mb.add_tube(PSXMat.lit("planks_grey", Color(1.1, 1.05, 0.95)), PackedVector3Array([at + Vector3(-1.4, 0.2, 0).rotated(Vector3.UP, a), at + Vector3(1.4, 0.25, 0.2).rotated(Vector3.UP, a)]), 0.22, 0.16, 6, 0.8)
+		KitLandmarks.box_col_xf(body, Vector3(2.8, 0.4, 0.5), Transform3D(Basis(Vector3.UP, -a), at + Vector3.UP * 0.2))
 
 
 ## An atoll: a ring with a gap, a palm on it.
