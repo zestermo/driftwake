@@ -123,3 +123,9 @@ to work toward.
   feasts, fishing by theme, three weapons (rapier, fighting staff, chain sickle), the volcanic isle and the coral atoll,
   sea stops (a floating restaurant, a merchant ship, a warlord's flagship, an Admiralty lieutenant's warship), three
   leviathans, dev tools and polish. Fruits are tuned in play, not polished now. Sky islands stay after 2.0.
+
+## Decided (2026-11-02)
+- **1.29 'Shipshape'** (docs/v1_29_plan.md "Decided"): the hull layout as data, the sloop's detail pass (a stepped-down
+  cabin that grows with a Quarters line, ladders, the flag, an upgrading wheel, the galley and berths), new clothing
+  (masks, wraps, parachute pants, a jester outfit, a bouncing backpack, coats worn over the shoulders), hitches and
+  flakes. **1.30**: the brig and galleon on new layouts, new creatures for the thinnest themes. The submarine later.
