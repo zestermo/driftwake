@@ -50,7 +50,14 @@ static func list(isl) -> Array:
 			heads.append(q)
 		gx += HEAD_GRID
 	for q in heads:
-		out.append(_spot(isl, q, "spear", "heads", 7.0))
+		# (at the head's foot: SpearSchool wants a diver deeper than 2.5 m)
+		var foot: Vector2 = q
+		for k in range(16):
+			var f: Vector2 = q + Vector2.from_angle(TAU * (k % 8) / 8.0) * (4.0 if k < 8 else 8.0)
+			if isl.hv(f) < -2.5:
+				foot = f
+				break
+		out.append(_spot(isl, foot, "spear", "heads", 7.0))
 	# the reef's drop-off outside the ring, off the islets either side of the dock (deep-water fish)
 	var da: float = (isl.sites["dock"] as Vector2).angle()
 	for off in [1.2, -1.6, PI]:

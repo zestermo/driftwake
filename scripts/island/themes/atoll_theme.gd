@@ -132,15 +132,20 @@ const STYLE := {
 
 ## Each kind: its zones, how likely an island has it, how many groups. Crabs everywhere on the sand, monitor lizards
 ## basking on the islets, sea snakes in the shallows, bats in its few caves.
+## Coconut crabs up under the palms, boobies nesting in the crowns ("toucan": the perching birds' slot, FaunaSpawner).
 const FAUNA := {
 	"crab": {"zones": ["shore"], "p": 0.98, "dens": [6, 10]},
-	"lizard": {"zones": ["floor"], "p": 0.6, "dens": [2, 4], "pack": [1, 2], "young": 0.4},
+	"coconut_crab": {"zones": ["floor"], "p": 0.85, "dens": [3, 6], "pack": [1, 2], "young": 0.3},
+	"toucan": {"zones": ["canopy"], "p": 0.8, "dens": [2, 5]},
+	"lizard": {"zones": ["floor"], "p": 0.5, "dens": [2, 4], "pack": [1, 2], "young": 0.4},
 	"snake": {"zones": ["shore", "floor"], "p": 0.45, "dens": [1, 3]},
 	"bat": {"zones": ["cave"], "p": 0.6, "dens": [1, 3]},
 	"mite": {"zones": ["cave"], "p": 0.3, "dens": [1, 2]},
 }
 const CREATURES := {
 	"crab": "res://scripts/enemies/fauna/crab.gd",
+	"coconut_crab": "res://scripts/enemies/fauna/atoll_coconut_crab.gd",
+	"toucan": "res://scripts/enemies/fauna/atoll_booby.gd",
 	"lizard": "res://scripts/enemies/fauna/monitor_lizard.gd",
 	"snake": "res://scripts/enemies/fauna/snake.gd",
 	"bat": "res://scripts/enemies/fauna/bat.gd",

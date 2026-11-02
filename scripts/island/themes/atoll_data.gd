@@ -24,7 +24,8 @@ const PASSES := [1, 2]
 const PASS_Y := -2.8
 const PASS_HALF := 0.035
 ## The lagoon: its floor (m under the sea), the floor's noise, the coral heads rising from it toward the surface.
-const LAGOON_Y := [-1.9, -2.6]
+## (deeper than SpearSchool.DEEP_M, 2.5, over most of it: spearfishing works in the lagoon)
+const LAGOON_Y := [-2.5, -3.1]
 const LAGOON_EDGE := 14.0
 const HEADS_Y := -0.7
 const HEADS_AT := 0.62

@@ -8,6 +8,7 @@ extends RefCounted
 ## village. Plan and shape are numbers only (the worker).
 
 const D := preload("res://scripts/island/themes/atoll_data.gd")
+const SHOALS := preload("res://scripts/island/themes/atoll_shoals.gd")
 
 
 static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
@@ -94,7 +95,7 @@ static func pass_at(isl, lp: Dictionary, a: float) -> float:
 
 ## The lagoon's floor at p (the floor's swell, coral heads reaching up).
 static func lagoon_y(lp: Dictionary, p: Vector2) -> float:
-	var y: float = float(lp["lagoon_y"]) + (lp["floor"] as FastNoiseLite).get_noise_2d(p.x, p.y) * 0.4
+	var y: float = float(lp["lagoon_y"]) + (lp["floor"] as FastNoiseLite).get_noise_2d(p.x, p.y) * 0.3
 	var hv: float = (lp["heads"] as FastNoiseLite).get_noise_2d(p.x, p.y) * 0.5 + 0.5
 	if hv > D.HEADS_AT:
 		var core := 1.0 - smoothstep(0.08, 0.5, (lp["heads_d"] as FastNoiseLite).get_noise_2d(p.x, p.y) + 1.0)
@@ -299,4 +300,4 @@ static func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 
 static func steps(isl) -> Array:
-	return [["atoll spots", func(): AtollSpots.build(isl)]]
+	return [["atoll spots", func(): AtollSpots.build(isl)], ["atoll shoals", func(): SHOALS.build(isl)]]
