@@ -9042,3 +9042,26 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Tests: t/weapons/staff_combo, staff_tree (shape, every technique and both ultimates land), staff_moves (Wind Wheel,
   Vault Kick, both crew solos), plus_staff (alternates, aerial heavy, second ultimate). Renders: tools/dev/out/staff/as_*.
   Expect techtest (new skills), progtest, uitest (a new tab), balancetest and nettest (the duets) at the push.
+
+## 2026-11-02: the chain sickle (1.28 weapons; docs/v1_28_plan.md "Weapons", docs/weapons_126.md)
+- **Its own kind** (WeaponDesigns "sickle", base resources/items/chain_sickle.tres; designs kama, war sickle (reach 1.15),
+  hook sickle (bleed 4 s), ghostfire (RARE, a glowing edge); `WeaponDesigns.sickle(design, key)`; `_sickle` a grip along +z
+  with a pommel ring and a crescent of boxes at its top). One-handed; nothing in the off hand (Player._offhand_valid: the
+  left hand holds the chain); on the hip.
+- **Moves** (scripts/npc/sickle_moves.gd, SickleMoves "sk_*"): the dagger's keys for the close cuts (BORROW sk_1/sk_2/parry/
+  deflect), its own for the lash (sk_3/sk_throw), the whirl (sk_4/sk_heavy: one turn / two), Chain Rush (sk_dash). **The
+  chain** is drawn every frame by `SickleMoves.chain` (Humanoid._process, stance "sickle"): an ImmediateMesh line from the
+  pommel to the weight (top_level children of the body, meta "sickle_chain"); `weight_at` puts the weight in the left hand
+  or on the action's CHAIN path (body space keys, or a whirl [u0, u1, radius, height, turns]). Reaches "chain" (5 m line)
+  and "chain_spin" (6 m ring). The lash pulls (LightAttackState "pulls": knockback -5).
+- **Tree** (SkillTrees "sickle": Guard / Chain / Reaper, element "sk" Ghostfire 16 / Soul Chain 25, tab SICKLE): Hook the
+  Blade 3 · Binding Coil 8 (pin, unblockable) · Iron Links 20; Serpent Lash 5 (three 7 m lashes, the last pulls) · Reel and
+  Reap 10 (pull from 8 m, three cuts) · ult A Harvest of Souls (gather, whirl, each foe reaped); Reaping Circle 2 · Chain
+  Rush 4 · Light Chain 6 · Hook Step 12 (blink behind) · Reaper's Rhythm 13 · Reaper's Way 22 (Harvester / Chain Warden).
+  WeaponPlus: ult B Soul Chain (a 14 m pulling line, then the reap), alternates Chain Dive / Whirling Rush / Rising Reap
+  (launcher), aerial heavy Grave Drop, crew Crossed Chains (combined) and Chain and Blade (setup), bridges.
+- **Colours** FX.TREE_FX "sickle" ghostfire (ghost-white, sickly green, teal), `FX.ghostfire`. Icons: gen_sickle_icons.py.
+- Sources: chests turn a dagger/axe into one `SICKLE_CHANCE` 0.12 (hoard 0.25), merchants, Vey's rack (14), Shift+F10.
+- Co-op: the chain is drawn from each screen's own body and actions (nothing on the wire). Per frame: one ImmediateMesh
+  rebuild (15 points) per sickle-holding body on screen.
+- Tests: t/weapons/sickle_combo, sickle_tree, sickle_moves, plus_sickle. Renders: tools/dev/out/sickle/as_*.

@@ -737,3 +737,5 @@ scripts/npc/staff_moves.gd              t/weapons/staff_combo
 scripts/npc/staff_moves.gd              t/weapons/staff_tree t/weapons/staff_moves t/weapons/plus_staff
 tools/texture_gen/gen_staff_icons.py    t/weapons/staff_tree
 scripts/npc/sickle_moves.gd             t/weapons/sickle_combo
+scripts/npc/sickle_moves.gd             t/weapons/sickle_tree t/weapons/sickle_moves t/weapons/plus_sickle
+tools/texture_gen/gen_sickle_icons.py   t/weapons/sickle_tree

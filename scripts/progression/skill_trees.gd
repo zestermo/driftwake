@@ -35,6 +35,7 @@ const HEADERS := {
 	"greatsword": ["Greatsword", "combat", Color(0.72, 0.95, 0.84), 30],
 	"rapier": ["Rapier", "combat", Color(0.82, 0.88, 0.98), 30],
 	"staff": ["Fighting Staff", "combat", Color(0.72, 0.95, 0.5), 30],
+	"sickle": ["Chain Sickle", "combat", Color(0.55, 1.0, 0.7), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"long_gun": ["Long Gun", "combat", Color(0.74, 0.84, 1.0), 30],
@@ -84,6 +85,7 @@ const ELEMENTS := {
 	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
 	"rapier": ["rp", "Quicksilver", "Hall of Glass", "quicksilver mirror: silver afterimages off the thrusts, mirror flashes at the point, mercury beading off the blade, and the phantom's double thrust drawn in silver"],
 	"staff": ["sf", "Leaf Wind", "Autumn Gale", "leaves and wind: green and gold leaves whirled off every turn of the staff and blown round the ones it strikes"],
+	"sickle": ["sk", "Ghostfire", "Soul Chain", "ghostfire: sickly green spectral flame along the chain's links and licking off every cut, and pale souls tugged along on the pull"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"long_gun": ["lg", "Starlit Sights", "Falling Star", "starlight: silver shots with a moon-blue edge, star glints where they land, and Hawkeye's shots fall like shooting stars"],
 	"cannon": ["cn", "Brimstone", "Hellfire Shells", "brimstone: sulphur-yellow blasts, violet smoke and burning shrapnel, and the Leviathan Shell leaves the ground burning"],
@@ -224,6 +226,7 @@ static func _build() -> void:
 	_build_greatsword()
 	_build_rapier()
 	_build_staff()
+	_build_sickle()
 	_build_corsair()
 	_build_pistol()
 	_build_long_gun()
@@ -1102,6 +1105,45 @@ static func _build_staff() -> void:
 	_step("sf_drive", "Drive", "sf_vault", 3, {"heavy_staff": 0.08}, "Your Cyclone (right-click) hits 8% harder a step.")
 	_step("sf_draw", "Draw Breath", "sf_gale", 3, {"flow_staff": 0.15}, "Staff hits give 15% more energy a step.")
 	_step("sf_recover", "Recovery", "sf_flow", 3, {"cdr_staff": 0.05}, "Staff techniques come back 5% sooner a step.")
+
+
+## Chain sickles (kama and chain, war sickle, hook sickle, ghostfire): two ranges in one weapon, the sickle close and the
+## chain long; wraps that pull or bind; ghostfire as the element.
+static func _build_sickle() -> void:
+	_tree("sickle", ["Guard", "Chain", "Reaper"])
+	_root("sk_root", "Chain Sickle", {},
+		"A sickle in one hand and a weighted chain in the other: two quick cuts close in, then the chain's lash out to five paces that drags whoever it catches toward you. Right-click whirls the weight round you at full length. Fight with a chain sickle in hand to build its mastery.")
+	_big("sk_hook", "Hook the Blade", "mech", 0, 3, {"parryshot_sickle": 1, "parry_sickle": 0.06},
+		"Parry with a chain sickle and you knock gunshots aside too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("sk_bind", "Binding Coil", "tech", 0, 8, {}, "", "binding_coil")
+	_big("sk_iron", "Iron Links", "mech", 0, 20, {"def_sickle": 5.0, "heavy_sickle": 0.15},
+		"5 more defense with a chain sickle in hand, and your whirl (right-click) hits 15% harder.")
+	_big("sk_lash", "Serpent Lash", "tech", 1, 5, {}, "", "serpent_lash")
+	_big("sk_reel", "Reel and Reap", "tech", 1, 10, {}, "", "reel_and_reap")
+	_elem(1)
+	_elem(2)
+	_big("sk_harvest", "Harvest of Souls", "ult", 1, 30, {}, "", "harvest_of_souls")
+	_big("sk_circle", "Reaping Circle", "move", 2, 2, {"mv_reaping_circle": 1},
+		"Adds a fourth blow to your combo: the weight whirled round you once at full length, clearing everyone about you.")
+	_big("sk_rush", "Chain Rush", "move", 2, 4, {"mv_chain_rush": 1},
+		"Attack at a sprint: the weight thrown ahead and you reeled in after it, the sickle cutting on arrival. It breaks their wind-up.")
+	_big("sk_light", "Light Chain", "mech", 2, 6, {"stam_sickle": 0.12, "bleed_sickle": 0.1},
+		"Chain sickle attacks cost 12% less stamina, and 10% of its cuts open a bleeding wound.")
+	_big("sk_hookstep", "Hook Step", "tech", 2, 12, {}, "", "hook_step")
+	_big("sk_flow", "Reaper's Rhythm", "passive", 2, 13, {"finisher_sickle": 0.3, "heavy_sickle": 0.25},
+		"Passive (a slot). The last blow of your combo lands 30% harder, and your whirl (right-click) 25%.")
+	_variant("sk_way", "Reaper's Way", 2, [
+		["sk_harvester", "Harvester", 22, {"crit_sickle": 0.08, "bleed_sickle": 0.15}, "8% more of your hits land 50% harder, and 15% of them open a bleeding wound."],
+		["sk_warden", "Chain Warden", 22, {"def_sickle": 4.0, "cdr_sickle": 0.2}, "4 more defense with a chain sickle, and its techniques come back 20% sooner."]],
+		"Two ways to carry the chain. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("sk_edge", "Keen Crescent", "sk_root", 5, {"dmg_sickle": 0.05}, "+5% chain sickle damage a step.")
+	_step("sk_wrap", "Wrapped Arm", "sk_hook", 3, {"def_sickle": 3.0}, "+3 defense with a chain sickle in hand a step.")
+	_step("sk_keen", "Cold Flame", "sk_elem", 5, {"crit_sickle": 0.03}, "3% more of your chain sickle hits land 50% harder, a step.")
+	_step("sk_carry", "Follow Through", "sk_reel", 5, {"finisher_sickle": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("sk_wind", "Second Wind", "sk_circle", 3, {"stam_sickle": 0.05}, "Chain sickle attacks cost 5% less stamina a step.")
+	_step("sk_drive", "Momentum", "sk_rush", 3, {"heavy_sickle": 0.08}, "Your whirl (right-click) hits 8% harder a step.")
+	_step("sk_draw", "Draw Breath", "sk_lash", 3, {"flow_sickle": 0.15}, "Chain sickle hits give 15% more energy a step.")
+	_step("sk_recover", "Recovery", "sk_flow", 3, {"cdr_sickle": 0.05}, "Chain sickle techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.

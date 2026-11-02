@@ -92,9 +92,9 @@ const STYLES := {
 		"pulls": [false, false, true, false]},
 	# chain sickle, attacked at a sprint (Chain Rush): the weight thrown ahead, reeled in after it, the sickle cut on arrival
 	"sickle_dash": {"anims": ["sk_dash"], "trails": [""],
-		"durations": [0.64], "impulses": [13.0],
+		"durations": [0.64], "impulses": [8.0],
 		"damages": [14.0], "hitstops": [0.06], "shakes": [0.14],
-		"reach": "dagger", "color": Color(0.7, 1.0, 0.75), "breaker": true, "sickle": true},
+		"reach": "chain", "color": Color(0.7, 1.0, 0.75), "breaker": true, "sickle": true},
 	# fighting staff: an overhead blow, the rear end swung up through them (a launcher), a flat sweep and (Wind Wheel)
 	# one full turn clearing everyone round you; blunt: every blow drives them back ("knocks", x the design's knock)
 	"staff": {"anims": ["sf_1", "sf_2", "sf_3", "sf_4"], "trails": ["", "", "", ""],

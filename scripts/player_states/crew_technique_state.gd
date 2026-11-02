@@ -106,6 +106,8 @@ const DUETS := {
 	"steady_bind": {"lead": ["sp_cut", 0.5, 0.18], "mate": ["parley_shot", 0.6, 0.3], "dmg": 16.0, "burst": 50.0, "flags": "pin", "fin": "down unblock"},
 	"pin_shoot": {"lead": ["lg_kneel_fire", 0.6, 0.25], "mate": ["lg_fire", 0.5, 0.2], "dmg": 18.0, "burst": 52.0, "flags": "pin ranged", "fin": "down unblock ranged", "stay": true},
 	"double_barrel": {"lead": ["cn_fire", 0.6, 0.25], "mate": ["cn_fire", 0.6, 0.25], "dmg": 24.0, "burst": 36.0, "flags": "down unblock", "stay": true},
+	"crossed_chains": {"lead": ["sk_throw", 0.5, 0.2], "mate": ["sk_2", 0.45, 0.18], "dmg": 20.0, "burst": 26.0, "flags": "breaker unblock"},
+	"chain_and_blade": {"lead": ["sk_throw", 0.55, 0.22], "mate": ["sk_1", 0.45, 0.18], "dmg": 12.0, "burst": 50.0, "flags": "pin", "fin": "down unblock"},
 	"twin_gale": {"lead": ["sf_4", 0.5, 0.2], "mate": ["sf_4", 0.5, 0.2], "dmg": 20.0, "burst": 26.0, "flags": "breaker unblock"},
 	"sweep_the_legs": {"lead": ["sf_low", 0.55, 0.22], "mate": ["sf_1", 0.5, 0.2], "dmg": 12.0, "burst": 50.0, "flags": "pin", "fin": "down unblock"},
 	"mirror_match": {"lead": ["rp_deflect", 0.45, 0.14], "mate": ["rp_deflect", 0.45, 0.14], "dmg": 22.0, "burst": 28.0, "flags": "breaker unblock"},

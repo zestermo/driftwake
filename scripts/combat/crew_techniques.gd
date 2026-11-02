@@ -99,6 +99,10 @@ const ALL := {
 		"desc": "Your crewmate climbs onto the barrel and you fire: they ride the blast far along your aim and land in a slam that floors the crowd.",
 		"solo_desc": "Fire the cannon into the ground at your feet and ride the blast high, coming down in a slam."},
 	# (1.28) the rapier's: a duet (CrewTechniqueState.DUETS "combined"), not a launch
+	# (1.28) the chain sickle's: a duet, the chain round the one ahead as both strike
+	"crossed_chains": {"name": "Crossed Chains", "styles": ["sickle"], "kind": "combined", "solo": "Lone Chain",
+		"desc": "You and your crewmate strike the foe ahead from opposite sides on the same beat, your chain round it as they hit: a burst of ghostfire on everyone round it.",
+		"solo_desc": "The chain round the foe ahead, a blink to its far side and a cut back, and the burst."},
 	# (1.28) the staff's: a duet, both spinning into the one ahead
 	"twin_gale": {"name": "Twin Gale", "styles": ["staff"], "kind": "combined", "solo": "Lone Gale",
 		"desc": "You and your crewmate spin your weapons into the foe ahead from opposite sides on the same beat: a gust of leaves bursts on everyone round it.",
