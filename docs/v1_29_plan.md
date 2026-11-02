@@ -59,7 +59,7 @@ For scale: a full sloop line costs ~950 at the yard, and the caravel 1,400.
    figureheads (modelshot sheet before/after).
 - **Clothing** (a second driftwake-feature agent, alongside, a separate area: character_look, body_builder, spring_chains): the
   shoulder-coat mode first, then the pieces, checked with outfitgrid / armorshot.
-- **Hitches + flakes** (a driftwake-fixer, alongside).
+- **Hitches + flakes** (this session; two agents at most, Zach 2026-11-02).
 
 ### Open / deferred
 - Masks and face coverings take a new face-accessory slot that stacks with hats; a full mask hides the painted face. **assumed**
