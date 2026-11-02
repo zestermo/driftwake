@@ -31,6 +31,7 @@ const TREES := {
 	"dual_axe": {"name": "Twin Axes", "tab": "2 AXES", "kind": "weapon"},
 	"greatsword": {"name": "Greatsword", "tab": "GREATSWORD", "kind": "weapon"},
 	"rapier": {"name": "Rapier", "tab": "RAPIER", "kind": "weapon"},
+	"staff": {"name": "Fighting Staff", "tab": "STAFF", "kind": "weapon"},
 	"corsair": {"name": "Corsair", "tab": "CORSAIR", "kind": "weapon"},
 	"pistol": {"name": "Pistol", "tab": "PISTOL", "kind": "weapon"},
 	"long_gun": {"name": "Long Gun", "tab": "LONG GUN", "kind": "weapon"},
@@ -43,13 +44,13 @@ const TREES := {
 	"fish": {"name": "Fishing", "tab": "LIFE", "kind": "life"},
 	"fruit": {"name": "Driftfruit", "tab": "FRUIT", "kind": "fruit"},
 }
-const TAB_ORDER := ["base", "unarmed", "black_leg", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "polearm", "hammer", "dual_axe", "greatsword", "rapier", "corsair", "pistol", "long_gun", "cannon", "slingshot", "life", "fruit"]
+const TAB_ORDER := ["base", "unarmed", "black_leg", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "polearm", "hammer", "dual_axe", "greatsword", "rapier", "staff", "corsair", "pistol", "long_gun", "cannon", "slingshot", "life", "fruit"]
 const LIFE_SKILLS := ["swim", "sea", "cook", "fish"]
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
 const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe", "dagger": "dagger",
 	"dual_sword": "dual", "dual_dagger": "dual_dagger", "sword_pistol": "corsair", "pistol": "pistol", "dual_pistol": "pistol", "polearm": "polearm",
-	"hammer": "hammer", "dual_axe": "dual_axe", "greatsword": "greatsword", "black_leg": "black_leg", "long_gun": "long_gun", "cannon": "cannon", "slingshot": "slingshot", "rapier": "rapier"}
+	"hammer": "hammer", "dual_axe": "dual_axe", "greatsword": "greatsword", "black_leg": "black_leg", "long_gun": "long_gun", "cannon": "cannon", "slingshot": "slingshot", "rapier": "rapier", "staff": "staff"}
 
 const REGION_COLORS := {
 	"Core": Color(0.85, 0.78, 0.6), "Mobility": Color(0.45, 0.85, 0.95), "Survival": Color(0.5, 0.9, 0.45),

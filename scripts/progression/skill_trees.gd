@@ -34,6 +34,7 @@ const HEADERS := {
 	"dual_axe": ["Twin Axes", "combat", Color(0.8, 0.88, 1.0), 30],
 	"greatsword": ["Greatsword", "combat", Color(0.72, 0.95, 0.84), 30],
 	"rapier": ["Rapier", "combat", Color(0.82, 0.88, 0.98), 30],
+	"staff": ["Fighting Staff", "combat", Color(0.72, 0.95, 0.5), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"long_gun": ["Long Gun", "combat", Color(0.74, 0.84, 1.0), 30],
@@ -82,6 +83,7 @@ const ELEMENTS := {
 	"dual_axe": ["dx", "Hoarfrost", "Winter's Bite", "frost: rime and ice chips cracking off every chop, a cold mist, and Fimbulwinter heaves ice up out of the ground under your foes"],
 	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
 	"rapier": ["rp", "Quicksilver", "Hall of Glass", "quicksilver mirror: silver afterimages off the thrusts, mirror flashes at the point, mercury beading off the blade, and the phantom's double thrust drawn in silver"],
+	"staff": ["sf", "Leaf Wind", "Autumn Gale", "leaves and wind: green and gold leaves whirled off every turn of the staff and blown round the ones it strikes"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"long_gun": ["lg", "Starlit Sights", "Falling Star", "starlight: silver shots with a moon-blue edge, star glints where they land, and Hawkeye's shots fall like shooting stars"],
 	"cannon": ["cn", "Brimstone", "Hellfire Shells", "brimstone: sulphur-yellow blasts, violet smoke and burning shrapnel, and the Leviathan Shell leaves the ground burning"],
@@ -221,6 +223,7 @@ static func _build() -> void:
 	_build_dual_axe()
 	_build_greatsword()
 	_build_rapier()
+	_build_staff()
 	_build_corsair()
 	_build_pistol()
 	_build_long_gun()
@@ -1060,6 +1063,45 @@ static func _build_rapier() -> void:
 	_step("rp_drive", "Drive", "rp_fleche", 3, {"heavy_rapier": 0.08}, "Your lunge (right-click) hits 8% harder a step.")
 	_step("rp_draw", "Draw Breath", "rp_needles", 3, {"flow_rapier": 0.15}, "Rapier hits give 15% more energy a step.")
 	_step("rp_recover", "Recovery", "rp_flow", 3, {"cdr_rapier": 0.05}, "Rapier techniques come back 5% sooner a step.")
+
+
+## Fighting staves (quarterstaff, bo, iron-shod, monk's, bamboo, jade): blunt and acrobatic, spinning sweeps, vaults and
+## juggles; leaves and wind as the element.
+static func _build_staff() -> void:
+	_tree("staff", ["Guard", "Wind", "Acrobat"])
+	_root("sf_root", "Fighting Staff", {},
+		"A plain staff in both hands, held by its middle so both ends strike: an overhead blow, the rear end swung up through them (it throws a light foe into the air), a flat sweep; every blow drives them back. Right-click spins it round you twice. Fight with a staff in hand to build its mastery.")
+	_big("sf_turn", "Turn the Shot", "mech", 0, 3, {"parryshot_staff": 1, "parry_staff": 0.06},
+		"Parry with a staff and you bat gunshots aside too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("sf_wall", "Leaf Wall", "tech", 0, 8, {}, "", "leaf_wall")
+	_big("sf_rooted", "Rooted", "mech", 0, 20, {"def_staff": 6.0, "heavy_staff": 0.15},
+		"6 more defense with a staff in hand, and your Cyclone (right-click) hits 15% harder.")
+	_big("sf_gale", "Rising Gale", "tech", 1, 5, {}, "", "rising_gale")
+	_big("sf_leaves", "Thousand Leaves", "tech", 1, 10, {}, "", "thousand_leaves")
+	_elem(1)
+	_elem(2)
+	_big("sf_autumn", "Autumn Gale", "ult", 1, 30, {}, "", "autumn_gale")
+	_big("sf_wheel", "Wind Wheel", "move", 2, 2, {"mv_wind_wheel": 1},
+		"Adds a fourth blow to your combo: the staff swung round you once, low and wide, clearing everyone about you and putting the last of them down.")
+	_big("sf_vault", "Vault Kick", "move", 2, 4, {"mv_vault_kick": 1},
+		"Attack at a sprint: the staff planted ahead, swung up on it and both feet driven through the one in front. It breaks their wind-up.")
+	_big("sf_light", "Light Hands", "mech", 2, 6, {"stam_staff": 0.12, "flow_staff": 0.15},
+		"Staff attacks cost 12% less stamina and give 15% more energy.")
+	_big("sf_crane", "Crane Vault", "tech", 2, 12, {}, "", "crane_vault")
+	_big("sf_flow", "Spinning Top", "passive", 2, 13, {"finisher_staff": 0.3, "heavy_staff": 0.25},
+		"Passive (a slot). The last blow of your combo lands 30% harder, and your Cyclone (right-click) 25%.")
+	_variant("sf_way", "Wanderer's Way", 2, [
+		["sf_juggler", "Juggler", 22, {"crit_staff": 0.06, "dmg_staff": 0.06}, "6% more of your staff hits land 50% harder, and staff blows hit 6% harder."],
+		["sf_storm", "Storm of Staves", 22, {"heavy_staff": 0.3, "cdr_staff": 0.2}, "Your Cyclone hits 30% harder still, and staff techniques come back 20% sooner."]],
+		"Two ways to wander with a staff. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("sf_grain", "Seasoned Grain", "sf_root", 5, {"dmg_staff": 0.05}, "+5% staff damage a step.")
+	_step("sf_brace", "Brace", "sf_turn", 3, {"def_staff": 3.0}, "+3 defense with a staff in hand a step.")
+	_step("sf_keen", "Keen Wind", "sf_elem", 5, {"crit_staff": 0.03}, "3% more of your staff hits land 50% harder, a step.")
+	_step("sf_carry", "Follow Through", "sf_leaves", 5, {"finisher_staff": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("sf_wind", "Second Wind", "sf_wheel", 3, {"stam_staff": 0.05}, "Staff attacks cost 5% less stamina a step.")
+	_step("sf_drive", "Drive", "sf_vault", 3, {"heavy_staff": 0.08}, "Your Cyclone (right-click) hits 8% harder a step.")
+	_step("sf_draw", "Draw Breath", "sf_gale", 3, {"flow_staff": 0.15}, "Staff hits give 15% more energy a step.")
+	_step("sf_recover", "Recovery", "sf_flow", 3, {"cdr_staff": 0.05}, "Staff techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.

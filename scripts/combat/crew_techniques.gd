@@ -99,6 +99,10 @@ const ALL := {
 		"desc": "Your crewmate climbs onto the barrel and you fire: they ride the blast far along your aim and land in a slam that floors the crowd.",
 		"solo_desc": "Fire the cannon into the ground at your feet and ride the blast high, coming down in a slam."},
 	# (1.28) the rapier's: a duet (CrewTechniqueState.DUETS "combined"), not a launch
+	# (1.28) the staff's: a duet, both spinning into the one ahead
+	"twin_gale": {"name": "Twin Gale", "styles": ["staff"], "kind": "combined", "solo": "Lone Gale",
+		"desc": "You and your crewmate spin your weapons into the foe ahead from opposite sides on the same beat: a gust of leaves bursts on everyone round it.",
+		"solo_desc": "A spin into the foe ahead, a vault to its far side and a spin back, and the gust."},
 	"mirror_match": {"name": "Mirror Match", "styles": ["rapier"], "kind": "combined", "solo": "Looking Glass",
 		"desc": "You and your crewmate thrust into the foe ahead from opposite sides on the same beat, like a reflection: a flash of mirrors bursts on everyone round it.",
 		"solo_desc": "A thrust into the foe ahead, a blink through to its far side and the reflection's thrust back, and the burst."},

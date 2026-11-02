@@ -733,3 +733,5 @@ scripts/enemies/leviathan.gd            t/sea/angler
 scripts/dialogue/dialogue_manager.gd    t/story/edy_tokens
 scripts/progression/edy_types.gd        t/story/edy_tokens
 scripts/npc/staff_moves.gd              t/weapons/staff_combo
+scripts/npc/staff_moves.gd              t/weapons/staff_tree t/weapons/staff_moves t/weapons/plus_staff
+tools/texture_gen/gen_staff_icons.py    t/weapons/staff_tree

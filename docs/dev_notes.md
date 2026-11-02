@@ -9018,3 +9018,27 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   that's no longer valid (the island tokens are lambdas bound to island nodes: one sailed away from says nothing).
 - Not reproduced from Zach's own session (his log was gone); the mechanism matches. `tools/dev/edyshot.gd` plays every
   type's attunement in a window (no GPU fault there). Test: `t/story/edy_tokens`.
+
+## 2026-11-02: the fighting staff (1.28 weapons; docs/v1_28_plan.md "Weapons", docs/weapons_126.md)
+- **Its own kind** (WeaponDesigns "staff", base resources/items/staff.tres "Quarterstaff"; designs bo, iron-shod (knock
+  1.25), monk's (ringed), bamboo, jade wind (RARE); `WeaponDesigns.staff(design, key)`: speed, knock, len; `_staff` a capped
+  round shaft STAFF_BEHIND 0.3 / STAFF_AHEAD 1.55 of the hand). Two-handed, on the back like the polearm.
+- **Moves** (scripts/npc/staff_moves.gd, StaffMoves "sf_*"): the polearm's grip pipeline (PoleMoves.hands; stance "staff"
+  added there and in Humanoid) with the shaft slid `SHIFT` 0.62 back through the right hand, so it's held near its
+  middle; own keys for the guard, sf_1 the overhead blow, sf_2 the rising butt-end (a launcher), sf_heavy the Cyclone (two
+  turns), sf_dash the Vault Kick; sf_3/sf_4/sf_low/sf_dive/sf_land/parry/deflect/block borrow the polearm's keys (BORROW).
+  Light combo knocks x the design's knock (LightAttackState "knocks"); heavy "cyclone" (HeavyAttackState) all round.
+- **Tree** (SkillTrees "staff": Guard / Wind / Acrobat, element "sf" Leaf Wind 16 / Autumn Gale 25, tab STAFF): Turn the
+  Shot 3 · Leaf Wall 8 · Rooted 20; Rising Gale 5 · Thousand Leaves 10 · ult A Autumn Gale 30 (and via WeaponPlus the split's
+  Pillar of Wind); Wind Wheel 2 (the combo's fourth) · Vault Kick 4 · Light Hands 6 · Crane Vault 12 · Spinning Top 13 ·
+  Wanderer's Way 22 (Juggler / Storm of Staves). Techniques, alternates (Leaf Dive air 8, Spinning Rush sprint 14, Rising
+  Pole right-click 20, a launcher) and the aerial heavy Crane Fall are PlusMoves data played by PlusArts. Crew: Twin Gale
+  (combined duet, CrewTechniques) and Sweep the Legs (setup, WeaponPlus.CREW), both in CrewTechniqueState.DUETS.
+- **Colours** FX.TREE_FX "staff" (spring green, leaf green, autumn gold), `FX.leaf_whirl` (petals in the tree's colours and
+  wind motes) for element / elem_hit. Icons: tools/texture_gen/gen_staff_icons.py.
+- Sources: chests turn a polearm/axe into a staff `STAFF_CHANCE` 0.15 (hoard 0.3, own stream `|staff`), treasure merchants
+  (Shops.RARE_KINDS), Vey's rack (13 kinds now: t/story/rack_keeps_one), Shift+F10. Traits thundering, rushing, duellist's.
+- Co-op: nothing new on the wire (stance, actions, model sync; PlusArts' ops are the shared ones).
+- Tests: t/weapons/staff_combo, staff_tree (shape, every technique and both ultimates land), staff_moves (Wind Wheel,
+  Vault Kick, both crew solos), plus_staff (alternates, aerial heavy, second ultimate). Renders: tools/dev/out/staff/as_*.
+  Expect techtest (new skills), progtest, uitest (a new tab), balancetest and nettest (the duets) at the push.

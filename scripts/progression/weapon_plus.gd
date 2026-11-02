@@ -80,6 +80,9 @@ const CREW := {
 	"pouch_pass": {"name": "Pouch Pass", "styles": [], "tree": "slingshot", "kind": "support", "solo": "Sleight",
 		"desc": "Toss your crewmate a handful of trick pellets: you both get energy (they 25, you 10) and hit 20% harder for 8 s.",
 		"solo_desc": "12 energy, and 20% harder for 8 s."},
+	"sweep_the_legs": {"name": "Sweep the Legs", "styles": [], "tree": "staff", "kind": "setup", "solo": "Sweep and Fall",
+		"desc": "The staff swept low through the legs of the foe ahead, dropping it on its back; your crewmate is over it in a blink with a blow nothing blocks.",
+		"solo_desc": "The low sweep, then your own staff brought down on it."},
 	"through_sleeve": {"name": "Through the Sleeve", "styles": [], "tree": "rapier", "kind": "setup", "solo": "Pin and Reply",
 		"desc": "Your point goes through the sleeve of the foe ahead and into the ground, pinning it; your crewmate is beside it in a blink with a blow nothing blocks.",
 		"solo_desc": "The pinning thrust, then your own lunge."},
@@ -107,6 +110,7 @@ const CREW_FIRST := {
 	"cannon": ["Cannon Ride", "Your crewmate climbs onto the barrel and you fire: they ride the blast far along your aim and land in a slam."],
 	"slingshot": ["Sling Launch", "Plant the fork and draw the band right back with your crewmate in the pouch: they're flung high over everything ahead."],
 	"unarmed": ["Human Cannonball", "Cup your hands: your crewmate launches from your grip, short and fast, through anything in the way."],
+	"staff": ["Twin Gale", "You and your crewmate spin your weapons into the foe ahead from opposite sides on the same beat: a gust of leaves bursts on everyone round it."],
 	"rapier": ["Mirror Match", "You and your crewmate thrust into the foe ahead from opposite sides on the same beat, like a reflection: a flash of mirrors bursts on everyone round it."],
 }
 
@@ -297,6 +301,17 @@ const TREES := {
 			["u_breath2", "Breath Control", {"skill_unarmed": 0.06, "parry_unarmed": 0.04}],
 			["u_hands2", "Heavy Hands II", {"skill_unarmed": 0.06}],
 			["u_wind", "Wind in the Fists", {"flow_unarmed": 0.2, "cdr_unarmed": 0.1}]],
+	},
+	"staff": {
+		"lead_a": ["sf_eye", "Eye of the Storm", {"ult_charge_pct": 0.1}],
+		"lead_b": ["sf_rootwind", "Root and Wind", {"skill_staff": 0.08}],
+		"ult_b": ["sf_pillar", "pillar_of_wind"],
+		"crew": "sweep_the_legs",
+		"alts": ["leaf_dive", "spinning_rush", "rising_pole"], "air_heavy": "crane_fall",
+		"bridges": [["sf_steady", "Steady Stance", {"def_staff": 3.0, "parry_staff": 0.03}],
+			["sf_breeze", "Breeze", {"skill_staff": 0.06, "parry_staff": 0.04}],
+			["sf_reach", "Long Arm", {"skill_staff": 0.06}],
+			["sf_flowing", "Flowing", {"flow_staff": 0.2, "cdr_staff": 0.1}]],
 	},
 	"rapier": {
 		"lead_a": ["rp_polish", "Polished Glass", {"ult_charge_pct": 0.1}],
