@@ -10,11 +10,11 @@ const HIPS := {"sword": Vector3(0, 0.55, 0), "sword_pistol": Vector3(0, 0.5, 0),
 ## Stance -> [breaths a second as rad/s, depth]. Unlisted stances take "".
 const BREATH := {"": [2.4, 1.0], "sword": [2.4, 1.0], "sword_pistol": [2.4, 1.0], "dual_sword": [2.5, 1.0],
 	"katana": [2.0, 1.1], "axe": [1.9, 1.4], "dagger": [3.6, 0.8], "dual_dagger": [3.8, 0.8], "pistol": [2.2, 0.8],
-	"dual_pistol": [2.2, 0.8], "polearm": [2.0, 1.2], "staff": [2.2, 1.1], "hammer": [1.5, 1.7], "greatsword": [1.7, 1.5], "dual_axe": [2.0, 1.4]}
+	"dual_pistol": [2.2, 0.8], "polearm": [2.0, 1.2], "staff": [2.2, 1.1], "sickle": [2.8, 0.9], "hammer": [1.5, 1.7], "greatsword": [1.7, 1.5], "dual_axe": [2.0, 1.4]}
 ## The settle after an attack: its last segment back to the guard overshoots it a little and comes back
 ## (Humanoid._keys; the move's own length, nothing added). Stance -> the overshoot (Humanoid._back's c1).
 const SETTLE := {"": 1.7, "dagger": 1.3, "dual_dagger": 1.3, "fist": 1.4, "axe": 2.2, "dual_axe": 2.2, "hammer": 2.5,
-	"greatsword": 2.4, "polearm": 1.9, "staff": 1.8, "katana": 1.8, "black_leg": 1.5}
+	"greatsword": 2.4, "polearm": 1.9, "staff": 1.8, "sickle": 1.5, "katana": 1.8, "black_leg": 1.5}
 ## The fist's (and black-leg's) bounce: hops a second (rad/s of |sin|), how high the hips rise, how far the feet leave the floor.
 const BOUNCE := [4.4, 0.034, 0.02]
 

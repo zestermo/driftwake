@@ -1782,7 +1782,7 @@ func try_summon() -> String:
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
 ## a pair for the twin axes). Each new kind adds its line (1.24: the ranged kinds). It also teaches black-leg (no item: learned).
-const DEBUG_RACK := {"staff": 1, "rapier": 1, "polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1, "slingshot": 1}
+const DEBUG_RACK := {"sickle": 1, "staff": 1, "rapier": 1, "polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1, "longgun": 1, "cannon": 1, "slingshot": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2343,7 +2343,7 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 				if main == "axe" and off_hand.weapon_model == "axe":
 					return "dual_axe"
 				return "dual_dagger" if main == "dagger" and off_hand.weapon_model == "dagger" else "dual_sword"
-			return main if main in ["axe", "dagger"] else "sword"
+			return main if main in ["axe", "dagger", "sickle"] else "sword"
 		"gun":
 			if GunKinds.STYLE.has(main_hand.weapon_model):
 				return GunKinds.STYLE[main_hand.weapon_model]
@@ -2373,7 +2373,8 @@ func _offhand_valid(item: ItemData) -> bool:
 		return false
 	# (the katana, polearms, hammers, greatswords and the 1.24 ranged kinds take both hands; the rapier fences with the
 	# free hand up behind it)
-	for two in ["katana", "polearm", "hammer", "greatsword", "rapier", "staff"] + GunKinds.STYLE.keys():
+	# (the chain sickle's left hand holds its chain)
+	for two in ["katana", "polearm", "hammer", "greatsword", "rapier", "staff", "sickle"] + GunKinds.STYLE.keys():
 		if two in [item.weapon_model, equipped_weapon.weapon_model]:
 			return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
@@ -2507,7 +2508,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy", "slingshot": "punch", "rapier": "slice", "staff": "punch"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch", "long_gun": "punch_heavy", "cannon": "punch_heavy", "slingshot": "punch", "rapier": "slice", "staff": "punch", "sickle": "slice"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2570,6 +2571,9 @@ const REACH := {
 	"pole": [Vector3(1.4, 1.3, 3.3), Vector3(-0.3, 0.2, -1.75)],
 	# (the fighting staff: a blow ahead, a flat sweep, a full turn, the vault kick)
 	"staff": [Vector3(1.6, 1.4, 2.9), Vector3(-0.3, 0.2, -1.5)],
+	# (the chain sickle's chain: the lash out along the line, the whirl all round)
+	"chain": [Vector3(1.4, 1.4, 5.0), Vector3(-0.3, 0.3, -2.6)],
+	"chain_spin": [Vector3(6.0, 1.4, 6.0), Vector3(0.0, 0.2, 0.0)],
 	"staff_wide": [Vector3(3.8, 1.3, 2.7), Vector3(-0.3, 0.2, -1.2)],
 	"staff_spin": [Vector3(5.2, 1.4, 5.2), Vector3(0.0, 0.2, 0.0)],
 	"staff_kick": [Vector3(1.6, 1.4, 2.4), Vector3(-0.3, 0.4, -1.3)],

@@ -62,6 +62,11 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.09, "shake": 0.2, "knockback": 13.0, "stagger": 0.6,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.15, "impact_fx": false, "reach": "pole_long",
 		"color": Color(1.0, 0.93, 0.72), "tree": "polearm", "pole": true},
+	# chain sickle (Reaping Whirl): the weight spun round you twice at full length, low, everyone round you struck
+	"reap": {"anim": "sk_heavy", "impulse": 1.5,
+		"damage": 24.0, "hitstop": 0.07, "shake": 0.18, "knockback": 9.0, "stagger": 0.6,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.3, "impact_fx": false, "reach": "chain_spin",
+		"color": Color(0.7, 1.0, 0.75), "tree": "sickle", "sickle": true},
 	# fighting staff (Cyclone): spun round twice with the whole body, low and wide, everyone round you struck and
 	# driven off (a ring, not a line)
 	"cyclone": {"anim": "sf_heavy", "impulse": 2.0,
@@ -189,6 +194,8 @@ static func style_for(weapon_model: String) -> String:
 			return "skewer"
 		"staff":
 			return "cyclone"
+		"sickle":
+			return "reap"
 		"hammer":
 			return "quake"
 		"greatsword":
@@ -255,6 +262,8 @@ func enter(data: Dictionary) -> void:
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
 	elif cfg.get("staff", false):
 		_spd = WeaponDesigns.staff(player.equipped_weapon.design, "speed")
+	elif cfg.get("sickle", false):
+		_spd = WeaponDesigns.sickle(player.equipped_weapon.design, "speed")
 	elif cfg.get("pair", false):
 		_spd = DualAxeArts.pair(player, "speed")
 	elif cfg.get("great", false):

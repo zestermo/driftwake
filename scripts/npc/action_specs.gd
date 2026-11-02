@@ -39,7 +39,7 @@ class_name ActionSpecs
 
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
-	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"], "staff": ["sf_parry", "sf_deflect"],
+	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"], "staff": ["sf_parry", "sf_deflect"], "sickle": ["sk_parry", "sk_deflect"],
 	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"],
 	"long_gun": ["lg_parry", "lg_deflect"], "cannon": ["cn_parry", "cn_deflect"], "slingshot": ["sl_parry", "sl_deflect"],
 	"rapier": ["rp_parry", "rp_deflect"]}
@@ -174,6 +174,17 @@ const SPECS := {
 	# --- polearm (PoleMoves: the body keyed, the two-handed grip solved; no "lead": its offset samples would
 	# overwrite the grip) ---
 	# --- the fighting staff (StaffMoves: keyed like the polearm, held near its middle) ---
+	# --- the chain sickle (SickleMoves: the dagger's cuts, the chain's lash and whirl; the chain drawn by SickleMoves.chain) ---
+	"sk_stance": {"len": 1.0, "stance": "sickle", "weapon": "sickle"},
+	"sk_1": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "stance": "sickle", "weapon": "sickle"},
+	"sk_2": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_1"}},
+	"sk_3": {"len": 0.7, "hit": [0.42, 0.62], "chain": 0.62, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_2"}},
+	"sk_4": {"len": 0.95, "hit": [0.22, 0.82], "chain": 0.82, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_3"}},
+	"sk_heavy": {"len": 1.2, "hit": [0.18, 0.86], "stance": "sickle", "weapon": "sickle"},
+	"sk_dash": {"len": 0.8, "hit": [0.48, 0.66], "stance": "sickle", "weapon": "sickle"},
+	"sk_throw": {"len": 0.75, "hit": [0.35, 0.6], "stance": "sickle", "weapon": "sickle"},
+	"sk_parry": {"len": 0.6, "stance": "sickle", "weapon": "sickle"},
+	"sk_deflect": {"len": 0.4, "stance": "sickle", "weapon": "sickle"},
 	"sf_stance": {"len": 1.0, "stance": "staff", "weapon": "staff"},
 	"sf_1": {"len": 0.56, "hit": [0.38, 0.6], "chain": 0.44, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "staff", "weapon": "staff"},
 	"sf_2": {"len": 0.58, "hit": [0.37, 0.58], "chain": 0.46, "swoosh": [0.34, 0.6], "sharp": 50.0, "stance": "staff", "weapon": "staff",

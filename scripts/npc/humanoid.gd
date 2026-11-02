@@ -1061,6 +1061,8 @@ func _guard() -> Dictionary:
 			return WieldMoves.SP_GUARD
 		"dagger":
 			return DaggerMoves.guard(self)
+		"sickle":
+			return SickleMoves.GUARD
 		"dual_dagger":
 			return DaggerMoves.guard(self)
 		"dual_axe":
@@ -1124,6 +1126,7 @@ const STANCE_LEGS := {
 	"dual_dagger": {"leg_l": Vector3(0.6, 0, -0.28), "leg_r": Vector3(-0.22, 0, 0.28), "shin_l": Vector3(-1.15, 0, 0), "shin_r": Vector3(-0.55, 0, 0), "_lift": Vector3(0, -0.195, 0)},
 	"polearm": PoleMoves.LEGS,
 	"staff": StaffMoves.LEGS,
+	"sickle": SickleMoves.LEGS,
 	"hammer": HammerMoves.LEGS,
 	"dual_axe": DualAxeMoves.LEGS,
 	"greatsword": GreatswordMoves.LEGS,
@@ -1306,7 +1309,7 @@ func _block_pose() -> Dictionary:
 				"arm_r": Vector3(1.3, 0.32, 0.05), "fore_r": Vector3(2.2, 0, 0), "hand_r": Vector3(-0.3, 0, 0)}
 		"dual_sword":
 			return WieldMoves.dual_block(WieldMoves.offhand_kind(self))
-		"dagger", "dual_dagger":
+		"dagger", "dual_dagger", "sickle":
 			return DaggerMoves.block(stance == "dual_dagger")
 		"polearm", "staff":
 			return PoleMoves.BLOCK
@@ -2466,6 +2469,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return PoleMoves.pose(self, n, u)
 	if n.begins_with("sf_"):
 		return StaffMoves.pose(self, n, u)
+	if n.begins_with("sk_"):
+		return SickleMoves.pose(self, n, u)
 	if n.begins_with("ham_"):
 		return HammerMoves.pose(self, n, u)
 	if n.begins_with("dx_"):
@@ -3131,6 +3136,8 @@ func _pose(delta: float) -> void:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)
+	if stance == "sickle" or has_meta("sickle_chain"):
+		SickleMoves.chain(self, delta)
 	if stance == "slingshot" or has_meta("sling_band"):
 		GunMoves.sling_band(self)
 	_apply_smear()

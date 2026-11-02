@@ -736,3 +736,4 @@ scripts/progression/edy_types.gd        t/story/edy_tokens
 scripts/npc/staff_moves.gd              t/weapons/staff_combo
 scripts/npc/staff_moves.gd              t/weapons/staff_tree t/weapons/staff_moves t/weapons/plus_staff
 tools/texture_gen/gen_staff_icons.py    t/weapons/staff_tree
+scripts/npc/sickle_moves.gd             t/weapons/sickle_combo

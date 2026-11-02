@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot", "rapier": "rapier", "staff": "staff"}
+	"hammer": "warhammer", "greatsword": "greatsword", "longgun": "musket", "cannon": "hand_cannon", "slingshot": "slingshot", "rapier": "rapier", "staff": "staff", "sickle": "chain_sickle"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -240,6 +240,20 @@ const DESIGNS := {
 		"beetle": {"id": "beetle_slingshot", "name": "Beetle Slingshot", "desc": "A great horned fork lacquered like a beetle's shell. Its tricks hit like a thunderclap.",
 			"dmg": 1.2, "worth": 2.4, "w": 0.075, "horn": true, "trick": 1.3, "rare": true, "wood": Color(0.16, 0.3, 0.2), "fit": Color(0.85, 0.7, 0.2)},
 	},
+	# (the base is a hooked sickle with a weighted chain off its pommel; _sickle). Sickles add "r" (the blade's crescent),
+	# "w" (its width), "speed" (x how fast its moves play), "reach" (x the chain's), "ghost" (a ghostfire glow on the edge),
+	# "bleed" (s: its cuts open a wound); "rare" drops less often
+	"sickle": {
+		"kama": {"id": "kama_chain", "name": "Kama and Chain", "desc": "A short reaping sickle on a hardwood grip, its chain ending in an iron weight. The farmer's tool become a killer's.",
+			"dmg": 1.0, "worth": 1.3, "r": 0.12, "speed": 1.06},
+		"war": {"id": "war_sickle", "name": "War Sickle", "desc": "A broad, heavy crescent and a chain as long as a mooring line. Slow to spin up; nothing walks through it.",
+			"dmg": 1.12, "worth": 1.6, "r": 0.15, "w": 0.05, "speed": 0.92, "reach": 1.15},
+		"hook": {"id": "hook_sickle", "name": "Hook Sickle", "desc": "A narrow, wicked hook of a blade. Every cut catches and tears.",
+			"dmg": 1.04, "worth": 1.5, "r": 0.1, "w": 0.026, "bleed": 4.0, "fit": Color(0.55, 0.45, 0.4)},
+		# (rare: kept a third of the times it's rolled)
+		"ghost": {"id": "ghost_sickle", "name": "Ghostfire Sickle", "desc": "Black iron that burns with a cold green flame. The chain whispers when it spins.",
+			"dmg": 1.22, "worth": 2.5, "r": 0.13, "ghost": true, "fit": Color(0.3, 0.32, 0.3), "grip": Color(0.12, 0.14, 0.12), "rare": true},
+	},
 	# (the base is a plain oak quarterstaff; _staff). Staves add "len" (x its length), "wood" (its colour), "tex", "caps"
 	# (its ends: "iron", "brass", "rings" a monk's jangling rings, "none"), "speed" (x how fast its moves play), "knock" (x how
 	# far its blows drive them), "wrap" (a cloth grip's colour); "rare" drops less often
@@ -372,6 +386,11 @@ static func great(design: String, key: String, def: float = 1.0) -> float:
 ## A greatsword's blade length (m from the guard to the point).
 static func great_len(design: String) -> float:
 	return great(design, "len", GREAT_LEN)
+
+
+## A chain sickle design's number ("speed", "reach", "bleed"; `def` for the base).
+static func sickle(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["sickle"] as Dictionary).get(design, {}).get(key, def))
 
 
 ## A staff design's number ("speed", "knock", "len"; `def` for the base staff).
@@ -524,6 +543,8 @@ static func build(model: String) -> ArrayMesh:
 			_rapier(mb, p, tier)
 		"staff":
 			_staff(mb, p, tier)
+		"sickle":
+			_sickle(mb, p, tier)
 		"longgun":
 			GunModels.longgun(mb, p, tier)
 		"cannon":
@@ -785,6 +806,36 @@ static func _polearm(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 			_blade(mb, m, Vector3(0, 0, h - 0.02), 0.2, 0.068, 0.02, 0.0, 0.62, 3, false)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, z0 + 0.08)), Vector3(0.058, 0.03, 0.03), 2.0)
+
+
+## Chain sickles: the grip at the origin along +z to a ring at the pommel (where the chain hangs: SickleMoves.chain), and
+## at its top (-z) a crescent of blade curving out (-y) and back toward the hand, its edge on the inside.
+static func _sickle(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats(p, tier, Color(0.6, 0.6, 0.58), Color(0.36, 0.24, 0.14), "planks_dark")
+	var steel: Material = m["blade"]
+	var edge: Material = PSXMat.glow(Color(0.55, 1.0, 0.6), 1.6) if bool(p.get("ghost", false)) else m["edge"]
+	var fit: Material = m["fit"]
+	mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, 0.0)), Vector3(0.032, 0.032, 0.26), 2.0)
+	mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.135)), Vector3(0.04, 0.04, 0.03), 2.0)
+	mb.add_cylinder(fit, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0, 0, 0.155)), 0.022, 0.022, 0.012, 8, 2.0)
+	var r := _f(p, "r", 0.12)
+	var w := _f(p, "w", 0.036)
+	var c := Vector3(0, -r, -0.15)
+	var n := 7
+	for i in range(n):
+		var a0 := PI * float(i) / n
+		var a1 := PI * float(i + 1) / n
+		var p0 := c + Vector3(0, r * cos(a0), -r * sin(a0))
+		var p1 := c + Vector3(0, r * cos(a1), -r * sin(a1))
+		var mid := (p0 + p1) * 0.5
+		var along := (p1 - p0).normalized()
+		var bw := w * (1.0 - 0.7 * float(i) / n)
+		var out := (mid - c).normalized()
+		var basis := Basis(Vector3.RIGHT, out, -along).orthonormalized()
+		mb.add_box(steel, Transform3D(basis, mid + out * bw * 0.25), Vector3(0.012, bw * 0.6, p0.distance_to(p1) + 0.004), 2.0)
+		mb.add_box(edge, Transform3D(basis, mid - out * bw * 0.15), Vector3(0.008, bw * 0.3, p0.distance_to(p1) + 0.004), 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, -0.135)), Vector3(0.05, 0.03, 0.03), 2.0)
 
 
 ## Staves: a plain round shaft held at the origin by the right hand (PoleMoves' grip: the shaft along -z, slid back

@@ -7,7 +7,7 @@ extends RefCounted
 ## island's, built the same on every machine.
 
 ## [item id, the group it's under in the talk].
-const KINDS := [["cutlass", "blades"], ["katana", "blades"], ["dagger", "blades"], ["boarding_axe", "blades"], ["rapier", "blades"],
+const KINDS := [["cutlass", "blades"], ["katana", "blades"], ["dagger", "blades"], ["boarding_axe", "blades"], ["rapier", "blades"], ["chain_sickle", "blades"],
 	["spear", "heavy"], ["staff", "heavy"], ["warhammer", "heavy"], ["greatsword", "heavy"],
 	["pistol", "guns"], ["musket", "guns"], ["hand_cannon", "guns"], ["slingshot", "guns"]]
 const GROUPS := [["blades", "Blades"], ["heavy", "Two-handed weapons"], ["guns", "Guns and the sling"]]

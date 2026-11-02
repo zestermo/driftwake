@@ -46,6 +46,9 @@ const RAPIER_HOARD := 0.3
 ## (1.28) A chest's polearm or axe made a fighting staff instead, from its own stream (a hoard twice as often).
 const STAFF_CHANCE := 0.15
 const STAFF_HOARD := 0.3
+## (1.28) A chest's dagger or axe made a chain sickle instead (its own stream).
+const SICKLE_CHANCE := 0.12
+const SICKLE_HOARD := 0.25
 
 
 ## The local captain's name: what makes a chest's roll theirs.
@@ -181,6 +184,8 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 					kind = "rapier"
 				elif kind in ["polearm", "spear", "axe"] and rng_for(key + "|staff").randf() < (STAFF_HOARD if hoard else STAFF_CHANCE):
 					kind = "staff"
+				elif kind in ["dagger", "axe"] and rng_for(key + "|sickle").randf() < (SICKLE_HOARD if hoard else SICKLE_CHANCE):
+					kind = "sickle"
 				it = weapon(kind, rarity_round(int(it.rarity), kind_of_chest, arms_rng), rng)
 				# (tomahawks and reavers' axes are carried in pairs: found two at a time, ready for both hands)
 				if WeaponDesigns.comes_paired(it.id.get_slice("+", 0).get_slice("@", 0)):

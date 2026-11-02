@@ -83,6 +83,18 @@ const STYLES := {
 		"damages": [6.0, 6.0, 11.0, 17.0], "hitstops": [0.03, 0.03, 0.05, 0.08], "shakes": [0.05, 0.05, 0.1, 0.16],
 		"reach": "dagger", "reaches": ["dagger", "dagger", "wide", "spin"], "color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7),
 		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0], "drawn": "dual_dagger"},
+	# chain sickle: two quick sickle cuts close in, the chain's lash out along the line (it pulls the one it catches a
+	# step toward you), and (Reaping Circle) the weight whirled round you at full length
+	"sickle": {"anims": ["sk_1", "sk_2", "sk_3", "sk_4"], "trails": ["", "", "", ""],
+		"durations": [0.3, 0.3, 0.5, 0.72], "impulses": [4.5, 4.5, 2.0, 2.0],
+		"damages": [8.0, 9.0, 12.0, 17.0], "hitstops": [0.04, 0.045, 0.06, 0.08], "shakes": [0.07, 0.08, 0.1, 0.16],
+		"reach": "dagger", "reaches": ["dagger", "dagger", "chain", "chain_spin"], "color": Color(0.7, 1.0, 0.75), "sickle": true,
+		"pulls": [false, false, true, false]},
+	# chain sickle, attacked at a sprint (Chain Rush): the weight thrown ahead, reeled in after it, the sickle cut on arrival
+	"sickle_dash": {"anims": ["sk_dash"], "trails": [""],
+		"durations": [0.64], "impulses": [13.0],
+		"damages": [14.0], "hitstops": [0.06], "shakes": [0.14],
+		"reach": "dagger", "color": Color(0.7, 1.0, 0.75), "breaker": true, "sickle": true},
 	# fighting staff: an overhead blow, the rear end swung up through them (a launcher), a flat sweep and (Wind Wheel)
 	# one full turn clearing everyone round you; blunt: every blow drives them back ("knocks", x the design's knock)
 	"staff": {"anims": ["sf_1", "sf_2", "sf_3", "sf_4"], "trails": ["", "", "", ""],
@@ -203,7 +215,7 @@ const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], 
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
 	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin",
-	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin", "rapier": "mercury_flurry", "staff": "wind_wheel"}
+	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin", "rapier": "mercury_flurry", "staff": "wind_wheel", "sickle": "reaping_circle"}
 ## A greatsword blow chained straight out of the last one's follow-through: this much faster and harder per blow
 ## built (the second x1, the third x2, the turn x3).
 const MOMENTUM_SPEED := 0.07
@@ -251,7 +263,7 @@ func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
 		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash", "greatsword": "gs_dash",
-			"black_leg": "bl_dash", "rapier": "rp_dash", "staff": "staff_dash"}.get(st, "sword_dash")
+			"black_leg": "bl_dash", "rapier": "rp_dash", "staff": "staff_dash", "sickle": "sickle_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -285,6 +297,8 @@ func enter(data: Dictionary) -> void:
 		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
 	elif cfg.get("staff", false):
 		_spd = WeaponDesigns.staff(player.equipped_weapon.design, "speed")
+	elif cfg.get("sickle", false):
+		_spd = WeaponDesigns.sickle(player.equipped_weapon.design, "speed")
 	elif cfg.get("hammer", false):
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
 	elif cfg.get("pair", false):
@@ -366,6 +380,9 @@ func physics_update(delta: float) -> void:
 		# (the uppercut: a launcher, Juggle)
 		if cfg.has("launch") and bool(cfg["launch"][combo_index]):
 			hit.launch = LAUNCH_UP
+		# (the chain sickle's lash: the one it catches dragged a step toward you)
+		if cfg.has("pulls") and bool(cfg["pulls"][combo_index]):
+			hit.knockback_force = -5.0
 		# (a polearm's thrust shoves them back to the point; a trident's goes through a guard)
 		if cfg.get("pole", false) and str(cfg["anims"][combo_index]) == "pole_thrust":
 			hit.knockback_force = 6.5
