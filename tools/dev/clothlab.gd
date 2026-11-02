@@ -15,9 +15,13 @@ const TK := preload("res://tools/dev/test_kit.gd")
 const CROP := Vector2i(200, 250)
 const EVENTS := [[2.0, "walk"], [3.2, "run"], [4.4, "turn"], [5.3, "stop"], [7.3, "jump"], [8.6, "draw"],
 	[9.3, "attack"], [9.75, "attack"], [10.35, "attack"], [12.0, "end"]]
+## (env CL_FRONT: the moments from the front three-quarters and the side instead, where a draped coat meets the arms)
+const MOMENTS_FRONT := [["walk", 2.9, "f3"], ["walk2", 3.05, "side"], ["run", 4.0, "f3"], ["run2", 4.25, "side"], ["swing1", 9.45, "f3"],
+	["swing2", 9.9, "f3"], ["swing3", 10.5, "side"], ["spin", 10.8, "f3"]]
+var moments: Array = MOMENTS_FRONT if OS.get_environment("CL_FRONT") != "" else MOMENTS
 const MOMENTS := [["run", 4.2, "behind"], ["turn1", 4.55, "q3"], ["turn2", 4.8, "behind"], ["stop1", 5.4, "side"],
 	["stop2", 5.8, "behind"], ["jump", 7.65, "side"], ["spin1", 10.6, "q3"], ["spin2", 10.85, "behind"]]
-const CAPS := ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips", "torso"]
+const CAPS := ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips", "torso", "arm_l", "arm_r", "fore_l", "fore_r"]
 const LOOKS := {
 	"hair": {"body": "fem", "hair": "cascade", "coat": "none"},
 	"twin": {"body": "fem", "hair": "twintails", "legs": "skirt", "coat": "none"},
@@ -26,6 +30,9 @@ const LOOKS := {
 	"skirt": {"body": "fem", "hair": "short", "legs": "skirt", "coat": "none"},
 	"ties": {"hair": "braid", "hat": "bandana", "apron": true, "coat": "none"},
 	"drape": {"hair": "short", "hat": "none", "coat": "longcoat", "coat_color": Color(0.9, 0.88, 0.8), "coat_drape": true, "belt": "sash"},
+	"drape_great": {"hair": "short", "hat": "none", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "coat_drape": true, "top": "bare"},
+	"drape_captain": {"hair": "long", "coat": "captain", "coat_color": Color(0.66, 0.14, 0.12), "coat_drape": true},
+	"drape_haori": {"hair": "topknot", "hat": "none", "top": "kimono", "coat": "haori", "coat_color": Color(0.1, 0.09, 0.09), "coat_drape": true},
 	"drape_jacket": {"body": "fem", "hair": "ponytail", "coat": "jacket", "coat_color": Color(0.2, 0.32, 0.62), "coat_drape": true},
 }
 
@@ -101,9 +108,9 @@ func _process(_d: float) -> bool:
 	_measure()
 	var view := "behind"
 	pending = ""
-	if mo < MOMENTS.size() and t >= float(MOMENTS[mo][1]):
-		pending = MOMENTS[mo][0]
-		view = MOMENTS[mo][2]
+	if mo < moments.size() and t >= float(moments[mo][1]):
+		pending = moments[mo][0]
+		view = moments[mo][2]
 		mo += 1
 	_place(view)
 	return false
@@ -190,6 +197,8 @@ func _place(view: String) -> void:
 	match view:
 		"q3":
 			cam.look_at_from_position(at + back.rotated(Vector3.UP, 0.87) * 4.0 + Vector3(0, 1.7, 0), aim, Vector3.UP)
+		"f3":
+			cam.look_at_from_position(at - back.rotated(Vector3.UP, 0.7) * 4.0 + Vector3(0, 1.5, 0), aim, Vector3.UP)
 		"side":
 			cam.look_at_from_position(at + back.rotated(Vector3.UP, PI * 0.5) * 4.0 + Vector3(0, 1.3, 0), aim, Vector3.UP)
 		_:
@@ -258,14 +267,14 @@ func _grab() -> void:
 
 func _sheets() -> void:
 	for lk in looks:
-		var sheet := Image.create(out_crop.x * MOMENTS.size(), out_crop.y * 2, false, Image.FORMAT_RGBA8)
+		var sheet := Image.create(out_crop.x * moments.size(), out_crop.y * 2, false, Image.FORMAT_RGBA8)
 		sheet.fill(Color(0.1, 0.1, 0.12))
 		for ri in range(runs.size()):
 			var r: Array = runs[ri]
 			if r[0] != lk:
 				continue
-			for mi in range(MOMENTS.size()):
-				var key := "%d/%s" % [ri, MOMENTS[mi][0]]
+			for mi in range(moments.size()):
+				var key := "%d/%s" % [ri, moments[mi][0]]
 				if shots.has(key):
 					var im: Image = shots[key]
 					sheet.blit_rect(im.duplicate() if im.get_format() == Image.FORMAT_RGBA8 else _rgba(im), Rect2i(Vector2i.ZERO, out_crop), Vector2i(mi * out_crop.x, (1 if r[1] else 0) * out_crop.y))

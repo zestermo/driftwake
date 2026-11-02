@@ -279,9 +279,11 @@ func _nets() -> void:
 		if key == h.head:
 			s.use_net(["torso", "hair_sh"], [], 0.012, 1.4, 1.0)
 		else:
-			s.use_net(SpringChains.NET_LEGS, ["hips"], 0.02, 1.2, 0.9)
+			# (a draped coat's: eased off the arms too)
+			var soft: Array = SpringChains.NET_LEGS + (DRAPE_HIT.slice(0, 4) if key == h.torso and _draped() else [])
+			s.use_net(soft, ["hips"], 0.02, 1.2, 0.9)
 			var bind := {}
-			for k in SpringChains.NET_LEGS:
+			for k in soft:
 				bind[k] = _unposed(key).affine_inverse() * _unposed(colliders[k]["node"])
 			s.use_slack(bind, 0.02)
 
@@ -2746,16 +2748,17 @@ func _haori(mb: MeshBuilder, tr: Array) -> void:
 		tl["top"], tl["bot"], tl["flare"], 0.16, tl["top_off"])
 
 
-## Draped panels' angles (0 the front, 90 the right): open down the front, a panel over each arm.
-const DRAPE_SECTORS := [[24.0, 66.0], [66.0, 118.0], [118.0, 180.0], [180.0, 242.0], [242.0, 294.0], [294.0, 336.0]]
+## Draped panels' angles (0 the front, 90 the right): behind the arms only (Zach, 1.29: in front of or beside them the
+## arms swung through the cloth at a walk, a sprint and every swing).
+const DRAPE_SECTORS := [[112.0, 146.0], [146.0, 180.0], [180.0, 214.0], [214.0, 248.0]]
 ## What pushes a draped coat's panels and sleeves about.
 const DRAPE_HIT := ["arm_l", "arm_r", "fore_l", "fore_r", "thigh_l", "thigh_r", "hips"]
 
 
-## (1.29) Any coat worn over the shoulders: a yoke over them (wide of the arms, open down the front) under the collar,
-## the body hanging from under it to the coat's hem in panels on the torso's chains, which the arms push aside as they
-## swing; a facing down each front edge (the captain's braid, a frock's brass trim); the empty sleeves hanging from the
-## shoulder seams behind the arms on chains of their own.
+## (1.29) Any coat worn over the shoulders: a yoke over the shoulder tops under the collar, open down the front to
+## the arms, its lapels faced (the captain's braid, a frock's brass trim); below the shoulders the coat hangs from the
+## back only, behind the arms, in panels on the torso's chains to the coat's hem (the arms push them and the net eases
+## them off the arms: _nets); the empty sleeves hang from the shoulder seams behind the arms on chains of their own.
 func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var m_coat := _textured("canvas", _col("coat_color")) if coat == "duster" else _cloth("coat_color")
 	var m_trim := PSXMat.flat(_col("trim_color"))
@@ -2764,6 +2767,7 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var m_face := m_trim if trimmed else _textured("fabric", _col("coat_color").darkened(0.18))
 	var thick := _coat_off() - 0.03 - (0.012 if fem else 0.0)
 	var y_lo := tu(0.36)
+	var y_mid := tu(0.5)
 	var y_hi := tu(0.63)
 	var yoke: Array = []
 	for r in _clip(tr, y_lo, y_hi):
@@ -2776,8 +2780,26 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 		yoke.append(rr)
 	var collar_w := 0.135 + thick
 	var collar_d := 0.125 + thick
-	yoke.append([y_hi + 0.012, collar_w, collar_d, 0.012, 0.0])
-	mb.add_loft(m_coat, Transform3D.IDENTITY, yoke, open_body(0.4), 3.0, Color.WHITE, false, false, false, false, true)
+	var upper := _clip(yoke, y_mid, y_hi)
+	upper.append([y_hi + 0.012, collar_w, collar_d, 0.012, 0.0])
+	mb.add_loft(m_coat, Transform3D.IDENTITY, upper, open_body(0.4), 3.0, Color.WHITE, false, false, false, false, true)
+	# under the shoulders, round the back only (the arms swing clear in front of it)
+	var back := PackedVector2Array()
+	for i in range(9):
+		var a := deg_to_rad(lerpf(DRAPE_SECTORS[0][0] - 4.0, DRAPE_SECTORS[DRAPE_SECTORS.size() - 1][1] + 4.0, i / 8.0))
+		back.append(Vector2(sin(a), -cos(a)))
+	mb.add_loft(m_coat, Transform3D.IDENTITY, _clip(yoke, y_lo, y_mid + 0.02), back, 3.0, Color.WHITE, false, false, false, false, true)
+	# the lapels: the upper yoke's front edges faced
+	for sd in [-1.0, 1.0]:
+		var pts: Array = []
+		for i in range(4):
+			var y := lerpf(y_hi - 0.01, y_mid, i / 3.0)
+			var r := _at(yoke, y)
+			var x: float = sd * float(r[1]) * 0.4
+			var x2: float = sd * float(r[1]) * 0.55
+			pts.append([Vector3(x, y, _surf_z(r, x) - 0.004), Vector3(x2, y, _surf_z(r, x2) - 0.004)])
+		for i in range(3):
+			mb.add_quad(m_face, pts[i][0], pts[i][1], pts[i + 1][1], pts[i + 1][0], Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, Vector3.FORWARD)
 	var collar_h := 0.15 if coat == "duster" else (0.05 if coat == "haori" else 0.11)
 	mb.add_loft(m_coat if coat != "haori" else m_face, Transform3D.IDENTITY, [[y_hi - 0.02, collar_w, collar_d, 0.012], [y_hi + collar_h, collar_w + 0.01, collar_d + 0.01, 0.02]],
 		open_front(0.55), 3.0, Color.WHITE, false, false, false, false, true)
@@ -2791,8 +2813,9 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 					var z := lerpf(-0.05, 0.05, i / 4.0)
 					mb.add_box(m_trim, Transform3D(Basis(Vector3.FORWARD, s * 0.15), Vector3(ex + s * 0.06, ey - 0.04, z)), Vector3(0.008, 0.06, 0.01), 3.0, Color.WHITE, false)
 	if coat == "greatcoat":
+		# (a capelet over the shoulder tops: the cape's full depth hung over the arms in front)
 		var cape: Array = []
-		for r in _clip(tr, tu(0.36), tu(0.63)):
+		for r in _clip(tr, tu(0.46), tu(0.63)):
 			var rr: Array = (r as Array).slice(0, 5)
 			while rr.size() < 5:
 				rr.append(0.0)
@@ -2800,11 +2823,11 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 			rr[1] = float(rr[1]) * lerpf(1.4, 1.12, k) + 0.085 + thick
 			rr[2] = float(rr[2]) * lerpf(1.26, 1.1, k) + 0.08 + thick
 			cape.append(rr)
-		mb.add_loft(m_coat, Transform3D.IDENTITY, cape, open_body(0.26), 3.0, Color.WHITE, false, false, false, false, true)
-	# the hanging body: wide of the arms, deep of the chest and the seat, flaring a little to the hem
+		mb.add_loft(m_coat, Transform3D.IDENTITY, cape, open_body(0.4), 3.0, Color.WHITE, false, false, false, false, true)
+	# the hanging body: behind the arms, wide of them, deep of the seat, flaring a little to the hem
 	var tails := _tails_of(coat)
 	var y_bot := float(tails["bot"])
-	var y_top := tu(0.44)
+	var y_top := tu(0.4)
 	var r0 := _at(yoke, y_top)
 	var x0 := float(r0[1]) - 0.012
 	var z0 := float(r0[2]) - 0.012
@@ -2848,6 +2871,7 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 				hem2.append(p + o)
 			var hb := bones[n - 1]
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([hb, hb]), 3.0, Color.WHITE, Vector3.ZERO)
+		# (the side edges faced: seen from beside, the coat's edge, not its inside)
 		if sec == DRAPE_SECTORS[0] or sec == DRAPE_SECTORS[DRAPE_SECTORS.size() - 1]:
 			var e := 0 if sec == DRAPE_SECTORS[0] else 3
 			var w := 1 if e == 0 else 2
@@ -2864,23 +2888,24 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var ys := tu(0.5)
 	var xs := float(_at(yoke, ys)[1]) - 0.01
 	var drop := 0.3 * A + 0.21 * A
+	var zs := zb * 0.55 + 0.045
 	for side in [-1.0, 1.0]:
-		var xo: float = side * (xa + 0.075)
-		var pts := PackedVector3Array([Vector3(side * xs, ys, 0.02), Vector3(xo, ys - drop * 0.34, 0.05),
-			Vector3(xo + side * 0.008, ys - drop * 0.68, 0.08), Vector3(xo + side * 0.012, ys - drop, 0.1)])
+		var xo: float = side * xa * 0.86
+		var pts := PackedVector3Array([Vector3(side * xs * 0.9, ys, zs * 0.6), Vector3(xo, ys - drop * 0.34, zs),
+			Vector3(xo * 0.98, ys - drop * 0.68, zs + 0.025), Vector3(xo * 0.96, ys - drop, zs + 0.045)])
 		var bones := sim.add_chain(pts, 0.09, 0.06, 1.0, DRAPE_HIT)
 		var rings := []
 		for i in range(pts.size()):
 			var k := i / float(pts.size() - 1)
-			var hw := lerpf(0.04, 0.026, minf(k * 2.0, 1.0)) * L
-			var hd := lerpf(0.075, 0.105 if haori else 0.066, k) * L
+			var hw := lerpf(0.06, 0.05, k) * L
+			var hd := lerpf(0.045, 0.075 if haori else 0.04, k) * L
 			rings.append([pts[i].y, hw, hd, pts[i].z, pts[i].x])
 		sim.mb.add_loft(m_coat, Transform3D.IDENTITY, rings, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true, true, false, false, bones)
 		if not haori:
 			var e: Vector3 = pts[pts.size() - 1]
 			var hb := bones[pts.size() - 1]
-			var hw2 := 0.03 * L
-			var hd2 := 0.072 * L
+			var hw2 := 0.055 * L
+			var hd2 := 0.045 * L
 			sim.mb.add_loft(m_face, Transform3D.IDENTITY, [[e.y + 0.09, hw2, hd2, e.z - 0.004, e.x], [e.y - 0.005, hw2, hd2, e.z, e.x + side * 0.001]],
 				MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true, PackedInt32Array([hb, hb]))
 

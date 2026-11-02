@@ -9325,3 +9325,19 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   carved pedestal, 5 gilt boss, star, knobs and crown); the old BrassRim node is gone; 1 rudder, 3 binnacle, 5 taffrail.
 - Tests: t/ship/quarters_line, t/ship/wheel_levels. Renders: tools/dev/out/shipshape/q0_*, q4_* (bigshipshot,
   BSHOT_KIT '{"quarters": 4, "rudder": 5}').
+
+## 2026-11-02: 1.29 clothing, piece 1b: the draped coat cut back behind the arms (Zach)
+- **Why:** worn over the shoulders the coat's front panels and sides hung over the arms, and the arms swung through
+  the cloth at a walk, a sprint and in every swing.
+- **What** (`BodyBuilder._drape_coat`): the yoke is now two parts: over the shoulder tops (open down the front to the
+  arms, its lapels faced in the trim) and below the shoulder joints round the back only; the body hangs from it behind
+  the arms in four panels (DRAPE_SECTORS 112..248 deg, was six from 24 to 336); the empty sleeves hang from the shoulder
+  seams against the coat's back-sides, behind the arms; a greatcoat's cape is a capelet over the shoulder tops. The torso
+  set's net (`_nets`) eases the coat off the arm capsules as well as the legs while draped.
+- **Numbers** (clothlab, net on, the new CL_FRONT front/side moments, arm capsules now counted): cloth segments inside
+  the arms 975 -> 206 segment-frames for the draped long coat, 948 -> 179 for the jacket (of ~1727 frames; what's left is
+  the sleeves and back panels nudged by an arm swung back, which the chains then push aside).
+- clothlab: CAPS includes the arm capsules; env CL_FRONT films walk, sprint and the cutlass swings from the front
+  three-quarters and the side; looks drape_great, drape_captain, drape_haori.
+- Tests: t/gear/coat_drape (all of the coat behind the arms). Renders: tools/dev/out/clothes/drape2_*.png (all eight coats
+  draped: modelshot's "back3" is the front), tools/dev/out/clothes/lab2/sheet_drape*.png (after), lab2_before/ (before).

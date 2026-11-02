@@ -1,6 +1,6 @@
 extends SceneTree
 ## (1.29) A coat draped over the shoulders: the wardrobe's DRAPE box under the coat slot wears it with the sleeves empty
-## (the arms in the shirt's, the coat's body and both sleeves on the torso's chains, pushed by the arms), every coat
+## (the arms in the shirt's, the coat's body behind the arms and both sleeves on the torso's chains, pushed by the arms), every coat
 ## in the game drapes, it's saved, and a crewmate's screen (the look sent over the wire) drapes it too.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -73,8 +73,15 @@ func _process(_d: float) -> bool:
 			check("the inventory has a DRAPE box under the coat slot, unticked", box.visible and not box.button_pressed)
 			box.button_pressed = true
 			check("ticked: the coat is draped (look %s)" % str(p.body_model.look.get("coat_drape")), p.equipment.is_draped(coat) and p.body_model.look.get("coat_drape") == true)
-			check("...its body and both empty sleeves hang on the torso's chains (%d)" % torso_chains(p.body_model), torso_chains(p.body_model) >= 8)
+			check("...its body and both empty sleeves hang on the torso's chains (%d)" % torso_chains(p.body_model), torso_chains(p.body_model) >= 6)
 			check("...and the arms push them", arm_pushed(p.body_model))
+			var front := 0
+			for c in p.body_model.torso.get_children():
+				if c is SpringChains:
+					for ci in range(c.chain_count()):
+						if (c.chain(ci)["p"] as PackedVector3Array)[0].z < 0.0:
+							front += 1
+			check("...all of it behind the arms (in front only the sash's tail: %d)" % front, front <= 1)
 			gm.close()
 			pup.net_event("look", [p.body_model.look.duplicate(true), false])
 			TK.press("move_forward")
@@ -82,7 +89,7 @@ func _process(_d: float) -> bool:
 		2:
 			TK.release("move_forward")
 			check("walking draped: the chains stay on the body", chains_finite(p.body_model))
-			check("a crewmate's screen drapes it too", pup.body_model.look.get("coat_drape") == true and torso_chains(pup.body_model) >= 8)
+			check("a crewmate's screen drapes it too", pup.body_model.look.get("coat_drape") == true and torso_chains(pup.body_model) >= 6)
 			check("draped is saved", save.save(p))
 			p.drape_coat(false)
 			check("...untick: sleeves back on the arms", p.body_model.look.get("coat_drape") == false and not arm_pushed(p.body_model))
@@ -94,7 +101,7 @@ func _process(_d: float) -> bool:
 				var it = gear.make("coat", style, {"coat": style, "coat_color": Color(0.3, 0.2, 0.4), "trim_color": Color(0.85, 0.68, 0.24)})
 				p.equipment.equip(it)
 				p.drape_coat(true)
-				if torso_chains(p.body_model) >= 8 and arm_pushed(p.body_model):
+				if torso_chains(p.body_model) >= 6 and arm_pushed(p.body_model):
 					ok.append(style)
 			check("every coat drapes (%s)" % ", ".join(ok), ok.size() == CharacterLook.COATS.size() - 1)
 			var other = gear.make("coat", "jacket", {"coat": "jacket"})
