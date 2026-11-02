@@ -68,6 +68,15 @@ func _init(journal: Node) -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): show_tab(k))
 		_tabs.add_child(b)
+	# (1.28) the fish journal is its own page (GameMenu "fish_journal")
+	var fish := UIStyle.button("Fish", 48)
+	fish.add_theme_font_override("font", SMALL)
+	fish.add_theme_font_size_override("font_size", 8)
+	fish.focus_mode = Control.FOCUS_NONE
+	fish.pressed.connect(func():
+		_journal.close()
+		GameMenu.open("fish_journal"))
+	head.add_child(fish)
 	vb.add_child(InventoryScreen._rule())
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 8)
