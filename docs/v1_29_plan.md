@@ -1,4 +1,4 @@
-# 1.29 'Shipshape' (and 1.30's ships)
+# 1.29 'Shipshape' (released as the stable v1.29, 2026-11-02) and 1.30's ships
 
 ## What it is
 The crew's ship gets the love it's been missing: the hull's layout becomes data a ship class and its upgrades can

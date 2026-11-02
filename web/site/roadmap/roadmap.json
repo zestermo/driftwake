@@ -929,6 +929,34 @@
 			]
 		},
 		{
+			"v": "1.29",
+			"name": "Shipshape",
+			"date": "2026-11-02",
+			"status": "shipped",
+			"headline": "Your ship made a home: a cabin that grows with you, a galley pantry, your own flag, paint and figurehead, and new clothes.",
+			"img": "preview_129",
+			"alt": "The sloop's great cabin: a mess table, a stove and stern windows",
+			"github": true,
+			"added": [
+				["The cabin", "Stepped down into the hull, and a Quarters upgrade that grows it to a great cabin."],
+				["Galley and pantry", "A shared pantry cooking takes from, and the galley and bunks in detail."],
+				["Make her yours", "A new wheel, a jolly roger builder, paint and ten figureheads."],
+				["New clothes", "Draped coats, masks and face coverings, wraps, parachute pants, a jester and a backpack."]
+			]
+		},
+		{
+			"v": "1.30",
+			"name": "Bigger Ships",
+			"status": "planned",
+			"headline": "The brig and the galleon, with decks and rooms of their own, and new creatures for the quieter islands.",
+			"img": "seaking",
+			"alt": "A Leviathan rearing over the sloop in a storm (current build)",
+			"plan": [
+				["Two ships", "The brig and the galleon at the canal city's shipyard, each laid out with its own decks, gun decks and rooms."],
+				["Creatures", "New hostile creatures for the island types with the least wildlife."]
+			]
+		},
+		{
 			"v": "later",
 			"name": "The Road to 2.0",
 			"status": "planned",

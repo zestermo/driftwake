@@ -128,4 +128,4 @@ to work toward.
 - **1.29 'Shipshape'** (docs/v1_29_plan.md "Decided"): the hull layout as data, the sloop's detail pass (a stepped-down
   cabin that grows with a Quarters line, ladders, the flag, an upgrading wheel, the galley and berths), new clothing
   (masks, wraps, parachute pants, a jester outfit, a bouncing backpack, coats worn over the shoulders), hitches and
-  flakes. **1.30**: the brig and galleon on new layouts, new creatures for the thinnest themes. The submarine later.
+  flakes; **released as the stable v1.29** (2026-11-02). **1.30**: the brig and galleon on new layouts, new creatures for the thinnest themes. The submarine later.
