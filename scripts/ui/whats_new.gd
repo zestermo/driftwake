@@ -7,11 +7,10 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Gadgets", "A belt of three on U (O picks the next), twenty of them built and upgraded at a workbench, and ship gadgets at the wheel, the harpoon cannon among them."],
-	["Cooking, books and fishing", "A cooking game whose grade sets the meal, dishes and a staple for every island, crew feasts; 29 books to read; fish by island, legendaries to fight on the line, spearfishing and contests."],
-	["Three weapons", "The rapier, the fighting staff and the chain sickle: full trees, two ultimates and crew techniques each. Shift+F10 for the rack."],
-	["New islands", "The volcanic isle with its forge town and Magma Salamander, and the coral atoll: a stilt town, a lagoon to wade and dive, and a giant hermit crab."],
-	["The open sea", "A floating restaurant, a merchant ship, great ships to board, and three leviathans to harpoon: the colossal squid, the storm eel and the abyssal angler."],
+	["The skimmer", "A windsurf board built from the coral atoll's parts: U launches it on the water, WASD steers, sail across the wind for speed, F stows it."],
+	["The gadget bag", "The belt now carries one gadget. Buy a gadget bag from the Master Tinkerer (four colours) to carry six: tap O for the next, hold O for the wheel."],
+	["The atoll's reef", "Dense coral gardens under the lagoon, giant clams with pearls, coral to break off, swim-through arches, rays and turtles, and morays in the rocks."],
+	["The stilt town", "Shell-bead curtains, coral-stone footings, outrigger canoes, pearl baskets and fish racks."],
 ]
 
 

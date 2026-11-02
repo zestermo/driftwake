@@ -881,6 +881,22 @@
 			]
 		},
 		{
+			"v": "1.28.1",
+			"name": "Reef and Skimmer",
+			"date": "2026-11-02",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The coral atoll's reef to dive, a skimmer to sail built from its parts, and a gadget bag.",
+			"img": "preview_128",
+			"alt": "A coral atoll's stilt town over a turquoise lagoon",
+			"github": true,
+			"added": [
+				["The skimmer", "A windsurf board built from the atoll's parts, sailed with the wind."],
+				["The gadget bag", "One gadget on the belt, six in a bag, a wheel to pick."],
+				["The reef", "Coral gardens, giant clams, arches, rays, turtles and morays."]
+			]
+		},
+		{
 			"v": "1.27.1",
 			"name": "Gadgets and Fire",
 			"date": "2026-11-01",
