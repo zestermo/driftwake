@@ -8990,3 +8990,22 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   share a board); `held` (once a game day per town) isn't saved.
 - Tests: `t/fishing/legend_fight`, `journal_screen`, `spearfish`, `contest`. Expected at prepush: villagetest /
   isletest (the contest sign), swimtest (SwimState), net.
+
+## 2026-11-01 Leviathans (1.28): the colossal squid, the storm eel, the abyssal angler
+- **Base** `scripts/enemies/leviathan.gd` (Leviathan, groups net_sync / harpoonable / leviathans): lurks at a lair a
+  sea leg lays (`SeaLegs.plan` "leviathan", own stream, `LEVIATHAN_CHANCE` 10% + 0.8%/level, none on the first leg),
+  rises for a manned ship when `_wants_rise()` (squid always, eel `Weather.storm` > 0.5, angler `Weather.night` > 0.5),
+  RISE -> FIGHT (the kind's `_fight`) -> DIVE when she leaves; cannonballs strike it (`struck`, the kind's `_spheres`;
+  Cannonball checks group "leviathans" too); the harpoon contract (`reel_toward` -> REELED alongside, `_clear_parts`,
+  hand blows x`FINISH_K` 2; `released` -> FIGHT); killed: a hoard with 2-3 leviathan scales (GadgetData's part),
+  gold, treasure and a purple/gold weapon; back after `RETURN_AFTER`. Co-op: host brain, net_pack + `_pack_extra`,
+  deck blows judged on each captain's machine (`deck_hit` events, the Sea King's way).
+- **Squid** (`colossal_squid.gd`): off her beam (SIDE_X 17), arms grab her rail behind a red ring (GRAB), slam the deck,
+  each held arm sets `Ship.held_k` (new: top speed x, eased back to 1) and the hull groans; arm ends are hurtboxes
+  (ARM_HP, cut: CUT_HURT to the body). **Eel** (`storm_eel.gd`): a chain of glowing-banded segments; MAST (bolt onto
+  the mast: `Ship.tear_sail`, `add_fire`, a blow near it) and BELOW (breach + blow, head left on deck). **Angler**
+  (`abyssal_angler.gd`): mostly under, a lure (real OmniLight) drifting round her; the lure's hurtbox x2 and STUN_DMG
+  of it drags it up stunned; JAWS (lure dark, wide ring, hull hit + toss, deck blow first).
+- F4 spawn list: "Leviathan: <kind>" (a lair where you stand). `Downtime` counts an up leviathan as "something huge".
+- Tests: `t/sea/squid`, `t/sea/storm_eel`, `t/sea/angler`. Render: `leviathanshot <out> <kind>`. Expected at prepush:
+  seatest / r-suites through cannonball.gd and ship.gd (held_k), net (leviathans are unexercised by nettest).

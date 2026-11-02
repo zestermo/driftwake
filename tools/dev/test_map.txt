@@ -717,3 +717,5 @@ scripts/enemies/leviathan.gd            t/sea/squid
 scripts/enemies/colossal_squid.gd       t/sea/squid
 scripts/enemies/storm_eel.gd            t/sea/storm_eel
 scripts/enemies/leviathan.gd            t/sea/storm_eel
+scripts/enemies/abyssal_angler.gd       t/sea/angler
+scripts/enemies/leviathan.gd            t/sea/angler
