@@ -16,7 +16,8 @@ extends RefCounted
 ##   spot (m: the lookout puts ships and salvage on the compass), night (speed between dusk and dawn),
 ##   steady (a ram throws the crew that much less; 1 = not at all), board (boarders fewer),
 ##   fruit (tangerine trees), portions (more of each dish cooked at the galley), slots (bag slots),
-##   ropes (the swing ropes at the yard's ends: none until bought)
+##   ropes (the swing ropes at the yard's ends: none until bought),
+##   rest (1.29: the bunk's rested time, longer)
 
 const GROUPS := ["Hull", "Guns", "Rig", "Helm", "Deck", "Cabin"]
 
@@ -83,6 +84,13 @@ const LINES := {
 		["Two trees", "Another tree beside it", {"timber": 3}, {"fruit": 1}],
 		["The grove", "A third tree between them", {"timber": 4, "copper": 1}, {"fruit": 1}],
 	]},
+	# (1.29) the cabin grows: the layout's tier (HullLayout._crew), furnished by ShipCabin, its outside by ShipParts
+	"quarters": {"name": "Quarters", "group": "Cabin", "legacy": 0, "base": 80, "levels": [
+		["Panelled quarters", "A metre longer, panelled walls, benches at the table, a skylight", {"timber": 4}, {"rest": 0.10}],
+		["Stern windows", "A row of stern windows and a chart desk", {"timber": 6, "iron": 2}, {"rest": 0.10}],
+		["Captain's corner", "A taller deckhead, the captain's cot behind a partition, a rug, a hanging lamp", {"timber": 6, "canvas": 3}, {"rest": 0.10}],
+		["Great cabin", "The partition gone, a second step down, a long mess table for five, a galley corner", {"timber": 8, "iron": 4, "copper": 2}, {"rest": 0.15}],
+	]},
 	"galley": {"name": "Galley & bunks", "group": "Cabin", "legacy": 0, "base": 60, "levels": [
 		["Upper bunk", "A second bunk over the bed", {"timber": 3}, {"portions": 1}],
 		["Galley range", "An oven, hanging pots, a chimney up through the deck", {"iron": 4}, {"portions": 1}],
@@ -96,9 +104,9 @@ const LINES := {
 }
 ## What Tackett's yard at Brinehollow does (1.22, Zach: "many of the upgrades should be only seen for the first time
 ## at a city"): the basics; the rest are first offered by a city's shipwright (and the chain's harbour vendors).
-const HOME_LINES := ["armour", "guns", "sails", "rudder", "chest"]
+const HOME_LINES := ["armour", "guns", "sails", "rudder", "quarters", "chest"]
 ## The lines in the yard's order (grouped as GROUPS).
-const ORDER := ["armour", "copper", "guns", "chaser", "sails", "nest", "ropes", "rudder", "lanterns", "rails", "grove", "galley", "chest"]
+const ORDER := ["armour", "copper", "guns", "chaser", "sails", "nest", "ropes", "rudder", "lanterns", "rails", "grove", "quarters", "galley", "chest"]
 
 ## How an effect reads (percent keys show amount x 100, count keys as they are).
 const EFFECT_TEXT := {
@@ -108,7 +116,7 @@ const EFFECT_TEXT := {
 	"chaser_range": "+%d%% chaser range", "spot": "ships and salvage on the compass +%d m",
 	"night": "+%d%% speed at night", "steady": "%d%% steadier when rammed", "board": "%d fewer boarder",
 	"fruit": "+%d tangerine tree", "portions": "+%d portion a dish at the galley", "slots": "+%d bag slots",
-	"ropes": "%d ropes to swing on",
+	"ropes": "%d ropes to swing on", "rest": "+%d%% longer rested from the bunk",
 }
 const COUNT_KEYS := ["guns", "chaser", "spot", "board", "fruit", "portions", "slots", "ropes"]
 

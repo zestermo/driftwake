@@ -217,6 +217,9 @@ scripts/props/*                         qoltest
 # --- ship and sea ---
 scripts/ship/hull_builder.gd            shiptest seatest riggingtest r8test swimtest decktest looptest t/ship/layout_parity
 scripts/ship/hull_layout.gd             shiptest seatest riggingtest r8test swimtest decktest looptest t/ship
+scripts/ship/ship_cabin.gd              riggingtest looptest t/ship
+scripts/ship/ship_wheel.gd              t/ship/wheel_levels t/ship/upgrade_levels
+scripts/interaction/ladder.gd           riggingtest swimtest t/ship/hull_ladder
 scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yardtest looptest decktest r8test net t/ship/blocked_furls
 scripts/ship/ship_kit.gd                yardtest t/ship
 scripts/ship/ship_lines.gd              yardtest t/ship

@@ -299,6 +299,21 @@ static func tick(p, kind: String, delta: float) -> void:
 		p.get_node("/root/Weather").world_offset += delta * (SLEEP_TIME - 1.0)
 
 
+## (1.29) Rested: a rest in the ship's bunk (GameManager.rest) leaves you this for REST_TIME (game seconds), longer
+## by her Quarters line's "rest" (ShipLines). Progression.stat keys. Tune in play.
+const REST := {"regen_pct": 0.3, "stamina_regen_pct": 0.1}
+const REST_TIME := 600.0
+
+
+static func tick_rest(pr, delta: float) -> void:
+	pr.rest_left -= delta
+	if pr.rest_left > 0.0:
+		return
+	pr.rest_left = 0.0
+	pr.player.call("_recalc_stats")
+	pr.player.call("_toast", "You're not so rested any more")
+
+
 ## The tinkered kit wearing off (Progression._physics_process, game time; Tinkering's kit_time_pct slows it).
 static func tick_kit(pr, delta: float) -> void:
 	pr.kit_left -= delta / (1.0 + pr.stat("kit_time_pct"))

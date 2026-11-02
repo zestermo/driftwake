@@ -278,8 +278,12 @@ func rest(p: Player) -> String:
 	p.stamina = p.max_stamina
 	p.power.energy = p.power.max_energy()
 	var topped: int = p.refill_flask()
+	# (1.29) rested a while after (Downtime.REST), longer in better quarters
+	var s := _get_ship()
+	p.progression.rest_left = Downtime.REST_TIME * (1.0 + (ShipLines.total(s.kit, "rest") if s else 0.0))
+	p.call("_recalc_stats")
 	SaveGame.save(p)
-	return "You rest a while. Fully recovered%s." % (", your flask refilled" if topped > 0 else "")
+	return "You rest a while. Fully recovered and rested (%d min)%s." % [roundi(p.progression.rest_left / 60.0), ", your flask refilled" if topped > 0 else ""]
 
 
 ## Portions of each dish the ship's galley cooks from one set of ingredients (its Galley & bunks line;

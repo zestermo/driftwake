@@ -118,6 +118,7 @@ func _rebuild() -> void:
 	_lanterns(mb, lv("lanterns"))
 	_rails(mb, fine, lv("rails"))
 	_grove(mb, lv("grove"))
+	_quarters(mb, fine, lv("quarters"))
 	_galley(mb, fine, lv("galley"))
 	_hold(mb, fine, lv("chest"))
 	for b in [mb, fine]:
@@ -430,15 +431,9 @@ func _rudder(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 				rmb.add_box(_m["iron"], Transform3D(Basis(), Vector3(sgn * 0.1, -1.05, w - 0.12)), Vector3(0.03, 2.5, 0.2), 1.0)
 		_own(rmb.to_instance("Blade"), rudder_node)
 		_count("rudder")
+	# the wheel and its pedestal show the line's level themselves (ShipWheel: 2 brass, 4 a carved pedestal, 5 gilt)
+	ship.fit_helm(n)
 	if n >= 2:
-		# a brass rim round the wheel, handles out past it
-		var wmb := MeshBuilder.new()
-		wmb.add_cylinder(_m["brass"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.06)), 0.47, 0.47, 0.05, 10, 1.0, Color.WHITE, true, true, false)
-		for k in range(8):
-			var a := TAU * k / 8.0
-			var dir := Vector3(cos(a), sin(a), 0)
-			wmb.add_box(_m["trim"], Transform3D(Basis(Vector3.BACK, a - PI * 0.5), dir * 0.55 + Vector3(0, 0, 0.04)), Vector3(0.05, 0.18, 0.05), 1.0)
-		_own(wmb.to_instance("BrassRim"), ship.wheel)
 		_count("rudder")
 	if n >= 3:
 		# a binnacle forward of the wheel: a post, the brass hood, the compass's lamp
@@ -753,6 +748,57 @@ func pick(p: Player) -> void:
 	FX.sfx("blip_high", grove_zone.global_position, -6.0, 0.1)
 	p.call("_toast", "Picked %d tangerine%s" % [n, "" if n == 1 else "s"])
 	_show_fruit()
+
+
+# --------------------------------------------------------------------------
+# Quarters (the cabin itself is the layout's: HullLayout._crew, ShipCabin; this is what shows of it outside)
+# --------------------------------------------------------------------------
+func _quarters(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
+	var L := ship.layout
+	if n >= 1:
+		# a skylight on the quarterdeck over the cabin, forward of the binnacle
+		var at := Vector3(0, L.qd_y, L.qd_front + 0.9)
+		mb.add_box(_m["oak"], Transform3D(Basis(), at + Vector3(0, 0.15, 0)), Vector3(1.1, 0.3, 0.8), 1.0)
+		for sx in [-1.0, 1.0]:
+			mb.add_box(_m["glass"], Transform3D(Basis(Vector3.BACK, sx * 0.35), at + Vector3(sx * 0.24, 0.38, 0)), Vector3(0.5, 0.03, 0.68), 1.0)
+			mb.add_box(_m["trim"], Transform3D(Basis(Vector3.BACK, sx * 0.35), at + Vector3(sx * 0.24, 0.4, 0)), Vector3(0.52, 0.03, 0.06), 1.0)
+		mb.add_box(_m["trim"], Transform3D(Basis(), at + Vector3(0, 0.47, 0)), Vector3(0.08, 0.05, 0.74), 1.0)
+		for k in range(3):
+			fine.add_box(_m["brass"], Transform3D(Basis(), at + Vector3(0, 0.36, -0.25 + k * 0.25)), Vector3(1.0, 0.025, 0.025), 1.0)
+		_solid(at + Vector3(0, 0.25, 0), Vector3(1.1, 0.5, 0.8))
+		_count("quarters")
+	if n >= 2:
+		# the stern windows outside: a row of five panes across the transom, framed, a sill and a cornice
+		var z := L.qd_back + 0.03
+		var y := L.cabin_y + 1.75
+		for k in range(5):
+			var x := -2.2 + k * 1.1
+			mb.add_box(_m["glass"], Transform3D(Basis(), Vector3(x, y, z)), Vector3(0.82, 0.8, 0.04), 1.0)
+			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(x - 0.55, y, z + 0.03)), Vector3(0.12, 0.98, 0.07), 1.0)
+			fine.add_box(_m["trim"], Transform3D(Basis(), Vector3(x, y, z + 0.03)), Vector3(0.05, 0.8, 0.04), 1.0)
+		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(2.75, y, z + 0.03)), Vector3(0.12, 0.98, 0.07), 1.0)
+		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(0, y - 0.52, z + 0.06)), Vector3(5.8, 0.08, 0.14), 1.0)
+		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(0, y + 0.53, z + 0.06)), Vector3(5.9, 0.1, 0.16), 1.0)
+		_count("quarters")
+	if n >= 3:
+		# gilt quarter badges: a carved scroll panel on each side of the stern castle
+		for sgn in [-1.0, 1.0]:
+			var bz := L.qd_back - 1.2
+			var x: float = sgn * (L.side_at(bz, L.qd_y - 0.8) + 0.03)
+			mb.add_box(_m["gilt"], Transform3D(Basis(), Vector3(x, L.qd_y - 0.75, bz)), Vector3(0.05, 0.5, 1.5), 1.0)
+			mb.add_cylinder(_m["gilt"], Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(x + sgn * 0.02, L.qd_y - 0.75, bz - 0.85)), 0.16, 0.16, 0.06, 8, 1.0, Color.WHITE, true, true)
+			mb.add_cylinder(_m["gilt"], Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(x + sgn * 0.02, L.qd_y - 0.75, bz + 0.85)), 0.12, 0.12, 0.06, 8, 1.0, Color.WHITE, true, true)
+		_count("quarters")
+	if n >= 4:
+		# brass portholes down the stern castle's sides, a nameboard across the transom
+		for sgn in [-1.0, 1.0]:
+			for z in [L.qd_front + 1.6, L.qd_front + 3.4]:
+				var x: float = sgn * (L.side_at(z, L.cabin_y + 1.55) + 0.02)
+				var b := Basis(Vector3.BACK, PI * 0.5)
+				mb.add_cylinder(_m["brass"], Transform3D(b, Vector3(x, L.cabin_y + 1.55, z)), 0.2, 0.2, 0.05, 10, 1.0, Color.WHITE, true, true)
+				mb.add_cylinder(_m["glass"], Transform3D(b, Vector3(x + sgn * 0.02, L.cabin_y + 1.55, z)), 0.14, 0.14, 0.03, 10, 1.0, Color.WHITE, true, true)
+		mb.add_box(_m["gilt"], Transform3D(Basis(), Vector3(0, L.qd_y - 0.2, L.qd_back + 0.05)), Vector3(3.2, 0.3, 0.05), 1.0)
+		_count("quarters")
 
 
 # --------------------------------------------------------------------------

@@ -1524,6 +1524,9 @@ func _build_cabin() -> void:
 	_cabin_light.shadow_enabled = false
 	_cabin_light.position = ShipCabin.lamp_at(layout, layout.tier) + Vector3(0, -0.15, 0)
 	_layout_root.add_child(_cabin_light)
+	# (hidden until _show_cabin finds a camera near, next frame)
+	for n in [_cabin_mesh, _cabin_fine, _cabin_light]:
+		(n as Node3D).visible = false
 	_cabin_t = 0.0
 
 

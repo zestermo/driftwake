@@ -9301,3 +9301,27 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Icons: GearIcons shapes for all ten. Per frame: the bandages' two tails on the head's chains (like a bandana's).
 - Tests: t/gear/face_slot (new). Renders: tools/dev/out/clothes/face3a_back.png, face3b_back.png (fronts), face4_back.png
   (under hats: cavalier, straw, tricorn, helm, bandana), face5_back3.png (eye wrap), wraps1_back3.png.
+## 2026-11-02: the Quarters line and the wheel's levels (1.29 'Shipshape', piece 3)
+- **Quarters** (ShipLines "quarters", Cabin group, in HOME_LINES so Tackett sells it; base 80 on the economy curve:
+  80 / 130 / 200 / 330, the plan's 128/205/328 rounded by Economy.nice; materials as the plan's table; effect `rest`
+  +10/10/10/15%). The level is the layout's tier (`HullLayout.for_kit` reads kit "quarters"): 1 the quarterdeck a
+  metre forward (stairs with it), 3 the quarterdeck 0.25 m up (taller deckhead; helm, quarterdeck guns, grove and
+  lights follow the layout), 4 the floor a second step down (3 steps inside the door). Old saves have no key: level 0.
+- **ShipCabin** furnishes each level: 1 panelling and benches, 2 five stern windows with mullions and curtains and a
+  chart desk under them (`desk_at`), 3 the captain's corner partition, a rug, a brass lamp, 4 the Merry-style lounge
+  (mess table for five under a red check cloth, padded bench, stools, brick back wall to the galley, sink, bottle
+  rack, dresser of plates with a half-drawn curtain, brass portholes, wall clock, barrels, a second bunk, a hoop of
+  candles). Tiers 0-2 hang a candle lantern (BeltLantern.model) and have three round brass ports with sea-tinted glass
+  in the stern wall (the lead's note on the piece 2 render).
+- Outside (ShipParts `_quarters`: a level shows from the deck and counts for upgrade_levels): 1 a skylight on the
+  quarterdeck (solid), 2 the stern windows lit on the transom, 3 gilt quarter badges, 4 brass portholes down the castle
+  and a gilt nameboard.
+- The cabin meshes and light start hidden; `_show_cabin` reveals them when a camera is near (upgrade_cost counts what
+  draws: a maxed sloop still within +55 surfaces).
+- **Rested** (new): a rest in the bunk (GameManager.rest) sets `Progression.rest_left` = Downtime.REST_TIME (600 s) x
+  (1 + the ship's "rest"); Downtime.REST {regen_pct 0.3, stamina_regen_pct 0.1} adds in Progression.stat while it
+  lasts (ticked in Progression._physics_process, saved as "rest"). Numbers assumed: tune in play.
+- **The wheel's levels**: ShipParts._rudder calls `ship.fit_helm(n)` (ShipWheel: 2 brass band, ferrules and hub, 4 the
+  carved pedestal, 5 gilt boss, star, knobs and crown); the old BrassRim node is gone; 1 rudder, 3 binnacle, 5 taffrail.
+- Tests: t/ship/quarters_line, t/ship/wheel_levels. Renders: tools/dev/out/shipshape/q0_*, q4_* (bigshipshot,
+  BSHOT_KIT '{"quarters": 4, "rudder": 5}').

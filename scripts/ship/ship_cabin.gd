@@ -26,9 +26,10 @@ static func mats() -> Dictionary:
 		"brass": PSXMat.lit("metal", Color(1.0, 0.78, 0.4)),
 		"fire": PSXMat.glow(Color(1.0, 0.45, 0.12), 3.0),
 		"glass": PSXMat.glow(Color(1.0, 0.8, 0.4), 2.5),
-		"pane": PSXMat.glow(Color(0.72, 0.84, 0.95), 1.3),
+		# (sea and sky through the glass: a soft blue-green, never a blown-out white)
+		"pane": PSXMat.glow(Color(0.36, 0.56, 0.66), 0.8),
 		"brick": PSXMat.lit("brick_pink", Color(1.0, 0.82, 0.72)),
-		"check": PSXMat.lit("fabric_check"),
+		"check": PSXMat.lit("fabric_check", Color(1.0, 0.5, 0.45)),
 		"rug": PSXMat.lit("rug_kilim"),
 		"curtain": PSXMat.lit("drape_fabric", Color(0.8, 0.42, 0.32)),
 		"leather": PSXMat.lit("leather", Color(0.75, 0.32, 0.22)),
@@ -237,9 +238,18 @@ static func _stern(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLay
 	var z := L.qd_back - 0.16
 	var y := L.cabin_y + 1.7
 	if q < 2:
+		# three round ports: a brass rim, the glass set back in it, the dogs that close it
+		var b := Basis(Vector3.RIGHT, -PI * 0.5)
 		for sx in [-1.6, 0.0, 1.6]:
-			mb.add_box(m["pane"], Transform3D(Basis(), Vector3(sx, y, z)), Vector3(0.6, 0.45, 0.04), 1.0)
-			mb.add_box(m["trim"], Transform3D(Basis(), Vector3(sx, y - 0.27, z - 0.03)), Vector3(0.7, 0.06, 0.1), 1.0)
+			var p := Vector3(sx, y, z)
+			mb.add_cylinder(m["brass"], Transform3D(b, p + Vector3(0, 0, 0.02)), 0.25, 0.25, 0.07, 10, 1.0, Color.WHITE, false, false)
+			for k in range(10):
+				var a0 := TAU * (k + 0.5) / 10.0
+				mb.add_box(m["brass"], Transform3D(Basis(Vector3.BACK, a0), p + Vector3(cos(a0), sin(a0), 0) * 0.215 - Vector3(0, 0, 0.05)), Vector3(0.07, 0.15, 0.02), 1.0)
+			mb.add_cylinder(m["pane"], Transform3D(b, p - Vector3(0, 0, 0.02)), 0.19, 0.19, 0.01, 10, 1.0, Color.WHITE, true, true)
+			for k in range(3):
+				var a := TAU * (k + 0.25) / 3.0
+				fine.add_box(m["iron"], Transform3D(Basis(Vector3.BACK, a), p + Vector3(cos(a) * 0.24, sin(a) * 0.24, -0.07)), Vector3(0.05, 0.03, 0.03), 1.0)
 		return
 	for k in range(5):
 		var x := -2.2 + k * 1.1
@@ -279,7 +289,9 @@ static func _lamp(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLayo
 		mb.add_box(m["glass"], Transform3D(Basis(), at + Vector3(0, 0.12, 0)), Vector3(0.14, 0.2, 0.14), 1.0)
 		mb.add_cylinder(m["brass"], Transform3D(Basis(), at + Vector3(0, 0.22, 0)), 0.16, 0.04, 0.1, 8, 1.0)
 		return
-	mb.add_box(m["glass"], Transform3D(Basis(), at), Vector3(0.22, 0.3, 0.22), 1.0)
+	# a ship's candle lantern on its chain: an iron frame and cap round the glass, a candle inside
+	BeltLantern.model(mb, Transform3D(Basis(), at - Vector3(0, 0.3, 0)), 1.0, m["iron"], m["glass"])
+	fine.add_cylinder(m["linen"], Transform3D(Basis(), at - Vector3(0, 0.24, 0)), 0.025, 0.025, 0.09, 5, 1.0)
 
 
 ## Where the cabin's lamp hangs (its light: Ship's CabinLight sits on it).
@@ -364,7 +376,7 @@ static func _lounge(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLa
 			fine.add_cylinder(m["glaze"], Transform3D(Basis(Vector3.BACK, PI * 0.5 - 0.15), d + Vector3(-0.02, y + 0.13, -0.42 + k * 0.28)), 0.12, 0.12, 0.02, 8, 1.0, Color(0.8 + 0.2 * (k % 2), 0.9, 1.0), true, true)
 	for sz in [-0.3, 0.3]:
 		fine.add_box(m["brass"], Transform3D(Basis(), d + Vector3(-0.245, 0.55, sz)), Vector3(0.02, 0.05, 0.05), 1.0)
-	mb.add_box(m["curtain"], Transform3D(Basis(Vector3.UP, 0.05), d + Vector3(-0.27, 1.38, 0.3)), Vector3(0.03, 0.95, 0.6), 1.0)
+	mb.add_box(m["curtain"], Transform3D(Basis(Vector3.UP, 0.05), d + Vector3(-0.27, 1.38, 0.42)), Vector3(0.03, 0.95, 0.36), 1.0, Color(0.85, 0.85, 0.85))
 	HullBuilder._line(mb, m["brass"], d + Vector3(-0.27, 1.88, -0.6), d + Vector3(-0.27, 1.88, 0.6), 0.02)
 	# brass portholes down both walls
 	for sgn in [-1.0, 1.0]:
@@ -396,4 +408,4 @@ static func _lounge(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLa
 	# a second bunk along the port wall forward of the first, its own curtain
 	var b2 := L.bed_at + Vector3(0, 0, -2.35)
 	_bunk(mb, fine, m, b2, 4)
-	mb.add_box(m["curtain"], Transform3D(Basis(), b2 + Vector3(0.6, 1.0, 0.55)), Vector3(0.03, 1.2, 0.9), 1.0)
+	mb.add_box(m["curtain"], Transform3D(Basis(), b2 + Vector3(0.6, 0.95, 0.8)), Vector3(0.03, 0.9, 0.4), 1.0, Color(0.85, 0.85, 0.85))
