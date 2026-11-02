@@ -418,7 +418,7 @@ func _perch() -> void:
 ## The catwalks: four walks in a square round the yard on posts, rails, and two stairs up from the yard floor.
 func _build_catwalks() -> void:
 	var r := float(BOSSES["marrow"]["arena"][1]) * 0.8
-	var wood := PSXMat.lit("wood", Color(0.5, 0.42, 0.32))
+	var wood := PSXMat.lit("planks", Color(0.5, 0.42, 0.32))
 	var iron := PSXMat.lit("metal", Color(0.4, 0.42, 0.45))
 	var mb := MeshBuilder.new()
 	var body := StaticBody3D.new()

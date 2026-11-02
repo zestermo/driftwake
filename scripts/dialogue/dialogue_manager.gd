@@ -205,7 +205,9 @@ func _fill_tokens(line: String) -> String:
 	for token in _tokens.keys():
 		var key := "{%s}" % token
 		if line.find(key) != -1:
-			line = line.replace(key, str(_tokens[token].call()))
+			# (a provider bound to something since freed - an island sailed away from, a captain gone - says nothing)
+			var c: Callable = _tokens[token]
+			line = line.replace(key, str(c.call()) if c.is_valid() else "")
 	return line
 
 

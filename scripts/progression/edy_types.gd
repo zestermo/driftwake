@@ -52,6 +52,25 @@ const QUIZ := [
 ]
 
 
+## The reading's dialogue tokens (Progression registers them): the local captain's type, whoever's talking.
+static func token_read() -> String:
+	return str(info(_local_type()).get("read", ""))
+
+
+static func token_says() -> String:
+	return "Your Edy is %s. %s" % [name_of(_local_type()), info(_local_type()).get("says", "")]
+
+
+static func token_price() -> String:
+	return str(REREAD_GOLD)
+
+
+static func _local_type() -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	var lp := tree.get_first_node_in_group("player") if tree else null
+	return str(lp.progression.will_color) if lp and lp.get("progression") else ""
+
+
 static func info(id: String) -> Dictionary:
 	return TYPES.get(id, {})
 
