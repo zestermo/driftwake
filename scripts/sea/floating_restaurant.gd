@@ -6,7 +6,8 @@ extends SeaVessel
 ## pontoon at the waterline, a ramp up to the deck) or climb a ladder from the water.
 ## Inside: the head chef behind the kitchen counter sells the day's dishes and teaches recipes (the Captain's Feast,
 ## and the house's Tidewater Bouillabaisse); a room to rest in (rest and save, GameManager.rest); a rumour board
-## with word of the stops on the legs ahead; the cook-off table (`cookoff`: the cooking timing game hooks in here).
+## with word of the stops on the legs ahead; the cook-off table: once a visit, the judge names a dish and you cook it
+## in the cooking game (no ingredients needed, a little quicker than the galley's), prizes by the grade (COOKOFF).
 ## Sometimes (ATTACK_CHANCE, seeded) pirates hold her deck when you arrive, a pirate sloop standing by: beat the
 ## boarders and the chef's favour teaches the crew the bouillabaisse for nothing (world flag, every captain).
 ## At anchor: she doesn't move or roll (a hull this broad sits still on the swell).
@@ -20,8 +21,13 @@ const RECIPE_PRICE := {"captains_feast": 150, "tidewater_bouillabaisse": 400}
 const NAMES := ["The Drifting Ladle", "The Saltbelly", "The Leviathan's Table", "The Floating Larder", "The Gull and Kettle"]
 const CHEFS := ["Barro Kettlewick", "Marisol Vance", "Odo Brineheart", "Tamsin Rook", "Ferro Saltmarsh"]
 const DISHES := [["fish_stew"], ["reef_salad"], ["forest_curry"], ["porridge"], ["island_skewers"], ["citrus_tart"], ["peppered_boar"]]
-## The cooking timing game (a later agent): Callable(player) to run a cook-off; unset, the table says it's not on.
-static var cookoff: Callable
+## The cook-off: the game's speed, and by grade (Burnt, Fair, Good, Perfect) the gold, Cooking XP and a prize item [id, n].
+const COOKOFF_SPEED := 1.15
+const COOKOFF := [{"gold": 0, "xp": 20, "item": []}, {"gold": 40, "xp": 60, "item": []},
+	{"gold": 120, "xp": 120, "item": ["staple", 3]}, {"gold": 300, "xp": 250, "item": ["book_atlas", 1]}]
+const COOKOFF_SAY := ["Burnt to the pan. Everyone starts somewhere. Most of them start better.",
+	"Edible. The gulls agree. Here's a little something for trying.", "Good! Clean work. Take these, they're from my own larder.",
+	"Perfect. I haven't tasted the like since my mother's galley. Take this, and tell no one I cried."]
 
 ## Hull: the deck at y 0 (ship-local), half beam HW, from the stern ST to the bow BW; the fish head past it.
 const HW := 10.5
@@ -44,6 +50,7 @@ var fleet: EnemyFleet
 var _flag := ""
 var _thanked := false
 var _poll := 0.0
+var _cooked_off := false
 
 
 func setup(at: Vector3, lvl: int, seed_: int) -> FloatingRestaurant:
@@ -411,7 +418,7 @@ func _people() -> void:
 	var jl := CharacterLook.random_look(rng)
 	jl["name"] = "Cook-off judge"
 	judge.setup({"name": "Judge Pell", "look": jl, "yaw": PI * 0.5,
-		"barks": ["The cook-off? Every cook at sea wants a go. Not today: the kitchen's full."]})
+		"barks": ["The cook-off table's by the wall. One go a visit: I name the dish, you cook it.", "Burn it and I'll know. I always know."]})
 	judge.humanoid.far_figure = false
 	add_child(judge)
 	judge.position = Vector3(-6.2, 0.0, -6.0)
@@ -524,8 +531,40 @@ func _rumours(_p: Player) -> void:
 	get_node("/root/Dialogue").say("Rumour board", lines, null, 1.0)
 
 
+## The cook-off (once a visit for each captain, on their own machine): the judge names one of the day's dishes, the
+## cooking game plays it (GameMenu.open_cook_game), the grade picks the prize (COOKOFF).
 func _cook_off(p: Player) -> void:
-	if cookoff.is_valid():
-		cookoff.call(p)
+	if attacked and not GameManager.world_flags.has(_flag):
+		_say("Cook-off? With pirates on the deck? Clear them off first!")
 		return
-	_say("The cook-off's not on today. When it is, bring your best pan.")
+	if _cooked_off:
+		_say("One go a visit. Come back to another of our kitchens and try again.")
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_value, "cookoff"])
+	var dish := str(DISHES[rng.randi() % DISHES.size()][0])
+	_cooked_off = true
+	GameMenu.open_cook_game("Cook-off: %s" % Food.MEALS[dish]["name"], func(_q: float, grade: int): cookoff_prize(p, grade),
+		{"meal": dish, "back": "", "speed": COOKOFF_SPEED})
+
+
+## The judge's verdict and prize for `grade` (tests call it).
+func cookoff_prize(p: Player, grade: int) -> void:
+	var prize: Dictionary = COOKOFF[grade]
+	var inv = p.inventory_component
+	var got: Array = []
+	if int(prize["gold"]) > 0:
+		inv.add_item(ItemDB.get_item("gold"), int(prize["gold"]))
+		got.append("%d gold" % int(prize["gold"]))
+	var it: Array = prize["item"]
+	if not it.is_empty():
+		var id := str(it[0])
+		if id == "staple":
+			var staples: Array = Food.STAPLES.values()
+			id = str(staples[hash([seed_value, "staple"]) % staples.size()])
+		if id != "" and ItemDB.get_item(id):
+			inv.add_item(ItemDB.get_item(id), int(it[1]))
+			got.append("%s%s" % [ItemDB.get_item(id).display_name, " x%d" % int(it[1]) if int(it[1]) > 1 else ""])
+	p.progression.add_life("cook", int(prize["xp"]))
+	_say(str(COOKOFF_SAY[grade]))
+	get_tree().call_group("hud", "show_banner", "Cook-off: %s" % CookTiming.GRADE_NAMES[grade], ", ".join(got) if not got.is_empty() else "No prize this time", false)

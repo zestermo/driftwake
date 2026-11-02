@@ -55,9 +55,15 @@ func _init(menu: Node) -> void:
 	c1.custom_minimum_size = Vector2(W_LIST, 0)
 	body.add_child(c1)
 	c1.add_child(InventoryScreen.small("RECIPES", UIStyle.BORDER))
+	# (1.28: island dishes and feasts made it a long list: it scrolls)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(W_LIST + 10, 210)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	c1.add_child(scroll)
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 2)
-	c1.add_child(_list)
+	scroll.add_child(_list)
 	for id in Food.ORDER:
 		var b := UIStyle.button("", W_LIST)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -182,15 +188,19 @@ func _show_card() -> void:
 	var r: Dictionary = m["recipe"]
 	for tag in r.keys():
 		var have := Food.have(inv, tag)
-		_line("%d %s  (YOU HAVE %d)" % [int(r[tag]), str(Food.TAG_NAMES[tag]).to_upper(), have], UIStyle.GOOD if have >= int(r[tag]) else UIStyle.DANGER_TEXT)
+		_line("%d %s  (YOU HAVE %d)" % [int(r[tag]), Food.tag_name(tag).to_upper(), have], UIStyle.GOOD if have >= int(r[tag]) else UIStyle.DANGER_TEXT)
 	var use := Food.picks(inv, _sel)
 	if not use.is_empty():
 		var names: Array = []
 		for u in use:
 			names.append("%d %s" % [int(u[1]), (u[0] as ItemData).display_name])
 		_line("USES " + ", ".join(names).to_upper(), UIStyle.TEXT_DIM)
+	if Food.is_feast(_sel):
+		_line("A CREW FEAST: EVERYONE ABOARD EATS" if Food.aboard(pl) else "A CREW FEAST: COOKED IN THE SHIP'S GALLEY", UIStyle.ACCENT if Food.aboard(pl) else UIStyle.DANGER_TEXT)
+	elif Food.MEALS[_sel].has("theme"):
+		_line("AN ISLAND DISH (%s)" % str(Food.MEALS[_sel]["theme"]).to_upper(), UIStyle.TEXT_DIM)
 	_line("MAKES %d" % portions, UIStyle.ACCENT)
-	_cook_btn.disabled = use.is_empty() or inv.room_for(it) < portions
+	_cook_btn.disabled = use.is_empty() or inv.room_for(it) < portions or (Food.is_feast(_sel) and not Food.aboard(pl))
 	_quick_btn.disabled = _cook_btn.disabled
 
 
@@ -225,6 +235,16 @@ func cook_selected(grade: int = 1) -> void:
 	UIStyle.sfx("sizzle")
 	var name_ := ItemDB.get_item(Food.graded(_sel, grade)).display_name
 	var mult := float(CookTiming.MULT[grade])
+	# (1.28) a feast: every captain aboard eats it now, the cook's portion too; the rest go on the table
+	if Food.is_feast(_sel):
+		pl.inventory_component.remove_item(ItemDB.get_item(Food.graded(_sel, grade)), 1)
+		Net.everyone("_all_feast", [_sel, pl.display_name(), Food.strength(pl.progression) * mult, Food.seconds(pl.progression, _sel) * mult])
+		if portions > 1 and GalleyTable.of(get_tree()) != null:
+			pl.inventory_component.remove_item(ItemDB.get_item(Food.graded(_sel, grade)), portions - 1)
+			Net.table_serve(_sel, portions - 1, pl.display_name(), Food.strength(pl.progression) * mult, Food.seconds(pl.progression, _sel) * mult)
+		_flash("%s served to the crew" % name_, false)
+		_refresh()
+		return
 	# aboard, a pot of several portions goes on the galley table for the crew (the cook keeps one)
 	if portions > 1 and GalleyTable.of(get_tree()) != null:
 		pl.inventory_component.remove_item(ItemDB.get_item(Food.graded(_sel, grade)), portions - 1)

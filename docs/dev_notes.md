@@ -8950,3 +8950,22 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   crew, spark) and its name under it from zoom 0.6. Hits are registered for every node (arrow nav reaches off-view
   ones) but `_hit_at` takes an Edy node only inside the view. `EdyTree.cached()` replaces a per-frame `all()`.
 - The view hides under the perks popup. Tests: `t/ui/skills_captain_forks` pans to Infuse before clicking it.
+
+## 2026-11-01 Cooking pieces B and C: island dishes, crew feasts, the cook-off (1.28 life systems)
+- **Island dishes:** each theme's own ingredient (`Food.STAPLES`: fire chili, frost berries, desert dates, black truffle,
+  ghost lily, ember salt, sea grapes for the atoll) is always in that island's village cookpot (`Shops.STAPLE_PRICE`,
+  added in IslandVillage's cookpot stock) and the grocer pools grew fog / volcanic / atoll lists. Two dishes a theme
+  (14, the plan's table + two atoll ones), known from the start, in the galley's (now scrolling) list.
+- **Recipes by item id:** a recipe key is a tag, `"island"` (any staple) or an exact item id (`Food.fits`). `Food.picks`
+  fills exact items first, then "island", then tags, and tracks what it's taken, so Truffle Risotto's "greens" never
+  eats the truffle the dish is named for. `Food.tag_name` reads keys (the ingredient's own name for an id).
+- **Crew feasts** (Harbour, Boar Roast, Feast of the Isles, already in MEALS): `Food.is_feast`; cooked only aboard the
+  crew's ship (`Food.aboard`, `can_cook` refuses ashore). Served, `Net.everyone("_all_feast")` feeds every captain
+  aboard at the cook's strength x grade (banner), the cook's portion included; extra portions go on the galley table.
+- **Cook-off** at the floating restaurant (`FloatingRestaurant._cook_off`, replaces the `cookoff` Callable hook): once a
+  visit per captain, the judge names one of the day's dishes, the cooking game at x1.15 speed, no ingredients;
+  prizes by grade (`COOKOFF`: 0/40/120/300 gold, XP, 3 of a staple on Good, A Cook's Atlas on Perfect). A raided
+  restaurant's table waits until the raiders are beaten.
+- Icons: `tools/texture_gen/gen_dish_icons.py` (imports gen_psx_textures' `_icon`).
+- Tests: `t/food/island_dishes`, `t/food/crew_feast`, `t/sea/cookoff`. Expected at prepush: villagetest / isletest
+  (the cookpot stock), net (feast RPC unexercised by nettest).

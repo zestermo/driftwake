@@ -197,7 +197,7 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 		"buys": {"loot": 0.9, "gear": 0.5, "weapon": 0.5}}
 	Shops.extra[food_id] = {"name": "%s's Cookpot" % _folk_name(isl, rng),
 		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.", "trade": "grocer",
-		"stock": [["fish", 5], ["stew", 16], ["rum", 8]], "pool": Shops.THEME_GROCER.get(isl.theme, Shops.THEME_GROCER["jungle"]),
+		"stock": [["fish", 5], ["stew", 16], ["rum", 8]] + ([[Food.STAPLES[isl.theme], Shops.STAPLE_PRICE]] if Food.STAPLES.has(isl.theme) else []), "pool": Shops.THEME_GROCER.get(isl.theme, Shops.THEME_GROCER["jungle"]),
 		"size": Shops.GROCER_SIZE, "buys": {"consumable": 0.4, "ingredient": 0.5}}
 	# the job board by the way in
 	var bd: Dictionary = p["board"]

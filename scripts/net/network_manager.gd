@@ -969,6 +969,15 @@ func _all_table_ate(who: int, meal: String, left: int, cook: String, k: float, s
 		p.call("_toast", "%s's %s: %s" % [cook, str(Food.MEALS[meal]["name"]), Food.buff_text(meal, k)])
 
 
+## (1.28) A crew feast is served: every captain aboard the ship eats it at the cook's strength (GalleyScreen).
+func _all_feast(meal: String, cook: String, k: float, secs: float) -> void:
+	var p := _me()
+	if p == null or not Food.aboard(p):
+		return
+	p.progression.eat_meal(meal, k, secs)
+	get_tree().call_group("hud", "show_banner", str(Food.MEALS[meal]["name"]).to_upper(), "%s's feast: %s" % [cook, Food.buff_text(meal, k)], false)
+
+
 func _all_cutscene_waiting(kind: String, n: int) -> void:
 	if Cutscene.active and Cutscene.active.kind == kind:
 		Cutscene.active.set_waiting(n)

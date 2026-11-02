@@ -139,7 +139,12 @@ const THEME_GROCER := {
 	"desert": [["flour"], ["salt"], ["pepper"], ["coconut"], ["egg"]],
 	"snow": [["salt"], ["flour"], ["egg"], ["seaweed"], ["crab_meat"]],
 	"forest": [["mushroom"], ["egg"], ["flour"], ["salt"], ["pepper"]],
+	"fog": [["seaweed"], ["salt"], ["flour"], ["egg"], ["mushroom"]],
+	"volcanic": [["rice"], ["pepper"], ["egg"], ["flour"], ["mushroom"]],
+	"atoll": [["coconut"], ["rice"], ["oyster"], ["seaweed"], ["sea_urchin"], ["salt"]],
 }
+## (1.28) The theme's own ingredient (Food.STAPLES) is always in its cookpot, at this price.
+const STAPLE_PRICE := 9
 const GROCER_SIZE := 3
 ## What a treasure merchant's rare gear is made from (slot, style, look; their tier).
 const RARE_GEAR := [
