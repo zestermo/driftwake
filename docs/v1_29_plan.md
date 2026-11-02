@@ -23,6 +23,10 @@ the thinnest island themes.
 | Ladders and flag | The hull ladders **shorter and cleaner** (rungs and rails that sit right on the hull, ending at the waterline); the crow's nest flag redone so it hangs and flies right | Zach: too long, janky | - |
 | Galley and berths | **A full detail pass** on the galley, bunks, kitchen and table at every level of the Galley & bunks line (pots, shelves, crockery, bedding, lamps) | Zach | - |
 | Pantry (2026-11-02) | **A pantry in the galley, apart from the storage chest**, shared by the crew (host-arbitrated like the chest), holding food and ingredients only. **A stow-all button** moves every ingredient and food item from your bag into it; items come back out one at a time. **Cooking aboard takes from the pantry first, then the cook's bag** (`Food.picks` over both); any captain aboard can cook from it. **Roomy from the start, and the Galley & bunks line adds shelves and a cold box** (more slots a level). No spoilage | Zach: a QoL to make cooking easy | Play |
+| Interior vibe (2026-11-02) | **The sloop: one cozy room that grows, toward the Going Merry's lounge** (Zach's reference, Oda-style concept art): at Quarters 4 a galley corner with a brick back wall, a stove, a sink, the pantry's cold box and a wine/bottle rack, a table with a checked cloth, a padded bench and stools, barrels, brass portholes, a hanging candle lantern, a dresser of crockery with a curtain, a wall clock, bunks along one wall. Level 0 is plain and straightforward. **The brig and galleon (1.30) get lavish, several-room interiors** (Zach's second reference: a bunk room of bunk beds with ladders, a lounge with sofas, rugs and a chandelier, a library/chart room with bookcases, a compass-rose floor, a wardrobe and clothes rack) | Zach | Play |
+| Flags (2026-11-02) | **A jolly roger builder**: a skull (round, grinning, horned, cracked), what's crossed behind it (bones, cutlasses, pistols, keys, oars, tridents) and a headpiece (straw hat, bandana, tricorn, crown, horns, none), drawn into the flag image; the 10 plain emblems stay | One Piece's crew flags; hundreds of combinations | - |
+| Paint (2026-11-02) | **Four new colour choices**: railings and trim, masts and spars (natural, stained, painted), deck stain (pale, honey, dark oak, weathered grey), and a hull stripe plus stern accents in a second colour (two-tone ships) | Zach | - |
+| Figureheads (2026-11-02) | **All rebuilt** properly (sculpted with lofts and lathes, readable at a distance, the driftwake-modeling standard, modelshot sheets) and **six new**: a ram (the Merry nod), a dragon, a shark, a kraken curling round the bow, a crowned skull, a robed maiden with a lantern. Ten in all | Zach: today's four don't look like anything | - |
 | Shoulder coat | **A way to wear any coat or jacket**: draped over the shoulders, front open, the empty sleeves swinging behind on spring chains (Koby; Zoro's and Mihawk's coats). Toggled in the wardrobe | Works on every coat already in the game | Play |
 | New clothing | Masks (on the face), small mouth coverings, head bandages, arm wraps, foot wraps, baggy parachute pants, a jester outfit (bells on spring chains), a backpack with loose parts (bedroll, pot, lantern) bouncing on spring chains | Zach | - |
 | Clothing source and stats | As every piece since 1.24: the gear-stat system, sold at village tailors (and smiths for the armoured ones), some in loot; basic ones in the creator | The standing system | - |
@@ -51,6 +55,8 @@ For scale: a full sloop line costs ~950 at the yard, and the caravel 1,400.
 2. **The sloop rework** (agent): the stepped-down, bigger cabin; ladders; the crow's nest flag; the new wheel.
 3. **Quarters line + the wheel's upgrades** (agent).
 4. **Galley, bunks, kitchen, table detail, and the pantry** (agent; the pantry's container, stow-all, cooking from it).
+5. **Ship looks** (agent): the four paint channels, the jolly roger builder in the shipwright screen, the ten
+   figureheads (modelshot sheet before/after).
 - **Clothing** (this session, alongside, a separate area: character_look, body_builder, spring_chains): the
   shoulder-coat mode first, then the pieces, checked with outfitgrid / armorshot.
 - **Hitches + flakes** (this session or a driftwake-fixer between pieces).
@@ -60,6 +66,10 @@ For scale: a full sloop line costs ~950 at the yard, and the caravel 1,400.
 - The backpack takes the back; while it's worn the gadget pouch moves to the hip. **assumed**
 - The jester outfit is a set (cap with bells, motley top and pants, curled shoes), each piece its own item. **assumed**
 - Old saves' sloops get Quarters level 0 (the reworked cabin) for free; nothing bought is lost. **assumed**
+- Zach's two interior reference images were shared in chat only (not committed: they're others' art). The table
+  rows above describe what to take from them.
+- Old saves' kits get the new paint channels at today's look (natural wood, the current rails) and their figurehead
+  index kept (the four old ones keep their ids, rebuilt). **assumed**
 - The pantry starts at 24 slots, +8 a Galley & bunks level; it saves with the ship like the chest; a feast's
   portions still go on the galley table. Tune in play. **assumed**
 - Co-op: the cabin's tier and every new clothing piece are in the kit and the look, synced like today. **assumed**
