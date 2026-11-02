@@ -302,6 +302,10 @@ func _free_some() -> void:
 				break
 			at = c
 		if at == _freeing[0]:
+			# (its beasts' models still building on a worker: the island is mid-call there, so free() would refuse
+			# it as "a locked object" and leak it; it waits a frame or two instead)
+			if at is GenIsland and not (at as GenIsland).beasts_idle():
+				break
 			_freeing.pop_front()
 		at.free()
 		n += 1

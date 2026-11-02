@@ -196,6 +196,11 @@ func step_ready(s: Array) -> bool:
 	return not (s[0] in BEAST_STEPS) or _beast_task < 0 or WorkerThreadPool.is_task_completed(_beast_task)
 
 
+## False while _prebuild_beasts runs on a worker: the island is locked (a call in progress) and free() refuses it.
+func beasts_idle() -> bool:
+	return _beast_task < 0 or WorkerThreadPool.is_task_completed(_beast_task)
+
+
 func _beasts_built() -> void:
 	if _beast_task >= 0:
 		WorkerThreadPool.wait_for_task_completion(_beast_task)

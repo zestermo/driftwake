@@ -305,6 +305,8 @@ backported there).
   (sailing away fast) doesn't hang too.
 - **Two load-only failures at the 1.28 prepush** (2026-11-02): with every slot busy, shiptest died in Godot
   (a C++ crash in `NPC.setup` from `IslandLife._spawn`, an island built mid-test) and chaintest hit "Attempted to free
-  a locked object" in `WorldGenerator._free_some` (world_generator.gd:306). Both pass alone. Suspect: an island freed
-  (or an NPC set up) while a signal on it is still being emitted. Time-boxed; look first if it repeats.
+  a locked object" in `WorldGenerator._free_some` (world_generator.gd:306). Both pass alone. **chaintest's is fixed**
+  (2026-11-02): an island let go while `GenIsland._prebuild_beasts` still ran on a worker was mid-call there, so
+  `free()` refused it and it leaked; `_free_some` now holds the root until `beasts_idle()` (t/island/free_busy_beasts
+  reproduces the error without the fix). shiptest's NPC.setup crash is still open: no log kept; look first if it repeats.
 - **t/gadgets/decoy flakes under load** (2026-11-02): failed twice with other tests running, passes alone. Time-boxed.
