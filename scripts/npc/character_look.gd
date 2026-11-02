@@ -17,7 +17,8 @@ extends RefCounted
 ##   legs (see LEGS), legs_color
 ##   feet (see FEET), feet_color
 ##   belt (see BELTS), belt_color, sash_color
-##   gloves bool, gloves_color, gauntlets bool, bracers bool, long_gloves bool
+##   gloves bool, gloves_color, gauntlets bool, bracers bool, long_gloves bool, arm_wraps bool, wraps_color
+##   face_wear (see FACE_WEAR), face_color; coat_drape bool (the coat over the shoulders)
 ##   apron bool, apron_color, cape bool, cape_color, cloak bool, cloak_color, mantle bool, mantle_color
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
 ##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
@@ -60,7 +61,7 @@ const SLEEVES := ["long", "short", "none"]
 const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail", "jerkin", "padded", "scale", "harness"]
 const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat", "haori", "duster", "frock", "admiral"]
 const LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers", "slops"]
-const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons", "cavalier_boots"]
+const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons", "cavalier_boots", "foot_wraps"]
 const BELTS := ["none", "belt", "sash", "belt_sash", "wide_belt"]
 ## What a new captain can start in (the character creator and its Randomize):
 ## plain clothes. Hats of rank, coats of office and armour are bought or found.
@@ -68,6 +69,12 @@ const CREATOR_HATS := ["none", "bandana", "cap", "knit", "straw", "hood"]
 const CREATOR_VESTS := ["none", "vest"]
 const CREATOR_COATS := ["none", "jacket"]
 const CREATOR_FEET := ["boots", "shoes", "barefoot"]
+## (1.29) The face slot (look "face_wear", "face_color"), worn under any hat: masks (the full ones cover the painted
+## face), mouth coverings and head bandages. The creator has the plain ones.
+const FACE_WEAR := ["none", "mask", "oni", "half_mask", "iron_mask", "kerchief", "mouth_guard", "bandage", "eye_wrap"]
+const FACE_FULL := ["mask", "oni", "iron_mask"]
+const FACE_MOUTH := ["mask", "oni", "iron_mask", "kerchief", "mouth_guard"]
+const CREATOR_FACE := ["none", "kerchief", "bandage", "eye_wrap"]
 
 const SKIN_TONES := [
 	Color(0.96, 0.82, 0.70), Color(0.92, 0.74, 0.60), Color(0.87, 0.67, 0.50), Color(0.80, 0.60, 0.44),
@@ -99,7 +106,7 @@ const COLOR_PALETTES := {
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
 	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH",
-	"cloak_color": "CLOTH", "mantle_color": "CLOTH"}
+	"cloak_color": "CLOTH", "mantle_color": "CLOTH", "face_color": "CLOTH", "wraps_color": "CLOTH"}
 
 
 static func palette(key: String) -> Array:
@@ -246,7 +253,23 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["pauldron"] = false
 	lk["pouch"] = rng.randf() < 0.3
 	_add_1_25(lk)
+	_add_1_29(lk)
 	return lk
+
+
+## The 1.29 clothes the creator has (a face covering, wraps), drawn like _add_1_25's from the look so far, in a stream of
+## their own. Only keys a piece sets are added: a look without them is unchanged (and so is every hash of it).
+static func _add_1_29(lk: Dictionary) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(str(lk)) ^ 1029
+	if r.randf() < 0.1:
+		lk["face_wear"] = _pick(r, CREATOR_FACE.slice(1))
+		lk["face_color"] = _pick(r, CLOTH)
+	if r.randf() < 0.08:
+		lk["arm_wraps"] = true
+		lk["wraps_color"] = _pick(r, [CLOTH[0], CLOTH[1], CLOTH[2]])
+	if r.randf() < 0.06 and str(lk.get("feet", "")) == "barefoot":
+		lk["feet"] = "foot_wraps"
 
 
 ## The 1.25 face options, drawn from the look so far rather than the caller's rng (which then goes on to place the

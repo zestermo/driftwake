@@ -10,7 +10,7 @@ extends RefCounted
 
 ## Paper-doll slots: [slot id, label, accepted gear_slot kind].
 const SLOTS := [
-	["head", "Head", "head"], ["torso", "Torso", "torso"], ["vest", "Vest", "vest"],
+	["head", "Head", "head"], ["face", "Face", "face"], ["torso", "Torso", "torso"], ["vest", "Vest", "vest"],
 	["coat", "Coat", "coat"], ["belt", "Belt", "belt"],
 	["hands", "Hands", "hands"], ["legs", "Legs", "legs"], ["feet", "Feet", "feet"],
 	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"], ["equipment", "Equipment", "equipment"]]
@@ -21,10 +21,11 @@ const EQUIP_KEYS := ["instrument", "rod"]
 ## Look keys each slot kind controls.
 const SLOT_KEYS := {
 	"head": ["hat", "hat_color"],
+	"face": ["face_wear", "face_color"],
 	"torso": ["top", "sleeves", "top_color", "top_pattern"],
 	"vest": ["vest", "vest_color", "vest_pattern"],
 	"coat": ["coat", "coat_color", "trim_color", "coat_pattern"],
-	"hands": ["gloves", "gloves_color", "gauntlets", "bracers", "long_gloves"],
+	"hands": ["gloves", "gloves_color", "gauntlets", "bracers", "long_gloves", "arm_wraps", "wraps_color"],
 	"legs": ["legs", "legs_color", "legs_pattern"],
 	"feet": ["feet", "feet_color"],
 	"belt": ["belt", "belt_color", "sash_color"],
@@ -40,7 +41,7 @@ const ACC_TATTER := {"cape": "cape_tatter", "cloak": "cloak_tatter"}
 const PATTERN_NAMES := {"stripes": "Striped", "check": "Check", "brocade": "Brocade", "patched": "Patched"}
 ## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
 const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm",
-	"bulwark_helm", "bulwark_gauntlets"]
+	"bulwark_helm", "bulwark_gauntlets", "iron_mask"]
 ## (1.25) Pieces cut from another style's garment: style -> the garment it's drawn as (its look carries that garment;
 ## its icon is that garment's). Their stats, names and sets go by their own style.
 const SHAPE_OF := {
@@ -89,6 +90,8 @@ const NAMES := {
 	"cloak": "Cloak",
 	"bulwark_helm": "Bulwark Helm", "bulwark_brigandine": "Bulwark Brigandine", "bulwark_gauntlets": "Bulwark Gauntlets",
 	"bosun_coat": "Bosun's Coat", "powder_belt": "Powder Belt", "shark_tooth": "Shark's Tooth",
+	"mask": "Carved Mask", "oni": "Oni Mask", "half_mask": "Half Mask", "iron_mask": "Iron Faceplate", "kerchief": "Kerchief",
+	"mouth_guard": "Mouth Guard", "bandage": "Head Bandage", "eye_wrap": "Eye Wrap", "arm_wraps": "Arm Wraps", "foot_wraps": "Foot Wraps",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -173,6 +176,16 @@ const DESCRIPTIONS := {
 	"bosun_coat": "A long navy coat with white piping and a whistle on a lanyard. Every hand on deck knows who's wearing it.",
 	"powder_belt": "A belt hung with powder flasks and a priming horn over a grey sash. Reloading is half the fight.",
 	"shark_tooth": "One great tooth on a cord. Sailors swear the sea gives back a man who wears it.",
+	"mask": "A lacquered wooden mask with narrow eyes. Nobody reads your face, and nobody forgets it.",
+	"oni": "A red demon's face with horns and fangs, carved for a festival and worn for worse.",
+	"half_mask": "A strip of stiff cloth over the eyes. Hides who you are, if not very well.",
+	"iron_mask": "A riveted steel plate over the whole face, slit for the eyes. Blows meant for your nose ring off it.",
+	"kerchief": "A cloth tied over the nose and mouth. Keeps out dust, smoke and witnesses.",
+	"mouth_guard": "A leather guard strapped over the mouth and jaw. Bite down and keep fighting.",
+	"bandage": "Linen wound round the brow, the ends left trailing. Proof you've been in a fight.",
+	"eye_wrap": "A bandage wound round the head and over one eye. You'll see well enough with the other.",
+	"arm_wraps": "Cloth strips wound from the knuckles up the forearms. A brawler's gloves.",
+	"foot_wraps": "Strips of cloth bound round bare feet and ankles. Quiet on a deck and quick on rigging.",
 }
 const DEFENSE := {
 	"tricorn": 2.0, "bicorne": 2.0, "bandana": 1.0, "cap": 1.0, "knit": 1.0, "straw": 0.0, "hood": 1.0,
@@ -202,6 +215,8 @@ const DEFENSE := {
 	"cloak": 2.0,
 	"bulwark_helm": 5.0, "bulwark_brigandine": 5.0, "bulwark_gauntlets": 3.0, "bosun_coat": 4.0,
 	"powder_belt": 1.0, "shark_tooth": 0.0,
+	"mask": 1.0, "oni": 1.0, "half_mask": 0.0, "iron_mask": 4.0, "kerchief": 0.0, "mouth_guard": 2.0, "bandage": 0.0, "eye_wrap": 0.0,
+	"arm_wraps": 1.0, "foot_wraps": 1.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -247,6 +262,9 @@ const PLUNDER := [
 	["hands", "bulwark_gauntlets", LOOKS["bulwark_gauntlets"][1]],
 	["coat", "bosun_coat", LOOKS["bosun_coat"][1]],
 	["accessory", "shark_tooth", LOOKS["shark_tooth"][1]],
+	["face", "oni", {"face_wear": "oni", "face_color": Color(0.66, 0.14, 0.12)}],
+	["face", "iron_mask", {"face_wear": "iron_mask"}],
+	["face", "half_mask", {"face_wear": "half_mask", "face_color": Color(0.1, 0.09, 0.09)}],
 ]
 
 
@@ -317,6 +335,8 @@ static func make(kind: String, style: String, look: Dictionary, display: String 
 static func _main_color_key(kind: String, style: String) -> String:
 	match kind:
 		"head": return "hat_color"
+		"face": return "face_color"
+		"hands": return "wraps_color" if style == "arm_wraps" else ""
 		"torso": return "top_color"
 		"vest": return "vest_color"
 		"coat": return "coat_color"
@@ -334,6 +354,9 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 	var hat := str(lk.get("hat", "none"))
 	if hat != "none":
 		out["head"] = make("head", hat, {"hat": hat, "hat_color": lk.get("hat_color")})
+	var fw := str(lk.get("face_wear", "none"))
+	if fw != "none":
+		out["face"] = make("face", fw, {"face_wear": fw, "face_color": lk.get("face_color", CharacterLook.CLOTH[0])})
 	var top := str(lk.get("top", "shirt"))
 	if top != "bare":
 		out["torso"] = make("torso", top, {"top": top, "sleeves": lk.get("sleeves", "long"), "top_color": lk.get("top_color")})
@@ -351,6 +374,8 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 		out["hands"] = make("hands", "bracers", {"gloves": false, "gloves_color": lk.get("gloves_color"), "bracers": true})
 	elif lk.get("gloves", false):
 		out["hands"] = make("hands", "gloves", {"gloves": true, "gloves_color": lk.get("gloves_color")})
+	elif lk.get("arm_wraps", false):
+		out["hands"] = make("hands", "arm_wraps", {"arm_wraps": true, "wraps_color": lk.get("wraps_color", CharacterLook.CLOTH[0])})
 	var legs := str(lk.get("legs", "trousers"))
 	out["legs"] = make("legs", legs, {"legs": legs, "legs_color": lk.get("legs_color")})
 	var feet := str(lk.get("feet", "boots"))
@@ -383,12 +408,13 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 static func bare(kind: String, fem: bool) -> Dictionary:
 	match kind:
 		"head": return {"hat": "none"}
+		"face": return {"face_wear": "none"}
 		"torso":
 			# a plain sleeveless undershirt for feminine bodies, bare-chested otherwise
 			return {"top": "shirt", "sleeves": "none", "top_color": CharacterLook.CLOTH[1]} if fem else {"top": "bare"}
 		"vest": return {"vest": "none"}
 		"coat": return {"coat": "none"}
-		"hands": return {"gloves": false, "gauntlets": false, "bracers": false, "long_gloves": false}
+		"hands": return {"gloves": false, "gauntlets": false, "bracers": false, "long_gloves": false, "arm_wraps": false}
 		"legs": return {"legs": "shorts", "legs_color": CharacterLook.CLOTH[1]}
 		"feet": return {"feet": "barefoot"}
 		"belt": return {"belt": "none"}

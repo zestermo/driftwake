@@ -57,7 +57,7 @@ static func _main_color(it: ItemData) -> Color:
 		return GOLD
 	if it.icon_kind in Gear.STEEL_PIECES:
 		return STEEL
-	for k in ["hat_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color", "cape_color", "cloak_color"]:
+	for k in ["hat_color", "face_color", "wraps_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color", "cape_color", "cloak_color"]:
 		if lk.has(k) and lk[k] is Color:
 			return lk[k]
 	if lk.has("belt"):
@@ -479,6 +479,65 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 				["g", [Vector2(8, 7), Vector2(10, 7), Vector2(10, 9), Vector2(8, 9)]],
 				["g", [Vector2(11, 11), Vector2(13, 11), Vector2(13, 13), Vector2(11, 13)]],
 				["g", [Vector2(14, 15), Vector2(16, 15), Vector2(16, 17), Vector2(14, 17)]]]
+		# (1.29) the face slot and the wraps
+		"mask", "iron_mask", "oni":
+			var face := [Vector2(5, 4), Vector2(19, 4), Vector2(20, 11), Vector2(17, 18), Vector2(12, 21), Vector2(7, 18), Vector2(4, 11)]
+			var layers := [["m", face], ["d", [Vector2(11, 9), Vector2(13, 9), Vector2(14, 15), Vector2(10, 15)]]]
+			if kind == "iron_mask":
+				layers.append(["k", [Vector2(5, 9), Vector2(19, 9), Vector2(19, 11), Vector2(5, 11)]])
+				for p in [Vector2(6, 5), Vector2(17, 5), Vector2(6, 15), Vector2(17, 15)]:
+					layers.append(["l", [p, p + Vector2(1, 0), p + Vector2(1, 1), p + Vector2(0, 1)]])
+			else:
+				layers.append(["k", [Vector2(6, 9), Vector2(10, 8), Vector2(10, 10), Vector2(6, 11)]])
+				layers.append(["k", [Vector2(14, 8), Vector2(18, 9), Vector2(18, 11), Vector2(14, 10)]])
+			if kind == "oni":
+				layers.append(["i", [Vector2(4, 6), Vector2(1, 0), Vector2(7, 4)]])
+				layers.append(["i", [Vector2(20, 6), Vector2(23, 0), Vector2(17, 4)]])
+				layers.append(["k", [Vector2(9, 16), Vector2(15, 16), Vector2(15, 18), Vector2(9, 18)]])
+				layers.append(["i", [Vector2(9, 16), Vector2(10, 16), Vector2(10, 19), Vector2(9, 19)]])
+				layers.append(["i", [Vector2(14, 16), Vector2(15, 16), Vector2(15, 19), Vector2(14, 19)]])
+			return layers
+		"half_mask":
+			return [["k", [Vector2(1, 11), Vector2(4, 10), Vector2(4, 12), Vector2(1, 13)]],
+				["k", [Vector2(23, 11), Vector2(20, 10), Vector2(20, 12), Vector2(23, 13)]],
+				["m", [Vector2(3, 9), Vector2(10, 7), Vector2(12, 9), Vector2(14, 7), Vector2(21, 9), Vector2(20, 15), Vector2(14, 15), Vector2(12, 13), Vector2(10, 15), Vector2(4, 15)]],
+				["k", [Vector2(6, 10), Vector2(10, 10), Vector2(10, 12), Vector2(6, 12)]],
+				["k", [Vector2(14, 10), Vector2(18, 10), Vector2(18, 12), Vector2(14, 12)]]]
+		"kerchief":
+			return [["m", [Vector2(2, 6), Vector2(22, 6), Vector2(20, 12), Vector2(12, 22), Vector2(4, 12)]],
+				["d", [Vector2(2, 6), Vector2(22, 6), Vector2(22, 8), Vector2(2, 8)]],
+				["d", [Vector2(11, 12), Vector2(13, 12), Vector2(12, 19)]]]
+		"mouth_guard":
+			return [["m", [Vector2(3, 7), Vector2(21, 7), Vector2(19, 15), Vector2(12, 18), Vector2(5, 15)]],
+				["d", [Vector2(1, 8), Vector2(4, 8), Vector2(4, 10), Vector2(1, 10)]],
+				["d", [Vector2(20, 8), Vector2(23, 8), Vector2(23, 10), Vector2(20, 10)]],
+				["g", [Vector2(7, 10), Vector2(9, 10), Vector2(9, 12), Vector2(7, 12)]],
+				["g", [Vector2(15, 10), Vector2(17, 10), Vector2(17, 12), Vector2(15, 12)]]]
+		"bandage", "eye_wrap":
+			var layers := [["m", [Vector2(3, 8), Vector2(21, 8), Vector2(21, 13), Vector2(3, 13)]],
+				["d", [Vector2(3, 10), Vector2(21, 10), Vector2(21, 11), Vector2(3, 11)]],
+				["m", [Vector2(17, 12), Vector2(20, 12), Vector2(22, 21), Vector2(19, 21)]],
+				["m", [Vector2(19, 12), Vector2(21, 12), Vector2(17, 20), Vector2(15, 19)]]]
+			if kind == "eye_wrap":
+				layers.append(["m", [Vector2(3, 4), Vector2(7, 3), Vector2(16, 13), Vector2(12, 15)]])
+			layers.append(["r", [Vector2(8, 9), Vector2(10, 9), Vector2(10, 11), Vector2(8, 11)]])
+			return layers
+		"arm_wraps":
+			var layers := [["m", [Vector2(3, 21), Vector2(3, 7), Vector2(6, 4), Vector2(10, 4), Vector2(11, 9), Vector2(11, 21)]],
+				["m", [Vector2(13, 21), Vector2(13, 9), Vector2(14, 4), Vector2(18, 4), Vector2(21, 7), Vector2(21, 21)]]]
+			for y in [8, 12, 16]:
+				layers.append(["d", [Vector2(3, y + 1), Vector2(11, y), Vector2(11, y + 1), Vector2(3, y + 2)]])
+				layers.append(["d", [Vector2(13, y), Vector2(21, y + 1), Vector2(21, y + 2), Vector2(13, y + 1)]])
+			return layers
+		"foot_wraps":
+			var layers := [["i", [Vector2(4, 4), Vector2(10, 4), Vector2(10, 17), Vector2(13, 19), Vector2(13, 21), Vector2(3, 21), Vector2(4, 17)]],
+				["i", [Vector2(14, 5), Vector2(20, 5), Vector2(20, 17), Vector2(23, 19), Vector2(23, 21), Vector2(13, 21), Vector2(14, 17)]],
+				["m", [Vector2(4, 9), Vector2(10, 9), Vector2(10, 18), Vector2(12, 19), Vector2(12, 20), Vector2(4, 20)]],
+				["m", [Vector2(14, 10), Vector2(20, 10), Vector2(20, 18), Vector2(22, 19), Vector2(22, 20), Vector2(14, 20)]]]
+			for y in [11, 14, 17]:
+				layers.append(["d", [Vector2(4, y), Vector2(10, y + 1), Vector2(10, y + 2), Vector2(4, y + 1)]])
+				layers.append(["d", [Vector2(14, y + 1), Vector2(20, y), Vector2(20, y + 1), Vector2(14, y + 2)]])
+			return layers
 	return [["m", [Vector2(5, 5), Vector2(19, 5), Vector2(19, 19), Vector2(5, 19)]]]
 
 

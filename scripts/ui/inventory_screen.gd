@@ -17,8 +17,8 @@ const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const LIGHT := preload("res://scripts/player_states/light_attack_state.gd")
 const HEAVY := preload("res://scripts/player_states/heavy_attack_state.gd")
 const SHOOT := preload("res://scripts/player_states/shoot_state.gd")
-const DOLL := [["head", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "acc1", "acc2"]]
-const TAGS := {"head": "HEAD", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
+const DOLL := [["head", "face", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "acc1", "acc2"]]
+const TAGS := {"head": "HEAD", "face": "FACE", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
 	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
 const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake", "cleave": "Charged cleave", "lunge": "The lunge"}
 ## Item cards from these places compare with what you hold or wear.
@@ -503,13 +503,13 @@ func _layout() -> void:
 	_cx = roundf((w - PANEL_W - 10) * 0.5)
 	var dx := roundf(h * 0.235)
 	var y0 := roundf(h * 0.17)
-	var step := roundf(h * 0.122)
+	var step := roundf(h * 0.108)
 	for c in range(2):
-		for r in range(5):
+		for r in range((DOLL[c] as Array).size()):
 			var x := _cx - dx - SLOT if c == 0 else _cx + dx
 			_park(_doll[DOLL[c][r]], Vector2(x, y0 + step * r), 2.0, false)
 	# the hands, and the equipment a little apart (its SHOW box under it)
-	var wy := y0 + step * 5
+	var wy := y0 + step * 6
 	var wx := _cx - roundf((SLOT * 3 + 10) * 0.5)
 	_park(_weapon_slot, Vector2(wx, wy), 2.0, false)
 	_park(_offhand_slot, Vector2(wx + SLOT + 2, wy), 2.0, false)

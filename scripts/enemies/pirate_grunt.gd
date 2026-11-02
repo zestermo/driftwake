@@ -409,6 +409,10 @@ static func crew_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["bandolier"] = rng.randf() < 0.18
 	# (1.29: a jacket now and then worn over the shoulders; from the look, not a draw, so the stream's later draws stay put)
 	lk["coat_drape"] = lk["coat"] != "none" and absi(hash(str(lk))) % 3 == 0
+	var hk := absi(hash(str(lk) + "face"))
+	if hk % 6 == 0:
+		lk["face_wear"] = ["kerchief", "kerchief", "half_mask", "oni", "mouth_guard", "bandage"][(hk / 6) % 6]
+		lk["face_color"] = C[13] if lk["face_wear"] == "kerchief" else [C[5], C[4], C[13]][(hk / 36) % 3]
 	return lk
 
 

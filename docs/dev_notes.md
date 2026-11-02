@@ -9275,3 +9275,29 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   and back up), layout_parity's WANT_SHIP renewed; t/downtime/sleep gets up on the cabin floor. riggingtest's cabin
   check reads `cabin_y`. Renders: bigshipshot BSHOT_ONLY / BSHOT_KIT and the shots cabin_wide, cabin_aft, cabin_steps,
   helm, flag, ladder_side (tools/dev/out/shipshape/p2_*).
+
+## 2026-11-02: 1.29 clothing, piece 2: the face slot (masks, mouth coverings, head bandages), arm and foot wraps
+- **Face slot** (docs/v1_29_plan.md "Open / deferred": a face-accessory slot that stacks with hats; kept as assumed):
+  a new paper-doll slot "face" (Gear.SLOTS / SLOT_KEYS: look `face_wear`, `face_color`; FACE in the wardrobe, the doll
+  now 6 rows on the left). Pieces (CharacterLook.FACE_WEAR): carved mask, oni mask (horns, fangs), iron faceplate (eye
+  slit, breathing holes, rivets), half mask, kerchief (its point under the chin), mouth guard (riveted leather), head
+  bandage (two turns, the ends trailing on the head's chains), eye wrap (a turn down over the left eye).
+  `BodyBuilder._face_wear`: the shells follow each head ring's own outline (`_face_shell`: a jaw's, a V chin's; a plain
+  offset let the jaw through) pushed out over the nose; the full masks have their own nose (`_mask_nose`) and cover the
+  painted face; everything ties on round the back (`_face_tie`). Under a mask or mouth covering the moustache, goatee and
+  chops are left off and a beard keeps only what hangs under the chin (they came through). Worn under every hat (the
+  bandages sit on the forehead below every hat's brim).
+- **Wraps:** arm wraps in the hands slot (`arm_wraps`, `wraps_color`: the striped weave wound up the forearm, two turns
+  crossing, the hand wrapped too), foot wraps a feet style (`foot_wraps`: bare toes and heel, bound from the ball of the
+  foot over the ankle). The striped fabric's bands read as the turns.
+- **Stats** (the 1.24 system): face pieces carry one trait each like accessories (GearStats.TRAITS: mask +4% crit, oni
+  +4% damage, half mask +5% dodge, iron faceplate +5 def (heavy), kerchief +5% stamina regen, mouth guard +8% poise
+  (medium), bandage +8% health regen, eye wrap +6% block); the wraps take their slot's light row (attack speed, move).
+- **Source:** Sela's (and so every village tailor's) pool: kerchief, bandage, eye wrap, half mask, carved and oni masks,
+  arm and foot wraps; Vey's armoury (and village armourers): the iron faceplate and mouth guard; plunder: oni, iron, half
+  mask. The creator (Extras: Arm wraps, Face; Feet: foot wraps) has the plain ones; `CharacterLook._add_1_29` gives a
+  random look the odd one from a stream of its own (a look without them, and every hash of it, unchanged). Smugglers
+  (PirateGrunt.crew_look) wear kerchiefs, half and oni masks, mouth guards and bandages now and then (from the look).
+- Icons: GearIcons shapes for all ten. Per frame: the bandages' two tails on the head's chains (like a bandana's).
+- Tests: t/gear/face_slot (new). Renders: tools/dev/out/clothes/face3a_back.png, face3b_back.png (fronts), face4_back.png
+  (under hats: cavalier, straw, tricorn, helm, bandana), face5_back3.png (eye wrap), wraps1_back3.png.

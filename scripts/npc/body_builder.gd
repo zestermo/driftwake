@@ -196,6 +196,11 @@ func _leather(key: String) -> Material:
 	return _textured("leather", _col(key))
 
 
+## (1.29) Wrapping cloth (arm and foot wraps): the striped weave, its bands read as the turns.
+func _wraps(key: String) -> Material:
+	return _textured("fabric_stripes", lk.get(key, CharacterLook.CLOTH[0]))
+
+
 func _node(n: String, pos: Vector3, parent: Node3D) -> Node3D:
 	var p := Node3D.new()
 	p.name = n
@@ -661,6 +666,15 @@ func _feet(mb: MeshBuilder, sr: Array, feet: String) -> void:
 			mb.add_box(m_feet, Transform3D(Basis(), Vector3(0, sole, -0.04 * F)), Vector3(0.07 * F, 0.012, 0.24 * F), 3.0, Color.WHITE, false)
 			mb.add_box(m_feet, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, sole + 0.055 * F, -0.07 * F)), Vector3(0.075 * F, 0.01, 0.025), 3.0, Color.WHITE, false)
 			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.05, sole + 0.065), 0.006), sp, 3.0, Color.WHITE, false, false, true, false, true)
+		"foot_wraps":
+			# (1.29) bare feet bound in cloth from the ball of the foot up over the ankle, the toes and heel left bare
+			var mw := _wraps("feet_color")
+			mb.add_loft(m_skin, fx, bare, fprof, 3.0, Color.WHITE, true, true)
+			mb.add_loft(mw, fx, _off(_clip(bare, -0.055 * F, 0.1 * F), 0.005), fprof, 4.0, Color.WHITE, false, false, true, false, true)
+			mb.add_loft(mw, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.03, sole + 0.17 * F), 0.008), sp, 4.0, Color.WHITE, false, false, true, false, true)
+			var tb := Basis(Vector3.RIGHT, 0.5)
+			var piv := Vector3(0, sole + 0.05, -0.03 * F)
+			mb.add_loft(mw, Transform3D(tb, piv - tb * piv), _off(_clip(sr, sole + 0.04, sole + 0.06), 0.014), sp, 4.0, Color(0.88, 0.88, 0.88), false, false, true, false, true)
 		"sabatons":
 			# boots under steel: a toe cap, two lames over the instep, a plate round the ankle
 			mb.add_loft(m_feet, fx, foot, fprof, 3.0, Color.WHITE, true, true)
@@ -1056,7 +1070,7 @@ func _arms() -> void:
 	var coated := coat != "none" and not _draped()
 	var m_top := _cloth("top_color")
 	var gloves: bool = lk.get("gloves", false)
-	var m_hand := _leather("gloves_color") if gloves else m_skin
+	var m_hand := _leather("gloves_color") if gloves else (_wraps("wraps_color") if lk.get("arm_wraps", false) else m_skin)
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
 	var prof := MeshBuilder.profile_oct(0.5)
 	var wrist := -0.23 * A
@@ -1204,6 +1218,17 @@ func _forearm_wear(fmb: MeshBuilder, wrist: float, L: float, k: float, m_hand: M
 			prof, 3.0, Color.WHITE, false, false, true, false, true)
 	elif lk.get("gloves", false):
 		fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.06, 0.056 * L, 0.06 * L], [wrist + 0.01, 0.05 * L, 0.054 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
+	if lk.get("arm_wraps", false):
+		# (1.29) cloth wound from the knuckles up the forearm (the hand is wrapped too: m_hand), two turns crossing over
+		var mw := _wraps("wraps_color")
+		fmb.add_loft(mw, Transform3D.IDENTITY, [[wrist + 0.13, 0.07 * L, 0.074 * L], [wrist + 0.06, 0.063 * L, 0.067 * L], [wrist - 0.005, 0.055 * L, 0.059 * L]],
+			prof, 4.0, Color.WHITE, false, false, true, false, true)
+		for i in range(2):
+			var yy := wrist + 0.035 + i * 0.05
+			var tb := Basis(Vector3.RIGHT, 0.3 if i == 0 else -0.3)
+			var piv := Vector3(0, yy, 0)
+			fmb.add_loft(mw, Transform3D(tb, piv - tb * piv), [[yy + 0.008, 0.07 * L, 0.074 * L], [yy - 0.008, 0.068 * L, 0.072 * L]],
+				prof, 4.0, Color(0.88, 0.88, 0.88), false, false, true, false, true)
 	if lk.get("gauntlets", false):
 		_vambrace(fmb, wrist, L, k)
 	elif lk.get("bracers", false):
@@ -2246,25 +2271,30 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 
 func _facial_hair(mb: MeshBuilder) -> void:
 	var fh := str(lk.get("facial_hair", "none"))
-	if fem or fh in ["none", "stubble"]:
+	if fem or fh in ["none", "stubble"] or (fh == "moustache" and _mouth_covered()):
 		return
 	var front := PackedVector2Array([Vector2(-1, 0.25), Vector2(-1, -0.4), Vector2(-0.7, -1), Vector2(0.7, -1), Vector2(1, -0.4), Vector2(1, 0.25)])
 	var jaw := _off(_clip(head_rings, 0.0, 0.1 * yk), 0.014, 0.0, true)
 	match fh:
 		"beard", "long_beard":
-			var rings := jaw.duplicate()
+			# (under a mask or a mouth covering only what hangs below the chin)
+			var rings := _clip(jaw, 0.0, 0.02 * yk) if _mouth_covered() else jaw.duplicate()
 			rings.insert(0, [-0.03, 0.04, 0.05, (jaw[0] as Array)[3] as float - 0.015, 0.0])
 			if fh == "long_beard":
 				rings.insert(0, [-0.15, 0.022, 0.03, (jaw[0] as Array)[3] as float - 0.04, 0.0])
 			mb.add_loft(m_hair, Transform3D.IDENTITY, rings, front, 3.0, Color.WHITE, false, false, false)
 			_moustache(mb)
 		"goatee":
+			if _mouth_covered():
+				return
 			mb.add_loft(m_hair, Transform3D.IDENTITY, [[-0.03, 0.03, 0.06, (jaw[0] as Array)[3] as float], [0.04, 0.045, 0.1, -0.04]],
 				PackedVector2Array([Vector2(-1, -0.6), Vector2(-0.5, -1), Vector2(0.5, -1), Vector2(1, -0.6)]), 3.0, Color.WHITE, false, false, false)
 			_moustache(mb)
 		"moustache":
 			_moustache(mb)
 		"chops":
+			if _mouth_covered():
+				return
 			for s in [-1.0, 1.0]:
 				var side := _off(_clip(head_rings, 0.06 * yk, 0.22 * yk), 0.012, 0.0, true)
 				mb.add_loft(m_hair, Transform3D.IDENTITY, side,
@@ -2272,7 +2302,14 @@ func _facial_hair(mb: MeshBuilder) -> void:
 			_moustache(mb)
 
 
+## (1.29) A mask or a mouth covering over the moustache (it's left off: it came through them).
+func _mouth_covered() -> bool:
+	return str(lk.get("face_wear", "none")) in CharacterLook.FACE_MOUTH
+
+
 func _moustache(mb: MeshBuilder) -> void:
+	if _mouth_covered():
+		return
 	var r := _at(head_rings, 0.088 * yk)
 	var z := _front_z(r) - 0.006
 	for s in [-1.0, 1.0]:
@@ -3362,6 +3399,7 @@ func _accessories() -> void:
 	if lk.get("eyepatch", false):
 		var band := _off(_clip(head_rings, 0.222 * yk, 0.24 * yk), 0.006, 0.0, true)
 		hmb.add_loft(PSXMat.flat(Color(0.08, 0.06, 0.05)), Transform3D.IDENTITY, band, _hair_back_profile(), 3.0, Color.WHITE, false, false, false)
+	_face_wear(hmb)
 	# (what straps and the like lie over: the coat, or the vest under none)
 	var over := _coat_off() if sleeved else maxf(_vest_out(false), _vest_out(true))
 	var thick := _coat_off() - 0.03 - (0.012 if fem else 0.0) if coated else 0.0
@@ -3453,3 +3491,173 @@ func _accessories() -> void:
 		_mesh(h.arm_l, pmb)
 	_mesh(h.torso, mb)
 	_mesh(h.head, hmb)
+
+
+## Across the face, side to side (a mask's or a covering's shell: _face_shell, whose rings carry their own outlines;
+## _face_front is the loft's stand-in of the same size).
+const FACE_U := [-0.98, -0.88, -0.52, 0.0, 0.52, 0.88, 0.98]
+
+
+static func _face_front() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for u in FACE_U:
+		out.append(Vector2(u, -0.5))
+	return out
+
+
+## The head's rings from lo to hi stood `o` off the face, each with its own outline's front (a jaw's, a V chin's) so
+## nothing of the face comes through, the middle pushed out by `bulge` (x the depth: over the nose).
+func _face_shell(lo: float, hi: float, o: float, bulge: float) -> Array:
+	var out: Array = []
+	for r in _clip(head_rings, lo, hi):
+		var rr: Array = (r as Array).duplicate()
+		var hw := float(rr[1])
+		var hd := float(rr[2])
+		var cz := float(rr[3])
+		var prof := PackedVector2Array()
+		for u in FACE_U:
+			var y := (_surf_z(rr, float(u) * hw) - cz) / hd
+			var k := 1.0 - absf(float(u))
+			prof.append(Vector2(float(u) * (hw + o) / hw, y * (hd + o) / hd - bulge * k * k))
+		while rr.size() < 5:
+			rr.append(0.0)
+		rr.resize(5)
+		rr.append(prof)
+		out.append(rr)
+	return out
+
+
+## (1.29) The face slot (look "face_wear"), on the head under any hat: the full masks (carved, oni, iron) cover the
+## painted face from the chin to the brow with their own nose; the half mask the eyes; the kerchief and mouth guard the
+## nose and mouth (a beard keeps them further out); the bandage the brow, its ends trailing on the head's chains, and
+## the eye wrap the brow and one eye. Each is tied on round the back of the head.
+func _face_wear(hmb: MeshBuilder) -> void:
+	var fw := str(lk.get("face_wear", "none"))
+	if fw == "none":
+		return
+	var c: Color = lk.get("face_color", CharacterLook.CLOTH[0])
+	var dark := PSXMat.flat(Color(0.05, 0.04, 0.04))
+	var steel := PSXMat.lit("metal", Color(0.86, 0.88, 0.92))
+	var beard := not fem and str(lk.get("facial_hair", "none")) in ["beard", "long_beard", "goatee", "chops"]
+	var tie := PSXMat.flat(Color(0.16, 0.12, 0.09))
+	match fw:
+		"mask", "oni", "iron_mask":
+			var m: Material = steel if fw == "iron_mask" else (_textured("leather", c) if fw == "oni" else PSXMat.flat(c.lightened(0.1)))
+			var o := 0.022 if beard else 0.013
+			var shell := _face_shell(0.02 * yk, 0.238 * yk, o, 0.06)
+			hmb.add_loft(m, Transform3D.IDENTITY, shell, _face_front(), 3.0, Color.WHITE, false, false, false, false, true)
+			_mask_nose(hmb, m, shell)
+			if fw == "iron_mask":
+				var re := _at(shell, 0.168 * yk)
+				var ze := _surf_z(re, 0.0) - 0.003
+				hmb.add_box(dark, Transform3D(Basis(), Vector3(0, 0.168 * yk, ze)), Vector3(float(re[1]) * 1.2, 0.012, 0.006), 3.0)
+				for s in [-1.0, 1.0]:
+					for k in range(3):
+						var y := (0.06 + k * 0.025) * yk
+						var x: float = s * float(_at(shell, y)[1]) * 0.5
+						hmb.add_box(dark, Transform3D(Basis(), Vector3(x, y, _surf_z(_at(shell, y), x) - 0.002)), Vector3(0.008, 0.008, 0.004), 3.0)
+					for y in [0.05, 0.13, 0.215]:
+						var x2: float = s * float(_at(shell, y * yk)[1]) * 0.8
+						hmb.add_box(steel, Transform3D(Basis(), Vector3(x2, y * yk, _surf_z(_at(shell, y * yk), x2) - 0.004)), Vector3(0.01, 0.01, 0.008), 3.0)
+			else:
+				for s in [-1.0, 1.0]:
+					var re := _at(shell, 0.165 * yk)
+					var x: float = s * sin(deg_to_rad(23.0)) * float(re[1]) * 1.02
+					hmb.add_box(dark, Transform3D(Basis(Vector3.BACK, s * (0.25 if fw == "oni" else 0.1)), Vector3(x, 0.165 * yk, _surf_z(re, x) - 0.002)),
+						Vector3(0.036, 0.011 if fw == "mask" else 0.015, 0.006), 3.0)
+			if fw == "oni":
+				var horn := PSXMat.flat(Color(0.92, 0.88, 0.76))
+				var rb := _at(shell, 0.215 * yk)
+				for s in [-1.0, 1.0]:
+					var at := Vector3(s * 0.062, 0.222 * yk, _surf_z(rb, s * 0.062) + 0.006)
+					hmb.add_cylinder(horn, Transform3D(Basis(Vector3.BACK, -s * 0.45) * Basis(Vector3.RIGHT, -0.35), at), 0.02, 0.0, 0.08, 6, 3.0, Color.WHITE, false, true)
+					var rm := _at(shell, 0.058 * yk)
+					hmb.add_box(horn, Transform3D(Basis(), Vector3(s * 0.026, 0.05 * yk, _surf_z(rm, s * 0.026) - 0.004)), Vector3(0.012, 0.03, 0.01), 3.0)
+				var rmo := _at(shell, 0.07 * yk)
+				hmb.add_box(dark, Transform3D(Basis(), Vector3(0, 0.07 * yk, _surf_z(rmo, 0.0) - 0.002)), Vector3(0.07, 0.014, 0.006), 3.0)
+				hmb.add_box(_textured("leather", c.darkened(0.35)), Transform3D(Basis(), Vector3(0, 0.198 * yk, _surf_z(_at(shell, 0.198 * yk), 0.0) - 0.006)), Vector3(0.12, 0.016, 0.014), 3.0)
+			_face_tie(hmb, tie, 0.17 * yk)
+		"half_mask":
+			var shell := _face_shell(0.146 * yk, 0.208 * yk, 0.012, 0.12)
+			hmb.add_loft(_textured("leather", c), Transform3D.IDENTITY, shell, _face_front(), 3.0, Color.WHITE, false, false, false, false, true)
+			for s in [-1.0, 1.0]:
+				var re := _at(shell, 0.168 * yk)
+				var x: float = s * sin(deg_to_rad(23.0)) * float(re[1]) * 1.02
+				hmb.add_box(dark, Transform3D(Basis(Vector3.BACK, s * 0.15), Vector3(x, 0.168 * yk, _surf_z(re, x) - 0.002)), Vector3(0.034, 0.02, 0.006), 3.0)
+			_face_tie(hmb, tie, 0.18 * yk)
+		"kerchief", "mouth_guard":
+			var guard := fw == "mouth_guard"
+			var m: Material = _textured("leather", c) if guard else _cloth("face_color")
+			var o := 0.024 if beard else 0.012
+			var top := (0.11 if guard else 0.142) * yk
+			var shell := _face_shell((0.02 if guard else -0.005) * yk, top, o, 0.12 if guard else 0.36)
+			hmb.add_loft(m, Transform3D.IDENTITY, shell, _face_front(), 3.0, Color.WHITE, false, false, false, false, true)
+			var r0: Array = shell[0]
+			var z0 := _surf_z(r0, 0.0)
+			if guard:
+				var rv := PSXMat.lit("metal", Color(0.8, 0.76, 0.62))
+				for s in [-1.0, 1.0]:
+					for y in [0.04, 0.09]:
+						var x: float = s * float(_at(shell, y * yk)[1]) * 0.6
+						hmb.add_box(rv, Transform3D(Basis(), Vector3(x, y * yk, _surf_z(_at(shell, y * yk), x) - 0.004)), Vector3(0.01, 0.01, 0.008), 3.0)
+			else:
+				# the point hanging under the chin
+				var a := Vector3(-float(r0[1]) * 0.55, float(r0[0]), _surf_z(r0, -float(r0[1]) * 0.55) + 0.003)
+				var b := Vector3(float(r0[1]) * 0.55, float(r0[0]), a.z)
+				var tip := Vector3(0, float(r0[0]) - 0.075, z0 + 0.012)
+				var n := (b - a).cross(tip - a).normalized()
+				if n.z > 0.0:
+					n = -n
+				hmb.add_tri(m, a, b, tip, n, n, n, Vector2(0, 0), Vector2(1, 0), Vector2(0.5, 1), Color.WHITE, n)
+				hmb.add_tri(m, a, tip, b, -n, -n, -n, Vector2(0, 0), Vector2(0.5, 1), Vector2(1, 0), Color(0.8, 0.8, 0.8), -n)
+			_face_tie(hmb, tie if guard else m, (0.1 if guard else 0.125) * yk)
+		"bandage", "eye_wrap":
+			var m := _cloth("face_color")
+			var band := _off(_clip(head_rings, 0.206 * yk, 0.236 * yk), hair_off + 0.006)
+			hmb.add_loft(m, Transform3D.IDENTITY, band, P_HEAD(), 3.0, Color.WHITE, false, false, true, false, true)
+			var piv := Vector3(0, 0.205 * yk, 0)
+			var eye := fw == "eye_wrap"
+			var tilt := Basis(Vector3.BACK, 0.36 if eye else 0.12)
+			var y_lo := (0.14 if eye else 0.214) * yk
+			var cross := _off(_clip(head_rings, y_lo, y_lo + (0.052 if eye else 0.03) * yk), hair_off + (0.016 if eye else 0.01))
+			for r in cross:
+				r[1] = maxf(float(r[1]), float(band[0][1]) + 0.004)
+			hmb.add_loft(m, Transform3D(tilt, piv - tilt * piv), cross, P_HEAD(), 3.0, Color(0.9, 0.9, 0.9), false, false, true, false, true)
+			# the ends left trailing behind
+			var knot := _head_pt(PI, 0.215 * yk, hair_off + 0.016)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 29
+			hmb.add_blob(m, Transform3D(Basis(), knot), Vector3(0.026, 0.024, 0.02), rng, 0.1, 3, 6, 3.0)
+			var sim := _sim(h.head)
+			for s in [-1.0, 1.0]:
+				var root: Vector3 = knot + Vector3(s * 0.012, -0.01, 0.008)
+				var pts := PackedVector3Array([root, root + Vector3(s * 0.02, -0.07, 0.02), root + Vector3(s * 0.03, -0.15 + s * 0.02, 0.03)])
+				var bones := sim.add_chain(pts, 0.05, 0.05, 1.0, ["head", "torso"])
+				var rr := []
+				for i in range(pts.size()):
+					rr.append([pts[i].y, lerpf(0.016, 0.012, i / 2.0), 0.004, pts[i].z, pts[i].x])
+				sim.mb.add_loft(m, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true, true, false, false, bones)
+
+
+## A mask's nose: a wedge out over the face's, deep enough for a hooked one.
+func _mask_nose(mb: MeshBuilder, m: Material, shell: Array) -> void:
+	var rt := _at(shell, 0.172 * yk)
+	var rb := _at(shell, 0.098 * yk)
+	var zt := _surf_z(rt, 0.0) + 0.006
+	var zb := _surf_z(rb, 0.0) + 0.004
+	var a := Vector3(0, 0.172 * yk, zt)
+	var bl := Vector3(-0.03, 0.098 * yk, _surf_z(rb, -0.03) + 0.006)
+	var br := Vector3(0.03, 0.098 * yk, bl.z)
+	var tip := Vector3(0, 0.104 * yk, zb - 0.04)
+	for tri in [[a, bl, tip], [a, tip, br], [bl, br, tip]]:
+		var n: Vector3 = ((tri[1] - tri[0]) as Vector3).cross(tri[2] - tri[0]).normalized()
+		var center: Vector3 = (tri[0] + tri[1] + tri[2]) / 3.0
+		if n.dot(center - Vector3(0, center.y, zb + 0.05)) < 0.0:
+			n = -n
+		mb.add_tri(m, tri[0], tri[1], tri[2], n, n, n, Vector2.ZERO, Vector2(1, 0), Vector2(0.5, 1), Color(0.95, 0.95, 0.95), n)
+
+
+## A cord round the back of the head at height y, from one side of the face to the other.
+func _face_tie(mb: MeshBuilder, m: Material, y: float) -> void:
+	var band := _off(_clip(head_rings, y - 0.006, y + 0.006), hair_off + 0.004)
+	mb.add_loft(m, Transform3D.IDENTITY, band, _hair_back_profile(), 3.0, Color.WHITE, false, false, false, false, true)
