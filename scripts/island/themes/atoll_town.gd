@@ -281,7 +281,7 @@ static func _people(isl, _ctx, pl: Dictionary) -> void:
 	var id: String = isl.save_key("pearl_trader")
 	var tier := IslandContent.tier(isl)
 	Shops.extra[id] = {"name": who, "line": "White, gold and black. Every one dived from this lagoon. And I'll buy whatever the reef gives you.",
-		"trade": "grocer", "stock": [["pearl", 3 + tier], ["oyster", 6], ["sea_urchin", 4], ["seaweed", 6]], "buys": {"loot": 1.15, "ingredient": 0.7}}
+		"trade": "grocer", "stock": [["pearl", 3 + tier], ["oyster", 6], ["sea_urchin", 4], ["seaweed", 6]] + _skimmer_stock(), "buys": {"loot": 1.15, "ingredient": 0.7}}
 	_npc(isl, pl, node, who, looks[0], Vector2(-(SQUARE - 1.6), sq_z - 0.4), Vector2(0, 1), {"shop": id,
 		"barks": ["Pearls! White, gold and black!", "Dived this morning. Feel the weight.", "Bring me what the reef gives you, Captain."]})
 	var fbarks := ["Fish are running in the pass.", "Quiet. You'll scare them.", "Lagoon's like glass. Nothing biting.", "Big one took the bait. Then the bait."]
@@ -304,3 +304,12 @@ static func _npc(isl, pl: Dictionary, node: Node3D, who: String, look: Dictionar
 	node.add_child(npc)
 	npc.global_position = isl.to_global(Vector3(q.x, D.TOWN_DECK_Y, q.y))
 	return npc
+
+
+## (1.28.1) The skimmer's: the trader's sea-silk and its blueprint (only once the game has them: GadgetData's).
+static func _skimmer_stock() -> Array:
+	var out: Array = []
+	for e in [["sea_silk", 30], ["bp_skimmer", 400]]:
+		if ItemDB.get_item(str(e[0])) != null:
+			out.append(e)
+	return out
