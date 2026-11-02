@@ -78,7 +78,8 @@ func _ready() -> void:
 	_updater = Updater.new()
 	add_child(_updater)
 	_updater.found.connect(_on_update_found)
-	_updater.progress.connect(func(f: float): _update_btn.text = "Downloading... %d%%" % roundi(f * 100.0))
+	# (all of it in: it's checked and put in place next, so it doesn't sit at "100%" until finished says so)
+	_updater.progress.connect(func(f: float): _update_btn.text = "Downloaded: getting it ready..." if f >= 0.999 else "Downloading... %d%%" % roundi(f * 100.0))
 	_updater.finished.connect(_on_update_finished)
 	_updater.check()
 
@@ -115,7 +116,10 @@ func _on_update_pressed() -> void:
 func _on_update_finished(ok: bool, message: String) -> void:
 	# (a failed installer download is offered again as the full update)
 	_update_kind = "ready" if ok else ("full" if _installing else "patch")
-	_update_btn.text = ("%s: restart to play it" % message) if ok else message
+	if ok and _installing:
+		_update_btn.text = "Installing the update: the game closes and opens again"
+	else:
+		_update_btn.text = ("%s: restart to play it" % message) if ok else message
 
 
 func _build_menu() -> void:

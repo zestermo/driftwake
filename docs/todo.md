@@ -310,3 +310,5 @@ backported there).
   `free()` refused it and it leaked; `_free_some` now holds the root until `beasts_idle()` (t/island/free_busy_beasts
   reproduces the error without the fix). shiptest's NPC.setup crash is still open: no log kept; look first if it repeats.
 - **t/gadgets/decoy flakes under load** (2026-11-02): failed twice with other tests running, passes alone. Time-boxed.
+- **t/progression/fifth_powers flakes under load** (2026-11-02, the 1.29 release run): "the foe floored (state 1, 2.0 m
+  off)" with all five slots busy, passes alone. Probably a knockdown checked before it lands (TK.calm the foe, wait ticks).

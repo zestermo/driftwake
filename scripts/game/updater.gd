@@ -215,4 +215,7 @@ func _on_installer(result: int, code: int, _h: PackedStringArray, _b: PackedByte
 		finished.emit(false, "Couldn't start the installer")
 		return
 	finished.emit(true, "Installing")
+	# (a couple of frames first, so the menu shows it's installing instead of freezing on the last "Downloading" frame)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	get_tree().quit()

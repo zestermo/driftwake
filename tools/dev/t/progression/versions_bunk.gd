@@ -44,7 +44,7 @@ func _process(_d: float) -> bool:
 			check("Deep Draw (off the upgrade) bought", pr.buy("k_deep") and pr.pool("katana") == 20)
 			check("away from the bunk no refund (%s)" % pr.respec_why("katana"), not pr.respec_tree("katana") and pr.respec_why("katana") == "Only at a rest spot")
 			var ship = stage.ship
-			p.global_position = ship.global_transform * (load("res://scripts/ship/ship.gd").BED_AT + Vector3(0.95, 0.1, 0.0))
+			p.global_position = ship.global_transform * (ship.layout.bed_at + Vector3(0.95, 0.1, 0.0))
 			p.reset_physics_interpolation()
 			check("by the ship's bunk", pr.can_respec())
 			check("...Mind's Eye switched in", pr.set_version("k_iai", 1) and pr.version_of("k_iai") == 1 and pr.owns("k_eye") and not pr.owns("k_through"))
@@ -58,7 +58,7 @@ func _process(_d: float) -> bool:
 			check("...the active version kept", pr.version_of("k_iai") == 1 and pr.owns("k_eye") and not pr.owns("k_through") and is_equal_approx(pr.stat("iai_speed"), 0.3))
 			SG.use_test_file("")
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE))
-			p.global_position = ship.global_transform * (load("res://scripts/ship/ship.gd").BED_AT + Vector3(0.95, 0.1, 0.0))
+			p.global_position = ship.global_transform * (ship.layout.bed_at + Vector3(0.95, 0.1, 0.0))
 			p.reset_physics_interpolation()
 			var inv = p.inventory_component
 			inv.remove_item(ItemDB.get_item("gold"), inv.count("gold"))

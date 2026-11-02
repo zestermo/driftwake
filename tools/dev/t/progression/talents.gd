@@ -41,7 +41,7 @@ func _process(_d: float) -> bool:
 			check("unpicked at first", pr.talent_at(5) == -1 and not pr.owns("v_mend"))
 			check("the first pick anywhere: Mend", not pr.can_respec() and pr.pick_talent(5, 0) and pr.talent_at(5) == 0 and pr.has_flag("regen_hp"))
 			check("a change away from the bunk is refused", not pr.pick_talent(5, 1) and pr.talent_at(5) == 0)
-			p.global_position = stage.ship.global_transform * (load("res://scripts/ship/ship.gd").BED_AT + Vector3(0.95, 0.1, 0.0))
+			p.global_position = stage.ship.global_transform * (stage.ship.layout.bed_at + Vector3(0.95, 0.1, 0.0))
 			p.reset_physics_interpolation()
 			check("by the bunk: Iron Stomach instead", pr.can_respec() and pr.pick_talent(5, 1) and pr.owns("v_stomach") and not pr.owns("v_mend"))
 			check("...food heals 40% more, Mend's regen gone", is_equal_approx(pr.stat("potion_pct"), 0.4) and pr.stat("regen_hp") == 0.0)
