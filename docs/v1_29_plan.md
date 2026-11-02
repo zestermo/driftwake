@@ -22,6 +22,7 @@ the thinnest island themes.
 | Helm | A **new baseline wheel** (more detail: spokes, hub, pedestal), and the existing **Rudder & helm** line's five levels each show on the wheel itself (brass rim, binnacle, carved pedestal, gilding) | Zach | - |
 | Ladders and flag | The hull ladders **shorter and cleaner** (rungs and rails that sit right on the hull, ending at the waterline); the crow's nest flag redone so it hangs and flies right | Zach: too long, janky | - |
 | Galley and berths | **A full detail pass** on the galley, bunks, kitchen and table at every level of the Galley & bunks line (pots, shelves, crockery, bedding, lamps) | Zach | - |
+| Pantry (2026-11-02) | **A pantry in the galley, apart from the storage chest**, shared by the crew (host-arbitrated like the chest), holding food and ingredients only. **A stow-all button** moves every ingredient and food item from your bag into it; items come back out one at a time. **Cooking aboard takes from the pantry first, then the cook's bag** (`Food.picks` over both); any captain aboard can cook from it. **Roomy from the start, and the Galley & bunks line adds shelves and a cold box** (more slots a level). No spoilage | Zach: a QoL to make cooking easy | Play |
 | Shoulder coat | **A way to wear any coat or jacket**: draped over the shoulders, front open, the empty sleeves swinging behind on spring chains (Koby; Zoro's and Mihawk's coats). Toggled in the wardrobe | Works on every coat already in the game | Play |
 | New clothing | Masks (on the face), small mouth coverings, head bandages, arm wraps, foot wraps, baggy parachute pants, a jester outfit (bells on spring chains), a backpack with loose parts (bedroll, pot, lantern) bouncing on spring chains | Zach | - |
 | Clothing source and stats | As every piece since 1.24: the gear-stat system, sold at village tailors (and smiths for the armoured ones), some in loot; basic ones in the creator | The standing system | - |
@@ -49,7 +50,7 @@ For scale: a full sloop line costs ~950 at the yard, and the caravel 1,400.
    (ship tests, riggingtest, a hullshot before/after).
 2. **The sloop rework** (agent): the stepped-down, bigger cabin; ladders; the crow's nest flag; the new wheel.
 3. **Quarters line + the wheel's upgrades** (agent).
-4. **Galley, bunks, kitchen, table detail** (agent).
+4. **Galley, bunks, kitchen, table detail, and the pantry** (agent; the pantry's container, stow-all, cooking from it).
 - **Clothing** (this session, alongside, a separate area: character_look, body_builder, spring_chains): the
   shoulder-coat mode first, then the pieces, checked with outfitgrid / armorshot.
 - **Hitches + flakes** (this session or a driftwake-fixer between pieces).
@@ -59,6 +60,8 @@ For scale: a full sloop line costs ~950 at the yard, and the caravel 1,400.
 - The backpack takes the back; while it's worn the gadget pouch moves to the hip. **assumed**
 - The jester outfit is a set (cap with bells, motley top and pants, curled shoes), each piece its own item. **assumed**
 - Old saves' sloops get Quarters level 0 (the reworked cabin) for free; nothing bought is lost. **assumed**
+- The pantry starts at 24 slots, +8 a Galley & bunks level; it saves with the ship like the chest; a feast's
+  portions still go on the galley table. Tune in play. **assumed**
 - Co-op: the cabin's tier and every new clothing piece are in the kit and the look, synced like today. **assumed**
 - The brig's and galleon's numbers, layouts and solo crewing (NPC deckhands or not): 1.30's grill.
 - Which themes get creatures: 1.30's grill.
