@@ -124,8 +124,8 @@ func _reached(me: Player) -> bool:
 	if ship == null or not ship.aboard(me.global_position):
 		return false
 	var l := ship.global_transform.affine_inverse() * global_position
-	return l.z > HullBuilder.RINGS[HullBuilder.RINGS.size() - 1][0] - 1.0 and l.z < HullBuilder.QD_BACK + 1.0 \
-		and absf(l.x) < HullBuilder.half_width(l.z) + HULL_REACH
+	return l.z > HullLayout.RINGS[HullLayout.RINGS.size() - 1][0] - 1.0 and l.z < HullLayout.base().qd_back + 1.0 \
+		and absf(l.x) < HullLayout.base().half_width(l.z) + HULL_REACH
 
 
 ## Into our captain's bag (all of it or nothing: a full bag leaves it floating).

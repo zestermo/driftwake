@@ -77,7 +77,7 @@ func _physics_process(delta: float) -> void:
 	var ship := get_tree().get_first_node_in_group("ship") as Ship
 	if ship == null or ship.speed < RAM_SPEED:
 		return
-	var bow: Vector3 = ship.global_transform * Vector3(0, 0, HullBuilder.BOW_Z)
+	var bow: Vector3 = ship.global_transform * Vector3(0, 0, HullLayout.BOW_Z)
 	var p := Geometry3D.get_closest_point_to_segment(Vector3(bow.x, 0.0, bow.z), Vector3(a.x, 0.0, a.z), Vector3(b.x, 0.0, b.z))
 	if p.distance_to(Vector3(bow.x, 0.0, bow.z)) < 4.0:
 		ship.hull_hit(RAM_HULL, p + Vector3(0, 1.0, 0))

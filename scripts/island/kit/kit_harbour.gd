@@ -417,7 +417,7 @@ func build_piers(ctx: KitContext, piers: Array) -> void:
 		lad.position = Vector3(0, deck_y, float(pr[1]))
 		pier.add_child(lad)
 		var side := 1.0 if pr[3] else -1.0
-		var sp := root + out * (float(pr[1]) - 10.0) + along * (side * (1.5 + HullBuilder.HALF_BEAM + 0.7))
+		var sp := root + out * (float(pr[1]) - 10.0) + along * (side * (1.5 + HullLayout.HALF_BEAM + 0.7))
 		# (out along the pier until the whole hull is over open water: where the quay curves, a short pier's ship
 		# stood with its side on the paving, 2026-10-22)
 		for k in 16:
@@ -428,7 +428,7 @@ func build_piers(ctx: KitContext, piers: Array) -> void:
 		hull.name = "Moored_" + str(pr[2])
 		hull.collision_layer = 1
 		hull.collision_mask = 0
-		ctx.put(hull, Vector3(sp.x, HullBuilder.FREEBOARD, sp.y), KitContext.face_yaw(-out))
+		ctx.put(hull, Vector3(sp.x, HullLayout.FREEBOARD, sp.y), KitContext.face_yaw(-out))
 		match str(pr[2]):
 			"junk":
 				TraderShips.junk(hull)
@@ -446,7 +446,7 @@ func build_piers(ctx: KitContext, piers: Array) -> void:
 func _hull_clear(ctx: KitContext, c: Vector2) -> bool:
 	for a in [-1.0, 1.0]:
 		for b in [-1.0, 1.0]:
-			var p: Vector2 = c + out * (a * (HullBuilder.STERN_Z + 1.0)) + along * (b * (HullBuilder.HALF_BEAM + 1.0))
+			var p: Vector2 = c + out * (a * (HullLayout.STERN_Z + 1.0)) + along * (b * (HullLayout.HALF_BEAM + 1.0))
 			if past_quay(p) < 1.0 or ctx.hv(p) > -0.3:
 				return false
 	return true

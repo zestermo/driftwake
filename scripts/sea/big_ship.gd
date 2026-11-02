@@ -76,7 +76,7 @@ func _ready() -> void:
 		sph.radius = SWING_R / K
 		cs.shape = sph
 		it.add_child(cs)
-		it.position = Vector3(sgn * (HullBuilder.HALF_BEAM + SWING_R / K * 0.6), HullBuilder.DECK_Y, -1.0)
+		it.position = Vector3(sgn * (HullLayout.HALF_BEAM + SWING_R / K * 0.6), HullLayout.DECK_Y, -1.0)
 		add_child(it)
 		it.interacted.connect(_swing_aboard.bind(sgn))
 	global_transform = Transform3D(global_transform.basis.orthonormalized() * Basis.from_scale(Vector3.ONE * K), global_transform.origin)
@@ -112,7 +112,7 @@ func _turn_grunt(ci: int, tag: String, seed_value: int) -> PirateGrunt:
 func _swing_aboard(p: Player, sgn: float) -> void:
 	if state == S.SINK or aboard(p.global_position):
 		return
-	var land := to_global(Vector3(sgn * (HullBuilder.half_width(-1.0) - 1.2), HullBuilder.DECK_Y + 0.3, -1.0))
+	var land := to_global(Vector3(sgn * (HullLayout.base().half_width(-1.0) - 1.2), HullLayout.DECK_Y + 0.3, -1.0))
 	FX.sfx("whoosh", p.global_position, -4.0, 0.05, 0.9)
 	Net.fx("tracer", [p.global_position + Vector3(0, 1.4, 0), land + Vector3(0, 1.0, 0), Color(0.75, 0.6, 0.4)])
 	p.global_position = land
@@ -162,7 +162,7 @@ func _captain_out() -> void:
 	lk["height"] = 1.12
 	var weapons: Array = WEAPONS[kind]
 	var w := str(weapons[rng.randi() % weapons.size()])
-	var at := to_global(Vector3(0.0, HullBuilder.QD_Y + 0.2, HullBuilder.HELM_Z - 1.2))
+	var at := to_global(Vector3(0.0, HullLayout.base().qd_y + 0.2, HullLayout.base().helm_z - 1.2))
 	var rname := "Captain_%s" % name
 	var parent := get_parent()
 	Net.everyone("_all_spawn_rival", [Net.key_of(parent), rname, lk, w, at, global_rotation.y, 0.85 if kind == "warship" else 0.75])
@@ -267,7 +267,7 @@ func _prize() -> void:
 	bag.rolls = true
 	bag.name = "Prize_%s" % name
 	get_node("Model").add_child(bag)
-	bag.position = Vector3(1.6, HullBuilder.QD_Y, 7.4)
+	bag.position = Vector3(1.6, HullLayout.base().qd_y, 7.4)
 	bag.scale = Vector3.ONE / K
 
 

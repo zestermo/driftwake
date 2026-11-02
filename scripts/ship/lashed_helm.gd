@@ -33,19 +33,19 @@ static func apply(ship, on: bool, heading: float) -> void:
 	ship.lash_heading = heading
 	var rope: Node3D = ship.ship_model.get_node_or_null("HelmLashing")
 	if on and rope == null:
-		rope = _rope()
+		rope = _rope(ship.layout)
 		ship.ship_model.add_child(rope)
 	if rope:
 		rope.visible = on
-	FX.sfx("rope", ship.global_transform * Vector3(0, HullBuilder.QD_Y + 0.8, HullBuilder.WHEEL_Z), -6.0, 0.05, 1.1 if on else 0.85)
+	FX.sfx("rope", ship.global_transform * Vector3(0, ship.layout.qd_y + 0.8, ship.layout.wheel_z), -6.0, 0.05, 1.1 if on else 0.85)
 
 
 ## Two turns of line from the wheel's rim to the foot of its post, and a coil hitched round the post.
-static func _rope() -> Node3D:
+static func _rope(L: HullLayout) -> Node3D:
 	var mb := MeshBuilder.new()
 	var mat := PSXMat.lit("rope", Color(0.95, 0.88, 0.7))
-	var hub := Vector3(0, HullBuilder.QD_Y + 0.93, HullBuilder.WHEEL_Z - 0.04)
-	var foot := Vector3(0, HullBuilder.QD_Y + 0.28, HullBuilder.WHEEL_Z + 0.1)
+	var hub := Vector3(0, L.qd_y + 0.93, L.wheel_z - 0.04)
+	var foot := Vector3(0, L.qd_y + 0.28, L.wheel_z + 0.1)
 	for s in [-1.0, 1.0]:
 		var rim := hub + Vector3(s * 0.3, -0.3, 0)
 		mb.add_tube(mat, MeshBuilder.curve_points(rim, (rim + foot) * 0.5 + Vector3(s * 0.12, -0.05, -0.08), foot + Vector3(s * 0.09, 0, 0), 4), 0.018, 0.018, 4, 1.0)

@@ -333,17 +333,17 @@ static func seat_of(kind: String) -> float:
 static func spot(p, kind: String, ship: Ship) -> Array:
 	match kind:
 		"sleep":
-			return [Vector3(Ship.BED_AT.x, Ship.BED_AT.y + 0.53, Ship.BED_AT.z - 0.15), 0.0]
+			return [Vector3(ship.layout.bed_at.x, ship.layout.bed_at.y + 0.53, ship.layout.bed_at.z - 0.15), 0.0]
 		"fish":
 			var l: Vector3 = ship.global_transform.affine_inverse() * p.global_position
 			var side := 1.0 if l.x >= 0.0 else -1.0
 			var z := clampf(l.z, -7.5, 3.5)
-			return [Vector3(side * (HullBuilder.half_width(z) - 0.62), Ship.DECK_Y, z), -side * PI * 0.5]
+			return [Vector3(side * (ship.layout.half_width(z) - 0.62), Ship.DECK_Y, z), -side * PI * 0.5]
 	return []
 
 
 ## Where you get up to (ship-local) after `kind` took you to its spot.
 static func leave_spot(kind: String, at: Vector3) -> Vector3:
 	if kind == "sleep":
-		return Vector3(Ship.BED_AT.x + 0.95, Ship.DECK_Y + 0.05, Ship.BED_AT.z)
+		return at + Vector3(0.95, -0.48, 0.15)
 	return Vector3(at.x * 0.9, at.y + 0.05, at.z)

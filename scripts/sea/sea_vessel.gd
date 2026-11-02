@@ -13,10 +13,10 @@ const MAX_TURN := 0.3
 const FAR := 350.0
 
 var bounds := AABB(Vector3(-5.0, -1.5, -14.0), Vector3(10.0, 20.0, 25.0))
-var freeboard := HullBuilder.FREEBOARD
+var freeboard := HullLayout.FREEBOARD
 ## Where the swell is sampled (half the length and beam).
-var half_len := HullBuilder.STERN_Z
-var half_beam := HullBuilder.HALF_BEAM
+var half_len := HullLayout.STERN_Z
+var half_beam := HullLayout.HALF_BEAM
 var net_puppet := false
 var net_idle := false
 var speed := 0.0

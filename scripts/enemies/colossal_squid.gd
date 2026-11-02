@@ -156,7 +156,7 @@ func _fight(delta: float, s: Ship) -> void:
 		if arm_on[i]:
 			held_ids.append(i)
 	if free >= 0 and (held_ids.is_empty() or _rng.randf() < 0.6):
-		var at := Vector3(_side * (HullBuilder.half_width(0.0) - 0.4), Ship.DECK_Y, _rng.randf_range(Ship.DECK_Z_MIN + 1.5, Ship.DECK_Z_MAX - 1.0))
+		var at := Vector3(_side * (HullLayout.base().half_width(0.0) - 0.4), Ship.DECK_Y, _rng.randf_range(Ship.DECK_Z_MIN + 1.5, Ship.DECK_Z_MAX - 1.0))
 		_pending[free] = [GRAB_WARN, "grab", at]
 		Net.fx("telegraph", [s.global_transform * at, GRAB_R, GRAB_WARN + 0.3, Color(1.0, 0.18, 0.12), Net.key_of(s)])
 		Net.fx("sfx", ["roar", core.global_position, 4.0, 0.05, 1.1])

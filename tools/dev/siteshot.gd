@@ -26,7 +26,7 @@ const ALL := ["hero", "jungle", "stilts", "harbour", "cliffs", "shelf", "canopy"
 	"fishing", "dive", "shark", "galley", "clip_fish", "clip_dive", "heldmap", "camp", "clip_map", "clip_loadout", "snow", "desert"]
 const OG := "hero_out_c"
 const STAGGER := 9
-const DECK := HullBuilder.DECK_Y
+const DECK := HullLayout.DECK_Y
 ## The chain island's forced make-up per group of shots (the seed's own roll where left out).
 const MAIN := {"village": "stilts", "harbour": "stilts"}
 const POST := {"village": "post", "harbour": "cove"}

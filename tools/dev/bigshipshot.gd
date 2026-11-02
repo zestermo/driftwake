@@ -39,7 +39,7 @@ func _process(d: float) -> bool:
 		w.skip_to(hour)
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 1500
 		root.add_child(cam); cam.current = true
-		var HB = load("res://scripts/ship/hull_builder.gd")
+		var HB = ship.layout
 		# (the refit's third pair of guns, up on the quarterdeck)
 		ship._add_gun_pair(2)
 		shots = [
@@ -50,8 +50,8 @@ func _process(d: float) -> bool:
 			["cabin_bunk", Vector3(1.2, 1.9, 5.6), Vector3(-3.0, 0.6, 8.6), Vector3(0.0, 0.5, 6.2)],
 			["cabin_galley", Vector3(-1.4, 1.9, 5.6), Vector3(3.2, 0.8, 8.2), Vector3(0.0, 0.5, 6.2)],
 			["cabin_door", Vector3(0.0, 1.9, 9.3), Vector3(-1.0, 0.8, 5.0), Vector3(-1.0, 0.5, 7.0)],
-			["quarterdeck", Vector3(-2.6, 4.6, 9.4), Vector3(0, 3.0, 4.0), Vector3(0, HB.QD_Y + 0.05, HB.HELM_Z)],
-			["nest", Vector3(-2.2, HB.NEST_Y + 2.2, HB.MAST_Z + 3.0), Vector3(0, HB.NEST_Y - 3.0, -8.0), Vector3(0.4, HB.NEST_Y + 0.1, HB.MAST_Z + 0.4)],
+			["quarterdeck", Vector3(-2.6, 4.6, 9.4), Vector3(0, 3.0, 4.0), Vector3(0, HB.qd_y + 0.05, HB.helm_z)],
+			["nest", Vector3(-2.2, HB.nest_y + 2.2, HB.mast_z + 3.0), Vector3(0, HB.nest_y - 3.0, -8.0), Vector3(0.4, HB.nest_y + 0.1, HB.mast_z + 0.4)],
 			["rigging", Vector3(-9.0, 7.0, -6.0), Vector3(3.0, 8.0, -1.8), Vector3(0, 0.5, -4)],
 			["with_enemy", Vector3(-30, 12, 22), Vector3(6, 3, -2), Vector3(0, 0.5, -4)],
 			["bow_deck", Vector3(0.3, 2.6, -4.5), Vector3(0, 1.0, -12.6), Vector3(-1.5, 0.5, -3)],

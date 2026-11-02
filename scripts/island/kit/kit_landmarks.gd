@@ -939,13 +939,13 @@ static func _wreck(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 	var z0: float = BREACH_Z[0]
 	var z1: float = BREACH_Z[1]
 	mb.cut(func(m: Vector3) -> bool:
-		return m.z > z0 and m.z < z1 and (m.x * side > 1.0 or absf(m.y - HullBuilder.DECK_Y) < 0.06))
+		return m.z > z0 and m.z < z1 and (m.x * side > 1.0 or absf(m.y - HullLayout.DECK_Y) < 0.06))
 	mb.add_backfaces(mats["hull"], 0.5)
 	mb.add_backfaces(mats["deck"], 0.55)
 	var wood: Material = mats["trim"]
 	# ribs bared in the breach, broken plank ends round it
 	for z in [-7.4, -6.2, -5.0, -3.8]:
-		var hw := HullBuilder.half_width(z)
+		var hw := HullLayout.base().half_width(z)
 		var pts := MeshBuilder.curve_points(Vector3(side * 1.6, -2.75, z), Vector3(side * (hw + 0.4), -2.4, z), Vector3(side * (hw - 0.05), 0.4 + 0.3 * absf(sin(z * 3.0)), z), 6)
 		mb.add_tube(wood, pts, 0.13, 0.1, 5, 1.0, Color(0.7, 0.7, 0.7), false, true, true)
 	var rng := RandomNumberGenerator.new()
@@ -954,18 +954,18 @@ static func _wreck(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 		var z := lerpf(z0, z1, rng.randf())
 		var y := rng.randf_range(-2.4, 0.2)
 		var edge := z0 if k % 2 == 0 else z1
-		var hw := HullBuilder.half_width(edge) - 0.15
+		var hw := HullLayout.base().half_width(edge) - 0.15
 		mb.add_box(mats["hull"], Transform3D(Basis(Vector3.UP, rng.randf_range(-0.3, 0.3)), Vector3(side * hw, y, edge + (0.4 if edge == z0 else -0.4) * rng.randf_range(0.5, 1.6))),
 			Vector3(0.08, 0.24, rng.randf_range(0.6, 1.4)), 1.0, Color(0.8, 0.8, 0.8), false)
 		if k < 6:
 			# the deck's planks snapped off over the hold
-			mb.add_box(mats["deck"], Transform3D(Basis(Vector3.FORWARD, rng.randf_range(-0.25, 0.1) * side), Vector3(-side * rng.randf_range(0.2, 2.5), HullBuilder.DECK_Y - 0.06, z)),
+			mb.add_box(mats["deck"], Transform3D(Basis(Vector3.FORWARD, rng.randf_range(-0.25, 0.1) * side), Vector3(-side * rng.randf_range(0.2, 2.5), HullLayout.DECK_Y - 0.06, z)),
 				Vector3(rng.randf_range(1.2, 3.4), 0.08, 0.26), 0.6, Color(0.85, 0.85, 0.85), false)
 	# the mast snapped short, its stump splintered
-	mb.add_cylinder(mats["wood"], Transform3D(Basis(), Vector3(0, HullBuilder.DECK_Y, HullBuilder.MAST_Z)), 0.3, 0.26, 2.6, 7, 0.8)
+	mb.add_cylinder(mats["wood"], Transform3D(Basis(), Vector3(0, HullLayout.DECK_Y, HullLayout.base().mast_z)), 0.3, 0.26, 2.6, 7, 0.8)
 	for k in range(5):
 		var a := TAU * k / 5.0
-		mb.add_cone(mats["wood"], Transform3D(Basis(), Vector3(cos(a) * 0.14, HullBuilder.DECK_Y + 2.55, HullBuilder.MAST_Z + sin(a) * 0.14)), 0.12, rng.randf_range(0.3, 0.8), 4, 0.8)
+		mb.add_cone(mats["wood"], Transform3D(Basis(), Vector3(cos(a) * 0.14, HullLayout.DECK_Y + 2.55, HullLayout.base().mast_z + sin(a) * 0.14)), 0.12, rng.randf_range(0.3, 0.8), 4, 0.8)
 	var hull := body("WreckHull")
 	hull.transform = _wreck_xf(pl)
 	var mesh := mb.commit()

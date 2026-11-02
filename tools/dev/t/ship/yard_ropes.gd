@@ -53,7 +53,7 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			ship = stage.ship
-			HB = load("res://scripts/ship/hull_builder.gd")
+			HB = ship.layout
 			CAN = load("res://scripts/ship/cannon.gd")
 			var ShipKitC = load("res://scripts/ship/ship_kit.gd")
 			check("a ship from an old save has no ropes (a save with every other refit bought)", int(ShipKitC.merged({"armour": true, "guns": true, "sails": true, "rudder": true})["ropes"]) == 0)
@@ -76,7 +76,7 @@ func _process(_d: float) -> bool:
 			# standing under the starboard rope on the deck, looking forward over the guns
 			var at: Vector3 = ship.to_local(rope.interactable.global_position)
 			p.state_machine.force_state("Fall", {})
-			p.global_position = ship.to_global(Vector3(at.x, HB.DECK_Y + 0.9, at.z))
+			p.global_position = ship.to_global(Vector3(at.x, HB.deck_y + 0.9, at.z))
 			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			stage.camera_rig.global_rotation.y = ship.global_rotation.y
@@ -89,9 +89,9 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(3.0)
 		2:
 			swinging = false
-			var guns: float = HB.DECK_Y + CAN.PIVOT_Y + CAN.BARREL * sin(CAN.PITCH_MAX) + 0.2
-			print("   rope %.2f m, feet low point %.2f (guns' tops %.2f, deck %.2f), swung to z %.1f (second gun at %.1f)" % [rope.length, low, guns, HB.DECK_Y, far_z, ship.GUN_SPOTS[1][0]])
-			check("it swings you out over the guns", far_z < float(ship.GUN_SPOTS[1][0]) - 0.5)
+			var guns: float = HB.deck_y + CAN.PIVOT_Y + CAN.BARREL * sin(CAN.PITCH_MAX) + 0.2
+			print("   rope %.2f m, feet low point %.2f (guns' tops %.2f, deck %.2f), swung to z %.1f (second gun at %.1f)" % [rope.length, low, guns, HB.deck_y, far_z, ship.layout.gun_spots[1][0]])
+			check("it swings you out over the guns", far_z < float(ship.layout.gun_spots[1][0]) - 0.5)
 			check("...the arc's low point clears the guns' tops by 0.4 m", low > guns + 0.4)
 			p.state_machine.force_state("Idle", {})
 			cannon = ship.get_node("ShipModel/CannonS0")
@@ -116,7 +116,7 @@ func _process(_d: float) -> bool:
 			var made_fast: Vector3 = ship.to_local(rope.global_position)
 			rope.global_position = ship.to_global(Vector3(made_fast.x, made_fast.y, 1.5))
 			var under: Vector3 = ship.to_local(rope.interactable.global_position)
-			p.global_position = ship.to_global(Vector3(under.x, HB.DECK_Y + 0.05, under.z))
+			p.global_position = ship.to_global(Vector3(under.x, HB.deck_y + 0.05, under.z))
 			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			until = TK.wait_secs(0.5)

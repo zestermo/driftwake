@@ -10,7 +10,7 @@ extends Node3D
 
 const SLEEP := 180.0
 ## The waterline in her own space (she rides FREEBOARD above the swell).
-const WL := -HullBuilder.FREEBOARD + 0.1
+const WL := -HullLayout.FREEBOARD + 0.1
 ## Where the bow wave leaves her sides, and where her stem cuts the water (her own space).
 const BOW_WAVE_Z := -10.0
 const STEM_Z := -12.3
@@ -51,9 +51,9 @@ func _ready() -> void:
 		e.emission_sphere_radius = 0.25
 		_bow.append(e)
 	_stern = _emitter(20, 1.1, 0.45, Color(0.92, 0.96, 1.0, 0.8), false)
-	_stern.position = Vector3(0.0, WL, float(HullBuilder.RINGS[0][0]) + 0.5)
+	_stern.position = Vector3(0.0, WL, float(HullLayout.RINGS[0][0]) + 0.5)
 	_stern.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	_stern.emission_box_extents = Vector3(beam_at(float(HullBuilder.RINGS[0][0])) * 0.7, 0.05, 0.3)
+	_stern.emission_box_extents = Vector3(beam_at(float(HullLayout.RINGS[0][0])) * 0.7, 0.05, 0.3)
 	_stern.direction = Vector3(0.0, 0.5, 1.0).normalized()
 	_stern.spread = 30.0
 	_mist = _emitter(24, 1.4, 0.55, Color(0.9, 0.95, 1.0, 0.2), false)
@@ -74,9 +74,9 @@ func _ready() -> void:
 		_sheets.append(sh)
 
 
-## Her half-width at the waterline `z` m along her (HullBuilder.RINGS), 0 past the stem.
+## Her half-width at the waterline `z` m along her (HullLayout.RINGS), 0 past the stem.
 static func beam_at(z: float) -> float:
-	var r: Array = HullBuilder.RINGS
+	var r: Array = HullLayout.RINGS
 	for i in range(r.size() - 1):
 		var a: Array = r[i]
 		var b: Array = r[i + 1]
@@ -165,7 +165,7 @@ func _physics_process(delta: float) -> void:
 func _meet(delta: float, xf: Transform3D, spd: float, caps: float, air_l: Vector3) -> void:
 	_slap_cd -= delta
 	_sheet_cd -= delta
-	var stem := xf * Vector3(0.0, WL + 0.35, HullBuilder.BOW_Z + 0.8)
+	var stem := xf * Vector3(0.0, WL + 0.35, HullLayout.BOW_Z + 0.8)
 	var imm := float(Ocean.get_wave_height(stem)) - stem.y
 	rise = 0.0 if _imm == INF else (imm - _imm) / maxf(delta, 0.0001)
 	_imm = imm
@@ -187,4 +187,4 @@ func _meet(delta: float, xf: Transform3D, spd: float, caps: float, air_l: Vector
 		sh.initial_velocity_max = 6.0 + 6.0 * k
 		sh.restart()
 		_mist_k = maxf(_mist_k, 0.45 + 0.45 * k * clampf(caps + 0.4, 0.0, 1.0))
-		FX.sfx("bow_spray", xf * Vector3(0.0, WL + 1.4, HullBuilder.BOW_Z), -9.0 + 7.0 * k + caps * 3.0, 0.1)
+		FX.sfx("bow_spray", xf * Vector3(0.0, WL + 1.4, HullLayout.BOW_Z), -9.0 + 7.0 * k + caps * 3.0, 0.1)

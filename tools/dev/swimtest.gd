@@ -107,7 +107,7 @@ func _process(d: float) -> bool:
 				var loc: Vector3 = ship.to_local(p.global_position)
 				print("   climbed in ", snappedf(t - t0, 0.01), " s, deck local ", loc, " ", st())
 				# (W is still held: Idle turns to Move on the next tick, and a long frame runs both)
-				check("climbed aboard (on deck)", st() in ["Idle", "Move"] and absf(loc.x) < HullBuilder.half_width(loc.z) - 0.4 and absf(loc.y - HullBuilder.DECK_Y) < 0.3)
+				check("climbed aboard (on deck)", st() in ["Idle", "Move"] and absf(loc.x) < HullLayout.base().half_width(loc.z) - 0.4 and absf(loc.y - HullLayout.DECK_Y) < 0.3)
 				wait = 0.5
 				step += 1
 			return false

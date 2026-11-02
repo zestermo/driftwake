@@ -233,8 +233,8 @@ static func den(ctx: KitContext, c: Vector2, opts: Dictionary, crew_name := "Den
 	hull.name = "DenSloop"
 	hull.collision_layer = 1
 	hull.collision_mask = 0
-	var sloop_p: Vector2 = pier_pt.call(pier_len - 10.0) + s * (1.6 + HullBuilder.HALF_BEAM + 0.6)
-	ctx.put(hull, Vector3(sloop_p.x, HullBuilder.FREEBOARD, sloop_p.y), KitContext.face_yaw(-f))
+	var sloop_p: Vector2 = pier_pt.call(pier_len - 10.0) + s * (1.6 + HullLayout.HALF_BEAM + 0.6)
+	ctx.put(hull, Vector3(sloop_p.x, HullLayout.FREEBOARD, sloop_p.y), KitContext.face_yaw(-f))
 	var model := Node3D.new()
 	hull.add_child(model)
 	HullBuilder.build(model, opts["hull"])

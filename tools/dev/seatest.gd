@@ -106,7 +106,7 @@ func _process(d: float) -> bool:
 					other.set_physics_process(false)
 			es._pos = sea + Vector3(32, 0, 0)
 			es._heading = 0.0
-			es.global_transform = Transform3D(Basis(), es._pos + Vector3(0, HullBuilder.FREEBOARD, 0))
+			es.global_transform = Transform3D(Basis(), es._pos + Vector3(0, HullLayout.FREEBOARD, 0))
 			# (its middle gun on the side facing us)
 			for c in es.cannons:
 				if c.position.x < 0.0 and absf(c.position.z + 3.2) < 0.1:
@@ -227,7 +227,7 @@ func _process(d: float) -> bool:
 			var from := c + Vector3(r + 120.0, 0, 0)
 			es._pos = from
 			es._heading = atan2(-(c - from).x, -(c - from).z)
-			es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), from + Vector3(0, HullBuilder.FREEBOARD, 0))
+			es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), from + Vector3(0, HullLayout.FREEBOARD, 0))
 			es.patrol_center = c
 			es.patrol_radius = 5.0
 			es._set_state(0)
@@ -249,7 +249,7 @@ func _process(d: float) -> bool:
 			var sea: Vector3 = get_meta("sea") + Vector3(0, 0, -80)
 			es._pos = sea
 			es.speed = 0.0
-			es.global_transform = Transform3D(Basis(), sea + Vector3(0, HullBuilder.FREEBOARD, 0))
+			es.global_transform = Transform3D(Basis(), sea + Vector3(0, HullLayout.FREEBOARD, 0))
 			es._set_state(0)
 			wait = 0.3
 			step = 14
@@ -301,7 +301,7 @@ func _process(d: float) -> bool:
 				bg._pos = sea + Vector3(0, 0, 45)
 				bg._heading = 0.0
 				bg.speed = 6.0
-				bg.global_transform = Transform3D(Basis(), bg._pos + Vector3(0, HullBuilder.FREEBOARD, 0))
+				bg.global_transform = Transform3D(Basis(), bg._pos + Vector3(0, HullLayout.FREEBOARD, 0))
 				wait = 0.3
 				step = 18
 			else:
@@ -336,7 +336,7 @@ func _process(d: float) -> bool:
 			bg._volley_cd = 0.0
 			bg._heading = PI * 0.5
 			bg._pos = ship.global_position + Vector3(0, 0, 35)
-			bg.global_transform = Transform3D(Basis(Vector3.UP, bg._heading), bg._pos + Vector3(0, HullBuilder.FREEBOARD, 0))
+			bg.global_transform = Transform3D(Basis(Vector3.UP, bg._heading), bg._pos + Vector3(0, HullLayout.FREEBOARD, 0))
 			fired_n = 0
 			bg._warn_t = -1.0
 			bg._second = false
@@ -360,7 +360,7 @@ func _process(d: float) -> bool:
 			var sl = get_meta("by")["gunboat"]
 			sl.set_physics_process(true)
 			sl._pos = ship.global_position + Vector3(30, 0, 0)
-			sl.global_transform = Transform3D(Basis(), sl._pos + Vector3(0, HullBuilder.FREEBOARD, 0))
+			sl.global_transform = Transform3D(Basis(), sl._pos + Vector3(0, HullLayout.FREEBOARD, 0))
 			sl.hull = sl.max_hull * 0.2
 			sl._fled = false
 			sl._set_state(2)

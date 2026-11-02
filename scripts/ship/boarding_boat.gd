@@ -139,7 +139,7 @@ func _row(delta: float) -> void:
 		return
 	var l: Vector3 = ship.global_transform.affine_inverse() * global_position
 	var s := 1.0 if l.x > 0.0 else -1.0
-	var spot: Vector3 = ship.global_transform * Vector3(s * (HullBuilder.half_width(0.0) + 2.2), 0.0, clampf(l.z, -6.0, 3.0))
+	var spot: Vector3 = ship.global_transform * Vector3(s * (HullLayout.base().half_width(0.0) + 2.2), 0.0, clampf(l.z, -6.0, 3.0))
 	# (an intercept: where she'll be by the time they get there)
 	var gap := spot - global_position
 	gap.y = 0.0

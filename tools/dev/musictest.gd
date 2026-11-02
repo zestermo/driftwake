@@ -170,7 +170,7 @@ func _process(d: float) -> bool:
 			wait(0.3)
 		11:
 			p.state_machine.force_state("Idle", {})
-			p.global_position = ship.global_transform * Vector3(0.0, HullBuilder.DECK_Y + 0.3, -2.0)
+			p.global_position = ship.global_transform * Vector3(0.0, HullLayout.DECK_Y + 0.3, -2.0)
 			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			ship.sail = 1.0

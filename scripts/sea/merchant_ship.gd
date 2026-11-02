@@ -27,7 +27,7 @@ const LINES := [
 static var book_pool: Array = []
 const BOOKS_SHOWN := 2
 ## The deck's market: the factor under the awning (ship-local).
-const FACTOR_AT := Vector3(0.0, HullBuilder.DECK_Y, -4.2)
+const FACTOR_AT := Vector3(0.0, HullLayout.DECK_Y, -4.2)
 
 enum M { SAIL, HOVE }
 var mode: M = M.SAIL
@@ -52,7 +52,7 @@ func setup(at: Vector3, lvl: int, seed_: int) -> MerchantShip:
 
 
 func _build() -> void:
-	half_len = HullBuilder.STERN_Z
+	half_len = HullLayout.STERN_Z
 	bounds = AABB(Vector3(-4.9, -1.4, -16.5), Vector3(9.8, 21.0, 27.2))
 	TraderShips.merchantman(self)
 	(get_node("PSXModel") as GeometryInstance3D).visibility_range_end = 1600.0
@@ -60,10 +60,10 @@ func _build() -> void:
 	for sgn in [-1.0, 1.0]:
 		var lad := Ladder.new()
 		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
-		lad.length = HullBuilder.LADDER_LEN
+		lad.length = HullLayout.base().ladder_len
 		lad.rail = 0.8
 		lad.deck_depth = 0.9
-		lad.position = Vector3(sgn * (HullBuilder.half_width(HullBuilder.LADDER_Z) + 0.02), HullBuilder.DECK_Y, HullBuilder.LADDER_Z)
+		lad.position = Vector3(sgn * (HullLayout.base().half_width(HullLayout.base().ladder_z) + 0.02), HullLayout.DECK_Y, HullLayout.base().ladder_z)
 		lad.rotation.y = sgn * PI * 0.5
 		add_child(lad)
 	_open_shop()
@@ -82,7 +82,7 @@ func _build() -> void:
 			"barks": ["Mind the crates.", "Fair winds."]})
 		hand.humanoid.far_figure = false
 		add_child(hand)
-		hand.position = Vector3([-2.4, 2.2][i], HullBuilder.DECK_Y, [1.2, -8.6][i])
+		hand.position = Vector3([-2.4, 2.2][i], HullLayout.DECK_Y, [1.2, -8.6][i])
 	_bark = Label3D.new()
 	_bark.font = load("res://assets/fonts/PixelifySans-Regular.woff2")
 	_bark.font_size = 40
@@ -117,7 +117,7 @@ func _dress() -> void:
 	var pole := PSXMat.lit("bark")
 	var crate := PSXMat.lit("planks", Color(0.82, 0.66, 0.44))
 	var bale := PSXMat.lit("canvas", Color(0.78, 0.7, 0.52))
-	var y := HullBuilder.DECK_Y
+	var y := HullLayout.DECK_Y
 	var z0 := FACTOR_AT.z
 	for x in [-2.2, 2.2]:
 		for dz in [-1.6, 1.6]:

@@ -43,7 +43,7 @@ static func junk(parent: CollisionObject3D) -> void:
 	for spec in [[-1.8, 15.0, 9, 3.6, 1.0], [-8.0, 11.0, 7, 2.6, 0.75]]:
 		var z: float = spec[0]
 		var top: float = spec[1]
-		_mast(mb, m["wood"], z, HullBuilder.DECK_Y, top + 0.6)
+		_mast(mb, m["wood"], z, HullLayout.DECK_Y, top + 0.6)
 		# panels between battens, fanning out aft as they go up
 		var n: int = spec[2]
 		var base_w: float = spec[3]
@@ -64,12 +64,12 @@ static func junk(parent: CollisionObject3D) -> void:
 			mb.add_quad(canvas, a, b, c, d, Vector2(fa, ya) * 0.3, Vector2(ba, ya) * 0.3, Vector2(bb, yb) * 0.3, Vector2(fb, yb) * 0.3, Color.WHITE, Vector3.RIGHT)
 			mb.add_quad(canvas, a - Vector3(0.02, 0, 0), d - Vector3(0.02, 0, 0), c - Vector3(0.02, 0, 0), b - Vector3(0.02, 0, 0), Vector2(fa, ya) * 0.3, Vector2(fb, yb) * 0.3, Vector2(bb, yb) * 0.3, Vector2(ba, ya) * 0.3, Color(0.82, 0.82, 0.82), Vector3.LEFT)
 			mb.add_box(batten, Transform3D(Basis(), Vector3(0.12, ya, (fa + ba) * 0.5)), Vector3(0.08, 0.07, ba - fa + 0.2), 1.0, Color.WHITE, false)
-		mb.add_tube(m["rope"], MeshBuilder.sag_points(Vector3(0, top + 0.4, z), Vector3(0, HullBuilder.DECK_Y + 1.0, z + base_w + 0.32 * n * k), 0.4), 0.03, -1.0, 4)
-	_shrouds(mb, m["rope"], -1.8, 14.5, HullBuilder.DECK_Y + 0.9, 3.9)
+		mb.add_tube(m["rope"], MeshBuilder.sag_points(Vector3(0, top + 0.4, z), Vector3(0, HullLayout.DECK_Y + 1.0, z + base_w + 0.32 * n * k), 0.4), 0.03, -1.0, 4)
+	_shrouds(mb, m["rope"], -1.8, 14.5, HullLayout.DECK_Y + 0.9, 3.9)
 	# lanterns at the stern rail, a pennant
 	var glow := PSXMat.glow(Color(1.0, 0.75, 0.4), 2.0)
 	for s in [-1.0, 1.0]:
-		mb.add_box(glow, Transform3D(Basis(), Vector3(s * 3.0, HullBuilder.QD_Y + 1.0, HullBuilder.QD_BACK - 0.3)), Vector3(0.26, 0.34, 0.26), 1.0)
+		mb.add_box(glow, Transform3D(Basis(), Vector3(s * 3.0, HullLayout.base().qd_y + 1.0, HullLayout.base().qd_back - 0.3)), Vector3(0.26, 0.34, 0.26), 1.0)
 	mb.add_card(PSXMat.lit("cloth_red"), Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 15.4, -1.5)), 1.4, 0.35, Rect2(0, 0, 0.5, 0.25))
 	mb.add_card(PSXMat.lit("cloth_red"), Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 15.4, -1.5)), 1.4, 0.35, Rect2(0, 0, 0.5, 0.25))
 	_finish(parent, mb)
@@ -85,8 +85,8 @@ static func merchantman(parent: CollisionObject3D) -> void:
 	var wood: Material = m["wood"]
 	var rope: Material = m["rope"]
 	# [z, base y, top, yards: [y, half span, sail drop]]
-	var masts := [[-7.0, HullBuilder.DECK_Y, 15.5, [[12.0, 3.6, 3.4], [15.0, 2.6, 2.6]]],
-		[-1.0, HullBuilder.DECK_Y, 18.5, [[13.5, 4.4, 4.2], [17.4, 3.2, 3.2]]]]
+	var masts := [[-7.0, HullLayout.DECK_Y, 15.5, [[12.0, 3.6, 3.4], [15.0, 2.6, 2.6]]],
+		[-1.0, HullLayout.DECK_Y, 18.5, [[13.5, 4.4, 4.2], [17.4, 3.2, 3.2]]]]
 	for ms in masts:
 		var z: float = ms[0]
 		_mast(mb, wood, z, ms[1], float(ms[2]) + 0.8, 0.27)
@@ -96,13 +96,13 @@ static func merchantman(parent: CollisionObject3D) -> void:
 			var drop: float = yd[2]
 			mb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(hw + 0.3, y, z + 0.25)), 0.09, 0.09, hw * 2.0 + 0.6, 6, 0.8)
 			_square_sail(mb, canvas, z + 0.35, y - 0.1, hw, drop)
-		_shrouds(mb, rope, z, float(ms[2]) - 1.0, HullBuilder.DECK_Y + 0.9, 3.9)
+		_shrouds(mb, rope, z, float(ms[2]) - 1.0, HullLayout.DECK_Y + 0.9, 3.9)
 	# mizzen with a gaff sail
 	var mz := 6.8
-	_mast(mb, wood, mz, HullBuilder.QD_Y, 14.0, 0.2)
+	_mast(mb, wood, mz, HullLayout.base().qd_y, 14.0, 0.2)
 	mb.add_cylinder(wood, Transform3D(Basis(Vector3.RIGHT, PI * 0.5 - 0.35), Vector3(0, 12.0, mz)), 0.07, 0.06, 3.4, 5, 0.8)
-	var g0 := Vector3(0.1, HullBuilder.QD_Y + 1.6, mz + 0.2)
-	var g1 := Vector3(0.1, HullBuilder.QD_Y + 1.6, mz + 3.4)
+	var g0 := Vector3(0.1, HullLayout.base().qd_y + 1.6, mz + 0.2)
+	var g1 := Vector3(0.1, HullLayout.base().qd_y + 1.6, mz + 3.4)
 	var g2 := Vector3(0.1, 12.0 + 3.2 * sin(0.35), mz + 3.2 * cos(0.35))
 	var g3 := Vector3(0.1, 11.9, mz + 0.2)
 	for s in [1.0, -1.0]:
@@ -122,7 +122,7 @@ static func merchantman(parent: CollisionObject3D) -> void:
 	var band := PSXMat.lit("planks", Color(0.85, 0.7, 0.3))
 	for s in [-1.0, 1.0]:
 		mb.add_box(band, Transform3D(Basis(), Vector3(s * 4.42, -0.35, 1.0)), Vector3(0.05, 0.35, 12.0), 1.0)
-		mb.add_box(PSXMat.glow(Color(1.0, 0.75, 0.4), 2.0), Transform3D(Basis(), Vector3(s * 2.8, HullBuilder.QD_Y + 1.1, HullBuilder.QD_BACK - 0.2)), Vector3(0.28, 0.36, 0.28), 1.0)
+		mb.add_box(PSXMat.glow(Color(1.0, 0.75, 0.4), 2.0), Transform3D(Basis(), Vector3(s * 2.8, HullLayout.base().qd_y + 1.1, HullLayout.base().qd_back - 0.2)), Vector3(0.28, 0.36, 0.28), 1.0)
 	var flag := PSXMat.lit("cloth_blue")
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 19.0, -0.7)), 1.6, 0.9, Rect2(0, 0, 0.5, 0.5))
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 19.0, -0.7)), 1.6, 0.9, Rect2(0, 0, 0.5, 0.5))

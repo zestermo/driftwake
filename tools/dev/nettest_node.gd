@@ -235,7 +235,7 @@ func _run(name_: String, args: Array, from: int):
 				if g not in before:
 					_calm(g)
 					keys.append(n.key_of(g))
-					_pins.append([g, ship, Vector3((_pins.size() - 1) * 1.3, HullBuilder.DECK_Y + 0.05, 1.5)])
+					_pins.append([g, ship, Vector3((_pins.size() - 1) * 1.3, HullLayout.DECK_Y + 0.05, 1.5)])
 			set_meta("boarded_t", n.time())
 			return keys
 		"deck_fight":

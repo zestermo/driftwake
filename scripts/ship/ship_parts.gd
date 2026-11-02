@@ -10,11 +10,17 @@ extends Node3D
 ## Main sail scale (x, y) per sails level: 1 and 3 bolt on more canvas, 5 the old "larger sail".
 const RIG_SCALE := [Vector2(1.0, 1.0), Vector2(1.04, 1.03), Vector2(1.04, 1.03), Vector2(1.1, 1.07), Vector2(1.1, 1.07), Vector2(1.18, 1.12)]
 ## The rudder, hung on the stern post (ship-local), and how far it swings at full helm.
-const RUDDER_AT := Vector3(0, -0.2, HullBuilder.QD_BACK + 0.12)
+func rudder_at() -> Vector3:
+	return Vector3(0, -0.2, ship.layout.qd_back + 0.12)
+
+
 const RUDDER_SWING := 0.45
 ## The yard ropes (ShipLines "ropes"): the knot hangs 3.5 m over the deck, so a full swing's low
 ## point stays well over the guns' tops; made fast inside the rail, even with the bigger sails' longer yard.
-const ROPE_LENGTH := HullBuilder.YARD_Y - HullBuilder.DECK_Y - 3.6
+func rope_length() -> float:
+	return ship.layout.yard_y - ship.layout.deck_y - 3.6
+
+
 const ROPE_X := 3.6
 
 var ship: Ship
@@ -142,8 +148,8 @@ func _fit_ropes() -> void:
 			for sgn in [-1.0, 1.0]:
 				var rope := SwingRope.new()
 				rope.name = "RopeS" if sgn > 0.0 else "RopeP"
-				rope.length = ROPE_LENGTH
-				rope.ride_cap = ROPE_LENGTH + SwingRope.HANG
+				rope.length = rope_length()
+				rope.ride_cap = rope_length() + SwingRope.HANG
 				rope.position = Vector3(sgn * ROPE_X, -0.1, 0.0)
 				ship._rig.add_child(rope)
 				_ropes.append(rope)
@@ -172,32 +178,18 @@ func _solid(at: Vector3, size: Vector3) -> void:
 
 
 # --------------------------------------------------------------------------
-# The hull's shape (HullBuilder.RINGS) at any point
+# The hull's shape (ship.layout.rings) at any point
 # --------------------------------------------------------------------------
-## [z, top half-width, bottom half-width, top y, bottom y] at `z`.
-static func ring_at(z: float) -> Array:
-	var rings: Array = HullBuilder.RINGS
-	for i in range(rings.size() - 1):
-		var a: Array = rings[i]
-		var b: Array = rings[i + 1]
-		if z <= float(a[0]) and z >= float(b[0]):
-			var k := (float(a[0]) - z) / (float(a[0]) - float(b[0]))
-			var out: Array = [z]
-			for j in range(1, 5):
-				out.append(lerpf(float(a[j]), float(b[j]), k))
-			return out
-	return rings[0] if z > 0.0 else rings[rings.size() - 1]
+func ring_at(z: float) -> Array:
+	return ship.layout.ring_at(z)
 
 
-## The hull's half-width at (z, y): straight up from its top edge, tapering to the keel.
-static func side_at(z: float, y: float) -> float:
-	var r := ring_at(z)
-	var k := clampf((float(r[3]) - y) / maxf(float(r[3]) - float(r[4]), 0.01), 0.0, 1.0)
-	return lerpf(float(r[1]), float(r[2]), k)
+func side_at(z: float, y: float) -> float:
+	return ship.layout.side_at(z, y)
 
 
 ## A band `h` high, `thick` proud of both sides from z0 to z1 at height y (segments follow the curve).
-static func _band(mb: MeshBuilder, mat: Material, z0: float, z1: float, y: float, h: float, thick: float, col := Color.WHITE) -> void:
+func _band(mb: MeshBuilder, mat: Material, z0: float, z1: float, y: float, h: float, thick: float, col := Color.WHITE) -> void:
 	var n := maxi(int(absf(z1 - z0) / 1.2), 1)
 	for sgn in [-1.0, 1.0]:
 		for i in range(n):
@@ -210,7 +202,7 @@ static func _band(mb: MeshBuilder, mat: Material, z0: float, z1: float, y: float
 
 
 ## Sheathing laid on both sides from z0 to z1, y0 up to y1, `out` proud of the planks.
-static func _skin(mb: MeshBuilder, mat: Material, z0: float, z1: float, y0: float, y1: float, out: float, col := Color.WHITE) -> void:
+func _skin(mb: MeshBuilder, mat: Material, z0: float, z1: float, y0: float, y1: float, out: float, col := Color.WHITE) -> void:
 	var n := maxi(int(absf(z1 - z0) / 1.0), 1)
 	var rows := maxi(int(absf(y1 - y0) / 0.6), 1)
 	for sgn in [-1.0, 1.0]:
@@ -246,7 +238,7 @@ func _armour(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	if n >= 3:
 		# straps her whole length, and an iron band under the rail
 		_straps(mb, [-8.0, -5.0, 7.0, 9.4])
-		var rings: Array = HullBuilder.RINGS
+		var rings: Array = ship.layout.rings
 		for i in range(rings.size() - 2):
 			var a: Array = rings[i]
 			var c: Array = rings[i + 1]
@@ -258,32 +250,32 @@ func _armour(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	if n >= 4:
 		# an iron-shod bow: the stem capped, plates over her cheeks
 		var bw: Array = rings_last()
-		var top := float(bw[3]) + HullBuilder.LIP
+		var top := float(bw[3]) + ship.layout.lip
 		mb.add_box(iron, Transform3D(Basis(), Vector3(0, (top + float(bw[4])) * 0.5, float(bw[0]) - 0.18)), Vector3(0.34, top - float(bw[4]) + 0.1, 0.12), 1.0, Color.WHITE, false)
 		_skin(mb, iron, -12.45, -10.2, -0.55, 1.3, 0.035, Color(0.85, 0.85, 0.88))
 		_rivets(fine, [-12.0, -11.1, -10.2], -0.5, 1.25)
 		_count("armour")
 	if n >= 5:
 		# iron capping along the main deck's rails
-		var rings: Array = HullBuilder.RINGS
+		var rings: Array = ship.layout.rings
 		for i in range(1, rings.size() - 1):
 			var a: Array = rings[i]
 			var b: Array = rings[i + 1]
 			for sgn in [-1.0, 1.0]:
-				var p0 := Vector3(sgn * float(a[1]), float(a[3]) + HullBuilder.LIP + 0.09, float(a[0]))
-				var p1 := Vector3(sgn * float(b[1]), float(b[3]) + HullBuilder.LIP + 0.09, float(b[0]))
+				var p0 := Vector3(sgn * float(a[1]), float(a[3]) + ship.layout.lip + 0.09, float(a[0]))
+				var p1 := Vector3(sgn * float(b[1]), float(b[3]) + ship.layout.lip + 0.09, float(b[0]))
 				var d := p1 - p0
 				mb.add_box(_m["dark_iron"], Transform3D(Basis.looking_at(d.normalized(), Vector3.UP), (p0 + p1) * 0.5), Vector3(0.22, 0.05, d.length() + 0.1), 1.0)
 		_count("armour")
 	if n >= 6:
 		# riveted plates over her stern quarters, up to the quarterdeck rail
-		_skin(mb, iron, 6.0, HullBuilder.QD_BACK - 0.02, 0.45, HullBuilder.QD_Y, 0.04, Color(0.8, 0.8, 0.84))
-		_rivets(fine, [6.0, 7.3, 8.6, 9.8], 0.5, HullBuilder.QD_Y - 0.05)
+		_skin(mb, iron, 6.0, ship.layout.qd_back - 0.02, 0.45, ship.layout.qd_y, 0.04, Color(0.8, 0.8, 0.84))
+		_rivets(fine, [6.0, 7.3, 8.6, 9.8], 0.5, ship.layout.qd_y - 0.05)
 		_count("armour")
 
 
-static func rings_last() -> Array:
-	return HullBuilder.RINGS[HullBuilder.RINGS.size() - 1]
+func rings_last() -> Array:
+	return ship.layout.rings[ship.layout.rings.size() - 1]
 
 
 ## Iron straps down her sides at each z (the top of the hull to halfway down).
@@ -317,7 +309,7 @@ func _guns(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		# a rack of shot inboard of every gun
 		var pairs := 3 if n >= 2 else 2
 		for i in range(pairs):
-			var g: Array = Ship.GUN_SPOTS[i]
+			var g: Array = ship.layout.gun_spots[i]
 			for sgn in [-1.0, 1.0]:
 				var at := Vector3(sgn * (float(g[1]) - 0.55), float(g[2]), float(g[0]) + 0.75)
 				mb.add_box(_m["oak"], Transform3D(Basis(), at + Vector3(0, 0.09, 0)), Vector3(0.36, 0.18, 0.5), 1.0)
@@ -364,7 +356,7 @@ func _sails(mb: MeshBuilder, n: int) -> void:
 		jib.add_child(jm)
 		_nodes.append(jm)
 		HullBuilder._line(mb, _m["rope"], tack, tack + head, 0.04)
-		HullBuilder._line(mb, _m["rope"], tack + clew, Vector3(0.0, HullBuilder.DECK_Y + 0.9, -9.2), 0.03)
+		HullBuilder._line(mb, _m["rope"], tack + clew, Vector3(0.0, ship.layout.deck_y + 0.9, -9.2), 0.03)
 		_count("sails")
 	if n >= 3:
 		_count("sails")
@@ -389,7 +381,7 @@ func _sails(mb: MeshBuilder, n: int) -> void:
 		_count("sails")
 	if n >= 5:
 		# a long pennant streaming aft from the masthead's staff
-		var top := Vector3(0, HullBuilder.MAST_TOP + STAFF_H, HullBuilder.MAST_Z)
+		var top := Vector3(0, ship.layout.mast_top + STAFF_H, ship.layout.mast_z)
 		var p0 := top + Vector3(0, -0.1, 0.05)
 		var p1 := top + Vector3(0, -0.48, 0.05)
 		var tip := top + Vector3(0.0, -0.75, 4.6)
@@ -403,7 +395,7 @@ const STAFF_H := 2.8
 
 
 func _staff(mb: MeshBuilder) -> void:
-	var top := Vector3(0, HullBuilder.MAST_TOP - 0.2, HullBuilder.MAST_Z)
+	var top := Vector3(0, ship.layout.mast_top - 0.2, ship.layout.mast_z)
 	mb.add_cylinder(_m["trim"], Transform3D(Basis(), top), 0.09, 0.06, STAFF_H + 0.2, 6, 0.8)
 	mb.add_cylinder(_m["gilt"], Transform3D(Basis(), top + Vector3(0, STAFF_H + 0.2, 0)), 0.13, 0.13, 0.12, 6, 1.0, Color.WHITE, true, true)
 
@@ -423,12 +415,12 @@ func _rudder(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		# the rudder on the stern post, hung on iron pintles; the head up through the taffrail
 		rudder_node = Node3D.new()
 		rudder_node.name = "Rudder"
-		rudder_node.position = RUDDER_AT
+		rudder_node.position = rudder_at()
 		_own(rudder_node, ship.ship_model)
 		var rmb := MeshBuilder.new()
 		var w := 1.25 if n >= 4 else 0.85
 		rmb.add_box(_m["oak"], Transform3D(Basis(), Vector3(0, -1.05, w * 0.5)), Vector3(0.18, 2.6, w), 1.0, Color.WHITE, false)
-		rmb.add_cylinder(_m["oak"], Transform3D(Basis(), Vector3(0, 0.2, 0.06)), 0.12, 0.12, HullBuilder.QD_Y + 0.4 - RUDDER_AT.y - 0.2, 6, 1.0)
+		rmb.add_cylinder(_m["oak"], Transform3D(Basis(), Vector3(0, 0.2, 0.06)), 0.12, 0.12, ship.layout.qd_y + 0.4 - rudder_at().y - 0.2, 6, 1.0)
 		for y in [-2.0, -1.2, -0.4]:
 			rmb.add_box(_m["iron"], Transform3D(Basis(), Vector3(0, y, 0.18)), Vector3(0.24, 0.1, 0.42), 1.0, Color.WHITE, false)
 		if n >= 4:
@@ -450,7 +442,7 @@ func _rudder(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("rudder")
 	if n >= 3:
 		# a binnacle forward of the wheel: a post, the brass hood, the compass's lamp
-		var at := Vector3(0, HullBuilder.QD_Y, HullBuilder.WHEEL_Z - 0.85)
+		var at := Vector3(0, ship.layout.qd_y, ship.layout.wheel_z - 0.85)
 		mb.add_box(_m["trim"], Transform3D(Basis(), at + Vector3(0, 0.45, 0)), Vector3(0.36, 0.9, 0.36), 1.0)
 		mb.add_cylinder(_m["brass"], Transform3D(Basis(), at + Vector3(0, 0.9, 0)), 0.22, 0.14, 0.26, 8, 1.0, Color.WHITE, true, true)
 		mb.add_box(_m["glass"], Transform3D(Basis(), at + Vector3(0, 0.98, 0.15)), Vector3(0.16, 0.1, 0.06), 1.0)
@@ -459,9 +451,9 @@ func _rudder(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("rudder")
 	if n >= 5:
 		# a carved, gilded taffrail across her stern, scrolls at its ends
-		var hb := HullBuilder.half_width(HullBuilder.QD_BACK)
-		var y := HullBuilder.QD_Y + 1.1
-		var z := HullBuilder.QD_BACK + 0.04
+		var hb := ship.layout.half_width(ship.layout.qd_back)
+		var y := ship.layout.qd_y + 1.1
+		var z := ship.layout.qd_back + 0.04
 		mb.add_box(_m["gilt"], Transform3D(Basis(), Vector3(0, y, z)), Vector3(hb * 1.7, 0.42, 0.1), 1.0)
 		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(0, y + 0.26, z)), Vector3(hb * 1.8, 0.1, 0.16), 1.0)
 		for sgn in [-1.0, 1.0]:
@@ -480,13 +472,14 @@ func steer(r: float) -> void:
 # --------------------------------------------------------------------------
 # Copper bottom: sheathing along her waterline, bow first
 # --------------------------------------------------------------------------
-const COPPER_Z := [-12.45, -6.0, 2.0, HullBuilder.QD_BACK - 0.02]
+func copper_z() -> Array:
+	return [-12.45, -6.0, 2.0, ship.layout.qd_back - 0.02]
 
 
 func _copper(mb: MeshBuilder, n: int) -> void:
 	for k in range(n):
-		_skin(mb, _m["copper"], COPPER_Z[k], COPPER_Z[k + 1], -1.7, -0.97, 0.03)
-		_band(mb, _m["copper"], COPPER_Z[k], COPPER_Z[k + 1], -0.95, 0.07, 0.05, Color(1.35, 1.25, 1.1))
+		_skin(mb, _m["copper"], copper_z()[k], copper_z()[k + 1], -1.7, -0.97, 0.03)
+		_band(mb, _m["copper"], copper_z()[k], copper_z()[k + 1], -0.95, 0.07, 0.05, Color(1.35, 1.25, 1.1))
 		_count("copper")
 
 
@@ -494,19 +487,19 @@ func _copper(mb: MeshBuilder, n: int) -> void:
 # Bow chaser (the gun itself is Ship's: CannonBow on CHASER_AT)
 # --------------------------------------------------------------------------
 ## The chaser's step at the bow (ship-local, the gun stands on it).
-const CHASER_AT := Vector3(0, HullBuilder.DECK_Y + 0.42, -10.9)
+const CHASER_AT := Vector3(0, HullLayout.DECK_Y + 0.42, -10.9)
 
 
 func _chaser(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	if n >= 1:
-		var step := Vector3(CHASER_AT.x, HullBuilder.DECK_Y, CHASER_AT.z)
+		var step := Vector3(CHASER_AT.x, ship.layout.deck_y, CHASER_AT.z)
 		mb.add_box(_m["oak"], Transform3D(Basis(), step + Vector3(0, 0.21, 0.4)), Vector3(1.7, 0.42, 2.0), 1.0)
 		mb.add_box(_m["trim"], Transform3D(Basis(), step + Vector3(0, 0.43, 0.4)), Vector3(1.78, 0.04, 2.08), 1.0)
 		_solid(step + Vector3(0, 0.21, 0.4), Vector3(1.7, 0.42, 2.0))
 		_count("chaser")
 	if n >= 2:
 		# a shot locker to starboard of the step, balls ready on its lid
-		var at := Vector3(1.25, HullBuilder.DECK_Y, -9.0)
+		var at := Vector3(1.25, ship.layout.deck_y, -9.0)
 		mb.add_box(_m["oak"], Transform3D(Basis(), at + Vector3(0, 0.25, 0)), Vector3(0.5, 0.5, 0.6), 1.0)
 		mb.add_box(_m["dark_iron"], Transform3D(Basis(), at + Vector3(0, 0.51, 0)), Vector3(0.54, 0.04, 0.64), 1.0)
 		for k in range(3):
@@ -530,20 +523,21 @@ func _chaser(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 # --------------------------------------------------------------------------
 # Crow's nest
 # --------------------------------------------------------------------------
-const HOOD_Y := HullBuilder.NEST_Y + 2.0
+func hood_y() -> float:
+	return ship.layout.nest_y + 2.0
 
 
 func _nest(mb: MeshBuilder, n: int) -> void:
-	var c := Vector3(0, 0, HullBuilder.MAST_Z)
-	var rail_top := HullBuilder.NEST_Y + 0.9
+	var c := Vector3(0, 0, ship.layout.mast_z)
+	var rail_top := ship.layout.nest_y + 0.9
 	if n >= 1:
 		# poles up from the rail and a hood over them (canvas, then boards)
 		for k in range(4):
 			var a := TAU * (k + 0.5) / 4.0
-			var p := c + Vector3(cos(a) * (HullBuilder.NEST_R - 0.1), 0, sin(a) * (HullBuilder.NEST_R - 0.1))
-			mb.add_cylinder(_m["trim"], Transform3D(Basis(), Vector3(p.x, HullBuilder.NEST_Y, p.z)), 0.05, 0.05, HOOD_Y - HullBuilder.NEST_Y, 5, 1.0)
+			var p := c + Vector3(cos(a) * (ship.layout.nest_r - 0.1), 0, sin(a) * (ship.layout.nest_r - 0.1))
+			mb.add_cylinder(_m["trim"], Transform3D(Basis(), Vector3(p.x, ship.layout.nest_y, p.z)), 0.05, 0.05, hood_y() - ship.layout.nest_y, 5, 1.0)
 		var hood: Material = _m["roof"] if n >= 2 else _m["canvas"]
-		mb.add_cylinder(hood, Transform3D(Basis(), c + Vector3(0, HOOD_Y, 0)), HullBuilder.NEST_R + 0.3, 0.12, 0.65, 10, 0.8, Color.WHITE, false, true, false)
+		mb.add_cylinder(hood, Transform3D(Basis(), c + Vector3(0, hood_y(), 0)), ship.layout.nest_r + 0.3, 0.12, 0.65, 10, 0.8, Color.WHITE, false, true, false)
 		_count("nest")
 	if n >= 2:
 		# boards above the rail fore and aft (the sides stay open for the rigging), a strip of windows
@@ -551,17 +545,17 @@ func _nest(mb: MeshBuilder, n: int) -> void:
 			var a := TAU * (k + 0.5) / 16.0
 			if absf(cos(a)) > 0.62:
 				continue
-			var p := c + Vector3(cos(a) * (HullBuilder.NEST_R - 0.05), 0, sin(a) * (HullBuilder.NEST_R - 0.05))
+			var p := c + Vector3(cos(a) * (ship.layout.nest_r - 0.05), 0, sin(a) * (ship.layout.nest_r - 0.05))
 			var b := Basis(Vector3.UP, -a)
-			mb.add_box(_m["roof"], Transform3D(b, Vector3(p.x, rail_top + 0.17, p.z)), Vector3(0.08, 0.34, HullBuilder.NEST_R * 0.66), 1.0)
-			mb.add_box(_m["glass"], Transform3D(b, Vector3(p.x, rail_top + 0.48, p.z)), Vector3(0.04, 0.22, HullBuilder.NEST_R * 0.5), 1.0)
+			mb.add_box(_m["roof"], Transform3D(b, Vector3(p.x, rail_top + 0.17, p.z)), Vector3(0.08, 0.34, ship.layout.nest_r * 0.66), 1.0)
+			mb.add_box(_m["glass"], Transform3D(b, Vector3(p.x, rail_top + 0.48, p.z)), Vector3(0.04, 0.22, ship.layout.nest_r * 0.5), 1.0)
 		_count("nest")
 	if n >= 3:
 		# a brass spyglass on a swivel at the fore side, a lantern under the roof
-		var at := c + Vector3(0, rail_top, -(HullBuilder.NEST_R - 0.25))
+		var at := c + Vector3(0, rail_top, -(ship.layout.nest_r - 0.25))
 		mb.add_cylinder(_m["trim"], Transform3D(Basis(), at), 0.05, 0.05, 0.35, 5, 1.0)
 		mb.add_cylinder(_m["brass"], Transform3D(Basis(Vector3.RIGHT, -PI * 0.5 + 0.12), at + Vector3(0, 0.4, 0.35)), 0.07, 0.05, 1.1, 6, 1.0, Color.WHITE, true, true)
-		mb.add_box(_m["glass"], Transform3D(Basis(), c + Vector3(0.45, HOOD_Y - 0.3, 0.3)), Vector3(0.18, 0.24, 0.18), 1.0)
+		mb.add_box(_m["glass"], Transform3D(Basis(), c + Vector3(0.45, hood_y() - 0.3, 0.3)), Vector3(0.18, 0.24, 0.18), 1.0)
 		_count("nest")
 
 
@@ -579,26 +573,26 @@ func _lantern_string(mb: MeshBuilder, a: Vector3, b: Vector3, droop: float, n: i
 
 
 func _lanterns(mb: MeshBuilder, n: int) -> void:
-	var mast := Vector3(0, 9.0, HullBuilder.MAST_Z)
+	var mast := Vector3(0, 9.0, ship.layout.mast_z)
 	if n >= 1:
 		_lantern_string(mb, mast + Vector3(0, 0, -0.2), Vector3(0, 2.6, -15.7), 1.3, 10)
 		_count("lanterns")
 	if n >= 2:
 		for sgn in [-1.0, 1.0]:
-			_lantern_string(mb, mast + Vector3(sgn * 0.2, 0, 0.2), Vector3(sgn * 3.3, HullBuilder.QD_Y + 1.7, HullBuilder.QD_BACK - 0.35), 1.1, 9, 1)
+			_lantern_string(mb, mast + Vector3(sgn * 0.2, 0, 0.2), Vector3(sgn * 3.3, ship.layout.qd_y + 1.7, ship.layout.qd_back - 0.35), 1.1, 9, 1)
 		_count("lanterns")
 	if n >= 3:
 		# a ring under the nest, and along the main rails
 		var mats := [_m["lamp_red"], _m["lamp_gold"], _m["lamp_white"]]
 		for k in range(10):
 			var a := TAU * (k + 0.5) / 10.0
-			var p := Vector3(cos(a) * (HullBuilder.NEST_R + 0.05), HullBuilder.NEST_Y - 0.45, HullBuilder.MAST_Z + sin(a) * (HullBuilder.NEST_R + 0.05))
+			var p := Vector3(cos(a) * (ship.layout.nest_r + 0.05), ship.layout.nest_y - 0.45, ship.layout.mast_z + sin(a) * (ship.layout.nest_r + 0.05))
 			HullBuilder._line(mb, _m["rope"], p + Vector3(0, 0.3, 0), p + Vector3(0, 0.13, 0), 0.02)
 			mb.add_cylinder(mats[k % 3], Transform3D(Basis(), p - Vector3(0, 0.13, 0)), 0.12, 0.12, 0.24, 6, 1.0, Color.WHITE, true, true)
 		for sgn in [-1.0, 1.0]:
 			var r0 := ring_at(-8.0)
 			var r1 := ring_at(4.4)
-			_lantern_string(mb, Vector3(sgn * (float(r0[1]) - 0.05), float(r0[3]) + HullBuilder.LIP + 1.0, -8.0), Vector3(sgn * (float(r1[1]) - 0.05), float(r1[3]) + HullBuilder.LIP + 1.0, 4.4), 0.5, 9, 2)
+			_lantern_string(mb, Vector3(sgn * (float(r0[1]) - 0.05), float(r0[3]) + ship.layout.lip + 1.0, -8.0), Vector3(sgn * (float(r1[1]) - 0.05), float(r1[3]) + ship.layout.lip + 1.0, 4.4), 0.5, 9, 2)
 		_count("lanterns")
 
 
@@ -614,7 +608,7 @@ const RAIL_H := 0.55
 
 func _rail_top(z: float, sgn: float) -> Vector3:
 	var r := ring_at(z)
-	return Vector3(sgn * (float(r[1]) - 0.05), float(r[3]) + HullBuilder.LIP + 0.07, z)
+	return Vector3(sgn * (float(r[1]) - 0.05), float(r[3]) + ship.layout.lip + 0.07, z)
 
 
 func _rails(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
@@ -668,7 +662,9 @@ func _rails(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 # --------------------------------------------------------------------------
 # Tangerine grove: trees in planters on the quarterdeck, fruit to pick
 # --------------------------------------------------------------------------
-const GROVE_AT := [Vector3(-1.7, HullBuilder.QD_Y, 9.15), Vector3(1.7, HullBuilder.QD_Y, 9.15), Vector3(0.0, HullBuilder.QD_Y, 9.35)]
+func grove_at() -> Array:
+	var y := ship.layout.qd_y
+	return [Vector3(-1.7, y, 9.15), Vector3(1.7, y, 9.15), Vector3(0.0, y, 9.35)]
 ## A tree ripens a tangerine this often (game seconds), up to RIPE_MAX on it.
 const RIPEN := 150.0
 const RIPE_MAX := 2
@@ -681,7 +677,7 @@ var _ripen_timer: Timer
 func _grove(mb: MeshBuilder, n: int) -> void:
 	_fruit.clear()
 	for i in range(n):
-		var at: Vector3 = GROVE_AT[i]
+		var at: Vector3 = grove_at()[i]
 		mb.add_box(_m["oak"], Transform3D(Basis(), at + Vector3(0, 0.25, 0)), Vector3(0.9, 0.5, 0.9), 1.0)
 		for y in [0.1, 0.4]:
 			mb.add_box(_m["dark_iron"], Transform3D(Basis(), at + Vector3(0, y, 0)), Vector3(0.93, 0.05, 0.93), 1.0)
@@ -714,7 +710,7 @@ func _grove(mb: MeshBuilder, n: int) -> void:
 		sp.radius = 1.4
 		cs.shape = sp
 		z.add_child(cs)
-		z.position = Vector3(0, HullBuilder.QD_Y + 0.8, 8.85)
+		z.position = Vector3(0, ship.layout.qd_y + 0.8, 8.85)
 		_own(z, self)
 		z.interacted.connect(pick)
 		grove_zone = z
@@ -763,7 +759,7 @@ func pick(p: Player) -> void:
 # Galley & bunks (in the cabin; the chimney shows on the quarterdeck)
 # --------------------------------------------------------------------------
 func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
-	var bed := Ship.BED_AT
+	var bed := ship.layout.bed_at
 	if n >= 1:
 		# an upper bunk on posts over the bed
 		var y := 1.25
@@ -776,16 +772,16 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("galley")
 	if n >= 2:
 		# an oven beside the stove, pots hung over the counter, a chimney up through the quarterdeck
-		var st := Ship.STOVE_AT
+		var st := ship.layout.stove_at
 		mb.add_box(_m["dark_iron"], Transform3D(Basis(), st + Vector3(-0.1, 0.35, -0.85)), Vector3(0.8, 0.7, 0.6), 1.0)
 		mb.add_box(_m["glass"], Transform3D(Basis(), st + Vector3(-0.51, 0.3, -0.85)), Vector3(0.04, 0.22, 0.34), 1.0)
-		var ct := Ship.COUNTER_AT
+		var ct := ship.layout.counter_at
 		mb.add_box(_m["oak"], Transform3D(Basis(), ct + Vector3(0, 1.85, 0)), Vector3(0.08, 0.08, 1.4), 1.0)
 		for k in range(3):
 			var z := -0.5 + k * 0.5
 			HullBuilder._line(fine, _m["dark_iron"], ct + Vector3(0, 1.83, z), ct + Vector3(0, 1.6, z), 0.02)
 			fine.add_cylinder(_m["dark_iron"], Transform3D(Basis(), ct + Vector3(0, 1.36, z)), 0.13, 0.15, 0.24, 7, 1.0, Color.WHITE, false, true)
-		var pipe := Vector3(st.x + 0.1, HullBuilder.QD_Y, st.z + 0.1)
+		var pipe := Vector3(st.x + 0.1, ship.layout.qd_y, st.z + 0.1)
 		mb.add_cylinder(_m["dark_iron"], Transform3D(Basis(), pipe), 0.13, 0.11, 1.35, 7, 1.0)
 		mb.add_box(_m["dark_iron"], Transform3D(Basis(), pipe + Vector3(0, 1.42, 0)), Vector3(0.36, 0.06, 0.36), 1.0)
 		_solid(pipe + Vector3(0, 0.67, 0), Vector3(0.28, 1.35, 0.28))
@@ -794,15 +790,15 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		# hammocks slung under the beams to starboard, one rolled and stowed
 		for k in range(2):
 			var x := 1.2 + k * 1.15
-			var a := Vector3(x, HullBuilder.QD_Y - 0.35, 6.2)
-			var b := Vector3(x, HullBuilder.QD_Y - 0.35, 7.6)
+			var a := Vector3(x, ship.layout.qd_y - 0.35, 6.2)
+			var b := Vector3(x, ship.layout.qd_y - 0.35, 7.6)
 			var pts := MeshBuilder.sag_points(a, b, 0.45, 6)
 			for i in range(pts.size() - 1):
 				var d: Vector3 = pts[i + 1] - pts[i]
 				mb.add_box(_m["canvas"], Transform3D(Basis.looking_at(d.normalized(), Vector3.UP), (pts[i] + pts[i + 1]) * 0.5), Vector3(0.62, 0.04, d.length() + 0.02), 1.0)
 			HullBuilder._line(mb, _m["rope"], a, a + Vector3(0, 0.15, 0), 0.03)
 			HullBuilder._line(mb, _m["rope"], b, b + Vector3(0, 0.15, 0), 0.03)
-		mb.add_cylinder(_m["canvas"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-1.6, HullBuilder.QD_Y - 0.4, 6.4)), 0.12, 0.12, 1.2, 6, 1.0)
+		mb.add_cylinder(_m["canvas"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-1.6, ship.layout.qd_y - 0.4, 6.4)), 0.12, 0.12, 1.2, 6, 1.0)
 		_count("galley")
 
 
@@ -810,7 +806,7 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 # Ship's hold: the storage chest bound in iron, sea chests, a cargo hatch on deck
 # --------------------------------------------------------------------------
 func _hold(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
-	var sc := Ship.STORAGE_AT
+	var sc := ship.layout.storage_at
 	if n >= 1:
 		for x in [-0.32, 0.32]:
 			mb.add_box(_m["dark_iron"], Transform3D(Basis(), sc + Vector3(x, 0.33, 0)), Vector3(0.07, 0.68, 0.72), 1.0)
@@ -818,7 +814,7 @@ func _hold(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("chest")
 	if n >= 2:
 		# [where, turned across (true) or along]
-		for e in [[Ship.BED_AT + Vector3(0, 0, -1.45), false], [Ship.COUNTER_AT + Vector3(-0.85, 0, -1.25), true]]:
+		for e in [[ship.layout.bed_at + Vector3(0, 0, -1.45), false], [ship.layout.counter_at + Vector3(-0.85, 0, -1.25), true]]:
 			var at: Vector3 = e[0]
 			var b := Basis(Vector3.UP, PI * 0.5 if e[1] else 0.0)
 			mb.add_box(_m["roof"], Transform3D(b, at + Vector3(0, 0.22, 0)), Vector3(0.9, 0.44, 0.5), 1.0)
@@ -829,7 +825,7 @@ func _hold(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("chest")
 	if n >= 3:
 		# a hatch on the main deck aft of the mast, crates lashed beside it
-		var h := Vector3(0, HullBuilder.DECK_Y, 2.7)
+		var h := Vector3(0, ship.layout.deck_y, 2.7)
 		for sx in [-1.0, 1.0]:
 			mb.add_box(_m["oak"], Transform3D(Basis(), h + Vector3(sx * 0.85, 0.08, 0)), Vector3(0.12, 0.16, 1.5), 1.0)
 			mb.add_box(_m["oak"], Transform3D(Basis(), h + Vector3(0, 0.08, sx * 0.7)), Vector3(1.82, 0.16, 0.12), 1.0)

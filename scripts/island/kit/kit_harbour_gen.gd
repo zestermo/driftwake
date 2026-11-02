@@ -479,7 +479,7 @@ func _cove() -> void:
 	var js := bs - bw * 0.5 - _rng.randf_range(6.0, 9.0)
 	if js > sa - 6.0:
 		var root := at(js, 0.5)
-		var hull := _deep(root + f.out * 15.0 - f.along * (1.1 + HullBuilder.HALF_BEAM + 0.6), 6.0, -1.5)
+		var hull := _deep(root + f.out * 15.0 - f.along * (1.1 + HullLayout.HALF_BEAM + 0.6), 6.0, -1.5)
 		var end := root + f.out * (f.out.dot(hull - root) + 9.0)
 		_walk(PackedVector2Array([root, root + f.out * 12.0, end]), 1.1, {"lean": 0.16, "tints": [Color(0.6, 0.58, 0.54), Color(0.86, 0.84, 0.8)],
 			"bollards": [end - f.out * 1.0 + f.along * 0.7, end - f.out * 10.0 - f.along * 0.7]})
@@ -603,7 +603,7 @@ func _wharf() -> void:
 	if ms != 0.0:
 		var ps: float = ms * _rng.randf_range(17.0, 20.0) if ms < 0.0 else _rng.randf_range(20.0, 23.0)
 		var root := at(ps, dw - hw + 0.2)
-		var hull := _deep(root + f.out * 16.5 + f.along * ms * (1.3 + HullBuilder.HALF_BEAM + 0.7), 7.0, -2.0)
+		var hull := _deep(root + f.out * 16.5 + f.along * ms * (1.3 + HullLayout.HALF_BEAM + 0.7), 7.0, -2.0)
 		var end := root + f.out * (f.out.dot(hull - root) + 9.5)
 		_walk(PackedVector2Array([root, end]), 1.3, {"square": true, "step": 3.0, "bollards": [end - f.out * 1.0 + f.along * ms * 0.8, root + f.out * 11.0 + f.along * ms * 0.8]})
 		_work.append(["harbour", _build_moored.bind(hull, -f.out, "merchant")])

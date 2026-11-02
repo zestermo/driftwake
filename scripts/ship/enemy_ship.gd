@@ -64,7 +64,7 @@ const ADMIRALTY_KINDS := ["marine", "frigate", "warship"]
 
 const ACCEL := 2.6
 const MAX_TURN := 0.5
-const FREEBOARD := HullBuilder.FREEBOARD
+const FREEBOARD := HullLayout.FREEBOARD
 const HEAVE_SCALE := 0.4
 ## How far off her beam she lies when she's lashed alongside to board.
 const ALONGSIDE := 10.8
@@ -146,8 +146,8 @@ const LOOK_AHEAD := 45.0
 ## The crew on deck: [spot (ship-local, on the deck), yaw]. The helmsman (0)
 ## stays aboard; the rest go over the side in this order when it boards.
 ## (spot.y: height above the main deck; the helmsman is up on the quarterdeck)
-const CREW_SPOTS := [
-	[Vector3(0.0, HullBuilder.QD_Y - HullBuilder.DECK_Y, HullBuilder.HELM_Z), 0.0],
+static var CREW_SPOTS := [
+	[Vector3(0.0, HullLayout.base().qd_y - HullLayout.DECK_Y, HullLayout.base().helm_z), 0.0],
 	[Vector3(1.0, 0.0, -0.4), 0.3],
 	[Vector3(2.8, 0.0, -4.0), -PI * 0.5],
 	[Vector3(-2.8, 0.0, -0.8), PI * 0.5],
@@ -314,7 +314,7 @@ func _ready() -> void:
 			c.reload_time = 1.2 if spec["double"] else VOLLEY_EVERY - 1.0
 			c.hull_damage = BALL_HULL * Levels.hull_k(level)
 			c.splash_damage = BALL_SPLASH * Levels.dmg_k(level)
-			c.position = Vector3(sgn * (HullBuilder.half_width(z) - 0.45), HullBuilder.DECK_Y, z)
+			c.position = Vector3(sgn * (HullLayout.base().half_width(z) - 0.45), HullLayout.DECK_Y, z)
 			c.rotation.y = -sgn * PI * 0.5
 			model.add_child(c)
 			cannons.append(c)
@@ -328,7 +328,7 @@ func _ready() -> void:
 		_chaser.reload_time = CHASER_EVERY - 0.5
 		_chaser.hull_damage = BALL_HULL * Levels.hull_k(level)
 		_chaser.splash_damage = BALL_SPLASH * Levels.dmg_k(level)
-		_chaser.position = Vector3(0.0, HullBuilder.DECK_Y, HullBuilder.BOW_Z + 1.6)
+		_chaser.position = Vector3(0.0, HullLayout.DECK_Y, HullLayout.BOW_Z + 1.6)
 		model.add_child(_chaser)
 		cannons.append(_chaser)
 	_build_crew(model)
@@ -337,10 +337,10 @@ func _ready() -> void:
 	for sgn in [-1.0, 1.0]:
 		var lad := Ladder.new()
 		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
-		lad.length = HullBuilder.LADDER_LEN
+		lad.length = HullLayout.base().ladder_len
 		lad.rail = 0.8
 		lad.deck_depth = 0.9
-		lad.position = Vector3(sgn * (HullBuilder.half_width(HullBuilder.LADDER_Z) + 0.02), HullBuilder.DECK_Y, HullBuilder.LADDER_Z)
+		lad.position = Vector3(sgn * (HullLayout.base().half_width(HullLayout.base().ladder_z) + 0.02), HullLayout.DECK_Y, HullLayout.base().ladder_z)
 		lad.rotation.y = sgn * PI * 0.5
 		model.add_child(lad)
 	# cannon fire finds the hull through this
@@ -371,7 +371,7 @@ func _ready() -> void:
 	add_child(_bark)
 	# her name and hull over the masthead, up for the whole fight
 	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter", "hunter": "Pirate Hunter", "frigate": "Admiralty Frigate"}.get(kind, str(get_meta("title", "Pirate Ship")))
-	_bar = OverheadBar.new().setup(title, HullBuilder.MAST_TOP + 2.6, 5.5, 320.0)
+	_bar = OverheadBar.new().setup(title, HullLayout.base().mast_top + 2.6, 5.5, 320.0)
 	_bar.visible = false
 	add_child(_bar)
 	_pos = Vector3(global_position.x, 0, global_position.z)
@@ -431,7 +431,7 @@ func in_combat() -> bool:
 
 ## Inside its bounds: on deck, in the rigging, on a ladder (same hull as ours).
 func aboard(p: Vector3) -> bool:
-	return HullBuilder.aboard_local(global_transform.affine_inverse() * p)
+	return HullLayout.base().aboard_local(global_transform.affine_inverse() * p)
 
 
 ## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
@@ -924,7 +924,7 @@ func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 				var spot := tgt.global_position + _vel_of(tgt) * fly
 				var spread := (1.5 + dist * 0.06) * float(spec["scatter"]) * (0.5 if _chain_volley else 1.0)
 				if _chain_volley:
-					spot = tgt.global_transform * Vector3(0, 0, HullBuilder.MAST_Z) + _vel_of(tgt) * fly
+					spot = tgt.global_transform * Vector3(0, 0, HullLayout.base().mast_z) + _vel_of(tgt) * fly
 				spot += Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
 				spot.y = CHAIN_AIM_Y if _chain_volley else 1.0
 				c.aim_at(spot)
@@ -971,7 +971,7 @@ func _chaser_update(tgt: Node3D, dist: float) -> void:
 	var spread := (1.5 + dist * 0.06) * float(spec["scatter"]) * (0.5 if _chaser_chain else 1.0)
 	var spot := tgt.global_position + _vel_of(tgt) * fly
 	if _chaser_chain:
-		spot = tgt.global_transform * Vector3(0, 0, HullBuilder.MAST_Z) + _vel_of(tgt) * fly
+		spot = tgt.global_transform * Vector3(0, 0, HullLayout.base().mast_z) + _vel_of(tgt) * fly
 	spot += Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
 	spot.y = CHAIN_AIM_Y if _chaser_chain else 1.0
 	_chaser.aim_at(spot)
@@ -1171,7 +1171,7 @@ func _build_crew(model: Node3D) -> void:
 		h.name = "Crew%d" % i
 		h.lod = true
 		model.add_child(h)
-		h.position = spot + Vector3(0, HullBuilder.DECK_Y, 0)
+		h.position = spot + Vector3(0, HullLayout.DECK_Y, 0)
 		h.rotation.y = yaw
 		h.set_weapon(Props.weapon_mesh("cutlass:%s:0" % plan[i][1]))
 		h._attach_weapon(false)
@@ -1251,7 +1251,7 @@ func _crew_update(delta: float) -> void:
 		var spot: Vector3 = c["spot"]
 		var want_yaw: float = c["yaw"]
 		if side != 0.0 and i > 0:
-			spot = Vector3(side * (HullBuilder.half_width(spot.z) - 0.75), 0.0, spot.z)
+			spot = Vector3(side * (HullLayout.base().half_width(spot.z) - 0.75), 0.0, spot.z)
 			want_yaw = -PI * 0.5 * side
 		var at := Vector3(h.position.x, 0.0, h.position.z)
 		var to := Vector3(spot.x, 0.0, spot.z) - at
@@ -1259,7 +1259,7 @@ func _crew_update(delta: float) -> void:
 		if step > 0.001:
 			at += to.normalized() * step
 			want_yaw = atan2(-to.x, -to.z)
-		h.position = at + Vector3(0, HullBuilder.DECK_Y + spot.y, 0)
+		h.position = at + Vector3(0, HullLayout.DECK_Y + spot.y, 0)
 		h.rotation.y = lerp_angle(h.rotation.y, want_yaw, clampf(8.0 * delta, 0.0, 1.0))
 		h.ground_speed = CREW_WALK if step > 0.001 else 0.0
 		h.local_move = Vector2(0, 1)
@@ -1433,15 +1433,15 @@ func _swell(delta: float) -> void:
 		return
 	var fwd := _fwd()
 	var right := _right()
-	var hb := _wave(_pos + fwd * HullBuilder.STERN_Z, t)
-	var hs := _wave(_pos - fwd * HullBuilder.STERN_Z, t)
-	var hp := _wave(_pos - right * HullBuilder.HALF_BEAM, t)
-	var hr := _wave(_pos + right * HullBuilder.HALF_BEAM, t)
+	var hb := _wave(_pos + fwd * HullLayout.STERN_Z, t)
+	var hs := _wave(_pos - fwd * HullLayout.STERN_Z, t)
+	var hp := _wave(_pos - right * HullLayout.HALF_BEAM, t)
+	var hr := _wave(_pos + right * HullLayout.HALF_BEAM, t)
 	var hc := _wave(_pos, t)
 	var mean := (hb + hs + hp + hr + hc * 2.0) / 6.0
 	var ty := lerpf(mean, hc, 0.5) * HEAVE_SCALE + FREEBOARD
-	var tp := clampf(atan((hb - hs) / (HullBuilder.STERN_Z * 2.0)) * 0.35, -0.045, 0.045)
-	var tr := clampf(atan((hr - hp) / (HullBuilder.HALF_BEAM * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06)
+	var tp := clampf(atan((hb - hs) / (HullLayout.STERN_Z * 2.0)) * 0.35, -0.045, 0.045)
+	var tr := clampf(atan((hr - hp) / (HullLayout.HALF_BEAM * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06)
 	if not _swell_ready:
 		_swell_ready = true
 		_y = ty
@@ -1461,7 +1461,7 @@ func _wake(delta: float) -> void:
 	if _far:
 		return
 	if absf(speed) > 1.0:
-		Ocean.wake(self, _pos - _fwd() * HullBuilder.STERN_Z, clampf(absf(speed) / 9.0, 0.0, 1.0))
+		Ocean.wake(self, _pos - _fwd() * HullLayout.STERN_Z, clampf(absf(speed) / 9.0, 0.0, 1.0))
 	_wake_t -= delta
 	if absf(speed) > 2.5 and _wake_t <= 0.0:
 		_wake_t = clampf(0.5 - absf(speed) * 0.03, 0.14, 0.4)
@@ -1695,4 +1695,4 @@ func _prize() -> void:
 	bag.rolls = true
 	bag.name = "Prize_%s" % name
 	get_node("Model").add_child(bag)
-	bag.position = Vector3(1.6, HullBuilder.DECK_Y, 3.2)
+	bag.position = Vector3(1.6, HullLayout.DECK_Y, 3.2)

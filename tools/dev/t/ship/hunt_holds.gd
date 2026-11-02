@@ -54,7 +54,7 @@ func _process(_d: float) -> bool:
 		2:
 			check("a captain swimming by her: still hunted, no 'Escaped' (%s)" % es.S.keys()[es.state], es.pursuing() and adm.hunted and escaped == 0)
 			# on the cutter's own deck: all hands repel boarders, and that's still the hunt
-			p.global_position = es.to_global(Vector3(0.0, HullBuilder.DECK_Y + 0.6, 2.0))
+			p.global_position = es.to_global(Vector3(0.0, HullLayout.DECK_Y + 0.6, 2.0))
 			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			until = TK.wait_secs(2.0)

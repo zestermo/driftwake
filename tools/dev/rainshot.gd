@@ -76,9 +76,9 @@ func _setup(s: Array) -> void:
 		"deck":
 			var xf: Transform3D = ship.global_transform
 			p.state_machine.force_state("Idle", {})
-			p.global_position = xf * Vector3(0, HullBuilder.DECK_Y + 0.3, 3.0)
-			cam.global_position = xf * Vector3(1.5, HullBuilder.DECK_Y + 2.4, 4.0)
-			cam.look_at(xf * Vector3(-0.5, HullBuilder.DECK_Y, -4.0), Vector3.UP)
+			p.global_position = xf * Vector3(0, HullLayout.DECK_Y + 0.3, 3.0)
+			cam.global_position = xf * Vector3(1.5, HullLayout.DECK_Y + 2.4, 4.0)
+			cam.look_at(xf * Vector3(-0.5, HullLayout.DECK_Y, -4.0), Vector3.UP)
 		"sea":
 			var xf: Transform3D = ship.global_transform
 			cam.global_position = xf * Vector3(7.0, 2.0, 0.0)

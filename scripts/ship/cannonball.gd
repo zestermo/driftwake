@@ -164,7 +164,7 @@ func _through_sails(at: Vector3) -> void:
 	if ship == null or ship.sail_shown < 0.1:
 		return
 	var l := ship.global_transform.affine_inverse() * at
-	if absf(l.x) < 5.0 and l.y > 4.5 and l.y < 14.5 and absf(l.z - HullBuilder.MAST_Z) < 2.5:
+	if absf(l.x) < 5.0 and l.y > 4.5 and l.y < 14.5 and absf(l.z - HullLayout.base().mast_z) < 2.5:
 		_tore = true
 		ship.tear_sail(l)
 

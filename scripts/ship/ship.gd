@@ -20,23 +20,16 @@ const ACCEL := 2.6
 const BRAKE := 4.0
 ## Turn rate (rad/s) at full rudder once there's flow over it (>= 4 m/s).
 const MAX_TURN := 0.55
-## The hull's layout (deck heights, the quarterdeck, mast, rigging) is
-## HullBuilder's, shared with the pirates' ships.
-const FREEBOARD := HullBuilder.FREEBOARD
+## Her hull's shape (every crew class shares it); the rest of her layout (the quarterdeck, the cabin and its
+## fittings, the helm, mast, rigging, ladders, gun spots) is `layout`, her class's and her Quarters level's.
+const FREEBOARD := HullLayout.FREEBOARD
 ## How much of the swell the hull follows (a 23 m hull rides over the 8 m waves).
 const HEAVE_SCALE := 0.4
-const BOW_Z := HullBuilder.BOW_Z
-const STERN_Z := HullBuilder.STERN_Z
-const HALF_BEAM := HullBuilder.HALF_BEAM
-const DECK_Y := HullBuilder.DECK_Y
-const QD_Y := HullBuilder.QD_Y
-## The crew cabin's fittings (ship-local, on the cabin floor): the bed (and
-## where you wake beside it), the galley stove, the storage chest.
-const BED_AT := Vector3(-3.25, DECK_Y, 8.45)
-const STOVE_AT := Vector3(3.3, DECK_Y, 9.05)
-const STORAGE_AT := Vector3(-2.7, DECK_Y, 5.75)
-const COUNTER_AT := Vector3(3.35, DECK_Y, 7.55)
-const TABLE_AT := Vector3(0.2, DECK_Y, 8.7)
+const BOW_Z := HullLayout.BOW_Z
+const STERN_Z := HullLayout.STERN_Z
+const HALF_BEAM := HullLayout.HALF_BEAM
+const DECK_Y := HullLayout.DECK_Y
+var layout: HullLayout
 ## Hull strength: enemy cannon fire wears it down. At zero the ship is
 ## crippled (barely makes way, smoke and flames) until it patches itself up.
 const MAX_HULL := 400.0
@@ -179,10 +172,11 @@ var personal: LootBag
 
 func _ready() -> void:
 	add_to_group("decks")
+	layout = HullLayout.for_kit(ShipKit.merged(get_node("/root/GameManager").ship_kit))
 	_build_psx_model()
 	_build_collision()
 	_build_cannons()
-	ShipLights.crew(ship_model)
+	ShipLights.crew(ship_model, layout)
 	var spray := ShipSpray.new()
 	spray.name = "ShipSpray"
 	add_child(spray)
@@ -455,7 +449,7 @@ func jolt(push: Vector3) -> void:
 ## Inside the ship's bounds: on deck, in the rigging, on a ladder, jumping
 ## about over the deck (co-op positions are sent relative to the hull then).
 func aboard(p: Vector3) -> bool:
-	return HullBuilder.aboard_local(global_transform.affine_inverse() * p)
+	return layout.aboard_local(global_transform.affine_inverse() * p)
 
 
 ## The hull's own velocity (cannonballs fired from it carry it along).
@@ -469,7 +463,6 @@ func hull_velocity() -> Vector3:
 ## [z, x, deck height] of each pair of swivel guns: the foredeck, forward of
 ## the mast (clear of the rigging), and (the shipwright's refit) up on the
 ## quarterdeck.
-const GUN_SPOTS := [[-6.8, 3.0, DECK_Y], [-4.2, 3.65, DECK_Y], [8.0, 3.55, QD_Y]]
 ## A crew gun's ball (hull, splash) and reload before the gun deck's levels.
 const GUN_HULL := 30.0
 const GUN_SPLASH := 22.0
@@ -487,7 +480,7 @@ func _add_gun_pair(i: int) -> void:
 		c.name = "Cannon%s%d" % ["S" if sgn > 0.0 else "P", i]
 		c.ship = self
 		c.team = "crew"
-		c.position = Vector3(sgn * float(GUN_SPOTS[i][1]), float(GUN_SPOTS[i][2]), float(GUN_SPOTS[i][0]))
+		c.position = Vector3(sgn * float(layout.gun_spots[i][1]), float(layout.gun_spots[i][2]), float(layout.gun_spots[i][0]))
 		c.rotation.y = -sgn * PI * 0.5
 		ship_model.add_child(c)
 		cannons.append(c)
@@ -655,8 +648,8 @@ func _list_side() -> float:
 ## Host: hole her at `side` (-1 port, 1 starboard) abreast of `z`.
 func add_breach(side: float, z: float) -> void:
 	_dmg_id += 1
-	breaches.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.55), DECK_Y, z)])
-	FX.sfx("wood_crack", global_transform * Vector3(side * HullBuilder.half_width(z), WATERLINE_Y, z), 4.0, 0.05, 0.75)
+	breaches.append([_dmg_id, Vector3(side * (layout.half_width(z) - 0.55), DECK_Y, z)])
+	FX.sfx("wood_crack", global_transform * Vector3(side * layout.half_width(z), WATERLINE_Y, z), 4.0, 0.05, 0.75)
 	_send_damage()
 
 
@@ -949,7 +942,7 @@ func tear_sail(local: Vector3) -> void:
 	while slot in used:
 		slot += 1
 	_dmg_id += 1
-	var py := clampf(local.y - (HullBuilder.YARD_Y - 0.15), -7.6, -0.9)
+	var py := clampf(local.y - (layout.yard_y - 0.15), -7.6, -0.9)
 	# (on the sheet, which bellies aft to 0.45 at its middle reef band and back to 0.1 at the foot: _build_rig)
 	var pz := lerpf(0.0, 0.45, -py / 4.35) if py > -4.35 else lerpf(0.45, 0.1, (-py - 4.35) / 4.2)
 	var patch := Vector3(clampf(local.x, -3.4, 3.4), py, pz)
@@ -963,7 +956,7 @@ func tear_sail(local: Vector3) -> void:
 func lash(by: Node3D, side: float) -> void:
 	for z in [-5.0, -1.0, 3.0]:
 		_dmg_id += 1
-		lines.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.5), DECK_Y, z), Net.key_of(by), Vector3(-side * 3.7, 2.6, z)])
+		lines.append([_dmg_id, Vector3(side * (layout.half_width(z) - 0.5), DECK_Y, z), Net.key_of(by), Vector3(-side * 3.7, 2.6, z)])
 	_send_damage()
 
 
@@ -1136,18 +1129,18 @@ func _process(delta: float) -> void:
 # ==========================================================================
 func _build_collision() -> void:
 	# the hull, decks, cabin, stairs, mast and crow's nest
-	HullBuilder.collide(self)
+	HullBuilder.collide(self, true, layout)
 	# the helm post, the capstan, and the cabin's furniture
-	_box_at(Vector3(0, QD_Y + 0.45, HullBuilder.WHEEL_Z + 0.1), Vector3(0.3, 0.9, 0.3))
+	_box_at(Vector3(0, layout.qd_y + 0.45, layout.wheel_z + 0.1), Vector3(0.3, 0.9, 0.3))
 	var capstan := CylinderShape3D.new()
 	capstan.radius = 0.32
 	capstan.height = 0.75
 	_shape(capstan, Transform3D(Basis.IDENTITY, CAPSTAN_AT + Vector3(0, 0.37, 0)))
-	_box_at(BED_AT + Vector3(0, 0.26, 0), Vector3(1.15, 0.52, 2.15))
-	_box_at(STOVE_AT + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95))
-	_box_at(COUNTER_AT + Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 1.6))
-	_box_at(STORAGE_AT + Vector3(0, 0.3, 0), Vector3(1.0, 0.6, 0.65))
-	_box_at(TABLE_AT + Vector3(0, 0.4, 0), Vector3(1.5, 0.8, 0.9))
+	_box_at(layout.bed_at + Vector3(0, 0.26, 0), Vector3(1.15, 0.52, 2.15))
+	_box_at(layout.stove_at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95))
+	_box_at(layout.counter_at + Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 1.6))
+	_box_at(layout.storage_at + Vector3(0, 0.3, 0), Vector3(1.0, 0.6, 0.65))
+	_box_at(layout.table_at + Vector3(0, 0.4, 0), Vector3(1.5, 0.8, 0.9))
 
 
 # ==========================================================================
@@ -1359,7 +1352,7 @@ func _build_psx_model() -> void:
 	ship_model.add_child(parts)
 
 	# hull, decks, quarterdeck over the cabin, stairs, mast, crow's nest, rigging
-	HullBuilder.hull(mb, {"hull": hull, "deck": deck, "trim": trim, "wood": wood, "rope": PSXMat.lit("rope")})
+	HullBuilder.hull(mb, {"hull": hull, "deck": deck, "trim": trim, "wood": wood, "rope": PSXMat.lit("rope")}, true, layout)
 	_build_rig(canvas, wood)
 	_build_climbing()
 	_build_anchor(wood)
@@ -1373,7 +1366,7 @@ func _build_psx_model() -> void:
 	# the flag at the masthead (painted from the kit: apply_kit)
 	var fmb := MeshBuilder.new()
 	var flag := PSXMat.lit("cloth_red")
-	var flag_at := Vector3(0, HullBuilder.MAST_TOP + 0.2, HullBuilder.MAST_Z + 0.45)
+	var flag_at := Vector3(0, layout.mast_top + 0.2, layout.mast_z + 0.45)
 	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), flag_at), 2.1, 1.25)
 	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), flag_at), 2.1, 1.25, Rect2(1, 0, -1, 1))
 	_flag_node = fmb.to_instance("Flag")
@@ -1385,18 +1378,18 @@ func _build_psx_model() -> void:
 	_figure_node.scale = Vector3.ONE * 2.5
 	ship_model.add_child(_figure_node)
 	# windows either side of the cabin door, the stern lantern
-	mb.add_box(glass, Transform3D(Basis(), Vector3(2.0, DECK_Y + 1.5, HullBuilder.QD_FRONT - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(-2.0, DECK_Y + 1.5, HullBuilder.QD_FRONT - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(0, QD_Y + 1.3, HullBuilder.QD_BACK + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(2.0, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(-2.0, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(0, layout.qd_y + 1.3, layout.qd_back + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
 	# the helm on the quarterdeck: its post, and the wheel (its own node, it turns)
-	mb.add_box(wood, Transform3D(Basis(), Vector3(0, QD_Y + 0.45, HullBuilder.WHEEL_Z + 0.1)), Vector3(0.16, 0.9, 0.16), 1.0)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, layout.qd_y + 0.45, layout.wheel_z + 0.1)), Vector3(0.16, 0.9, 0.16), 1.0)
 	var wmb := MeshBuilder.new()
 	wmb.add_cylinder(trim, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.03)), 0.42, 0.42, 0.06, 8, 1.0, Color.WHITE, true, true, false)
 	for k in range(4):
 		var b := Basis(Vector3.BACK, PI * k / 4.0)
 		wmb.add_box(wood, Transform3D(b, Vector3(0, 0, -0.05)), Vector3(0.05, 1.05, 0.05), 1.0)
 	wheel = wmb.to_instance("Wheel")
-	wheel.position = Vector3(0, QD_Y + 0.93, HullBuilder.WHEEL_Z)
+	wheel.position = Vector3(0, layout.qd_y + 0.93, layout.wheel_z)
 	ship_model.add_child(wheel)
 	_build_cabin(mb, wood, trim, glass)
 	_psx_model = mb.to_instance("PSXModel")
@@ -1406,10 +1399,10 @@ func _build_psx_model() -> void:
 	for sgn in [-1.0, 1.0]:
 		var lad := Ladder.new()
 		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
-		lad.length = HullBuilder.LADDER_LEN
+		lad.length = layout.ladder_len
 		lad.rail = 0.8
 		lad.deck_depth = 0.9
-		lad.position = Vector3(sgn * (HullBuilder.half_width(HullBuilder.LADDER_Z) + 0.02), DECK_Y, HullBuilder.LADDER_Z)
+		lad.position = Vector3(sgn * (layout.half_width(layout.ladder_z) + 0.02), DECK_Y, layout.ladder_z)
 		lad.rotation.y = sgn * PI * 0.5
 		ship_model.add_child(lad)
 
@@ -1424,36 +1417,36 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	var fire := PSXMat.glow(Color(1.0, 0.45, 0.12), 3.0)
 	var crate := PSXMat.lit("planks", Color(0.8, 0.65, 0.45))
 	# the bunk: frame, mattress, a pillow and a red blanket
-	mb.add_box(wood, Transform3D(Basis(), BED_AT + Vector3(0, 0.2, 0)), Vector3(1.15, 0.4, 2.15), 1.0)
-	mb.add_box(linen, Transform3D(Basis(), BED_AT + Vector3(0, 0.46, 0)), Vector3(1.0, 0.14, 2.0), 1.0)
-	mb.add_box(linen, Transform3D(Basis(), BED_AT + Vector3(0, 0.6, 0.72)), Vector3(0.7, 0.14, 0.4), 1.0)
-	mb.add_box(cloth, Transform3D(Basis(), BED_AT + Vector3(0, 0.55, -0.3)), Vector3(1.04, 0.06, 1.3), 1.0)
-	mb.add_box(wood, Transform3D(Basis(), BED_AT + Vector3(0, 0.45, 1.05)), Vector3(1.15, 0.9, 0.08), 1.0)
+	mb.add_box(wood, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.2, 0)), Vector3(1.15, 0.4, 2.15), 1.0)
+	mb.add_box(linen, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.46, 0)), Vector3(1.0, 0.14, 2.0), 1.0)
+	mb.add_box(linen, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.6, 0.72)), Vector3(0.7, 0.14, 0.4), 1.0)
+	mb.add_box(cloth, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.55, -0.3)), Vector3(1.04, 0.06, 1.3), 1.0)
+	mb.add_box(wood, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.45, 1.05)), Vector3(1.15, 0.9, 0.08), 1.0)
 	# the galley: an iron stove with fire behind its door and a pipe up through
 	# the deck, a counter with pots, a water barrel
-	mb.add_box(iron, Transform3D(Basis(), STOVE_AT + Vector3(0, 0.45, 0)), Vector3(0.9, 0.9, 0.9), 1.0)
-	mb.add_box(fire, Transform3D(Basis(), STOVE_AT + Vector3(-0.46, 0.35, 0)), Vector3(0.04, 0.3, 0.45), 1.0)
-	mb.add_cylinder(iron, Transform3D(Basis(), STOVE_AT + Vector3(0.1, 0.9, 0.1)), 0.09, 0.09, QD_Y - DECK_Y - 0.9, 6, 1.0)
-	mb.add_box(trim, Transform3D(Basis(), COUNTER_AT + Vector3(0, 0.45, 0)), Vector3(0.75, 0.9, 1.55), 0.6)
-	mb.add_cylinder(iron, Transform3D(Basis(), COUNTER_AT + Vector3(0, 0.9, 0.35)), 0.2, 0.2, 0.25, 8, 1.0)
-	mb.add_cylinder(iron, Transform3D(Basis(), COUNTER_AT + Vector3(-0.05, 0.9, -0.35)), 0.14, 0.12, 0.18, 8, 1.0)
-	mb.add_cylinder(crate, Transform3D(Basis(), COUNTER_AT + Vector3(0.1, 0.0, -1.25)), 0.35, 0.35, 0.9, 8, 0.6)
+	mb.add_box(iron, Transform3D(Basis(), layout.stove_at + Vector3(0, 0.45, 0)), Vector3(0.9, 0.9, 0.9), 1.0)
+	mb.add_box(fire, Transform3D(Basis(), layout.stove_at + Vector3(-0.46, 0.35, 0)), Vector3(0.04, 0.3, 0.45), 1.0)
+	mb.add_cylinder(iron, Transform3D(Basis(), layout.stove_at + Vector3(0.1, 0.9, 0.1)), 0.09, 0.09, layout.qd_y - DECK_Y - 0.9, 6, 1.0)
+	mb.add_box(trim, Transform3D(Basis(), layout.counter_at + Vector3(0, 0.45, 0)), Vector3(0.75, 0.9, 1.55), 0.6)
+	mb.add_cylinder(iron, Transform3D(Basis(), layout.counter_at + Vector3(0, 0.9, 0.35)), 0.2, 0.2, 0.25, 8, 1.0)
+	mb.add_cylinder(iron, Transform3D(Basis(), layout.counter_at + Vector3(-0.05, 0.9, -0.35)), 0.14, 0.12, 0.18, 8, 1.0)
+	mb.add_cylinder(crate, Transform3D(Basis(), layout.counter_at + Vector3(0.1, 0.0, -1.25)), 0.35, 0.35, 0.9, 8, 0.6)
 	# storage: the chest by the door, crates and a barrel round it
-	mb.add_box(crate, Transform3D(Basis(Vector3.UP, 0.2), STORAGE_AT + Vector3(-0.4, 0.3, 1.0)), Vector3(0.6, 0.6, 0.6), 1.0)
-	mb.add_box(crate, Transform3D(Basis(Vector3.UP, -0.3), STORAGE_AT + Vector3(-0.45, 0.85, 1.0)), Vector3(0.45, 0.45, 0.45), 1.0)
-	mb.add_cylinder(crate, Transform3D(Basis(), STORAGE_AT + Vector3(0.9, 0.0, -0.05)), 0.32, 0.32, 0.8, 8, 0.6)
+	mb.add_box(crate, Transform3D(Basis(Vector3.UP, 0.2), layout.storage_at + Vector3(-0.4, 0.3, 1.0)), Vector3(0.6, 0.6, 0.6), 1.0)
+	mb.add_box(crate, Transform3D(Basis(Vector3.UP, -0.3), layout.storage_at + Vector3(-0.45, 0.85, 1.0)), Vector3(0.45, 0.45, 0.45), 1.0)
+	mb.add_cylinder(crate, Transform3D(Basis(), layout.storage_at + Vector3(0.9, 0.0, -0.05)), 0.32, 0.32, 0.8, 8, 0.6)
 	# the table and two stools
-	mb.add_box(wood, Transform3D(Basis(), TABLE_AT + Vector3(0, 0.78, 0)), Vector3(1.5, 0.07, 0.9), 1.0)
+	mb.add_box(wood, Transform3D(Basis(), layout.table_at + Vector3(0, 0.78, 0)), Vector3(1.5, 0.07, 0.9), 1.0)
 	for sx in [-0.6, 0.6]:
 		for sz in [-0.35, 0.35]:
-			mb.add_box(wood, Transform3D(Basis(), TABLE_AT + Vector3(sx, 0.38, sz)), Vector3(0.08, 0.76, 0.08), 1.0)
+			mb.add_box(wood, Transform3D(Basis(), layout.table_at + Vector3(sx, 0.38, sz)), Vector3(0.08, 0.76, 0.08), 1.0)
 	for sx in [-0.4, 0.5]:
-		mb.add_cylinder(wood, Transform3D(Basis(), TABLE_AT + Vector3(sx, 0.0, -0.75)), 0.2, 0.18, 0.45, 6, 1.0)
+		mb.add_cylinder(wood, Transform3D(Basis(), layout.table_at + Vector3(sx, 0.0, -0.75)), 0.2, 0.18, 0.45, 6, 1.0)
 	# stern windows, a lantern hung from a beam
 	for sx in [-1.6, 0.0, 1.6]:
-		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.55, HullBuilder.QD_BACK - 0.18)), Vector3(0.6, 0.45, 0.04), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, QD_Y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
-	_line_mesh(mb, iron, Vector3(0.2, QD_Y - 0.5, 7.6), Vector3(0.2, QD_Y - 0.2, 7.6))
+		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.55, layout.qd_back - 0.18)), Vector3(0.6, 0.45, 0.04), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, layout.qd_y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
+	_line_mesh(mb, iron, Vector3(0.2, layout.qd_y - 0.5, 7.6), Vector3(0.2, layout.qd_y - 0.2, 7.6))
 	# the storage chest (its Shared tab: GameManager.storage, shared in co-op; its Personal tab, personal: this
 	# captain's own sea chest, GameManager.sea_chest, never shared: a hidden bag the storage window switches to),
 	# the bunk (rest) and the galley (cook: GalleyScreen)
@@ -1473,12 +1466,12 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	personal.add_to_group("ship_storage")
 	personal.contents = get_node("/root/GameManager").sea_chest
 	ship_model.add_child(personal)
-	personal.position = STORAGE_AT + Vector3(0, -0.6, 0)
+	personal.position = layout.storage_at + Vector3(0, -0.6, 0)
 	personal.visible = false
 	personal.collision_layer = 0
 	personal.interactable.monitorable = false
 	personal.interactable.collision_layer = 0
-	storage.position = STORAGE_AT
+	storage.position = layout.storage_at
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).position = Vector3.ZERO
 	storage.get_node("CollisionShape3D").queue_free()
@@ -1486,30 +1479,30 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	chest_cs.shape = chest_cs.shape.duplicate()
 	(chest_cs.shape as SphereShape3D).radius = 1.1
 	storage.interactable.reach = 1.1
-	var bunk := _cabin_zone("Bunk", "Rest in the bunk  (K: switch your build here)", BED_AT + Vector3(0.85, 0.6, 0.0))
+	var bunk := _cabin_zone("Bunk", "Rest in the bunk  (K: switch your build here)", layout.bed_at + Vector3(0.85, 0.6, 0.0))
 	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
 	bunk.add_to_group("rest_spots")
-	var galley := _cabin_zone("Galley", "Cook at the galley", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
+	var galley := _cabin_zone("Galley", "Cook at the galley", layout.counter_at + Vector3(-0.85, 0.6, 0.3))
 	galley.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
 	# the galley table: a pot of several portions goes here for the crew (GalleyTable)
 	var table := GalleyTable.new()
 	table.name = "GalleyTable"
 	ship_model.add_child(table)
-	table.position = COUNTER_AT + Vector3(-1.05, 0.0, -0.4)
+	table.position = layout.counter_at + Vector3(-1.05, 0.0, -0.4)
 	galley.gesture = "reach"
 	# seats: the cabin's stools (at the table), the crate by the chest, the two crates on deck
 	for sx in [-0.4, 0.5]:
-		Seat.add(ship_model, TABLE_AT + Vector3(sx, 0.45, -0.75), 0.45, Vector3(0, 0, 1))
-	Seat.add(ship_model, STORAGE_AT + Vector3(-0.4, 0.6, 1.0), 0.6)
+		Seat.add(ship_model, layout.table_at + Vector3(sx, 0.45, -0.75), 0.45, Vector3(0, 0, 1))
+	Seat.add(ship_model, layout.storage_at + Vector3(-0.4, 0.6, 1.0), 0.6)
 	Seat.add(ship_model, Vector3(2.1, DECK_Y + 0.6, -0.4), 0.6, Vector3(-1, 0, 0))
 	Seat.add(ship_model, Vector3(-2.2, DECK_Y + 0.5, -4.5), 0.5, Vector3(1, 0, 0))
 	# (1.28) the tinker's workbench on deck, against the cabin front under the port window (Workbench)
 	# (solid as one of her own shapes: a body of its own aboard would stop her dead)
-	var bench_at := Vector3(-1.75, DECK_Y, HullBuilder.QD_FRONT - Workbench.D * 0.5 - 0.02)
+	var bench_at := Vector3(-1.75, DECK_Y, layout.qd_front - Workbench.D * 0.5 - 0.02)
 	Workbench.place(ship_model, bench_at, 0.0, {"style": "ship", "solid": false})
 	_box_at(bench_at + Vector3(0, Workbench.TOP * 0.5, 0), Vector3(Workbench.W, Workbench.TOP, Workbench.D))
 	# (1.28) the bookshelf against the cabin's front wall, starboard of the door (BookShelf)
-	var shelf_at := Vector3(2.0, DECK_Y, HullBuilder.QD_FRONT + 0.1)
+	var shelf_at := Vector3(2.0, DECK_Y, layout.qd_front + 0.1)
 	BookShelf.place(ship_model, shelf_at, 0.0)
 	_box_at(shelf_at + Vector3(0, BookModels.SHELF_H * 0.5, BookModels.SHELF_D * 0.5), Vector3(BookModels.SHELF_W, BookModels.SHELF_H, BookModels.SHELF_D))
 	var lamp := OmniLight3D.new()
@@ -1518,7 +1511,7 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	lamp.light_energy = 1.4
 	lamp.omni_range = 6.5
 	lamp.shadow_enabled = false
-	lamp.position = Vector3(0.2, QD_Y - 0.8, 7.6)
+	lamp.position = Vector3(0.2, layout.qd_y - 0.8, 7.6)
 	ship_model.add_child(lamp)
 
 
@@ -1616,7 +1609,7 @@ func _rain_on_deck(delta: float) -> void:
 
 ## The hull's half-width at (z, y): from the rail tapering down to the keel.
 func _side_at(z: float, y: float) -> float:
-	var r := _ring_at(HullBuilder.RINGS, z)
+	var r := _ring_at(layout.rings, z)
 	var k := clampf((float(r[3]) - y) / maxf(float(r[3]) - float(r[4]), 0.01), 0.0, 1.0)
 	return lerpf(float(r[1]), float(r[2]), k)
 
@@ -1718,7 +1711,7 @@ func _mizzen(on: bool, sails: Material) -> void:
 		return
 	var mb := MeshBuilder.new()
 	var wood := PSXMat.lit("planks_dark")
-	var qd := HullBuilder.QD_Y
+	var qd := layout.qd_y
 	var mz := 9.2
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, qd, mz)), 0.14, 0.1, 8.6, 6, 0.8)
 	var a := Vector3(0.22, qd + 3.4, 5.6)
@@ -1779,7 +1772,7 @@ func _sail_emblem(kit: Dictionary) -> void:
 ## sail hanging from it (its own node, origin on the yard, so it rolls up by
 ## scaling toward it and fills or flaps), and the furled canvas on the yard.
 func _build_rig(canvas: Material, wood: Material) -> void:
-	var pivot := Vector3(0, HullBuilder.YARD_Y, HullBuilder.MAST_Z)
+	var pivot := Vector3(0, layout.yard_y, layout.mast_z)
 	_rig = Node3D.new()
 	_rig.name = "Rig"
 	_rig.position = pivot
@@ -1788,8 +1781,8 @@ func _build_rig(canvas: Material, wood: Material) -> void:
 	ymb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(4.5, 0, 0)), 0.12, 0.12, 9.0, 6, 0.8)
 	_yard_node = ymb.to_instance("Yard")
 	_rig.add_child(_yard_node)
-	var sz := HullBuilder.MAST_Z + 0.25
-	var top := Vector3(0, HullBuilder.YARD_Y - 0.15, sz)
+	var sz := layout.mast_z + 0.25
+	var top := Vector3(0, layout.yard_y - 0.15, sz)
 	var mid_y := top.y - 4.35
 	var bot_y := mid_y - 4.2
 	var smb := MeshBuilder.new()
@@ -1821,6 +1814,7 @@ func _build_climbing() -> void:
 		var rig := ShipRigging.new()
 		rig.name = "RiggingS" if sgn > 0.0 else "RiggingP"
 		rig.side = sgn
+		rig.layout = layout
 		ship_model.add_child(rig)
 
 

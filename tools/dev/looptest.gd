@@ -28,7 +28,6 @@ func check(msg: String, c: bool) -> void:
 func _initialize():
 	load("res://tools/dev/test_kit.gd").seed_of(self)
 	SG = load("res://scripts/game/save_game.gd")
-	HB = load("res://scripts/ship/hull_builder.gd")
 	SG.use_test_dir("user://test_loop")
 	for i in range(1, 4):
 		SG.delete_slot(i)
@@ -47,6 +46,7 @@ func next() -> void:
 func grab() -> void:
 	p = root.get_tree().get_first_node_in_group("player")
 	ship = root.get_tree().get_first_node_in_group("ship")
+	HB = ship.layout
 	gm = root.get_node("GameManager")
 
 

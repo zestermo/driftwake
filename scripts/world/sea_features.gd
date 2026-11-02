@@ -265,7 +265,7 @@ static func build_wreck(parent: Node3D, i: int, c: Vector2, yaw: float, save_id:
 	bag.save_id = save_id
 	bag.name = "WreckChest%d" % i
 	body.add_child(bag)
-	bag.position = Vector3(-1.6, HullBuilder.DECK_Y, 2.1)
+	bag.position = Vector3(-1.6, HullLayout.DECK_Y, 2.1)
 
 
 ## [item id or ItemData, quantity] -> stacks.

@@ -119,7 +119,7 @@ static func _wreck(isl, ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 	mi.visibility_range_end = 220.0
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.add_child(mi)
-	var deck := body.transform * Vector3(0.0, HullBuilder.DECK_Y + 0.2, -2.0)
+	var deck := body.transform * Vector3(0.0, HullLayout.DECK_Y + 0.2, -2.0)
 	KitLandmarks.chest(ctx, pl, deck, rng.randf() * TAU, "atoll_wreck_chest", KitLandmarks.loot(isl, rng, true), 0.95)
 	# the second chest went over the side, into the deeper water at her stern
 	var q2 := Vector2(rng.randf_range(-6.0, 6.0), -D.WRECK_R + 3.0)

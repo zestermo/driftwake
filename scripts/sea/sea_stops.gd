@@ -69,7 +69,7 @@ static func big(leg: Node3D, k: String, c: Vector3, level: int, seed_value: int)
 	leg.add_child(s)
 	var a := float(seed_value % 628) * 0.01
 	var pos := c + Vector3(cos(a), 0.0, sin(a)) * 70.0
-	s.global_transform = Transform3D(Basis(Vector3.UP, a + PI * 0.5), Vector3(pos.x, HullBuilder.FREEBOARD, pos.z))
+	s.global_transform = Transform3D(Basis(Vector3.UP, a + PI * 0.5), Vector3(pos.x, HullLayout.FREEBOARD, pos.z))
 	s._pos = Vector3(pos.x, 0.0, pos.z)
 	s._heading = a + PI * 0.5
 	s.reset_physics_interpolation()

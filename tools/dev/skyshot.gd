@@ -105,7 +105,7 @@ func _setup(s: String) -> void:
 			ship.set_anchored(false)
 			ship.sail = 0.67
 			p.state_machine.force_state("Idle", {})
-			p.global_position = ship.global_transform * Vector3(0, HullBuilder.DECK_Y + 0.3, 1.0)
+			p.global_position = ship.global_transform * Vector3(0, HullLayout.DECK_Y + 0.3, 1.0)
 			p.reset_physics_interpolation()
 			t0 = t + 14.0
 
@@ -128,4 +128,4 @@ func _follow(s: String) -> void:
 			cam.global_position = xf * Vector3(-7.0, 8.0, 30.0)
 			cam.look_at(xf * Vector3(0, 9.0, 0.0), Vector3.UP)
 			if p.global_position.distance_to(xf.origin) > 15.0:
-				p.global_position = xf * Vector3(0, HullBuilder.DECK_Y + 0.3, 1.0)
+				p.global_position = xf * Vector3(0, HullLayout.DECK_Y + 0.3, 1.0)

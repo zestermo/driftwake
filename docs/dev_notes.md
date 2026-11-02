@@ -9220,3 +9220,24 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   coat ~950), the most swing 113-118 deg (the empty sleeves on the 180 turn).
 - Tests: t/gear/coat_drape (new). Renders: tools/dev/out/clothes/drape1_*.png (five coats draped; modelshot's
   "back3" is the front), tools/dev/out/clothes/lab/sheet_drape{,_jacket}.png (moving).
+## 2026-11-02: the hull layout as data (1.29 'Shipshape', piece 1)
+- **HullLayout** (`scripts/ship/hull_layout.gd`): HullBuilder's old constants (the quarterdeck, the cabin's walls, door
+  and floor, stairs, wheel/helm, mast, yard, nest, rigging, ladders) plus the gun spots and the cabin's fittings
+  (bed, stove, counter, storage, table) are fields of a layout object. `HullLayout.base()` is the pirates', traders' and
+  wrecks' hull (the old numbers, frozen); `HullLayout.of(class, tier)` / `for_kit(kit)` the crew's ship (class and the
+  coming Quarters level, cached). The hull's shape (RINGS, DECK_Y, FREEBOARD, BOW_Z, STERN_Z, HALF_BEAM) stays as
+  HullLayout consts too: const contexts (ShipSpray, Ship.DECK_Y, EnemyShip.FREEBOARD) still need them, and every crew
+  class shares the hull form in 1.29. Helpers moved onto the layout: half_width, ring_at, side_at, aboard_local,
+  in_cabin, nest_rail(_at); a new `cabin_y` (the cabin floor) for the stepped-down cabin.
+- HullBuilder draws a layout: `hull(mb, m, rig, L)`, `collide(body, rig, L)`, `build(parent, {"layout": L})`; all
+  default to base(). Ship has `layout` (set in _ready from the kit) and passes it to hull, collide, ShipLights.crew,
+  ShipRigging.layout, LashedHelm; ShipParts reads `ship.layout` (its old consts RUDDER_AT, ROPE_LENGTH, COPPER_Z,
+  HOOD_Y, GROVE_AT are funcs now). Ship.BED_AT etc. and GUN_SPOTS are `ship.layout.bed_at`, `.gun_spots`
+  (Downtime, Progression's bunk respec, tests). Everything else (islands, birds, merchants, enemies, wrecks) reads
+  `HullLayout.base()`. EnemyShip.CREW_SPOTS is a static var (it reads base()).
+- **Gotcha:** HullLayout must not reference project classes that touch autoloads (no ShipClasses/ShipLines): tests
+  name it statically before the autoloads load (blocked_furls failed on Settings via ShipLines). `for_kit` reads the
+  kit's plain keys.
+- Proof: `t/ship/layout_parity` fingerprints every vertex of the pirates' model, its collision shapes, a wreck, and the
+  crew's whole sloop (meshes and shapes) against prints taken from the constants before the change: all identical.
+  riggingtest, looptest, yard_ropes, bigshipshot read `ship.layout` (their `HB` is the layout now, lowercase fields).

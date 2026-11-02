@@ -49,12 +49,12 @@ func _process(_d: float) -> bool:
 			AW.run("fish", p)
 			var l: Vector3 = ship.global_transform.affine_inverse() * p.global_position
 			check("with a rod: at the starboard rail facing out, casting (%s, x %.2f)" % [p.current_state_name(), l.x],
-				p.current_state_name() == "Fish" and l.x > HullBuilder.half_width(l.z) - 1.0 and not ship.lashed)
+				p.current_state_name() == "Fish" and l.x > HullLayout.base().half_width(l.z) - 1.0 and not ship.lashed)
 			until = TK.wait_secs(2.0)
 		3:
 			var rod = p.fish_rod
 			var off: Vector3 = ship.global_transform.affine_inverse() * rod._bob.global_position
-			check("the float's out over the side, under way (%s, %.1f m off the centreline)" % [rod.phase, off.x], rod.phase == "float" and off.x > HullBuilder.half_width(off.z) + 1.0)
+			check("the float's out over the side, under way (%s, %.1f m off the centreline)" % [rod.phase, off.x], rod.phase == "float" and off.x > HullLayout.base().half_width(off.z) + 1.0)
 			# what a crewmate's screen gets (Net.event arrives as net_event on the puppet's rod)
 			var at: Vector3 = pup.global_position + Vector3(4, 0, 0)
 			pup.body_model.apply_look(pup.body_model.look.merged({"rod": "bamboo"}, true))

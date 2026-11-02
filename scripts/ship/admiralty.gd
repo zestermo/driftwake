@@ -455,7 +455,7 @@ func _make_ship(nm: String) -> EnemyShip:
 	s.pursuer = true
 	s.role = str(sp[5])
 	add_child(s)
-	s.global_transform = Transform3D(Basis(Vector3.UP, float(sp[2])), Vector3(at.x, HullBuilder.FREEBOARD, at.z))
+	s.global_transform = Transform3D(Basis(Vector3.UP, float(sp[2])), Vector3(at.x, HullLayout.FREEBOARD, at.z))
 	s._pos = at
 	s._heading = float(sp[2])
 	s.reset_physics_interpolation()

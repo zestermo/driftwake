@@ -9,8 +9,8 @@ const FAR := 90.0
 const CHECK_TICKS := 15
 
 ## Origin height above the water, and how far bow and stern are from the middle.
-var freeboard := HullBuilder.FREEBOARD
-var half_len := HullBuilder.STERN_Z
+var freeboard := HullLayout.FREEBOARD
+var half_len := HullLayout.STERN_Z
 var riding := true
 
 var _base: Transform3D

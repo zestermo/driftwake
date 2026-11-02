@@ -157,18 +157,18 @@ static func _wreck_dressing(isl, ctx: KitContext, pl: Dictionary) -> void:
 	var side := signf(float(pl["heel"]))
 	var mb := MeshBuilder.new()
 	for z in [-6.5, -2.0, 2.4]:
-		mb.add_box(m["snow"], Transform3D(xf.basis, xf * Vector3(-side * 0.6, HullBuilder.DECK_Y + 0.08, z)), Vector3(1.8, 0.16, 3.2), 0.6, Color.WHITE, false)
-	mb.add_box(m["snow"], Transform3D(xf.basis, xf * Vector3(0, HullBuilder.QD_Y + 0.08, 7.3)), Vector3(3.6, 0.16, 3.4), 0.6, Color.WHITE, false)
+		mb.add_box(m["snow"], Transform3D(xf.basis, xf * Vector3(-side * 0.6, HullLayout.DECK_Y + 0.08, z)), Vector3(1.8, 0.16, 3.2), 0.6, Color.WHITE, false)
+	mb.add_box(m["snow"], Transform3D(xf.basis, xf * Vector3(0, HullLayout.base().qd_y + 0.08, 7.3)), Vector3(3.6, 0.16, 3.4), 0.6, Color.WHITE, false)
 	var icicle := PSXMat.lit("ice", Color(0.85, 0.94, 1.0), {"affine": 0.4})
 	for sd in [-1.0, 1.0]:
 		var z := -7.0
 		while z < 4.5:
-			var hw := HullBuilder.half_width(z) + 0.1
+			var hw := HullLayout.base().half_width(z) + 0.1
 			var ln := rng.randf_range(0.25, 0.9)
-			mb.add_cone(icicle, Transform3D(xf.basis * Basis(Vector3.RIGHT, PI), xf * Vector3(sd * hw, HullBuilder.DECK_Y + 0.9, z)), rng.randf_range(0.04, 0.08), ln, 4, 1.0)
+			mb.add_cone(icicle, Transform3D(xf.basis * Basis(Vector3.RIGHT, PI), xf * Vector3(sd * hw, HullLayout.DECK_Y + 0.9, z)), rng.randf_range(0.04, 0.08), ln, 4, 1.0)
 			z += rng.randf_range(0.35, 0.8)
 		# a drift heaped against her side on the ice
-		var dq := xf * Vector3(sd * (HullBuilder.HALF_BEAM + 0.4), 0, rng.randf_range(-3.0, 3.0))
+		var dq := xf * Vector3(sd * (HullLayout.HALF_BEAM + 0.4), 0, rng.randf_range(-3.0, 3.0))
 		mb.add_blob(m["snow"], _xf(Vector3(dq.x, ICE_TOP, dq.z), rng.randf() * TAU), Vector3(1.4, 0.9, 3.2), rng, 0.15, 3, 7, 0.5, Color.WHITE, 0.0)
 	for k in range(rng.randi_range(7, 11)):
 		var a := rng.randf() * TAU

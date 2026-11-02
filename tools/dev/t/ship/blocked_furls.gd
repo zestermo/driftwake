@@ -46,7 +46,7 @@ func _process(_d: float) -> bool:
 			es = ES.new().setup(ship.global_position + fwd * 30.0, 30.0, 0.0, 12, "sloop")
 			stage.add_child(es)
 			es.set_meta("no_sleep", true)
-			es.global_transform = Transform3D(Basis(Vector3.UP, ship.global_rotation.y + PI * 0.5), ship.global_position + fwd * 30.0 + Vector3(0, HullBuilder.FREEBOARD, 0))
+			es.global_transform = Transform3D(Basis(Vector3.UP, ship.global_rotation.y + PI * 0.5), ship.global_position + fwd * 30.0 + Vector3(0, HullLayout.FREEBOARD, 0))
 			es._pos = Vector3(es.global_position.x, 0.0, es.global_position.z)
 			es._heading = ship.global_rotation.y + PI * 0.5
 			es.reset_physics_interpolation()

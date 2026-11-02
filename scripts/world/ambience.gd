@@ -260,7 +260,7 @@ func _set_under(k: float) -> void:
 ## its own, all surging as the bow drops into a swell.
 func _hull(ship: Node3D, spd: float, want: Dictionary, delta: float) -> void:
 	var v := clampf(spd / 11.0, 0.0, 1.0)
-	var bow_y := (ship.global_transform * Vector3(0.0, 0.0, HullBuilder.BOW_Z)).y
+	var bow_y := (ship.global_transform * Vector3(0.0, 0.0, HullLayout.BOW_Z)).y
 	var bow_vy := 0.0 if _bow_y == INF else (bow_y - _bow_y) / maxf(delta, 0.0001)
 	_bow_y = bow_y
 	var dive := clampf(-bow_vy / 2.5, 0.0, 1.0) * v

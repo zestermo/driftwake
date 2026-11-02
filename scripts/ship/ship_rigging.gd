@@ -7,6 +7,8 @@ extends Node3D
 
 ## +1 starboard, -1 port.
 @export var side: float = 1.0
+## Her layout (Ship.layout, set before it joins the tree).
+var layout: HullLayout
 
 var bottom: Vector3
 var top: Vector3
@@ -15,8 +17,8 @@ var down_zone: Interactable
 
 
 func _ready() -> void:
-	bottom = Vector3(side * HullBuilder.RIG_BOTTOM.x, HullBuilder.RIG_BOTTOM.y, HullBuilder.RIG_BOTTOM.z)
-	top = Vector3(side * HullBuilder.RIG_TOP.x, HullBuilder.RIG_TOP.y, HullBuilder.RIG_TOP.z)
+	bottom = Vector3(side * layout.rig_bottom.x, layout.rig_bottom.y, layout.rig_bottom.z)
+	top = Vector3(side * layout.rig_top.x, layout.rig_top.y, layout.rig_top.z)
 	up_zone = _zone("ClimbUp", "Climb the rigging", deck_spot() + Vector3(0, 0.9, 0), 0.8)
 	down_zone = _zone("ClimbDown", "Climb down the rigging", nest_spot() + Vector3(side * 0.3, 0.9, 0), 0.7)
 	up_zone.interacted.connect(func(p: Player): _climb(p, true))
@@ -42,17 +44,17 @@ func _zone(n: String, prompt: String, at: Vector3, reach: float) -> Interactable
 
 ## Where you stand on deck at the foot of the ratlines (ship-local).
 func deck_spot() -> Vector3:
-	return Vector3(side * 3.05, HullBuilder.DECK_Y, HullBuilder.MAST_Z + 0.75)
+	return Vector3(side * 3.05, layout.deck_y, layout.mast_z + 0.75)
 
 
 ## Where you step off into the crow's nest (ship-local).
 func nest_spot() -> Vector3:
-	return Vector3(side * 0.95, HullBuilder.NEST_Y - 0.03, HullBuilder.MAST_Z + 0.35)
+	return Vector3(side * 0.95, layout.nest_y - 0.03, layout.mast_z + 0.35)
 
 
 ## The gap in the nest's rail the ratlines come up through (ship-local).
 func nest_gap() -> Vector3:
-	return Vector3(side * (HullBuilder.NEST_R - 0.1), HullBuilder.NEST_Y + 0.3, HullBuilder.MAST_Z)
+	return Vector3(side * (layout.nest_r - 0.1), layout.nest_y + 0.3, layout.mast_z)
 
 
 ## Your feet on the ratlines at k (0 the rail, 1 the nest): on the outboard

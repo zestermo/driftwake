@@ -893,7 +893,7 @@ func can_respec() -> bool:
 	if player == null or not player.is_inside_tree():
 		return false
 	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	if ship != null and player.global_position.distance_to(ship.global_transform * Ship.BED_AT) < BUNK_REACH:
+	if ship != null and player.global_position.distance_to(ship.global_transform * ship.layout.bed_at) < BUNK_REACH:
 		return true
 	for r in get_tree().get_nodes_in_group("rest_spots"):
 		if r is Node3D and (r as Node3D).global_position.distance_to(player.global_position) < REST_REACH:

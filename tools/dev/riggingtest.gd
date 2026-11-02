@@ -10,6 +10,7 @@ var step := 0
 var wait := 0.0
 var p
 var ship
+var HB
 var fails := 0
 var t0 := 0.0
 var maxy := -INF
@@ -55,35 +56,35 @@ func _process(d: float) -> bool:
 	if wait > 0.0:
 		wait -= d
 		return false
-	var HB = load("res://scripts/ship/hull_builder.gd")
 	match step:
 		0:
 			if t < 2.0: return false
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			p = get_first_node_in_group("player")
 			ship = get_first_node_in_group("ship")
+			HB = ship.layout
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
 			p.equip_weapon(load("res://resources/items/cutlass.tres"), false)
 			p.sheathe_weapon(true)
-			check("the ship is ~23 m long and ~9 m in the beam", HB.RINGS[0][0] - HB.RINGS[HB.RINGS.size() - 1][0] > 21.0 and HB.half_width(0.0) > 4.0)
+			check("the ship is ~23 m long and ~9 m in the beam", HB.rings[0][0] - HB.rings[HB.rings.size() - 1][0] > 21.0 and HB.half_width(0.0) > 4.0)
 			# walk up the starboard stairs (toward the stern)
-			put(Vector3(3.35, HB.DECK_Y + 0.1, HB.STAIR_Z0 - 1.0), PI)
+			put(Vector3(3.35, HB.deck_y + 0.1, HB.stair_z0 - 1.0), PI)
 			Input.action_press("move_forward")
 			t0 = t
 			step += 1
 		1:
-			if local().z < HB.QD_FRONT + 1.0 and t - t0 < 4.0:
+			if local().z < HB.qd_front + 1.0 and t - t0 < 4.0:
 				return false
 			Input.action_release("move_forward")
-			check("up the stairs onto the quarterdeck (y %.2f)" % local().y, absf(local().y - HB.QD_Y) < 0.3 and local().z > HB.QD_FRONT)
+			check("up the stairs onto the quarterdeck (y %.2f)" % local().y, absf(local().y - HB.qd_y) < 0.3 and local().z > HB.qd_front)
 			# the helm is up here
-			put(Vector3(0, HB.QD_Y + 0.1, HB.HELM_Z + 0.3))
+			put(Vector3(0, HB.qd_y + 0.1, HB.helm_z + 0.3))
 			wait = 0.4
 			step += 1
 		2:
 			check("the wheel is on the quarterdeck: F there steers (%s)" % prompt(), prompt().to_lower().contains("steer"))
-			put(Vector3(0, HB.QD_Y + 0.1, HB.HELM_Z + 1.9))
+			put(Vector3(0, HB.qd_y + 0.1, HB.helm_z + 1.9))
 			wait = 0.4
 			step += 1
 		3:
@@ -91,38 +92,38 @@ func _process(d: float) -> bool:
 			# a cannon: right behind it, F mans it; two metres off, nothing
 			var seat: Vector3 = ship.to_local(ship.cannons[0].interactable.global_position)
 			var inboard := Vector3(-signf(seat.x) * 2.0, 0, 0)
-			put(Vector3(seat.x, HB.DECK_Y + 0.1, seat.z) + inboard)
+			put(Vector3(seat.x, HB.deck_y + 0.1, seat.z) + inboard)
 			set_meta("seat", seat)
 			wait = 0.4
 			step += 1
 		4:
 			check("two metres from a cannon: no prompt (%s)" % prompt(), not prompt().contains("cannon"))
 			var seat: Vector3 = get_meta("seat")
-			put(Vector3(seat.x - signf(seat.x) * 0.3, HB.DECK_Y + 0.1, seat.z))
+			put(Vector3(seat.x - signf(seat.x) * 0.3, HB.deck_y + 0.1, seat.z))
 			wait = 0.4
 			step += 1
 		5:
 			check("right behind it: F mans the cannon (%s)" % prompt(), prompt().contains("cannon"))
 			# in through the cabin door
-			put(Vector3(0, HB.DECK_Y + 0.1, HB.QD_FRONT - 2.0), PI)
+			put(Vector3(0, HB.deck_y + 0.1, HB.qd_front - 2.0), PI)
 			Input.action_press("move_forward")
 			t0 = t
 			step += 1
 		6:
-			if local().z < HB.QD_FRONT + 2.0 and t - t0 < 3.0:
+			if local().z < HB.qd_front + 2.0 and t - t0 < 3.0:
 				return false
 			Input.action_release("move_forward")
-			check("through the door into the cabin (z %.1f, y %.2f)" % [local().z, local().y], HB.in_cabin(local()) and absf(local().y - HB.DECK_Y) < 0.2)
-			check("...under the quarterdeck: a roof over you", local().y < HB.QD_Y - 1.0)
+			check("through the door into the cabin (z %.1f, y %.2f)" % [local().z, local().y], HB.in_cabin(local()) and absf(local().y - HB.deck_y) < 0.2)
+			check("...under the quarterdeck: a roof over you", local().y < HB.qd_y - 1.0)
 			# the storage chest by the door
-			put(ship.STORAGE_AT + Vector3(0.6, 0.1, 0.7))
+			put(ship.layout.storage_at + Vector3(0.6, 0.1, 0.7))
 			wait = 0.4
 			step += 1
 		7:
 			check("the storage chest in the cabin (%s)" % prompt(), prompt().to_lower().contains("storage"))
 			check("you wake beside the bunk (respawn point in the cabin)", HB.in_cabin(ship.to_local(ship.respawn_point.global_position)))
 			# the foot of the starboard rigging
-			put(Vector3(3.05, HB.DECK_Y + 0.1, HB.MAST_Z + 0.75), PI * 0.5)
+			put(Vector3(3.05, HB.deck_y + 0.1, HB.mast_z + 0.75), PI * 0.5)
 			wait = 0.4
 			step += 1
 		8:
@@ -131,7 +132,7 @@ func _process(d: float) -> bool:
 			wait = 0.8
 			step += 1
 		9:
-			check("...and you hang there until you climb", st() == "Climb" and local().y < HB.DECK_Y + 1.6)
+			check("...and you hang there until you climb", st() == "Climb" and local().y < HB.deck_y + 1.6)
 			Input.action_press("move_forward")
 			maxy = -INF
 			t0 = t
@@ -141,19 +142,19 @@ func _process(d: float) -> bool:
 				return false
 			Input.action_release("move_forward")
 			print("   climbed for %.1f s, highest %.1f" % [t - t0, maxy])
-			check("W: up the ratlines into the crow's nest (y %.1f)" % local().y, absf(local().y - HB.NEST_Y) < 0.4 and Vector2(local().x, local().z - HB.MAST_Z).length() < HB.NEST_R)
+			check("W: up the ratlines into the crow's nest (y %.1f)" % local().y, absf(local().y - HB.nest_y) < 0.4 and Vector2(local().x, local().z - HB.mast_z).length() < HB.nest_r)
 			wait = 0.6
 			step += 1
 		11:
-			check("standing in the nest", p.is_on_floor() and absf(local().y - HB.NEST_Y) < 0.4)
+			check("standing in the nest", p.is_on_floor() and absf(local().y - HB.nest_y) < 0.4)
 			# room to walk round the mast: half a circle at 0.95 m, nothing in the way
 			var free := true
 			var r := 0.95
 			for i in range(12):
 				var a0 := PI * i / 12.0
 				var a1 := PI * (i + 1) / 12.0
-				var from := Transform3D(ship.global_basis, L(Vector3(cos(a0) * r, HB.NEST_Y + 0.05, HB.MAST_Z + sin(a0) * r)))
-				var mv: Vector3 = L(Vector3(cos(a1) * r, HB.NEST_Y + 0.05, HB.MAST_Z + sin(a1) * r)) - from.origin
+				var from := Transform3D(ship.global_basis, L(Vector3(cos(a0) * r, HB.nest_y + 0.05, HB.mast_z + sin(a0) * r)))
+				var mv: Vector3 = L(Vector3(cos(a1) * r, HB.nest_y + 0.05, HB.mast_z + sin(a1) * r)) - from.origin
 				if p.test_move(from, mv):
 					free = false
 			check("...with room to walk round the mast", free)
@@ -176,9 +177,9 @@ func _process(d: float) -> bool:
 			wait = 0.5
 			step += 1
 		15:
-			check("S: back down on deck", absf(local().y - HB.DECK_Y) < 0.25 and p.is_on_floor())
+			check("S: back down on deck", absf(local().y - HB.deck_y) < 0.25 and p.is_on_floor())
 			# up a little, then jump off
-			put(Vector3(3.05, HB.DECK_Y + 0.1, HB.MAST_Z + 0.75), PI * 0.5)
+			put(Vector3(3.05, HB.deck_y + 0.1, HB.mast_z + 0.75), PI * 0.5)
 			wait = 0.3
 			step += 1
 		16:
@@ -192,7 +193,7 @@ func _process(d: float) -> bool:
 		18:
 			Input.action_release("move_forward")
 			set_meta("y_on", local().y)
-			check("part way up (y %.1f)" % local().y, st() == "Climb" and local().y > HB.DECK_Y + 2.5)
+			check("part way up (y %.1f)" % local().y, st() == "Climb" and local().y > HB.deck_y + 2.5)
 			tap("jump")
 			wait = 0.15
 			step += 1
@@ -203,7 +204,7 @@ func _process(d: float) -> bool:
 		20:
 			check("...and you come down (y %.1f, %s)" % [local().y, st()], local().y < float(get_meta("y_on")) - 1.0)
 			# armed: the cutlass out one-handed, a chop, then let go
-			put(Vector3(3.05, HB.DECK_Y + 0.1, HB.MAST_Z + 0.75), PI * 0.5)
+			put(Vector3(3.05, HB.deck_y + 0.1, HB.mast_z + 0.75), PI * 0.5)
 			wait = 0.3
 			step += 1
 		21:
@@ -246,7 +247,7 @@ func _process(d: float) -> bool:
 			var rope = ship._rig.get_node("RopeS")
 			var end: Vector3 = rope.end_point()
 			p.state_machine.force_state("Idle", {})
-			p.global_position = Vector3(end.x, L(Vector3(0, HB.DECK_Y, 0)).y + 0.1, end.z)
+			p.global_position = Vector3(end.x, L(Vector3(0, HB.deck_y, 0)).y + 0.1, end.z)
 			p.reset_physics_interpolation()
 			cam_rig().global_rotation.y = ship.global_rotation.y + PI * 0.5
 			wait = 0.4
@@ -273,7 +274,7 @@ func _process(d: float) -> bool:
 				return false
 			print("   rope swing: from x %.1f to %.1f, up to %.1f" % [get_meta("x0"), get_meta("min_x"), maxy])
 			check("...it swings you across the deck", float(get_meta("x0")) - float(get_meta("min_x")) > 3.0)
-			check("...off your feet", maxy > HB.DECK_Y + 0.8)
+			check("...off your feet", maxy > HB.deck_y + 0.8)
 			Input.action_press("jump")
 			wait = 0.1
 			step += 1
@@ -311,7 +312,7 @@ func _process(d: float) -> bool:
 		36:
 			check("S down off the bottom: into the sea (%s)" % st(), st() == "Swim")
 			var lad = ship.ship_model.get_node("LadderStarboard")
-			p.global_position = lad.global_transform * Vector3(0, -HB.LADDER_LEN + 0.6, 0.8)
+			p.global_position = lad.global_transform * Vector3(0, -HB.ladder_len + 0.6, 0.8)
 			p.reset_physics_interpolation()
 			wait = 1.0
 			step += 1
@@ -332,7 +333,7 @@ func _process(d: float) -> bool:
 			wait = 0.4
 			step += 1
 		40:
-			check("W: up the ladder onto the deck (y %.2f)" % local().y, absf(local().y - HB.DECK_Y) < 0.25 and ship.aboard(p.global_position))
+			check("W: up the ladder onto the deck (y %.2f)" % local().y, absf(local().y - HB.deck_y) < 0.25 and ship.aboard(p.global_position))
 			print("RESULT OK" if fails == 0 else "RESULT FAILED (%d)" % fails)
 			quit()
 	return false

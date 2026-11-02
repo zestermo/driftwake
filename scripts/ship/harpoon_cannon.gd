@@ -69,7 +69,7 @@ static func target_ahead(s: Node3D, r: float) -> Node3D:
 
 
 func bow() -> Vector3:
-	return ship.global_transform * Vector3(0, HullBuilder.DECK_Y + 1.0, HullBuilder.BOW_Z)
+	return ship.global_transform * Vector3(0, HullLayout.DECK_Y + 1.0, HullLayout.BOW_Z)
 
 
 func _bite_at() -> Vector3:

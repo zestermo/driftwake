@@ -634,13 +634,13 @@ func _target(b: Dictionary, ship: Node3D, ship_xf: Transform3D, t: float = INF) 
 			var row := ceili(rank / 2.0)
 			return lead - dir * row * 1.9 + side * row * 1.6 * (1.0 if rank % 2 == 0 else -1.0) + Vector3.UP * (sin(t * 1.3 + s) * 0.3 + float(b["off"]))
 		CIRCLE:
-			var c: Vector3 = b["c"] if b["owner"] != "ship" else ship_xf * Vector3(0.0, HullBuilder.MAST_TOP, HullBuilder.MAST_Z)
+			var c: Vector3 = b["c"] if b["owner"] != "ship" else ship_xf * Vector3(0.0, HullLayout.base().mast_top, HullLayout.base().mast_z)
 			var a := _ang(b, t)
 			var r := float(b["r"]) + sin(t * 0.31 + s) * 4.0
 			return c + Vector3(cos(a) * r, float(b["h"]) * (0.4 if b["owner"] == "ship" else 1.0) + sin(t * 0.45 + s) * 3.0, sin(a) * r)
 		TRAIL:
 			# astern, weaving over her wake
-			return ship_xf * Vector3(sin(t * 0.4 + s) * 6.0, 4.0 + sin(t * 0.7 + s) * 1.5, HullBuilder.STERN_Z + 10.0 + sin(t * 0.23 + s) * 5.0)
+			return ship_xf * Vector3(sin(t * 0.4 + s) * 6.0, 4.0 + sin(t * 0.7 + s) * 1.5, HullLayout.STERN_Z + 10.0 + sin(t * 0.23 + s) * 5.0)
 	return b["pos"]
 
 
@@ -704,8 +704,8 @@ func _maybe_perch(b: Dictionary, ship: Node3D, ship_xf: Transform3D) -> void:
 		for o in birds:
 			if o != b and o["perch_ship"] and o["mode"] in [PERCH, LAND]:
 				return
-		var spots := [Vector3(0.0, HullBuilder.MAST_TOP + 0.05, HullBuilder.MAST_Z), Vector3(4.1, HullBuilder.YARD_Y + 0.12, HullBuilder.MAST_Z),
-			Vector3(-4.1, HullBuilder.YARD_Y + 0.12, HullBuilder.MAST_Z)]
+		var spots := [Vector3(0.0, HullLayout.base().mast_top + 0.05, HullLayout.base().mast_z), Vector3(4.1, HullLayout.base().yard_y + 0.12, HullLayout.base().mast_z),
+			Vector3(-4.1, HullLayout.base().yard_y + 0.12, HullLayout.base().mast_z)]
 		b["perch"] = spots[_rng.randi() % spots.size()]
 		b["perch_ship"] = true
 	elif _isles.has(b["owner"]):
