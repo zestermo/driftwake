@@ -7,6 +7,13 @@ extends RefCounted
 ## shark, a kraken curling round the bow, a crowned skull, and a robed maiden holding out a lantern (it glows).
 
 const NAMES := ["None", "Mermaid", "Lion", "Sea serpent", "Eagle", "Ram", "Dragon", "Shark", "Kraken", "Crowned skull", "Maiden with a lantern"]
+## How far each leans out forward along the stem (Ship tilts its node about X by this: negative is forward): the
+## figures with bodies lean far out under the bowsprit, the heads ride low and level over the cutwater.
+const LEAN := [0.0, -0.45, -0.3, -0.4, -0.45, -0.3, -0.4, -0.15, -0.35, -0.3, -0.5]
+
+
+static func lean(kind: int) -> float:
+	return float(LEAN[kind])
 
 
 static func mats() -> Dictionary:
@@ -46,8 +53,11 @@ static func build(kind: int) -> MeshInstance3D:
 		8: _kraken(mb, m)
 		9: _skull(mb, m)
 		10: _maiden(mb, m)
-	# the block it's carved from, let into the stem
-	mb.add_box(m["dark"], Transform3D(Basis(), Vector3(0, -0.12, 0.1)), Vector3(0.18, 0.32, 0.16), 1.0, Color.WHITE, false)
+	# the knee it's carved on: a tapering cutwater from under the figure back down into the stem (whatever the lean,
+	# it runs a little aft of straight down on the ship), a gilt scroll at its foot
+	var knee := Transform3D(Basis(Vector3.RIGHT, -0.3 - lean(kind)), Vector3(0, 0.02, 0.06))
+	mb.add_loft(m["dark"], knee, [[-0.62, 0.025, 0.05], [-0.4, 0.05, 0.1], [-0.15, 0.08, 0.14], [0.06, 0.1, 0.15]], MeshBuilder.profile_oct(), 1.0, Color.WHITE, true, true)
+	mb.add_cylinder(m["gilt"], Transform3D(knee.basis * Basis(Vector3.FORWARD, PI * 0.5), knee * Vector3(0.035, -0.45, 0.0)), 0.07, 0.07, 0.07, 8, 1.0, Color.WHITE, true, true)
 	mb.fold_tints()
 	var mi := mb.to_instance("FigureMesh")
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

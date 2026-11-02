@@ -54,6 +54,7 @@ func _process(d: float) -> bool:
 			["cabin_steps", Vector3(0.0, HB.deck_y + 1.7, HB.qd_front - 2.5), Vector3(0, cy + 0.5, HB.qd_front + 2.0), Vector3(0, 0.5, -4)],
 			["cabin_galley2", Vector3(-1.6, cy + 1.7, HB.pantry_at.z - 0.4), Vector3(3.6, cy + 0.9, HB.counter_at.z), Vector3(0, 0.5, -4)],
 			["cabin_bunks", Vector3(1.2, cy + 1.7, HB.bed_at.z - 2.2), Vector3(-3.4, cy + 0.9, HB.bed_at.z), Vector3(0, 0.5, -4)],
+			["figure", Vector3(6.5, 1.6, -15.5), Vector3(0, 0.5, -13.2), Vector3(0, 0.5, -4)],
 			["helm", Vector3(1.4, HB.qd_y + 1.6, HB.wheel_z + 1.6), Vector3(0, HB.qd_y + 0.8, HB.wheel_z), Vector3(0, 0.5, -4)],
 			["flag", Vector3(5.0, HB.mast_top + 1.0, HB.mast_z + 4.0), Vector3(0, HB.mast_top + 0.6, HB.mast_z + 0.8), Vector3(0, 0.5, -4)],
 			["ladder_side", Vector3(9.0, 0.2, -2.9), Vector3(4.0, -0.6, -2.9), Vector3(0, 0.5, -4)],

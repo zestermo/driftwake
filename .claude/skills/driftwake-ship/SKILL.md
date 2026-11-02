@@ -1,7 +1,7 @@
 ---
 name: driftwake-ship
 description: >
-  Work on Driftwake's ships as systems: the shared hull layout (HullBuilder constants, ship-local
+  Work on Driftwake's ships as systems: the hull layout as data (HullLayout per class and cabin tier, ship-local
   coordinates), the crew's sloop (Ship: its own sailing sim, place(), swell, riders on the deck,
   anchor, sails and wind, helm), hull damage and the crew's deck jobs (holes, fires, flooding,
   pump, capstan), cannons and broadsides, the cabin (bunk, galley, storage chest, respawn),
@@ -15,41 +15,59 @@ description: >
 
 # Driftwake ships
 
-Two kinds of ship share one layout: the crew's sloop (`scripts/ship/ship.gd`, `Ship`) and the
-pirates' (`scripts/ship/enemy_ship.gd`, `EnemyShip`). `HullBuilder` (`scripts/ship/hull_builder.gd`)
-owns the shape: constants, the mesh (`hull()`, `build()`), collision (`collide()`) and helpers.
-Wrecks use the same hull without the rig.
+Two kinds of ship share one hull: the crew's sloop (`scripts/ship/ship.gd`, `Ship`) and the
+pirates' (`scripts/ship/enemy_ship.gd`, `EnemyShip`). **`HullLayout`** (`scripts/ship/hull_layout.gd`, 1.29)
+is the layout as data: one object per ship class and cabin tier. **`HullBuilder`** (`scripts/ship/hull_builder.gd`)
+draws and collides a layout: the mesh (`hull(mb, m, rig, L)`, `build(parent, {"layout": L})`), collision
+(`collide(body, rig, L)`); all default to `HullLayout.base()`. Wrecks use the same hull without the rig.
 
 **Read first:** grep `docs/dev_notes.md` for the system (the 2026-10-07 sections cover the 1.5x
-ships, the cabin, climbing and the gameplay loop), then the code below.
+ships, the cabin, climbing and the gameplay loop; the 2026-11-02 1.29 'Shipshape' pieces 1-5 the layout, the
+cabin rework, Quarters, the pantry and the looks), then the code below.
 
-## Ship-local space
+## Ship-local space and the layout
 
 Everything on a ship is placed in **ship-local** metres: origin at the hull's centre line, **stern
 +Z, bow -Z**, +X starboard, the main deck at `DECK_Y` 0.32. Build fittings, crew spots and
 markers in this frame and parent them under the ship (`ship_model` for the crew's ship) so they
 ride the hull.
 
-| Constant (HullBuilder) | Value | What |
-|---|---|---|
-| `RINGS` | [z, top half-width, bottom half-width, top y, bottom y] | hull cross-sections, stern (9.9) to bow (-12.6); ~22.5 m long, 8.8 m beam |
-| `DECK_Y` / `QD_Y` | 0.32 / 2.72 | main deck / quarterdeck floor |
-| `QD_FRONT`..`QD_BACK` | 5.0..9.9 | quarterdeck (the cabin under it) |
-| `CABIN_HW`, `DOOR_HW` | 3.95, 0.65 | cabin walls, door |
-| `STAIR_X0`, `STAIR_Z0` | 2.75, 1.4 | stairs either side of the cabin front |
-| `MAST_Z`, `MAST_TOP`, `YARD_Y` | -1.8, 16.8, 13.8 | mast and yard |
-| `NEST_Y`, `NEST_R` | 15.0, 1.6 | crow's nest (room round the mast) |
-| `RIG_BOTTOM` / `RIG_TOP` | (3.75, 1.17, MAST_Z) / (1.5, 15.05, MAST_Z) | ratlines, +x side (port mirrors) |
-| `LADDER_Z`, `LADDER_LEN` | -2.9, 3.0 | rope ladders down both sides |
-| `HELM_Z`, `WHEEL_Z` | 7.4, 6.6 | helmsman, wheel (quarterdeck) |
-| `FREEBOARD` | 1.45 | origin above the mean sea: the deck stands ~1.8 m clear (level with the dock) |
-| `LIP` | 0.45 | bulwark above the hull's top edge |
+**Which layout:** the crew's ship reads **`ship.layout`** (`HullLayout.for_kit(kit)` = `of(class, kit "quarters")`,
+cached; set in `Ship._ready`, changed by `apply_kit`). Everything about the pirates', traders', wrecks' and islands'
+hulls reads **`HullLayout.base()`** (the pre-1.29 numbers, frozen; `t/ship/layout_parity` fingerprints that hull).
+Never read one ship's layout for another. The hull's shape stays as consts too (`HullLayout.RINGS`, `DECK_Y`,
+`FREEBOARD`, `BOW_Z`, `STERN_Z`, `HALF_BEAM`) for const contexts; every 1.29 crew class shares that hull form.
+`HullLayout` must not reference classes that touch autoloads (tests name it statically before they load).
 
-Helpers: `half_width(z)`, `aboard_local(l)` (inside the ship's bounds, rigging included),
-`in_cabin(l)`, `nest_rail()/nest_rail_at(a)`. Ship-side positions on the crew's ship: `BED_AT`,
-`STOVE_AT`, `STORAGE_AT`, `COUNTER_AT`, `TABLE_AT`, `ANCHOR_AT`, `CAPSTAN_AT`, `PUMP_AT`,
-`GUN_SPOTS` ([z, x, deck y] per pair), `PUDDLES`, `WATERLINE_Y`, `DECK_Z_MIN/MAX`, `DECK_X_MAX`
-(where holes and fires can appear).
+| Field (layout) | base() | crew, Quarters 0 | What |
+|---|---|---|---|
+| `rings` | [z, top half-width, bottom half-width, top y, bottom y] | same | hull cross-sections, stern (9.9) to bow (-12.6); ~22.5 m long, 8.8 m beam |
+| `deck_y` / `qd_y` | 0.32 / 2.72 | 0.32 / 2.72 (2.97 from Quarters 3) | main deck / quarterdeck floor |
+| `cabin_y` | 0.32 | -0.08 (-0.28 at Quarters 4) | the cabin floor (steps down inside the door: `HullBuilder.step_count`, `steps_end`) |
+| `qd_front`..`qd_back` | 5.0..9.9 | 4.4..9.9 (3.4 from Quarters 1) | quarterdeck (the cabin under it; HullBuilder `_segments` splits the hull there) |
+| `cabin_hw`, `door_hw`, `door_h` | 3.95, 0.65, 2.05 | same | cabin walls, door |
+| `stair_x0`, `stair_z0` | 2.75, 1.4 | 2.75, qd_front - 3.5 | stairs either side of the cabin front |
+| `mast_z`, `mast_top`, `yard_y` | -1.8, 16.8, 13.8 | same | mast and yard |
+| `nest_y`, `nest_r` | 15.0, 1.6 | same | crow's nest (room round the mast) |
+| `rig_bottom` / `rig_top` | (3.75, 1.17, -1.8) / (1.5, 15.05, -1.8) | same | ratlines, +x side (port mirrors) |
+| `ladder_z`, `ladder_len` | -2.9, 3.0 | -2.9, 1.83 (to the waterline; `Ladder.lean` lays it on the hull) | rope ladders down both sides |
+| `helm_z`, `wheel_z` | 7.4, 6.6 | same | helmsman, wheel (quarterdeck; the helm marker and zone follow the layout) |
+| `gun_spots` | [z, x, deck y] per pair | the third on `qd_y` | the gun pairs |
+| `bed_at`, `stove_at`, `counter_at`, `storage_at`, `table_at`, `pantry_at` | | on `cabin_y` | the cabin's fittings (ShipCabin furnishes round them) |
+| `lip` | 0.45 | same | bulwark above the hull's top edge |
+
+Layout helpers: `half_width(z)`, `ring_at(z)`, `side_at(z, y)`, `aboard_local(l)`, `in_cabin(l)`,
+`nest_rail()/nest_rail_at(a)`. Ship-side consts: `FREEBOARD`, `DECK_Y`, `ANCHOR_AT`, `CAPSTAN_AT`, `PUMP_AT`,
+`PUDDLES`, `WATERLINE_Y`, `DECK_Z_MIN/MAX`, `DECK_X_MAX` (where holes and fires can appear).
+
+**Cabin tiers (Quarters, ShipLines "quarters"):** `HullLayout._crew(t)` sets the numbers; `ShipCabin`
+(`scripts/ship/ship_cabin.gd`) furnishes the room per tier (`build`, `solids`, `seats`, `table_at`, `lamp_at`);
+`ShipParts._quarters` puts each level's outside on her. A new layout (`apply_kit` when `for_kit` changes) runs
+`Ship._relayout()`: everything `_build_layout` made under `ShipModel/Layout`, the ladders and galley table, and the
+collision in `_layout_shapes` are freed and built again; ShipParts rebuilds. Keep anything layout-dependent in
+`_build_layout` (or reading `ship.layout` at build time) so it moves with the cabin. The cabin meshes and light hide
+unless a camera is near (`_show_cabin`). The 1.30 brig and galleon are meant to be new `HullLayout` classes (their own
+rings and decks), built by the same HullBuilder.
 
 ## The crew's ship (Ship)
 
@@ -74,7 +92,7 @@ Helpers: `half_width(z)`, `aboard_local(l)` (inside the ship's bounds, rigging i
   `flood`. Only the **host** runs `_damage_tick`; clients get `net_damage`. The crew's jobs are
   held F within `WORK_REACH` 1.3: patch, douse, pump (`PUMP_AT`), capstan (`CAPSTAN_AT`).
   While a job is in reach `local_job` is set and **interactables stand aside** (F is the job's).
-- Cannons: `ShipCannon` per `GUN_SPOTS` pair (`_add_gun_pair(i)`, the third pair is the
+- Cannons: `ShipCannon` per `layout.gun_spots` pair (`_add_gun_pair(i)`, the third pair is the
   shipwright's refit). Manned through `Net.request_seat` (one captain each); the helmsman fires
   a broadside (`broadside(side, target, by)`). Balls carry `hull_velocity()`.
 - The cabin: bunk (`GameManager.rest`), galley (`restock`), the storage chest (a persistent
@@ -89,7 +107,11 @@ Helpers: `half_width(z)`, `aboard_local(l)` (inside the ship's bounds, rigging i
   least `SUMMON_DEPTH` deep under the hull's footprint (`_fits`: depth probed from y 80, or hills
   read as water), she fades in (`psx_lit_fade` copies of her materials) 30 m out and sails up.
 - Looks: `apply_kit(GameManager.ship_kit)` (the shipwright's paint, sails, flag, figurehead,
-  refits; `ShipKit`).
+  refits; `ShipKit`). 1.29: rails/spars/deck/stripe paint (`_repaint`, `_deck_tint`, `_stripe`), the jolly roger
+  builder (kit skull/crossed/headpiece, ShipKit `_jolly_at`), `Figureheads` (ten, each with its `LEAN` along the
+  stem), the wheel per Rudder & helm level (`fit_helm`, ShipWheel), the flag on `_flag_pivot` turning downwind.
+- The galley pantry (1.29): `ship.pantry`, a hidden shared LootBag ("pantry", like the storage) on
+  GameManager.pantry; `Food.picks` takes from it first; `pantry_slots()`.
 
 ## Enemy ships (EnemyShip, enemy_fleet.gd)
 
@@ -108,16 +130,16 @@ Helpers: `half_width(z)`, `aboard_local(l)` (inside the ship's bounds, rigging i
 
 ## Changing the size or layout
 
-Everything keys off HullBuilder, but several things hold their own numbers. When the hull,
+Everything keys off the layout (HullLayout), but several things hold their own numbers. When the hull,
 decks or rig move, check each of these:
 
-- `Ship`: `GUN_SPOTS`, cabin fittings, `ANCHOR_AT`, `CAPSTAN_AT`, `PUMP_AT`, `PUDDLES`,
+- `Ship`: the layout's gun spots and cabin fittings, `ANCHOR_AT`, `CAPSTAN_AT`, `PUMP_AT`, `PUDDLES`,
   `WATERLINE_Y`, `DECK_Z_*`, rope `position` (inside the rail), ship camera distance,
   `ship.tscn` markers (HelmPosition, RespawnPoint, HelmZone).
 - `EnemyShip`: `ALONGSIDE`, `CREW_SPOTS`, `KINDS` gun z, hurtbox size, ladders, prize bag spot.
 - `sea_king.gd` bite spots / tail ring / `CIRCLE_R`; `sea_features.gd` wreck bag spot.
 - Brinehollow's mooring (`starter_island.gd`, ship moored `side * 7.2` off the dock), the
-  shipwright's camera (`shipwright_screen.gd`), `HullBuilder.aboard_local` bounds.
+  shipwright's camera (`shipwright_screen.gd`), `HullLayout.aboard_local` bounds.
 - Test bounds: r8test, swimtest (ladder landing), seatest, riggingtest, decktest, looptest.
 
 ## Rules that bite

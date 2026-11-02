@@ -130,7 +130,7 @@ static func _bunk(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, at: Vector3
 	if q >= 1:
 		# a lee board along its open side
 		mb.add_box(m["oak"], Transform3D(Basis(), at + Vector3(0.56, 0.5, 0)), Vector3(0.05, 0.2, 2.0), 1.0)
-	var shelf := at + Vector3(-0.45, 1.25, 0)
+	var shelf := at + Vector3(-0.56, 1.25, 0)
 	mb.add_box(m["oak"], Transform3D(Basis(), shelf), Vector3(0.24, 0.04, 1.6), 1.0)
 	fine.add_cylinder(m["linen"], Transform3D(Basis(), shelf + Vector3(0, 0.02, 0.5)), 0.03, 0.03, 0.14, 5, 1.0)
 	fine.add_box(m["glass"], Transform3D(Basis(), shelf + Vector3(0, 0.17, 0.5)), Vector3(0.02, 0.04, 0.02), 1.0)
@@ -442,4 +442,8 @@ static func _lounge(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLa
 	# a second bunk along the port wall forward of the first, its own curtain
 	var b2 := L.bed_at + Vector3(0, 0, -2.35)
 	_bunk(mb, fine, m, b2, 4)
-	mb.add_box(m["curtain"], Transform3D(Basis(), b2 + Vector3(0.6, 0.95, 0.8)), Vector3(0.03, 0.9, 0.4), 1.0, Color(0.85, 0.85, 0.85))
+	# its curtain on a rod between two posts at the open side
+	for sz in [-1.05, 1.05]:
+		mb.add_box(m["wood"], Transform3D(Basis(), b2 + Vector3(0.55, 0.75, sz)), Vector3(0.07, 1.5, 0.07), 1.0)
+	HullBuilder._line(mb, m["brass"], b2 + Vector3(0.6, 1.45, -1.05), b2 + Vector3(0.6, 1.45, 1.05), 0.025)
+	mb.add_box(m["curtain"], Transform3D(Basis(), b2 + Vector3(0.6, 0.98, 0.75)), Vector3(0.03, 0.92, 0.45), 1.0, Color(0.85, 0.85, 0.85))

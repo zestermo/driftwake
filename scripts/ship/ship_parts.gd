@@ -878,13 +878,22 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 			HullBuilder._line(mb, _m["rope"], a, a + Vector3(0, 0.15, 0), 0.03)
 			HullBuilder._line(mb, _m["rope"], b, b + Vector3(0, 0.15, 0), 0.03)
 		mb.add_cylinder(_m["canvas"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-1.6, ship.layout.qd_y - 0.4, 6.4)), 0.12, 0.12, 1.2, 6, 1.0)
-		# a pillow in each hammock, sea bags under them
+		# (lashed up to the deckhead at both ends)
+		for z in [6.6, 7.4]:
+			HullBuilder._line(mb, _m["rope"], Vector3(-1.6, ship.layout.qd_y - 0.28, z), Vector3(-1.6, ship.layout.qd_y - 0.12, z), 0.03)
+		# a pillow lying in each hammock near its head, a sea bag hung on its lashing at the aft end
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 33
 		for k in range(2):
 			var x := 1.2 + k * 1.15
-			mb.add_box(_m["linen"], Transform3D(Basis(), Vector3(x, ship.layout.qd_y - 0.72, 7.35)), Vector3(0.36, 0.1, 0.24), 1.0)
-			mb.add_blob(_m["canvas"], Transform3D(Basis(), Vector3(x + 0.3, ship.layout.cabin_y + 0.25, 7.0 + k * 0.3)), Vector3(0.2, 0.25, 0.2), rng, 0.15, 4, 6, 0.5, Color(0.85, 0.8, 0.7))
+			var a := Vector3(x, ship.layout.qd_y - 0.35, 6.2)
+			var b := Vector3(x, ship.layout.qd_y - 0.35, 7.6)
+			var pts := MeshBuilder.sag_points(a, b, 0.45, 6)
+			var rest: Vector3 = (pts[4] as Vector3).lerp(pts[5], 0.5)
+			mb.add_box(_m["linen"], Transform3D(Basis(Vector3.RIGHT, 0.35), rest + Vector3(0, 0.07, 0)), Vector3(0.36, 0.1, 0.24), 1.0)
+			var bag := b + Vector3(0, -0.55, 0.12)
+			HullBuilder._line(mb, _m["rope"], b, bag + Vector3(0, 0.22, 0), 0.025)
+			mb.add_blob(_m["canvas"], Transform3D(Basis(), bag), Vector3(0.16, 0.24, 0.16), rng, 0.12, 4, 6, 0.5, Color(0.85, 0.8, 0.7))
 		# the pantry's fruit net hung from the deckhead by the shelves, sacks stacked on the cold box
 		var pa := ship.layout.pantry_at
 		var net := Vector3(ship.layout.cabin_hw - 0.55, ship.layout.qd_y - 0.9, pa.z + 0.3)

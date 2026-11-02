@@ -1382,9 +1382,8 @@ func _build_psx_model() -> void:
 	_build_flag()
 	_figure_node = Node3D.new()
 	_figure_node.name = "Figurehead"
-	_figure_node.position = Vector3(0, 0.75, -12.6)
-	_figure_node.rotation.x = 0.45
-	_figure_node.scale = Vector3.ONE * 2.5
+	_figure_node.position = Vector3(0, 0.2, -12.7)
+	_figure_node.scale = Vector3.ONE * 2.0
 	ship_model.add_child(_figure_node)
 	_build_storage()
 	_build_puddles()
@@ -1870,6 +1869,8 @@ func apply_kit(k: Dictionary) -> void:
 	_flag_node.material_override = flag
 	for c in _figure_node.get_children():
 		c.free()
+	# (leaning out along the stem under the bowsprit, as far as its kind does: Figureheads.LEAN)
+	_figure_node.rotation.x = Figureheads.lean(int(kit["figure"]))
 	var fig := ShipKit.figurehead(int(kit["figure"]))
 	if fig:
 		_figure_node.add_child(fig)
