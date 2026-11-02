@@ -113,7 +113,7 @@ func _process(d: float) -> bool:
 			if local().z < HB.qd_front + 2.0 and t - t0 < 3.0:
 				return false
 			Input.action_release("move_forward")
-			check("through the door into the cabin (z %.1f, y %.2f)" % [local().z, local().y], HB.in_cabin(local()) and absf(local().y - HB.deck_y) < 0.2)
+			check("through the door into the cabin (z %.1f, y %.2f)" % [local().z, local().y], HB.in_cabin(local()) and absf(local().y - HB.cabin_y) < 0.2)
 			check("...under the quarterdeck: a roof over you", local().y < HB.qd_y - 1.0)
 			# the storage chest by the door
 			put(ship.layout.storage_at + Vector3(0.6, 0.1, 0.7))

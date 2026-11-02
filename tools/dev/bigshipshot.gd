@@ -2,7 +2,9 @@ extends SceneTree
 ## The bigger ship: from outside (side, three-quarter stern, bow), the main
 ## deck toward the quarterdeck and stairs, inside the cabin (bunk, galley,
 ## storage), up on the quarterdeck at the helm, the crow's nest, and an enemy
-## ship alongside for scale. Args: <out_prefix> [psx]; env BSHOT_HOUR=21 at night.
+## ship alongside for scale. Args: <out_prefix> [psx]; env BSHOT_HOUR=21 at night, BSHOT_KIT='{"quarters": 4}' (the
+## kit over hers), BSHOT_ONLY=cabin_wide,helm (just those shots). 1.29 shots: cabin_wide, cabin_aft, cabin_steps,
+## helm, flag, ladder_side.
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -39,10 +41,20 @@ func _process(d: float) -> bool:
 		w.skip_to(hour)
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 1500
 		root.add_child(cam); cam.current = true
+		if OS.get_environment("BSHOT_KIT") != "":
+			ship.apply_kit(ship.kit.merged(JSON.parse_string(OS.get_environment("BSHOT_KIT")), true))
 		var HB = ship.layout
+		var cy: float = HB.cabin_y
 		# (the refit's third pair of guns, up on the quarterdeck)
-		ship._add_gun_pair(2)
+		if ship.get_node_or_null("ShipModel/CannonS2") == null:
+			ship._add_gun_pair(2)
 		shots = [
+			["cabin_wide", Vector3(0.6, cy + 1.75, HB.qd_front + 0.5), Vector3(-0.4, cy + 0.6, HB.qd_back - 0.5), Vector3(0, 0.5, -4)],
+			["cabin_aft", Vector3(-0.3, cy + 1.6, HB.qd_back - 0.4), Vector3(0.3, cy + 0.7, HB.qd_front), Vector3(0, 0.5, -4)],
+			["cabin_steps", Vector3(0.0, HB.deck_y + 1.7, HB.qd_front - 2.5), Vector3(0, cy + 0.5, HB.qd_front + 2.0), Vector3(0, 0.5, -4)],
+			["helm", Vector3(1.4, HB.qd_y + 1.6, HB.wheel_z + 1.6), Vector3(0, HB.qd_y + 0.8, HB.wheel_z), Vector3(0, 0.5, -4)],
+			["flag", Vector3(5.0, HB.mast_top + 1.0, HB.mast_z + 4.0), Vector3(0, HB.mast_top + 0.6, HB.mast_z + 0.8), Vector3(0, 0.5, -4)],
+			["ladder_side", Vector3(9.0, 0.2, -2.9), Vector3(4.0, -0.6, -2.9), Vector3(0, 0.5, -4)],
 			["side", Vector3(-26, 6, -1), Vector3(0, 4, -1), Vector3(0, 0.5, -4)],
 			["stern", Vector3(-15, 9, 22), Vector3(0, 3, 4), Vector3(0, 0.5, -4)],
 			["bow", Vector3(9, 5, -24), Vector3(0, 3, -4), Vector3(0, 0.5, -4)],
@@ -66,6 +78,9 @@ func _process(d: float) -> bool:
 			root.get_texture().get_image().save_png("%s_%s.png" % [out, shots[i][0]])
 			print("shot ", shots[i][0])
 		i += 1
+		var only := OS.get_environment("BSHOT_ONLY").split(",", false)
+		while not only.is_empty() and i < shots.size() and not only.has(shots[i][0]):
+			i += 1
 		if i >= shots.size():
 			quit()
 			return false

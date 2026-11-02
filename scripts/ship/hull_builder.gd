@@ -21,11 +21,12 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 	var trim: Material = m["trim"]
 	var wood: Material = m["wood"]
 	var rope: Material = m["rope"]
-	for i in range(L.rings.size() - 1):
-		var a: Array = L.rings[i]
-		var b: Array = L.rings[i + 1]
+	for s in _segments(L):
+		var a: Array = s[0]
+		var b: Array = s[1]
+		var castle: bool = s[2]
 		# the outside runs on up past the deck to the rail (the stern castle has its own)
-		var lip := L.lip if i > 0 else 0.0
+		var lip := 0.0 if castle else L.lip
 		var a_tl := Vector3(-a[1], a[3] + lip, a[0]); var a_bl := Vector3(-a[2], a[4], a[0])
 		var a_tr := Vector3(a[1], a[3] + lip, a[0]); var a_br := Vector3(a[2], a[4], a[0])
 		var b_tl := Vector3(-b[1], b[3] + lip, b[0]); var b_bl := Vector3(-b[2], b[4], b[0])
@@ -33,8 +34,10 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 		mb.add_quad(hull_m, a_tl, a_bl, b_bl, b_tl, _side_uv(a_tl), _side_uv(a_bl), _side_uv(b_bl), _side_uv(b_tl), Color.WHITE, Vector3(-1, -0.3, 0).normalized())
 		mb.add_quad(hull_m, a_tr, b_tr, b_br, a_br, _side_uv(a_tr), _side_uv(b_tr), _side_uv(b_br), _side_uv(a_br), Color.WHITE, Vector3(1, -0.3, 0).normalized())
 		mb.add_quad(hull_m, a_bl, a_br, b_br, b_bl, _plank_uv(a_bl), _plank_uv(a_br), _plank_uv(b_br), _plank_uv(b_bl), Color(0.7, 0.7, 0.7), Vector3.DOWN)
-		_deck_quad(mb, deck_m, Vector3(-a[1] + 0.1, L.deck_y, a[0]), Vector3(a[1] - 0.1, L.deck_y, a[0]), Vector3(b[1] - 0.1, L.deck_y, b[0]), Vector3(-b[1] + 0.1, L.deck_y, b[0]), Color.WHITE, Vector3.UP)
-		if i == 0:
+		# (under the quarterdeck the floor is the cabin's)
+		var fy := L.cabin_y if castle else L.deck_y
+		_deck_quad(mb, deck_m, Vector3(-a[1] + 0.1, fy, a[0]), Vector3(a[1] - 0.1, fy, a[0]), Vector3(b[1] - 0.1, fy, b[0]), Vector3(-b[1] + 0.1, fy, b[0]), Color.WHITE, Vector3.UP)
+		if castle:
 			# the stern castle: the hull's sides carry on up to the quarterdeck
 			for sgn in [-1.0, 1.0]:
 				var p0 := Vector3(sgn * float(a[1]), float(a[3]), float(a[0]))
@@ -105,6 +108,30 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 		_line(mb, rope, Vector3(sgn * 0.1, L.mast_top - 0.3, L.mast_z), Vector3(sgn * 3.6, L.qd_y + 0.8, L.qd_back - 0.4), 0.04)
 
 
+## The hull's lengths between its rings, split where the quarterdeck starts: [aft ring, fore ring, under the
+## quarterdeck (the stern castle)], stern first.
+static func _segments(L: HullLayout) -> Array:
+	var zs: Array = []
+	for r in L.rings:
+		zs.append(float(r[0]))
+	if not zs.has(L.qd_front):
+		zs.append(L.qd_front)
+	zs.sort()
+	zs.reverse()
+	var out: Array = []
+	for i in range(zs.size() - 1):
+		out.append([_ring(L, zs[i]), _ring(L, zs[i + 1]), float(zs[i + 1]) >= L.qd_front - 0.001])
+	return out
+
+
+## A ring of the hull itself where there is one at `z`, else the section there.
+static func _ring(L: HullLayout, z: float) -> Array:
+	for r in L.rings:
+		if is_equal_approx(float(r[0]), z):
+			return r
+	return L.ring_at(z)
+
+
 ## Deck planking mapped by position: boards run fore and aft, 0.25 m wide.
 static func _plank_uv(p: Vector3) -> Vector2:
 	return Vector2(-p.z * 0.25, p.x * 0.5)
@@ -139,8 +166,10 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
 	var hull_m: Material = m["hull"]
 	var deck_m: Material = m["deck"]
 	var trim: Material = m["trim"]
-	var wall_h := L.qd_y - L.deck_y
-	var wy := L.deck_y + wall_h * 0.5
+	# (the walls stand on the cabin's floor; the door opens from the main deck)
+	var wall_h := L.qd_y - L.cabin_y
+	var wy := L.cabin_y + wall_h * 0.5
+	var over := L.qd_y - L.deck_y - L.door_h
 	var zf := L.qd_front
 	# front wall: either side of the door, and the lintel over it
 	var side_w := L.cabin_hw - L.door_hw
@@ -150,7 +179,9 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
 		mb.add_box(hull_m, Transform3D(Basis(), Vector3(sgn * (L.door_hw + 0.06), L.deck_y + L.door_h * 0.5, zf - 0.02)), Vector3(0.14, L.door_h, 0.16), 1.0)
 		# the cabin's side walls, inside the stern castle
 		mb.add_box(trim, Transform3D(Basis(), Vector3(sgn * (L.cabin_hw + 0.06), wy, (zf + L.qd_back) * 0.5)), Vector3(0.12, wall_h, L.qd_back - zf), 0.6, Color.WHITE, true, true)
-	mb.add_box(trim, Transform3D(Basis(), Vector3(0, L.deck_y + L.door_h + (wall_h - L.door_h) * 0.5, zf + 0.06)), Vector3(L.door_hw * 2.0, wall_h - L.door_h, 0.12), 0.6, Color.WHITE, true, true)
+	mb.add_box(trim, Transform3D(Basis(), Vector3(0, L.deck_y + L.door_h + over * 0.5, zf + 0.06)), Vector3(L.door_hw * 2.0, over, 0.12), 0.6, Color.WHITE, true, true)
+	if L.cabin_y < L.deck_y:
+		_cabin_steps(mb, m, L)
 	# the stern wall inside (the transom only faces out)
 	mb.add_box(trim, Transform3D(Basis(), Vector3(0, wy, L.qd_back - 0.1)), Vector3(L.cabin_hw * 2.0, wall_h, 0.1), 0.6, Color.WHITE, true, true)
 	mb.add_box(hull_m, Transform3D(Basis(), Vector3(0, L.deck_y + L.door_h + 0.05, zf - 0.02)), Vector3(L.door_hw * 2.0 + 0.3, 0.12, 0.16), 1.0)
@@ -160,8 +191,8 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
 	_deck_quad(mb, deck_m, Vector3(-hf + 0.05, L.qd_y, zf), Vector3(hf - 0.05, L.qd_y, zf), Vector3(hb - 0.05, L.qd_y, L.qd_back), Vector3(-hb + 0.05, L.qd_y, L.qd_back), Color.WHITE, Vector3.UP)
 	_deck_quad(mb, deck_m, Vector3(-L.cabin_hw, L.qd_y - 0.12, zf), Vector3(L.cabin_hw, L.qd_y - 0.12, zf), Vector3(L.cabin_hw, L.qd_y - 0.12, L.qd_back), Vector3(-L.cabin_hw, L.qd_y - 0.12, L.qd_back), Color(0.6, 0.6, 0.6), Vector3.DOWN)
 	mb.add_box(hull_m, Transform3D(Basis(), Vector3(0, L.qd_y - 0.06, zf - 0.04)), Vector3(hf * 2.0, 0.16, 0.12), 1.0, Color.WHITE, false, false)
-	# beams under the ceiling
-	for z in [6.2, 7.6, 9.0]:
+	# beams under the ceiling, every 1.4 m forward from the stern
+	for z in beams(L):
 		mb.add_box(hull_m, Transform3D(Basis(), Vector3(0, L.qd_y - 0.2, z)), Vector3(L.cabin_hw * 2.0, 0.16, 0.18), 1.0, Color.WHITE, false, false)
 	# quarterdeck rails: round the sides and stern, and along its front edge
 	# between the stairheads
@@ -178,6 +209,54 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
 	for x in [-2.6, -1.3, 0.0, 1.3, 2.6]:
 		mb.add_box(trim, Transform3D(Basis(), Vector3(x, L.qd_y + 0.4, zf + 0.05)), Vector3(0.1, 0.8, 0.1), 1.0)
 		mb.add_box(trim, Transform3D(Basis(), Vector3(x * 1.4, L.qd_y + 0.4, L.qd_back - 0.05)), Vector3(0.1, 0.8, 0.1), 1.0)
+
+
+## The cabin's deck beams' z (forward to aft).
+static func beams(L: HullLayout) -> Array:
+	var out: Array = []
+	var z := L.qd_back - 0.9
+	while z > L.qd_front + 0.8:
+		out.push_front(z)
+		z -= 1.4
+	return out
+
+
+## Where the steps down into a stepped-down cabin end (z: the floor from there aft).
+static func steps_end(L: HullLayout) -> float:
+	return L.qd_front + 0.12 + STEP_RUN * step_count(L)
+
+
+static func step_count(L: HullLayout) -> int:
+	return maxi(roundi((L.deck_y - L.cabin_y) / 0.2), 1)
+
+
+const STEP_RUN := 0.34
+
+
+## Down into a stepped-down cabin: a sill in the doorway, then steps the door's width (and a little more) to the
+## floor; and the corners between the front wall and the hull closed down to the floor.
+static func _cabin_steps(mb: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
+	var hull_m: Material = m["hull"]
+	var deck_m: Material = m["deck"]
+	var trim: Material = m["trim"]
+	var zf := L.qd_front
+	var n := step_count(L)
+	var rise := (L.deck_y - L.cabin_y) / n
+	var w := L.door_hw * 2.0 + 0.5
+	mb.add_box(trim, Transform3D(Basis(), Vector3(0, (L.deck_y + L.cabin_y) * 0.5, zf + 0.06)), Vector3(L.door_hw * 2.0, L.deck_y - L.cabin_y, 0.12), 0.6)
+	for i in range(n):
+		var top := L.deck_y - rise * (i + 1)
+		var z0 := zf + 0.12 + STEP_RUN * i
+		var h := top - L.cabin_y
+		mb.add_box(deck_m, Transform3D(Basis(), Vector3(0, L.cabin_y + h * 0.5, z0 + STEP_RUN * 0.5)), Vector3(w, h, STEP_RUN), 0.5)
+		# a nosing along its front edge
+		mb.add_box(trim, Transform3D(Basis(), Vector3(0, top - 0.02, z0 + STEP_RUN - 0.03)), Vector3(w + 0.02, 0.05, 0.07), 1.0, Color(0.85, 0.85, 0.85))
+	for sgn in [-1.0, 1.0]:
+		var x0: float = sgn * L.cabin_hw
+		var x1: float = sgn * L.half_width(zf)
+		var a := Vector3(x0, L.cabin_y, zf); var b := Vector3(x1, L.cabin_y, zf)
+		var c := Vector3(x1, L.qd_y, zf); var d := Vector3(x0, L.qd_y, zf)
+		mb.add_quad(hull_m, a, b, c, d, _side_uv(a), _side_uv(b), _side_uv(c), _side_uv(d), Color(0.8, 0.8, 0.8), Vector3.FORWARD)
 
 
 ## Stairs up to the quarterdeck, port and starboard of the cabin door.
@@ -383,31 +462,41 @@ static func marine_material() -> ShaderMaterial:
 ## deck, waist-high bulwarks, the cabin (walls, a doorway), the quarterdeck
 ## and its rails, the stairs, and (rig) the mast and the crow's nest.
 static func collide(body: CollisionObject3D, rig: bool = true, L: HullLayout = HullLayout.base()) -> void:
-	var pts := PackedVector3Array()
-	for r in L.rings:
-		for sgn in [-1.0, 1.0]:
-			pts.append(Vector3(sgn * float(r[1]), L.deck_y, float(r[0])))
-			pts.append(Vector3(sgn * float(r[2]), float(r[4]), float(r[0])))
-	var hull_shape := ConvexPolygonShape3D.new()
-	hull_shape.points = pts
-	_shape(body, hull_shape, Transform3D.IDENTITY)
+	var zf := L.qd_front
+	if L.cabin_y < L.deck_y:
+		# a stepped-down cabin: the hull's volume tops out at the main deck forward of it and at the cabin's floor
+		# under it, a ramp down over the steps inside the door
+		var cut: Array = _ring(L, zf)
+		_hull_volume(body, L.rings.filter(func(r): return float(r[0]) < zf).map(func(r): return [r, L.deck_y]) + [[cut, L.deck_y]])
+		_hull_volume(body, L.rings.filter(func(r): return float(r[0]) > zf).map(func(r): return [r, L.cabin_y]) + [[cut, L.cabin_y]])
+		var w := L.door_hw + 0.25
+		var z1 := steps_end(L)
+		var ramp := ConvexPolygonShape3D.new()
+		ramp.points = PackedVector3Array([Vector3(-w, L.deck_y, zf), Vector3(w, L.deck_y, zf), Vector3(-w, L.cabin_y, zf), Vector3(w, L.cabin_y, zf),
+			Vector3(-w, L.cabin_y, z1), Vector3(w, L.cabin_y, z1)])
+		_shape(body, ramp, Transform3D.IDENTITY)
+	else:
+		_hull_volume(body, L.rings.map(func(r): return [r, L.deck_y]))
 	# main deck bulwarks (waist high: jump to get over the side)
-	for i in range(1, L.rings.size() - 1):
-		var a: Array = L.rings[i]
-		var b: Array = L.rings[i + 1]
+	for s in _segments(L):
+		if s[2]:
+			continue
+		var a: Array = s[0]
+		var b: Array = s[1]
 		for sgn in [-1.0, 1.0]:
 			_box(body, Vector3(sgn * (float(a[1]) - 0.05), L.deck_y + 0.4, float(a[0])), Vector3(sgn * (float(b[1]) - 0.05), L.deck_y + 0.4, float(b[0])), 0.18, 0.8)
 	var bw: Array = L.rings[L.rings.size() - 1]
 	_cbox(body, Vector3(0, L.deck_y + 0.4, float(bw[0])), Vector3(float(bw[1]) * 2.0 + 0.3, 0.8, 0.2))
-	var wall_h := L.qd_y - L.deck_y
-	var wy := L.deck_y + wall_h * 0.5
-	var zf := L.qd_front
+	# (the walls stand on the cabin's floor; the lintel over the door from the main deck)
+	var wall_h := L.qd_y - L.cabin_y
+	var wy := L.cabin_y + wall_h * 0.5
+	var over := L.qd_y - L.deck_y - L.door_h
 	# the cabin: front wall either side of the doorway, the lintel, the sides (out to the hull), the stern
 	var side_w := L.cabin_hw - L.door_hw
 	for sgn in [-1.0, 1.0]:
 		_cbox(body, Vector3(sgn * (L.door_hw + side_w * 0.5), wy, zf + 0.06), Vector3(side_w, wall_h, 0.14))
 		_cbox(body, Vector3(sgn * (L.cabin_hw + 0.3), wy, (zf + L.qd_back) * 0.5), Vector3(0.6, wall_h, L.qd_back - zf))
-	_cbox(body, Vector3(0, L.deck_y + L.door_h + (wall_h - L.door_h) * 0.5, zf + 0.06), Vector3(L.door_hw * 2.0, wall_h - L.door_h, 0.14))
+	_cbox(body, Vector3(0, L.deck_y + L.door_h + over * 0.5, zf + 0.06), Vector3(L.door_hw * 2.0, over, 0.14))
 	_cbox(body, Vector3(0, wy, L.qd_back - 0.08), Vector3(L.cabin_hw * 2.0 + 0.6, wall_h, 0.16))
 	# the quarterdeck floor (a slab the shape of the hull there)
 	var hf := L.half_width(zf)
@@ -446,6 +535,19 @@ static func collide(body: CollisionObject3D, rig: bool = true, L: HullLayout = H
 		var bx := BoxShape3D.new()
 		bx.size = Vector3(0.1, 0.9, L.nest_r * 0.6)
 		_shape(body, bx, Transform3D(Basis(Vector3.UP, -float(k)), L.nest_rail_at(float(k))))
+
+
+## A convex volume of the hull through these sections ([ring, its top y]), keel up.
+static func _hull_volume(body: CollisionObject3D, sections: Array) -> void:
+	var pts := PackedVector3Array()
+	for e in sections:
+		var r: Array = e[0]
+		for sgn in [-1.0, 1.0]:
+			pts.append(Vector3(sgn * float(r[1]), float(e[1]), float(r[0])))
+			pts.append(Vector3(sgn * float(r[2]), float(r[4]), float(r[0])))
+	var hull_shape := ConvexPolygonShape3D.new()
+	hull_shape.points = pts
+	_shape(body, hull_shape, Transform3D.IDENTITY)
 
 
 ## A wall segment from a to b (centres), `thick` across, `tall` high.

@@ -9241,3 +9241,37 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Proof: `t/ship/layout_parity` fingerprints every vertex of the pirates' model, its collision shapes, a wreck, and the
   crew's whole sloop (meshes and shapes) against prints taken from the constants before the change: all identical.
   riggingtest, looptest, yard_ropes, bigshipshot read `ship.layout` (their `HB` is the layout now, lowercase fields).
+
+## 2026-11-02: the sloop reworked (1.29 'Shipshape', piece 2)
+- **The cabin stepped down and bigger**: every crew class's layout (`HullLayout._crew`, tier 0) has the cabin floor
+  `cabin_y` 0.4 m under the main deck and the quarterdeck from 4.4 (was 5.0; stairs from 0.9). HullBuilder splits the
+  hull at `qd_front` (`_segments`: the stern castle aft of it, the waist forward), lays the castle's floor at
+  `cabin_y`, stands the cabin walls on it (the lintel from the deck), and for a stepped cabin adds a sill and
+  `step_count` steps of `STEP_RUN` inside the door and closes the corners between the front wall and the hull
+  (`_cabin_steps`). Collision: the hull volume in two (deck height forward, floor height under the cabin) and a ramp
+  over the steps. The pirates' base() hull is unchanged (layout_parity's fingerprints still match).
+- **Ship builds by layout**: `_build_layout()` puts the hull mesh, the cabin (ShipCabin), the helm (ShipWheel), the
+  lanterns, the cabin zones, seats, workbench and bookshelf under `ShipModel/Layout`, the ladders and the galley table
+  by name on ShipModel (tests use those paths), its collision shapes in `_layout_shapes`, and sets the helm marker, helm
+  zone and respawn point from the layout. `_relayout()` (apply_kit, when `HullLayout.for_kit` changes) frees all that
+  and builds it again, moves the quarterdeck guns, drops the mizzen and the helm lashing to be rebuilt, and forces
+  ShipParts to rebuild. The storage chests are built once (`_build_storage`) and moved.
+- **ShipCabin** (`scripts/ship/ship_cabin.gd`): the furnished room per Quarters level (tier 0 here: bunk with a shelf,
+  stove and counter with pots, crates round the chest, table and stools, small stern windows, a lantern), `solids()`
+  and `seats()` for it. Two meshes (Cabin, CabinFine at 14 m); `_show_cabin` hides both and the cabin light unless the
+  camera is in or near the cabin (checked 4x a second).
+- **Ladders** (`Ladder.lean`, `rung_at`, `hold_at`): the hull ladders lie on the hull as it tucks in (lean from the ring
+  at ladder_z, ~0.69 m in per metre down) and end at the waterline (`ladder_len` = deck + freeboard + 0.06, was 3.0);
+  ClimbState follows `hold_at`. The pirates' and docks' ladders are unchanged (lean 0).
+- **The flag** (`_build_flag`): a pole on the masthead with a gilt truck, the flag hoisted along it in six rippled,
+  sagging panels (both faces read), on `_flag_pivot`, which turns downwind with a slow stir each frame (`_show_flag`:
+  PI - the wind's bearing) and goes up 0.75 over the nest's hood (`raise_flag`, ShipParts).
+- **The wheel** (`ShipWheel`, `scripts/ship/ship_wheel.gd`): eight spokes through an inner ring, a twelve-felloe rim,
+  turned handles, a hub with the axle's end, on a turned post with an axle box (the old post was a plank). `fit_helm(n)`
+  builds both at a Rudder & helm level (levels shown from piece 3).
+- Per frame added: `_show_flag` (one lerp_angle) and `_show_cabin` (a timer; a to_local 4x a second).
+- Tests: t/ship/cabin_step (in the door and down the steps onto the cabin floor, the bunk/galley/chest prompts, the
+  respawn by the bunk, back up and out), t/ship/hull_ladder (ends at the waterline, rungs on the hull, down into the sea
+  and back up), layout_parity's WANT_SHIP renewed; t/downtime/sleep gets up on the cabin floor. riggingtest's cabin
+  check reads `cabin_y`. Renders: bigshipshot BSHOT_ONLY / BSHOT_KIT and the shots cabin_wide, cabin_aft, cabin_steps,
+  helm, flag, ladder_side (tools/dev/out/shipshape/p2_*).

@@ -60,7 +60,7 @@ func _process(_d: float) -> bool:
 		4:
 			TK.release("move_forward")
 			var l := local()
-			check("up again: on the floor beside the bunk (%s)" % str(l), p.current_state_name() != "Downtime" and absf(l.y - ship.DECK_Y) < 0.3 \
+			check("up again: on the floor beside the bunk (%s)" % str(l), p.current_state_name() != "Downtime" and absf(l.y - ship.layout.cabin_y) < 0.3 \
 				and Vector2(l.x - ship.layout.bed_at.x, l.z - ship.layout.bed_at.z).length() < 1.6)
 			return TK.done(fails)
 	step += 1

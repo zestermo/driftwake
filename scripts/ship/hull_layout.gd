@@ -72,6 +72,7 @@ var stove_at := Vector3(3.3, DECK_Y, 9.05)
 var storage_at := Vector3(-2.7, DECK_Y, 5.75)
 var counter_at := Vector3(3.35, DECK_Y, 7.55)
 var table_at := Vector3(0.2, DECK_Y, 8.7)
+var pantry_at := Vector3(3.25, DECK_Y, 5.6)
 
 static var _base: HullLayout
 static var _cache := {}
@@ -92,8 +93,29 @@ static func of(c: String, t: int) -> HullLayout:
 		var l := HullLayout.new()
 		l.cls = c
 		l.tier = t
+		l._crew(t)
 		_cache[key] = l
 	return _cache[key]
+
+
+## The crew's ships (1.29, every class: they share the sloop's deck): the cabin stepped down into the hull and
+## 0.6 m longer than the pirates', the hull ladders ending at the waterline. The Quarters line grows it: 1 a metre
+## longer (forward: the quarterdeck and its stairs with it), 3 a taller deckhead (the quarterdeck 0.25 m up), 4 a
+## second step down.
+func _crew(t: int) -> void:
+	cabin_y = DECK_Y - (0.6 if t >= 4 else 0.4)
+	qd_front = 4.4 if t < 1 else 3.4
+	stair_z0 = qd_front - 3.5
+	if t >= 3:
+		qd_y = DECK_Y + 2.65
+	ladder_len = DECK_Y + FREEBOARD + 0.06
+	gun_spots = [[-6.8, 3.0, DECK_Y], [-4.2, 3.65, DECK_Y], [8.0, 3.55, qd_y]]
+	bed_at = Vector3(-3.25, cabin_y, 8.45)
+	stove_at = Vector3(3.3, cabin_y, 9.05)
+	counter_at = Vector3(3.35, cabin_y, 7.55)
+	storage_at = Vector3(-2.7, cabin_y, qd_front + 1.35)
+	table_at = Vector3(0.2, cabin_y, 8.4)
+	pantry_at = Vector3(3.25, cabin_y, qd_front + 1.25)
 
 
 ## (A merged kit: ShipKit.merged. Read as plain keys: tests load this before the autoloads.)

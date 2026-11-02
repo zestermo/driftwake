@@ -81,7 +81,7 @@ func apply(kit: Dictionary, sail_mat: Material) -> void:
 	ship.rig_scale = RIG_SCALE[lv("sails")]
 	ship._show_sail(0.0)
 	# (the nest's hood stands where the flag flew: it goes up the staff)
-	ship._flag_node.position.y = 0.75 if lv("nest") >= 1 else 0.0
+	ship.raise_flag(lv("nest") >= 1)
 	for c in ship.cannons:
 		(c as ShipCannon).fit(maxi(lv("guns"), [0, 0, 3, 5][lv("chaser")]) if c.name == "CannonBow" else lv("guns"))
 

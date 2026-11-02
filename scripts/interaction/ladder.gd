@@ -13,6 +13,8 @@ extends Node3D
 @export var rail: float = 0.0
 ## How far onto the deck the climb ends.
 @export var deck_depth: float = 0.8
+## How far it tucks in (toward -Z) a metre down below the origin: it lies on a hull that narrows toward the keel.
+@export var lean: float = 0.0
 ## Pulled up (rolled at its head, out of reach) until this world flag is set
 ## (GameManager.world_flags), then let down. Set before it enters the tree.
 var lock_flag := ""
@@ -36,10 +38,10 @@ func _ready() -> void:
 	interactable.reach_test = func(feet: Vector3) -> bool: return in_reach(feet) or at_head(feet)
 	var cs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(1.6, length + 1.0, 1.6)
+	box.size = Vector3(1.6, length + 1.0, 1.6 + lean * length)
 	cs.shape = box
 	interactable.add_child(cs)
-	interactable.position = Vector3(0, rail - (length + rail) * 0.5, 0.6)
+	interactable.position = Vector3(0, rail - (length + rail) * 0.5, 0.6 - lean * length * 0.5)
 	add_child(interactable)
 	interactable.interacted.connect(_on_use)
 	set_physics_process(lock_flag != "" and not GameManager.world_flags.has(lock_flag))
@@ -92,11 +94,15 @@ func _build_mesh() -> void:
 	var wood := PSXMat.lit("planks_dark")
 	var top := rail
 	var bottom := -length
+	var foot := rung_at(bottom)
+	var tilt := Basis(Vector3.RIGHT, atan(lean))
 	for x in [-0.24, 0.24]:
-		mb.add_box(rope, Transform3D(Basis.IDENTITY, Vector3(x, (top + bottom) * 0.5, 0.08)), Vector3(0.05, top - bottom, 0.05), 1.0, Color.WHITE, false, false)
+		if top > 0.0:
+			mb.add_box(rope, Transform3D(Basis.IDENTITY, Vector3(x, top * 0.5, 0.08)), Vector3(0.05, top, 0.05), 1.0, Color.WHITE, false, false)
+		mb.add_box(rope, Transform3D(tilt, Vector3(x, 0, 0.08).lerp(foot + Vector3(x, 0, 0), 0.5)), Vector3(0.05, Vector3(0, 0, 0.08).distance_to(foot), 0.05), 1.0, Color.WHITE, false, false)
 	var y := top - 0.15
 	while y > bottom + 0.05:
-		mb.add_box(wood, Transform3D(Basis.IDENTITY, Vector3(0, y, 0.08)), Vector3(0.56, 0.05, 0.07), 1.0, Color.WHITE, false, false)
+		mb.add_box(wood, Transform3D(tilt if y < 0.0 else Basis.IDENTITY, rung_at(y)), Vector3(0.56, 0.05, 0.07), 1.0, Color.WHITE, false, false)
 		y -= 0.34
 	# hooks over the top edge
 	if rail > 0.0:
@@ -106,10 +112,21 @@ func _build_mesh() -> void:
 	add_child(_mesh)
 
 
+## Where a rung is at `y` (local: on the line it hangs, tucked in with `lean` below the origin).
+func rung_at(y: float) -> Vector3:
+	return Vector3(0, y, 0.08 + lean * minf(y, 0.0))
+
+
+## Where a climber's feet are at `y` (out from the rungs).
+func hold_at(y: float) -> Vector3:
+	return rung_at(y) + Vector3(0, 0, 0.32)
+
+
 ## Close enough (in front of the rungs) to grab on?
 func in_reach(p: Vector3) -> bool:
 	var l := to_local(p)
-	return not _stowed and absf(l.x) < 1.1 and l.z > -0.2 and l.z < 1.8 and l.y < rail - 0.6 and l.y > -length - 2.2
+	var z := l.z - lean * clampf(l.y, -length, 0.0)
+	return not _stowed and absf(l.x) < 1.1 and z > -0.2 and z < 1.8 and l.y < rail - 0.6 and l.y > -length - 2.2
 
 
 ## On deck (or the dock) right at its head, inside the rail?

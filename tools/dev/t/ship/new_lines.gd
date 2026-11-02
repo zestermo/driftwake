@@ -46,7 +46,7 @@ func _process(_d: float) -> bool:
 			ship.apply_kit({})
 			check("...and gone with the line", ship.get_node_or_null("ShipModel/CannonBow") == null and ship.cannons.size() == 4)
 			ship.apply_kit({"nest": 3})
-			check("the crow's nest: the lookout sees 500 m, the flag's up its staff", is_equal_approx(ship.lookout, 500.0) and ship._flag_node.position.y > 0.5)
+			check("the crow's nest: the lookout sees 500 m, the flag's up its staff", is_equal_approx(ship.lookout, 500.0) and ship._flag_pivot.position.y > ship.layout.mast_top + 0.5)
 			ship.apply_kit({"lanterns": 3, "rails": 2})
 			check("lanterns: +9% at night; rails 2: a ram doesn't throw the crew", is_equal_approx(ship._night_k, 0.09) and is_equal_approx(ship.steady, 1.0))
 			ship.apply_kit({"rails": 3})

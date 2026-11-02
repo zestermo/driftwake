@@ -123,7 +123,18 @@ var _psx_model: MeshInstance3D
 var _hull_mat: Material
 var _canvas_mat: Material
 var _flag_node: MeshInstance3D
+var _flag_pivot: Node3D
+var _flag_t := 0.0
 var _figure_node: Node3D
+## What her layout builds (_build_layout: the hull, the cabin and its fittings, the helm, the lanterns), and the
+## collision shapes it adds; a new layout (a Quarters level) frees both and builds them again.
+var _layout_root: Node3D
+var _layout_shapes: Array = []
+var _cabin_mesh: MeshInstance3D
+var _cabin_fine: MeshInstance3D
+var _cabin_light: OmniLight3D
+var _cabin_t := 0.0
+var _helm_post: MeshInstance3D
 ## What the upgrade lines have put on her (ShipParts, built from the kit).
 var parts: ShipParts
 ## Rain on deck: how wet she is (0..1), the puddles it pools into.
@@ -174,9 +185,8 @@ func _ready() -> void:
 	add_to_group("decks")
 	layout = HullLayout.for_kit(ShipKit.merged(get_node("/root/GameManager").ship_kit))
 	_build_psx_model()
-	_build_collision()
+	_build_layout()
 	_build_cannons()
-	ShipLights.crew(ship_model, layout)
 	var spray := ShipSpray.new()
 	spray.name = "ShipSpray"
 	add_child(spray)
@@ -1116,6 +1126,8 @@ func _process(delta: float) -> void:
 	_show_anchor(delta)
 	_damage_view(delta)
 	_rain_on_deck(delta)
+	_show_flag(delta)
+	_show_cabin(delta)
 	var xf := get_global_transform_interpolated()
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
@@ -1127,20 +1139,22 @@ func _process(delta: float) -> void:
 # ==========================================================================
 # Deck collision: what you walk on matches what you see
 # ==========================================================================
+## (Every shape it adds goes in _layout_shapes: a new layout takes them all away and builds them again.)
 func _build_collision() -> void:
+	var before := get_child_count()
 	# the hull, decks, cabin, stairs, mast and crow's nest
 	HullBuilder.collide(self, true, layout)
-	# the helm post, the capstan, and the cabin's furniture
-	_box_at(Vector3(0, layout.qd_y + 0.45, layout.wheel_z + 0.1), Vector3(0.3, 0.9, 0.3))
+	# the helm's pedestal, the capstan, and the cabin's furniture
+	_box_at(Vector3(0, layout.qd_y + 0.45, layout.wheel_z - 0.16), Vector3(0.36, 0.9, 0.36))
 	var capstan := CylinderShape3D.new()
 	capstan.radius = 0.32
 	capstan.height = 0.75
 	_shape(capstan, Transform3D(Basis.IDENTITY, CAPSTAN_AT + Vector3(0, 0.37, 0)))
-	_box_at(layout.bed_at + Vector3(0, 0.26, 0), Vector3(1.15, 0.52, 2.15))
-	_box_at(layout.stove_at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95))
-	_box_at(layout.counter_at + Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 1.6))
-	_box_at(layout.storage_at + Vector3(0, 0.3, 0), Vector3(1.0, 0.6, 0.65))
-	_box_at(layout.table_at + Vector3(0, 0.4, 0), Vector3(1.5, 0.8, 0.9))
+	for s in ShipCabin.solids(layout, layout.tier):
+		_box_at(s[0], s[1])
+	_box_at(_bench_at() + Vector3(0, Workbench.TOP * 0.5, 0), Vector3(Workbench.W, Workbench.TOP, Workbench.D))
+	_box_at(_shelf_at() + Vector3(0, BookModels.SHELF_H * 0.5, BookModels.SHELF_D * 0.5), Vector3(BookModels.SHELF_W, BookModels.SHELF_H, BookModels.SHELF_D))
+	_layout_shapes = get_children().slice(before)
 
 
 # ==========================================================================
@@ -1334,25 +1348,20 @@ func _on_helm_interacted(player: Player) -> void:
 			sm.current_state.transitioned.emit(sm.current_state, "Helm", {})
 
 
-## Low-poly PSX sloop: tapered plank hull, deck, mast + sail, stern cabin,
-## helm (the wheel is its own node so it can turn) and the banking chest.
+## Low-poly PSX sloop: what her layout doesn't move (the rig, the climbing, the anchor, the pump, the flag, the
+## figurehead, the storage chests, the puddles); the hull, cabin and helm are _build_layout's.
 func _build_psx_model() -> void:
-	var mb := MeshBuilder.new()
 	var hull := PSXMat.lit("planks_dark", Color.WHITE, {"affine": 0.6})
 	var deck := PSXMat.lit("planks", Color.WHITE, {"affine": 0.6})
 	var trim := PSXMat.lit("planks", Color(0.85, 0.65, 0.35))
 	var canvas := PSXMat.lit("canvas", Color(0.95, 0.92, 0.82), {"affine": 0.6})
 	var wood := PSXMat.lit("bark")
-	var glass := PSXMat.glow(Color(1.0, 0.8, 0.4), 2.5)
 	_hull_mat = hull
 	_canvas_mat = canvas
 	_deck_mat = deck
 	parts = ShipParts.new()
 	parts.setup(self)
 	ship_model.add_child(parts)
-
-	# hull, decks, quarterdeck over the cabin, stairs, mast, crow's nest, rigging
-	HullBuilder.hull(mb, {"hull": hull, "deck": deck, "trim": trim, "wood": wood, "rope": PSXMat.lit("rope")}, true, layout)
 	_build_rig(canvas, wood)
 	_build_climbing()
 	_build_anchor(wood)
@@ -1363,93 +1372,189 @@ func _build_psx_model() -> void:
 	pmb.add_box(trim, Transform3D(Basis(), PUMP_AT + Vector3(0.18, 0.55, 0)), Vector3(0.08, 0.08, 0.22), 1.0)
 	ship_model.add_child(pmb.to_instance("Pump"))
 	_dmg_rng.randomize()
-	# the flag at the masthead (painted from the kit: apply_kit)
-	var fmb := MeshBuilder.new()
-	var flag := PSXMat.lit("cloth_red")
-	var flag_at := Vector3(0, layout.mast_top + 0.2, layout.mast_z + 0.45)
-	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), flag_at), 2.1, 1.25)
-	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), flag_at), 2.1, 1.25, Rect2(1, 0, -1, 1))
-	_flag_node = fmb.to_instance("Flag")
-	ship_model.add_child(_flag_node)
+	_build_flag()
 	_figure_node = Node3D.new()
 	_figure_node.name = "Figurehead"
 	_figure_node.position = Vector3(0, 0.75, -12.6)
 	_figure_node.rotation.x = 0.45
 	_figure_node.scale = Vector3.ONE * 2.5
 	ship_model.add_child(_figure_node)
-	# windows either side of the cabin door, the stern lantern
-	mb.add_box(glass, Transform3D(Basis(), Vector3(2.0, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(-2.0, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(0, layout.qd_y + 1.3, layout.qd_back + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
-	# the helm on the quarterdeck: its post, and the wheel (its own node, it turns)
-	mb.add_box(wood, Transform3D(Basis(), Vector3(0, layout.qd_y + 0.45, layout.wheel_z + 0.1)), Vector3(0.16, 0.9, 0.16), 1.0)
-	var wmb := MeshBuilder.new()
-	wmb.add_cylinder(trim, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.03)), 0.42, 0.42, 0.06, 8, 1.0, Color.WHITE, true, true, false)
-	for k in range(4):
-		var b := Basis(Vector3.BACK, PI * k / 4.0)
-		wmb.add_box(wood, Transform3D(b, Vector3(0, 0, -0.05)), Vector3(0.05, 1.05, 0.05), 1.0)
-	wheel = wmb.to_instance("Wheel")
-	wheel.position = Vector3(0, layout.qd_y + 0.93, layout.wheel_z)
-	ship_model.add_child(wheel)
-	_build_cabin(mb, wood, trim, glass)
-	_psx_model = mb.to_instance("PSXModel")
-	ship_model.add_child(_psx_model)
+	_build_storage()
 	_build_puddles()
-	# rope ladders down both sides: climb back aboard from the water
+
+
+## Everything her layout places (Ship.layout: her class's and her Quarters level's), under _layout_root: the hull,
+## decks and quarterdeck, the cabin furnished (ShipCabin), the helm (ShipWheel), the lanterns, the cabin's fittings
+## and seats; the hull ladders and the galley table (by name on ShipModel); the collision; the markers.
+func _build_layout() -> void:
+	_layout_root = Node3D.new()
+	_layout_root.name = "Layout"
+	ship_model.add_child(_layout_root)
+	var mb := MeshBuilder.new()
+	var trim := PSXMat.lit("planks", Color(0.85, 0.65, 0.35))
+	var glass := PSXMat.glow(Color(1.0, 0.8, 0.4), 2.5)
+	# hull, decks, quarterdeck over the cabin, stairs, mast, crow's nest, rigging
+	HullBuilder.hull(mb, {"hull": _hull_mat, "deck": _deck_mat, "trim": trim, "wood": PSXMat.lit("bark"), "rope": PSXMat.lit("rope")}, true, layout)
+	# windows either side of the cabin door, the stern lantern
+	for sx in [-2.0, 2.0]:
+		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(0, layout.qd_y + 1.3, layout.qd_back + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
+	_psx_model = mb.to_instance("PSXModel")
+	_layout_root.add_child(_psx_model)
+	_wet_overrides()
+	_build_helm()
+	_build_cabin()
+	ShipLights.crew(_layout_root, layout)
+	# rope ladders down both sides, lying on the hull to the waterline: climb back aboard from the water
+	var r := layout.ring_at(layout.ladder_z)
 	for sgn in [-1.0, 1.0]:
 		var lad := Ladder.new()
 		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
 		lad.length = layout.ladder_len
 		lad.rail = 0.8
 		lad.deck_depth = 0.9
+		lad.lean = (float(r[1]) - float(r[2])) / (float(r[3]) - float(r[4]))
 		lad.position = Vector3(sgn * (layout.half_width(layout.ladder_z) + 0.02), DECK_Y, layout.ladder_z)
 		lad.rotation.y = sgn * PI * 0.5
 		ship_model.add_child(lad)
+	_build_collision()
+	helm_position.position = Vector3(0, layout.qd_y + 0.01, layout.helm_z)
+	helm_zone.position = Vector3(0, layout.qd_y + 0.18, layout.helm_z)
+	respawn_point.position = layout.bed_at + Vector3(1.15, 0.23, -0.05)
 
 
-## The crew cabin under the quarterdeck: a bunk at the back on the port side,
-## the galley (stove and counter) to starboard, the storage chest by the door,
-## a table, stern windows and a lantern (with a little warm light).
-func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Material) -> void:
-	var cloth := PSXMat.lit("fabric", Color(0.55, 0.12, 0.1))
-	var linen := PSXMat.lit("fabric", Color(0.9, 0.86, 0.75))
-	var iron := PSXMat.lit("metal", Color(0.25, 0.24, 0.23))
-	var fire := PSXMat.glow(Color(1.0, 0.45, 0.12), 3.0)
-	var crate := PSXMat.lit("planks", Color(0.8, 0.65, 0.45))
-	# the bunk: frame, mattress, a pillow and a red blanket
-	mb.add_box(wood, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.2, 0)), Vector3(1.15, 0.4, 2.15), 1.0)
-	mb.add_box(linen, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.46, 0)), Vector3(1.0, 0.14, 2.0), 1.0)
-	mb.add_box(linen, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.6, 0.72)), Vector3(0.7, 0.14, 0.4), 1.0)
-	mb.add_box(cloth, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.55, -0.3)), Vector3(1.04, 0.06, 1.3), 1.0)
-	mb.add_box(wood, Transform3D(Basis(), layout.bed_at + Vector3(0, 0.45, 1.05)), Vector3(1.15, 0.9, 0.08), 1.0)
-	# the galley: an iron stove with fire behind its door and a pipe up through
-	# the deck, a counter with pots, a water barrel
-	mb.add_box(iron, Transform3D(Basis(), layout.stove_at + Vector3(0, 0.45, 0)), Vector3(0.9, 0.9, 0.9), 1.0)
-	mb.add_box(fire, Transform3D(Basis(), layout.stove_at + Vector3(-0.46, 0.35, 0)), Vector3(0.04, 0.3, 0.45), 1.0)
-	mb.add_cylinder(iron, Transform3D(Basis(), layout.stove_at + Vector3(0.1, 0.9, 0.1)), 0.09, 0.09, layout.qd_y - DECK_Y - 0.9, 6, 1.0)
-	mb.add_box(trim, Transform3D(Basis(), layout.counter_at + Vector3(0, 0.45, 0)), Vector3(0.75, 0.9, 1.55), 0.6)
-	mb.add_cylinder(iron, Transform3D(Basis(), layout.counter_at + Vector3(0, 0.9, 0.35)), 0.2, 0.2, 0.25, 8, 1.0)
-	mb.add_cylinder(iron, Transform3D(Basis(), layout.counter_at + Vector3(-0.05, 0.9, -0.35)), 0.14, 0.12, 0.18, 8, 1.0)
-	mb.add_cylinder(crate, Transform3D(Basis(), layout.counter_at + Vector3(0.1, 0.0, -1.25)), 0.35, 0.35, 0.9, 8, 0.6)
-	# storage: the chest by the door, crates and a barrel round it
-	mb.add_box(crate, Transform3D(Basis(Vector3.UP, 0.2), layout.storage_at + Vector3(-0.4, 0.3, 1.0)), Vector3(0.6, 0.6, 0.6), 1.0)
-	mb.add_box(crate, Transform3D(Basis(Vector3.UP, -0.3), layout.storage_at + Vector3(-0.45, 0.85, 1.0)), Vector3(0.45, 0.45, 0.45), 1.0)
-	mb.add_cylinder(crate, Transform3D(Basis(), layout.storage_at + Vector3(0.9, 0.0, -0.05)), 0.32, 0.32, 0.8, 8, 0.6)
-	# the table and two stools
-	mb.add_box(wood, Transform3D(Basis(), layout.table_at + Vector3(0, 0.78, 0)), Vector3(1.5, 0.07, 0.9), 1.0)
-	for sx in [-0.6, 0.6]:
-		for sz in [-0.35, 0.35]:
-			mb.add_box(wood, Transform3D(Basis(), layout.table_at + Vector3(sx, 0.38, sz)), Vector3(0.08, 0.76, 0.08), 1.0)
-	for sx in [-0.4, 0.5]:
-		mb.add_cylinder(wood, Transform3D(Basis(), layout.table_at + Vector3(sx, 0.0, -0.75)), 0.2, 0.18, 0.45, 6, 1.0)
-	# stern windows, a lantern hung from a beam
-	for sx in [-1.6, 0.0, 1.6]:
-		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.55, layout.qd_back - 0.18)), Vector3(0.6, 0.45, 0.04), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, layout.qd_y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
-	_line_mesh(mb, iron, Vector3(0.2, layout.qd_y - 0.5, 7.6), Vector3(0.2, layout.qd_y - 0.2, 7.6))
-	# the storage chest (its Shared tab: GameManager.storage, shared in co-op; its Personal tab, personal: this
-	# captain's own sea chest, GameManager.sea_chest, never shared: a hidden bag the storage window switches to),
-	# the bunk (rest) and the galley (cook: GalleyScreen)
+## A new layout (her Quarters level changed at the yard, every screen): what it built goes and is built again, and
+## the guns on the quarterdeck move with it.
+func _relayout() -> void:
+	for cs in _layout_shapes:
+		cs.free()
+	_layout_shapes.clear()
+	_layout_root.free()
+	for n in ["LadderStarboard", "LadderPort", "GalleyTable"]:
+		ship_model.get_node(n).free()
+	_build_layout()
+	for c in cannons:
+		var cn := c as Node3D
+		if cn.name in ["CannonS2", "CannonP2"]:
+			cn.position.y = float(layout.gun_spots[2][2])
+	var old := ship_model.get_node_or_null("Mizzen")
+	if old:
+		old.free()
+	if ship_model.get_node_or_null("HelmLashing"):
+		ship_model.get_node("HelmLashing").free()
+		if lashed:
+			LashedHelm.apply(self, lashed, lash_heading)
+	parts.levels = {}
+
+
+## The helm: the pedestal (with the deck) and the wheel on its own node (it turns), both from ShipWheel at the
+## Rudder & helm line's level (fit_helm: ShipParts).
+func _build_helm() -> void:
+	_helm_post = MeshInstance3D.new()
+	_helm_post.name = "HelmPost"
+	_helm_post.visibility_range_end = 120.0
+	_layout_root.add_child(_helm_post)
+	wheel = Node3D.new()
+	wheel.name = "Wheel"
+	wheel.position = Vector3(0, layout.qd_y + ShipWheel.HUB_Y, layout.wheel_z)
+	_layout_root.add_child(wheel)
+	var wm := MeshInstance3D.new()
+	wm.name = "WheelMesh"
+	wm.visibility_range_end = 120.0
+	wm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	wheel.add_child(wm)
+	fit_helm(ShipLines.level(kit, "rudder"))
+
+
+## The wheel and its pedestal as the Rudder & helm line's level `n` shows them.
+func fit_helm(n: int) -> void:
+	var m := ShipWheel.mats()
+	var pmb := MeshBuilder.new()
+	ShipWheel.pedestal(pmb, m, Vector3(0, layout.qd_y, layout.wheel_z), n)
+	pmb.fold_tints()
+	_helm_post.mesh = pmb.commit()
+	var wmb := MeshBuilder.new()
+	ShipWheel.wheel(wmb, m, n)
+	wmb.fold_tints()
+	(wheel.get_node("WheelMesh") as MeshInstance3D).mesh = wmb.commit()
+
+
+## The crew cabin under the quarterdeck, furnished for her Quarters level (ShipCabin; hidden while no camera is near
+## it: _show_cabin), its lamp's warm light, the bunk (rest), the galley (cook: GalleyScreen), the galley table, the
+## seats, the bookshelf inside the front wall, the workbench on deck against it; the storage chests moved to their spot.
+func _build_cabin() -> void:
+	var meshes := ShipCabin.build(layout, layout.tier)
+	_cabin_mesh = (meshes[0] as MeshBuilder).to_instance("Cabin")
+	_cabin_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_cabin_mesh.visibility_range_end = 40.0
+	_layout_root.add_child(_cabin_mesh)
+	_cabin_fine = (meshes[1] as MeshBuilder).to_instance("CabinFine")
+	_cabin_fine.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_cabin_fine.visibility_range_end = 14.0
+	_layout_root.add_child(_cabin_fine)
+	storage.position = layout.storage_at
+	personal.position = layout.storage_at + Vector3(0, -0.6, 0)
+	var bunk := _cabin_zone("Bunk", "Rest in the bunk  (K: switch your build here)", layout.bed_at + Vector3(0.85, 0.6, 0.0))
+	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
+	bunk.add_to_group("rest_spots")
+	var galley := _cabin_zone("Galley", "Cook at the galley", layout.counter_at + Vector3(-0.85, 0.6, 0.3))
+	galley.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
+	galley.gesture = "reach"
+	# the galley table: a pot of several portions goes here for the crew (GalleyTable)
+	var table := GalleyTable.new()
+	table.name = "GalleyTable"
+	ship_model.add_child(table)
+	table.position = layout.counter_at + Vector3(-1.05, 0.0, -0.4)
+	# seats: the cabin's at the table, the crate by the chest, the two crates on deck
+	for s in ShipCabin.seats(layout, layout.tier):
+		Seat.add(_layout_root, s[0], s[1], s[2])
+	Seat.add(_layout_root, layout.storage_at + Vector3(-0.4, 0.6, 1.0), 0.6)
+	Seat.add(_layout_root, Vector3(2.1, DECK_Y + 0.6, -0.4), 0.6, Vector3(-1, 0, 0))
+	Seat.add(_layout_root, Vector3(-2.2, DECK_Y + 0.5, -4.5), 0.5, Vector3(1, 0, 0))
+	# (1.28) the tinker's workbench on deck, against the cabin front under the port window (Workbench)
+	# (solid as one of her own shapes: a body of its own aboard would stop her dead; _build_collision)
+	Workbench.place(_layout_root, _bench_at(), 0.0, {"style": "ship", "solid": false})
+	# (1.28) the bookshelf against the cabin's front wall, starboard of the door (BookShelf)
+	BookShelf.place(_layout_root, _shelf_at(), 0.0)
+	_cabin_light = OmniLight3D.new()
+	_cabin_light.name = "CabinLight"
+	_cabin_light.light_color = Color(1.0, 0.75, 0.45)
+	_cabin_light.light_energy = 1.4
+	_cabin_light.omni_range = 6.5
+	_cabin_light.shadow_enabled = false
+	_cabin_light.position = ShipCabin.lamp_at(layout, layout.tier) + Vector3(0, -0.15, 0)
+	_layout_root.add_child(_cabin_light)
+	_cabin_t = 0.0
+
+
+func _bench_at() -> Vector3:
+	return Vector3(-1.75, DECK_Y, layout.qd_front - Workbench.D * 0.5 - 0.02)
+
+
+func _shelf_at() -> Vector3:
+	return Vector3(2.0, layout.cabin_y, layout.qd_front + 0.13)
+
+
+## The cabin's furniture and its light only while a camera could see in (inside, or by the door); four times a second.
+func _show_cabin(delta: float) -> void:
+	_cabin_t -= delta
+	if _cabin_t > 0.0:
+		return
+	_cabin_t = 0.25
+	var cam := get_viewport().get_camera_3d()
+	var on := false
+	if cam:
+		var l := ship_model.to_local(cam.global_position)
+		on = absf(l.x) < layout.cabin_hw + 1.5 and l.z > layout.qd_front - 6.0 and l.z < layout.qd_back + 0.5 and l.y < layout.qd_y + 0.5
+	_cabin_mesh.visible = on
+	_cabin_fine.visible = on
+	_cabin_light.visible = on
+
+
+## The storage chest (its Shared tab: GameManager.storage, shared in co-op; its Personal tab, personal: this
+## captain's own sea chest, GameManager.sea_chest, never shared: a hidden bag the storage window switches to).
+## _build_cabin puts them in the cabin.
+func _build_storage() -> void:
 	storage = (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	storage.name = "Storage"
 	storage.persistent = true
@@ -1466,12 +1571,10 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	personal.add_to_group("ship_storage")
 	personal.contents = get_node("/root/GameManager").sea_chest
 	ship_model.add_child(personal)
-	personal.position = layout.storage_at + Vector3(0, -0.6, 0)
 	personal.visible = false
 	personal.collision_layer = 0
 	personal.interactable.monitorable = false
 	personal.interactable.collision_layer = 0
-	storage.position = layout.storage_at
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).position = Vector3.ZERO
 	storage.get_node("CollisionShape3D").queue_free()
@@ -1479,40 +1582,58 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	chest_cs.shape = chest_cs.shape.duplicate()
 	(chest_cs.shape as SphereShape3D).radius = 1.1
 	storage.interactable.reach = 1.1
-	var bunk := _cabin_zone("Bunk", "Rest in the bunk  (K: switch your build here)", layout.bed_at + Vector3(0.85, 0.6, 0.0))
-	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
-	bunk.add_to_group("rest_spots")
-	var galley := _cabin_zone("Galley", "Cook at the galley", layout.counter_at + Vector3(-0.85, 0.6, 0.3))
-	galley.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
-	# the galley table: a pot of several portions goes here for the crew (GalleyTable)
-	var table := GalleyTable.new()
-	table.name = "GalleyTable"
-	ship_model.add_child(table)
-	table.position = layout.counter_at + Vector3(-1.05, 0.0, -0.4)
-	galley.gesture = "reach"
-	# seats: the cabin's stools (at the table), the crate by the chest, the two crates on deck
-	for sx in [-0.4, 0.5]:
-		Seat.add(ship_model, layout.table_at + Vector3(sx, 0.45, -0.75), 0.45, Vector3(0, 0, 1))
-	Seat.add(ship_model, layout.storage_at + Vector3(-0.4, 0.6, 1.0), 0.6)
-	Seat.add(ship_model, Vector3(2.1, DECK_Y + 0.6, -0.4), 0.6, Vector3(-1, 0, 0))
-	Seat.add(ship_model, Vector3(-2.2, DECK_Y + 0.5, -4.5), 0.5, Vector3(1, 0, 0))
-	# (1.28) the tinker's workbench on deck, against the cabin front under the port window (Workbench)
-	# (solid as one of her own shapes: a body of its own aboard would stop her dead)
-	var bench_at := Vector3(-1.75, DECK_Y, layout.qd_front - Workbench.D * 0.5 - 0.02)
-	Workbench.place(ship_model, bench_at, 0.0, {"style": "ship", "solid": false})
-	_box_at(bench_at + Vector3(0, Workbench.TOP * 0.5, 0), Vector3(Workbench.W, Workbench.TOP, Workbench.D))
-	# (1.28) the bookshelf against the cabin's front wall, starboard of the door (BookShelf)
-	var shelf_at := Vector3(2.0, DECK_Y, layout.qd_front + 0.1)
-	BookShelf.place(ship_model, shelf_at, 0.0)
-	_box_at(shelf_at + Vector3(0, BookModels.SHELF_H * 0.5, BookModels.SHELF_D * 0.5), Vector3(BookModels.SHELF_W, BookModels.SHELF_H, BookModels.SHELF_D))
-	var lamp := OmniLight3D.new()
-	lamp.name = "CabinLight"
-	lamp.light_color = Color(1.0, 0.75, 0.45)
-	lamp.light_energy = 1.4
-	lamp.omni_range = 6.5
-	lamp.shadow_enabled = false
-	lamp.position = Vector3(0.2, layout.qd_y - 0.8, 7.6)
-	ship_model.add_child(lamp)
+
+
+## The flag at the masthead (painted from the kit: apply_kit) on a short pole: the hoist along the pole, the fly
+## streaming out in a few soft folds and sagging a little toward its end (both faces read). `_flag_pivot` turns it
+## downwind with a slow stir (_show_flag) and goes up the staff over the nest's hood (raise_flag).
+func _build_flag() -> void:
+	_flag_pivot = Node3D.new()
+	_flag_pivot.name = "FlagPivot"
+	ship_model.add_child(_flag_pivot)
+	raise_flag(false)
+	var mb := MeshBuilder.new()
+	var cloth := PSXMat.lit("cloth_red")
+	var w := 2.1
+	var h := 1.25
+	var cols := 6
+	var edge: Array = []
+	for i in range(cols + 1):
+		var u := float(i) / cols
+		var x := sin(u * PI * 2.2) * 0.14 * u
+		var sag := 0.2 * u * u
+		edge.append([Vector3(x, h - sag, 0.07 + u * w), Vector3(x, -sag * 1.3, 0.07 + u * w)])
+	for i in range(cols):
+		var u0 := float(i) / cols
+		var u1 := float(i + 1) / cols
+		var a: Vector3 = edge[i][0]
+		var b: Vector3 = edge[i + 1][0]
+		var c: Vector3 = edge[i + 1][1]
+		var d: Vector3 = edge[i][1]
+		var n := (b - a).cross(d - a).normalized()
+		var shade := Color.WHITE.darkened(0.12 * (i % 2))
+		mb.add_quad(cloth, a, b, c, d, Vector2(u0, 0), Vector2(u1, 0), Vector2(u1, 1), Vector2(u0, 1), shade, n)
+		mb.add_quad(cloth, a, d, c, b, Vector2(1.0 - u0, 0), Vector2(1.0 - u0, 1), Vector2(1.0 - u1, 1), Vector2(1.0 - u1, 0), shade.darkened(0.1), -n)
+	_flag_node = mb.to_instance("Flag")
+	_flag_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_flag_pivot.add_child(_flag_node)
+	var pole := MeshBuilder.new()
+	pole.add_cylinder(PSXMat.lit("planks_dark"), Transform3D(Basis(), Vector3(0, -0.25, 0)), 0.045, 0.035, h + 0.4, 6, 0.8)
+	pole.add_cylinder(PSXMat.lit("", Color(1.0, 0.76, 0.28)), Transform3D(Basis(), Vector3(0, h + 0.15, 0)), 0.07, 0.07, 0.07, 6, 1.0, Color.WHITE, true, true)
+	var pm := pole.to_instance("FlagPole")
+	pm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_flag_pivot.add_child(pm)
+
+
+## The flag at the masthead, or run up the staff over the nest's hood (ShipParts).
+func raise_flag(up: bool) -> void:
+	_flag_pivot.position = Vector3(0, layout.mast_top + 0.2 + (0.75 if up else 0.0), layout.mast_z)
+
+
+## The flag streams downwind (the wind's bearing off her bow: _wind_rel), stirring a little.
+func _show_flag(delta: float) -> void:
+	_flag_t += delta
+	_flag_pivot.rotation.y = lerp_angle(_flag_pivot.rotation.y, PI - _wind_rel() + sin(_flag_t * 2.3) * 0.07, minf(3.0 * delta, 1.0))
 
 
 ## (GameManager's storage array itself: the chest edits it in place, saves read it)
@@ -1533,7 +1654,7 @@ func _cabin_zone(n: String, prompt: String, at: Vector3) -> Interactable:
 	cs.shape = sp
 	z.add_child(cs)
 	z.position = at
-	ship_model.add_child(z)
+	_layout_root.add_child(z)
 	return z
 
 
@@ -1545,13 +1666,17 @@ func _line_mesh(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3) -> void:
 	HullBuilder._line(mb, mat, a, b, 0.03)
 
 
+## The hull's deck planks on the copy that darkens as they soak.
+func _wet_overrides() -> void:
+	for i in range(_psx_model.mesh.get_surface_count()):
+		if _psx_model.mesh.surface_get_material(i) == _deck_mat:
+			_psx_model.set_surface_override_material(i, _wet_deck)
+
+
 ## Flat, ragged puddles in the deck's low spots (grown by `wet`), and a copy
 ## of the deck planks to darken as they soak.
 func _build_puddles() -> void:
 	_wet_deck = (_deck_mat as ShaderMaterial).duplicate() as ShaderMaterial
-	for i in range(_psx_model.mesh.get_surface_count()):
-		if _psx_model.mesh.surface_get_material(i) == _deck_mat:
-			_psx_model.set_surface_override_material(i, _wet_deck)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.13, 0.17, 0.22, 0.7)
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -1631,6 +1756,11 @@ func _ring_at(rings: Array, z: float) -> Array:
 ## Put the shipwright's work on her (every screen: the host's kit in co-op).
 func apply_kit(k: Dictionary) -> void:
 	kit = ShipKit.merged(k)
+	# (her class and her Quarters level: her layout, 1.29)
+	var want := HullLayout.for_kit(kit)
+	if want != layout:
+		layout = want
+		_relayout()
 	# (her class over her upgrades: ShipClasses, 1.21)
 	var sc := ShipClasses.of(kit)
 	var was := max_hull

@@ -141,7 +141,7 @@ func _bottom_y() -> float:
 func _line(at: float) -> Vector3:
 	if _rig:
 		return _rig.hold(clampf(at / maxf(_len, 0.01), 0.0, 1.0))
-	return Vector3(0, _bottom_y() + clampf(at, 0.0, _len), 0.4)
+	return _lad.hold_at(_bottom_y() + clampf(at, 0.0, _len))
 
 
 func physics_update(delta: float) -> void:

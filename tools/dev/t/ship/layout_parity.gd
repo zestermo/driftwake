@@ -8,8 +8,8 @@ const TK := preload("res://tools/dev/test_kit.gd")
 const WANT := {"pirate": "af3fe69081a72339dedda874e72df152a7a49e53606758c85acdc7714f3279c7",
 	"pirate_col": "62b3335487bcceee44c2e307f582663ed0c7b3986e848df8e2b815e0e05de06d",
 	"wreck": "b9a01b15f661e15bc5b3233aaab05ccd52bb37769ed83ac18f2d4fda3553171d"}
-const WANT_SHIP := {"ship": "1fce6ff62a375c5d28e4faa41f90c2ea7483fc7d7425087764f3ebc3c45f0f1f",
-	"ship_col": "e13b96d0fb70572434991f335a6ff6c457fe0f0e6af779e1e4416f03a8fbc75a"}
+const WANT_SHIP := {"ship": "69bcaf6955443b393b275b7aac094311adb30ca1c7e636ccaecbae566e2926a2",
+	"ship_col": "051b2b2c6f5b019a98c6aafd81b66affa477a2560427d90b0386d89a54bb5b87"}
 var stage
 var step := 0
 var until := 0
