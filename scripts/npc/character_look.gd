@@ -53,15 +53,19 @@ const HAIR_FINISH_NAMES := ["Plain", "Two-tone", "Tipped"]
 const NATURAL_HAIR := 10
 const FACIAL_HAIR := ["none", "stubble", "moustache", "goatee", "chops", "beard", "long_beard"]
 const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood", "cavalier", "morion", "turban",
-	"kettle", "fez", "headband", "crown", "coif", "slouch", "helm"]
+	"kettle", "fez", "headband", "crown", "coif", "slouch", "helm", "jester"]
 ## Hats worn over the hair rather than covering it (the hair isn't pressed flat under them).
 const OVER_HAIR := ["headband", "crown"]
-const TOPS := ["shirt", "tunic", "blouse", "doublet", "kimono", "striped", "bare"]
+const TOPS := ["shirt", "tunic", "blouse", "doublet", "kimono", "striped", "bare", "motley"]
 const SLEEVES := ["long", "short", "none"]
 const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail", "jerkin", "padded", "scale", "harness"]
 const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat", "haori", "duster", "frock", "admiral"]
-const LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers", "slops"]
-const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons", "cavalier_boots", "foot_wraps"]
+const LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers", "slops", "parachute", "motley_hose"]
+const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons", "cavalier_boots", "foot_wraps", "curled"]
+## (1.29) The jester's outfit, each piece its own item, in two colours (its own and "motley_color"); never in the creator.
+const JESTER := ["jester", "motley", "motley_hose", "curled"]
+const CREATOR_TOPS := ["shirt", "tunic", "blouse", "doublet", "kimono", "striped", "bare"]
+const CREATOR_LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers", "slops", "parachute"]
 const BELTS := ["none", "belt", "sash", "belt_sash", "wide_belt"]
 ## What a new captain can start in (the character creator and its Randomize):
 ## plain clothes. Hats of rank, coats of office and armour are bought or found.
@@ -106,7 +110,7 @@ const COLOR_PALETTES := {
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
 	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH",
-	"cloak_color": "CLOTH", "mantle_color": "CLOTH", "face_color": "CLOTH", "wraps_color": "CLOTH"}
+	"cloak_color": "CLOTH", "mantle_color": "CLOTH", "face_color": "CLOTH", "wraps_color": "CLOTH", "motley_color": "CLOTH"}
 
 
 static func palette(key: String) -> Array:
@@ -237,7 +241,7 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["coat"] = _pick(rng, CREATOR_COATS)
 	lk["coat_color"] = _pick(rng, CLOTH)
 	lk["trim_color"] = _pick(rng, TRIM)
-	lk["legs"] = _pick(rng, LEGS if fem else ["trousers", "trousers", "breeches", "shorts"])
+	lk["legs"] = _pick(rng, CREATOR_LEGS.slice(0, 7) if fem else ["trousers", "trousers", "breeches", "shorts"])
 	lk["legs_color"] = _pick(rng, CLOTH)
 	lk["feet"] = _pick(rng, CREATOR_FEET)
 	lk["feet_color"] = _pick(rng, LEATHER)
@@ -270,6 +274,8 @@ static func _add_1_29(lk: Dictionary) -> void:
 		lk["wraps_color"] = _pick(r, [CLOTH[0], CLOTH[1], CLOTH[2]])
 	if r.randf() < 0.06 and str(lk.get("feet", "")) == "barefoot":
 		lk["feet"] = "foot_wraps"
+	if r.randf() < 0.05 and str(lk.get("legs", "")) in ["trousers", "slops"]:
+		lk["legs"] = "parachute"
 
 
 ## The 1.25 face options, drawn from the look so far rather than the caller's rng (which then goes on to place the

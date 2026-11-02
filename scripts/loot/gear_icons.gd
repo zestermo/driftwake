@@ -78,6 +78,8 @@ static func _second_color(it: ItemData) -> Color:
 		return lk["trim_color"]
 	if lk.has("sash_color") and lk["sash_color"] is Color:
 		return lk["sash_color"]
+	if lk.has("motley_color") and lk["motley_color"] is Color:
+		return lk["motley_color"]
 	return GOLD
 
 
@@ -538,6 +540,38 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 				layers.append(["d", [Vector2(4, y), Vector2(10, y + 1), Vector2(10, y + 2), Vector2(4, y + 1)]])
 				layers.append(["d", [Vector2(14, y + 1), Vector2(20, y), Vector2(20, y + 1), Vector2(14, y + 2)]])
 			return layers
+		"parachute":
+			return [["m", [Vector2(7, 3), Vector2(17, 3), Vector2(22, 10), Vector2(21, 18), Vector2(19, 21), Vector2(13, 21), Vector2(12, 11),
+					Vector2(11, 21), Vector2(5, 21), Vector2(3, 18), Vector2(2, 10)]],
+				["d", [Vector2(7, 3), Vector2(17, 3), Vector2(17, 5), Vector2(7, 5)]],
+				["d", [Vector2(5, 19), Vector2(11, 19), Vector2(11, 21), Vector2(5, 21)]],
+				["d", [Vector2(13, 19), Vector2(19, 19), Vector2(19, 21), Vector2(13, 21)]],
+				["l", [Vector2(5, 9), Vector2(6, 9), Vector2(7, 16), Vector2(6, 16)]]]
+		"jester":
+			return [["m", [Vector2(6, 21), Vector2(6, 15), Vector2(9, 11), Vector2(12, 11), Vector2(12, 21)]],
+				["b", [Vector2(12, 21), Vector2(12, 11), Vector2(15, 11), Vector2(18, 15), Vector2(18, 21)]],
+				["m", [Vector2(8, 13), Vector2(4, 7), Vector2(1, 11), Vector2(3, 8), Vector2(7, 9), Vector2(10, 12)]],
+				["b", [Vector2(16, 13), Vector2(20, 7), Vector2(23, 11), Vector2(21, 8), Vector2(17, 9), Vector2(14, 12)]],
+				["m", [Vector2(11, 11), Vector2(12, 3), Vector2(13, 11)]],
+				["g", [Vector2(0, 11), Vector2(2, 11), Vector2(2, 13), Vector2(0, 13)]],
+				["g", [Vector2(22, 11), Vector2(24, 11), Vector2(24, 13), Vector2(22, 13)]],
+				["g", [Vector2(11, 1), Vector2(13, 1), Vector2(13, 3), Vector2(11, 3)]]]
+		"motley":
+			return [["m", [Vector2(7, 4), Vector2(12, 4), Vector2(12, 20), Vector2(6, 20), Vector2(6, 11), Vector2(3, 12), Vector2(1, 9)]],
+				["b", [Vector2(12, 4), Vector2(17, 4), Vector2(23, 9), Vector2(21, 12), Vector2(18, 11), Vector2(18, 20), Vector2(12, 20)]],
+				["b", [Vector2(6, 20), Vector2(9, 20), Vector2(7.5, 23)]],
+				["m", [Vector2(15, 20), Vector2(18, 20), Vector2(16.5, 23)]],
+				["g", [Vector2(9, 6), Vector2(10, 6), Vector2(10, 7), Vector2(9, 7)]],
+				["g", [Vector2(14, 6), Vector2(15, 6), Vector2(15, 7), Vector2(14, 7)]]]
+		"motley_hose":
+			return [["b", [Vector2(7, 3), Vector2(12, 3), Vector2(12, 21), Vector2(7, 21)]],
+				["m", [Vector2(12, 3), Vector2(17, 3), Vector2(17, 21), Vector2(12, 21)]],
+				["d", [Vector2(7, 3), Vector2(17, 3), Vector2(17, 5), Vector2(7, 5)]]]
+		"curled":
+			return [["m", [Vector2(2, 20), Vector2(4, 14), Vector2(10, 14), Vector2(12, 18), Vector2(19, 18), Vector2(22, 14), Vector2(19, 11), Vector2(17, 13),
+					Vector2(19, 14), Vector2(18, 16), Vector2(13, 21), Vector2(2, 21)]],
+				["b", [Vector2(4, 14), Vector2(10, 14), Vector2(10, 16), Vector2(4, 16)]],
+				["g", [Vector2(16, 11), Vector2(18, 11), Vector2(18, 13), Vector2(16, 13)]]]
 	return [["m", [Vector2(5, 5), Vector2(19, 5), Vector2(19, 19), Vector2(5, 19)]]]
 
 

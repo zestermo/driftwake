@@ -92,6 +92,7 @@ const NAMES := {
 	"bosun_coat": "Bosun's Coat", "powder_belt": "Powder Belt", "shark_tooth": "Shark's Tooth",
 	"mask": "Carved Mask", "oni": "Oni Mask", "half_mask": "Half Mask", "iron_mask": "Iron Faceplate", "kerchief": "Kerchief",
 	"mouth_guard": "Mouth Guard", "bandage": "Head Bandage", "eye_wrap": "Eye Wrap", "arm_wraps": "Arm Wraps", "foot_wraps": "Foot Wraps",
+	"parachute": "Parachute Pants", "jester": "Jester's Cap", "motley": "Motley Doublet", "motley_hose": "Motley Hose", "curled": "Curled Shoes",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -186,6 +187,11 @@ const DESCRIPTIONS := {
 	"eye_wrap": "A bandage wound round the head and over one eye. You'll see well enough with the other.",
 	"arm_wraps": "Cloth strips wound from the knuckles up the forearms. A brawler's gloves.",
 	"foot_wraps": "Strips of cloth bound round bare feet and ankles. Quiet on a deck and quick on rigging.",
+	"parachute": "Trousers with yards too much cloth, gathered at the ankle. They billow when you run and nobody sees your knees move.",
+	"jester": "A cap of two colours with three floppy points, a bell on each. Hard to be taken seriously in. That's the trick.",
+	"motley": "A doublet split down the middle in two colours, its collar cut into points hung with bells.",
+	"motley_hose": "Tight hose, one leg in each colour. The court's fool and the deck's acrobat swear by them.",
+	"curled": "Soft shoes whose toes curl up and back into a spiral, a bell at the tip. You'll never sneak anywhere again.",
 }
 const DEFENSE := {
 	"tricorn": 2.0, "bicorne": 2.0, "bandana": 1.0, "cap": 1.0, "knit": 1.0, "straw": 0.0, "hood": 1.0,
@@ -217,6 +223,7 @@ const DEFENSE := {
 	"powder_belt": 1.0, "shark_tooth": 0.0,
 	"mask": 1.0, "oni": 1.0, "half_mask": 0.0, "iron_mask": 4.0, "kerchief": 0.0, "mouth_guard": 2.0, "bandage": 0.0, "eye_wrap": 0.0,
 	"arm_wraps": 1.0, "foot_wraps": 1.0,
+	"parachute": 2.0, "jester": 1.0, "motley": 1.0, "motley_hose": 1.0, "curled": 1.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -265,6 +272,8 @@ const PLUNDER := [
 	["face", "oni", {"face_wear": "oni", "face_color": Color(0.66, 0.14, 0.12)}],
 	["face", "iron_mask", {"face_wear": "iron_mask"}],
 	["face", "half_mask", {"face_wear": "half_mask", "face_color": Color(0.1, 0.09, 0.09)}],
+	["head", "jester", {"hat": "jester", "hat_color": Color(0.36, 0.2, 0.44), "motley_color": Color(0.8, 0.62, 0.2)}],
+	["legs", "parachute", {"legs": "parachute", "legs_color": Color(0.42, 0.42, 0.2)}],
 ]
 
 
@@ -278,7 +287,7 @@ static func is_outfit_key(k: String) -> bool:
 	for keys in SLOT_KEYS.values():
 		if k in keys:
 			return true
-	return k in ACCESSORIES or k in ACC_COLOR.values() or k in ACC_TATTER.values() or k == "coat_drape"
+	return k in ACCESSORIES or k in ACC_COLOR.values() or k in ACC_TATTER.values() or k in ["coat_drape", "motley_color"]
 
 
 static func slot_label(kind: String) -> String:
@@ -351,15 +360,17 @@ static func _main_color_key(kind: String, style: String) -> String:
 ## "extra" -> Array of accessories beyond the two accessory slots.
 static func items_from_look(lk: Dictionary) -> Dictionary:
 	var out := {}
+	# (the jester's pieces carry their second colour)
+	var mot := {"motley_color": lk.get("motley_color", CharacterLook.CLOTH[15])}
 	var hat := str(lk.get("hat", "none"))
 	if hat != "none":
-		out["head"] = make("head", hat, {"hat": hat, "hat_color": lk.get("hat_color")})
+		out["head"] = make("head", hat, {"hat": hat, "hat_color": lk.get("hat_color")}.merged(mot if hat in CharacterLook.JESTER else {}))
 	var fw := str(lk.get("face_wear", "none"))
 	if fw != "none":
 		out["face"] = make("face", fw, {"face_wear": fw, "face_color": lk.get("face_color", CharacterLook.CLOTH[0])})
 	var top := str(lk.get("top", "shirt"))
 	if top != "bare":
-		out["torso"] = make("torso", top, {"top": top, "sleeves": lk.get("sleeves", "long"), "top_color": lk.get("top_color")})
+		out["torso"] = make("torso", top, {"top": top, "sleeves": lk.get("sleeves", "long"), "top_color": lk.get("top_color")}.merged(mot if top in CharacterLook.JESTER else {}))
 	var vest := str(lk.get("vest", "none"))
 	if vest != "none":
 		out["vest"] = make("vest", vest, {"vest": vest, "vest_color": lk.get("vest_color")})
@@ -377,10 +388,10 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 	elif lk.get("arm_wraps", false):
 		out["hands"] = make("hands", "arm_wraps", {"arm_wraps": true, "wraps_color": lk.get("wraps_color", CharacterLook.CLOTH[0])})
 	var legs := str(lk.get("legs", "trousers"))
-	out["legs"] = make("legs", legs, {"legs": legs, "legs_color": lk.get("legs_color")})
+	out["legs"] = make("legs", legs, {"legs": legs, "legs_color": lk.get("legs_color")}.merged(mot if legs in CharacterLook.JESTER else {}))
 	var feet := str(lk.get("feet", "boots"))
 	if feet != "barefoot":
-		out["feet"] = make("feet", feet, {"feet": feet, "feet_color": lk.get("feet_color")})
+		out["feet"] = make("feet", feet, {"feet": feet, "feet_color": lk.get("feet_color")}.merged(mot if feet in CharacterLook.JESTER else {}))
 	var belt := str(lk.get("belt", "none"))
 	if belt != "none":
 		out["belt"] = make("belt", belt, {"belt": belt, "belt_color": lk.get("belt_color"), "sash_color": lk.get("sash_color")})

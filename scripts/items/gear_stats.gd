@@ -69,6 +69,8 @@ const SETS := {
 	"corsair": {"name": "Corsair set", "pieces": ["tricorn", "captain", "tall_boots"], "bonus": {"air_jumps": 1.0}},
 	# (1.25) heavy, for the front rank: a cheaper guard and stamina back on a parry (no defence: the heavy cap stands)
 	"bulwark": {"name": "Bulwark set", "pieces": ["bulwark_helm", "bulwark_brigandine", "bulwark_gauntlets"], "bonus": {"block_cost_pct": 0.2, "parry_stamina": 8.0}},
+	# (1.29) light and quick: any three of the four
+	"jester": {"name": "Jester's motley", "pieces": ["jester", "motley", "motley_hose", "curled"], "bonus": {"dodge_dist_pct": 0.08, "gold_pct": 0.05}},
 }
 
 ## Flat stats (the rest are fractions shown as percentages).

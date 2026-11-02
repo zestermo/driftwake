@@ -511,10 +511,12 @@ func _skeleton() -> void:
 
 func _colliders() -> void:
 	var thigh_r := (0.108 if fem else 0.1) * limb + 0.03
-	colliders["thigh_l"] = {"node": h.leg_l, "a": Vector3(0, 0.02, 0), "b": Vector3(0, -0.42 * Ls, 0), "r": thigh_r}
-	colliders["thigh_r"] = {"node": h.leg_r, "a": Vector3(0, 0.02, 0), "b": Vector3(0, -0.42 * Ls, 0), "r": thigh_r}
-	colliders["shin_l"] = {"node": h.shin_l, "a": Vector3.ZERO, "b": Vector3(0, -0.4 * Ls, 0), "r": 0.075 * limb + 0.025}
-	colliders["shin_r"] = {"node": h.shin_r, "a": Vector3.ZERO, "b": Vector3(0, -0.4 * Ls, 0), "r": 0.075 * limb + 0.025}
+	# (parachute pants: the cloth that hangs over them is pushed out by theirs)
+	var puff := _pants_puff()
+	colliders["thigh_l"] = {"node": h.leg_l, "a": Vector3(0, 0.02, 0), "b": Vector3(0, -0.42 * Ls, 0), "r": thigh_r + puff}
+	colliders["thigh_r"] = {"node": h.leg_r, "a": Vector3(0, 0.02, 0), "b": Vector3(0, -0.42 * Ls, 0), "r": thigh_r + puff}
+	colliders["shin_l"] = {"node": h.shin_l, "a": Vector3.ZERO, "b": Vector3(0, -0.4 * Ls, 0), "r": 0.075 * limb + 0.025 + puff}
+	colliders["shin_r"] = {"node": h.shin_r, "a": Vector3.ZERO, "b": Vector3(0, -0.4 * Ls, 0), "r": 0.075 * limb + 0.025 + puff}
 	colliders["hips"] = {"node": h.hips, "a": Vector3(0, 0.05, 0), "b": Vector3(0, -0.08, 0), "r": _hips_hw() * 0.82}
 	colliders["torso"] = {"node": h.torso, "a": Vector3(0, ty(0.12), 0.01), "b": Vector3(0, tu(0.5), 0.01), "r": 0.13 * de + 0.025}
 	colliders["head"] = {"node": h.head, "a": Vector3(0, 0.13, 0.01), "b": Vector3(0, 0.26, 0.01), "r": 0.17}
@@ -563,6 +565,23 @@ func _torso_rings() -> Array:
 		ring[0] = tu(ring[0])
 		ring[1] = float(ring[1]) * (0.95 if i < 2 else 0.88)
 	return r
+
+
+## (1.29) How far parachute pants stand out from the legs at their fullest (0 any other legs).
+func _pants_puff() -> float:
+	return 0.05 if str(lk.get("legs", "")) == "parachute" else 0.0
+
+
+## Parachute pants' fullness at hips-space height y: none at the crotch, full down the thigh and shin, gathered at the
+## ankle (or tucked into the boot's shaft, ballooning over its top).
+func _puff_at(y: float, y_leg: float, kj: float, shod: float) -> float:
+	var k := clampf((y_leg - y) / 0.14, 0.0, 1.0)
+	var foot := kj - 0.4 * Ls
+	if shod > -INF:
+		k *= smoothstep(kj + shod, kj + shod + 0.07, y)
+	else:
+		k *= lerpf(0.2, 1.0, smoothstep(foot, foot + 0.13, y))
+	return _pants_puff() * k
 
 
 func _hips_hw() -> float:
@@ -636,6 +655,10 @@ func _legs() -> void:
 		var smb := MeshBuilder.new()
 		if legs == "breeches":
 			smb.add_loft(m_legs, Transform3D.IDENTITY, _off(_clip(sr, -0.11 * Ls, -0.06 * Ls), 0.012), prof, 3.0)
+		if legs == "parachute" and _boot_top() == -INF:
+			# gathered into a band at the ankle
+			var band := _off(_clip(sr, -0.4 * Ls + 0.035, -0.4 * Ls + 0.07), 0.02)
+			smb.add_loft(_textured("fabric", _col("legs_color").darkened(0.2)), Transform3D.IDENTITY, band, prof, 3.0, Color.WHITE, false, false, true, false, true)
 		if legs == "slops" and _boot_top() < -0.2 * Ls:
 			# sailors' slops: the legs flare out wide below the knee and stop above the footwear
 			var lo := maxf(-0.3 * Ls, _boot_top() + 0.012)
@@ -668,6 +691,16 @@ func _feet(mb: MeshBuilder, sr: Array, feet: String) -> void:
 			mb.add_box(m_feet, Transform3D(Basis(), Vector3(0, sole, -0.04 * F)), Vector3(0.07 * F, 0.012, 0.24 * F), 3.0, Color.WHITE, false)
 			mb.add_box(m_feet, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, sole + 0.055 * F, -0.07 * F)), Vector3(0.075 * F, 0.01, 0.025), 3.0, Color.WHITE, false)
 			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.05, sole + 0.065), 0.006), sp, 3.0, Color.WHITE, false, false, true, false, true)
+		"curled":
+			# (1.29) the jester's soft shoes, the toe drawn out and curled up and back into a spiral, a bell at its tip
+			var m2 := _textured("leather", _col("motley_color"))
+			mb.add_loft(m_feet, fx, _off(foot, -0.004), fprof, 3.0, Color.WHITE, true, true)
+			mb.add_loft(m2, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, sole + 0.1 * F), 0.012), sp, 3.0, Color.WHITE, false, false, true, false, true)
+			var toe := Vector3(0, sole + 0.03 * F, -0.17 * F)
+			var pts := PackedVector3Array([toe, toe + Vector3(0, 0.01, -0.06) * F, toe + Vector3(0, 0.05, -0.1) * F, toe + Vector3(0, 0.1, -0.08) * F,
+				toe + Vector3(0, 0.11, -0.04) * F, toe + Vector3(0, 0.08, -0.03) * F])
+			mb.add_tube(m_feet, pts, 0.026 * F, 0.008 * F, 5, 3.0, Color.WHITE, false, true)
+			_bell(mb, pts[pts.size() - 1] + Vector3(0, -0.018, 0) * F, 0.016 * F)
 		"foot_wraps":
 			# (1.29) bare feet bound in cloth from the ball of the foot up over the ankle, the toes and heel left bare
 			var mw := _wraps("feet_color")
@@ -854,7 +887,11 @@ func _lower_body() -> void:
 	# skirt: bare thighs under it
 	var hem := -0.2 * Ls - 0.02
 	var m_stock := _textured("fabric", Color(0.88, 0.86, 0.78))
+	var m_mot := _textured("fabric", _col("motley_color")) if legs == "motley_hose" else m_legs
 	var pick := func(c: Vector3) -> Material:
+		# (the jester's hose: the left leg in the second colour, crossed against the doublet's halves)
+		if legs == "motley_hose":
+			return m_mot if c.x < 0.0 else m_legs
 		if c.y > ys + 0.002:
 			return m_legs
 		match legs:
@@ -862,7 +899,16 @@ func _lower_body() -> void:
 			"skirt": return m_skin
 			"breeches": return m_legs if c.y > kj - 0.085 * Ls else m_stock
 		return m_legs
-	mb.add_rings(m_legs, pelvis, 3.0, Color.WHITE, true, false)
+	mb.add_rings(m_legs, pelvis, 3.0, Color.WHITE, true, false, pick if legs == "motley_hose" else Callable())
+	var shod := _boot_top()
+	var puffed := func(r: Array, y: float) -> Array:
+		var i := _puff_at(y, y_leg, kj, shod)
+		if i <= 0.0:
+			return r
+		var rr: Array = r.duplicate()
+		rr[1] = float(rr[1]) + i
+		rr[2] = float(rr[2]) + i * 1.1
+		return rr
 	for s in [-1, 1]:
 		var ring0 := PackedVector3Array([front])
 		var inner := PackedVector3Array()
@@ -881,7 +927,7 @@ func _lower_body() -> void:
 		tube.append(_thigh_ring(_at(th[s], y_leg), s, lg))
 		for r in th[s]:
 			if float(r[0]) < y_leg - 0.02 and float(r[0]) > -0.33 * Ls:
-				tube.append(_thigh_ring(r, s, lg))
+				tube.append(_thigh_ring(puffed.call(r, float(r[0]) - 0.02), s, lg))
 		# through the knee (one round kneecap ring on the joint) and down the shin
 		# to the ankle, inside the boot
 		# (nine rings across the joint, an eighth of the band apart, so a deep bend
@@ -894,18 +940,17 @@ func _lower_body() -> void:
 		for i in range(9):
 			var dk := KNEE_BAND - i * KNEE_BAND / 4.0
 			if i < 4:
-				tube.append(_thigh_ring(_at(th[s], -0.42 * Ls + dk), s, lg))
+				tube.append(_thigh_ring(puffed.call(_at(th[s], -0.42 * Ls + dk), kj + dk), s, lg))
 			elif i == 4:
-				tube.append(_thigh_ring([-0.42 * Ls, lerpf(float(tj[1]), float(sj[1]), 0.5), lerpf(float(tj[2]), float(sj[2]), 0.5),
-					lerpf(float(tj[3]), float(sj[3]), 0.5), float(tj[4]) * 0.5], s, lg))
+				tube.append(_thigh_ring(puffed.call([-0.42 * Ls, lerpf(float(tj[1]), float(sj[1]), 0.5), lerpf(float(tj[2]), float(sj[2]), 0.5),
+					lerpf(float(tj[3]), float(sj[3]), 0.5), float(tj[4]) * 0.5], kj), s, lg))
 			else:
-				tube.append(_shin_ring(_at(sr, dk), s, lg, kj))
+				tube.append(_shin_ring(puffed.call(_at(sr, dk), kj + dk), s, lg, kj))
 		# inside footwear the legs are tucked in, well clear of the shaft (a few
 		# millimetres let vertex snapping push them out through it)
-		var shod := _boot_top()
 		for r in sr:
 			if float(r[0]) < -KNEE_BAND - 0.02:
-				var rr: Array = (r as Array).duplicate()
+				var rr: Array = puffed.call((r as Array).duplicate(), kj + float(r[0]))
 				if float(rr[0]) < shod:
 					rr[1] = float(rr[1]) - 0.008
 					rr[2] = float(rr[2]) - 0.008
@@ -980,7 +1025,13 @@ func _torso() -> void:
 	var m_top := m_skin if top == "bare" else _cloth("top_color")
 	var tr := _torso_rings()
 	var mb := MeshBuilder.new()
-	mb.add_loft(m_top, Transform3D.IDENTITY, tr, P_BODY(), 3.0, Color.WHITE, false, true)
+	if top == "motley":
+		var m_mot := _cloth("motley_color")
+		mb.add_loft(m_top, Transform3D.IDENTITY, tr, P_BODY(), 3.0, Color.WHITE, false, true, true, false, false, PackedInt32Array(),
+			m_mot, Callable(), func(c: Vector3): return m_mot if c.x < 0.0 else false)
+		_motley(mb, tr, m_top, m_mot)
+	else:
+		mb.add_loft(m_top, Transform3D.IDENTITY, tr, P_BODY(), 3.0, Color.WHITE, false, true)
 	# the tunic's skirt hangs in cloth panels that swing with the legs (a rigid
 	# tube let the thighs through), snug under the belt and inside any coat's
 	# tails; with a skirt it's tucked in
@@ -1028,7 +1079,7 @@ func _torso() -> void:
 		for i in range(6):
 			var y := ty(0.03) + i * (tu(0.56) - ty(0.03)) / 6.0
 			mb.add_loft(m_band, Transform3D.IDENTITY, _off(_clip(tr, y, y + 0.03), 0.0015), P_BODY(), 3.0, Color.WHITE, false, false, true, false, true)
-	if top not in ["bare", "kimono", "striped"]:
+	if top not in ["bare", "kimono", "striped", "motley"]:
 		var r := _at(tr, tu(0.6))
 		var cz := _front_z(r) - 0.004
 		var mc := _textured("fabric", _col("top_color").lightened(0.08))
@@ -1152,7 +1203,11 @@ func _arms() -> void:
 		for r in fo:
 			if float(r[0]) < -ARM_BAND - 0.02:
 				tube.append(_limb_ring(r, fo0))
-		amb_all.add_rings(m_sleeve, tube, 3.0, Color.WHITE, true, true, pick)
+		if top == "motley" and not coated:
+			var m_side: Material = _cloth("motley_color") if side > 0 else m_sleeve
+			amb_all.add_rings(m_side, tube, 3.0, Color.WHITE, true, true, func(c: Vector3) -> Material: return m_skin if pick.call(c) == m_skin else m_side)
+		else:
+			amb_all.add_rings(m_sleeve, tube, 3.0, Color.WHITE, true, true, pick)
 	_skin_into[h.fore_l] = [arm_mbs[-1], ArmBody.FORE_L, h.arm_l.transform * h.fore_l.transform]
 	_skin_into[h.fore_r] = [arm_mbs[1], ArmBody.FORE_R, h.arm_r.transform * h.fore_r.transform]
 	if _one:
@@ -1360,7 +1415,7 @@ func _hat_cut() -> float:
 			return -1.0
 		"bandana":
 			return 0.241 * yk
-		"knit":
+		"knit", "jester":
 			return 0.244 * yk
 		"turban", "morion":
 			return 0.25 * yk
@@ -2373,6 +2428,8 @@ func _hat(mb: MeshBuilder) -> void:
 			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0, rw, rd], [y0 + 0.06 + DOME_EXTRA * 0.5, rw * 1.04, rd * 1.05, -0.01], [y0 + 0.1 + DOME_EXTRA, rw * 0.92, rd * 0.97, -0.012], [y0 + 0.115 + DOME_EXTRA, rw * 0.58, rd * 0.62, -0.01]],
 				crown_prof, 3.0, Color.WHITE, false, true)
 			mb.add_box(m_hat, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, y0 + 0.008, -rd - 0.03)), Vector3(rw * 1.4, 0.014, 0.09), 3.0, Color.WHITE, false)
+		"jester":
+			_jester_cap(mb, m_hat, y0, rw, rd, crown_prof)
 		"knit":
 			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0 - 0.02, rw, rd], [y0 + 0.07, rw * 0.98, rd * 0.98], [y0 + 0.13, rw * 0.7, rd * 0.72], [y0 + 0.16, rw * 0.24, rd * 0.26]],
 				crown_prof, 3.0, Color.WHITE, false, true)
@@ -3038,10 +3095,10 @@ func _sector_r(r: int, flare: Array, top_off: float, seat_gap: float) -> Vector3
 		var t0: Array = _torso_rings()[0]
 		return Vector3(float(t0[1]) + top_off, float(t0[2]) + top_off, float(t0[2]) + top_off)
 	var fl: float = flare[r]
-	var ad := _hips_hd() + fl * 0.9
+	var ad := _hips_hd() + fl * 0.9 + _pants_puff() * 0.7
 	# (behind, clear of the seat: a full seat, pushed out by a stride, came through skirts and coats; a layer over
 	# another clears it by more)
-	return Vector3(_hips_hw() + fl, ad, maxf(ad, _seat_back() + seat_gap))
+	return Vector3(_hips_hw() + fl + _pants_puff() * 0.8, ad, maxf(ad, _seat_back() + seat_gap))
 
 
 ## A vest's shell: the torso from lo to hi stood `o` off it, `strip` the plain outline. Up past the armpits it keeps
@@ -3686,3 +3743,73 @@ func _mask_nose(mb: MeshBuilder, m: Material, shell: Array) -> void:
 func _face_tie(mb: MeshBuilder, m: Material, y: float) -> void:
 	var band := _off(_clip(head_rings, y - 0.006, y + 0.006), hair_off + 0.004)
 	mb.add_loft(m, Transform3D.IDENTITY, band, _hair_back_profile(), 3.0, Color.WHITE, false, false, false, false, true)
+
+
+## (1.29) A small brass bell (the jester's): a lathed cup, its mouth down, a dark slot.
+func _bell(mb: MeshBuilder, at: Vector3, r: float, bones: PackedInt32Array = PackedInt32Array()) -> void:
+	var brass := PSXMat.flat(Color(0.9, 0.74, 0.32))
+	var rings := [[at.y + r, r * 0.35, r * 0.35, at.z, at.x], [at.y + r * 0.6, r * 0.85, r * 0.85, at.z, at.x], [at.y - r * 0.3, r, r, at.z, at.x],
+		[at.y - r * 0.55, r * 1.15, r * 1.15, at.z, at.x]]
+	mb.add_loft(brass, Transform3D.IDENTITY, rings, MeshBuilder.profile_oct(0.5), 4.0, Color.WHITE, true, true, true, false, false,
+		PackedInt32Array([bones[0], bones[0], bones[0], bones[0]]) if not bones.is_empty() else PackedInt32Array())
+
+
+## The motley doublet: a short peplum of points in the two colours by turns, and a collar of points over the shoulders,
+## the four over the chest and back hung with bells on chains of their own.
+func _motley(mb: MeshBuilder, tr: Array, m_top: Material, m_mot: Material) -> void:
+	for i in range(8):
+		_cloth_sectors(m_top if i % 2 == 0 else m_mot, null, [[i * 45.0 - 22.5, (i + 1) * 45.0 - 22.5]], -0.01, -0.13, [0.012, 0.024, 0.03],
+			0.25, 0.014, 0.03, _coat_tails())
+	var y := tu(0.6)
+	var r := _at(tr, y)
+	var hw := float(r[1]) + 0.012
+	var hd := float(r[2]) + 0.012
+	var sim := _sim(h.torso)
+	var n := 10
+	for i in range(n):
+		var a0 := TAU * i / n
+		var a1 := TAU * (i + 1) / n
+		var am := (a0 + a1) * 0.5
+		var p0 := Vector3(sin(a0) * hw, y + 0.01, -cos(a0) * hd + float(r[3]))
+		var p1 := Vector3(sin(a1) * hw, y + 0.01, -cos(a1) * hd + float(r[3]))
+		var out := Vector3(sin(am), 0, -cos(am))
+		var tip := Vector3(sin(am) * hw, y - 0.09, -cos(am) * hd + float(r[3])) + out * 0.05
+		var m := m_mot if i % 2 == 0 else m_top
+		var nn := (p1 - p0).cross(tip - p0).normalized()
+		if nn.dot(out) < 0.0:
+			nn = -nn
+		mb.add_tri(m, p0, p1, tip, nn, nn, nn, Vector2(0, 0), Vector2(1, 0), Vector2(0.5, 1), Color.WHITE, nn)
+		mb.add_tri(m, p0, tip, p1, -nn, -nn, -nn, Vector2(0, 0), Vector2(0.5, 1), Vector2(1, 0), Color(0.75, 0.75, 0.75), -nn)
+		# (the bells on the points over the chest and the back: on the shoulders they'd ring against the arms)
+		if absf(cos(am)) > 0.7:
+			var pts := PackedVector3Array([tip, tip + Vector3(0, -0.035, 0) + out * 0.006])
+			var bones := sim.add_chain(pts, 0.06, 0.05, 1.0, ["torso"])
+			_bell(sim.mb, pts[1], 0.013, PackedInt32Array([bones[1]]))
+
+
+## The jester's cap: close over the head in the two colours, three long soft points (left, right and back) drooping
+## from the crown on the head's chains, a bell at each tip.
+func _jester_cap(mb: MeshBuilder, m_hat: Material, y0: float, rw: float, rd: float, prof: PackedVector2Array) -> void:
+	var m_mot := _cloth("motley_color")
+	mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0 - 0.02, rw, rd], [y0 + 0.07, rw * 0.98, rd * 0.98], [y0 + 0.12, rw * 0.72, rd * 0.74], [y0 + 0.15, rw * 0.3, rd * 0.32]],
+		prof, 3.0, Color.WHITE, false, true, true, false, false, PackedInt32Array(), m_mot, Callable(), func(c: Vector3): return m_mot if c.x < 0.0 else false)
+	mb.add_loft(_textured("fabric", _col("hat_color").darkened(0.2)), Transform3D.IDENTITY, [[y0 - 0.025, rw + 0.008, rd + 0.008], [y0 + 0.02, rw + 0.01, rd + 0.01]], prof, 3.0)
+	var sim := _sim(h.head)
+	for k in range(3):
+		var a: float = [-PI * 0.5, PI * 0.5, PI][k]
+		var out := Vector3(sin(a), 0, -cos(a))
+		var root := Vector3(0, y0 + 0.11, 0) + out * rw * 0.55
+		var pts := PackedVector3Array([root, root + out * 0.09 + Vector3(0, 0.05, 0), root + out * 0.17 + Vector3(0, 0.0, 0),
+			root + out * 0.21 + Vector3(0, -0.09, 0)])
+		var bones := sim.add_chain(pts, 0.05, 0.05, 1.0, ["head", "torso"])
+		var m: Material = m_mot if k != 1 else m_hat
+		# (a tube bends with its chain: each vertex on the bone of the chain point nearest it)
+		sim.mb.weight_fn = func(v: Vector3) -> Array:
+			var best := 0
+			for i in range(1, pts.size()):
+				if v.distance_squared_to(pts[i]) < v.distance_squared_to(pts[best]):
+					best = i
+			return [PackedInt32Array([bones[best], 0, 0, 0]), PackedFloat32Array([1.0, 0.0, 0.0, 0.0])]
+		sim.mb.add_tube(m, pts, 0.05, 0.012, 6, 3.0, Color.WHITE, true, true)
+		_bell(sim.mb, pts[pts.size() - 1] + Vector3(0, -0.02, 0), 0.016)
+		sim.mb.weight_fn = Callable()

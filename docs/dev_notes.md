@@ -9341,3 +9341,23 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   three-quarters and the side; looks drape_great, drape_captain, drape_haori.
 - Tests: t/gear/coat_drape (all of the coat behind the arms). Renders: tools/dev/out/clothes/drape2_*.png (all eight coats
   draped: modelshot's "back3" is the front), tools/dev/out/clothes/lab2/sheet_drape*.png (after), lab2_before/ (before).
+
+## 2026-11-02: 1.29 clothing, piece 3: parachute pants and the jester's outfit
+- **Parachute pants** (legs "parachute"): `BodyBuilder._lower_body` puffs the thigh and shin rings (`_puff_at`, up to 5 cm
+  out, none at the crotch), gathered into a band at a bare ankle, or tucked into a boot's shaft ballooning over its top.
+  The thigh and shin capsules grow by the same 5 cm, and `_sector_r` stands every hanging panel (coat tails, skirts and
+  hems) out by it, so cloth over the pants clears them. Light (+5% move); at tailors, in plunder, in the creator's legs.
+- **The jester's outfit**, four items, each its own, in two colours (their own and `motley_color`, carried by every
+  jester piece: Gear.items_from_look): the cap (hat "jester": halves in the two colours, three soft points on the
+  head's chains each with a bell; skinned to their chains by a nearest-point weight function), the motley doublet (top
+  "motley": the torso split down the middle, the sleeves crossed against it, a peplum of alternating points, a collar of
+  ten points with four bells on chains of their own over the chest and back), the motley hose (legs "motley_hose", a leg
+  of each colour, crossed against the doublet), the curled shoes (feet "curled": the toe drawn out into a spiral, a bell
+  at the tip). Set (GearStats.SETS "jester", any three): +8% dodge, +5% gold. Sold at tailors (blue tier), the cap in
+  plunder; not in the creator (CharacterLook.CREATOR_TOPS / CREATOR_LEGS: the creator's lists; random looks keep the old
+  seven legs so villagers are unchanged, plus the odd parachute pants from `_add_1_29`).
+- Per frame: the cap's three point chains and the collar's four bell chains (sleeping with the body like every set).
+- Icons for all five. Tests: t/gear/jester_parachute (new). Renders: tools/dev/out/clothes/p3a_*.png (barefoot and
+  booted parachute pants, under a long coat, the jester outfit on both bodies), p3b_back3.png (the cap and collar).
+- The world suites that iterate every hat/legs/feet (cliptest, chartest) now cover the new styles: expect them at
+  prepush.

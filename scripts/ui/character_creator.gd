@@ -291,7 +291,7 @@ func _show_tab(t: String) -> void:
 				_cycle("Hat", "hat", CharacterLook.CREATOR_HATS)
 				_colors("Hat color", "hat_color")
 		"Outfit":
-			_cycle("Top", "top", CharacterLook.TOPS)
+			_cycle("Top", "top", CharacterLook.CREATOR_TOPS)
 			_cycle("Sleeves", "sleeves", CharacterLook.SLEEVES)
 			_colors("Top color", "top_color")
 			_cycle("Vest", "vest", CharacterLook.CREATOR_VESTS)
@@ -299,7 +299,7 @@ func _show_tab(t: String) -> void:
 			_cycle("Coat", "coat", CharacterLook.CREATOR_COATS, ["None", "Jacket"])
 			_colors("Coat color", "coat_color")
 			_colors("Trim", "trim_color")
-			_cycle("Legs", "legs", CharacterLook.LEGS)
+			_cycle("Legs", "legs", CharacterLook.CREATOR_LEGS)
 			_colors("Legs color", "legs_color")
 			_cycle("Feet", "feet", CharacterLook.CREATOR_FEET + ["foot_wraps"])
 			_colors("Feet color", "feet_color")
