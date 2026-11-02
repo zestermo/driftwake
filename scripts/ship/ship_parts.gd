@@ -815,6 +815,21 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0, y, 0)), Vector3(1.15, 0.12, 2.1), 1.0, Color.WHITE, false)
 		mb.add_box(_m["linen"], Transform3D(Basis(), bed + Vector3(0, y + 0.12, 0)), Vector3(1.0, 0.12, 1.95), 1.0)
 		mb.add_box(_m["blanket"], Transform3D(Basis(), bed + Vector3(0, y + 0.19, -0.3)), Vector3(1.04, 0.05, 1.25), 1.0)
+		# its pillow, a blanket rolled at the foot, a lee board, three rungs up the foot post, a curtain on a rod
+		mb.add_box(_m["linen"], Transform3D(Basis(), bed + Vector3(0, y + 0.25, 0.75)), Vector3(0.6, 0.12, 0.34), 1.0)
+		mb.add_cylinder(_m["blanket"], Transform3D(Basis(Vector3.BACK, PI * 0.5), bed + Vector3(0.45, y + 0.3, -0.85)), 0.1, 0.1, 0.9, 6, 1.0)
+		mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0.56, y + 0.22, 0)), Vector3(0.05, 0.18, 1.9), 1.0)
+		for k in range(3):
+			mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0.6, 0.35 + k * 0.32, -1.02)), Vector3(0.05, 0.05, 0.34), 1.0)
+		HullBuilder._line(fine, _m["brass"], bed + Vector3(0.62, y + 0.75, -1.0), bed + Vector3(0.62, y + 0.75, 1.0), 0.02)
+		mb.add_box(_m["pennant"], Transform3D(Basis(), bed + Vector3(0.63, y + 0.42, 0.7)), Vector3(0.03, 0.66, 0.55), 1.0, Color(0.85, 0.85, 0.85))
+		# the pantry's spice rack on the wall beside it (more room: Ship.pantry_slots)
+		var pa := ship.layout.pantry_at
+		var rx := ship.layout.cabin_hw - 0.08
+		mb.add_box(_m["oak"], Transform3D(Basis(), Vector3(rx, pa.y + 1.45, pa.z + 0.85)), Vector3(0.14, 0.04, 0.6), 1.0, Color.WHITE, false)
+		mb.add_box(_m["oak"], Transform3D(Basis(), Vector3(rx, pa.y + 1.65, pa.z + 0.85)), Vector3(0.14, 0.04, 0.6), 1.0, Color.WHITE, false)
+		for k in range(8):
+			mb.add_cylinder(_m["fruit"] if k % 3 == 0 else _m["linen"], Transform3D(Basis(), Vector3(rx - 0.02, pa.y + (1.47 if k < 4 else 1.67), pa.z + 0.62 + (k % 4) * 0.15)), 0.035, 0.035, 0.1, 5, 1.0)
 		_count("galley")
 	if n >= 2:
 		# an oven beside the stove, pots hung over the counter, a chimney up through the quarterdeck
@@ -831,6 +846,24 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		mb.add_cylinder(_m["dark_iron"], Transform3D(Basis(), pipe), 0.13, 0.11, 1.35, 7, 1.0)
 		mb.add_box(_m["dark_iron"], Transform3D(Basis(), pipe + Vector3(0, 1.42, 0)), Vector3(0.36, 0.06, 0.36), 1.0)
 		_solid(pipe + Vector3(0, 0.67, 0), Vector3(0.28, 1.35, 0.28))
+		# ladles and a skimmer on the pot rail, a plate rack on the wall over the counter
+		for k in range(3):
+			var z := -0.25 + k * 0.5
+			HullBuilder._line(fine, _m["iron"], ct + Vector3(0, 1.82, z), ct + Vector3(0, 1.5, z), 0.015)
+			fine.add_cylinder(_m["iron"], Transform3D(Basis(), ct + Vector3(0, 1.45, z)), 0.05, 0.04, 0.05, 6, 1.0, Color.WHITE, false, true)
+		var wx := ship.layout.cabin_hw - 0.1
+		mb.add_box(_m["oak"], Transform3D(Basis(), Vector3(wx, ct.y + 2.0, ct.z)), Vector3(0.2, 0.04, 1.2), 1.0, Color.WHITE, false)
+		mb.add_box(_m["oak"], Transform3D(Basis(), Vector3(wx - 0.08, ct.y + 2.08, ct.z)), Vector3(0.03, 0.12, 1.2), 1.0)
+		for k in range(6):
+			mb.add_cylinder(_m["linen"], Transform3D(Basis(Vector3.BACK, PI * 0.5 - 0.2), Vector3(wx, ct.y + 2.15, ct.z - 0.5 + k * 0.2)), 0.12, 0.12, 0.02, 8, 1.0, Color(0.95, 0.95, 1.0), true, true)
+		# the pantry's cold box: an iron-bound chest lined for ice, forward of the shelves
+		var cb := ship.layout.pantry_at + Vector3(0.1, 0, -0.85)
+		mb.add_box(_m["oak"], Transform3D(Basis(), cb + Vector3(0, 0.3, 0)), Vector3(0.75, 0.6, 0.5), 1.0)
+		mb.add_box(_m["linen"], Transform3D(Basis(), cb + Vector3(0, 0.62, 0)), Vector3(0.79, 0.05, 0.54), 1.0, Color(0.8, 0.92, 1.0))
+		for x in [-0.3, 0.3]:
+			mb.add_box(_m["dark_iron"], Transform3D(Basis(), cb + Vector3(x, 0.32, 0)), Vector3(0.05, 0.62, 0.53), 1.0)
+		fine.add_box(_m["brass"], Transform3D(Basis(), cb + Vector3(-0.38, 0.5, 0)), Vector3(0.03, 0.08, 0.1), 1.0)
+		_solid(cb + Vector3(0, 0.32, 0), Vector3(0.75, 0.64, 0.5))
 		_count("galley")
 	if n >= 3:
 		# hammocks slung under the beams to starboard, one rolled and stowed
@@ -845,6 +878,22 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 			HullBuilder._line(mb, _m["rope"], a, a + Vector3(0, 0.15, 0), 0.03)
 			HullBuilder._line(mb, _m["rope"], b, b + Vector3(0, 0.15, 0), 0.03)
 		mb.add_cylinder(_m["canvas"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-1.6, ship.layout.qd_y - 0.4, 6.4)), 0.12, 0.12, 1.2, 6, 1.0)
+		# a pillow in each hammock, sea bags under them
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 33
+		for k in range(2):
+			var x := 1.2 + k * 1.15
+			mb.add_box(_m["linen"], Transform3D(Basis(), Vector3(x, ship.layout.qd_y - 0.72, 7.35)), Vector3(0.36, 0.1, 0.24), 1.0)
+			mb.add_blob(_m["canvas"], Transform3D(Basis(), Vector3(x + 0.3, ship.layout.cabin_y + 0.25, 7.0 + k * 0.3)), Vector3(0.2, 0.25, 0.2), rng, 0.15, 4, 6, 0.5, Color(0.85, 0.8, 0.7))
+		# the pantry's fruit net hung from the deckhead by the shelves, sacks stacked on the cold box
+		var pa := ship.layout.pantry_at
+		var net := Vector3(ship.layout.cabin_hw - 0.55, ship.layout.qd_y - 0.9, pa.z + 0.3)
+		HullBuilder._line(mb, _m["rope"], net + Vector3(0, 0.25, 0), Vector3(net.x, ship.layout.qd_y - 0.15, net.z), 0.02)
+		mb.add_blob(_m["rope"], Transform3D(Basis(), net), Vector3(0.2, 0.25, 0.2), rng, 0.1, 4, 6, 1.0)
+		for k in range(6):
+			fine.add_blob(_m["fruit"], Transform3D(Basis(), net + Vector3(cos(k) * 0.12, -0.08 + (k % 2) * 0.12, sin(k) * 0.12)), Vector3(0.06, 0.06, 0.06), rng, 0.0, 3, 5, 1.0)
+		for k in range(2):
+			mb.add_blob(_m["linen"], Transform3D(Basis(), pa + Vector3(0.1 - 0.15 + k * 0.3, 0.78, -0.85)), Vector3(0.15, 0.12, 0.18), rng, 0.12, 4, 6, 0.5, Color(0.95, 0.9, 0.75))
 		_count("galley")
 
 

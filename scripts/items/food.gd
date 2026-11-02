@@ -252,47 +252,88 @@ static func teach(pr, meal_id: String) -> bool:
 	return true
 
 
-## What cooking `meal_id` would take out of the bag: [[ItemData, n], ...], or [] when it's short.
-## Raw ingredients go before food that can be eaten as it is, the cheapest first.
-static func picks(inv, meal_id: String) -> Array:
+## What cooking `meal_id` would take: [[ItemData, n, from the pantry], ...], or [] when it's short. (1.29) The galley
+## pantry's first (`pantry`: Food.pantry_of, aboard), then the cook's bag. Raw ingredients go before food that can be
+## eaten as it is, the cheapest first.
+static func picks(inv, meal_id: String, pantry = null) -> Array:
 	var out: Array = []
 	var r: Dictionary = MEALS[meal_id]["recipe"]
 	var taken := {}
+	var stores: Array = ([pantry.contents] if pantry else []) + [inv.items]
 	# (exact items first, then "island", then the plain tags, so a tag never eats the item a dish is named for)
 	var keys: Array = r.keys()
 	keys.sort_custom(func(x, y): return _key_rank(x) < _key_rank(y))
 	for tag in keys:
 		var need := int(r[tag])
-		var cands: Array = []
-		for st in inv.items:
-			if fits(st.item, tag) and not cands.has(st.item):
-				cands.append(st.item)
-		cands.sort_custom(func(x: ItemData, y: ItemData):
-			if x.is_consumable() != y.is_consumable():
-				return not x.is_consumable()
-			return x.value < y.value)
-		for it in cands:
-			if need <= 0:
-				break
-			var n := mini(need, int(inv.count(it.id)) - int(taken.get(it.id, 0)))
-			if n <= 0:
-				continue
-			out.append([it, n])
-			taken[it.id] = int(taken.get(it.id, 0)) + n
-			need -= n
+		for si in range(stores.size()):
+			var from_pantry: bool = pantry != null and si == 0
+			var cands: Array = []
+			for st in stores[si]:
+				if fits(st.item, tag) and not cands.has(st.item):
+					cands.append(st.item)
+			cands.sort_custom(func(x: ItemData, y: ItemData):
+				if x.is_consumable() != y.is_consumable():
+					return not x.is_consumable()
+				return x.value < y.value)
+			for it in cands:
+				if need <= 0:
+					break
+				var key := "%s/%s" % [si, it.id]
+				var n := mini(need, _count_in(stores[si], it.id) - int(taken.get(key, 0)))
+				if n <= 0:
+					continue
+				out.append([it, n, from_pantry])
+				taken[key] = int(taken.get(key, 0)) + n
+				need -= n
 		if need > 0:
 			return []
 	return out
+
+
+static func _count_in(stacks: Array, id: String) -> int:
+	var n := 0
+	for st in stacks:
+		if st.item.id == id:
+			n += st.quantity
+	return n
+
+
+## (1.29) The galley pantry `p` cooks from: the crew's ship's while they're aboard her, else null. (Untyped: tests load Food before the autoloads LootBag reaches.)
+static func pantry_of(p):
+	var ship = p.get_tree().get_first_node_in_group("ship")
+	return ship.pantry if ship != null and aboard(p) else null
+
+
+## (1.29) Food and ingredients only go in the pantry.
+static func is_food(it: ItemData) -> bool:
+	return it.ingredient != "" or it.meal != ""
+
+
+## (1.29) Stow every food and ingredient stack from `p`'s bag in the pantry (not what's in hand or the quick slot), as
+## far as its slots go: how many stacks went in.
+static func stow_all(p, pantry, slots: int) -> int:
+	var inv = p.inventory_component
+	var mask: Array = inv.held_mask()
+	var moved := 0
+	for i in range(inv.items.size() - 1, -1, -1):
+		var it: ItemData = inv.items[i].item
+		if mask[i] or not is_food(it):
+			continue
+		if pantry.contents.size() >= slots and not pantry.contents.any(func(c): return c.item == it and c.quantity < it.max_stack):
+			continue
+		pantry.store(p, i)
+		moved += 1
+	return moved
 
 
 static func _key_rank(tag: String) -> int:
 	return 2 if TAGS.has(tag) else (1 if tag == "island" else 0)
 
 
-## How many of each tag the bag holds.
-static func have(inv, tag: String) -> int:
+## How many of each tag the bag holds (and the pantry, given one).
+static func have(inv, tag: String, pantry = null) -> int:
 	var n := 0
-	for st in inv.items:
+	for st in inv.items + (pantry.contents if pantry else []):
 		if fits(st.item, tag):
 			n += st.quantity
 	return n
@@ -305,7 +346,7 @@ static func can_cook(p, meal_id: String, portions: int) -> String:
 	if is_feast(meal_id) and not aboard(p):
 		return "Feasts are cooked in the ship's galley"
 	var inv = p.inventory_component
-	if picks(inv, meal_id).is_empty():
+	if picks(inv, meal_id, pantry_of(p)).is_empty():
 		return "Not enough ingredients"
 	if inv.room_for(ItemDB.get_item(meal_id)) < portions:
 		return "Your bag's full"
@@ -320,8 +361,12 @@ static func cook(p, meal_id: String, portions: int, grade: int = 1) -> String:
 		return why
 	var pr = p.progression
 	var inv = p.inventory_component
-	for u in picks(inv, meal_id):
-		inv.remove_item(u[0], int(u[1]))
+	var pantry = pantry_of(p)
+	for u in picks(inv, meal_id, pantry):
+		if u[2]:
+			p.get_node("/root/Net").bag_use(pantry, u[0], int(u[1]))
+		else:
+			inv.remove_item(u[0], int(u[1]))
 	inv.add_item(ItemDB.get_item(graded(meal_id, grade)), portions)
 	var first: bool = not pr.cooked.has(meal_id)
 	pr.cooked[meal_id] = int(pr.cooked.get(meal_id, 0)) + 1

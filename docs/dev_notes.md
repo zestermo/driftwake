@@ -9361,3 +9361,26 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   booted parachute pants, under a long coat, the jester outfit on both bodies), p3b_back3.png (the cap and collar).
 - The world suites that iterate every hat/legs/feet (cliptest, chartest) now cover the new styles: expect them at
   prepush.
+## 2026-11-02: the galley pantry and the galley detail pass (1.29 'Shipshape', piece 4)
+- **Pantry**: `Ship.pantry`, a hidden persistent LootBag at `layout.pantry_at` (starboard forward, ShipCabin `_pantry`
+  draws its shelves of jars, sacks, a crate of fruit and an onion string), holding `GameManager.pantry` (saved as
+  "pantry" with the ship, kept in the guest's own save like "storage", cleared by reset_session). Co-op: shared bag
+  "pantry" through the host exactly like the storage (`Net._shared_bag`, world sync "pantry"); cooking's use of it is
+  `Net.bag_use` (the host takes it out, nobody gets it; a guest cooks at once from its copy: two cooks racing for the
+  last fish both get a meal, accepted).
+- **Cooking from it**: `Food.picks(inv, meal, pantry)` takes the pantry first, then the bag (entries carry "from the
+  pantry"); `have`, `can_cook`, `cook` use `Food.pantry_of(p)` (the ship's while aboard her). Food and ingredients only
+  (`Food.is_food`: an ingredient tag or a meal). Food's pantry params are untyped: tests load Food before the
+  autoloads LootBag needs.
+- **UI** (GalleyScreen, opened at the galley or "Open the pantry" by the shelves): a PANTRY n/slots column, a click
+  takes one out, **Stow food** (`Food.stow_all`: every food stack from the bag but the held/quick ones, as far as the
+  slots go). No new inventory-window code (inventory_screen is the clothing agent's).
+- **Slots**: `Ship.pantry_slots()` = 24 + ShipLines total "pantry" (each Galley & bunks level +8: its spice rack, cold
+  box, fruit net).
+- **Galley & bunks detail** (ShipParts `_galley`): 1 the upper bunk's pillow, rolled blanket, lee board, rungs and a
+  curtain, the pantry's spice rack; 2 ladles on the pot rail, a plate rack high over the counter, the pantry's
+  iron-bound cold box (solid); 3 pillows in the hammocks, sea bags under them, the fruit net, sacks on the cold box. The
+  base kitchen (ShipCabin `_galley`): stove top and door straps, a pot on the stove, a cutting board, plates, banded
+  water barrel. Kept to the existing upgrade textures (upgrade_cost: +55 surfaces maxed).
+- Tests: t/ship/pantry; t/food all pass with the pantry-aware picks. Renders: tools/dev/out/shipshape/g3q0_*, g3q4_*
+  (bigshipshot shots cabin_galley2, cabin_bunks).

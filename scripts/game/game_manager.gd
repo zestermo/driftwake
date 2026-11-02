@@ -5,6 +5,9 @@ extends Node
 var storage: Array[ItemStack] = []
 ## The storage's Personal tab (1.23): this captain's own sea chest, saved with them, theirs in any crew.
 var sea_chest: Array[ItemStack] = []
+## (1.29) The galley pantry's food and ingredients (Ship.pantry holds this very array; shared in co-op as bag "pantry"
+## like the storage: the host's), saved with the ship.
+var pantry: Array[ItemStack] = []
 ## Your grave (where you last died, holding your bag) - one at a time.
 var grave: LootBag = null
 var loot_bag_scene: PackedScene
@@ -57,6 +60,7 @@ var play_time: float = 0.0
 ## rebuilt): forget everything from the previous session.
 func reset_session() -> void:
 	storage.clear()
+	pantry.clear()
 	sea_chest.clear()
 	opened.clear()
 	burned.clear()

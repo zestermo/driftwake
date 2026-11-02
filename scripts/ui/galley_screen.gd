@@ -5,6 +5,7 @@ extends Control
 
 const W_LIST := 150
 const W_CARD := 220
+const W_PANTRY := 130
 
 ## Portions of each dish from one set of ingredients (the ship's galley line).
 var portions := 1
@@ -19,6 +20,11 @@ var _hints: HBoxContainer
 var _buttons: Dictionary = {}
 var _sel := ""
 var _flash_t := 0.0
+var _pantry_col: VBoxContainer
+var _pantry_head: Label
+var _pantry_list: VBoxContainer
+var _stow_btn: Button
+var _watching: LootBag
 
 
 func _init(menu: Node) -> void:
@@ -91,6 +97,23 @@ func _init(menu: Node) -> void:
 	_quick_btn = UIStyle.button("Quick cook", 100)
 	_quick_btn.pressed.connect(cook_selected)
 	btns.add_child(_quick_btn)
+	# (1.29) the ship's pantry: cooking takes from it first; stow your food in it; take one out with a click
+	_pantry_col = VBoxContainer.new()
+	_pantry_col.add_theme_constant_override("separation", 2)
+	_pantry_col.custom_minimum_size = Vector2(W_PANTRY, 0)
+	body.add_child(_pantry_col)
+	_pantry_head = InventoryScreen.small("PANTRY", UIStyle.BORDER)
+	_pantry_col.add_child(_pantry_head)
+	var ps := ScrollContainer.new()
+	ps.custom_minimum_size = Vector2(W_PANTRY, 180)
+	ps.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_pantry_col.add_child(ps)
+	_pantry_list = VBoxContainer.new()
+	_pantry_list.add_theme_constant_override("separation", 1)
+	ps.add_child(_pantry_list)
+	_stow_btn = UIStyle.button("Stow food", W_PANTRY)
+	_stow_btn.pressed.connect(stow_all)
+	_pantry_col.add_child(_stow_btn)
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 8)
 	vb.add_child(foot)
@@ -145,11 +168,66 @@ func _refresh() -> void:
 	for id in Food.ORDER:
 		var b: Button = _buttons[id]
 		var known := Food.known(pr, id)
-		var ready := known and not Food.picks(inv, id).is_empty()
+		var ready := known and not Food.picks(inv, id, Food.pantry_of(pl)).is_empty()
 		b.text = str(Food.MEALS[id]["name"]) if known else "???"
 		b.icon = ItemDB.get_item(id).icon if known else null
 		b.add_theme_color_override("font_color", UIStyle.GOOD if ready else (UIStyle.TEXT if known else UIStyle.TEXT_DISABLED))
+	_show_pantry()
 	_show_card()
+
+
+## The pantry column (aboard only): what's in it (a click takes one out), its slots, Stow food.
+func _show_pantry() -> void:
+	var pantry = Food.pantry_of(_player())
+	_pantry_col.visible = pantry != null
+	if pantry == null:
+		return
+	if _watching != pantry:
+		_watching = pantry
+		pantry.contents_changed.connect(_on_pantry_changed)
+	var ship := get_tree().get_first_node_in_group("ship")
+	_pantry_head.text = "PANTRY  %d/%d" % [pantry.contents.size(), ship.pantry_slots()]
+	InventoryScreen._clear(_pantry_list)
+	for i in range(pantry.contents.size()):
+		var st: ItemStack = pantry.contents[i]
+		var b := UIStyle.button("%s x%d" % [st.item.display_name, st.quantity], W_PANTRY)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_size_override("font_size", 10)
+		b.icon = st.item.icon
+		b.expand_icon = false
+		b.tooltip_text = "Take one out"
+		var idx := i
+		b.pressed.connect(func(): take_one(idx))
+		_pantry_list.add_child(b)
+	if pantry.contents.is_empty():
+		_pantry_list.add_child(InventoryScreen.small("EMPTY: STOW FOOD FROM YOUR BAG", UIStyle.TEXT_DIM))
+
+
+## (a crewmate stowed or cooked: the host's copy came in)
+func _on_pantry_changed() -> void:
+	if is_visible_in_tree():
+		_refresh()
+
+
+## Every food and ingredient in your bag into the pantry (Food.stow_all; the host's in co-op).
+func stow_all() -> void:
+	var pantry = Food.pantry_of(_player())
+	if pantry == null:
+		return
+	var n := Food.stow_all(_player(), pantry, get_tree().get_first_node_in_group("ship").pantry_slots())
+	_flash("Stowed %d stack%s in the pantry" % [n, "" if n == 1 else "s"] if n > 0 else "No food to stow (or the pantry's full)", n == 0)
+	if n > 0:
+		UIStyle.sfx("buy")
+	_refresh()
+
+
+## One of a pantry stack back into your bag.
+func take_one(idx: int) -> void:
+	var pantry = Food.pantry_of(_player())
+	if pantry == null or idx >= pantry.contents.size():
+		return
+	pantry.take(idx, _player(), 1)
+	_refresh()
 
 
 func _show_card() -> void:
@@ -186,14 +264,15 @@ func _show_card() -> void:
 	_line("HEALS %d WHEN EATEN" % int(it.heal_amount), UIStyle.TEXT)
 	_card.add_child(InventoryScreen._rule())
 	var r: Dictionary = m["recipe"]
+	var pantry = Food.pantry_of(pl)
 	for tag in r.keys():
-		var have := Food.have(inv, tag)
+		var have := Food.have(inv, tag, pantry)
 		_line("%d %s  (YOU HAVE %d)" % [int(r[tag]), Food.tag_name(tag).to_upper(), have], UIStyle.GOOD if have >= int(r[tag]) else UIStyle.DANGER_TEXT)
-	var use := Food.picks(inv, _sel)
+	var use := Food.picks(inv, _sel, pantry)
 	if not use.is_empty():
 		var names: Array = []
 		for u in use:
-			names.append("%d %s" % [int(u[1]), (u[0] as ItemData).display_name])
+			names.append("%d %s%s" % [int(u[1]), (u[0] as ItemData).display_name, " (pantry)" if u[2] else ""])
 		_line("USES " + ", ".join(names).to_upper(), UIStyle.TEXT_DIM)
 	if Food.is_feast(_sel):
 		_line("A CREW FEAST: EVERYONE ABOARD EATS" if Food.aboard(pl) else "A CREW FEAST: COOKED IN THE SHIP'S GALLEY", UIStyle.ACCENT if Food.aboard(pl) else UIStyle.DANGER_TEXT)

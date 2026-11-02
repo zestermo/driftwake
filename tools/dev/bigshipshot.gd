@@ -4,7 +4,7 @@ extends SceneTree
 ## storage), up on the quarterdeck at the helm, the crow's nest, and an enemy
 ## ship alongside for scale. Args: <out_prefix> [psx]; env BSHOT_HOUR=21 at night, BSHOT_KIT='{"quarters": 4}' (the
 ## kit over hers), BSHOT_ONLY=cabin_wide,helm (just those shots). 1.29 shots: cabin_wide, cabin_aft, cabin_steps,
-## helm, flag, ladder_side.
+## helm, flag, ladder_side, cabin_galley2, cabin_bunks.
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -52,6 +52,8 @@ func _process(d: float) -> bool:
 			["cabin_wide", Vector3(0.6, cy + 1.75, HB.qd_front + 0.5), Vector3(-0.4, cy + 0.6, HB.qd_back - 0.5), Vector3(0, 0.5, -4)],
 			["cabin_aft", Vector3(-0.3, cy + 1.6, HB.qd_back - 0.4), Vector3(0.3, cy + 0.7, HB.qd_front), Vector3(0, 0.5, -4)],
 			["cabin_steps", Vector3(0.0, HB.deck_y + 1.7, HB.qd_front - 2.5), Vector3(0, cy + 0.5, HB.qd_front + 2.0), Vector3(0, 0.5, -4)],
+			["cabin_galley2", Vector3(-1.6, cy + 1.7, HB.pantry_at.z - 0.4), Vector3(3.6, cy + 0.9, HB.counter_at.z), Vector3(0, 0.5, -4)],
+			["cabin_bunks", Vector3(1.2, cy + 1.7, HB.bed_at.z - 2.2), Vector3(-3.4, cy + 0.9, HB.bed_at.z), Vector3(0, 0.5, -4)],
 			["helm", Vector3(1.4, HB.qd_y + 1.6, HB.wheel_z + 1.6), Vector3(0, HB.qd_y + 0.8, HB.wheel_z), Vector3(0, 0.5, -4)],
 			["flag", Vector3(5.0, HB.mast_top + 1.0, HB.mast_z + 4.0), Vector3(0, HB.mast_top + 0.6, HB.mast_z + 0.8), Vector3(0, 0.5, -4)],
 			["ladder_side", Vector3(9.0, 0.2, -2.9), Vector3(4.0, -0.6, -2.9), Vector3(0, 0.5, -4)],

@@ -17,7 +17,7 @@ extends RefCounted
 ##   steady (a ram throws the crew that much less; 1 = not at all), board (boarders fewer),
 ##   fruit (tangerine trees), portions (more of each dish cooked at the galley), slots (bag slots),
 ##   ropes (the swing ropes at the yard's ends: none until bought),
-##   rest (1.29: the bunk's rested time, longer)
+##   rest (1.29: the bunk's rested time, longer), pantry (1.29: galley pantry slots)
 
 const GROUPS := ["Hull", "Guns", "Rig", "Helm", "Deck", "Cabin"]
 
@@ -92,9 +92,9 @@ const LINES := {
 		["Great cabin", "The partition gone, a second step down, a long mess table for five, a galley corner", {"timber": 8, "iron": 4, "copper": 2}, {"rest": 0.15}],
 	]},
 	"galley": {"name": "Galley & bunks", "group": "Cabin", "legacy": 0, "base": 60, "levels": [
-		["Upper bunk", "A second bunk over the bed", {"timber": 3}, {"portions": 1}],
-		["Galley range", "An oven, hanging pots, a chimney up through the deck", {"iron": 4}, {"portions": 1}],
-		["Hammocks", "Hammocks slung under the beams", {"canvas": 4, "timber": 2}, {"portions": 1}],
+		["Upper bunk", "A second bunk over the bed, a spice rack by the pantry", {"timber": 3}, {"portions": 1, "pantry": 8}],
+		["Galley range", "An oven, hanging pots, a plate rack, a chimney up through the deck, the pantry's cold box", {"iron": 4}, {"portions": 1, "pantry": 8}],
+		["Hammocks", "Hammocks slung under the beams, a fruit net by the pantry", {"canvas": 4, "timber": 2}, {"portions": 1, "pantry": 8}],
 	]},
 	"chest": {"name": "Ship's hold", "group": "Cabin", "legacy": 0, "base": 100, "levels": [
 		["Iron-bound chest", "Iron bands and a lock on the storage chest", {"iron": 2, "timber": 2}, {"slots": 2}],
@@ -116,9 +116,9 @@ const EFFECT_TEXT := {
 	"chaser_range": "+%d%% chaser range", "spot": "ships and salvage on the compass +%d m",
 	"night": "+%d%% speed at night", "steady": "%d%% steadier when rammed", "board": "%d fewer boarder",
 	"fruit": "+%d tangerine tree", "portions": "+%d portion a dish at the galley", "slots": "+%d bag slots",
-	"ropes": "%d ropes to swing on", "rest": "+%d%% longer rested from the bunk",
+	"ropes": "%d ropes to swing on", "rest": "+%d%% longer rested from the bunk", "pantry": "+%d pantry slots",
 }
-const COUNT_KEYS := ["guns", "chaser", "spot", "board", "fruit", "portions", "slots", "ropes"]
+const COUNT_KEYS := ["guns", "chaser", "spot", "board", "fruit", "portions", "slots", "ropes", "pantry"]
 
 
 static func line(id: String) -> Dictionary:

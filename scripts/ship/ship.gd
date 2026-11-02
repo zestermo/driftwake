@@ -178,6 +178,8 @@ var _cam_y: float = 0.0
 ## The storage chest in the cabin (a LootBag that never empties away), and its Personal tab (this captain's own).
 var storage: LootBag
 var personal: LootBag
+## (1.29) The galley pantry (a hidden shared bag: GameManager.pantry; the galley screen shows it).
+var pantry: LootBag
 @onready var ship_camera: Node3D = $ShipCamera
 
 
@@ -1120,6 +1122,7 @@ func _wave(p: Vector3, t: float) -> float:
 func _process(delta: float) -> void:
 	# (shared through the host while there's a crew, local alone)
 	storage.shared_id = "storage" if Net.active else ""
+	pantry.shared_id = "pantry" if Net.active else ""
 	_summon_view(delta)
 	_hull_tick(delta)
 	_show_sail(delta)
@@ -1500,6 +1503,10 @@ func _build_cabin() -> void:
 	var galley := _cabin_zone("Galley", "Cook at the galley", layout.counter_at + Vector3(-0.85, 0.6, 0.3))
 	galley.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
 	galley.gesture = "reach"
+	pantry.position = layout.pantry_at
+	var shelves := _cabin_zone("PantryShelves", "Open the pantry", layout.pantry_at + Vector3(-0.7, 0.6, 0.0))
+	shelves.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
+	shelves.gesture = "reach"
 	# the galley table: a pot of several portions goes here for the crew (GalleyTable)
 	var table := GalleyTable.new()
 	table.name = "GalleyTable"
@@ -1528,6 +1535,15 @@ func _build_cabin() -> void:
 	for n in [_cabin_mesh, _cabin_fine, _cabin_light]:
 		(n as Node3D).visible = false
 	_cabin_t = 0.0
+
+
+## (1.29) How many stacks the galley pantry holds: PANTRY_SLOTS, and the Galley & bunks line's "pantry" more (its spice
+## rack, cold box, fruit net: ShipParts).
+const PANTRY_SLOTS := 24
+
+
+func pantry_slots() -> int:
+	return PANTRY_SLOTS + int(ShipLines.total(kit, "pantry"))
 
 
 func _bench_at() -> Vector3:
@@ -1578,6 +1594,20 @@ func _build_storage() -> void:
 	personal.collision_layer = 0
 	personal.interactable.monitorable = false
 	personal.interactable.collision_layer = 0
+	# (1.29) the galley pantry: food and ingredients for the crew's cooking (Food.picks takes from it first), shared
+	# through the host like the storage; no bag of its own to see: the galley screen shows it (GalleyScreen)
+	pantry = (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	pantry.name = "Pantry"
+	pantry.persistent = true
+	pantry.label = "Galley pantry"
+	pantry.shared_id = "pantry" if Net.active else ""
+	if not Net.is_client():
+		pantry.contents = get_node("/root/GameManager").pantry
+	ship_model.add_child(pantry)
+	pantry.visible = false
+	pantry.collision_layer = 0
+	pantry.interactable.monitorable = false
+	pantry.interactable.collision_layer = 0
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).position = Vector3.ZERO
 	storage.get_node("CollisionShape3D").queue_free()

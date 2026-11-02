@@ -251,9 +251,12 @@ static func save(player: Player) -> bool:
 			worn[slot] = item_ref(it)
 	var stored: Array = []
 	var chest: Array = []
+	var pantry: Array = []
 	if gm:
 		for st in gm.storage:
 			stored.append([item_ref(st.item), st.quantity])
+		for st in gm.pantry:
+			pantry.append([item_ref(st.item), st.quantity])
 		for st in gm.sea_chest:
 			chest.append([item_ref(st.item), st.quantity])
 	# your grave, if you've one: where, and what's in it (a grave on a ship's
@@ -310,6 +313,7 @@ static func save(player: Player) -> bool:
 		"loadouts": player.loadouts.duplicate(true),
 		"loadout_at": player.loadout_at,
 		"storage": stored,
+		"pantry": pantry,
 		"grave": grave,
 		"opened": gm.opened.keys() if gm else [],
 		"maps": gm.maps.keys() if gm else [],
@@ -336,7 +340,7 @@ static func save(player: Player) -> bool:
 	if _guest(player):
 		# keep our own world's state, not the host's
 		# (and our own ship's storage and our grave, in our own world)
-		for k in ["journal", "burned", "world_flags", "fruit_claims", "rivals", "crew", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave", "fog"]:
+		for k in ["journal", "burned", "world_flags", "fruit_claims", "rivals", "crew", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "pantry", "grave", "fog"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -491,6 +495,15 @@ static func load_into(player: Player) -> bool:
 					st.item = it
 					st.quantity = int(e[1])
 					gm.storage.append(st)
+			# (1.29) the galley pantry, in place too (older saves: empty)
+			gm.pantry.clear()
+			for e in data.get("pantry", []):
+				var it := item_from(e[0])
+				if it:
+					var st := ItemStack.new()
+					st.item = it
+					st.quantity = int(e[1])
+					gm.pantry.append(st)
 			var wn := player.get_node_or_null("/root/Weather")
 			if wn and data.has("world_time"):
 				wn.set_world_time(float(data["world_time"]))

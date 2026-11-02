@@ -36,6 +36,7 @@ static func mats() -> Dictionary:
 		"glaze": PSXMat.lit("glaze", Color(0.9, 0.92, 1.0)),
 		"paper": PSXMat.lit("canvas", Color(1.0, 0.95, 0.8)),
 		"bottle": PSXMat.lit("", Color(0.25, 0.45, 0.3)),
+		"orange": PSXMat.lit("", Color(1.0, 0.52, 0.1)),
 	}
 
 
@@ -47,6 +48,7 @@ static func build(L: HullLayout, q: int) -> Array:
 	_bunk(mb, fine, m, L.bed_at, q)
 	_galley(mb, fine, m, L, q)
 	_store(mb, m, L.storage_at)
+	_pantry(mb, fine, m, L)
 	_table(mb, fine, m, L, q)
 	_stern(mb, fine, m, L, q)
 	_lamp(mb, fine, m, L, q)
@@ -93,6 +95,7 @@ static func solids(L: HullLayout, q: int) -> Array:
 		[L.stove_at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95)],
 		[L.counter_at + Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 1.6)],
 		[L.storage_at + Vector3(0, 0.3, 0), Vector3(1.0, 0.6, 0.65)],
+		[Vector3(L.cabin_hw - 0.22, L.cabin_y + 0.9, L.pantry_at.z), Vector3(0.42, 1.8, 1.05)],
 	]
 	var t := table_at(L, q)
 	out.append([t + Vector3(0, 0.4, 0), Vector3(1.0, 0.8, 2.6) if q >= 4 else Vector3(1.5, 0.8, 0.9)])
@@ -175,6 +178,37 @@ static func _galley(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLa
 	for r in range(2):
 		for k in range(5):
 			fine.add_cylinder(m["bottle"], Transform3D(Basis(Vector3.BACK, -PI * 0.5), rack + Vector3(-0.1, -0.1 + r * 0.22, -0.34 + k * 0.17)), 0.05, 0.05, 0.26, 6, 1.0, Color(1.0 - 0.2 * (k % 2), 0.9, 0.8))
+
+
+## The pantry (1.29) against the starboard wall forward: open shelves of jars, sacks and a crate of fruit, a string
+## of onions hung from the top (its cold box and more shelves are the Galley & bunks line's: ShipParts).
+static func _pantry(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
+	var at := L.pantry_at
+	var x := L.cabin_hw - 0.22
+	for sz in [-0.5, 0.5]:
+		mb.add_box(m["oak"], Transform3D(Basis(), Vector3(x, at.y + 0.9, at.z + sz)), Vector3(0.4, 1.8, 0.05), 1.0)
+	for y in [0.08, 0.6, 1.1, 1.6]:
+		mb.add_box(m["oak"], Transform3D(Basis(), Vector3(x, at.y + y, at.z)), Vector3(0.4, 0.04, 1.0), 1.0, Color.WHITE, false)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 129
+	# jars on the top two shelves
+	for y in [1.12, 1.62]:
+		for k in range(4):
+			var p := Vector3(x - 0.05, at.y + y, at.z - 0.36 + k * 0.24)
+			var h := rng.randf_range(0.14, 0.24)
+			fine.add_cylinder(m["glaze"], Transform3D(Basis(), p), 0.06, 0.055, h, 6, 1.0, Color(rng.randf_range(0.6, 1.0), rng.randf_range(0.6, 0.9), rng.randf_range(0.4, 0.8)), true, false)
+			fine.add_cylinder(m["oak"], Transform3D(Basis(), p + Vector3(0, h, 0)), 0.05, 0.05, 0.03, 6, 1.0, Color.WHITE, true, false)
+	# sacks of flour and rice on the middle shelf, a crate of fruit on the bottom
+	for k in range(2):
+		mb.add_blob(m["linen"], Transform3D(Basis(), Vector3(x - 0.02, at.y + 0.76, at.z - 0.22 + k * 0.42)), Vector3(0.15, 0.15, 0.17), rng, 0.12, 4, 6, 0.5, Color(0.95, 0.9, 0.75))
+	mb.add_box(m["crate"], Transform3D(Basis(), Vector3(x - 0.02, at.y + 0.25, at.z + 0.1)), Vector3(0.34, 0.3, 0.55), 1.0)
+	for k in range(5):
+		fine.add_blob(m["orange"], Transform3D(Basis(), Vector3(x - 0.05 + (k % 2) * 0.08, at.y + 0.42, at.z - 0.1 + k * 0.1)), Vector3(0.05, 0.05, 0.05), rng, 0.0, 3, 5, 1.0)
+	# a string of onions
+	var top := Vector3(x - 0.18, at.y + 1.75, at.z - 0.3)
+	HullBuilder._line(fine, m["iron"], top, top - Vector3(0, 0.5, 0), 0.015)
+	for k in range(5):
+		fine.add_blob(m["linen"], Transform3D(Basis(), top - Vector3(0, 0.12 + k * 0.09, 0)), Vector3(0.045, 0.045, 0.045), rng, 0.0, 3, 5, 1.0, Color(0.85, 0.6, 0.35))
 
 
 ## Crates and a barrel round the storage chest.

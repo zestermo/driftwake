@@ -1884,9 +1884,9 @@ func _make_drop(id: String, stacks: Array, at: Vector3, shared: bool) -> Node:
 
 
 func _shared_bag(id: String) -> LootBag:
-	if id == "storage":
+	if id == "storage" or id == "pantry":
 		var s := _ship()
-		return s.get("storage") as LootBag if s else null
+		return s.get(id) as LootBag if s else null
 	var cs := get_tree().current_scene
 	return cs.get_node_or_null("Drop_" + id) as LootBag if cs else null
 
@@ -1931,6 +1931,37 @@ func _take_ok(ref: Array, qty: int) -> void:
 	var item := SaveGame.item_from(ref)
 	if item and local_player and is_instance_valid(local_player):
 		local_player.inventory_component.add_item(item, qty)
+
+
+## (1.29) A cook used `qty` of `item` from a shared bag (the galley pantry: Food.cook): the host takes it out; nobody
+## gets it back (it went into the pot). A guest cooks at once from what its copy showed.
+func bag_use(bag: LootBag, item: ItemData, qty: int) -> void:
+	if bag.shared_id == "":
+		while qty > 0 and bag.find_stack(item) >= 0:
+			var i := bag.find_stack(item)
+			var n := mini(qty, bag.contents[i].quantity)
+			bag._remove(i, n)
+			qty -= n
+		bag._changed()
+	elif hosting:
+		_host_use(bag.shared_id, SaveGame.item_ref(item), qty)
+	else:
+		_use_req.rpc_id(1, bag.shared_id, SaveGame.item_ref(item), qty)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _use_req(id: String, ref: Array, qty: int) -> void:
+	if hosting:
+		_host_use(id, ref, qty)
+
+
+## (as _host_take, across as many stacks as it takes)
+func _host_use(id: String, ref: Array, qty: int) -> void:
+	while qty > 0:
+		var got := _host_take(id, ref, qty)
+		if got <= 0:
+			return
+		qty -= got
 
 
 ## Put something into a shared bag (it already left our bag).
@@ -2420,6 +2451,7 @@ func _world_state() -> Dictionary:
 		"fog": [MapFog.pack(gm), MapFog.spots(gm)] if gm else [],
 		"chain": [gm.chain_seed, gm.chain_at, gm.chain_set, gm.chain_since] if gm else [],
 		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else [],
+		"pantry": (ship.get("pantry") as LootBag).refs() if ship and ship.get("pantry") else [],
 		"journal": Journal.to_dict(),
 		"crew": gm.crew.duplicate(true) if gm else {},
 		"lash": [ship.lashed, ship.lash_heading] if ship else [false, 0.0]}
@@ -2460,6 +2492,12 @@ func _apply_world_sync(state: Dictionary) -> void:
 		store.contents = []
 		store.shared_id = "storage"
 		store.set_contents(state["storage"])
+	# (1.29) and so is the galley pantry
+	var pantry := ship.get("pantry") as LootBag if ship else null
+	if pantry and state.has("pantry"):
+		pantry.contents = []
+		pantry.shared_id = "pantry"
+		pantry.set_contents(state["pantry"])
 	var gm := get_node_or_null("/root/GameManager")
 	if gm:
 		gm.fruit_claims = (state.get("fruits", {}) as Dictionary).duplicate()
