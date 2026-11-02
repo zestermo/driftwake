@@ -146,6 +146,11 @@ func bag_colour() -> String:
 	return ""
 
 
+## Is the gadget belt item carried (its pouch worn)?
+func has_belt() -> bool:
+	return player.inventory_component.count(GadgetData.BELT_ITEM) > 0
+
+
 func bag_open() -> bool:
 	return wheel_open or PlayerState.now_s() < open_until
 
@@ -214,29 +219,6 @@ func fire() -> bool:
 	else:
 		GadgetUtility.use(player, gid, tier_of(gid))
 	return true
-
-
-## (1.28.1, Zach) The skimmer once built goes anywhere there's water deep enough, slotted or not: the action wheel's
-## Launch the skimmer (ActionWheel.ensure_builtins). Static method callables, not lambdas.
-static func register_wheel() -> void:
-	ActionWheel.register("skimmer", "Launch the skimmer", "", _skim_ok, _skim, 62)
-
-
-static func _skim_ok(p):
-	if p.gadgets.tier_of("skimmer") < 0:
-		return false
-	if p.current_state_name() not in ["Idle", "Move", "Swim", "Sprint"]:
-		return "Not now"
-	var why: Array = SKIMMER_STATE.launch_point(p)
-	return "" if str(why[0]) == "" else str(why[0])
-
-
-static func _skim(p) -> void:
-	var why: Array = SKIMMER_STATE.launch_point(p)
-	if str(why[0]) != "":
-		p.call("_toast", str(why[0]))
-		return
-	p.state_machine.force_state("Skimmer", {"tier": p.gadgets.tier_of("skimmer"), "at": why[1]})
 
 
 ## The traversal gadgets' state ("Gadget"), put on the captain's state machine (its nodes come from player.tscn; this
@@ -319,21 +301,32 @@ func best_tier() -> int:
 
 
 func _changed() -> void:
-	wear(player.body_model, best_tier())
+	wear(player.body_model, maxi(best_tier(), 0) if has_belt() else -1)
 	var body: Humanoid = player.body_model
 	if body and body.bag_colour != bag_colour():
 		GadgetBag.wear(body, bag_colour(), bag_open())
 	changed.emit()
 
 
-## (1.28.1, Zach: the gadget belt is figurative, nothing drawn on the body) No pouch: one from an older build is taken off.
-static func wear(body: Humanoid, _tier: int) -> void:
+## The gadget belt's pouch of canisters on `body`'s back at `tier` (-1: none; worn while the gadget belt item is carried,
+## its look the best tier slotted). Humanoid.apply_look wears it again on a rebuild.
+static func wear(body: Humanoid, tier: int) -> void:
 	if body == null:
 		return
-	body.pouch_tier = -1
+	body.pouch_tier = tier
 	var old := body.torso.get_node_or_null("GadgetPouch")
 	if old:
 		old.free()
+	if tier < 0:
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "GadgetPouch"
+	mi.mesh = GadgetModels.pouch(tier)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 40.0
+	body.torso.add_child(mi)
+	var s := body.lantern_spot
+	mi.position = Vector3(0.0, s.y + 0.01, absf(s.z) / sin(0.4) * 0.92 + 0.02)
 
 
 ## Another captain's throw arriving on this screen (Player.net_event "gadget").

@@ -307,3 +307,4 @@ backported there).
   (a C++ crash in `NPC.setup` from `IslandLife._spawn`, an island built mid-test) and chaintest hit "Attempted to free
   a locked object" in `WorldGenerator._free_some` (world_generator.gd:306). Both pass alone. Suspect: an island freed
   (or an NPC set up) while a signal on it is still being emitted. Time-boxed; look first if it repeats.
+- **t/gadgets/decoy flakes under load** (2026-11-02): failed twice with other tests running, passes alone. Time-boxed.

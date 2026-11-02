@@ -7,8 +7,8 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["The skimmer", "A windsurf board built from the coral atoll's parts. Once built, launch it anywhere the water's deep enough (U, or the action wheel): WASD steers, sail across the wind for speed, F stows it."],
-	["Gadget belt and bag", "You carry one gadget. A gadget belt (chandlers, the Tinkerer) carries two, tap O to switch; a gadget bag (four colours) carries four, hold O for the wheel."],
+	["The skimmer", "A windsurf board gadget built from the coral atoll's parts. Equip it and press U anywhere the water's deep enough: WASD steers, sail across the wind for speed, F stows it."],
+	["Gadget belt and bag", "You carry one gadget. A gadget belt (chandlers, the Tinkerer; worn on your back) carries two, tap O to switch; a gadget bag (four colours) carries four, hold O for the wheel."],
 	["The atoll's reef", "Dense coral gardens under the lagoon, giant clams with pearls, coral to break off, swim-through arches, rays and turtles, and morays in the rocks."],
 	["The stilt town", "Shell-bead curtains, coral-stone footings, outrigger canoes, pearl baskets and fish racks."],
 ]

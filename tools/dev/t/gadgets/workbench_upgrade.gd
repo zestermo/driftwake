@@ -52,7 +52,7 @@ func _process(_d: float) -> bool:
 			check("...to Mk II's charges, full (%d)" % p.gadgets.charges("smoke"), p.gadgets.charges("smoke") == 4)
 			check("...a bigger cloud", D.tier_val("smoke", "radius", 1) > D.tier_val("smoke", "radius", 0))
 			check("Mk II has its own model", M.mesh("smoke", 1) != M.mesh("smoke", 0))
-			check("no pouch is worn (the belt is figurative)", p.body_model.pouch_tier == -1)
+			check("no belt carried: no pouch worn", p.body_model.pouch_tier == -1)
 			_pay_for(G, 2)
 			check("Mk III waits for Tinkering 12", G.why_not(p, "smoke") == "Needs Tinkering 12")
 			_tinker(12)

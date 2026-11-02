@@ -9191,7 +9191,7 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 ## 2026-11-02: gadget slots, Zach's rules (1.28.1)
 - One gadget by default (GadgetData.SLOTS); a **gadget belt** item (`gadget_belt`, 120 gold: chandlers' CHANDLER_STOCK,
   the volcanic tinkerer's `Gadgets.buy_belt`) gives BELT_SLOTS 2, tap O to switch; a **gadget bag** BAG_SLOTS 4 (was 6) with
-  the wheel. The belt is figurative: nothing on the body (`GadgetBelt.wear` only takes an old pouch off; pouch_tier -1).
-- The skimmer once built launches anywhere the water's deep enough (SkimmerState.LAUNCH_DEPTH 0.8) whether slotted or not:
-  the action wheel's "Launch the skimmer" (`GadgetBelt.register_wheel`, ActionWheel.ensure_builtins).
+  the wheel. The belt's pouch is worn on the back while the belt item is carried (`GadgetBelt.has_belt`; none without it).
+- The skimmer is an equipped gadget like any other (U), launching anywhere the water's deep enough (LAUNCH_DEPTH 0.8);
+  the atoll is only where its parts and blueprint come from. (An action-wheel launch was tried and taken out: Zach.)
 - Tests: t/gadgets/belt_item (new); bag_buy, bag_migration, bag_slots, belt_fire, workbench_upgrade to the new rules.

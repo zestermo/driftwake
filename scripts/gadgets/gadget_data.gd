@@ -6,7 +6,7 @@ extends RefCounted
 ## The Tinkering level each tier needs to build (or upgrade to).
 const TIER_TINKER := [1, 6, 12]
 const TIER_NAMES := ["Mk I", "Mk II", "Mk III"]
-## (1.28.1, Zach) The captain carries one gadget; a gadget belt (an item, never drawn on the body) two; a gadget bag
+## (1.28.1, Zach) The captain carries one gadget; a gadget belt (an item, its pouch worn on the back) two; a gadget bag
 ## (GadgetBag) BAG_SLOTS, with the wheel to pick among them.
 const SLOTS := 1
 const BELT_SLOTS := 2

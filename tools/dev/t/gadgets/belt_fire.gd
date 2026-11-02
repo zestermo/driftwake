@@ -36,7 +36,7 @@ func _process(_d: float) -> bool:
 		1:
 			var hud = root.find_child("GadgetBelt", true, false)
 			check("the belt shows on the HUD", hud != null and hud.visible)
-			check("nothing is worn on the back (the belt is figurative)", p.body_model.torso.get_node_or_null("GadgetPouch") == null)
+			check("no belt carried: no pouch on the back", p.body_model.torso.get_node_or_null("GadgetPouch") == null)
 			check("built gadgets fill the slots, the first selected", b.slots == ["smoke", "tar", "", ""] and b.gadget() == "smoke")
 			check("a Mk I smoke pellet holds 3 charges", b.charges("smoke") == 3)
 			TK.act("gadget_fire")
