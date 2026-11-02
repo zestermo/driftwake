@@ -9065,3 +9065,57 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Co-op: the chain is drawn from each screen's own body and actions (nothing on the wire). Per frame: one ImmediateMesh
   rebuild (15 points) per sickle-holding body on screen.
 - Tests: t/weapons/sickle_combo, sickle_tree, sickle_moves, plus_sickle. Renders: tools/dev/out/sickle/as_*.
+
+## 1.28: the coral atoll (2026-11-02)
+- **What:** a new island theme, `atoll` (docs/v1_28_plan.md "Islands"), registered last in IslandThemes.SCRIPTS. Rolled
+  apart like the fog and volcanic isles (weight 0.2, from the chain's second layer). Every number is in
+  `scripts/island/themes/atoll_data.gd`. Landed in five pieces (land/town, places/life, beasts, boss, sound).
+- **Land** (`atoll_land.gd`): the base coast becomes the sea edge of a ring 48-64 m wide (wobbling by bearing); along it
+  islets (crest 2.2-3.6 m, palm-grown) alternate with sandbars (-0.5 m floor, -0.18 crest: wading), cut by 1-2 passes
+  (-2.8 m, a swim; never by the dock or village). Outside: a 14 m reef flat at -1.1 m, then the drop-off to -30 over 22 m
+  (where DiveSites' own spots land). Inside: the lagoon at -2.5..-3.1 (deeper than SpearSchool.DEEP_M 2.5 over most of
+  it), coral heads (cellular noise) up to -0.7, 2-4 lagoon islets (motu; the first big, 58-70 m, kept for the caves),
+  a blue hole 13-17 m deep. The village sits on the ring beside the dock on its own widened islet (70 m, 2.5 m high:
+  VillageLayouts wants ground over 2 m); the boss's tidal flat is in the lagoon away from the village (the base land's
+  low 0.9 m, restored by the sites' kept land), a wading causeway out to it with 1-2 swims. Hooks: new
+  `ThemeDef.route(isl, site, pts)` (GenIsland._define_paths: the atoll's paths run round the ring at its middle and down
+  the causeway); `site_at(isl, "cave", p)` (KitDungeons._plan_cave, land-plan themes only: the atoll's caves go on the
+  big motu; others return p unchanged). The theme's plan_places appends the big motu to `avoid` so landmarks keep off it.
+  Gotcha: shape() returns the base height until the dock is placed (the dock's search walks out from the middle).
+- **Town:** the village's style rolls the stilts layout mostly (woven/bamboo houses on stilts, palm thatch, torches),
+  harbour kinds stilts/cove/wharf. `atoll_town.gd` (theme place "atoll_stilts"): a boardwalk on palm piles from the
+  village's lagoon shore out over the water (turned 0.3-0.6 rad off the causeway), 5-8 huts on piles off spurs, the
+  square (two stalls, net rack, traps, lamps from the budget), fishing platforms; the pearl trader (Shops.extra
+  `isleN_pearl_trader`: pearls, oysters, urchins, seaweed; buys loot x1.15), two fishers, a net-mender.
+- **Places** (`atoll_places.gd`, the chain's set pieces mapped): a trader wrecked on the reef flat (HullBuilder wreck x1.25,
+  a chest aboard, one sunk at her stern, wreckers camped on the islet above: GruntCamp + nav zone), a pearl bed in the
+  shallows (4-6 DiveSites.oyster_bed, the divers' raft, buoys, a diver), the blue hole dressed (coral gardens round its
+  lip, DiveSites.sunken_ruin and a sunken chest on its floor). Opened chests and taken oysters stay gone per save.
+- **Fishing hooks** (`atoll_spots.gd`, AtollSpots): Marker3Ds in group `fishing_spots` (kind "line") or `spear_spots`
+  (kind "spear"), metadata kind/where/depth/r/theme "atoll": the passes' mouths, the blue hole (both), coral heads'
+  feet (spear, >2.5 m), the drop-off off the dock's islets, the boss flat's edge; the town's platforms ("pier") under
+  Place_atoll_stilts/Spots; the wreck and pearl bed (spear). `AtollSpots.list(isl)` gives the same as data.
+- **Life:** `atoll_shoals.gd` + `shaders/atoll_shoal.gdshader`: 6-10 fish shoals circling under the lagoon (a MultiMesh of
+  18-30 each, turned on the GPU, ranged 120 m, unshadowed) and 3 gull flocks wheeling over it (500 m): no CPU a frame.
+  Roster: shore crabs (dense), coconut crabs (Crab, morph 1, bigger), boobies in the palm crowns (Toucan's perch slot:
+  roster key "toucan" -> atoll_booby.gd), monitor lizards, sea snakes, bats in caves. Plants (AtollPlants): coconut
+  palms, tall palms, screw pines, salt scrub, spider lilies, beach grass, sprouts, coral rubble, driftwood, coral rocks.
+  Textures gen_atoll_textures.py (atoll_sand/_turf/_coral/_seafloor/_grass/_lily/_seagrass).
+- **Beasts** (move tables, the tell language from alpha_boar's table): the salt croc (mini at the lair: bite to parry,
+  tail, lunge = its knockdown, death roll in phase 2) and the Tidemaw roamer (a coral-crusted sea turtle on the
+  behemoth's wander: snap, wash, shell bash, water spouts).
+- **Boss** (`atoll_hermit.gd`, on the beast pass, its own body on alpha_boar's table brain): shell hits chip shell HP
+  (900) and reach the crab x0.35; cracked off, the body takes x1.6; hurt 18% bare it scuttles straight to one of three
+  spare shells round its post (deterministic from post/yaw), hides 3.2 s (hurtbox off, +4% health), bursts out (a ring)
+  wearing it (each 0.8x thinner); out of spares it fights bare. Phases 0.66/0.33: pinch (parry), crush, spit | sweep,
+  charge (knockdown) | spin. Co-op: shell/hidden/spares used ride its snapshot (_pack_extra). The flat is dressed by
+  `AtollTheme._dress_flat` (tide pools, leg furrows, smashed shell, driftwood).
+- **Sound:** gen_atoll_music.py (atoll 88 bpm G mixolydian: marimba, steel drum, congas, ocarina; atoll_town 108 bpm C:
+  guitar, steel drum and tin whistle, clave; night versions on the same form), gen_atoll_audio.py (atoll_loop: lagoon
+  lap, far surf, palm rustle, gulls and terns). Music.TRACKS, Ambience.LOOPS/TOP_DB lines.
+- **Tests:** t/island/atoll_land, atoll_places, atoll_life, atoll_beasts, atoll_hermit (+ beast_moves KINDS). Render:
+  `atollshot.gd -- <out> 1 2` (chain seed 1 node 2; genshot with GSHOT_BEAST=salt_croc / tidemaw for the others).
+- **Per frame/tick:** nothing new on the CPU (shoals and gulls are shader-moved MultiMeshes); the beasts' usual brains
+  (dormant when far); 3 static spare-shell bodies per boss.
+- **Known:** the lagoon reads grey-blue past ~2.8 m (the ocean shader's depth tint; turquoise shallows is the ocean
+  polish item). The wreckers and the town's people are fixed per seed (no IslandLife routes for them).
