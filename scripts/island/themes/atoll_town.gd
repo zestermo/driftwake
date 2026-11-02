@@ -81,7 +81,8 @@ static func _water(isl, s: Vector2, dir: Vector2, L: float) -> bool:
 
 
 static func steps(isl, ctx, pl: Dictionary) -> Array:
-	return [func(): _town(isl, ctx, pl, KitLandmarks.place_node(ctx, pl)), func(): _dressing(isl, ctx, pl), func(): _people(isl, ctx, pl)]
+	return [func(): _town(isl, ctx, pl, KitLandmarks.place_node(ctx, pl)), func(): _dressing(isl, ctx, pl), func(): _details(isl, ctx, pl),
+		func(): _people(isl, ctx, pl)]
 
 
 ## Place-local (x, z) to an island point.
@@ -313,3 +314,85 @@ static func _skimmer_stock() -> Array:
 		if ItemDB.get_item(str(e[0])) != null:
 			out.append(e)
 	return out
+
+
+## (1.28.1) The atoll's own touches (Zach: unique village assets per island): shell-bead curtains in the huts' doors,
+## coral-stone footings under their stilts, shell wind-chimes under the eaves, outriggers on the canoes, and on the
+## platforms without a hut conch shells, pearl divers' baskets and racks of fish drying. One mesh for the lot.
+static func _details(isl, ctx, pl: Dictionary) -> void:
+	var node: Node3D = isl.get_node("Place_" + KIND)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(pl["seed"]) + 11
+	var st: Dictionary = ctx.style
+	var y := D.TOWN_DECK_Y
+	var mb := MeshBuilder.new()
+	var plain := PSXMat.lit("", Color.WHITE)
+	var coral := PSXMat.lit("driftstone", Color(1.15, 1.0, 0.95))
+	var palm := PSXMat.lit("palm_bark")
+	var weave := PSXMat.lit("straw", Color(1.0, 0.92, 0.75))
+	var beads := [Color(0.98, 0.96, 0.92), Color(1.0, 0.7, 0.72), Color(0.4, 0.85, 0.85), Color(0.95, 0.8, 0.4)]
+	for sp in pl["spurs"]:
+		var sx: float = sp["x"]
+		var c := Vector2(sx * (D.TOWN_HW + float(sp["len"]) + PLAT), float(sp["z"]))
+		if not sp["hut"]:
+			# a platform: conch shells, a pearl diver's basket or two, a rack of fish drying
+			for k in range(rng.randi_range(2, 3)):
+				var o := Vector3(c.x + rng.randf_range(-1.2, 1.2), y + 0.05, c.y + rng.randf_range(-1.2, 1.2))
+				var b := Basis(Vector3.UP, rng.randf() * TAU)
+				mb.add_cone(plain, Transform3D(b * Basis(Vector3.BACK, PI * 0.5), o + Vector3(0, 0.12, 0)), 0.14, 0.4, 6, 0.5)
+				mb.add_blob(plain, Transform3D(b, o + Vector3(-0.08, 0.12, 0)), Vector3(0.16, 0.12, 0.13), rng, 0.05, 2, 6, 0.5, Color(1.0, 0.75, 0.65))
+			var bk := Vector3(c.x - sx * 1.1, y, c.y + rng.randf_range(-1.0, 1.0))
+			mb.add_cylinder(weave, Transform3D(Basis(), bk + Vector3(0, 0.22, 0)), 0.24, 0.3, 0.44, 8, 1.0, Color.WHITE, false, false)
+			mb.add_cylinder(palm, Transform3D(Basis(), bk + Vector3(0, 0.47, 0)), 0.25, 0.25, 0.04, 8, 1.0)
+			var rk := Vector3(c.x + sx * 0.8, y, c.y)
+			for z in [-0.8, 0.8]:
+				mb.add_box(palm, Transform3D(Basis(), rk + Vector3(0, 0.75, z)), Vector3(0.06, 1.5, 0.06), 0.5)
+			mb.add_box(palm, Transform3D(Basis(), rk + Vector3(0, 1.45, 0)), Vector3(0.05, 0.05, 1.7), 0.5)
+			for f in range(5):
+				mb.add_box(plain, Transform3D(Basis(), rk + Vector3(0, 1.2, -0.6 + f * 0.3)), Vector3(0.03, 0.4, 0.12), 0.5, Color(0.75, 0.6, 0.45))
+			continue
+		# a hut: the same spec its house was built from (atoll_town._town), for its size and where its door is
+		var hrng := RandomNumberGenerator.new()
+		hrng.seed = int(sp["seed"])
+		KitStyle.house_spec(st, hrng)
+		var w := hrng.randf_range(HUT[0], HUT[1])
+		var d := w * hrng.randf_range(0.85, 1.0)
+		var q := _ip(pl, c.x, c.y)
+		var floor_y := float(isl.hv(q))
+		var yaw := -PI * 0.5 * sx
+		var hb := Basis(Vector3.UP, yaw)
+		var hp := Vector3(c.x, 0.0, c.y)
+		# coral-stone footings under its corner stilts
+		for cx in [-0.5, 0.5]:
+			for cz in [-0.5, 0.5]:
+				var f: Vector3 = hp + hb * Vector3(cx * w * 0.9, 0.0, cz * d * 0.9)
+				mb.add_blob(coral, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(f.x, floor_y + 0.15, f.z)), Vector3(0.45, 0.35, 0.45), rng, 0.15, 3, 6)
+		# a curtain of shell beads in the door (the house's +Z, turned with it)
+		var door := hp + hb * Vector3(0.0, 0.0, d * 0.5 + 0.06)
+		var across := hb * Vector3.RIGHT
+		for k in range(9):
+			var x := (k - 4) * 0.1
+			for j in range(8):
+				var bp: Vector3 = door + across * x + Vector3(0, y + 1.95 - j * 0.2, 0)
+				mb.add_box(plain, Transform3D(hb, bp), Vector3(0.05, 0.08, 0.05), 0.5, beads[(k + j) % beads.size()])
+		# shell chimes under the eaves by the door
+		for side in [-1.0, 1.0]:
+			var ch: Vector3 = door + across * side * (w * 0.5 - 0.3) + hb * Vector3(0, 0, 0.5)
+			for j in range(5):
+				mb.add_box(plain, Transform3D(Basis(Vector3.UP, j * 0.7), ch + Vector3(0, y + 2.3 - j * 0.14, 0)), Vector3(0.09, 0.06, 0.02), 0.5, beads[j % beads.size()])
+	# outriggers on the canoes tied along the walk (HarbourModels.canoe lies along its z)
+	for cn in node.get_children():
+		if not str(cn.name).begins_with("Canoe"):
+			continue
+		var omb := MeshBuilder.new()
+		for z in [-0.7, 0.7]:
+			omb.add_box(palm, Transform3D(Basis(), Vector3(0.75, 0.35, z)), Vector3(1.4, 0.05, 0.06), 0.5)
+		omb.add_cylinder(palm, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(1.45, 0.12, 0)), 0.08, 0.08, 2.2, 6, 0.5, Color.WHITE, true, true)
+		var om := omb.to_instance("Outrigger")
+		om.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		om.visibility_range_end = VIS
+		cn.add_child(om)
+	var mi := mb.to_instance("AtollDetails")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = VIS
+	node.add_child(mi)
