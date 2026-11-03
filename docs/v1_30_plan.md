@@ -31,3 +31,16 @@ and the thin themes' creatures already planned there (docs/v1_29_plan.md). No 1.
 - The order inside 1.30 is the lead's: the bugs (A, B) first, so the next playtest runs on a fixed game.
 - Rivals at sea and boarding: after 1.30.
 - The fruit pool's other sources: after the fruit tree pass.
+
+## Build order (lead, 2026-11-03; two agents at a time)
+Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Driftwake 1.30 UI mocks" canvas).
+1. Running: **sea fixes** (enemy_ship, admiralty, rival_watch) and **land fixes** (vault + fruit, rack and drills,
+   Morrow's rush, scaling and toughness, log errors).
+2. **Guidance and the Captain's Log**, when the first slot frees: the standing chain goal, the capital lines and the
+   stronghold as journal quests, the Captain's Log screen (next / quests / news / done, numbered map marks, owner chips),
+   pinned news, and enemy health bars with markers. Needs scripts/quests/ free (the land agent's).
+3. **Skill maps and pacing**, after the land fixes land: every tree one branching map with zoom and pan, node shapes,
+   the parent-check fix; Edy sources, the adventure curve and xp, Quick Hands strike speed; the Acrobatics map with the
+   slope slide (free), wall jump family, air dash family and the livelier fall pose.
+4. Then: collision holes + Unstuck, boss phase resets + clearing moves, the stronghold polish and the Scouring set
+   piece, the rival ship arrival, the Redtide mountain; the brig, galleon and creatures after their own grill.
