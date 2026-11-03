@@ -10,7 +10,11 @@ const POLL := 0.25
 const NEAR := 45.0
 const ENGAGE_R := 15.0
 const FADE := 5.0
-const BAR := Vector2(28, 4)
+const BAR := Vector2(22, 2)
+const SILK := preload("res://assets/fonts/Silkscreen-Regular.woff2")
+## The level badge left of the bar (Levels.badge: grey far below you, red 3+ above).
+const BADGE_H := 9.0
+const BADGE_GAP := 3.0
 const RED := Color("f17c62")
 const RIM := Color("f5e8c8")
 const WELL := Color("0c2427")
@@ -68,6 +72,19 @@ func _scan() -> void:
 		var n = shown[k]["n"]
 		if not is_instance_valid(n) or float(shown[k]["t"]) > FADE or (n.get("health") as HealthComponent).current_health <= 0.0:
 			shown.erase(k)
+			continue
+		shown[k]["lv"] = Levels.foe_level(n)
+		shown[k]["gap"] = Levels.gap_to(n, me)
+
+
+## The foe's level in a small box left of `bar`, in the gap's colour.
+func _badge(bar: Rect2, lv: int, col: Color, a: float) -> void:
+	var s := str(lv)
+	var w := ceilf(SILK.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x) + 3.0
+	var box := Rect2(Vector2(bar.position.x - 1.0 - BADGE_GAP - w, roundf(bar.get_center().y - BADGE_H * 0.5)), Vector2(w, BADGE_H))
+	draw_rect(box, Color(col, a * 0.85))
+	draw_rect(box.grow(-1.0), Color(WELL, a))
+	draw_string(SILK, Vector2(box.position.x + 2.0, box.end.y - 2.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(col, a))
 
 
 ## How much of the bar shows for one shown entry (fades over its last second).
@@ -97,5 +114,7 @@ func _draw() -> void:
 		draw_rect(r.grow(1.0), Color(RIM, a))
 		draw_rect(r, Color(WELL, a))
 		draw_rect(Rect2(r.position, Vector2(roundf(BAR.x * f), BAR.y)), Color(RED, a))
+		if int(e.get("lv", -1)) >= 0:
+			_badge(r, int(e["lv"]), Levels.badge(int(e["gap"])), a)
 		var m := p + Vector2(0, -3)
 		draw_colored_polygon(PackedVector2Array([m + Vector2(-4, -5), m + Vector2(4, -5), m]), Color(RED, a))

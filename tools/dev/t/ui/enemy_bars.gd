@@ -48,6 +48,10 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.6)
 		3:
 			check("hit: the bar over it", bars.shown.has(g.get_instance_id()))
+			var e: Dictionary = bars.shown.get(g.get_instance_id(), {})
+			var want: int = Levels.REF - stage.player.progression.level
+			check("...its level badge: a level-0 grunt reads %d, gap %d (%s)" % [Levels.REF, want, e],
+				int(e.get("lv", -1)) == Levels.REF and int(e.get("gap", -99)) == want)
 			check("...the townsfolk beside you get none", bars.shown.size() == 1 and not bars.shown.values().any(func(e): return e["n"] == stage.npc))
 			until = TK.wait_secs(4.6)
 		4:
