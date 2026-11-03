@@ -70,18 +70,21 @@ static func _block(mb: MeshBuilder, cols: Array, m: Material, t: Transform3D, si
 # --------------------------------------------------------------------------
 # The ground: cobbles, the ways
 # --------------------------------------------------------------------------
-## The districts' cobbles (the terrain under them is the collider), a black-rock kerb round the quay's sea edge.
+## The districts' cobbles over a floor box each (1.30: the 3 m terrain grid sagged at their edges and captains fell
+## through), a black-rock kerb round the quay's sea edge.
 static func _paving(out: Array) -> void:
 	var mb := MeshBuilder.new()
 	mb.all_faces = true
+	var cols: Array = []
 	var cob := PSXMat.lit("cobbles", Color(0.6, 0.6, 0.62))
 	for d in P.DISTRICTS:
 		var r: Rect2 = d[1]
+		M.box(cols, M.xf(M.v3(r.get_center(), float(d[2]) - 0.75)), Vector3(r.size.x, 1.5, r.size.y))
 		var y: float = float(d[2]) + 0.03
 		mb.add_quad(cob, Vector3(r.position.x, y, r.position.y), Vector3(r.end.x, y, r.position.y), Vector3(r.end.x, y, r.end.y), Vector3(r.position.x, y, r.end.y),
 			Vector2.ZERO, Vector2(r.size.x * 0.35, 0), Vector2(r.size.x * 0.35, r.size.y * 0.35), Vector2(0, r.size.y * 0.35), Color.WHITE, Vector3.UP)
 	mb.add_box(_foot_m(), M.xf(M.v3(Vector2(0, P.FRONT_Z - 0.4), P.QUAY_Y - 2.2)), Vector3(112.0, 4.6, 0.8), 0.5)
-	CapitalShell._piece(out, "Paving", mb, [], FAR, false)
+	CapitalShell._piece(out, "Paving", mb, cols, FAR, false)
 
 
 ## The grand stair and the ramps (flagstone steps over a ramp collider), the Bridge of Judgement (a dark deck on piers
