@@ -23,7 +23,6 @@ extends CanvasLayer
 var player: Player
 var ship: Node3D
 var _banner_tween: Tween
-var _toast_tween: Tween
 var _chime: AudioStreamPlayer
 var _skill_bar: SkillBar
 var _reticle: Reticle
@@ -103,6 +102,7 @@ func _ready() -> void:
 	_build_gold()
 	_build_meal()
 	_build_compass()
+	_build_news()
 	_objective = OBJECTIVE.new()
 	_objective.name = "Objective"
 	add_child(_objective)
@@ -146,6 +146,7 @@ func _process(delta: float) -> void:
 	_update_reticle()
 	_update_party(delta)
 	_update_feed(delta)
+	_update_news(delta)
 	_update_hull()
 	_update_gold(delta)
 	_update_compass()
@@ -155,7 +156,8 @@ func _process(delta: float) -> void:
 	_party.position.y = 46.0 + oh
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT and player.current_state_name() != "Wake"
 	_skill_bar.visible = show_bar and not _menu_open
-	toast.visible = true
+	# (the old toast line only holds the newest small news' words now: the News stack shows it)
+	toast.visible = false
 	# (the clock moves a minute a second, the FPS once a second)
 	_clock_t -= delta
 	if _clock_t <= 0.0:
@@ -201,6 +203,8 @@ func _process(delta: float) -> void:
 
 ## Big centered title card, e.g. when arriving at an island.
 func show_banner(title: String, subtitle: String = "", chime: bool = false) -> void:
+	# (kept in the log's news too: a banner mid-fight is easy to miss)
+	Journal.note("event", title, subtitle, false, false)
 	banner_title.text = title
 	banner_title.remove_theme_color_override("font_color")
 	banner_sub.text = subtitle
@@ -275,15 +279,82 @@ func show_objective_banner(_goal: String, done: bool = false) -> void:
 	UIStyle.sfx("quest_done" if done else "quest_accept")
 
 
-## Small message bottom-left (loot picked up, banking...).
+## Small message bottom-left (loot picked up, banking...): small news, kept in the Captain's Log (Journal.note).
 func show_toast(text: String) -> void:
-	toast.text = text
-	if _toast_tween:
-		_toast_tween.kill()
-	toast.modulate.a = 1.0
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(2.0)
-	_toast_tween.tween_property(toast, "modulate:a", 0.0, 0.8)
+	Journal.note("info", text)
+
+
+## (1.30) Important news on this screen: a card pinned under the objective box until you open the log (J), kept in its
+## NEWS tab. Kinds: quest, chart, rival, boss, stronghold. For every captain's screen use Journal.announce.
+func pin_news(kind: String, title: String, text: String = "") -> void:
+	Journal.note(kind, title, text, true)
+
+
+# ---- News (1.30, Journal.note): small news stacked bottom left, a few seconds each; pinned news is the objective's card ----
+const NEWS_TIME := 4.5
+const NEWS_MAX := 4
+const NEWS_COL := {"quest": Color("f2c45e"), "chart": Color("9be08a"), "rival": Color("f17c62"), "boss": Color("f17c62"),
+	"stronghold": Color("f17c62"), "info": Color("65c9c0")}
+var _news_stack: VBoxContainer
+## [row, seconds left] each, oldest first.
+var _news_rows: Array = []
+
+
+func _build_news() -> void:
+	_news_stack = VBoxContainer.new()
+	_news_stack.name = "News"
+	_news_stack.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_news_stack.offset_left = 8
+	_news_stack.offset_right = 228
+	_news_stack.offset_top = -80
+	_news_stack.offset_bottom = -80
+	_news_stack.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_news_stack.add_theme_constant_override("separation", 2)
+	_news_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_news_stack)
+
+
+## A note from Journal.note: pinned ones are the objective's card; the rest go on the stack.
+func show_news(n: Dictionary) -> void:
+	if n["pin"]:
+		_chime.play()
+		return
+	toast.text = str(n["title"])
+	var row := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(UIStyle.BG_DARK, 0.9)
+	sb.border_color = NEWS_COL.get(n["kind"], NEWS_COL["info"])
+	sb.border_width_left = 3
+	sb.content_margin_left = 6
+	sb.content_margin_right = 5
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 2
+	row.add_theme_stylebox_override("panel", sb)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var l := UIStyle.label(str(n["title"]), 12, UIStyle.TEXT)
+	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	l.clip_text = true
+	l.custom_minimum_size = Vector2(190, 0)
+	row.add_child(l)
+	_news_stack.add_child(row)
+	_news_rows.append([row, NEWS_TIME])
+	while _news_rows.size() > NEWS_MAX:
+		(_news_rows.pop_front()[0] as Node).queue_free()
+
+
+func news_text() -> Array:
+	return _news_rows.map(func(e): return (e[0].get_child(0) as Label).text)
+
+
+func _update_news(delta: float) -> void:
+	_news_stack.visible = not _menu_open and not _in_dialogue
+	for e in _news_rows.duplicate():
+		e[1] = float(e[1]) - delta
+		(e[0] as Control).modulate.a = clampf(float(e[1]) / 0.6, 0.0, 1.0)
+		if float(e[1]) <= 0.0:
+			_news_rows.erase(e)
+			(e[0] as Node).queue_free()
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -715,7 +786,6 @@ func set_menu_open(open: bool) -> void:
 	_menu_open = open
 	if _skill_bar:
 		_skill_bar.visible = not open
-	toast.visible = not open
 	banner.visible = not open
 	if _objective:
 		_objective.hidden_by_menu = open

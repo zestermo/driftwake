@@ -11,7 +11,7 @@ const PLACE_NEAR := 22.0
 const EDGE := 16.0
 const GOLD := Color(1.0, 0.82, 0.3)
 const MARK := "quest"
-const W := 200.0
+const W := 216.0
 const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 
 ## (set while a menu's open: the HUD is paused then, so it hides now)
@@ -20,7 +20,14 @@ var hidden_by_menu: bool = false:
 		hidden_by_menu = v
 		if _box and v:
 			_box.visible = false
+			_pin.visible = false
+## The box and, under it, the pinned news card (1.30): important news stays there until you open the log (J).
+var _stack: VBoxContainer
 var _box: PanelContainer
+var _pin: PanelContainer
+var _pin_head: Label
+var _pin_title: Label
+var _pin_text: Label
 var _head: Label
 var _dist: Label
 var _goal: Label
@@ -39,12 +46,17 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_font = load("res://assets/fonts/Silkscreen-Regular.woff2")
+	_stack = VBoxContainer.new()
+	_stack.position = Vector2(6, 4)
+	_stack.add_theme_constant_override("separation", 3)
+	_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_stack)
 	_box = PanelContainer.new()
-	_box.position = Vector2(6, 4)
 	_box.custom_minimum_size = Vector2(W, 0)
 	_box.add_theme_stylebox_override("panel", _frame(GOLD))
 	_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_box)
+	_stack.add_child(_box)
+	_build_pin()
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 0)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -76,7 +88,56 @@ func _ready() -> void:
 	vb.add_child(_sub)
 	Story.changed.connect(_refresh)
 	Journal.changed.connect(_on_journal)
+	Journal.news_changed.connect(_refresh_pin)
 	_refresh()
+	_refresh_pin()
+
+
+func _build_pin() -> void:
+	_pin = PanelContainer.new()
+	_pin.custom_minimum_size = Vector2(W, 0)
+	var sb := _frame(UIStyle.CORAL)
+	sb.bg_color = UIStyle.CREAM
+	_pin.add_theme_stylebox_override("panel", sb)
+	_pin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pin.visible = false
+	_stack.add_child(_pin)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 0)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pin.add_child(vb)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(row)
+	_pin_head = _small_label(UIStyle.CORAL)
+	_pin_head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_pin_head.clip_text = true
+	row.add_child(_pin_head)
+	row.add_child(_small_label(UIStyle.CORAL))
+	(row.get_child(1) as Label).text = "J TO OPEN"
+	_pin_title = UIStyle.label("", 12, UIStyle.PARCH_INK)
+	_pin_title.add_theme_font_override("font", BOLD)
+	_pin_title.add_theme_constant_override("line_spacing", -4)
+	_pin_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_pin_title.custom_minimum_size = Vector2(W - 10.0, 0)
+	vb.add_child(_pin_title)
+	_pin_text = _small_label(UIStyle.PARCH_DIM)
+	_pin_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_pin_text.custom_minimum_size = Vector2(W - 10.0, 0)
+	vb.add_child(_pin_text)
+
+
+## The newest pinned news on the card ("+2 MORE" when there are others), none once the log's been opened.
+func _refresh_pin() -> void:
+	var ps: Array = Journal.pinned()
+	if ps.is_empty():
+		_pin_title.text = ""
+		return
+	var n: Dictionary = ps[-1]
+	_pin_head.text = "! PINNED - %s%s" % [str(n["kind"]).to_upper(), " +%d MORE" % (ps.size() - 1) if ps.size() > 1 else ""]
+	_pin_title.text = str(n["title"])
+	_pin_text.text = str(n["text"])
+	_pin_text.visible = _pin_text.text != ""
 
 
 static func _frame(rim: Color) -> StyleBoxFlat:
@@ -102,7 +163,7 @@ func _small_label(col: Color) -> Label:
 
 ## How tall the tracker is (the HUD moves what's under it down by this).
 func tracker_height() -> float:
-	return _box.size.y + 6.0 if _box.visible else 0.0
+	return (_box.size.y + 6.0 if _box.visible else 0.0) + (_pin.size.y + 3.0 if _pin.visible else 0.0)
 
 
 func flash() -> void:
@@ -129,13 +190,7 @@ func _refresh() -> void:
 
 ## The tracked quest while it's live, else the chain's next step (the story while it's on).
 func objective() -> Dictionary:
-	var id: String = Journal.tracked
-	if Journal.has(id) and not Journal.is_done(id):
-		var e: Dictionary = Journal.entries[id]
-		var n: int = (e["goals"] as Array).size()
-		return {"kind": "quest", "goal": Journal.goal(id), "who": str(e["title"]), "id": id, "head": "QUEST",
-			"sub": "%s  -  step %d of %d" % [e["title"], mini(int(e["step"]) + 1, n), n]}
-	return ChainGoal.next(get_tree())
+	return ChainGoal.followed(get_tree())
 
 
 func _target() -> Vector3:
@@ -169,7 +224,9 @@ func _process(delta: float) -> void:
 		_map_mark()
 		_district.text = LineQuests.district_hint(get_tree(), _player.global_position) if _player else ""
 		_district.visible = _district.text != ""
-	_box.visible = not _obj.is_empty() and not hidden_by_menu and not _wake() and not Dialogue.active
+	var up := not hidden_by_menu and not _wake() and not Dialogue.active
+	_box.visible = not _obj.is_empty() and up
+	_pin.visible = _pin_title.text != "" and up
 	_flash = maxf(_flash - delta, 0.0)
 	var pulse := 0.5 + 0.5 * sin(_flash * 9.0) if _flash > 0.0 else 0.0
 	_head.text = ("NEW " if _flash > 0.0 else "* ") + str(_obj.get("head", "OBJECTIVE"))
