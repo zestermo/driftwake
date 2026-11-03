@@ -9628,3 +9628,27 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   Render: `skillmapshot.gd -- res://tools/dev/out/skillmap 1200x675` (the mock's 1.5x), `_adventure` is Acrobatics 15
   with the preview's aerial build. Test: t/ui/skills_map_view (+ skills_grey_links, skills_buy_node, skills_version_bunk
   pan to their nodes now).
+
+## 2026-11-03: 1.30 collision holes + Unstuck (playtest 2026-11-02 row 6)
+
+- **The capital's back houses are solid.** The massing behind the district (`CapitalShell._massing`) had only occluders,
+  and since 1.27 their roofs are reached from the district's: captains fell through into the block. Now each keeps a
+  body box to its roof line (`_solid`), a pitched roof's two slopes (`CapitalRoofs._slopes`, the district's), a flat
+  roof's parapets and its stair hut (`CapitalModels.house` passes its cols to `roof`), and the square towers their box.
+  Each lot records `solid` = [footprint, roof y]. ~330 houses, a few boxes each, in the chunks' existing bodies.
+- **The fortress districts have floor boxes.** The cobbles were a mesh over the 3 m terrain grid, which sags across
+  every district's edge (and at the ways' ends); `StrongholdShell._paving` now puts a 1.5 m box under each district's
+  rect, top at its height. The ways already had ramp boxes.
+- **Unstuck** (`scripts/game/unstuck.gd`, one per captain: `Player.unstuck`, ticked from `_physics_process` after
+  GroundNet, every 8 ticks). Standing (Idle/Move/Crouch on the floor, on foot) leaves safe spots, 3 m apart, the last six;
+  on a deck kept ship-relative (`_deck_ship`), under an island's ground (the catacombs) not kept. The pause menu's
+  **Unstuck** (`GameMenu._build_pause`) puts the captain on the newest spot 2 m+ away, else by the ship's bunk; 10 s
+  cooldown (game time); refused dead, bleeding, downed, swimming, at the helm/a cannon, on the skimmer, in downtime.
+  **The warp:** 1.5 m+ under the island's ground (`GroundNet.land_height`), not on the floor, nothing within 6 m under
+  the feet, not swimming or downed, for a second (or below y -60): put back the same way. Below the sea it stays
+  GroundNet's (a swimmer under an island). Co-op: each captain moves themselves; puppets follow the snapshot.
+- Per tick: one modulo; every 8 ticks a floor check, the nearest-island height lookup and, only when under the ground
+  and airborne, one ray.
+- Tests: t/capital/solid_ground (rays over every back and district roof's middle and corners and every 2 m of every
+  floor), t/stronghold/solid_ground (every 1.5 m of every district to its edges, the ways along and across),
+  t/player/unstuck_menu, t/player/unstuck_auto, t/ship/unstuck_deck.

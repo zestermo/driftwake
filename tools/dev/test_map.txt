@@ -763,3 +763,8 @@ scripts/npc/body_builder.gd             t/gear/coat_drape
 scripts/loot/equipment_component.gd     t/gear/coat_drape
 scripts/ui/inventory_screen.gd          t/gear/coat_drape
 scripts/gadgets/gadget_belt.gd          t/gear/backpack
+scripts/game/unstuck.gd                 t/player/unstuck_menu t/player/unstuck_auto t/ship/unstuck_deck
+scripts/ui/game_menu.gd                 t/player/unstuck_menu
+scripts/world/ground_net.gd             t/player/unstuck_auto
+scripts/island/capital_shell.gd         t/capital/solid_ground
+scripts/island/capital_models.gd        t/capital/solid_ground

@@ -80,6 +80,8 @@ var is_parrying: bool = false
 var is_blocking: bool = false
 var context: Context = Context.ON_FOOT
 var current_ship: Ship = null
+## (1.30) The safe spots behind us, the pause menu's Unstuck and the warp out from under the ground.
+var unstuck := Unstuck.new()
 var jumps_remaining: int = 1
 ## Gun Rains fired since leaving the ground (1 per jump + the "gun_rain_uses" stat).
 var gun_rains: int = 0
@@ -1350,6 +1352,7 @@ func _physics_process(delta: float) -> void:
 	# slipped through the ground into the sea under an island: back on top (GroundNet)
 	if Engine.get_physics_frames() % GroundNet.EVERY == 0 and GroundNet.rescue(self):
 		state_machine.force_state("Idle", {})
+	unstuck.tick(self)
 	# swimming in a whirlpool: dragged round and in with the water
 	if current_state_name() == "Swim":
 		var sf := get_tree().get_first_node_in_group("sea_features")
