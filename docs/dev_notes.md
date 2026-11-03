@@ -9652,3 +9652,32 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Tests: t/capital/solid_ground (rays over every back and district roof's middle and corners and every 2 m of every
   floor), t/stronghold/solid_ground (every 1.5 m of every district to its edges, the ways along and across),
   t/player/unstuck_menu, t/player/unstuck_auto, t/ship/unstuck_deck.
+
+## 2026-11-03: 1.30 boss phase resets + clearing moves (v1_30_plan "Boss phases", "Boss space"; playtest row 9)
+
+- **`BossReset`** (`scripts/enemies/boss_reset.gd`, a RefCounted the boss owns; the host ticks it). `start(centre)`: a
+  phase reset: crouch WIND 0.4, leap AIR 0.85 (LEAP_H 4.5 arc, position set by hand), land with a shockwave
+  (SHOCK_R 9, 6 dmg, push 15 m/s), roar ROAR_S 1.5; `guarding()` the whole time (hits glance off: `deflect`, sparks at
+  most every 0.25 s). `clear(centre)`: "Boss space": out past CLEAR_LEAP_D 8 m from the middle a leap back there, else
+  a roar ring where it stands (RING_WIND 0.6 tell, rearing up); CLEAR_R 8, 4 dmg, push 17; blows still land.
+  `crowded(delta, reach)` (each tick in the fight): CROWD_S 4 s with captains within reach (two once two or more
+  are fighting, one solo) or BURST_N 8 hits (`hit()`) inside 3 s, at most every CLEAR_CD 12 s (6 s after a phase reset
+  or the fight's start).
+- **The shockwave** (`BossReset.shock`): judged on each captain's own machine (the "reset_shock" event on the boss, or
+  on the node holding an AI captain boss), BeastFX.moment rings and dust on every screen; a captain it lands on (not
+  dodging, not 2.5 m+ up) is thrown out with `Player.shoved(v)` (a Stagger reel at v, v/20 s long).
+- **Knockback slides along walls** (StaggerState): a throw that hits a wall goes on along it at 0.85 of its speed (the
+  side picked at the first contact) instead of pinning you there. Every reel with a knockback gets it.
+- **Who has it:** every JungleBeast in group "bosses" (all the arena beasts: moves "leap_home" / "clear_ring" posed
+  generically by `BossReset.pose_beast` on the model, then "moment" from its rear; non-pass kinds rear up trembling),
+  PirateBoss (Morrow at Redtide's middle `RedtideFort.centre()`, the bandit chief, the huntsman: plunge poses, then the
+  "parry" roar; his old phase roar is gone), the Silverback (its moment replaced: off its limb if up, bound, chest
+  beats; clears on the floor), the Brood Queen (onto her nest; clears from the start, specials "clear_ring" /
+  "clear_leap"), and the captain-style AI bosses through the `BossLeap` player state (the drowned captain; Kesh, Marrow
+  - her catwalk perch after it - and Vane in the stronghold), untouchable in it (Player._on_hit_received).
+  Clearing moves: the beasts, the Silverback, the Brood Queen (not the humanoid bosses).
+- Per tick (host, a boss in a fight): one loop over the captains (<= 4 flat distances) and a pop of old hit ticks; the
+  reset's own tick only while one runs. Nothing on guests beyond the snapshot they already play.
+- Tests: t/boss/beast_phase_reset, morrow_phase_reset, captain_phase_reset, brood_phase_reset, beast_clear;
+  t/combat/wall_slide; t/beast/ape_phases and apetest updated (the reset replaced the moment). Renders:
+  `bossshot.gd -- <dir> <kind> reset,clear` (RESET_FILM on every kind).

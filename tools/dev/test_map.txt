@@ -16,7 +16,7 @@ tools/dev/t/boss/*                      t/boss
 scripts/enemies/boss_reset.gd           t/boss
 scripts/enemies/beasts/jungle_beast.gd  t/boss
 scripts/enemies/pirate_boss.gd          t/boss
-scripts/player_states/stagger_state.gd  t/boss
+scripts/player_states/stagger_state.gd  t/boss t/combat/wall_slide
 scripts/player_states/boss_leap_state.gd t/boss/captain_phase_reset t/stronghold
 scripts/enemies/brood_queen.gd          t/boss/brood_phase_reset
 scripts/enemies/ghost_captain.gd        t/boss/captain_phase_reset t/island/fog_isle

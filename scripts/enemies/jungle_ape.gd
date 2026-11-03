@@ -276,6 +276,7 @@ func _physics_process(delta: float) -> void:
 		_cd[k] -= delta * (1.6 if phase >= 3 else (1.25 if phase == 2 else 1.0))
 	_phase_check()
 	_rock_follow()
+	var crowd := state in [S.CHASE, S.RECOVER, S.WIND, S.SWING] and not up and reset.crowded(delta)
 	if _special != "":
 		_special_update(delta)
 		return
@@ -297,6 +298,9 @@ func _physics_process(delta: float) -> void:
 			else:
 				var nd := _nav_dir(p.global_position, delta)
 				_face(to_p)
+				if crowd:
+					start_clear()
+					return
 				var pick := _choose(dist)
 				if pick != "":
 					_begin_special(pick)
@@ -417,6 +421,23 @@ func start_reset() -> void:
 	humanoid.hold("ape_crouch", BossReset.WIND)
 
 
+## ("Boss space", BossReset.clear) Crowded or hit fast on the floor: it rears up and pounds a ring out round itself, or
+## pinned out at the edge, bounds back to the middle with it. Blows still land.
+func start_clear() -> void:
+	_drop_held()
+	_special = "reset"
+	_attack = "reset"
+	_sp_t = 0.0
+	_roared = false
+	_set_state(S.WIND)
+	if reset.clear(_ground_at(arena.centre() if arena else post)):
+		_face(_flat(reset.to - global_position))
+		humanoid.hold("ape_crouch", BossReset.WIND)
+	else:
+		humanoid.hold("ape_slam_wind", BossReset.RING_WIND)
+		_say("grunt", global_position, 4.0, 0.8)
+
+
 ## Its reset this tick: whether it's on the ground (not in the air).
 func _reset_update(delta: float) -> bool:
 	match reset.tick(delta):
@@ -429,9 +450,9 @@ func _reset_update(delta: float) -> bool:
 			_special = ""
 			_recover(0.2)
 			return true
-	if reset.stage() == "roar" and not _roared and reset.t > BossReset.WIND + BossReset.AIR + 0.35:
+	if reset.stage() == "roar" and not _roared and reset.guard and reset.t > reset.wind + reset.air + 0.35:
 		_roared = true
-		humanoid.play("ape_beat", BossReset.ROAR_S - 0.35)
+		humanoid.play("ape_beat", reset.roar - 0.35)
 	var p := _target()
 	if reset.stage() != "wind" and p:
 		_face(_flat(p.global_position - global_position))
@@ -1138,9 +1159,10 @@ func _fly_rocks(delta: float) -> void:
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
-	if reset.active():
+	if reset.guarding():
 		reset.deflect(global_position + Vector3(0, 2.4, 0))
 		return
+	reset.hit()
 	_hit_by = attacker
 	var dir := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
 	# far too big to throw down or juggle: the blow lands all the same (double while its poise is broken)
@@ -1222,6 +1244,7 @@ func _poise_break(dir: Vector3) -> void:
 
 func _stagger(dir: Vector3, length: float) -> void:
 	_special = ""
+	reset.stop()
 	_drop_held()
 	_stagger_len = length
 	velocity = dir * 3.0

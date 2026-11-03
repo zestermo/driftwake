@@ -12,6 +12,9 @@ extends SceneTree
 const APE_FILM := [["roar", 2.2], ["swipe", 1.0], ["slam", 1.6], ["leap", 2.0], ["throw", 1.8], ["moment", 2.8], ["barrage", 4.2],
 	["pound", 3.4], ["grab", 3.4], ["reel", 2.4], ["climb", 22.0]]
 const APE_PHASE := {"moment": 1, "barrage": 2, "climb": 2, "pound": 3, "grab": 3, "reel": 3}
+## (1.30, every kind) "reset": a phase change's leap home from 9 m out, shockwave and roar; "clear": its clearing ring
+## with the captain 3 m off (BossReset)
+const RESET_FILM := [["reset", 3.0], ["clear", 1.4]]
 const FRAMES := 8
 var t := 0.0
 var out := ""
@@ -133,7 +136,7 @@ func _setup() -> void:
 	]
 	film = []
 	var list: Array = APE_FILM if kind == "ape" else (boss.film_list() if boss.has_method("film_list") else boss.FILM)
-	for f in list:
+	for f in list + RESET_FILM:
 		if moves.is_empty() or moves.has(f[0]):
 			film.append(f)
 	_aim_still()
@@ -188,6 +191,27 @@ func _begin_move() -> void:
 	next_t = 0.0
 	p.health_component.current_health = 999999.0
 	_put_player(9.0 if str(f[0]) != "leap" else 15.0)
+	if str(f[0]) in ["reset", "clear"]:
+		if kind == "ape":
+			boss._come_down()
+			boss._special = ""
+			boss._set_state(2)
+		else:
+			boss.end_move()
+			boss._set_state(1)
+		var c: Vector3 = arena.global_position
+		var side := _in_dir().cross(Vector3.UP)
+		if str(f[0]) == "reset":
+			boss.global_position = c + side * 9.0 + Vector3.UP * 0.3
+			boss.reset_physics_interpolation()
+			_put_player(3.0)
+			boss.start_reset()
+		else:
+			boss.global_position = c + Vector3.UP * 0.3
+			boss.reset_physics_interpolation()
+			_put_player(3.0)
+			boss.start_clear()
+		return
 	if kind == "ape":
 		var m := str(f[0])
 		boss._come_down()

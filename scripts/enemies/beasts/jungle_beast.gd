@@ -498,6 +498,7 @@ func _physics_process(delta: float) -> void:
 	var to_p := _flat(p.global_position - global_position) if p else Vector3.ZERO
 	var dist := to_p.length() if p else INF
 	var want := Vector3.ZERO
+	var crowd := in_combat() and is_in_group("bosses") and _space().crowded(delta)
 	match state:
 		S.SLEEP:
 			want = _idle(delta)
@@ -508,6 +509,9 @@ func _physics_process(delta: float) -> void:
 			else:
 				# (mv_t < 0: getting over the last move, an opening)
 				mv_t += delta
+				if crowd and mv_t >= 0.0:
+					start_clear()
+					return
 				if p != null and mv_t >= 0.0:
 					want = _brain(delta, p, to_p, dist)
 		S.STAGGER:
@@ -595,6 +599,8 @@ func _phase_check() -> void:
 ## (1.30) A boss's new phase starts over from the arena's middle (BossReset): it leaps there, lands with a shockwave and
 ## roars, untouchable, then fights on with its new moves. Its pose: move "leap_home" (BossReset.pose_beast), then the
 ## phase change's "moment" from its rear.
+## ("Boss space", BossReset.clear) Crowded or hit fast, it makes space: rears up for a roar ring where it stands
+## ("clear_ring"), or leaps back to the middle when pinned out at the edge, then fights on.
 var reset: BossReset
 var _leap_posed := false
 
@@ -603,19 +609,36 @@ func arena_centre() -> Vector3:
 	return arena.call("centre") if arena != null and arena.has_method("centre") else post
 
 
+func _space() -> BossReset:
+	if reset == null:
+		reset = BossReset.new(self)
+	return reset
+
+
 func start_reset() -> void:
 	end_move()
 	if bp:
 		bp.chain_over()
 	_on_stagger()
 	_set_state(S.FIGHT)
-	if reset == null:
-		reset = BossReset.new(self)
-	reset.start(ground_at(arena_centre()))
+	_space().start(ground_at(arena_centre()))
 	move = "leap_home"
 	mv_t = 0.0
 	_hit = false
 	_fly = false
+
+
+func start_clear() -> void:
+	end_move()
+	if bp:
+		bp.chain_over()
+	_on_stagger()
+	move = "leap_home" if _space().clear(ground_at(arena_centre())) else "clear_ring"
+	mv_t = 0.0
+	_hit = false
+	_fly = false
+	if move == "clear_ring":
+		say("bellow", _hit_point(), 4.0, 0.7, 100.0)
 
 
 func _reset_tick(delta: float) -> void:
@@ -625,8 +648,9 @@ func _reset_tick(delta: float) -> void:
 			move = "moment"
 			mv_t = BeastPass.MOMENT_REAR
 			_hit = true
-			_on_moment()
-			say("bellow", _hit_point(), 8.0, 0.55, 140.0)
+			if reset.guard:
+				_on_moment()
+				say("bellow", _hit_point(), 8.0, 0.55, 140.0)
 		"done":
 			end_move(0.3)
 	var p := _target()
@@ -760,9 +784,11 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if spirit and (hit.ranged or hit.impact == "shot"):
 		Net.fx("sparkle", [_hit_point(), 6, Humanoid.SPIRIT])
 		return
-	if reset and reset.active():
+	if reset and reset.guarding():
 		reset.deflect(_hit_point())
 		return
+	if reset:
+		reset.hit()
 	_hit_by = attacker
 	if hit.dot:
 		Net.damage_number(hit.damage, global_position + Vector3(0, 2.0, 0))
@@ -873,6 +899,8 @@ func slowed(secs: float, k: float) -> void:
 func stagger(secs: float) -> void:
 	_poise = 0.0
 	end_move()
+	if reset:
+		reset.stop()
 	if bp:
 		bp.chain_over()
 	_stagger_len = secs
@@ -967,7 +995,7 @@ func _process(delta: float) -> void:
 	if bp:
 		bp.motion.tick(delta, state == S.STAGGER, clampf([0.25, 0.55, 0.85][phase - 1] + (0.3 if move == "" and mv_t < 0.0 else 0.0), 0.0, 1.0))
 	_animate(delta)
-	_leap_posed = BossReset.pose_beast(model, move == "leap_home", mv_t, _leap_posed)
+	_leap_posed = BossReset.pose_beast(model, move, mv_t, _leap_posed, bp == null)
 
 
 # ==========================================================================
