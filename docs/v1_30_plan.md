@@ -27,6 +27,23 @@ and the thin themes' creatures already planned there (docs/v1_29_plan.md). No 1.
 | Skill map | **Passives and stat nodes look clearly different from abilities**; every tree has icons and is **zoomable and pannable**, so trees don't fight for screen space; **fix nodes being skippable** (a bug: a node bought without its parent) | Zach, from the playtest | Mock |
 | Progression pacing | **Preview first (numbers for Zach's OK):** Edy comes too often and gives too many points; the adventure trees earn too little xp (only Acrobatics levelled); **the Acrobatics tree remapped** (wall jump and slide upgrades in it); **strike-speed upgrades** in the weapon trees (the katana most). Weapon mastery felt good: keep it | Zach's preview rule for progression | After the preview |
 
+## Decided (2026-11-03, round 3): the stronghold run reworked
+Zach, after the playtest: "it was a large fortress where we fought maybe 40 people over ~30 minutes"; enemies should
+swarm, the crew should need gadgets, strategy and stealth to reach the objectives, then fight through large crowds in
+fast boss fights; the enemies felt like sponges, only a few groups of 5 at a time, the bosses not memorable.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Run shape | **A raid in acts**: land and breach the gate; the two seals in either order (each its own set piece and boss); the keep and Vane; the vault; the Scouring escape. Cleared areas stay cleared | Zach | Play |
+| Enemies | **Garrison + alarm**: placed garrisons (sentries, posts, barracks) that react; a raised alarm brings visible reinforcements through doors, from barracks and by boat; a cleared district stays clear (no 90 s respawns) | Zach | Play |
+| Crowd size | **20-30 fighting at once**, ~150-200 over the run; most are a cheap **fodder tier** (rig LOD, simple AI, shared materials), a few elites and officers mixed in; inside the perf gate | Zach | Bench at prepush |
+| Toughness | **Fodder dies in 2-4 hits** (no +30%); the +30% and the co-op scaling stay on elites, officers and bosses | "Enemies felt like sponges" | Play |
+| Stealth | **An infiltration before the alarm**: sneak past sentries (the crouch stealth system), silent takedowns from behind, cut or guard alarm bells to slow reinforcements | Zach | Play |
+| Gadgets | **Carried gadgets** the crew brings: smoke bombs, a grapple hook, explosive charges, flash powder (bought or crafted; a small belt) | Zach | Play |
+| Co-op roles | **Objectives that split the crew**: hold a gate while another opens it, a sniper perch covering the others, two levers at once | Zach | Play |
+| Bosses | **Set-piece arenas**: each officer owns a district with a gimmick (Kesh in a pouring foundry, Marrow in a prison riot, Vane on the keep's roof as the Scouring starts), an intro name card, mid-fight events, faster aggressive movesets with big readable attacks | "Not memorable or interesting" | Play |
+| Downed in a boss fight | **Revive, else rejoin**: the crew revives as usual; bled out, a captain respawns at a checkpoint just outside the arena and walks back in; only a full crew wipe resets the boss. (The playtest's stuck death is a bug, being fixed) | Zach | Play |
+
 ### Open / deferred
 - The brig and galleon and the creatures keep their own grill (docs/v1_29_plan.md said "1.30's grill").
 - The order inside 1.30 is the lead's: the bugs (A, B) first, so the next playtest runs on a fixed game.
