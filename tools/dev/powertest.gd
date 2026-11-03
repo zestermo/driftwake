@@ -79,12 +79,12 @@ func _process(d: float) -> bool:
 			# bindings
 			check("skills on 1-5, ultimate on R", key_of("skill_1") == KEY_1 and key_of("skill_5") == KEY_5 and key_of("ultimate") == KEY_R)
 			check("the quick item on E, nothing on 6, ready weapon on Z", key_of("quick_item") == KEY_E and not InputMap.has_action("hotbar_1") and not InputMap.has_action("skill_6") and key_of("ready_weapon") == KEY_Z)
-			# fruits are in the world's chests only while DevilFruits.IN_WORLD is on (off for now)
+			# Brinehollow's chests hold fruits only with DevilFruits.WIDE_POOL (off: the vault is the one source)
 			var found := false
 			for b in root.find_children("*", "LootBag", true, false):
 				for st in b.contents:
 					if st.item and st.item.devil_fruit != "": found = true
-			check("Devil Fruits in chests only when IN_WORLD is on (%s)" % DevilFruits.IN_WORLD, found == DevilFruits.IN_WORLD)
+			check("Devil Fruits in chests only with the wide pool (%s)" % DevilFruits.WIDE_POOL, found == DevilFruits.WIDE_POOL)
 			var hud = root.get_tree().get_first_node_in_group("hud")
 			var bar = hud._skill_bar
 			check("skill bar on the HUD", bar != null and bar.visible)

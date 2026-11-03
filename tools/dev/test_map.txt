@@ -699,6 +699,9 @@ scripts/island/island_life.gd           lifetest
 scripts/island/stronghold_plan.gd       t/stronghold
 scripts/island/stronghold_shell.gd      t/stronghold
 scripts/island/stronghold_island.gd     t/stronghold
+scripts/island/stronghold_boss.gd       t/stronghold
+scripts/powers/fruit_pool.gd            t/stronghold/vault
+scripts/loot/item_db.gd                 t/stronghold/vault
 scripts/island/city_undercity.gd        t/canal/undercity t/capital/catacombs
 scripts/island/capital_crowd.gd         t/capital/night
 scripts/island/themes/volcanic_land.gd     t/island/volcanic_land t/island/volcanic_eruptions

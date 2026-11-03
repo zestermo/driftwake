@@ -9421,3 +9421,18 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   Crossed behind, Headpiece). Co-op: all in the kit (Net.set_ship_kit), every screen paints the same.
 - Tests: t/ship/flag_builder (old kits keep their look, skull 0 = old flag, 168 distinct jolly rogers, the sail emblem,
   the paint on her, ten figureheads build). Renders: tools/dev/out/shipshape/figures_* (modelshot), looks_*, fig10_bow.
+
+## 2026-11-03: 1.30 land fixes, piece 1: the stronghold vault and the Driftfruit (playtest 2026-11-02 row 5)
+- The vault chest stood inside the Command Hall's dais (local (6,0,-17) against the 14x1.2x6 block); it's now
+  `StrongholdBoss.VAULT_AT` (-2,0,-14.4), on the floor before the dais's front step between two pillars, with an X on the
+  map ("The Commodore's vault", cleared when the chest goes). A save with the keep's seal and an unopened vault gets it
+  on load.
+- LEGENDARIES' "hammer"/"axe" were not item ids (those seeds errored and had no vault): now warhammer / boarding_axe.
+  `ItemDB.tiered` / `with_trait` return null for an unknown base instead of erroring.
+- Driftfruit on: `DevilFruits.IN_WORLD` true with one source, the vault's legendary (`FruitPool.vault`: a free
+  legendary picked by the chain seed, reserved as "fruit:<id>" plus "vault_fruit:<id>" so every machine and a later
+  look find the same one; the chest's fruit claim (Net.claim_fruit) lets one captain take it). The other sources
+  (Brinehollow's hidden fruits, the arena champion's chance) moved to a new `DevilFruits.WIDE_POOL` (false) until the
+  fruit tree pass; powertest's chest check reads WIDE_POOL.
+- Test: t/stronghold/vault (rays from the hall's middle and down onto the chest, the map mark, the fruit and its
+  reservation, every legendary resolves).
