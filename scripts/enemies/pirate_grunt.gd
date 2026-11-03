@@ -102,6 +102,7 @@ var captain: bool = false
 var title: String = ""
 var _overhead: OverheadBar
 const CAPTAIN_HP := 3.2
+const CREW_HP_K := 1.3
 const CAPTAIN_DMG := 1.35
 ## Came over the side from a pirate ship: no post to go back to, fights on
 ## wherever it lands.
@@ -3202,7 +3203,12 @@ func _set_glow(on: bool) -> void:
 
 
 func _max_hp() -> float:
-	return MAX_HP * (CAPTAIN_HP if captain else 1.0) * Levels.hp_k(level, _lv_ref())
+	return MAX_HP * (CAPTAIN_HP if captain else 1.0) * _crew_k() * Levels.hp_k(level, _lv_ref())
+
+
+## (1.30) Pirate crews and marines are tougher, solo too (the playtest: not enough of a fight). Not the drowned or apes.
+func _crew_k() -> float:
+	return CREW_HP_K
 
 
 ## The level its own numbers were tuned for (the JungleApe's: the first chain island).

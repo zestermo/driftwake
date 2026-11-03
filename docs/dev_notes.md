@@ -9475,3 +9475,17 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   Tests: t/ship/marine_chaser (a patrol from 330 m on an upgraded sloop's wake, beam wind: broadside range in 102 s),
   new t/ship/pirate_chaser (a pirate sloop from 140 m: in range in ~74 s, then 30 s at her side, a volley);
   t/ship/enemy_boarding sets its chase past the spurt (its "too fast to catch" premise).
+
+## 2026-11-03: 1.30 land fixes, piece 4: enemy toughness and co-op scaling (playtest row 8; v1_30_plan "Decided")
+- `Net.hp_scale` is 1 + 0.85 per extra captain (x3.55 at four; was +0.6, x2.8). New `Net.dmg_scale` (+10% a captain
+  past the first, applied in `Player.take_hit` to any attacker outside group "players", AI captains included) and
+  `Net.poise_scale` (+0.5 a captain). Static `*_scale_for(n)` forms for tests.
+- `Poise.cap()`: a foe's `full` x Net.poise_scale, read as hits land (so it follows the roster with nothing per
+  frame); `Poise.make("player")` (a captain's own) never scales. The beasts' own thresholds (JungleBeast._poise_max,
+  the Brood Queen's POISE) scale the same.
+- Stronghold bosses (StrongholdBoss): `hp_k = hp x Net.hp_scale()` at spawn, and `rescale(k)` on the host's 0.25 s
+  check when the crew changes (keeps the share of health left). They had no co-op scaling at all.
+- `PirateGrunt.CREW_HP_K` 1.3 (`_crew_k()`): pirate crews, captains and marines +30% health for everyone; the
+  drowned override it to 1. Morrow (his own BOSS_HP) and the ape (its own _max_hp) are unchanged solo.
+- Tests: t/combat/coop_scaling (the numbers, a fake four-captain roster for Poise.cap and dmg_scale), t/stronghold/vane
+  (rescale keeps him full at x2.7). nettest modes are affected (enemy health and damage in co-op): the lead's prepush.

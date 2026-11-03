@@ -48,6 +48,11 @@ func _process(_d: float) -> bool:
 			if vane == null:
 				return TK.done(fails)
 			check("...a boss's health (%.0f), the grate down" % vane.health_component.max_health, vane.health_component.max_health >= 1100.0 and bnode.grate_shut())
+			var mh: float = vane.health_component.max_health
+			bnode.rescale(2.7)
+			check("(1.30) a crew of three: x2.7 his health, still full (%.0f)" % vane.health_component.max_health,
+				is_equal_approx(vane.health_component.max_health, mh * 2.7) and is_equal_approx(vane.health_component.current_health, vane.health_component.max_health))
+			bnode.rescale(1.0)
 			vane.get_node("Brain").order = "hold"
 			vane.health_component.take_damage(vane.health_component.max_health * 0.4)
 			until = TK.wait_secs(5.0)

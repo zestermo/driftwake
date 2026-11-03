@@ -750,6 +750,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	# Captain's Presence: common foes' blows land softer
 	if attacker and not attacker.is_in_group("players") and not Progression.is_elite(attacker):
 		dmg *= 1.0 - progression.stat("presence")
+	# (1.30) foes hit harder with more captains about
+	if attacker and not attacker.is_in_group("players"):
+		dmg *= Net.dmg_scale()
 	dmg = power.will.incoming(hit, dmg)
 	# Last Stand: once a minute, a killing blow leaves you at 1
 	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:

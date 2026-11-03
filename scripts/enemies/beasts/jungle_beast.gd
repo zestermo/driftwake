@@ -750,7 +750,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			poise_break()
 		return
 	_poise += hit.damage * (1.6 if hit.knockdown else 1.0) * (2.0 if opening else 1.0)
-	if _poise >= _poise_max() and not _armoured():
+	if _poise >= _poise_max() * Net.poise_scale() and not _armoured():
 		stagger(2.0)
 
 

@@ -41,6 +41,8 @@ var refill := 12.0
 var flinch_damage := 10.0
 var flinch_poise := 14.0
 var value := 30.0
+## (1.30) A foe's: `full` grows with the crew (Net.poise_scale), read as hits land. A captain's own doesn't.
+var coop := false
 var _last := -1000000
 var _immune_until := -1
 
@@ -49,7 +51,8 @@ static func make(kind: String, scale: float = 1.0) -> Poise:
 	var c: Array = CLASSES[kind]
 	var p := Poise.new()
 	p.full = float(c[0]) * scale
-	p.value = p.full
+	p.coop = kind != "player"
+	p.value = p.cap()
 	p.refill = float(c[1])
 	p.flinch_damage = float(c[2])
 	p.flinch_poise = float(c[3])
@@ -77,7 +80,15 @@ static func _ticks(secs: float) -> int:
 ## Poise now (refilled since the last hit).
 func current() -> float:
 	var since := float(_now() - _last) / float(Engine.physics_ticks_per_second) - REFILL_WAIT
-	return minf(full, value + maxf(since, 0.0) * refill)
+	return minf(cap(), value + maxf(since, 0.0) * refill)
+
+
+## The most it holds: `full`, times the crew's poise scale for a foe's.
+func cap() -> float:
+	if not coop:
+		return full
+	var net := (Engine.get_main_loop() as SceneTree).root.get_node("/root/Net")
+	return full * net.poise_scale()
 
 
 func immune() -> bool:
@@ -101,7 +112,7 @@ func take(hit: HitData) -> int:
 
 ## Broken (a hit, a launch landed): full again and immune for IMMUNE s.
 func broke() -> void:
-	value = full
+	value = cap()
 	_last = -1000000
 	_immune_until = _now() + _ticks(IMMUNE)
 

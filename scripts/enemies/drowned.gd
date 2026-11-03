@@ -56,6 +56,11 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	return self
 
 
+## Not a crew of the living: no pirate's toughness (PirateGrunt.CREW_HP_K).
+func _crew_k() -> float:
+	return 1.0
+
+
 ## No guns: their powder's wet through.
 func _guns_free() -> bool:
 	return false

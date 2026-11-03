@@ -372,7 +372,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.WANDER:
 		wake()
 	_poise += hit.damage * (1.6 if hit.knockdown else 1.0)
-	if _poise >= POISE and state != S.DAZED:
+	if _poise >= POISE * Net.poise_scale() and state != S.DAZED:
 		_stagger(2.2)
 
 

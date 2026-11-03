@@ -52,6 +52,7 @@ var _burn_m: Material
 var _check := 0.0
 var _hurt := 0.0
 var _vault := false
+var _k := 1.0
 
 
 func setup(island: Node3D, boss_key: String) -> StrongholdBoss:
@@ -142,6 +143,8 @@ func _process(delta: float) -> void:
 		if boss == null:
 			_spawn()
 			return
+	if not is_equal_approx(float(net.hp_scale()), _k):
+		rescale(float(net.hp_scale()))
 	var hp := boss.health_component.current_health / maxf(boss.health_component.max_health, 1.0)
 	if phase() == 1 and hp <= float(BOSSES[key]["p2"]):
 		net.world_flag(flag_p2())
@@ -173,6 +176,16 @@ func _anyone_inside() -> bool:
 	return false
 
 
+## The crew changed mid-fight (host): the boss's health to `k` x its own, keeping the share it has left.
+func rescale(k: float) -> void:
+	var hc := boss.health_component
+	var frac := hc.current_health / maxf(hc.max_health, 1.0)
+	_k = k
+	boss.hp_k = float(BOSSES[key]["hp"]) * k
+	boss._recalc_stats()
+	hc.current_health = maxf(frac * hc.max_health, 1.0)
+
+
 ## The boss (host): an Admiralty officer's look under its name, at the room's back facing the door, its weapon (and
 ## off-hand), the full kit by skill, a boss's health, on the captains.
 func _spawn() -> void:
@@ -193,8 +206,9 @@ func _spawn() -> void:
 		return
 	if b.has("offhand"):
 		boss.set_offhand(ItemDB.get_item(str(b["offhand"])))
-	# (health from hp_k, as the rivals': the stats recalc would undo a max_health set by hand)
-	boss.hp_k = float(b["hp"])
+	# (health from hp_k, as the rivals': the stats recalc would undo a max_health set by hand; x the crew's hp_scale)
+	_k = float(net.hp_scale())
+	boss.hp_k = float(b["hp"]) * _k
 	boss._recalc_stats()
 	boss.health_component.current_health = boss.health_component.max_health
 	var brain := boss.get_node_or_null("Brain")
