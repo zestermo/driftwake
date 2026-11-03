@@ -52,6 +52,21 @@ fast boss fights; the enemies felt like sponges, only a few groups of 5 at a tim
 | On captains | **Enemy moves can do it to a captain**: only a real strong move that breaks poise and does over a set damage (assumed: >= 30% of max health in one hit). Captains can do it to each other in duels and to AI captains. **Dazed ~1 s**, and it takes slightly longer to get up than a normal knockdown | Zach | Play |
 | Blood | **A blood splatter** from the hit and on the surface it hits, where fitting (none for spirits, bloodless kinds, or with the gore setting off) | Zach | Play |
 
+## Decided (2026-11-03, round 5): the level gap
+Gap = the foe's level minus the captain's (per captain). Multipliers on top of Levels' curves; 0 = today's balance.
+
+| Gap | -6 | -4 | -2 | 0 | +2 | +3 | +5 |
+|---|---|---|---|---|---|---|---|
+| Captain's damage to it (1 - 0.06g, 0.7-1.5) | 1.36 | 1.24 | 1.12 | 1 | 0.88 | 0.82 | 0.70 |
+| Its damage to the captain (1 + 0.12g, 0.4-2.0) | 0.40 | 0.52 | 0.76 | 1 | 1.24 | 1.36 | 1.60 |
+| Its poise (1 + 0.12g, 0.3-1.8) | 0.30 | 0.52 | 0.76 | 1 | 1.24 | 1.36 | 1.60 |
+| Overkill needed to splat (1 + 0.15g, 0.1-2.0) | 0.1 | 0.4 | 0.7 | 1 | 1.3 | 1.45 | 1.75 |
+| Level badge | grey (<= -5) | white | white | white | white | red (>= +3) | red |
+
+- Fodder marines: normal marine stats at **the fortress's level - 4** (not a fixed 30 HP).
+- Health bars: 22x2 px (was 28x4) on the 800x450 canvas, a small level number in a box to the bar's left.
+- Approved by Zach 2026-11-03.
+
 ### Open / deferred
 - The brig and galleon and the creatures keep their own grill (docs/v1_29_plan.md said "1.30's grill").
 - The order inside 1.30 is the lead's: the bugs (A, B) first, so the next playtest runs on a fixed game.
