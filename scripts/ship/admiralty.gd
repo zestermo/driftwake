@@ -376,7 +376,7 @@ func _pursuers() -> int:
 
 
 ## Hunted / escaped: the word on every screen when the first pursuer starts after the crew and when the hunt ends:
-## "Escaped" with ships still afloat that lost her, else they're beaten. Either way the sea goes quiet for QUIET s.
+## "Escaped" with ships still afloat that lost her (one that ran from the fight was beaten), else they're beaten. Either way the sea goes quiet for QUIET s.
 func _hunt_note() -> void:
 	var now := _pursuers() > 0
 	if now == hunted:
@@ -390,7 +390,7 @@ func _hunt_note() -> void:
 	_patrol_t = 0.0
 	var afloat := false
 	for s in get_children():
-		if s is EnemyShip and not (s as EnemyShip).is_dead() and (s as EnemyShip).state not in [EnemyShip.S.BLOCK, EnemyShip.S.PRIZE]:
+		if s is EnemyShip and not (s as EnemyShip).is_dead() and not (s as EnemyShip).fled() and (s as EnemyShip).state not in [EnemyShip.S.BLOCK, EnemyShip.S.PRIZE]:
 			afloat = true
 	if afloat:
 		escaped.emit()

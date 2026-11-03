@@ -112,6 +112,12 @@ const CHASER_WARN := 0.6
 ## slower than CHASE_SLOW (m/s).
 const BROADSIDE_IN := 34.0
 const CHASE_SLOW := 6.0
+## (pursuer, 1.30) Out of sight (an island's no-go ring, a smoke screen) this long on end before she gives the crew up;
+## she ignores the land while within her far range + HIDE_LAND_IN, and fog and storm never hide the crew inside her far
+## range + SIGHT_FLOOR.
+const HIDE_GRACE := 8.0
+const HIDE_LAND_IN := 20.0
+const SIGHT_FLOOR := 40.0
 ## The crew's ship counts as manned while a captain is this close to her (swimming, or fighting on a deck alongside).
 const CREW_NEAR := 70.0
 ## What a ball does to the crew's hull and to men near where it lands.
@@ -212,6 +218,8 @@ var pursuer: bool = false
 var role: String = ""
 ## Seconds into this chase (CHASE_SECS); 0 again once she's back on patrol.
 var _chase_t: float = 0.0
+## Seconds the crew's been out of her sight on end (HIDE_GRACE).
+var _hide_t: float = 0.0
 ## Her bow chaser (kinds with "chaser"), its cooldown, and the sparks before it fires (-1: not warming).
 var _chaser: ShipCannon
 var _chaser_cd: float = 2.0
@@ -391,9 +399,14 @@ func sleep_ok() -> bool:
 
 
 ## After the crew's ship (closing, fighting, lashed to her, or with captains fighting on her own deck): not
-## patrolling, struck, sunk or fleeing.
+## patrolling, struck or sunk. A pursuer running from the fight is still in it (1.30: no "Escaped" mid-fight).
 func pursuing() -> bool:
-	return state in [S.TRACK, S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM, S.DECK]
+	return state in [S.TRACK, S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM, S.DECK] or (pursuer and state == S.FLEE)
+
+
+## Beaten off: she's run from the fight once (the Admiralty's end banner counts her as beaten, not as lost track).
+func fled() -> bool:
+	return _fled
 
 
 ## (Admiralty) Sent after the crew: a "ring" closing in, a "patrol" on her wake, a "block" holding station at an
@@ -411,7 +424,23 @@ func start_role() -> void:
 
 ## How far she keeps the crew in sight: a pursuer loses her sooner in fog and storm (Admiralty.sight_k).
 func _lose_r(tgt: Node3D) -> float:
-	return LOSE * (Admiralty.sight_k(get_tree(), tgt.global_position) if pursuer else 1.0)
+	if not pursuer:
+		return LOSE
+	return maxf(LOSE * Admiralty.sight_k(get_tree(), tgt.global_position), float(spec["range"][1]) + SIGHT_FLOOR)
+
+
+## She's given the crew up (call once a tick): out of reach, or out of sight (_huntable) for HIDE_GRACE s on end
+## (a pirate at once).
+func _gave_up(tgt: Node3D, dist: float, delta: float) -> bool:
+	if tgt == null or dist > _lose_r(tgt):
+		return true
+	if _huntable(tgt):
+		_hide_t = 0.0
+		return false
+	if not pursuer:
+		return true
+	_hide_t += delta
+	return _hide_t > HIDE_GRACE
 
 
 ## (pursuer) She's lost them: back to patrolling, away from where they were (the Admiralty clears her once she's
@@ -532,7 +561,7 @@ func _physics_process(delta: float) -> void:
 		S.HUNT, S.BROADSIDE:
 			var near_r: float = spec["range"][0]
 			var far_r: float = spec["range"][1]
-			if tgt == null or dist > _lose_r(tgt) or not _huntable(tgt):
+			if _gave_up(tgt, dist, delta):
 				if pursuer:
 					_lost(tgt.global_position if tgt else _pos - _fwd())
 				else:
@@ -596,7 +625,7 @@ func _physics_process(delta: float) -> void:
 					_set_state(S.BOARD)
 					bark("Grapples! Prepare to board!", 2.5)
 		S.RAM:
-			if tgt == null or not _huntable(tgt) or st_t > 12.0:
+			if _gave_up(tgt, dist, delta) or st_t > 12.0:
 				_ram_cd = RAM_EVERY
 				_set_state(S.BROADSIDE if tgt else S.PATROL)
 			else:
@@ -641,7 +670,7 @@ func _physics_process(delta: float) -> void:
 				want_heading = atan2(to_t.x, to_t.z)
 				want_speed = _max_speed()
 		S.BOARD:
-			if tgt == null or not _huntable(tgt):
+			if _gave_up(tgt, dist, delta):
 				_set_state(S.PATROL)
 			else:
 				var side := 1.0 if (tgt.global_basis.x).dot(_pos - tgt.global_position) > 0.0 else -1.0
@@ -712,6 +741,7 @@ func _set_state(s: S) -> void:
 		_fight_t = 0.0
 	if s in [S.PATROL, S.BLOCK]:
 		_chase_t = 0.0
+		_hide_t = 0.0
 
 
 ## Fleet tactics (docs/v1_23_plan.md, sea pursuit), closing in: with others on the crew each takes a part by its
@@ -809,7 +839,10 @@ func _keeps_chasing(tgt: Node3D, dist: float) -> bool:
 
 func _huntable(t: Node3D) -> bool:
 	# (1.28) not inside a smoke screen's cloud (ShipGadgets): her gunners have lost her
-	return huntable_at(t.global_position) and not ShipGadgets.hidden(t)
+	if ShipGadgets.hidden(t):
+		return false
+	# (1.30) a pursuer already on her doesn't let the land stop a fight
+	return huntable_at(t.global_position) or (pursuer and Vector2(t.global_position.x - _pos.x, t.global_position.z - _pos.z).length() < float(spec["range"][1]) + HIDE_LAND_IN)
 
 
 ## (1.28, HarpoonCannon's contract; host) On the crew's harpoon line: reeled in toward their ship until let go.
