@@ -46,7 +46,7 @@ static func stronghold(chain: Chain) -> Dictionary:
 		{"goal": "Take the keep's two seals: Lieutenant Kesh in the Arsenal's foundry, Captain Marrow in the prison yard",
 			"until": ["flags", SEAL_BOSSES.keys()], "at": ["sh_seals"]},
 		{"goal": "Cross the Bridge of Judgement: beat Commodore Vane in the Command Hall and on the Verdict's roof", "until": ["flag", "sh_seal_keep"], "at": ["sh_room", "command"]},
-		{"goal": "Open the Commodore's vault before his dais", "until": ["any", [["opened", vault], ["flag", "sh_barrage"]]], "at": ["sh_room", "command"]},
+		{"goal": "Pull the vault's two locks together (either side of the dais), then open it", "until": ["any", [["opened", vault], ["flag", "sh_barrage"]]], "at": ["sh_room", "command"]},
 		{"goal": "Escape the ring: get to your ship and sail out through the gap in the warships' line", "until": ["flag", "sh_escaped"], "at": ["sh_gap"]}]}
 
 
@@ -170,7 +170,8 @@ static func district_hint(tree: SceneTree, at: Vector3) -> String:
 				hint = "Commodore Vane is on the Verdict's roof: the hoist in the Command Hall takes you up" if f.has("sh_vane_p2") \
 					else "beat Commodore Vane in the Command Hall"
 			elif not gm.opened.has("sh_vault_%d" % int(gm.chain_seed)):
-				hint = "open the Commodore's vault before his dais"
+				hint = "open the Commodore's vault before his dais" if f.has("sh_vault_unlocked") \
+					else "pull the vault's two locks together, either side of the dais"
 			else:
 				hint = "get back to the ship and out of the ring"
 	if StrongholdMuster.AT.has(key) and not f.has("sh_muster_" + key):

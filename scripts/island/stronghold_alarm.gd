@@ -168,6 +168,9 @@ func _process(delta: float) -> void:
 	_check = CHECK
 	if _flag("sh_seal_keep"):
 		return
+	# (the Landing's gate winch heard: StrongholdActs.Gate)
+	if _flag("sh_winching") and not alarmed("landing") and not cleared("landing"):
+		raise("landing")
 	var total := fortress_up()
 	for d in squads:
 		if cleared(d):

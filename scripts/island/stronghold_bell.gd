@@ -10,7 +10,7 @@ const BELLS := {
 	"landing": [Vector2(-48, 41)],
 	"ward": [Vector2(-25, 17), Vector2(25, -12.5)],
 	"arsenal": [Vector2(57, -43)],
-	"prison": [Vector2(-92, 6)],
+	"prison": [Vector2(-100, -4)],
 	"keep": [Vector2(-18, -51)],
 }
 const H := 3.4

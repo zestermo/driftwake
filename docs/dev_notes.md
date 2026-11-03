@@ -9994,3 +9994,25 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
 - **Tests:** t/combat/splat_power (curve, mellow vs far, the knockdown and the graze), splat_captain now throws at
   90% (the full throw that reaches the wall 6 m back; 45% is a short one now); render splatshot `_open` (bowls one
   over) and `_mellow`.
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 4: crew-split objectives and the first of Part A
+- **Crew-split objectives** (StrongholdActs), each finishable by a captain alone:
+  - **Hold the gate while another opens it:** the gate's winch (piece 3) now rouses the Landing the moment it's
+    worked ("sh_winching" -> StrongholdAlarm raises the Landing's alarm: its boats row in). One winds (stay within
+    2.8 m for 8 s), the others hold the quay; alone, you clear the Landing first or wind between waves.
+  - **The perch:** a timber stair up the inside of the ward's front wall (PERCH_STAIR, a slope collider under the
+    steps) to a deck on its walk (PERCH, y 18) covering the ward and the Landing, with a rack of the fortress's long
+    guns (F: a musket, if you've none).
+  - **Two levers at once:** the Commodore's vault opens only once its two locks either side of the dais (LOCKS) are
+    pulled within LOCK_WINDOW 2 s of each other (VaultLocks: a pull is a Net.event, the host decides,
+    "sh_vault_unlocked"); with one captain on the go the window is LOCK_WINDOW_SOLO 9 s (time to run between them).
+    StrongholdBoss opens the vault chest on beaten + unlocked. The journal's vault step and the keep's hint say so.
+- **Part A (first pieces):** the prison yard's **cell block** (CELLS x -97..-85, z 0..10: stone walls and roof, barred
+  cell fronts, its door to the yard) where Marrow's riot musters and breaks out (the cells encounter's room); the
+  prison's bell moved out of its way; **the posts dressed**: a brazier at every post, a weapon rack and crates by the
+  standing ones (one mesh for the fortress, no shadow, 140 m range); the ward's front wall walk reachable by the perch.
+- Tests: t/stronghold/crew_split (the winch rousing the Landing, the perch and its stair, one long gun from the rack,
+  the locks too far apart and then together, the cell block with the riot inside it); t/stronghold/vane checks the
+  vault shut until both locks turn; t/stronghold/vault sets the unlock; t/stronghold/gate clears the Landing before
+  winding. Renders: strongholdshot `perch`, `cells`, `ward` (the dressing), `yard`.
+- Per frame: VaultLocks reads two flags and the clock (the handles), the perch and cell block are static bodies.

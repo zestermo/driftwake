@@ -60,6 +60,10 @@ func _process(_d: float) -> bool:
 			var to: Vector3 = isl.city_global(Vector2(0, 14), 13.2)
 			var hit = p.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, 1))
 			check("...it bars the stair", not hit.is_empty() and hit["collider"] == gate.bars)
+			# (the Landing cleared quietly first: the winch's clank would bring its boats down on the captain)
+			for g in isl.city.get_node("Garrison_landing").grunts:
+				if is_instance_valid(g):
+					g.health.take_damage(99999.0)
 			_at(load("res://scripts/island/stronghold_acts.gd").WINCH + Vector2(0.6, 0.6), StrongholdPlan.ground(load("res://scripts/island/stronghold_acts.gd").WINCH))
 			until = TK.wait_ticks(10)
 		3:

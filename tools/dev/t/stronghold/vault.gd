@@ -45,6 +45,7 @@ func _process(_d: float) -> bool:
 		2:
 			bnode = isl.city.get_node("Boss_vane")
 			root.get_node("Net").world_flag("sh_seal_keep")
+			root.get_node("Net").world_flag("sh_vault_unlocked")
 			until = TK.wait_ticks(10)
 		3:
 			var key := "sh_vault_%d" % int(gm.chain_seed)

@@ -69,6 +69,16 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.0)
 		6:
 			check("beaten: the keep is the crew's, the grate up", bnode.beaten() and root.get_node("GameManager").world_flags.has("sh_seal_keep") and not bnode.grate_shut())
+			check("(1.30) ...the vault shut till its two locks turn", bnode.find_children("Cache_sh_vault_*", "", false, false).is_empty())
+			# the two locks, a captain alone: one, then the other inside the solo window
+			var locks = isl.city.get_node("VaultLocks")
+			locks.pull(0)
+			check("...one lock alone opens nothing", not root.get_node("GameManager").world_flags.has("sh_vault_unlocked"))
+			locks.pull(1)
+			until = TK.wait_secs(1.0)
+			step = 60
+			return false
+		60:
 			var vault: Array = bnode.find_children("Cache_sh_vault_*", "", false, false)
 			check("...the vault open behind the dais (%d)" % vault.size(), vault.size() == 1)
 			if not vault.is_empty():

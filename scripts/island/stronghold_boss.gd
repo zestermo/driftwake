@@ -164,7 +164,8 @@ func _process(delta: float) -> void:
 	_carded = on
 	_hazards(delta)
 	_pours(delta)
-	if key == "vane" and not _vault and beaten():
+	# (1.30) the vault's two locks turned together first (StrongholdActs.VaultLocks)
+	if key == "vane" and not _vault and beaten() and _flag("sh_vault_unlocked"):
 		_vault = true
 		_open_vault()
 	if not get_node("/root/Net").is_host() or beaten():
@@ -629,8 +630,7 @@ func _build_adds() -> void:
 	var b: Dictionary = BOSSES[key]
 	var room: Array
 	if rm.is_empty():
-		var c := Vector2(position.x, position.z) + Vector2(-16.0, 0.0)
-		room = ["cells_" + key, "The Cell Block", Rect2(c - Vector2(6, 5), Vector2(12, 10)), position.y, 6.0, Vector2(1, 0), 4.0]
+		room = ["cells_" + key, "The Cell Block", StrongholdActs.CELLS, position.y, 6.0, Vector2(1, 0), 4.0]
 	elif key == "vane":
 		# (out of the tower's door onto the roof after him, facing the balcony's front)
 		room = ["adds_" + key, "The Verdict's roof", StrongholdActs.BALCONY, StrongholdActs.ROOF_Y, 6.0, Vector2(0, 1), 4.0]

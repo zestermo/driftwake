@@ -145,6 +145,8 @@ func _setup(island) -> void:
 		["roof_below", "the Verdict's roof over the Command Hall's door", Vector2(0, -36), 1.7, Vector2(0, -56), 33.0],
 		["roof", "on the Verdict's roof, Vane's stand (act 3)", Vector2(-12, -61), 35.0, Vector2(6, -50), 32.0],
 		["casting_pour", "the Casting Hall: Kesh's foundry", Vector2(70.5, -16), 2.4, Vector2(90, -28), 1.0],
+		["perch", "the perch up the ward's front wall, its rack of long guns", Vector2(5, 13), 3.0, Vector2(30, 16), 6.0],
+		["cells", "the prison yard's cell block, where the riot breaks out", Vector2(-76, 8), 2.0, Vector2(-91, 5), 2.0],
 		["yard", "the prison yard: Marrow's riot, the cell block, the catwalks", Vector2(-60, 9), 5.0, Vector2(-80, 2), 1.0],
 		# looking up from underneath: what a gap in the geometry would show
 		["up_tower", "up at a ward tower", Vector2(40.0, 13.0), 1.7, Vector2(44.6, 18.6), 30.0],

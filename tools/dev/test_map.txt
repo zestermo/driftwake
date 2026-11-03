@@ -725,7 +725,7 @@ scripts/island/stronghold_garrison.gd   t/stronghold
 scripts/island/stronghold_alarm.gd      t/stronghold/alarm t/stronghold/garrison
 scripts/island/stronghold_reinforce.gd  t/stronghold/alarm
 scripts/island/stronghold_bell.gd       t/stronghold
-scripts/island/stronghold_acts.gd       t/stronghold/gate t/stronghold/set_pieces
+scripts/island/stronghold_acts.gd       t/stronghold/gate t/stronghold/set_pieces t/stronghold/crew_split t/stronghold/vane
 scripts/island/stronghold_encounter.gd  t/stronghold
 scripts/island/stronghold_scouring.gd   t/stronghold
 scripts/enemies/fodder_marine.gd        t/stronghold/fodder_crowd t/stronghold/garrison t/stronghold/alarm
