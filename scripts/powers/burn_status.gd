@@ -84,7 +84,8 @@ func _physics_process(delta: float) -> void:
 		hd.knockback_force = 0.0
 		hd.hitstop_duration = 0.0
 		hd.camera_shake_intensity = 0.0
-		hurtbox.take_hit(hd, source)
+		# (whoever set it alight may be gone by now: a burning grunt sunk away)
+		hurtbox.take_hit(hd, source if is_instance_valid(source) else null)
 		if source and is_instance_valid(source) and source.get("power") is PowerComponent:
 			(source.get("power") as PowerComponent).add_ult(hd.damage)
 	if time_left <= 0.0:

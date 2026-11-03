@@ -9,7 +9,7 @@ extends PirateGrunt
 
 const HP := 30.0
 const HUNT_RANGE := 90.0
-const THINK := 8
+const THINK := 10
 const XP_K := 0.35
 const PERIL_ODDS := 0.25
 const LUNGE_ODDS := 0.5
@@ -34,6 +34,25 @@ func _ready() -> void:
 	collision_mask = 1 | 2
 	if hunt and not net_puppet:
 		alert.call_deferred(0.15)
+
+
+## Between thinks (moving about, no blow or guard on the line), only the move: gravity and on along its last decision.
+## The skipped time goes into the next full tick's clocks.
+var _skip_dt := 0.0
+
+
+func _physics_process(delta: float) -> void:
+	if not net_puppet and state in THINK_STATES and _yank <= 0.0 and _slow_t <= 0.0 \
+			and (Engine.get_physics_frames() + get_instance_id()) % THINK != 0:
+		_skip_dt += delta
+		if is_on_floor() and velocity.y < 0.0:
+			velocity.y = -0.5
+		else:
+			velocity.y -= GRAVITY * delta
+		_move_tail(_last_want, _last_accel, _last_turn, _last_running, _flat(velocity), delta)
+		return
+	super._physics_process(delta + _skip_dt)
+	_skip_dt = 0.0
 
 
 func _roll_role() -> void:
@@ -108,6 +127,7 @@ func _avoid_water(want: Vector3) -> Vector3:
 func _feed_body(hv: Vector3, running: bool) -> void:
 	super(hv, running)
 	humanoid.lod = true
+	humanoid.crowd = state not in [S.WIND, S.SWING, S.GRAB]
 
 
 func _lost(p: Node3D, dist: float) -> bool:

@@ -47,6 +47,10 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(14.0)
 		2:
 			var squads: Array = isl.garrison.filter(func(c): return str(c.name).begins_with("Garrison_"))
+			# (their bodies are built on workers, then a man a frame: slower when the machine is busy)
+			if squads.any(func(c): return c.grunts.size() < c.specs.size()) and Engine.get_physics_frames() < 60 * 60:
+				until = TK.wait_secs(1.0)
+				return false
 			var counts: Array = squads.map(func(c): return c.alive_count())
 			var total: int = counts.reduce(func(a, b): return a + b, 0)
 			print("garrison by district %s, %d in all" % [counts, total])

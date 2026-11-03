@@ -588,6 +588,12 @@ func _lod_every() -> int:
 	if cam == null:
 		return 1
 	var d2 := cam.global_position.distance_squared_to(global_position)
+	if crowd:
+		if d2 < CROWD_FULL_R * CROWD_FULL_R:
+			return 1
+		if not cam.is_position_in_frustum(global_position + Vector3.UP):
+			return 8
+		return 3 if d2 < 12.0 * 12.0 else 4
 	if d2 < 12.0 * 12.0:
 		return 1
 	if not cam.is_position_in_frustum(global_position + Vector3.UP):
@@ -664,6 +670,13 @@ func _notification(what: int) -> void:
 ## A lod rig casts no shadow past this from the camera (m; back on inside SHADOW_R - 4): a body is ~19 parts, so
 ## ~19 shadow draws for a few pixels of shadow at the PS1 grid. Brinehollow's townsfolk were ~300 of the plaza's.
 const SHADOW_R := 28.0
+## (1.30) A crowd rig (the stronghold's fodder in a fight, FodderMarine): posed every frame only inside CROWD_FULL_R of
+## the camera (its owner turns this off while it swings), every 3rd-4th frame further out (the PS1's 15-20 fps
+## animation), every 8th off screen; a
+## shadow only inside CROWD_SHADOW_R; no foot IK and no hair or cloth swing.
+var crowd: bool = false
+const CROWD_FULL_R := 3.5
+const CROWD_SHADOW_R := 9.0
 var _shadow_t: float = 0.0
 var _shadows_on: bool = true
 ## [GeometryInstance3D, its own cast_shadow] for the parts that cast, taken when the shadows go off
@@ -679,7 +692,8 @@ func _shadow_lod(delta: float) -> void:
 	if cam == null:
 		return
 	var d2 := cam.global_position.distance_squared_to(global_position)
-	var r := SHADOW_R if _shadows_on else SHADOW_R - 4.0
+	var sr := CROWD_SHADOW_R if crowd else SHADOW_R
+	var r := sr if _shadows_on else sr - 4.0
 	var on := d2 < r * r
 	if on == _shadows_on:
 		return
@@ -732,7 +746,7 @@ func _update_physics(delta: float) -> void:
 	var cam := _camera()
 	var r := SIMS_R_LOD if lod else SIMS_R
 	var d2 := cam.global_position.distance_squared_to(global_position) if cam else 0.0
-	var near := cam == null or d2 < r * r
+	var near := (cam == null or d2 < r * r) and not crowd
 	if near and lod:
 		near = _sims_rank(d2)
 	if not near and not _sims_near:
@@ -3568,7 +3582,7 @@ func _foot_ik(delta: float) -> void:
 		return
 	var cam := _camera()
 	var ik_r := IK_R_LOD if lod else IK_R
-	if cam and cam.global_position.distance_squared_to(global_position) > ik_r * ik_r:
+	if crowd or (cam and cam.global_position.distance_squared_to(global_position) > ik_r * ik_r):
 		return
 	if not _ik_body_found:
 		_ik_body_found = true
