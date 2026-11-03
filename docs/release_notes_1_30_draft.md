@@ -53,6 +53,13 @@
   - Blood where it fits.
   - Strong enemy moves can do it to you: you're dazed for a second and slower to get up.
   - Captains can do it to each other in duels and to AI captains.
+  - The throw's power follows the overkill. Just past the line, the body drops a step or two. A huge overkill sends it flying at 25 m/s, knocking down anyone in its path.
+- ✅ **Levels matter in a fight.** The gap between a foe's level and yours scales damage both ways, its poise, and how easily it splats. 4 levels below you, a foe takes ×1.24 damage, hits you for ×0.52, and has half the poise. 5 above, it hits you ×1.6 harder.
+- ✅ **Smaller health bars with a level badge:** grey when the foe is far below you, white normally, red when it's 3+ levels above you.
+- 🔨 **Enemy personalities:**
+  - Berserkers, Opportunists (they wait for others to engage first), Duelists (they parry) and Bulwarks (they block), each with a tell you can read.
+  - Jumping attacks from strong foes.
+  - Riflemen that move between shots, hip-fire close up, bayonet when rushed, kneel for aimed shots, and roll.
 
 ## At sea
 - ✅ **Ships catch you.** The chase clock only runs while fighting, and pursuers have a distance edge. An upgraded sloop is caught in about two minutes.
