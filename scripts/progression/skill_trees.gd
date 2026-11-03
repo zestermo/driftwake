@@ -307,9 +307,10 @@ static func _big(id: String, name_: String, kind: String, branch: int, level: in
 
 ## (1.30, docs/v1_30_previews.md section 4) Every tree is one map: the root in the middle, its branches round it
 ## clockwise from the upper left (each a slice as wide as its nodes need), each node one ring further out than its
-## parent (a step half a ring), its children sharing its slice. A node's parent on the map is its first link (or need).
-const MAP_R := 70.0
-const MAP_STEP_R := 44.0
+## parent (a step a little less; every other sibling of three or more half a ring more), its children sharing its slice. A node's parent on the map is its first link (or need).
+const MAP_R := 76.0
+const MAP_STEP_R := 62.0
+const MAP_STAGGER := 0.45
 const MAP_START := -2.36
 
 
@@ -354,9 +355,14 @@ static func _map_weigh(k: String, kids: Dictionary, w: Dictionary) -> float:
 
 static func _map_place(k: String, kids: Dictionary, w: Dictionary, a0: float, a1: float, r: float) -> void:
 	var a := a0
-	for c in kids.get(k, []):
+	var ks: Array = kids.get(k, [])
+	for i in ks.size():
+		var c: String = ks[i]
 		var da := (a1 - a0) * float(w[c]) / float(w[k])
 		var cr := r + (MAP_STEP_R if _nodes[c]["kind"] == "step" else MAP_R)
+		# (three or more side by side: every other one half a ring further out, so their names don't collide)
+		if ks.size() >= 3 and i % 2 == 1:
+			cr += MAP_R * MAP_STAGGER
 		var mid := a + da * 0.5
 		_park(c, Vector2.from_angle(mid) * cr)
 		_map_place(c, kids, w, a, a + da, cr)

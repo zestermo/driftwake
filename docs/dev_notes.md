@@ -9616,3 +9616,15 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   out-of-order buyers updated); t/player air_dash, wall_jump, slope_slide, acro_nodes, moonstep and skyward_dash updated.
   Expected at prepush: progtest (updated), techtest/airtest (air combo, plunge), stamtest/balancetest (strike speed),
   anything buying tree nodes out of order or summing Adventure xp on the weapon curve.
+- **The skill map screen** (piece 4; `SkillTreeDraw` rewritten, `SkillMapScreen` `_draw_map` / `_map_*`): the open tree is
+  drawn straight onto the screen into its panel, clipped (`SkillTreeDraw.clip`, Liang-Barsky; nodes past the edge are
+  skipped and register no hit), at `_map_k` px a map unit round `_map_pan`. A new tree opens at zoom 1 centred on the
+  buyable node nearest the root (`_map_next`, also N and the panel's N button); the wheel zooms round the pointer, + / -
+  keys and buttons zoom, a left drag on empty space (or right / middle) pans, the triggers zoom and the right stick pans
+  (`_map_pad`), and an arrow-key pick near the edge eases into view (`_map_follow`). Shapes (`shape_of`): abilities
+  round and gold-rimmed with the icon (move, tech, ult; a variant whose versions are skills or moves), passives blue
+  diamonds (mech, passive, elem, ...; a node's "shape" overrides), stat steps a row of square pips with "Name n/m";
+  past your level dashed with "- level"; bridges dashed coral; the card's tag is "ABILITY · AIR" plus "AFTER <parent>".
+  Render: `skillmapshot.gd -- res://tools/dev/out/skillmap 1200x675` (the mock's 1.5x), `_adventure` is Acrobatics 15
+  with the preview's aerial build. Test: t/ui/skills_map_view (+ skills_grey_links, skills_buy_node, skills_version_bunk
+  pan to their nodes now).

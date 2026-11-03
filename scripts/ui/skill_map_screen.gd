@@ -95,6 +95,17 @@ var _edy_k := EDY_ZOOM
 ## The tree point (EdyTree "pos" units) at the view's centre.
 var _edy_pan := Vector2.ZERO
 var _edy_drag := false
+## (1.30) The tree map's view: px a map unit (MAP_ZOOMS its range, MAP_STEP a wheel notch), the map point at the panel's
+## centre, the tree it was set for (another tree opens fresh), the panel, a drag going on; the right stick pans
+## MAP_PAD_SPEED px a second.
+const MAP_ZOOMS := Vector2(0.45, 1.6)
+const MAP_STEP := 1.15
+const MAP_PAD_SPEED := 420.0
+var _map_k := 1.0
+var _map_pan := Vector2.ZERO
+var _map_tree := ""
+var _map_rect := Rect2()
+var _map_drag := false
 
 
 func _init(owner_menu: Node) -> void:
@@ -298,7 +309,15 @@ func _process(delta: float) -> void:
 	if _edy_view.visible:
 		_edy_follow(delta)
 		_edy_view.queue_redraw()
+	if _on_map():
+		_map_pad(delta)
+		_map_follow(delta)
 	queue_redraw()
+
+
+## A tree's map is showing (Combat's one tree, Adventure, Driftfruit).
+func _on_map() -> bool:
+	return tree != "" and (tab in ["adventure", "fruit"] or (tab == "combat" and not chart))
 
 
 # --------------------------------------------------------------------------
@@ -367,6 +386,9 @@ func _gui_input(event: InputEvent) -> void:
 	if tab == "captain" and not perks_open and _edy_input(event):
 		accept_event()
 		return
+	if _on_map() and _map_input(event):
+		accept_event()
+		return
 	if event is InputEventMouseMotion:
 		_mouse = (event as InputEventMouseMotion).position
 		var h := _hit_at(_mouse)
@@ -391,7 +413,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:") or id == "respec" or id == "perks" or id.begins_with("path:"):
+			elif id.begins_with("w:") or id == "respec" or id == "perks" or id.begins_with("path:") or id.begins_with("map:"):
 				_act(id)
 			elif id != "":
 				sel = id
@@ -460,6 +482,10 @@ func _input(event: InputEvent) -> void:
 		_cycle_tree(-1 if k == KEY_A else 1)
 	elif (k == KEY_W or k == KEY_S) and tab == "adventure":
 		_cycle_tree(-1 if k == KEY_W else 1)
+	elif k == KEY_N and _on_map():
+		_map_next()
+	elif (k == KEY_EQUAL or k == KEY_MINUS) and _on_map():
+		_map_zoom(MAP_STEP if k == KEY_EQUAL else 1.0 / MAP_STEP, _map_rect.get_center())
 	elif (k >= KEY_1 and k <= KEY_5) or k == KEY_R:
 		_slot_key(-1 if k == KEY_R else k - KEY_1)
 	else:
@@ -559,6 +585,87 @@ func _act(id: String) -> void:
 		_say("Weapon out, press C (a crewmate joins with F)")
 	elif id == "respec":
 		_respec()
+	elif id == "map:in" or id == "map:out":
+		_map_zoom(MAP_STEP if id == "map:in" else 1.0 / MAP_STEP, _map_rect.get_center())
+	elif id == "map:next":
+		_map_next()
+
+
+# --------------------------------------------------------------------------
+# The tree map's view (1.30): zoom and pan, opening on what you can buy next
+# --------------------------------------------------------------------------
+## Draw the open tree's map into `area` (a new tree opens at zoom 1 centred on what you can buy next).
+func _draw_map(area: Rect2) -> void:
+	_map_rect = area
+	if _map_tree != tree:
+		_map_tree = tree
+		_map_k = 1.0
+		_map_next()
+	SkillTreeDraw.draw_map(self, tree, area, _map_k, _map_pan, _pr(), _t)
+
+
+## Centre on the buyable node nearest the root (the root when nothing is).
+func _map_next() -> void:
+	var p := _pr()
+	var best := Vector2.ZERO
+	var bd := INF
+	for id in SkillTrees.nodes_of(tree):
+		var n := SkillTrees.node_def(id)
+		if n["kind"] != "version" and p.buy_why(id) == "" and (n["pos"] as Vector2).length() < bd:
+			bd = (n["pos"] as Vector2).length()
+			best = n["pos"]
+	_map_pan = best
+
+
+## Zoom by `f` round screen point `at` (the map point under it stays put).
+func _map_zoom(f: float, at: Vector2) -> void:
+	var k0 := _map_k
+	_map_k = clampf(_map_k * f, MAP_ZOOMS.x, MAP_ZOOMS.y)
+	var m := at - _map_rect.get_center()
+	_map_pan += m / k0 - m / _map_k
+
+
+## The mouse on the map: the wheel zooms round the pointer, a drag (left on empty space, or right / middle) pans.
+func _map_input(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if not mb.pressed:
+			if _map_drag:
+				_map_drag = false
+				return true
+			return false
+		if not _map_rect.has_point(mb.position):
+			return false
+		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			_map_zoom(MAP_STEP if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / MAP_STEP, mb.position)
+			return true
+		if mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE] or (mb.button_index == MOUSE_BUTTON_LEFT and _hit_at(mb.position) == ""):
+			_map_drag = true
+			return true
+	elif event is InputEventMouseMotion and _map_drag:
+		_map_pan -= (event as InputEventMouseMotion).relative / _map_k
+		return true
+	return false
+
+
+## A gamepad on the map: the triggers zoom, the right stick pans (every frame they're held).
+func _map_pad(delta: float) -> void:
+	var zoom := Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT) - Input.get_joy_axis(0, JOY_AXIS_TRIGGER_LEFT)
+	if absf(zoom) > 0.15:
+		_map_zoom(pow(2.0, zoom * delta * 1.5), _map_rect.get_center())
+	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
+	if stick.length() > 0.2:
+		_map_pan += stick * MAP_PAD_SPEED * delta / _map_k
+
+
+## A pick made by the arrows near the map's edge: the map eases round to it.
+func _map_follow(delta: float) -> void:
+	if _map_drag or not sel.begins_with("n:") or _map_rect.size == Vector2.ZERO or SkillTrees.node_def(sel.substr(2)).get("tree", "") != tree:
+		return
+	var at := _map_rect.get_center() + ((SkillTrees.node_def(sel.substr(2))["pos"] as Vector2) - _map_pan) * _map_k
+	var safe := _map_rect.grow(-50.0)
+	if not safe.has_point(at):
+		_map_pan = _map_pan.lerp(_map_pan + (at - safe.get_center()) / _map_k * 0.5, clampf(6.0 * delta, 0.0, 1.0))
 
 
 ## The tree's refund at the bunk: a first click asks, a second pays.
@@ -713,9 +820,9 @@ func _hints() -> Array:
 		"combat":
 			if chart:
 				return [["Q/E", "TAB"], ["ARROWS", "PICK A WEAPON"], ["ENTER", "OPEN ITS TREE"], ["TAB", "ONE TREE"], ["K", "CLOSE"]]
-			return [["Q/E", "TAB"], ["A/D", "WEAPON"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["TAB", "CHART"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["A/D", "WEAPON"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["WHEEL", "ZOOM"], ["N", "NEXT"], ["TAB", "CHART"]]
 		"adventure":
-			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["WHEEL", "ZOOM"], ["N", "NEXT"], ["K", "CLOSE"]]
 		"captain":
 			if perks_open:
 				return [["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["P/ESC", "BACK"], ["K", "CLOSE"]]
@@ -807,7 +914,7 @@ func _draw_tree_page(body: Rect2, rail: bool) -> void:
 	var page := _draw_header(body, tree)
 	var h := page.size.y - (RAIL_H + 4.0 if rail else 0.0)
 	var card := Rect2(page.end.x - CARD_W, page.position.y, CARD_W, h - 2.0)
-	SkillTreeDraw.draw_tree(self, tree, Rect2(page.position, Vector2(page.size.x - CARD_W - 8.0, h)), _pr(), _t)
+	_draw_map(Rect2(page.position, Vector2(page.size.x - CARD_W - 8.0, h)))
 	if tab == "combat":
 		_draw_crew_node(Rect2(page.position + Vector2(4, 4), Vector2(128, 30)))
 	_draw_card(card)
@@ -963,17 +1070,32 @@ func _node_info(nid: String, x: float, y: float, w: float, limit: float, col: Co
 	draw_string(_font, Vector2(x, y), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK)
 	y += 10.0
 	var t := str(n["tree"])
-	var tag := str(SkillTreeDraw.KIND_NAME.get(kind, kind)).to_upper()
+	# (1.30) what it is on the map, and its branch: "ABILITY · AIR"
+	var shape := SkillTreeDraw.shape_of(nid)
+	var tag := str(SkillTreeDraw.SHAPE_NAME[shape]).to_upper()
+	if SkillTreeDraw.branch_name(nid) != "":
+		tag += " · " + SkillTreeDraw.branch_name(nid).to_upper()
 	if kind == "step":
 		tag += " · %d OF %d" % [p.steps_of(nid), int(n["max_steps"])]
-	draw_string(SILK, Vector2(x, y), tag, HORIZONTAL_ALIGNMENT_LEFT, w, 8, SkillTreeDraw.kind_color(kind, col).darkened(0.5))
+	var tag_col: Color = {"ability": UIStyle.GILT, "passive": SkillTreeDraw.PASSIVE, "stat": SkillTreeDraw.STAT_ON}.get(shape, col)
+	draw_string(SILK, Vector2(x, y), tag, HORIZONTAL_ALIGNMENT_LEFT, w, 8, tag_col.darkened(0.5))
 	y += 11.0
 	var price := SkillTrees.price(nid)
 	if price > 0 and not (p.owns(nid) and kind != "step"):
-		var met := p.tree_level(t) >= int(n["level"])
-		draw_string(SILK, Vector2(x, y), "NEEDS %s %d%s" % [Progression.tree_name(t).to_upper(), int(n["level"]), "" if met else " · NOW %d" % p.tree_level(t)],
+		var gate := int(n["level"])
+		if kind == "step" and n.has("step_levels") and p.steps_of(nid) < int(n["max_steps"]):
+			gate = int(n["step_levels"][p.steps_of(nid)])
+		var met := p.tree_level(t) >= gate
+		draw_string(SILK, Vector2(x, y), "NEEDS %s %d%s" % [Progression.tree_name(t).to_upper(), gate, "" if met else " · NOW %d" % p.tree_level(t)],
 			HORIZONTAL_ALIGNMENT_LEFT, w, 8, Color("2f7a3a") if met else UIStyle.CORAL.darkened(0.35))
 		y += 9.0
+		var ps: Array = SkillTreeDraw.parents(nid).map(func(pb): return str(pb[0])).filter(func(k): return SkillTrees.node_def(k)["kind"] != "root")
+		if not ps.is_empty():
+			var after := "AFTER %s%s" % [(" AND " if n.has("needs_all") else " OR ").join(ps.map(func(k): return str(SkillTrees.node_def(k)["name"]).to_upper())),
+				" (YOURS)" if p.parent_why(nid) == "" else ""]
+			for l in _wrap(after, w, SILK, 8):
+				draw_string(SILK, Vector2(x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if p.parent_why(nid) == "" else UIStyle.CORAL.darkened(0.35))
+				y += 9.0
 		var pool := SkillTrees.pool_of(t)
 		draw_string(SILK, Vector2(x, y), "PRICE %d%s  ·  %d %s LEFT" % [price, " A STEP" if kind == "step" else "", p.pool(pool), Progression.pool_name(pool).to_upper()],
 			HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
@@ -1140,7 +1262,7 @@ func _draw_adventure(whole: Rect2) -> void:
 	_para(Vector2(x, maxf(y + 8.0, body.end.y - 26.0)), "Keep trying new things: more trees are out there.", lw, Color("7f9894"))
 	var card := Rect2(body.end.x - CARD_W, body.position.y, CARD_W, body.size.y - 2.0)
 	var area := Rect2(x + lw + 6.0, body.position.y, card.position.x - x - lw - 12.0, body.size.y)
-	SkillTreeDraw.draw_tree(self, tree, area, p, _t)
+	_draw_map(area)
 	_draw_card(card)
 
 

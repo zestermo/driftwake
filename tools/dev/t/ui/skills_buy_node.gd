@@ -62,6 +62,10 @@ func _process(_d: float) -> bool:
 			click("n:k_deflect")
 			click("n:k_deflect")
 			check("Cut the Shot refused with the reason", not pr.owns("k_deflect") and sm._msg == "Needs 2 Katana points")
+			# (1.30: the map pans; bring Wind Severer into view)
+			sm._map_pan = SkillTrees.node_def("k_wind")["pos"]
+			until = TK.wait_ticks(3)
+		2:
 			var ev := InputEventMouseMotion.new()
 			ev.position = sm._rect_of("n:k_wind").get_center()
 			sm._gui_input(ev)
@@ -69,7 +73,7 @@ func _process(_d: float) -> bool:
 			check("the pistol isn't found: not on the rail", not sm._drawn.any(func(h): return h[1] == "w:pistol") and sm._drawn.any(func(h): return h[1] == "w:katana"))
 			sm.chart = true
 			until = TK.wait_ticks(3)
-		2:
+		3:
 			check("...nor on the chart", not sm._drawn.any(func(h): return h[1] == "w:pistol") and sm._drawn.any(func(h): return h[1] == "w:katana"))
 			return TK.done(fails)
 	step += 1

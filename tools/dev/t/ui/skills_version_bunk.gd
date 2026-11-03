@@ -55,8 +55,12 @@ func _process(_d: float) -> bool:
 			gm.open("skills")
 			sm = gm._skills
 			sm.set_tab("combat", "katana")
-			until = TK.wait_ticks(4)
+			until = TK.wait_ticks(2)
 		1:
+			# (1.30: the map pans; bring the iai upgrade into view)
+			sm._map_pan = SkillTrees.node_def("k_iai")["pos"]
+			until = TK.wait_ticks(3)
+		2:
 			check("the variant is bought and owned", pr.owns("k_iai") and pr.version_of("k_iai") == 0)
 			check("drawn as two halves", sm._drawn.any(func(h): return h[1] == "v:k_iai:0") and sm._drawn.any(func(h): return h[1] == "v:k_iai:1"))
 			check("away from the bunk", not pr.can_respec())
