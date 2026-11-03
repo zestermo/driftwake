@@ -42,6 +42,17 @@ static func pose(h, n: String, u: float) -> Array:
 				"torso": Vector3(0.1, 0.15, 0), "head": Vector3(-0.3, -0.1, 0), "hips": Vector3.ZERO,
 				"leg_l": Vector3(0.7, 0, -0.1), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.3, 0, 0.1), "shin_r": Vector3(-0.7, 0, 0)}
 			return [h._keys(minf(u * T / 0.15, 1.0), [[0.0, {}], [1.0, hang, "out"]]), "full", lift]
+		"gd_plant":
+			# (1.30) down on the right knee, the satchel pressed to the spot with both hands, the head down to the fuse;
+			# held, then up again
+			var kneel := {"pivot": Vector3(-0.35, 0, 0), "torso": Vector3(0.05, 0, 0), "head": Vector3(0.05, 0, 0),
+				"arm_l": Vector3(1.0, 0.1, -0.15), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(0.3, 0, 0),
+				"arm_r": Vector3(1.0, -0.1, 0.15), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(1.45, 0, -0.08), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.1, 0, 0.1), "shin_r": Vector3(-2.0, 0, 0),
+				"_scale": Vector3(1.02, 0.98, 1.0)}
+			var e := clampf(u / 0.3, 0.0, 1.0) * clampf((1.0 - u) / 0.25, 0.0, 1.0)
+			lift = Vector3(0, -0.5 * smoothstep(0.0, 1.0, e), 0)
+			return [h._keys(u, [[0.0, {}], [0.3, kneel, "out"], [0.75, kneel], [1.0, {}]]), "full", lift]
 		"gd_skim":
 			# side-on at the boom: feet wide along the board (the nose to the left), knees soft, both hands out on the
 			# wishbone, hips and shoulders hung back against the sail's pull, the head turned to the nose; the knees

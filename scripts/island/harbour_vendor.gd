@@ -26,7 +26,7 @@ const KINDS := {
 		["Rope by the fathom, pitch by the pot.", "Nothing here's stolen. Much."]],
 }
 const FIRST := ["Abner", "Wenna", "Rook", "Isolde", "Garr", "Petra", "Silas", "Nell", "Oskar", "Briony", "Tobin", "Maud"]
-const CHANDLER_STOCK := [["timber", 4], ["canvas", 4], ["iron", 4], ["copper", 4]] + GadgetData.SHOP_PARTS + [[GadgetData.BELT_ITEM, GadgetData.BELT_PRICE]]
+const CHANDLER_STOCK := [["timber", 4], ["canvas", 4], ["iron", 4], ["copper", 4]] + GadgetData.SHOP_PARTS + [[GadgetData.BELT_ITEM, GadgetData.BELT_PRICE]] + GadgetData.SHOP_KITS
 
 
 ## The island's harbour vendor (GenIsland.prepare, worker): {} on about half the islands, or {kind, at, face, seed, look}.

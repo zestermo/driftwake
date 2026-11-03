@@ -9820,6 +9820,40 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
 - Tests: t/stronghold/scouring_ring (new), scouring_sky, scouring, district_hint, solid_ground; t/quests,
   t/capital/queen_line.
 
+## 2026-11-03: carried gadgets for the stronghold run (1.30, docs/v1_30_plan.md round 3 "Gadgets")
+- **Built on the 1.28 belt** (GadgetBelt, U fires, O cycles / the bag's wheel; 1 slot, 2 with the gadget belt item,
+  4 with a gadget bag). Smoke, flash and the grappling hook were there; new: ready-made packs, the powder charge,
+  hooks for the stronghold.
+- **Packs** (GadgetData.KITS, items `kit_smoke|flash|charge|grapple`, Gadgets.make_items): carried, a pack of a gadget
+  not built yet becomes it Mk I on a free slot (blueprint learned; GadgetBelt.unpack, deferred from fit() on an
+  inventory change); with no free slot it's built off the slots (swap at a workbench). More packs stay in the bag;
+  U on a dry gadget opens one (refill). HUD shows "+n" packs. Prices (Economy, loot x3): smoke 35, flash 55, charge
+  90, hook 150. Sold by chandlers (CHANDLER_STOCK) and Nessa's Notions (Brinehollow); `Gadgets.supply_crate(out, rng)`
+  rolls 1-2 (smoke/flash/charge) for the stronghold's crates.
+- **Smoke:** lasts 8/10/12 s now; a cloud also blocks sight through it (GadgetVeil.blocks, flat segment vs the cloud's
+  circle within REACH_Y): Stealth.range_for gives 0 and PirateGrunt._player_ok refuses a captain behind one.
+  `Stealth.sight_clear(from, captain)` for other vision code.
+- **Flash:** stuns 2/2.5/3 s; `PirateGrunt.stunned_until` / `is_stunned()` (set by blinded, so smoke's cough counts
+  too) and `Stealth.stunned(foe)` for takedowns; the screen flashes near-white for a camera looking into it (dot 0.5),
+  faint otherwise. Host-side only (blinded runs on the host).
+- **Powder charge** ("charge", GadgetData; kind combat, "plant"): U kneels (GadgetState "charge", gd_plant 0.7 s, set
+  at 0.42) and sets the satchel on the ChargeTarget within 2.6 m in front, else the ground ahead; refused airborne.
+  GadgetZone kind "charge" on every screen (Player event "gadget" [id, tier, normal, at]): fuse ticks every 0.5 s
+  (3/3/2.5 s), then a big blast (two FX.blast, debris, ring, dust ring, smoke column, ground crack, shake within 35 m);
+  the host's hits everything in 4.5/5/5.5 m for 90/130/180, knockdown poise 999 (splats via Splat on overkill), and
+  `ChargeTarget.blast`. Old crates (props/breakable.gd) smash from it too. Captains aren't hurt by it.
+- **ChargeTarget** (`scripts/gadgets/charge_target.gd`, group charge_targets): `attach(target, spot, normal,
+  {needs, remove, mark})` paints a red ring-and-cross; breached on the host, then Net.event "breach" on every machine;
+  `breached(by)` signal, `done`, `breach_now()` (late join/save restore), `near`, `blast`. remove (default) hides the
+  target's meshes and disables its colliders.
+- **Grapple ledges:** `GrapplePoints.add_ledge(holder, local, mark := true)` (a bolted iron ring) kept apart from the
+  vine swing's crowns; GadgetState.hook_point picks a ledge within 25 m (any tier) and 0.3 rad of the aim with a clear
+  line from the chest before the plain ray.
+- **Per frame/tick added:** nothing idle. HUD: one inventory count per slot at its 0.1 s poll. A charge: one 0.5 s
+  timer and one small emitter while the fuse burns. Grunts: one sight_clear call in _player_ok (returns at once with
+  no clouds). hook_point loops the ledges once per fire.
+- **Tests:** t/gadgets packs, smoke_sight, flash_stun, charge_breach, grapple_ledge; smoke (a grunt in the cloud can't
+  see out). Render: `abilityshot ... gadget:charge:0 sword game,side 8 1.4 3.2` (tools/dev/out/gadget/).
 ### (same day) The crowd pass: 25 fighting fodder from ~+17 to ~+5 ms a frame
 - **How it's measured** (t/stronghold/fodder_crowd, prints "FODDER CROWD"): the runner steps one physics tick a frame
   as fast as the machine goes (headless, fixed fps), so the wall time between frames is the whole frame's CPU cost

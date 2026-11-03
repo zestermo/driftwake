@@ -37,7 +37,8 @@ func _process(_d: float) -> bool:
 			var z = GadgetVeil.clouds[0] if GadgetVeil.clouds.size() > 0 else null
 			check("...on the grunt it was thrown at", z != null and z.inside(g.global_position))
 			check("he staggers, blinded", g.blinded_at >= 0.0 and g.state == g.S.STAGGER)
-			check("the captain outside it is seen", not GadgetVeil.veiled(p) and g._player_ok(p))
+			# (1.30) he's in the cloud, so he can't see out of it either (smoke_sight)
+			check("the captain outside it isn't veiled, but he can't see out", not GadgetVeil.veiled(p) and not g._player_ok(p))
 			p.global_position = g.global_position + Vector3(1.0, 0, 1.0)
 			p.reset_physics_interpolation()
 			until = TK.wait_ticks(3)

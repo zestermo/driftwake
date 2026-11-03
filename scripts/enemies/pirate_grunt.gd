@@ -654,8 +654,8 @@ func _target() -> Node3D:
 func _player_ok(p: Node3D) -> bool:
 	if p == null:
 		return false
-	# (1.28) hidden in a smoke pellet's cloud
-	if not GadgetVeil.clouds.is_empty() and GadgetVeil.veiled(p):
+	# (1.28) hidden in a smoke pellet's cloud, (1.30) or behind one
+	if not Stealth.sight_clear(global_position + Vector3.UP * 1.5, p):
 		return false
 	if p.has_method("current_state_name") and str(p.call("current_state_name")) in ["Downed", "Helm", "Swim", "Climb"]:
 		return false
@@ -2706,12 +2706,19 @@ func slowed(secs: float, k: float) -> void:
 
 ## (1.28) caught in a smoke pellet's cloud (GadgetZone, the host's): it drops its swing and staggers, coughing.
 var blinded_at := -1.0
+## (1.30) dazed (a flash, a cloud) until this game time: Stealth.stunned, takedowns land from any side.
+var stunned_until := -1.0
+
+
+func is_stunned() -> bool:
+	return state == S.STAGGER and PlayerState.now_s() < stunned_until
 
 
 func blinded(secs: float) -> void:
 	if state in [S.DEAD, S.DOWN, S.GETUP, S.SWIM]:
 		return
 	blinded_at = PlayerState.now_s()
+	stunned_until = blinded_at + secs
 	hitbox.deactivate()
 	_drop_aim()
 	_release_token()
