@@ -53,7 +53,7 @@ func _process(delta: float) -> void:
 			continue
 		var key := str(camp.name)
 		if not _met.get(key, false):
-			if camp is StrongholdEncounter or not _captain_near(camp.global_position, MEET):
+			if camp is StrongholdEncounter or camp is StrongholdReinforce or not _captain_near(camp.global_position, MEET):
 				continue
 			_met[key] = true
 			_rolled[key] = int(camp.gen)
