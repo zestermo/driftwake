@@ -297,8 +297,8 @@ static func _landmarks(out: Array) -> void:
 
 
 # --------------------------------------------------------------------------
-## The town's houses behind the district's in chunks (one mesh each, no colliders: the district's houses and the
-## walls seal them off), and every gap a floor opens onto a wall with a door shut in it.
+## The town's houses behind the district's in chunks (one mesh each; boxes to stand on, `solid` on each lot: [footprint, roof y]), and
+## every gap a floor opens onto a wall with a door shut in it.
 static func _massing(out: Array) -> void:
 	var lots := P.lots()
 	var chunks := {}
@@ -339,10 +339,14 @@ static func _massing(out: Array) -> void:
 			var sd := int(l["seed"])
 			if sd % 19 == 0 and minf(r.size.x, r.size.y) >= 6.5:
 				M.square_tower(mb, cols, r.get_center(), top, minf(r.size.x, r.size.y) - 1.2, 16.0 + float(sd % 9), 0.0, sd % 2 == 0, top - low + 0.5)
+				var tw := minf(r.size.x, r.size.y) - 1.2
+				l["solid"] = [Rect2(r.get_center() - Vector2(tw, tw) * 0.5, Vector2(tw, tw)), top + 16.0 + float(sd % 9)]
 				continue
-			M.house(mb, cols, l, low - 0.5, top)
-		# (no colliders: only the occluders)
-		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols.filter(func(c): return c.has("occ")), MASS, false)
+			var eaves := M.house(mb, cols, l, low - 0.5, top)
+			_solid(cols, l, low - 0.5, eaves + 0.24)
+			l["solid"] = [r, eaves + 0.24]
+		# (1.30) solid: since 1.27 their roofs are reached from the district's, and captains fell through them
+		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols, MASS, false)
 	var fkeys := far.keys()
 	fkeys.sort()
 	for key in fkeys:
@@ -364,6 +368,21 @@ static func _massing(out: Array) -> void:
 	for o in P.openings(lots):
 		_barrier(mb, cols, o[0], o[1], o[2])
 	_piece(out, "Barriers", mb, cols, NEAR, true)
+
+
+## A back house's body to its roof line `y`, and its roof: a flat one's parapets, a pitched one's slopes (CapitalRoofs').
+static func _solid(cols: Array, l: Dictionary, low: float, y: float) -> void:
+	var r: Rect2 = l["r"]
+	var c := r.get_center()
+	var w := r.size.x
+	var d := r.size.y
+	M.box(cols, M.xf(M.v3(c, (low + y) * 0.5)), Vector3(w, y - low, d))
+	if str(l["roof"]) != "flat":
+		CapitalRoofs._slopes(cols, M.xf(M.v3(c, 0.0)), w, d, y)
+		return
+	for s in [-1.0, 1.0]:
+		M.box(cols, M.xf(M.v3(c + Vector2(s * (w * 0.5 - 0.15), 0), y + 0.4)), Vector3(0.3, 0.8, d))
+		M.box(cols, M.xf(M.v3(c + Vector2(0, s * (d * 0.5 - 0.15)), y + 0.4)), Vector3(w - 0.6, 0.8, 0.3))
 
 
 ## A wall across a gap, with a door shut in it when there's room: a lane the city's other districts lie up (1.20).

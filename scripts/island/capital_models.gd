@@ -128,7 +128,7 @@ static func house(mb: MeshBuilder, cols: Array, lot: Dictionary, low: float, top
 	facade_box(mb, fac, t, w, d, plinth, eaves - plinth, col)
 	Occluders.box(cols, xf(v3(c, (low + eaves) * 0.5)), Vector3(w, eaves - low, d))
 	mb.add_box(mat("lime"), xf(v3(c, eaves + 0.12)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
-	roof(mb, str(lot["roof"]), t, w, d, eaves + 0.24, rcol, rng)
+	roof(mb, str(lot["roof"]), t, w, d, eaves + 0.24, rcol, rng, cols)
 	stack(mb, t, w, d, eaves + 0.24, str(lot["roof"]), int(lot["seed"]))
 	return eaves
 
