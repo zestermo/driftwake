@@ -27,7 +27,7 @@ func check(what: String, cond: bool) -> void:
 
 func level(tree: String) -> void:
 	var m: Dictionary = pr.mastery_of(tree)
-	pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+	pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"]), tree) - int(m["xp"]))
 
 
 func last() -> String:
@@ -66,7 +66,7 @@ func _process(_d: float) -> bool:
 			level("acrobatics")
 			print("   " + last())
 			check("Acrobatics 2: one short Adventure line", last().begins_with("Acrobatics 2") and last().contains("1 Adventure point (K)"))
-			pr.buy("m_geppo")
+			pr.buy("m_swift")
 			check("...spent: the Adventure pulse is off", not pr.can_spend("adventure"))
 			pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
 			var b: String = str(hud.banners[-1]) if not hud.banners.is_empty() else ""

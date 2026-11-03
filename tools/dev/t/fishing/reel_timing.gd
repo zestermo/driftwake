@@ -81,7 +81,8 @@ func _process(_d: float) -> bool:
 			var pr = p.progression
 			# (Adventure nodes are bought since 1.18.4: level to Steady Hands' gate, then buy it)
 			while pr.mastery_level("fish") < 5:
-				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish")))
+				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish"), "fish"))
+			pr.buy("fs_patient")
 			pr.buy("fs_hands")
 			check("Fishing's Steady Hands: a longer window (%.2f -> %.2f s)" % [w0, F.window(p, "driftwood")], F.window(p, "driftwood") > w0)
 			seed(7)

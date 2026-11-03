@@ -28,13 +28,26 @@ func check(what: String, cond: bool) -> void:
 func to_level(tree: String, lv: int) -> void:
 	while pr.mastery_level(tree) < lv:
 		var m: Dictionary = pr.mastery_of(tree)
-		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"]), tree) - int(m["xp"]))
 
 
 func captain(lv: int) -> void:
 	while pr.level < lv:
 		pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
 
+
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
 
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
@@ -46,9 +59,9 @@ func _process(_d: float) -> bool:
 			STS = load("res://scripts/progression/skill_trees.gd")
 			var table: Array = [1, 5, 10, 15, 18, 20, 25, 30].map(func(l): return pr.tree_earned(l))
 			check("a tree's points by mastery %s" % str(table), table == [2, 11, 22, 33, 39, 44, 55, 66])
-			check("prices by kind and gate: Quick Draw 2, Iai Upgrade 5, Thousand Petals 11, a step 1, Geppo 1, Iron Wall 3",
+			check("prices by kind and gate: Quick Draw 2, Iai Upgrade 5, Thousand Petals 11, a step 1, Geppo 2 (its own price), Iron Wall 3",
 				STS.price("k_draw") == 2 and STS.price("k_iai") == 5 and STS.price("k_petals") == 11
-				and STS.price("k_keen") == 1 and STS.price("m_geppo") == 1 and STS.price("df_wall") == 3)
+				and STS.price("k_keen") == 1 and STS.price("m_geppo") == 2 and STS.price("df_wall") == 3)
 			check("the Captain's nodes aren't bought", STS.price("c_quarter") == 0 and STS.price("talent_5") == 0)
 			check("a weapon pays from its own pool", STS.pool_of("katana") == "katana" and STS.pool_of("acrobatics") == "adventure" and STS.pool_of("captain") == "")
 			check("a new captain: no Adventure points, the cutlass's 2", pr.pool("adventure") == 0 and pr.pool("sword") == 2)
@@ -56,15 +69,15 @@ func _process(_d: float) -> bool:
 			check("Acrobatics 3: 2 Adventure points", pr.pool("adventure") == 2)
 			to_level("swim", 2)
 			check("...Swimming 2: one more, the pool is shared", pr.pool("adventure") == 3)
-			check("Geppo bought with an Adventure point: a second jump", pr.buy("m_geppo") and pr.pool("adventure") == 2 and int(pr.stat("air_jumps")) == 1)
-			check("...Swimming's Long Strokes from the same pool", pr.buy("sw_long") and pr.pool("adventure") == 1)
+			check("Geppo bought with 2 Adventure points: a second jump", pr.buy("m_geppo") and pr.pool("adventure") == 1 and int(pr.stat("air_jumps")) == 1)
+			check("...Swimming's Long Strokes from the same pool", pr.buy("sw_long") and pr.pool("adventure") == 0)
 			# (bare-handed, so the levels' kills teach no katana mastery)
 			p.unequip_weapon()
 			captain(20)
 			check("Captain 20: no weapon points from it", pr.pool("sword") == 2)
 			to_level("katana", 20)
 			check("katana 20: 44 katana points, the cutlass still 2", pr.pool("katana") == 44 and pr.points_free("katana") == 44 and pr.pool("sword") == 2)
-			check("...Combat reads the found weapons' together", pr.pool("combat") == 46 + pr.pool("unarmed"))
+			check("...Combat reads the found weapons' together (%d, %s)" % [pr.pool("combat"), pr.visible_trees("combat")], pr.pool("combat") == 44 + pr.pool("unarmed"))
 			var d0: float = pr.style_stat("dmg", "katana")
 			check("a step of Keen Edge (off the root: nothing needed)", pr.buy("k_keen") and pr.steps_of("k_keen") == 1 and pr.pool("katana") == 43)
 			check("...+5%% katana damage", is_equal_approx(pr.style_stat("dmg", "katana") - d0, 0.05))
@@ -76,8 +89,9 @@ func _process(_d: float) -> bool:
 			check("...then it can be bought", pr.buy("k_deflect") and pr.buy("k_nerves"))
 			to_level("katana", 25)
 			check("Blossom Path needs Falling Petals first (%s)" % pr.buy_why("k_elem2"), pr.buy_why("k_elem2") == "Needs Falling Petals first")
+			own_parents("k_elem")
 			check("...Falling Petals, then Blossom Path", pr.buy("k_elem") and pr.buy("k_elem2") and pr.elemental("katana", 2))
-			check("Adventure points don't buy weapon nodes", pr.pool("adventure") == 1 and pr.pool("katana") == 55 - 5 - 2 - 1 - 6 - 7)
+			check("Adventure points don't buy weapon nodes", pr.pool("adventure") == 0 and pr.pool("katana") == 55 - 5 - 2 - 1 - 6 - 7)
 			check("owns_node reads a bought step", pr.owns_node("k_keen") and not pr.owns_node("k_whet"))
 			return TK.done(fails)
 	step += 1

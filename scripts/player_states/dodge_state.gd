@@ -90,7 +90,6 @@ func enter(data: Dictionary) -> void:
 	_speed = dodge_speed * (1.0 + pr.stat("dodge_dist_pct"))
 	_dur = dodge_duration
 	_iframes = iframes_duration * (1.0 + pr.stat("dodge_iframe_pct"))
-	pr.add_life("acrobatics", 5)
 	if _logia:
 		_iframes = _dur + 0.05
 		player.set_collision_mask_value(12, false)  # through enemies
@@ -300,13 +299,14 @@ func _perfect_dodge() -> void:
 		CombatManager.apply_slowmo(0.35, slow)
 	if pr.has_flag("crowd_read"):
 		player.power.add_buff("crowd_sight", CROWD_SECS)
+	flowing_edge()
+	pr.add_life("acrobatics", Progression.ACRO_XP["slip"])
 
 
 ## Slipped a blow: a glint off the shoulder, and the next hit is a sure crit.
 func _slip() -> void:
 	_slipped = true
 	player.power.add_buff("slipped", SLIP_SECS)
-	player.progression.add_life("acrobatics", 6)
 	var at := player.global_position + Vector3(0, 1.4, 0)
 	Net.fx("glint", [at, Color(1.0, 0.97, 0.85), 0.7])
 	Net.fx("float_text", [at + Vector3(0, 0.4, 0), "Slipped!", Color(1.0, 0.95, 0.75)])

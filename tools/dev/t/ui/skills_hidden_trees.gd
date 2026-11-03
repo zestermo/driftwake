@@ -64,7 +64,7 @@ func _process(_d: float) -> bool:
 		2:
 			check("the chart: found weapons only", sm.chart and weapons_drawn().size() == 2 and not "polearm" in weapons_drawn() and not "black_leg" in weapons_drawn())
 			pr.discover("black_leg")
-			pr.add_life("swim", pr.mastery_to_next(1))
+			pr.add_mastery("swim", pr.mastery_to_next(1, "swim"))
 			until = TK.wait_ticks(3)
 		3:
 			check("taught black-leg: on the chart", "black_leg" in weapons_drawn())

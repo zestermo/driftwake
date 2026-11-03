@@ -94,5 +94,5 @@ func fish_xp(pr) -> int:
 	var m: Dictionary = pr.mastery_of("fish")
 	var total := int(m["xp"])
 	for lv in range(1, int(m["lv"])):
-		total += pr.mastery_to_next(lv)
+		total += pr.mastery_to_next(lv, "fish")
 	return total

@@ -47,6 +47,27 @@ static func read_chance() -> float:
 	return float(READ_CHANCE[_repeat])
 
 
+## (1.30) Strike speed from every source, at most STRIKE_CAP: gear, the weapon's Quick Hands steps (aspd_<tree>), Flowing
+## Edge's buff, Edy's flow and haste. Light and heavy attacks play this much faster.
+const STRIKE_CAP := 0.35
+const FLOWING_EDGE := 0.1
+const FLOWING_EDGE_SECS := 3.0
+
+
+func strike_speed() -> float:
+	var pr := player.progression
+	var s := pr.stat("attack_speed_pct") + pr.style_stat("aspd", player.style()) + player.power.will.flow_k() + EdyTypes.haste(player)
+	if player.power.buff("flowing_edge"):
+		s += FLOWING_EDGE
+	return minf(s, STRIKE_CAP)
+
+
+## Flowing Edge (the katana's passive): a perfect dodge or an Iai Counter with the katana in hand speeds the strikes.
+func flowing_edge() -> void:
+	if player.style() == "katana" and player.progression.has_flag("flowing_edge"):
+		player.power.add_buff("flowing_edge", FLOWING_EDGE_SECS)
+
+
 ## What a right-click costs now (more each time in a row).
 func heavy_cost() -> float:
 	var chain := _heavy_chain if now_s() - _heavy_at < FATIGUE_WINDOW else 0

@@ -1599,6 +1599,8 @@ func _update_lean_target(delta: float) -> void:
 const SAFE_FALL_SPEED := 18.0
 const MAX_FALL_SPEED := 34.0
 const FALL_DAMAGE_PER_MS := 5.3
+## Feather Fall (Acrobatics): a drop under 12 m lands this fast at most (falling at 1.6 g) and doesn't hurt.
+const FEATHER_SAFE_SPEED := 27.9
 
 
 func _on_landed(impact_vy: float) -> void:
@@ -1645,11 +1647,15 @@ func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
 	if power.buff("tekkai"):
 		dmg *= 0.3
 	if progression.has_flag("featherfall"):
-		dmg *= 0.25
-		speed = minf(speed, SAFE_FALL_SPEED + 4.0)
+		if speed <= FEATHER_SAFE_SPEED:
+			return
+		dmg *= 0.5
+		reel = false
 	_since_hit = 0.0
 	if not Duel.beaten(self, dmg):
 		health_component.take_damage(dmg)
+	if health_component.current_health > 0.0:
+		progression.add_life("acrobatics", Progression.ACRO_XP["fall"])
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	cam_shake(clampf(dmg / 60.0, 0.1, 0.4))
@@ -1830,12 +1836,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Alt+F9: a level of every life skill
 			for t in SkillTree.LIFE_SKILLS:
 				var lm := progression.mastery_of(t)
-				progression.add_life(t, Progression.mastery_to_next(int(lm["lv"])) - int(lm["xp"]))
+				progression.add_mastery(t, Progression.mastery_to_next(int(lm["lv"]), t) - int(lm["xp"]))
 		else:
 			var mt := SkillTree.style_tree(style())
 			if mt != "":
 				var m := progression.mastery_of(mt)
-				progression.add_mastery(mt, Progression.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+				progression.add_mastery(mt, Progression.mastery_to_next(int(m["lv"]), mt) - int(m["xp"]))
 			progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
 		get_viewport().set_input_as_handled()
 		return

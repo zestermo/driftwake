@@ -45,10 +45,10 @@ func _process(_d: float) -> bool:
 			var walked: float = p.global_position.x - x0
 			print("   sneaked %.1f m (%s): stealth xp %d" % [walked, p.current_state_name(), xp()])
 			check("sneaking near a foe teaches Stealth and finds its tree", xp() > 0 and "stealth" in pr.visible_trees("adventure"))
-			pr.add_life("stealth", pr.mastery_to_next(pr.mastery_level("stealth")) - int(pr.mastery_of("stealth")["xp"]))
+			pr.add_mastery("stealth", pr.mastery_to_next(pr.mastery_level("stealth"), "stealth") - int(pr.mastery_of("stealth")["xp"]))
 			check("Stealth 2: Soft Step bought, a faster sneak", pr.buy("st_soft") and is_equal_approx(pr.stat("sneak_pct"), 0.25))
 			while pr.mastery_level("stealth") < 4:
-				pr.add_life("stealth", pr.mastery_to_next(pr.mastery_level("stealth")))
+				pr.add_mastery("stealth", pr.mastery_to_next(pr.mastery_level("stealth"), "stealth"))
 			check("Stealth 4: Ambush bought", pr.buy("st_ambush"))
 			var hp0: float = g.health.current_health
 			var x1 := xp()

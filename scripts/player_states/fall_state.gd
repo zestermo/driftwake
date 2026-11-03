@@ -125,4 +125,3 @@ func crash(speed: float) -> void:
 		if area and area.owner and area.owner != player and not (area.owner in struck) and not area.owner.is_in_group("players"):
 			struck.append(area.owner)
 			area.take_hit(wave, player)
-	player.progression.add_life("acrobatics", 6)

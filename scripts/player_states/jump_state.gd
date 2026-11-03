@@ -47,7 +47,8 @@ func _launch(double: bool) -> void:
 	if kind == "jump_sprint" and not player.spend_stamina(SPRINT_JUMP_COST * (1.0 - pr.stat("sprint_jump_pct"))):
 		kind = "jump_run"
 		player.air_speed = player.move_speed
-	pr.add_life("acrobatics", 6 if double else 3)
+	if double:
+		pr.add_life("acrobatics", Progression.ACRO_XP["air_jump"])
 	# (a polearm drawn: the sprint's bound is a pole vault, higher and further)
 	if kind == "jump_sprint" and player.armed and player.style() == "polearm" and pr.has_move("pole_vault"):
 		kind = "pole_vault"
@@ -128,7 +129,7 @@ func _moonstep() -> void:
 	player.variable_jump_active = false
 	player.squash(5.5)
 	player.body_model.play("moonstep", ActionSpecs.length("moonstep"))
-	player.progression.add_life("acrobatics", 8)
+	player.progression.add_life("acrobatics", Progression.ACRO_XP["moonstep"])
 	_moon_at = now_s() + MOON_STAMP
 	Net.fx("sfx", ["whoosh_big", player.global_position, -9.0, 0.05, 0.8])
 

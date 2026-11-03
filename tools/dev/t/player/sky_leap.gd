@@ -1,8 +1,8 @@
 extends SceneTree
-## Sky Leap (Acrobatics): a tap is still a normal jump; a full charge leaps ~25 m (Haki Legs x3: 40, Heavenward: 60)
-## and a little forward, costs its stamina, never tumbles on the way up and lands with no fall damage.
+## Sky Leap (Acrobatics): a tap is still a normal jump; a full charge leaps ~25 m (Heavenward: 45; 1.30 dropped the
+## Will Legs steps) and a little forward, costs its stamina, never tumbles on the way up and lands with no fall damage.
 const TK := preload("res://tools/dev/test_kit.gd")
-const LEAPS := [[0, false, 25.0, 5.0, 40.0], [3, false, 40.0, 11.0, 40.0], [3, true, 60.0, 15.0, 50.0]]
+const LEAPS := [[0, false, 25.0, 5.0, 40.0], [0, true, 45.0, 9.0, 50.0]]
 var stage
 var p
 var step := 0
@@ -64,7 +64,6 @@ func _process(_d: float) -> bool:
 			check("back on the ground (%s)" % p.current_state_name(), p.current_state_name() in ["Idle", "Move"])
 		3:
 			var l: Array = LEAPS[leap]
-			p.progression.steps["ac_hakilegs"] = l[0]
 			if l[1]:
 				p.progression.owned["ac_heavenward"] = true
 			p.progression._dirty()

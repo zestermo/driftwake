@@ -9,7 +9,7 @@ extends RefCounted
 ##   read    sat on a crate with a book: experience, sea lore now and then, and in time a recipe; a book carried
 ##           and not read yet is read on the first interval (Books)
 ##   tinker  sat with mallet and lock: the kit tuned a while (a spare shot, quicker reloads, a little bite)
-##   meditate  sat cross-legged on the deck: Will, a point every 3 game days of it (WillPaths.MEDITATE_SECS)
+##   meditate  sat cross-legged on the deck: Will, a point every 6 game days of it (WillPaths.MEDITATE_SECS)
 ##   fish    (on the same wheel) the rod's minigame with the equipped rod (Fishing, FishState), at the rail aboard
 ##   sleep   in the cabin's bunk: you heal, and (solo) the hours pass quickly
 ## (Cooking is the galley's, lane A's "cook" on the same wheel at order 30.)

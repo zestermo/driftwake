@@ -2619,9 +2619,105 @@ def gen_move_icons():
             d.line([(1, y), (x1, y)], fill=FOAM)
         d.point((22, 15), fill=GREEN)
 
+    # (1.30) the Acrobatics map's abilities
+    def stamp_ring(d, x, y, w=5):
+        d.arc([x - w, y - 2, x + w, y + 2], 0, 360, fill=W_)
+
+    def geppo(d):
+        # a body springing up off a ring of air
+        figure(d, 12, 3)
+        stamp_ring(d, 12, 21)
+        for x in (5, 19):
+            d.line([(x, 15), (x, 19)], fill=SKY)
+
+    def skywalk(d):
+        # three rings of air climbing, a foot on the top one
+        for i, (x, y) in enumerate(((5, 20), (12, 14), (19, 8))):
+            stamp_ring(d, x, y, 4)
+        d.rectangle([17, 2, 20, 7], fill=BODY)
+        d.rectangle([16, 6, 21, 8], fill=WOOD)
+
+    def airdash(d):
+        # a body flung level through the air, speed lines behind it
+        d.rectangle([12, 9, 20, 13], fill=BODY)
+        d.ellipse([19, 8, 23, 12], fill=SKIN)
+        for y, x0 in ((8, 2), (11, 5), (14, 2)):
+            d.line([(x0, y), (x0 + 7, y)], fill=W_)
+        d.arc([8, 6, 14, 16], 100, 260, fill=SKY)
+
+    def twindash(d):
+        # two dashes, one above the other, arrows on both
+        for y in (6, 16):
+            d.line([(3, y), (17, y)], fill=W_, width=2)
+            d.polygon([(17, y - 3), (22, y), (17, y + 3)], fill=SKY)
+
+    def dashstrike(d):
+        # a blade diving down and forward, the dash line behind it
+        d.line([(3, 4), (13, 12)], fill=SKY, width=1)
+        d.line([(10, 9), (20, 19)], fill=STEEL, width=2)
+        d.line([(9, 11), (12, 8)], fill=GOLD, width=2)
+        d.polygon([(20, 19), (22, 22), (17, 21)], fill=W_)
+
+    def skydash(d):
+        # a body shot straight up, a ring left under it
+        d.rectangle([10, 4, 14, 13], fill=BODY)
+        d.ellipse([10, 1, 14, 5], fill=SKIN)
+        stamp_ring(d, 12, 19, 7)
+        for x in (7, 17):
+            d.line([(x, 8), (x, 15)], fill=W_)
+
+    def walljump(d):
+        # a wall on the left, a body kicking off it up and away
+        d.rectangle([1, 2, 4, 23], fill=DUST_D)
+        d.line([(5, 18), (11, 14)], fill=BODY, width=2)
+        d.rectangle([11, 8, 15, 14], fill=BODY)
+        d.ellipse([13, 4, 17, 8], fill=SKIN)
+        d.polygon([(18, 6), (22, 2), (21, 8)], fill=W_)
+
+    def wallkick(d):
+        # two walls, a zig-zag climbing between them
+        d.rectangle([1, 2, 3, 23], fill=DUST_D)
+        d.rectangle([20, 2, 22, 23], fill=DUST_D)
+        d.line([(5, 21), (18, 15), (5, 9), (16, 3)], fill=W_)
+        d.ellipse([14, 1, 18, 5], fill=SKIN)
+
+    def wallrun(d):
+        # footprints along a wall, a body running on it
+        d.rectangle([1, 18, 23, 21], fill=DUST_D)
+        for x in (3, 9, 15):
+            d.rectangle([x, 15, x + 3, 16], fill=W_)
+        d.line([(16, 12), (21, 6)], fill=BODY, width=3)
+        d.ellipse([19, 2, 23, 6], fill=SKIN)
+
+    def slidekick(d):
+        # a body sliding low, a leg shot out into a foe's shins
+        d.line([(1, 21), (23, 21)], fill=DUST)
+        d.line([(3, 17), (12, 19)], fill=BODY, width=3)
+        d.ellipse([1, 13, 5, 17], fill=SKIN)
+        d.line([(12, 19), (18, 18)], fill=WOOD, width=2)
+        d.line([(19, 8), (19, 20)], fill=STEEL_D, width=2)
+        for x in (6, 9):
+            d.point((x, 22), fill=DUST_D)
+
+    def skyleap(d):
+        # a leap far up, a crater ring under it
+        d.ellipse([2, 18, 22, 23], outline=DUST)
+        d.line([(12, 18), (12, 6)], fill=SKY)
+        d.rectangle([10, 1, 14, 7], fill=BODY)
+
+    def heavenward(d):
+        # a leap past the clouds, gold at the top
+        d.ellipse([2, 14, 10, 19], fill=W_)
+        d.ellipse([13, 15, 22, 20], fill=W_)
+        d.line([(12, 22), (12, 5)], fill=GOLD, width=2)
+        d.polygon([(8, 7), (12, 1), (16, 7)], fill=GOLD)
+
     for name, fn in (("roll", roll), ("sidestep", sidestep), ("afterimage", afterimage), ("moonstep", moonstep),
                      ("featherfall", featherfall), ("crash", crash), ("disarm", disarm), ("shove", shove),
-                     ("rolling_guard", rolling_guard), ("planted", planted), ("dolphin", dolphin), ("glide", glide)):
+                     ("rolling_guard", rolling_guard), ("planted", planted), ("dolphin", dolphin), ("glide", glide),
+                     ("geppo", geppo), ("skywalk", skywalk), ("airdash", airdash), ("twindash", twindash),
+                     ("dashstrike", dashstrike), ("skydash", skydash), ("walljump", walljump), ("wallkick", wallkick),
+                     ("wallrun", wallrun), ("slidekick", slidekick), ("skyleap", skyleap), ("heavenward", heavenward)):
         _icon("skill_move_" + name, fn)
 
 

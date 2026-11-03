@@ -128,10 +128,10 @@ func _process(d: float) -> bool:
 			p.health_component.current_health = 99999.0
 			check("Will isn't a level: no Will points from levels", pr.pool("will") == 0 and not pr.has_flag("armament"))
 			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
-			pr.add_life("acrobatics", pr.mastery_to_next(1))
+			pr.add_life("acrobatics", pr.mastery_to_next(1, "acrobatics"))
 			check("Acrobatics 2: Geppo bought with its Adventure point, an air jump", pr.buy("m_geppo") and p.max_jumps == 2)
 			while pr.mastery_level("acrobatics") < 12:
-				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics")))
+				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics"), "acrobatics"))
 			check("Fleetfoot (Acrobatics 12) bought speeds you up", pr.buy("ac_fleet") and p.move_speed > 6.0)
 			pr.level = 14
 			pr._on_level_up()
@@ -141,11 +141,11 @@ func _process(d: float) -> bool:
 			p.inventory_component.add_item(item("pistol"), 1)
 			p.loadouts[1] = ["pistol", ""]
 			while pr.mastery_level("defense") < 10:
-				pr.add_life("defense", pr.mastery_to_next(pr.mastery_level("defense")))
+				pr.add_mastery("defense", pr.mastery_to_next(pr.mastery_level("defense"), "defense"))
 			check("Ballast bought at Defense 10, onto the bar", pr.buy("v_tekkai") and pc.loadout[1] == "tekkai")
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
 				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
-					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))
+					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0]), tr_lv[0]))
 			check("each weapon its own points: cutlass 5 has 11, pistol 9 has 19", pr.points_free("sword") == 11 and pr.points_free("pistol") == 19)
 			check("...each spent on its own tree", ["s_flying", "g_kata", "g_rain", "g_storm"].all(func(k): return pr.buy(k)) and pr.pool("sword") == 11 - 3 and pr.pool("pistol") == 19 - 2 - 2 - 3)
 			check("Steadfast bought at Defense 4", pr.buy("v_steadfast"))
