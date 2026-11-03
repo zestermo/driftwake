@@ -25,6 +25,7 @@ var _head: Label
 var _dist: Label
 var _goal: Label
 var _sub: Label
+var _district: Label
 var _flash: float = 0.0
 var _t: float = 0.0
 var _poll: float = 0.0
@@ -48,6 +49,12 @@ func _ready() -> void:
 	vb.add_theme_constant_override("separation", 0)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_box.add_child(vb)
+	# (the stronghold's districts: what to do in the one you stand in)
+	_district = _small_label(UIStyle.CORAL)
+	_district.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_district.custom_minimum_size = Vector2(W - 10.0, 0)
+	_district.visible = false
+	vb.add_child(_district)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(row)
@@ -160,6 +167,8 @@ func _process(delta: float) -> void:
 		_poll = 0.25
 		_refresh()
 		_map_mark()
+		_district.text = LineQuests.district_hint(get_tree(), _player.global_position) if _player else ""
+		_district.visible = _district.text != ""
 	_box.visible = not _obj.is_empty() and not hidden_by_menu and not _wake() and not Dialogue.active
 	_flash = maxf(_flash - delta, 0.0)
 	var pulse := 0.5 + 0.5 * sin(_flash * 9.0) if _flash > 0.0 else 0.0

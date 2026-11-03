@@ -37,6 +37,11 @@ var _defs := {}
 var _sources := {}
 ## Lines someone will tell when asked: dialogue event "rumour:<key>" -> [lines, who, island]
 var _told := {}
+## Story lines waiting to open: quest id -> Callable (true: the crew takes it).
+var _open := {}
+var _line_t := 0.0
+## How often (s of game time) the story lines are checked.
+const LINE_EVERY := 1.0
 var _layer: CanvasLayer
 var _pc: PixelCanvas
 var screen: Control
@@ -57,6 +62,43 @@ func _ready() -> void:
 			var r: Array = _told[ev.substr(7)]
 			for line in r[0]:
 				hear(str(line), str(r[1]), str(r[2])))
+
+
+func _process(delta: float) -> void:
+	if get_tree().paused or _me() == null:
+		return
+	_line_t -= delta
+	if _line_t > 0.0:
+		return
+	_line_t = LINE_EVERY
+	_lines()
+
+
+## Story lines (LineQuests): open the ones whose time has come, and move the live ones on as the world says (any
+## machine asks; the host takes the first word).
+func _lines() -> void:
+	var c: Chain = GameManager.chain()
+	if c != null and c.stronghold_id() >= 0 and Chain.stronghold_known(get_tree()):
+		var sq := LineQuests.stronghold(c)
+		if not entries.has(sq["id"]):
+			register(sq, null)
+			take(sq["id"], 0)
+	for id in _open.keys():
+		var f: Callable = _open[id]
+		if entries.has(id) or not f.is_valid():
+			continue
+		if f.call():
+			take(id, 0)
+	for e in entries.values():
+		if e["done"] or not e.has("line"):
+			continue
+		var n := int(e["step"])
+		if not LineQuests.met(get_tree(), e["line"][n]["until"]):
+			continue
+		if n == (e["goals"] as Array).size() - 1:
+			turn_in(e["id"], _me().global_position)
+		else:
+			advance(e["id"], n)
 
 
 # ==========================================================================
@@ -103,6 +145,8 @@ func goal(id: String) -> String:
 	if e["done"]:
 		return "Done"
 	var g := str(e["goals"][int(e["step"])])
+	if e.has("line"):
+		return g + LineQuests.progress(get_tree(), e["line"][int(e["step"])]["until"])
 	var src = _sources.get(id)
 	# (a source that tells the step its own way as things change: an island arc's showdown)
 	if is_instance_valid(src) and src.has_method("goal_of"):
@@ -110,8 +154,10 @@ func goal(id: String) -> String:
 	return g + (src.progress(_defs[id], int(e["step"])) if is_instance_valid(src) else "")
 
 
-## Where the current step is (the island's middle while its island isn't here).
+## Where the current step is (the island's middle while its island isn't here; a line's step says itself).
 func target(id: String) -> Vector3:
+	if entries[id].has("line"):
+		return LineQuests.where(get_tree(), entries[id]["line"][int(entries[id]["step"])]["at"])
 	var src = _sources.get(id)
 	if is_instance_valid(src):
 		return src.target(_defs[id], int(entries[id]["step"]))
@@ -120,6 +166,8 @@ func target(id: String) -> Vector3:
 
 ## The current step is a person to talk to (the marker goes once you're beside them).
 func target_is_person(id: String) -> bool:
+	if entries[id].has("line"):
+		return bool(entries[id]["line"][int(entries[id]["step"])]["person"])
 	var src = _sources.get(id)
 	return is_instance_valid(src) and src.is_person(_defs[id], int(entries[id]["step"]))
 
@@ -156,11 +204,21 @@ func register(q: Dictionary, source: Node) -> void:
 	_sources[q["id"]] = source
 
 
-func take(id: String) -> void:
+## `by`: the captain who took it (-1: this one), 0 for the whole crew's (a story line that opened by itself).
+func take(id: String, by := -1) -> void:
 	var q: Dictionary = _defs[id]
-	_ask("take", [{"id": id, "title": q["title"], "giver": q["giver"], "isle": q["isle"], "pos": q["pos"], "src": q["src"],
+	var e := {"id": id, "title": q["title"], "giver": q["giver"], "isle": q["isle"], "pos": q["pos"], "src": q["src"],
 		"goals": q["steps"].map(func(s): return str(s["goal"])), "step": 0, "done": false, "reward": q["reward"], "cost": q.get("cost", []),
-		"by": Net.my_id()}])
+		"by": Net.my_id() if by < 0 else by}
+	if q["src"] == "line":
+		e["line"] = q["steps"].map(func(s): return {"until": s["until"], "at": s["at"], "person": s.get("person", false)})
+	_ask("take", [e])
+
+
+## A story line (LineQuests) that the crew takes by itself, for everyone, once `open` says so.
+func offer(q: Dictionary, open: Callable) -> void:
+	register(q, null)
+	_open[q["id"]] = open
 
 
 ## Drop a quest the crew doesn't want any more (it leaves the journal and the map; it can be taken again).

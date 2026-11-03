@@ -30,7 +30,10 @@ static func text(r: Dictionary) -> String:
 		out.append("%d%% off at %s" % [roundi(float(r["discount"][1]) * 100.0), str(r["discount"][2])])
 	if r.has("favour"):
 		out.append("a favour from %s" % str(r["favour"]["who"]))
-	out.append("a great deal of experience" if float(r.get("xp", 1.0)) > 1.0 else "experience")
+	if r.has("note"):
+		out.append(str(r["note"]))
+	if float(r.get("xp", 1.0)) > 0.0:
+		out.append("a great deal of experience" if float(r.get("xp", 1.0)) > 1.0 else "experience")
 	return ", ".join(out)
 
 
