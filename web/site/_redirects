@@ -6,3 +6,6 @@
 /download/windows   https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-Setup.exe  302
 /download/zip       https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip  302
 /download/android   /app/driftwake-companion.apk  302
+# The browser build is retired (2026-11-03: the installed game only); old links land on the home page.
+/play               /  301
+/play/*             /  301

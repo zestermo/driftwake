@@ -1,9 +1,9 @@
-# A small local web server for the site and the browser build (web\site).
+# A small local web server for the site (website).
 #
-#   .\tools\dev\serve_web.ps1            # http://localhost:8060/ (the game: /play/)
+#   .\tools\dev\serve_web.ps1            # http://localhost:8060/
 #   .\tools\dev\serve_web.ps1 -Threads   # also sends COOP/COEP, which a threaded export needs
 #
-# Ctrl+C stops it. Build the game into web\site\play first: .\tools\dev\build_web.ps1
+# Ctrl+C stops it. (The browser build is retired, 2026-11-03.)
 param(
 	[int]$Port = 8060,
 	[switch]$Threads,

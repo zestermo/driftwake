@@ -1,5 +1,9 @@
 # Driftwake in the browser (Web export) and its site
 
+> **Retired 2026-11-03** (Zach: the installed game only). The browser build is gone: no export in deploy-web.yml
+> (now "Deploy site": feeds, Netlify, the app push), no `build_web.ps1`, `/play/` redirects home. The site, its feeds
+> and the companion app below are still live. The "Web" export preset and the `OS.has_feature("web")` gates remain unused.
+
 Written 2026-10-09. Godot 4.7.2 (`$env:GODOT`), branch `worktree-agent-a28049e5df2525d16`.
 
 ## Where it stands

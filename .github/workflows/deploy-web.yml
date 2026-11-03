@@ -1,56 +1,37 @@
-# The browser build: export Godot's "Web" preset on Linux and deploy web/site to Netlify
-# (driftwake.fun). Netlify's own Git builds are off (netlify.toml `ignore`): its builders
-# have no Godot, so they'd publish the site without the game.
+# Deploys the site (web/site) to Netlify (driftwake.fun) and tells the companion app what's new. Netlify's own Git
+# builds are off (netlify.toml `ignore`). The browser build of the game is retired (Zach, 2026-11-03: the installed
+# game only), so this no longer exports Godot; /play/ redirects home (web/site/_redirects).
 #
 # Secrets in the repo's "live" environment: NETLIFY_AUTH_TOKEN (Netlify > User settings >
 # Applications > Personal access tokens), NETLIFY_SITE_ID (Site configuration > Site
 # details > Site ID) and FIREBASE_SERVICE_ACCOUNT (the companion app's Firebase service
 # account JSON, pasted whole; tools/dev/notify_app.mjs pushes new posts and versions).
-name: Deploy web build
+name: Deploy site
 
 on:
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**.md']
+    paths:
+      - 'web/site/**'
+      - 'tools/dev/build_feeds.mjs'
+      - 'tools/dev/notify_app.mjs'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 concurrency:
   group: deploy-web
   cancel-in-progress: true
 
-env:
-  # must match the editor exactly: the templates are tied to the version
-  GODOT_VERSION: 4.7.2
-
 jobs:
-  web:
+  site:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     # (the Netlify secrets are environment secrets: a job only sees them when it names the environment)
     environment:
       name: live
       url: https://driftwake.fun
     steps:
       - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/setup-godot
-        with:
-          version: ${{ env.GODOT_VERSION }}
-          templates: web_nothreads_release.zip
-
-      - name: Import the project
-        run: ~/godot/godot --headless --path . --import
-
-      - name: Export the Web preset into the site
-        run: |
-          set -euo pipefail
-          mkdir -p web/build
-          ~/godot/godot --headless --path . --export-release "Web" web/build/index.html
-          test -f web/build/index.wasm
-          test -f web/build/index.pck
-          rm -rf web/site/play
-          cp -r web/build web/site/play
-          ls -la web/site/play
 
       - name: Build the app's feeds
         run: node tools/dev/build_feeds.mjs
