@@ -92,8 +92,13 @@ func _take_damage(hit: HitData, dir: Vector3) -> void:
 	CombatManager.impact(hit, global_position, -2.0, 0.1, 0.8)
 	_hit_feedback(hit)
 	set_meta("last_dir", dir)
+	set_meta("hp_before", health.current_health)
 	_last_hit = hit
 	health.take_damage(hit.damage)
+
+
+func bleeds() -> bool:
+	return false
 
 
 ## The first time he's cut down he isn't done: he lies a while, then gets back up.

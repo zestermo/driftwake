@@ -9716,3 +9716,27 @@ flashes, the sky dark grey with smoke like the sandstorm even at noon.
   `tools/dev/out/scour/noon_sheet.png`, `night_sheet.png` (CSHOT_HOUR=22).
 - Tests: t/stronghold/scouring_sky (smoke in and clearing, a shell telegraphed, in flight from the ring, its whistle
   queued, no harm before it lands, hurt after; shells on the Mess Hall's roof and in the sea), t/stronghold/scouring.
+
+## 2026-11-03: 1.30 overkill launches and wall splats, piece 1: enemies (v1_30_plan "round 4")
+
+- **Splat** (`scripts/combat/splat.gd`): a killing blow throws the body when its overkill (damage past the health
+  left) is >= 50% of max health (plan, assumed), or >= 15% with a strong blow (`Splat.strong`: knockdown, launcher,
+  or poise >= Poise.HEAVY: heavies, techniques, ultimates; not ranged) (tuned: every heavy kill felt too often).
+  `Splat.kill(humanoid, hit, hp_before, max_hp, dir, bleeds)` spreads the rig (arms and legs flung out), ragdolls it
+  and flies it: rays from the chest (a fan of 5 along the blow, or 3 up for a launcher) find the nearest wall or
+  ceiling within REACH 8 m; the parts go kinematic (`Ragdoll.hold`) and move as one body at ~21 m/s, laid flat
+  (back to the surface, face out, head up the wall), stick STICK 1 s (sliding 18 cm down a wall), then let go limp.
+  Nothing near: a back throw lands on its back 2.6 m off (a small mark) and skids ~2.4 m (stops short of an obstacle,
+  rides the ground with one ray a tick, dust), a launch goes up as a loose ragdoll and leaves a small mark where it
+  lands; off an edge or over water it's thrown loose. Bodies scaled > 1.6 skip it.
+- Hook: PirateGrunt._on_died (and so marines, fodder, the drowned's second fall, the ape; the boss too, it's
+  human-sized) calls Splat.kill before its plain ragdoll; `_take_damage` keeps `hp_before` as meta; `bleeds()`
+  (the drowned: false). Beasts, creatures and scuttlebugs keep their own deaths (not done).
+- **Effects** (`scripts/game/splat_fx.gd`, FX.splat / FX.splat_launch through Net.fx): the mark is a pool of 16
+  MeshInstances (the oldest taken over), 3 seeded crack shapes and one unshaded sRGB vertex-colour material kept on
+  FX (static vars outlived the renderer), popped in, held 8 s, shrunk away; dust, chips, a ring, blood on the
+  surface and a spray (bleeds), the crunch; a shake for cameras within 22 m; the launch: a ring, whoosh, dust, and
+  for the captain within 6 m a 0.08 s hit-stop and a punch-in. No lights.
+- Co-op: the host flies the body; guests' ragdolls follow its snapshot (the grunt's ragdoll net_pack); marks via
+  Net.fx. Per tick: only while a body flies/sticks (~1.5 s): the part poses, one ray a tick in a skid.
+- Tests: t/combat/splat_wall. Render: `splatshot.gd -- <out>` (wall, ceiling, open strips, the mark close).

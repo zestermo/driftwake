@@ -545,6 +545,16 @@ func blood_pool(pos: Vector3, size: float, secs: float) -> void:
 	mi.create_tween().tween_property(mi, "scale", full, secs).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 
 
+## (1.30) A body slammed into a wall, a ceiling or the ground (Splat): the impact mark, dust, chips, blood. SplatFX.
+func splat(pos: Vector3, n: Vector3, size: float, bleeds: bool, seed_v: int) -> void:
+	SplatFX.land(self, pos, n, size, bleeds, seed_v)
+
+
+## (1.30) A body thrown by an overkill (Splat): the rush where it left.
+func splat_launch(pos: Vector3, dir: Vector3, k: float) -> void:
+	SplatFX.launch(self, pos, dir, k)
+
+
 ## How far behind a wound the spray can reach a wall.
 const WALL_REACH := 2.4
 

@@ -2302,8 +2302,14 @@ func _take_damage(hit: HitData, dir: Vector3) -> void:
 	CombatManager.impact(hit, global_position, -2.0, 0.1, 1.05 if hit.damage < 20.0 else 0.85)
 	_hit_feedback(hit)
 	set_meta("last_dir", dir)
+	set_meta("hp_before", health.current_health)
 	_last_hit = hit
 	health.take_damage(hit.damage)
+
+
+## (1.30) Blood on a splat's wall (the drowned don't bleed).
+func bleeds() -> bool:
+	return true
 
 
 ## Its swing was parried: staggered, wide open.
@@ -2591,7 +2597,9 @@ func _on_died() -> void:
 	bark(BARK_DIE, 0.6)
 	var dir: Vector3 = get_meta("last_dir", -_fwd())
 	if humanoid.ragdoll == null:
-		humanoid.start_ragdoll(dir * 5.0 + Vector3.UP * 3.0, Vector3.UP.cross(dir) * 5.0, false)
+		# (1.30) an overkill throws the body flat into the nearest wall (Splat)
+		if not Splat.kill(humanoid, _last_hit, float(get_meta("hp_before", 0.0)), health.max_health, dir, bleeds()):
+			humanoid.start_ragdoll(dir * 5.0 + Vector3.UP * 3.0, Vector3.UP.cross(dir) * 5.0, false)
 	else:
 		humanoid.relax_ragdoll()
 		humanoid.ragdoll.push(dir * 3.0)
