@@ -48,7 +48,7 @@
 - ✅ **No more pinning in corners.** Crowd a beast boss for about 4 s, or land 8 hits in 3 s, and it roars a ring that pushes everyone back. If it's pinned at the edge, it leaps to the middle instead.
 - ✅ **Knockback slides you along walls** instead of pinning you against them.
 - ✅ **Morrow's Tide Rush** stops before water or a drop and ends in a hard skid, so he no longer dashes into the sea.
-- 🔨 **Overkill launches and wall splats:**
+- ✅ **Overkill launches and wall splats:**
   - A big overkill throws a foe flat, backwards or up into a wall or ceiling. It leaves a crack, sticks a second, then ragdolls down. With nothing near, it skids or lands with a small mark.
   - Blood where it fits.
   - Strong enemy moves can do it to you: you're dazed for a second and slower to get up.
