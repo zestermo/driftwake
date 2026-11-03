@@ -628,6 +628,13 @@ const SPECS := {
 	"aim_pistol": {"len": 1.3, "stance": "pistol", "weapon": "pistol", "extras": {"auto_point_guns": false}},
 	"aim_rifle": {"len": 1.3, "stance": "sword", "weapon": "rifle"},
 	"shove": {"len": 0.95, "stance": "sword", "weapon": "rifle"},
+	# (1.30) the foes' personalities (FoePoses: the stances are held, upper body)
+	"fo_frenzy": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_lurk": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_en_garde": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_guard_walk": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_parry_ready": {"len": 0.08, "stance": "sword", "weapon": "cutlass"},
+	"fo_parry": {"len": 0.42, "stance": "sword", "weapon": "cutlass"},
 }
 
 

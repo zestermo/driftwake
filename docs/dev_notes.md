@@ -10016,3 +10016,27 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   vault shut until both locks turn; t/stronghold/vault sets the unlock; t/stronghold/gate clears the Landing before
   winding. Renders: strongholdshot `perch`, `cells`, `ward` (the dressing), `yard`.
 - Per frame: VaultLocks reads two flags and the clock (the handles), the perch and cell block are static bodies.
+## 2026-11-03: 1.30 enemy personalities, jumping attacks, riflemen moves (docs/v1_30_plan.md round 6)
+- **Piece 1, personalities** (`scripts/enemies/personality.gd`, PirateGrunt `_roll_personality`, `_personality_tick`,
+  `_my_turn`, `_parry`, `_guard_broken`): berserker, opportunist, duelist, bulwark, rolled per foe from its setup seed
+  (`hash(["personality", seed, kind])`: the same on every machine, so guests roll it too) by kind: fodder 5/4/0.6/0.6,
+  grunts 3/3/2/2, officers (camp captains, elites) even; duelist/bulwark only with a blade's guard (role "sword").
+  Riflemen, bosses and level-0 crews (Brinehollow: the first fights stay plain, like roles and traits) get none; a
+  setup's "personality" wins ("none" for none). Numbers in `Personality.K` are first guesses (the plan's assumed weights).
+  - Berserker: block 8%, breathers 0.35-0.8 s, a third cut in the combo (`_hits` +1; the swings alternate by `_swing_i % 2`),
+    wind-ups x0.9, runs in x1.15, follows x1.5 further, never steps back after an attack.
+  - Opportunist: rings 1.6 m wider, goes in only once `min(2, mates near, the camp's cap - 1)` mates are engaged
+    (`ENGAGED` states or holding a turn), or the captain is staggered/grabbed/swinging with their back to it, or after
+    6 s waiting (alone: 1.5 s). Still takes a turn from the camp: the attacker cap is untouched.
+  - Duelist: on a think it sees the captain's LightAttack start within 3.6 m facing it: 70% raises the parry
+    (`fo_parry_ready`, a blue glint) for 0.6 s, cooldown 2.2-3.2 s. A blow in that window from the front is parried
+    (sparks, a blue flash, "Parried!", the captain `shoved` 5 m/s back: their own machine, Net.event "reel" for a guest),
+    then `fo_parry` and a riposte 0.28 s on. A heavy/kick/breaker into it breaks it (`_guard_broken`: the blow lands,
+    1.4 s stagger, "Guard broken!").
+  - Bulwark: blocks 60% of front blows (twice running allowed), walks in 0.6 m closer behind `fo_guard_walk`, punishes a
+    missed light swing too (`_watch_whiff`); a heavy/kick/breaker or 40 poise piled on the guard (draining 8/s) breaks it.
+  - Tells: the stance held (upper body) while circling or chasing (sword grunts), its own spotting shout, and the bark
+    label in its colour (`Personality.COLOR`). Holds and plays mirror to guests as every grunt action does.
+  - Cost: decisions on the think tick only (fodder every 10 ticks): a few compares; the opportunist's count is one pass
+    over the cached enemy list per think while it circles. No per-frame work; the held stance is a constant pose.
+  - Tests: t/combat/personality_roll, duelist_parry, bulwark_guard, opportunist_waits, berserker_combo.

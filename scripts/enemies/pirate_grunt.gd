@@ -154,6 +154,14 @@ var _punish_t := 0.0
 var _blocks_taken := 0
 var _grab_ready := false
 var _grab_target: Node3D
+## (1.30) How it fights (Personality; "" for riflemen, bosses): rolled from its seed, or the setup's "personality".
+var personality := ""
+var _parry_t := 0.0
+var _parry_cd := 0.0
+var _guard_load := 0.0
+var _wait_t := 0.0
+var _foe_st := ""
+var _riposte_at := 0.16
 
 var _col: CollisionShape3D
 var _bark: Label3D
@@ -323,6 +331,7 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	elite_trait = str(cfg.get("trait", ""))
 	title = str(cfg.get("title", ""))
 	hold = cfg.get("hold", [])
+	personality = str(cfg.get("personality", ""))
 	look = PirateGrunt.look_for(cfg)
 	_body = cfg.get("body")
 	return self
@@ -457,7 +466,8 @@ func _ready() -> void:
 	# every pirate's blade is their own (and it's the one they drop)
 	_roll_role()
 	_roll_extras()
-	var d := WeaponDesigns.random_design("cutlass", _rng)
+	_roll_personality()
+	var d :=WeaponDesigns.random_design("cutlass", _rng)
 	_blade_model = "cutlass:%s:0" % d
 	_blade_id = str(WeaponDesigns.DESIGNS["cutlass"][d]["id"]) if d != "" else "cutlass"
 	if not _role().is_empty():
@@ -599,6 +609,8 @@ func _ready() -> void:
 	_bark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_bark.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_bark.position = Vector3(0, 2.35 * float(look.get("height", 1.0)), 0)
+	if personality != "":
+		_bark.modulate = Personality.COLOR[personality]
 	_bark.visible = false
 	add_child(_bark)
 	if captain:
@@ -628,6 +640,8 @@ func _set_state(s: S) -> void:
 		set_collision_mask_value(2, true)   # (off while crumpled)
 	if state == S.AIR and s != S.AIR:
 		remove_from_group(Juggle.GROUP)
+	if s in [S.IDLE, S.RETURN, S.DEAD] and humanoid and humanoid.current_action().begins_with("fo_"):
+		humanoid.stop_action()
 	state = s
 	st_t = 0.0
 	if _aura:
@@ -723,7 +737,10 @@ func alert(delay: float = 0.0) -> void:
 		return
 	humanoid.seated = false
 	if state == S.IDLE:
-		bark(BARK_ALERT, 0.7)
+		if personality != "":
+			bark(Personality.BARK_SPOT[personality], 0.9)
+		else:
+			bark(BARK_ALERT, 0.7)
 	_set_state(S.ALERT)
 	if role != "rifle":
 		humanoid.play("draw", 0.45)
@@ -777,7 +794,10 @@ func _physics_process(delta: float) -> void:
 	_shield_down_t -= delta
 	_punish_t -= delta
 	_rally_t -= delta
-	_fight_t = _fight_t + delta if in_combat() else 0.0
+	_parry_t -= delta
+	_parry_cd -= delta
+	_guard_load = maxf(_guard_load - Personality.GUARD_DRAIN * delta, 0.0)
+	_fight_t =_fight_t + delta if in_combat() else 0.0
 	_disarm_tick(delta)
 	if state == S.DEAD:
 		_dead_update(delta)
@@ -875,16 +895,23 @@ func _physics_process(delta: float) -> void:
 				if flank != 0.0:
 					_strafe_dir = flank
 					_strafe_t = maxf(_strafe_t, 0.4)
-				var radial := clampf((dist - CIRCLE_RANGE) * 1.6, -1.6, 3.0)
+				var ring := CIRCLE_RANGE + float(Personality.k(personality, "ring", 0.0))
+				var radial := clampf((dist - ring) * 1.6, -1.6, 3.0)
 				if _backoff_t > 0.0 and dist < 6.0:
 					radial = -2.4
 				var tangent := Vector3.UP.cross(dir_p) * _strafe_dir * STRAFE_SPEED * (1.35 if flank != 0.0 else 1.0)
 				want = dir_p * radial + tangent + _separation() * 1.5
+				var turn_ok := lured or _pressed(dist) or _my_turn(p, dir_p)
+				_wait_t = _wait_t + delta if not turn_ok else 0.0
 				if not lured and _want_pistol(p, dist, delta):
 					_start_aim("pistol")
-				elif dist > CIRCLE_RANGE + 3.0:
+				elif dist > ring + 3.0:
 					_set_state(S.CHASE)
-				elif _cooldown <= 0.0 and _player_ok(p) and (lured or _pressed(dist) or _get_token()):
+				elif _cooldown <= 0.0 and _player_ok(p) and turn_ok and (lured or _pressed(dist) or _get_token()):
+					if personality == "opportunist":
+						bark(Personality.BARK_STRIKE, 0.5)
+					elif personality == "berserker":
+						bark(Personality.BARK_FRENZY, 0.25)
 					_attack = _choose_attack(dist)
 					_swing_i = 0
 					_begin_attack(dist)
@@ -991,10 +1018,11 @@ func _physics_process(delta: float) -> void:
 			accel = 12.0
 			if st_t > float(get_meta("recover", 0.6)):
 				_release_token()
-				_cooldown = _rng.randf_range(1.3, 2.4)
+				var cool: Vector2 = Personality.k(personality, "cool", Vector2(1.3, 2.4))
+				_cooldown = _rng.randf_range(cool.x, cool.y)
 				_set_state(_fight_state())
-				# now and then step back out of reach before circling in again
-				if role == "sword" and p and dist < 3.5 and _rng.randf() < 0.35:
+				# now and then step back out of reach before circling in again (never a berserker)
+				if role == "sword" and personality != "berserker" and p and dist < 3.5 and _rng.randf() < 0.35:
 					if elite() and _dash_cd <= 0.0:
 						_start_dash(-dir_p)
 					else:
@@ -1013,8 +1041,9 @@ func _physics_process(delta: float) -> void:
 		S.BLOCK:
 			_face(dir_p)
 			accel = 10.0
-			if _riposte and st_t > 0.16 and p and _player_ok(p) and dist < _reach() + 1.2:
+			if _riposte and st_t > _riposte_at and p and _player_ok(p) and dist < _reach() + 1.2:
 				_riposte = false
+				_riposte_at = 0.16
 				_has_token = true
 				_attack = "combo"
 				_swing_i = 1
@@ -1181,6 +1210,8 @@ func _physics_process(delta: float) -> void:
 
 	if elite_trait == "berserk" and state in [S.CHASE, S.CIRCLE, S.CLOSE]:
 		want *= EliteTraits.BERSERK_SPEED
+	if personality != "" and state in [S.CHASE, S.CLOSE]:
+		want *= float(Personality.k(personality, "chase", 1.0))
 	_last_want = want
 	_last_accel = accel
 	_last_turn = turn
@@ -1271,7 +1302,8 @@ func _lost(p: Node3D, dist: float) -> bool:
 		return true
 	if boarder:
 		return dist > 60.0
-	if dist > GIVE_UP_RANGE or _flat(global_position - post).length() > _leash():
+	var k: float = Personality.k(personality, "give_up", 1.0)
+	if dist > GIVE_UP_RANGE * k or _flat(global_position - post).length() > _leash() * k:
 		return true
 	# the player swam off / is on the ship: give up after a while
 	if not _player_ok(p) and str(p.call("current_state_name")) != "Downed" and st_t > 4.0:
@@ -1484,12 +1516,13 @@ func _swing_len() -> float:
 
 
 func _wind_len() -> float:
-	return _wind_base() * float(_role().get("pace", 1.0)) * {"quick": EliteTraits.QUICK_TELL, "berserk": 0.85}.get(elite_trait, 1.0)
+	return _wind_base() * float(_role().get("pace", 1.0)) * {"quick": EliteTraits.QUICK_TELL, "berserk": 0.85}.get(elite_trait, 1.0) \
+		* float(Personality.k(personality, "wind", 1.0))
 
 
 ## The share of blows from the front a sword grunt blocks (bosses: more).
 func _block_chance() -> float:
-	return BLOCK_CHANCE
+	return Personality.k(personality, "block", BLOCK_CHANCE)
 
 
 func _wind_base() -> float:
@@ -1510,7 +1543,9 @@ func _wind_base() -> float:
 
 ## Swings in this attack.
 func _hits() -> int:
-	return 1 if _attack == "sweep" else _combo_hits()
+	if _attack == "sweep":
+		return 1
+	return _combo_hits() + (int(Personality.k(personality, "hits", 0)) if _attack in ["combo", "flurry"] else 0)
 
 
 func _start_wind() -> void:
@@ -1538,7 +1573,7 @@ func _start_wind() -> void:
 		Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.8])
 		_sense(_target())
 		return
-	var anim := "lunge_wind" if _attack == "lunge" else ("sweep_wind" if _attack == "sweep" else ("wind_r" if _swing_i == 0 else "wind_l"))
+	var anim := "lunge_wind" if _attack == "lunge" else ("sweep_wind" if _attack == "sweep" else ("wind_r" if _swing_i % 2 == 0 else "wind_l"))
 	if _role().is_empty():
 		humanoid.play(anim, _wind_len())
 	else:
@@ -1652,7 +1687,7 @@ func _start_swing() -> void:
 		Net.fx("dust", [global_position + _fwd() * 0.8, 6, 0.5])
 	else:
 		if _role().is_empty():
-			humanoid.play("swing_r" if _swing_i == 0 else "swing_l", 0.36 if _attack == "flurry" else 0.5)
+			humanoid.play("swing_r" if _swing_i % 2 == 0 else "swing_l", 0.36 if _attack == "flurry" else 0.5)
 		velocity += _fwd() * 3.0
 		Net.fx("sfx", ["whoosh", global_position, -5.0, 0.1, 1.15 if _attack == "flurry" else 1.0])
 
@@ -1844,6 +1879,127 @@ func _roll_extras() -> void:
 		shield = rng.randf() < SHIELD_ODDS
 
 
+## (1.30) Its personality (Personality.roll, from the seed: every machine rolls the same), unless the setup gave one.
+## Riflemen and bosses fight their own way, and so do Brinehollow's unlevelled crews (the first fights stay plain).
+func _roll_personality() -> void:
+	if personality == "none":
+		personality = ""
+		return
+	if personality != "" or role == "rifle" or level <= 0 or is_in_group("bosses"):
+		return
+	var kind := "fodder" if self is FodderMarine else ("officer" if captain or elite_rank else "grunt")
+	personality = Personality.roll(_role_seed, kind, role == "sword")
+
+
+## The stance it holds while circling (sword grunts: the other weapons keep their own guard), "" for none.
+func _stance() -> String:
+	return str(Personality.STANCE.get(personality, "")) if role == "sword" and _disarm_t <= 0.0 else ""
+
+
+## (1.30) Its personality's tells and reads, as it thinks: the stance held while it circles, a duelist's read of a
+## captain's swing (the parry raised, a blue glint: the window PARRY_WINDOW s).
+func _personality_tick(p: Node3D, dist: float, dir_p: Vector3) -> void:
+	var cur := humanoid.current_action()
+	if cur == "fo_parry_ready" and _parry_t <= 0.0:
+		humanoid.stop_action()
+		cur = ""
+	var st := _stance()
+	if st != "" and cur == "" and state in [S.CIRCLE, S.CHASE]:
+		humanoid.hold(st, 0.3)
+	if personality != "duelist" or not p.has_method("current_state_name"):
+		return
+	var fs := str(p.call("current_state_name"))
+	if fs != _foe_st:
+		_foe_st = fs
+		if fs == "LightAttack" and _parry_cd <= 0.0 and dist < 3.6 and _captain_fwd(p).dot(-dir_p) > 0.5 \
+				and state in [S.CIRCLE, S.CHASE, S.CLOSE, S.BLOCK, S.RECOVER] and _rng.randf() < Personality.PARRY_ODDS:
+			_parry_cd = _rng.randf_range(Personality.PARRY_CD.x, Personality.PARRY_CD.y)
+			_parry_t = Personality.PARRY_WINDOW
+			if state in [S.CIRCLE, S.CHASE, S.BLOCK, S.RECOVER]:
+				humanoid.hold("fo_parry_ready", 0.08)
+			_glint_col(Personality.PARRY_TELL)
+
+
+## A mate already in it with the captain (swinging, guarding, taking blows).
+const ENGAGED := [S.CLOSE, S.WIND, S.SWING, S.RECOVER, S.GRAB, S.BLOCK, S.HITSTUN, S.STAGGER]
+
+
+## Opportunist: its turn to go in (the others are on the captain, the captain's busy or reeling, or it's waited long
+## enough). Everyone else: always.
+func _my_turn(p: Node3D, dir_p: Vector3) -> bool:
+	if personality != "opportunist" or _wait_t > Personality.OPP_WAIT:
+		return true
+	if p.has_method("current_state_name"):
+		var fs := str(p.call("current_state_name"))
+		if fs in ["Stagger", "Grabbed"] or (fs in ["LightAttack", "HeavyAttack", "Technique", "Skill"] and _captain_fwd(p).dot(-dir_p) < 0.2):
+			return true
+	var near := 0
+	var busy := 0
+	for g in _all_enemies():
+		if g == self or not (g is PirateGrunt) or not is_instance_valid(g) or (g as PirateGrunt)._player != p or (g as PirateGrunt).is_dead():
+			continue
+		if (g as Node3D).global_position.distance_to(p.global_position) > 9.0:
+			continue
+		near += 1
+		if (g as PirateGrunt)._has_token or (g as PirateGrunt).state in ENGAGED:
+			busy += 1
+	if near == 0:
+		return _wait_t > Personality.OPP_ALONE
+	# (with the crew's turns capped, it waits for all but its own slot)
+	var cap: int = camp.call("attackers_for") if camp and is_instance_valid(camp) and camp.has_method("attackers_for") else 99
+	return busy >= mini(mini(Personality.OPP_ENGAGED, near), maxi(cap - 1, 1))
+
+
+## A duelist's parry (inside its read's window): the blow turned aside on the blade, the captain reels, the riposte.
+func _parry(hit: HitData, dir: Vector3, attacker: Node) -> void:
+	_parry_t = 0.0
+	var at := global_position + Vector3(0, 1.3, 0) - dir * 0.55
+	Net.fx("parry_sparks", [at, -dir])
+	Net.fx("flash", [at, 1.1, Personality.PARRY_TELL, "glint", 0.16])
+	Net.fx("float_text", [at + Vector3.UP * 0.7, "Parried!", Personality.PARRY_TELL])
+	Net.fx("sfx", ["parry", at, -4.0, 0.05, 1.0])
+	CombatManager.guard(hit, true, at, -2.0, 0.05, 1.1)
+	CombatManager.apply_hitstop(0.1, [_hit_by, self])
+	bark(Personality.BARK_PARRY, 0.5)
+	_reel(attacker, -dir * Personality.PARRY_PUSH)
+	humanoid.play("fo_parry", 0.42)
+	velocity = dir * 1.5
+	_riposte = true
+	_riposte_at = 0.28
+	_set_state(S.BLOCK)
+
+
+## The captain it parried reels (on their own machine).
+func _reel(who: Node, v: Vector3) -> void:
+	if who == null or not who.has_method("shoved"):
+		return
+	if who.is_in_group("player"):
+		who.call("shoved", v)
+	elif Net.coop() and who.is_in_group("players"):
+		Net.event(self, "reel", [int(who.get("net_id")), v])
+
+
+## A bulwark's guard (or a duelist's raised parry) broken by a heavy, a kick or too many blows: it takes the blow
+## and reels GUARD_BROKEN s, wide open.
+func _guard_broken(hit: HitData, dir: Vector3) -> void:
+	_guard_load = 0.0
+	_parry_t = 0.0
+	_take_damage(hit, dir)
+	if state == S.DEAD:
+		return
+	bark(BARK_PARRIED, 0.8)
+	var at := global_position + Vector3(0, 1.4, 0) - dir * 0.5
+	Net.fx("sparkle", [at, 12, Color(1.0, 0.8, 0.4)])
+	Net.fx("float_text", [at + Vector3.UP * 0.8, "Guard broken!", Color(1.0, 0.8, 0.4), 22])
+	Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.7])
+	_release_token()
+	hitbox.deactivate()
+	velocity = dir * 3.5
+	_stagger_len = Personality.GUARD_BROKEN
+	humanoid.react("stagger", Personality.GUARD_BROKEN, dir)
+	_set_state(S.STAGGER)
+
+
 ## Its blow landed on `target`: a burning elite sets them alight (on the machine where it landed).
 func _on_blow_landed(target: Node, _hd: HitData) -> void:
 	if elite_trait == "burning" and target is Node3D:
@@ -1932,6 +2088,8 @@ func _tactics(p: Node3D, dist: float, dir_p: Vector3) -> void:
 	if _rally_t <= 0.0:
 		_rally_t = 1.0
 		_set_rally(_rallied())
+	if personality != "":
+		_personality_tick(p, dist, dir_p)
 	_watch_whiff(p, dist, dir_p)
 	if _punish_t > 0.0 and state in [S.CIRCLE, S.CHASE, S.BLOCK, S.RECOVER, S.CLOSE] and dist < 5.0 and _player_ok(p) and role != "rifle":
 		_punish_t = 0.0
@@ -1949,7 +2107,9 @@ func _tactics(p: Node3D, dist: float, dir_p: Vector3) -> void:
 func _watch_whiff(p: Node3D, dist: float, dir_p: Vector3) -> void:
 	if not p.has_method("current_state_name"):
 		return
-	var heavy := str(p.call("current_state_name")) == "HeavyAttack"
+	var fs := str(p.call("current_state_name"))
+	# (a bulwark punishes a missed light swing too)
+	var heavy := fs == "HeavyAttack" or (personality == "bulwark" and fs == "LightAttack")
 	if heavy and not _whiff_seen and dist < 4.5 and _captain_fwd(p).dot(-dir_p) > 0.5:
 		_whiff_seen = true
 		_whiff_hit = false
@@ -2117,10 +2277,14 @@ func _rush_bonk() -> void:
 
 ## The tell: a flash on the blade just before it swings.
 func _glint() -> void:
+	_glint_col(Color(1.0, 1.0, 0.95))
+
+
+func _glint_col(col: Color) -> void:
 	var tip := global_position + Vector3(0, 1.6, 0)
 	if humanoid.weapon and humanoid.weapon.is_inside_tree():
 		tip = humanoid.weapon.global_transform * Vector3(0, 0, -0.75)
-	Net.fx("sparkle", [tip, 4, Color(1.0, 1.0, 0.95)])
+	Net.fx("sparkle", [tip, 4, col])
 	Net.fx("sfx", ["blip_high", tip, -14.0, 0.05, 1.6])
 
 
@@ -2249,6 +2413,24 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		else:
 			_guard(hit, dir, state not in [S.WIND, S.SWING, S.GRAB], _rng.randf() < 0.3)
 		return
+	# (1.30) a duelist's raised parry turns a blow aside (a heavy, a kick or a breaker breaks it); a bulwark's guard
+	# stops most blows from the front until a heavy, a kick or enough blows break it
+	var parrying := personality == "duelist" and _parry_t > 0.0 and role == "sword" and _disarm_t <= 0.0 \
+		and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE, S.RECOVER]
+	if (parrying or (guarding and personality == "bulwark")) and from_front and not hit.unblockable and not hit.ranged:
+		var pz := Poise.of(hit)
+		if pz >= Poise.HEAVY or hit.breaker or (not parrying and _guard_load + pz >= Personality.GUARD_BREAK):
+			_guard_broken(hit, dir)
+			return
+		if parrying:
+			_parry(hit, dir, attacker)
+			return
+		if _rng.randf() < _block_chance():
+			_guard_load += pz
+			_guard(hit, dir, true, _rng.randf() < 0.45)
+			bark(Personality.BARK_BLOCK, 0.15)
+			return
+		guarding = false
 	# a sword grunt blocks some of the blows from the front (never twice running without a counter between: the
 	# riposte always follows) and sidesteps some; a cutlass can't stop a bullet
 	if guarding and from_front and Poise.of(hit) < Poise.KICK and not hit.unblockable and not hit.ranged and not hit.breaker:
@@ -3493,6 +3675,10 @@ func net_event(what: String, args: Array) -> void:
 			var me := get_tree().get_first_node_in_group("player")
 			if me and int(me.get("net_id")) == int(args[0]):
 				_sense_fx(str(args[1]), bool(args[2]))
+		"reel":
+			var me := get_tree().get_first_node_in_group("player")
+			if me and int(me.get("net_id")) == int(args[0]):
+				me.call("shoved", args[1])
 		"burn_fx":
 			BurnStatus.apply(self, float(args[0]), 0.0, null)
 		"poison_fx":

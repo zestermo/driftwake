@@ -64,6 +64,8 @@ scripts/progression/weapon_plus.gd      t/weapons t/crew/plus_duets t/progressio
 tools/dev/t/ship/*                      t/ship
 scripts/ship/enemy_ship.gd              t/ship/admiralty_patrol t/ship/marine_chaser t/ship/hunt_holds t/sea/big_ship
 scripts/enemies/pirate_grunt.gd         t/combat/grunt_roles t/combat/grunt_pressed t/combat/boss_no_heal_return
+scripts/enemies/personality.gd          t/combat/personality_roll t/combat/duelist_parry t/combat/bulwark_guard t/combat/opportunist_waits t/combat/berserker_combo t/combat/grunt_defend
+scripts/npc/foe_poses.gd                t/combat/personality_roll t/combat/duelist_parry
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
 scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters t/combat/admiralty_hunter t/combat/arrest

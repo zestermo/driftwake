@@ -2504,6 +2504,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return FistMoves.pose(self, n, u)
 	if n.begins_with("ct_"):
 		return CrewPoses.pose(self, n, u)
+	if n.begins_with("fo_"):
+		return FoePoses.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
