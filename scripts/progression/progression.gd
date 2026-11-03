@@ -1468,5 +1468,5 @@ func after_load() -> void:
 			subs.append("What you'd bought came back: " + ", ".join(trees.map(func(t): return points_line(t).trim_suffix(" (K)"))) + ".")
 		if _will_back > 0:
 			subs.append("Your Wills came back as %d Will points: pick a path (K, Captain: W)." % _will_back)
-		subs.append("The Adventure trees level faster now, each on its own curve.")
+		subs.append("The Adventure trees level faster now, and every tree is one map: Acrobatics' points came back to spend on its new moves (wall jumps, air dashes, slides).")
 		get_tree().call_group("hud", "show_banner", "Every weapon has its own points now" if _refunded else "The skill trees changed", " ".join(subs), true)

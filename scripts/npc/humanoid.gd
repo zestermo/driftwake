@@ -2808,6 +2808,20 @@ func _locomotion(delta: float) -> Dictionary:
 				"arm_" + ts: Vector3(0.9, 0, (1.0 + flail) * to), "arm_" + ls: Vector3(0.2, 0, (1.2 + flail) * lo), "torso": Vector3(-0.22, 0.08 * _jside, 0)}, true)
 		for j in jump.keys():
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
+		# (1.30) a long fall comes alive: the arms windmill out wide against the wind, the legs pedal, the chest arches
+		# into it and rolls a little side to side
+		var long_k := smoothstep(0.5, 1.1, _air_time) * clampf(-vy / 9.0, 0.0, 1.0)
+		if long_k > 0.0:
+			var wm := _t * 8.0
+			var pd := _t * 6.5
+			var free := {
+				"arm_l": Vector3(1.1 + sin(wm) * 0.85, 0, -1.35 - cos(wm) * 0.3), "fore_l": Vector3(0.45 + 0.3 * sin(wm * 1.3), 0, 0),
+				"arm_r": Vector3(1.1 - sin(wm + 0.6) * 0.85, 0, 1.35 + cos(wm + 0.6) * 0.3), "fore_r": Vector3(0.45 + 0.3 * cos(wm * 1.3), 0, 0),
+				"leg_l": Vector3(0.85 + sin(pd) * 0.5, 0, -0.2), "shin_l": Vector3(-1.1 - maxf(cos(pd), 0.0) * 0.7, 0, 0),
+				"leg_r": Vector3(0.85 - sin(pd) * 0.5, 0, 0.2), "shin_r": Vector3(-1.1 - maxf(-cos(pd), 0.0) * 0.7, 0, 0),
+				"torso": Vector3(0.18, 0.05 * sin(_t * 2.1), 0.07 * sin(_t * 2.3)), "head": Vector3(-0.2, 0, -0.05 * sin(_t * 2.3))}
+			for j in free.keys():
+				p[j] = (p[j] as Vector3).lerp(free[j], long_k)
 		if _guns_out():
 			_gun_tuck(p, 1.0)
 		elif armed and stance == "katana":

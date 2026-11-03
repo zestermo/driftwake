@@ -1389,7 +1389,7 @@ const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch", "Slide"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1937,6 +1937,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var st := current_state_name()
 		if st == "Crouch":
 			state_machine.force_state("Idle", {})
+		elif st == "Slide":
+			state_machine.force_state("Move" if inp.stick().length() > 0.1 else "Idle", {})
+		elif st == "Move" and SlideState.can_start(self):
+			# (1.30) C while moving on a slope: the slope slide, armed or not
+			state_machine.force_state("Slide", {})
+		elif st in ["Jump", "Fall"]:
+			# (and on the way down: land into one, FallState)
+			set_meta("slide_land", PlayerState.now_s())
 		elif (armed or (power.fruit_stance and crew_tech.id() != "")) and context == Context.ON_FOOT:
 			crew_tech.trigger()
 		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():

@@ -531,6 +531,11 @@ const SPECS := {
 		"variants": [{"dash_dir": Vector2(0, -1)}, {"dash_dir": Vector2(0, 1)}]},
 	"moonstep": {"len": 0.5, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 12.0}},
 	"crash_land": {"len": 0.6, "sharp": 45.0, "snap": true, "stance": "sword", "weapon": "", "extras": {"armed": false}},
+	# (1.30) the slope slide and the wall moves (MovePoses)
+	"slide": {"len": 0.25, "hold": true, "sharp": 40.0, "stance": "sword", "weapon": "", "extras": {"armed": false}},
+	"wall_kick": {"len": 0.4, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 8.0}},
+	"wall_cling": {"len": 0.25, "hold": true, "sharp": 40.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 0.0}},
+	"wall_run": {"len": 0.12, "hold": true, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "dash_dir": Vector2(1, 0)}},
 	"breakfall": {"len": 0.45, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": -4.0}},
 	"hit": {"len": 0.32, "react": true, "stance": "sword", "weapon": "cutlass", "extras": {"push": Vector3(0, 0, 1)},
 		"variants": [{"push": Vector3(0, 0, -1)}, {"push": Vector3(1, 0, 0)}]},

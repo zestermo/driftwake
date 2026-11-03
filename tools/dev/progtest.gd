@@ -128,11 +128,11 @@ func _process(d: float) -> bool:
 			p.health_component.current_health = 99999.0
 			check("Will isn't a level: no Will points from levels", pr.pool("will") == 0 and not pr.has_flag("armament"))
 			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
-			pr.add_life("acrobatics", pr.mastery_to_next(1, "acrobatics"))
-			check("Acrobatics 2: Geppo bought with its Adventure point, an air jump", pr.buy("m_geppo") and p.max_jumps == 2)
+			pr.add_life("acrobatics", pr.mastery_to_next(1, "acrobatics") + pr.mastery_to_next(2, "acrobatics"))
+			check("Acrobatics 3: Geppo bought with its 2 Adventure points, an air jump", pr.buy("m_geppo") and p.max_jumps == 2)
 			while pr.mastery_level("acrobatics") < 12:
 				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics"), "acrobatics"))
-			check("Fleetfoot (Acrobatics 12) bought speeds you up", pr.buy("ac_fleet") and p.move_speed > 6.0)
+			check("Fleetfoot (Acrobatics 12, after Swift Step) bought speeds you up", pr.buy("m_swift") and pr.buy("ac_fleet") and p.move_speed > 6.0)
 			pr.level = 14
 			pr._on_level_up()
 			check("Captain 14 hands out no skills; Squall Step bought at Acrobatics 8+, onto the bar", not pr.knows("tekkai") and pr.buy("m_soru") and pc.loadout[0] == "soru")

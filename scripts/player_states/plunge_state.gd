@@ -148,15 +148,27 @@ var _dir := Vector3.ZERO
 var _fired := false
 var _target: Node3D = null
 var _line := Vector3.ZERO
+## Dash Strike: the dive goes on along the dash at DASH_AHEAD m/s, coming down at DASH_DOWN.
+const DASH_AHEAD := 11.0
+const DASH_DOWN := 13.0
+var _dash := false
 var _ticks := 0
 var _struck: Array = []
 
 
-func enter(_data: Dictionary) -> void:
+func enter(data: Dictionary) -> void:
 	phase = 0
 	timer = 0.0
 	player.reset_combo()
 	var f := get_camera_forward()
+	# (Dash Strike, Acrobatics: out of an air dash, the plain plunge's cut dived on along the dash, no hang)
+	var dash: Vector3 = data.get("dash", Vector3.ZERO)
+	_dash = dash != Vector3.ZERO
+	if _dash:
+		f = Vector3(dash.x, 0.0, dash.z).normalized() if Vector2(dash.x, dash.z).length() > 0.1 else f
+		timer = HANG
+		plain_plunge = true
+		Net.fx("afterimage", [player.body_model, Color(1.0, 0.97, 0.88), 0.25])
 	player.player_model.rotation.y = atan2(-f.x, -f.z)
 	_dir = f
 	_fired = false
@@ -334,7 +346,7 @@ func physics_update(delta: float) -> void:
 			if timer >= (AXE_HANG if axe else (SPEAR_HANG if spear else (HAMMER_HANG if hammer else (SAW_HANG if saw else (MOON_HANG if moon else HANG))))):
 				phase = 1
 				timer = 0.0
-				player.velocity = _dir * 3.5 + Vector3.DOWN * DIVE_SPEED
+				player.velocity = _dir * (DASH_AHEAD if _dash else 3.5) + Vector3.DOWN * (DASH_DOWN if _dash else DIVE_SPEED)
 				if axe:
 					DrawnFx.slash(player, "axe", 0.3, false, 1.3)
 				elif moon:
@@ -363,7 +375,7 @@ func physics_update(delta: float) -> void:
 				hit.breaker = hammer
 				player.sword_hitbox.activate(hit)
 		1:
-			player.velocity.y = -(SPEAR_SPEED if spear else (HAMMER_SPEED if hammer else (SAW_SPEED if saw else (MOON_SPEED if moon else DIVE_SPEED))))
+			player.velocity.y = -(SPEAR_SPEED if spear else (HAMMER_SPEED if hammer else (SAW_SPEED if saw else (MOON_SPEED if moon else (DASH_DOWN if _dash else DIVE_SPEED)))))
 			player.move_and_slide()
 			if player.is_on_floor() or timer > 2.5:
 				_land()
@@ -1257,7 +1269,7 @@ func _air_combo_update(delta: float) -> void:
 	player.move_and_slide()
 	if timer >= AIR_COMBO_HIT and not _fired:
 		_fired = true
-		var spike := int(player.air_uses.get("air_combo", 0)) >= AIR_COMBO_MAX
+		var spike := int(player.air_uses.get("air_combo", 0)) >= air_combo_max()
 		var anim := str(get_meta("anim"))
 		var col: Color = player.progression.will_tint().lightened(0.2) if player.power.buff("coat") else FX.tree_col("plain", FX.EDGE)
 		if player.style() == "black_leg":
