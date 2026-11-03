@@ -9464,3 +9464,14 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - `PirateBoss._rush_ok`: inside `RedtideFort.WALL_R - 1` of his arena (so the gate's gap doesn't count).
 - Per tick: nothing new; ~18 rays plus an Ocean depth query once per rush wind-up (host).
 - Test: t/combat/rush_lane (the stage's shore, a stand-in arena, a real rush at a captain past the "gate").
+- **Piece 2, catching the crew (EnemyShip):** `_max_speed` = max(her own canvas `_own_speed()`, the crew's speed +
+  `_edge`: CHASE_EDGE 1 at her far range, +1 per CATCH_PER 40 m further, up to CHASE_EDGE_MAX 3) for the first
+  CHASE_SECS 90 of a fight. The clock runs only in HUNT/BROADSIDE/RAM (it used to run while a patrol tracked from 330 m,
+  spent before the hunt began) and restarts on TRACK->HUNT; a tracking pursuer has the edge without the clock. Hunting
+  pirates get it too (they had none: 12.5 against an upgraded 13.1). BROADSIDE against a crew under way (>= CHASE_SLOW)
+  is a running fight: she steers for a spot abreast of her at mid broadside range on her course, speed by how far
+  ahead the spot is, instead of circling and falling astern (the hunt/broadside loop). Boats and "catchable" read her
+  own canvas. No per-level speed (Admiralty levels are the captains' levels: x(1+0.02 lv) would be +60% at 30).
+  Tests: t/ship/marine_chaser (a patrol from 330 m on an upgraded sloop's wake, beam wind: broadside range in 102 s),
+  new t/ship/pirate_chaser (a pirate sloop from 140 m: in range in ~74 s, then 30 s at her side, a volley);
+  t/ship/enemy_boarding sets its chase past the spurt (its "too fast to catch" premise).

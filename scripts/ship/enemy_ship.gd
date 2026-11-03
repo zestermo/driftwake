@@ -100,10 +100,13 @@ const TRACK_LOSE := 2.2
 const CHAIN_AIM_Y := 10.5
 ## No more than this many pirate ships fight the crew at once (the rest keep patrolling; the Admiralty's don't count).
 const MAX_ATTACKERS := 2
-## (pursuer, 1.26) For the first CHASE_SECS of a chase she can make the crew's own speed + CHASE_EDGE (every stitch of
-## canvas on): a crew under full sail is closed on slowly and one that slows is caught; after that, her own speed.
+## (1.26; 1.30 pirates too) For the first CHASE_SECS of a fight (HUNT, BROADSIDE, RAM; a tracking pursuer has it too
+## without the clock running) she can make the crew's own speed + an edge (every stitch of canvas on): CHASE_EDGE at her
+## far range, one more each CATCH_PER m further, up to CHASE_EDGE_MAX; after that, her own speed.
 const CHASE_SECS := 90.0
 const CHASE_EDGE := 1.0
+const CHASE_EDGE_MAX := 3.0
+const CATCH_PER := 40.0
 ## Bow chasers (kinds with "chaser"): a gun in her bow, fired straight ahead on the way in (CHASER_WARN s of sparks
 ## first) every CHASER_EVERY s; chain shot at a crew running with whole sails.
 const CHASER_EVERY := 4.5
@@ -272,6 +275,14 @@ func setup(center: Vector3, radius: float, start_angle: float, seed_value: int, 
 
 
 func _max_speed() -> float:
+	var own := _own_speed()
+	if _chase_t < CHASE_SECS and _target and is_instance_valid(_target) and (state in [S.HUNT, S.BROADSIDE, S.RAM] or (pursuer and state == S.TRACK)):
+		return maxf(own, _speed_of(_target) + _edge(_target))
+	return own
+
+
+## Her own canvas in this wind (no chase's spurt).
+func _own_speed() -> float:
 	var wx := get_node_or_null("/root/Weather")
 	var k := Ship.wind_boost(_heading, wx)
 	# (a hunter's rig loves the wind from astern: up to "downwind" more, fading out by a beam reach)
@@ -280,10 +291,13 @@ func _max_speed() -> float:
 		var wd: Vector2 = wx.wind_dir()
 		var a := rad_to_deg(absf(Vector2(-sin(_heading), -cos(_heading)).angle_to(wd)))
 		k += dw * (1.0 - smoothstep(45.0, 100.0, a)) * lerpf(0.5, 1.0, clampf(float(wx.get("wind")), 0.0, 1.0))
-	var own := float(spec["speed"]) * k
-	if pursuer and _chase_t < CHASE_SECS and _target and is_instance_valid(_target) and state in [S.TRACK, S.HUNT, S.BROADSIDE, S.RAM]:
-		return maxf(own, _speed_of(_target) + CHASE_EDGE)
-	return own
+	return float(spec["speed"]) * k
+
+
+## How much faster than the crew she can crowd on (the chase's first CHASE_SECS): more the further behind she is.
+func _edge(tgt: Node3D) -> float:
+	var gap := Vector2(tgt.global_position.x - _pos.x, tgt.global_position.z - _pos.z).length()
+	return clampf(CHASE_EDGE + (gap - float(spec["range"][1])) / CATCH_PER, CHASE_EDGE, CHASE_EDGE_MAX)
 
 
 func _ready() -> void:
@@ -513,7 +527,7 @@ func _physics_process(delta: float) -> void:
 	st_t += delta
 	_volley_cd -= delta
 	_chaser_cd -= delta
-	if state in [S.TRACK, S.HUNT, S.BROADSIDE, S.RAM]:
+	if state in [S.HUNT, S.BROADSIDE, S.RAM]:
 		_chase_t += delta
 	_bark_t -= delta
 	if _bark_t <= 0.0:
@@ -586,18 +600,30 @@ func _physics_process(delta: float) -> void:
 					_set_state(S.BROADSIDE)
 					_orbit = 1.0 if _right().dot(to_t) > 0.0 else -1.0
 			else:
-				# circle the target at broadside range, a side toward it
-				var b := to_t.normalized()
-				var tangent := Vector3.UP.cross(b) * -_orbit
-				var radial := 0.0
-				if dist > far_r:
-					radial = 0.6
-				elif dist < near_r:
-					radial = -0.7
-				var d := (tangent + b * radial).normalized()
-				want_heading = atan2(-d.x, -d.z)
-				# (keep pace with a ship under way, not just circle a sitting one)
-				want_speed = clampf(_speed_of(tgt) + 1.5, _max_speed() * 0.75, _max_speed())
+				if _speed_of(tgt) >= CHASE_SLOW:
+					# (1.30) a ship under way: a running fight, abreast of her at broadside range on her course (circling
+					# fell astern of a faster ship, and she looped hunt-broadside for ever)
+					var side := 1.0 if tgt.global_basis.x.dot(_pos - tgt.global_position) > 0.0 else -1.0
+					var spot := tgt.global_position + tgt.global_basis.x * side * (near_r + far_r) * 0.5 + _vel_of(tgt) * 2.0
+					var to_sp := spot - _pos
+					to_sp.y = 0.0
+					var th: float = tgt.global_rotation.y
+					var along := to_sp.dot(Vector3(-sin(th), 0.0, -cos(th)))
+					want_heading = lerp_angle(th, atan2(-to_sp.x, -to_sp.z), clampf(to_sp.length() / 30.0, 0.0, 0.8)) if along > -5.0 else th
+					want_speed = clampf(_speed_of(tgt) + along * 0.15, 2.0, _max_speed())
+				else:
+					# circle the target at broadside range, a side toward it
+					var b := to_t.normalized()
+					var tangent := Vector3.UP.cross(b) * -_orbit
+					var radial := 0.0
+					if dist > far_r:
+						radial = 0.6
+					elif dist < near_r:
+						radial = -0.7
+					var d := (tangent + b * radial).normalized()
+					want_heading = atan2(-d.x, -d.z)
+					# (keep pace with a ship under way, not just circle a sitting one)
+					want_speed = clampf(_speed_of(tgt) + 1.5, _max_speed() * 0.75, _max_speed())
 				if dist > far_r + 30.0 or (_chaser and dist > BROADSIDE_IN + 20.0 and _keeps_chasing(tgt, dist)):
 					_set_state(S.HUNT)
 				_try_volley(tgt, to_t, dist)
@@ -608,8 +634,8 @@ func _physics_process(delta: float) -> void:
 					_fight_t += delta
 				# up close the guns won't bear: they ram you or board you
 				var close := dist < CLOSE + 6.0
-				# they can run you down: anything slower than them, or nearly stopped
-				var catchable := _speed_of(tgt) < maxf(_max_speed() - 0.5, 7.0)
+				# they can run you down: anything slower than her own canvas, or nearly stopped
+				var catchable := _speed_of(tgt) < maxf(_own_speed() - 0.5, 7.0)
 				# ram them: close, or slow and in reach after a volley
 				if spec["rams"] and _ram_cd <= 0.0 and _warn_t < 0.0 and hull > max_hull * 0.35 and dist < 45.0 \
 						and (close or (_volleys >= 1 and _speed_of(tgt) < 8.0)):
@@ -641,6 +667,7 @@ func _physics_process(delta: float) -> void:
 			var quarry := get_tree().get_first_node_in_group("ship") as Node3D
 			if tgt and dist < NOTICE * Admiralty.sight_k(get_tree(), tgt.global_position) * 1.4 and _huntable(tgt):
 				_set_state(S.HUNT)
+				_chase_t = 0.0
 				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
 				bark(["There she is! All sail!", "Sail ho! That's our quarry!"][_rng.randi() % 2], 2.5)
 				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
