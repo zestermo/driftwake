@@ -251,6 +251,7 @@ var net_profile: Dictionary = {}
 var input_locked: bool = false
 ## Knocked out in co-op: on the ground, waiting for a crewmate (see revive).
 var bleeding: bool = false
+var spared: bool = false
 var bleed_t: float = 0.0
 const BLEED_TIME := 20.0
 const REVIVE_TIME := 2.5
@@ -3294,13 +3295,37 @@ func _bleed_tick(delta: float) -> void:
 		# nobody came (or nobody's left standing): the usual death
 		bleeding = false
 		get_tree().call_group("hud", "show_prompt", "", -1.0)
+		if spared:
+			if Net.others_standing():
+				Duel.stand_up(self, health_component.max_health * REVIVE_HEALTH, power.energy)
+			return
 		GameManager.bleed_out()
+
+
+## Beaten but spared (Duel.spare: downed, not dead): with a crewmate still standing they can get you up, and if nobody
+## does you get up on your own; with none, you lie for whatever takes the crew (the brig, a rival's plunder).
+func spared_down() -> void:
+	if bleeding or not is_local or is_ai or not Net.coop() or not Net.others_standing():
+		return
+	spared = true
+	bleeding = true
+	bleed_t = BLEED_TIME
+	_revive_t = 0.0
+	_toast("You're down! A crewmate can get you up (hold F next to you)")
+
+
+func spared_up() -> void:
+	spared = false
+	if bleeding:
+		bleeding = false
+		get_tree().call_group("hud", "show_prompt", "", -1.0)
 
 
 ## A crewmate got you back on your feet.
 func revive() -> void:
 	if not bleeding:
 		return
+	spared = false
 	bleeding = false
 	get_tree().call_group("hud", "show_prompt", "", -1.0)
 	var hc := health_component

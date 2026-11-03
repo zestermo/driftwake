@@ -9681,3 +9681,6 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Tests: t/boss/beast_phase_reset, morrow_phase_reset, captain_phase_reset, brood_phase_reset, beast_clear;
   t/combat/wall_slide; t/beast/ape_phases and apetest updated (the reset replaced the moment). Renders:
   `bossshot.gd -- <dir> <kind> reset,clear` (RESET_FILM on every kind).
+## 2026-11-03: a captain beaten by an AI captain in co-op lay down for good (stronghold bosses)
+
+Duel.beaten spares a captain beaten with a rival within 40 m (downed, dead, 0 hp, not bleeding): only RivalEncounter and the brig stood them up, so the Commodore (or any officer) beating a guest while a crewmate still stood left them unreviveable and unrespawnable. Player.spared_down (from Duel.spare) now makes them bleed (revivable, F) when a crewmate stands; the bleed running out stands them up at 30% (spared_up clears it; Duel.stand_up too); with the whole crew down they lie for the wipe (the brig stands them up). t/coop/spared_revive.
