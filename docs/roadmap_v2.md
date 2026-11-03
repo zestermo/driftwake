@@ -129,3 +129,9 @@ to work toward.
   cabin that grows with a Quarters line, ladders, the flag, an upgrading wheel, the galley and berths), new clothing
   (masks, wraps, parachute pants, a jester outfit, a bouncing backpack, coats worn over the shoulders), hitches and
   flakes; **released as the stable v1.29** (2026-11-02). **1.30**: the brig and galleon on new layouts, new creatures for the thinnest themes. The submarine later.
+
+## Decided (2026-11-03)
+- **1.30** takes everything from the 1.29 playtest (docs/playtest_2026_11_02.md, docs/v1_30_plan.md "Decided"): the
+  bug fixes, a standing chain goal plus a journal rework (mock first), rivals arriving by a visible ship, Driftfruit on
+  with the stronghold vault's fruit, boss phase resets and a clearing move, the Redtide mountain; alongside the brig,
+  the galleon and the thin themes' creatures. No 1.29.1.
