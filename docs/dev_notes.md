@@ -9502,3 +9502,8 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   booms and banner come first, the ships a few seconds later. Per frame: one `_pending.is_empty()` check.
   Tests: new t/ship/admiralty_warm (a deed's blockade and ring, then a patrol: no "a body built on the main thread" mark,
   one ship a frame); t/ship/admiralty_ring, admiralty_hunt, marine_chaser wait for the ships.
+
+## 2026-11-03: 1.30 land fixes, piece 5: the playtest log's missing materials
+- `CapitalModels.mat("beam")` (capital_district's market stall frames) had no case: it now shares "dark" (planks_dark).
+- stronghold_muster's flag poles asked for `stone.png` / `cloth.png`, which don't exist: now stone_brick and canvas
+  (the flags keep their tints). t/stronghold/muster and t/capital/favour logs are clean of both.

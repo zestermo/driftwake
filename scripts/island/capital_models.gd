@@ -57,7 +57,7 @@ static func mat(kind: String) -> Material:
 			return PSXMat.lit("window", Color.WHITE, {"emission": Color(0.9, 0.7, 0.35), "emission_energy": 0.31, "emission_tex": "window"})
 		"slabs":
 			return PSXMat.lit("capital_slabs")
-		"dark":
+		"dark", "beam":
 			return PSXMat.lit("planks_dark")
 		"iron":
 			return PSXMat.lit("metal", Color(0.3, 0.3, 0.33))
