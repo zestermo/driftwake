@@ -82,7 +82,7 @@
   - Downed in a boss fight: a crewmate revives you. If you bleed out, you respawn just outside the arena and walk back in; only a full wipe resets the boss.
   - Objectives that split the crew: hold a gate, a sniper perch, two levers at once. All of it is still doable solo.
   - The side areas reachable, and a polish pass on the layout and models.
-- 📋 **Gadgets:** smoke bombs, a grapple hook, explosive charges and flash powder.
+- ✅ **Gadget packs:** buy smoke, flash, powder charges and the grappling hook at Nessa's and the chandlers (U uses, O cycles). Smoke now hides you behind the cloud too and lasts longer; flash stuns longer and dazzles a captain looking at it; the new powder charge blows gates, crates and crowds.
 
 ## The world
 - ✅ **Fixed: falling through the capital's roofs.** About 330 houses behind the front rows are now solid.
