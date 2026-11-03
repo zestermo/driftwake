@@ -90,6 +90,8 @@ static func build(isl: Node3D) -> Array:
 			isl.city.add_child(r)
 			out.append(r)
 			sources[key].append(r)
+	# the acts' pieces: the Landing's gate, the Verdict's roof and its hoist, grapple ledges, the supply chest
+	out.append_array(StrongholdActs.build(isl))
 	var alarm := StrongholdAlarm.new().setup(isl, squads, sources)
 	isl.city.add_child(alarm)
 	out.append(alarm)

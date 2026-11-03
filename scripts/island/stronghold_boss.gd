@@ -17,16 +17,41 @@ extends Node3D
 ## Scouring follow.
 
 const BOSSES := {
-	"kesh": {"room": "casting", "name": "Lieutenant Varro Kesh", "weapon": "cutlass", "offhand": "pistol", "hp": 6.0,
-		"skill": 0.85, "seal": "arsenal", "p2": 0.5},
-	# (an open arena, no room: the yard before the prison's drum; at half health the cell block opens on its brutes)
-	"marrow": {"arena": [Vector2(-72.0, 5.0), 14.0], "district": 3, "name": "Captain Ilse Marrow", "weapon": "greatsword", "hp": 8.0,
-		"skill": 0.9, "seal": "prison", "p2": 0.5, "adds": [4], "prisoners": true},
-	# (the end: three phases; at 65% the fortress answers (two waves of marines, the hall's quarters flaring), at 30% the
-	# Verdict (a second blade, enraged))
-	"vane": {"room": "command", "name": "Commodore Aurel Vane", "weapon": "katana", "offhand": "pistol", "offhand3": "cutlass",
-		"hp": 12.0, "skill": 0.9, "seal": "keep", "p2": 0.65, "p3": 0.3, "adds": [5, 5]},
+	"kesh": {"room": "casting", "name": "Lieutenant Varro Kesh", "epithet": "the Foundry's Hammer", "weapon": "cutlass", "offhand": "pistol", "hp": 6.0,
+		"skill": 1.0, "seal": "arsenal", "p2": 0.5, "checkpoint": Vector2(62.0, -23.0),
+		"sig": {"r": 4.5, "dmg": 26.0, "push": 15.0, "lines": ["Into the crucible!", "Feel the hammer!", "Melt!"]}},
+	# (an open arena, no room: the yard before the prison's drum; at half health the cell block opens and the riot comes)
+	"marrow": {"arena": [Vector2(-72.0, 5.0), 14.0], "district": 3, "name": "Captain Ilse Marrow", "epithet": "Warden of the Drowned Cells",
+		"weapon": "greatsword", "hp": 8.0, "skill": 1.0, "seal": "prison", "p2": 0.5, "adds": [5, 6, 6], "prisoners": true,
+		"checkpoint": Vector2(-55.0, -4.0),
+		"sig": {"r": 6.0, "dmg": 28.0, "push": 17.0, "lines": ["The gallows drop!", "Kneel!", "Sentence passed!"]}},
+	# (the end: in the Command Hall, then at 65% up onto the Verdict's roof (the balcony over the hall's door) with marines
+	# coming out of the tower after him; at 30% the Verdict: a second blade, enraged, and the Scouring is ordered)
+	"vane": {"room": "command", "name": "Commodore Aurel Vane", "epithet": "the Verdict of the Admiralty", "weapon": "katana", "offhand": "pistol",
+		"offhand3": "cutlass", "hp": 12.0, "skill": 1.0, "seal": "keep", "p2": 0.65, "p3": 0.3, "adds": [5, 5],
+		"checkpoint": Vector2(0.0, -56.0),
+		"sig": {"r": 5.0, "dmg": 30.0, "push": 16.0, "lines": ["Judgement!", "The Verdict falls!", "Kneel before the Admiralty!"]}},
 }
+## (1.30 set pieces) The signature attack: every SIG_EVERY[phase] s the boss marks a captain's spot (a ring on the
+## floor), leaps there and lands with a shockwave (BossReset's leap, untouchable only in the air): big and readable.
+const SIG_EVERY := [10.0, 7.5, 5.5]
+const SIG_WIND := 0.7
+const SIG_AIR := 0.75
+const SIG_REST := 0.45
+const SIG_REACH := 24.0
+## A faster, more aggressive brain than a rival's (CaptainBrain.pace under 1).
+const PACE := 0.7
+## Kesh's pouring foundry (phase 2 on): the crucible swings over the hall and pours on one of POURS (room-local xz) in
+## turn every POUR_CYCLE s: POUR_WARN s of a glowing ring, then POUR_BURN s of molten iron in POUR_R (POUR_DPS).
+const POURS := [Vector2(-7.0, -6.0), Vector2(7.0, 5.0), Vector2(6.0, -8.0), Vector2(-6.0, 7.0)]
+const POUR_CYCLE := 9.0
+const POUR_WARN := 2.0
+const POUR_BURN := 4.5
+const POUR_R := 4.0
+const POUR_DPS := 30.0
+## A captain who bleeds out in an arena is back at its checkpoint this long after (GameManager's respawn).
+const REJOIN_SECS := 8.0
+static var all: Array = []
 ## The molten channels (Kesh's phase 2): across the room at these offsets from its middle, each this wide; one at a
 ## time in turn every CYCLE s: WARN s of glow, then BURN s of burning; MOLTEN_DPS to a captain standing in it.
 const CHANNELS := [-9.0, 0.0, 9.0]
@@ -73,14 +98,22 @@ func setup(island: Node3D, boss_key: String) -> StrongholdBoss:
 
 
 func _ready() -> void:
+	all.append(self)
 	if not rm.is_empty():
 		_grate = StrongholdEncounter.make_grate(rm)
 		add_child(_grate)
+		_build_postern()
 	if BOSSES[key].has("adds"):
 		_build_adds()
 	_build_zones()
 	if key == "marrow":
 		_build_catwalks()
+	if key == "kesh":
+		_build_pours()
+
+
+func _exit_tree() -> void:
+	all.erase(self)
 
 
 func _flag(f: String) -> bool:
@@ -122,7 +155,15 @@ func _process(delta: float) -> void:
 	if _grate and _grate.visible != shut:
 		_grate.visible = shut
 		_grate.collision_layer = 1 if shut else 0
+	if _postern:
+		_postern.enabled = shut
+	# (every machine) the intro card as the fight starts
+	var on := _flag(flag_on())
+	if on and not _carded and not beaten():
+		get_tree().call_group("hud", "show_name_card", str(BOSSES[key]["name"]), str(BOSSES[key]["epithet"]))
+	_carded = on
 	_hazards(delta)
+	_pours(delta)
 	if key == "vane" and not _vault and beaten():
 		_vault = true
 		_open_vault()
@@ -133,7 +174,7 @@ func _process(delta: float) -> void:
 		return
 	_check = 0.25
 	var net := get_node("/root/Net")
-	if not _flag(flag_on()):
+	if not on:
 		if _anyone_inside():
 			_spawn()
 			net.world_flag(flag_on())
@@ -143,6 +184,9 @@ func _process(delta: float) -> void:
 		if boss == null:
 			_spawn()
 			return
+	if _wiped():
+		reset_fight()
+		return
 	if not is_equal_approx(float(net.hp_scale()), _k):
 		rescale(float(net.hp_scale()))
 	var hp := boss.health_component.current_health / maxf(boss.health_component.max_health, 1.0)
@@ -161,9 +205,44 @@ func _process(delta: float) -> void:
 		net.world_flag(flag_p3())
 		_leap_home()
 		_enrage()
+		if key == "vane":
+			# (the Verdict on its roof: the fleet is told to scour the rock, the sky goes dark round the duel)
+			net.world_flag("sh_scouring")
+	_signature(0.25)
 	if hp <= 0.0:
 		net.world_flag(flag_seal())
 		net.bounty("commodore" if key == "vane" else "stronghold_officer", boss.global_position, 120.0)
+
+
+var _carded := false
+
+
+## (host) Every so often the signature leap at a captain within SIG_REACH (a ring where they stand, then the landing's
+## shockwave), not while it's down, leaping already or perched.
+var _sig_t := 6.0
+
+
+func _signature(step: float) -> void:
+	_sig_t -= step
+	if _sig_t > 0.0 or _perched > 0.0 or boss.current_state_name() in ["Downed", "BossLeap"] or boss.health_component.current_health <= 0.0:
+		return
+	var best: Node3D = null
+	var bd := SIG_REACH
+	for p in get_node("/root/Net").all_players():
+		var d := (p as Node3D).global_position.distance_to(boss.global_position)
+		if d < bd and (p as Player).is_standing() and absf((p as Node3D).global_position.y - boss.global_position.y) < 3.0:
+			bd = d
+			best = p
+	if best == null:
+		_sig_t = 1.0
+		return
+	_sig_t = float(SIG_EVERY[phase() - 1])
+	var s: Dictionary = BOSSES[key]["sig"]
+	var r := BossReset.new(boss, self)
+	r._run(BossReset.floor_at(boss, best.global_position), SIG_WIND, SIG_AIR, SIG_REST, false, float(s["r"]), float(s["dmg"]), float(s["push"]))
+	boss.state_machine.force_state("BossLeap", {"reset": r})
+	var lines: Array = s["lines"]
+	FX.speech(boss, str(lines[randi() % lines.size()]))
 
 
 ## (1.30) Each new phase starts from the room's middle: a leap there, a shockwave, a roar it can't be hurt in (BossReset
@@ -174,7 +253,132 @@ var _perch_in := 0.0
 func _leap_home() -> void:
 	if boss.current_state_name() == "Downed":
 		return
-	boss.state_machine.force_state("BossLeap", {"reset": BossReset.new(boss, self).start(BossReset.floor_at(boss, global_position))})
+	var home := global_position
+	if key == "vane" and phase() >= 2:
+		# (up through the roof hatch onto the Verdict's balcony: the crew follows by the hoist, or a grapple)
+		home = roof()
+		FX.speech(boss, "Come up and face the Verdict, if you dare the climb!")
+	boss.state_machine.force_state("BossLeap", {"reset": BossReset.new(boss, self).start(BossReset.floor_at(boss, home))})
+
+
+## The Verdict's roof: the balcony's middle (StrongholdActs).
+func roof() -> Vector3:
+	return isl.city_global(StrongholdActs.BALCONY.get_center(), StrongholdActs.ROOF_Y)
+
+
+## Where the fight is now: Vane's roof from phase 2, else the arena's middle.
+func centre() -> Vector3:
+	return roof() if key == "vane" and phase() >= 2 else global_position
+
+
+## (host) Every captain on the stronghold down while the fight's on: a wipe. The boss starts over (StrongholdBoss.reset_fight).
+func _wiped() -> bool:
+	var near: Array = get_node("/root/Net").all_players().filter(func(p): return (p as Node3D).global_position.distance_to(global_position) < 260.0)
+	return not near.is_empty() and near.all(func(p): return not (p as Player).is_standing())
+
+
+## (host) A wipe: the fight starts over. Every phase flag cleared (Net.clear_world_flag), the boss healed, back at its
+## spot and waiting; its adds called off; the crew gets back up at the checkpoint (GameManager's respawn, rejoin_point).
+func reset_fight() -> void:
+	var net := get_node("/root/Net")
+	for f in [flag_on(), flag_p2(), flag_p3()]:
+		net.clear_world_flag(f)
+	_perched = 0.0
+	_perch_in = 0.0
+	_sig_t = 6.0
+	if boss and is_instance_valid(boss):
+		if boss.current_state_name() == "BossLeap":
+			boss.state_machine.force_state("Idle", {})
+		boss.global_position = _spawn_at()
+		boss.reset_physics_interpolation()
+		boss.hp_k = float(BOSSES[key]["hp"]) * _k
+		boss._recalc_stats()
+		boss.health_component.current_health = boss.health_component.max_health
+		boss.health_component.health_changed.emit(boss.health_component.current_health, boss.health_component.max_health)
+		var brain := boss.get_node_or_null("Brain")
+		if brain:
+			brain.order = "hold"
+			brain.skill = float(BOSSES[key]["skill"])
+	if _adds:
+		_adds.call_off()
+	Net.banner(str(BOSSES[key]["name"]), "Your crew is down. Back at the checkpoint: the fight starts over.", true)
+
+
+var _adds: StrongholdEncounter
+
+
+## (1.30, "revive, else rejoin") Where a captain who falls at `at` gets back up: just outside the arena of a stronghold
+## boss not yet beaten whose arena `at` is in (its fight on or just reset by a wipe); Vector3.INF elsewhere.
+static func rejoin_point(at: Vector3) -> Vector3:
+	for b in all:
+		if is_instance_valid(b) and not (b as StrongholdBoss).beaten() and (b as StrongholdBoss).contains(at):
+			return (b as StrongholdBoss).checkpoint()
+	return Vector3.INF
+
+
+## (host) A stronghold boss's fight is on (the Scouring's wipe leaves a wipe here to the boss).
+static func fighting() -> bool:
+	return all.any(func(b): return is_instance_valid(b) and b._flag(b.flag_on()) and not b.beaten())
+
+
+func checkpoint() -> Vector3:
+	var q: Vector2 = BOSSES[key]["checkpoint"]
+	var g := StrongholdPlan.ground(q)
+	return isl.city_global(q, (g if g > -INF else position.y) + 0.4)
+
+
+## Is `at` in the arena (the room, the yard, Vane's roof), with a margin?
+func contains(at: Vector3) -> bool:
+	var l := to_local(at)
+	if key == "vane":
+		var rl: Vector3 = isl.city.to_local(at)
+		if StrongholdActs.BALCONY.grow(6.0).has_point(Vector2(rl.x, rl.z)) and absf(rl.y - StrongholdActs.ROOF_Y) < 6.0:
+			return true
+	if rm.is_empty():
+		return Vector2(l.x, l.z).length() < float(BOSSES[key]["arena"][1]) + 4.0 and absf(l.y) < 10.0
+	var r: Rect2 = rm[2]
+	return absf(l.x) < r.size.x * 0.5 + 1.0 and absf(l.z) < r.size.y * 0.5 + 1.0 and l.y > -2.0 and l.y < float(rm[4]) + 1.0
+
+
+## Back on your feet at the boss's checkpoint (each captain on their own machine), full health, to walk back in.
+static func rejoin(p: Player, at: Vector3) -> void:
+	p.spared_up()
+	p.global_position = at
+	p.reset_physics_interpolation()
+	p.velocity = Vector3.ZERO
+	var hc := p.health_component
+	hc.current_health = hc.max_health
+	hc.health_changed.emit(hc.current_health, hc.max_health)
+	p.state_machine.force_state("Idle", {})
+	p.get_tree().call_group("hud", "show_toast", "Back at the checkpoint: get back in there")
+
+
+## A sealed room's postern: F at the grate (while the fight's on) slips a captain back in (a rejoin, a latecomer).
+var _postern: Interactable
+
+
+func _build_postern() -> void:
+	var door: Vector2 = rm[5]
+	var half := ((rm[2] as Rect2).size.x if absf(door.x) > 0.5 else (rm[2] as Rect2).size.y) * 0.5
+	_postern = Interactable.new()
+	_postern.name = "Postern"
+	_postern.collision_layer = 512
+	_postern.collision_mask = 0
+	_postern.prompt_text = "Slip in through the grate's postern"
+	_postern.gesture = "open"
+	var cs := CollisionShape3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 1.8
+	cs.shape = sph
+	_postern.add_child(cs)
+	_postern.position = Vector3(door.x * (half + 1.2), 1.2, door.y * (half + 1.2))
+	_postern.enabled = false
+	add_child(_postern)
+	_postern.interacted.connect(func(p: Player):
+		var inside := to_global(Vector3(door.x * (half - 3.0), 0.4, door.y * (half - 3.0)))
+		p.global_position = inside
+		p.reset_physics_interpolation()
+		Net.fx("sfx", ["rope", inside, -6.0, 0.05]))
 
 
 func net_event(what: String, args: Array) -> void:
@@ -182,16 +386,18 @@ func net_event(what: String, args: Array) -> void:
 		BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))
 
 
+## A captain on their feet in the arena (the downed of a wipe don't start it again where they lie).
 func _anyone_inside() -> bool:
+	var up: Array = get_node("/root/Net").all_players().filter(func(p): return (p as Player).is_standing())
 	if rm.is_empty():
 		var reach: float = BOSSES[key]["arena"][1]
-		for p in get_node("/root/Net").all_players():
+		for p in up:
 			var d := to_local((p as Node3D).global_position)
 			if Vector2(d.x, d.z).length() < reach and absf(d.y) < 6.0:
 				return true
 		return false
 	var r: Rect2 = rm[2]
-	for p in get_node("/root/Net").all_players():
+	for p in up:
 		var l := to_local((p as Node3D).global_position)
 		if absf(l.x) < r.size.x * 0.5 - 1.4 and absf(l.z) < r.size.y * 0.5 - 1.4 and l.y > -1.0 and l.y < float(rm[4]):
 			return true
@@ -210,19 +416,31 @@ func rescale(k: float) -> void:
 
 ## The boss (host): an Admiralty officer's look under its name, at the room's back facing the door, its weapon (and
 ## off-hand), the full kit by skill, a boss's health, on the captains.
+## Where it stands waiting: the room's back facing the door (the yard's middle for an arena).
+func _spawn_at() -> Vector3:
+	var door: Vector2 = rm[5] if not rm.is_empty() else Vector2(1, 0)
+	var back := -door * (minf((rm[2] as Rect2).size.x, (rm[2] as Rect2).size.y) * 0.3 if not rm.is_empty() else 4.0)
+	return to_global(Vector3(back.x, 0.5, back.y))
+
+
 func _spawn() -> void:
 	var b: Dictionary = BOSSES[key]
+	var bname := "Boss%s" % key.capitalize()
+	var net := get_node("/root/Net")
+	boss = isl.city.get_node_or_null(bname) as Player
+	if boss and is_instance_valid(boss):
+		# (a fight started over after a wipe: the same body, back on the captains)
+		var br := boss.get_node_or_null("Brain")
+		if br:
+			br.order = "fight"
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(["boss", key])
 	var lk := PirateGrunt.crew_look(rng)
 	EnemyShip.marine_look(lk, rng, true)
 	lk["name"] = str(b["name"])
 	var door: Vector2 = rm[5] if not rm.is_empty() else Vector2(1, 0)
-	var back := -door * (minf((rm[2] as Rect2).size.x, (rm[2] as Rect2).size.y) * 0.3 if not rm.is_empty() else 4.0)
-	var at := to_global(Vector3(back.x, 0.5, back.y))
-	var net := get_node("/root/Net")
-	var bname := "Boss%s" % key.capitalize()
-	net.everyone("_all_spawn_rival", [net.key_of(isl.city), bname, lk, str(b["weapon"]), at, atan2(door.x, door.y), float(b["skill"])])
+	net.everyone("_all_spawn_rival", [net.key_of(isl.city), bname, lk, str(b["weapon"]), _spawn_at(), atan2(door.x, door.y), float(b["skill"])])
 	boss = isl.city.get_node_or_null(bname) as Player
 	if boss == null:
 		return
@@ -236,6 +454,7 @@ func _spawn() -> void:
 	var brain := boss.get_node_or_null("Brain")
 	if brain:
 		brain.order = "fight"
+		brain.pace = PACE
 
 
 # --------------------------------------------------------------------------
@@ -315,6 +534,95 @@ func _hazards(delta: float) -> void:
 			me.hurtbox.take_hit(hd, null)
 
 
+## Kesh's crucible pours: which spot now and how ([index, "warn" / "burn" / ""]), from Ocean.clock (every machine the same).
+func pour_now() -> Array:
+	if _pour_discs.is_empty() or phase() < 2 or beaten() or not _flag(flag_on()):
+		return [-1, ""]
+	var t := float(get_node("/root/Ocean").clock())
+	var i := int(floor(t / POUR_CYCLE)) % POURS.size()
+	var u := fmod(t, POUR_CYCLE)
+	if u < POUR_WARN:
+		return [i, "warn"]
+	if u < POUR_WARN + POUR_BURN:
+		return [i, "burn"]
+	return [i, ""]
+
+
+var _pour_discs: Array = []
+var _pour_streams: Array = []
+var _pour_hurt := 0.0
+var _pour_was := ""
+
+
+## The pours' marks: a glowing disc on the floor at each spot (a warning glow, then the molten pool), and the stream of
+## iron falling into it from the crucible's lip (only while it burns).
+func _build_pours() -> void:
+	for q: Vector2 in POURS:
+		var d := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = POUR_R
+		cm.bottom_radius = POUR_R
+		cm.height = 0.08
+		cm.radial_segments = 16
+		d.mesh = cm
+		d.position = Vector3(q.x, 0.06, q.y)
+		d.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		d.visible = false
+		add_child(d)
+		_pour_discs.append(d)
+		var s := MeshInstance3D.new()
+		var sm := CylinderMesh.new()
+		sm.top_radius = 0.5
+		sm.bottom_radius = 0.9
+		sm.height = float(rm[4]) - 1.0
+		sm.radial_segments = 8
+		s.mesh = sm
+		s.material_override = _burn_m
+		s.position = Vector3(q.x, (float(rm[4]) - 1.0) * 0.5, q.y)
+		s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		s.visible = false
+		add_child(s)
+		_pour_streams.append(s)
+
+
+func _pours(delta: float) -> void:
+	if _pour_discs.is_empty():
+		return
+	var now := pour_now()
+	var i := int(now[0])
+	var how := str(now[1])
+	for k in range(_pour_discs.size()):
+		var on: bool = k == i and how != ""
+		(_pour_discs[k] as MeshInstance3D).visible = on
+		(_pour_streams[k] as MeshInstance3D).visible = on and how == "burn"
+		if on:
+			(_pour_discs[k] as MeshInstance3D).material_override = _burn_m if how == "burn" else _warn_m
+	if how != _pour_was and i >= 0:
+		var at := to_global(Vector3((POURS[i] as Vector2).x, 0.3, (POURS[i] as Vector2).y))
+		if how == "warn":
+			FX.telegraph(at, POUR_R, POUR_WARN, Color(1.0, 0.45, 0.1))
+			FX.sfx("peril", at, 2.0, 0.05, 0.6)
+		elif how == "burn":
+			FX.splash(at, 12, 1.2)
+			FX.sfx("thud", at, 6.0, 0.05, 0.5)
+	_pour_was = how
+	if how != "burn":
+		return
+	var me := get_tree().get_first_node_in_group("player") as Player
+	if me == null:
+		return
+	var l := to_local(me.global_position)
+	if Vector2(l.x, l.z).distance_to(POURS[i]) < POUR_R and l.y < 1.2:
+		_pour_hurt -= delta
+		if _pour_hurt <= 0.0:
+			_pour_hurt = 0.5
+			var hd := HitData.new()
+			hd.damage = POUR_DPS * 0.5
+			hd.dot = true
+			me.hurtbox.take_hit(hd, null)
+			BurnStatus.apply(me, 2.0, 0.0, null)
+
+
 ## The phase-2 adds: a sealed-room fight with no grate, armed by this boss's phase 2 flag. Marrow's cell block (one
 ## wave of berserk prisoners beside the yard); the Commodore's marines pouring into his hall (two waves).
 func _build_adds() -> void:
@@ -323,6 +631,9 @@ func _build_adds() -> void:
 	if rm.is_empty():
 		var c := Vector2(position.x, position.z) + Vector2(-16.0, 0.0)
 		room = ["cells_" + key, "The Cell Block", Rect2(c - Vector2(6, 5), Vector2(12, 10)), position.y, 6.0, Vector2(1, 0), 4.0]
+	elif key == "vane":
+		# (out of the tower's door onto the roof after him, facing the balcony's front)
+		room = ["adds_" + key, "The Verdict's roof", StrongholdActs.BALCONY, StrongholdActs.ROOF_Y, 6.0, Vector2(0, 1), 4.0]
 	else:
 		room = ["adds_" + key, str(rm[1]), rm[2], rm[3], rm[4], rm[5], rm[6]]
 	var enc := StrongholdEncounter.new()
@@ -331,6 +642,7 @@ func _build_adds() -> void:
 	enc.waves = (b["adds"] as Array).size()
 	enc.prisoners = bool(b.get("prisoners", false))
 	enc.setup(isl, room)
+	_adds = enc
 	isl.city.add_child.call_deferred(enc)
 
 

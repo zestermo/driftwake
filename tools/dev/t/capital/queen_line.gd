@@ -77,7 +77,14 @@ func _process(_d: float) -> bool:
 			check("the fortress known: back to the Queen for her writ", _line_step() == 3)
 			sh_id = "stronghold_%d" % w.c.seed_value
 			check("...and the stronghold run opens with it", J.has(sh_id) and str(J.entries[sh_id]["title"]).begins_with("Storm "))
-			check("...its seals counted (%s)" % J.goal(sh_id), J.goal(sh_id).ends_with("(0/2)"))
+			check("...the Landing's gate first (%s)" % J.goal(sh_id), J.step_of(sh_id) == 0 and J.goal(sh_id).contains("gate"))
+			root.get_node("Net").world_flag("sh_gate_open")
+			until = TK.wait_secs(2.5)
+			step = 60
+			return false
+		60:
+			check("...the gate up: its seals counted (%s)" % J.goal(sh_id), J.goal(sh_id).ends_with("(0/2)"))
+			step = 6
 			F.writ(life)
 			root.get_node("Net").world_flag("sh_seal_arsenal")
 			until = TK.wait_secs(2.5)
@@ -88,17 +95,17 @@ func _process(_d: float) -> bool:
 			root.get_node("Net").world_flag("sh_seal_prison")
 			until = TK.wait_secs(2.5)
 		8:
-			check("both seals: the Commodore next (%s)" % J.goal(sh_id), J.step_of(sh_id) == 1 and J.goal(sh_id).contains("Vane"))
+			check("both seals: the Commodore next (%s)" % J.goal(sh_id), J.step_of(sh_id) == 2 and J.goal(sh_id).contains("Vane"))
 			root.get_node("Net").world_flag("sh_seal_keep")
 			until = TK.wait_secs(2.5)
 		9:
-			check("the keep's seal: the vault next, and the Queen's to be told", J.step_of(sh_id) == 2 and _line_step() == 5)
+			check("the keep's seal: the vault next, and the Queen's to be told", J.step_of(sh_id) == 3 and _line_step() == 5)
 			gm.opened["sh_vault_%d" % int(gm.chain_seed)] = true
 			F.thank_fortress(life)
 			until = TK.wait_secs(2.5)
 		10:
 			check("the Queen thanked: her line is done", J.is_done(line_id))
-			check("the vault open: escape the Scouring", J.step_of(sh_id) == 3)
+			check("the vault open: escape the Scouring", J.step_of(sh_id) == 4)
 			root.get_node("Net").world_flag("sh_escaped")
 			until = TK.wait_secs(2.5)
 		11:

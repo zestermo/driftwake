@@ -41,9 +41,11 @@ static func stronghold(chain: Chain) -> Dictionary:
 	var vault := "sh_vault_%d" % chain.seed_value
 	return {"id": "stronghold_%d" % chain.seed_value, "title": "Storm %s" % nm, "giver": "The Admiralty's fortress", "isle": nm,
 		"pos": Vector3(p.x, 0.0, p.y), "src": "line", "reward": {"xp": 0.0, "note": "the Commodore's vault"}, "steps": [
-		{"goal": "Take the keep's two seals: Lieutenant Kesh in the Arsenal, Captain Marrow at the Prison Tower",
+		{"goal": "Breach the Landing's gate: work its winch, blow it, or find another way in (the west cove's drain, the walls)",
+			"until": ["flag", "sh_gate_open"], "at": ["sh_gate"]},
+		{"goal": "Take the keep's two seals: Lieutenant Kesh in the Arsenal's foundry, Captain Marrow in the prison yard",
 			"until": ["flags", SEAL_BOSSES.keys()], "at": ["sh_seals"]},
-		{"goal": "Cross the Bridge of Judgement: beat Commodore Vane in the Command Hall", "until": ["flag", "sh_seal_keep"], "at": ["sh_room", "command"]},
+		{"goal": "Cross the Bridge of Judgement: beat Commodore Vane in the Command Hall and on the Verdict's roof", "until": ["flag", "sh_seal_keep"], "at": ["sh_room", "command"]},
 		{"goal": "Open the Commodore's vault before his dais", "until": ["any", [["opened", vault], ["flag", "sh_barrage"]]], "at": ["sh_room", "command"]},
 		{"goal": "Escape the ring: get to your ship and sail out through the gap in the warships' line", "until": ["flag", "sh_escaped"], "at": ["sh_gap"]}]}
 
@@ -93,6 +95,9 @@ static func where(tree: SceneTree, at: Array) -> Vector3:
 			return npc(tree, str(at[2]))
 		"sh":
 			return _stronghold_pos(tree)
+		"sh_gate":
+			var gi = _stronghold(tree)
+			return gi.city_global(StrongholdActs.GATE_AT, 13.5) if gi != null else _stronghold_pos(tree)
 		"sh_gap":
 			var isl = _stronghold(tree)
 			return StrongholdScouring.gap_at(isl) if isl != null else _stronghold_pos(tree)
@@ -151,7 +156,7 @@ static func district_hint(tree: SceneTree, at: Vector3) -> String:
 	var hint := ""
 	match key:
 		"landing":
-			hint = "climb the grand stair to the Lower Ward"
+			hint = "climb the grand stair to the Lower Ward" if f.has("sh_gate_open") else "breach the gate at the stair's head: its winch, a charge, or another way in"
 		"ward":
 			hint = "the Arsenal (east) and the Prison Tower (west) hold the keep's seals: %d of 2 taken" % seals
 		"arsenal":
@@ -162,7 +167,8 @@ static func district_hint(tree: SceneTree, at: Vector3) -> String:
 			if seals < 2:
 				hint = "the keep's gate holds until both seals are yours (%d of 2)" % seals
 			elif not f.has("sh_seal_keep"):
-				hint = "beat Commodore Vane in the Command Hall"
+				hint = "Commodore Vane is on the Verdict's roof: the hoist in the Command Hall takes you up" if f.has("sh_vane_p2") \
+					else "beat Commodore Vane in the Command Hall"
 			elif not gm.opened.has("sh_vault_%d" % int(gm.chain_seed)):
 				hint = "open the Commodore's vault before his dais"
 			else:

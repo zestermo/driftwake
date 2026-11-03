@@ -630,7 +630,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished() or power.will.untouchable():
 		return
 	# (1.30) an AI boss's phase reset: nothing hurts it from the crouch to the roar's end
-	if current_state_name() == "BossLeap":
+	# (a stronghold boss's signature leap: untouchable only in the air, wide open in its wind-up and landing)
+	if current_state_name() == "BossLeap" and (state_machine.current_state.reset.guard or state_machine.current_state.reset.stage() == "air"):
 		if is_local:
 			state_machine.current_state.reset.deflect(global_position + Vector3.UP * 1.3)
 		return
@@ -3312,7 +3313,12 @@ func _bleed_tick(delta: float) -> void:
 		get_tree().call_group("hud", "show_prompt", "", -1.0)
 		if spared:
 			if Net.others_standing():
-				Duel.stand_up(self, health_component.max_health * REVIVE_HEALTH, power.energy)
+				# (1.30) in a stronghold boss's arena: not up where you lie, but back at its checkpoint to walk in again
+				var cp := StrongholdBoss.rejoin_point(global_position)
+				if cp != Vector3.INF:
+					StrongholdBoss.rejoin(self, cp)
+				else:
+					Duel.stand_up(self, health_component.max_health * REVIVE_HEALTH, power.energy)
 			return
 		GameManager.bleed_out()
 

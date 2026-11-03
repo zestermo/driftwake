@@ -140,6 +140,12 @@ func _setup(island) -> void:
 		["command_in", "inside the Command Hall", Vector2(0, -64.5), 2.0, Vector2(0, -104), 3.0],
 		["sea_gate", "the sea gate from outside", Vector2(18, 170), 4.0, Vector2(18, 96), 16.0],
 		["arcade", "the arcade over the Landing", Vector2(-20, 40), 1.7, Vector2(10, 58), 20.0],
+		# (1.30, the acts) the Landing's gate down across the stair, the winch; the Verdict's roof and its balcony
+		["gate", "the Landing's gate (act 1), its winch on the left", Vector2(3, 30), 1.7, Vector2(0, 18.6), 10.0],
+		["roof_below", "the Verdict's roof over the Command Hall's door", Vector2(0, -36), 1.7, Vector2(0, -56), 33.0],
+		["roof", "on the Verdict's roof, Vane's stand (act 3)", Vector2(-12, -61), 35.0, Vector2(6, -50), 32.0],
+		["casting_pour", "the Casting Hall: Kesh's foundry", Vector2(70.5, -16), 2.4, Vector2(90, -28), 1.0],
+		["yard", "the prison yard: Marrow's riot, the cell block, the catwalks", Vector2(-60, 9), 5.0, Vector2(-80, 2), 1.0],
 		# looking up from underneath: what a gap in the geometry would show
 		["up_tower", "up at a ward tower", Vector2(40.0, 13.0), 1.7, Vector2(44.6, 18.6), 30.0],
 		["under_bridge", "under the bridge from the chasm", Vector2(10.0, -31.0), 1.5, Vector2(0, -31.0), 18.0],

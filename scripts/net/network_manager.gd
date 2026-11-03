@@ -2057,6 +2057,17 @@ func _all_world_flag(flag_name: String) -> void:
 		gm.world_flags[flag_name] = true
 
 
+## (1.30) A world flag cleared on every machine (a stronghold boss reset by a wipe starts its fight over).
+func clear_world_flag(flag_name: String) -> void:
+	everyone("_all_clear_world_flag", [flag_name])
+
+
+func _all_clear_world_flag(flag_name: String) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	if gm:
+		gm.world_flags.erase(flag_name)
+
+
 ## Burning thornbrush, burning for everyone.
 func burned(node_name: String) -> void:
 	if active and not _burning and world_ready:

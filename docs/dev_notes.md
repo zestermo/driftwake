@@ -9925,3 +9925,56 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
 - uitest opens the skills menu with no weapon tree found (new games start without one since b21bc8b1, so the map had no tree and drew no nodes): the test now discovers "sword" first. The shipwright yard's Refits list (14 lines + 6 group heads since 1.29) made the panel 374 px high on the 360 canvas: the list now sits in a ScrollContainer (250 px, follows focus). Covered by uitest, yardtest, t/ship/yard_buy.
 - (same day, round 5 the level gap) FodderMarine drops its fixed 30 health: a plain marine (MAX_HP, no +30%) at its
   camp's level - LEVEL_GAP 4; the level-gap multipliers (Levels, the gap agent's) make it quick to cut down. t/stronghold/garrison checks the level and health.
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 3: the acts and the set-piece bosses
+- **The acts** (StrongholdActs, scripts/island/stronghold_acts.gd, built by StrongholdGarrison.build):
+  - **Act 1, the gate:** the gatehouse at the grand stair's head (StrongholdShell._gate at (0, 18.6)) gets a real
+    portcullis (Gate: bars 13 x 8 m, solid until "sh_gate_open"). Ways up: the winch on the stair beside it (F, then
+    stay within WINCH_R 2.8: WINCH_SECS 8 of winding on your own machine, walk off and it stops; the Landing's
+    garrison and boats come at you meanwhile), the lever inside (whoever got in by the cove's drain or a grapple),
+    or a powder charge (ChargeTarget on the bars, remove off: the flag opens it). Once up, it rises over 2 s for good.
+  - **Ways round it:** grapple ledges (GrapplePoints.add_ledge, LEDGES) on the ward's front wall, the prison's sea
+    wall over the west cove and the arsenal's east wall.
+  - **The Verdict's roof:** a balcony deck over the Command Hall's door (BALCONY x -16..16, z -62..-50, ROOF_Y 63.2,
+    parapets, iron brackets, braziers) and a slab over the hall's top (TERRACE) so the roof round the second stage is
+    walkable; the hoist (an iron cage, F) carries a captain between the hall (HOIST_DOWN) and the roof (HOIST_UP).
+  - A supply chest (Gadgets.supply_crate, saved by key) in the Barracks.
+  - **Debug:** the F4 menu's "Stronghold: go to that act" (ACTS: the gate, Kesh, Marrow, Vane's hall, the roof, the
+    vault): the crew there with the flags it needs.
+- **The bosses** (StrongholdBoss):
+  - **Intro name cards:** every machine shows HUD.show_name_card (a slate strip slammed in, the name and its epithet)
+    when it sees a boss's "on" flag.
+  - **Faster, more aggressive:** skill 1.0 and CaptainBrain.pace PACE 0.7 (shorter waits between skills and swings).
+  - **The signature leap** (big and readable): every SIG_EVERY 10 / 7.5 / 5.5 s by phase, at a captain within 24 m on
+    its level: a BossReset run (telegraph ring on the captain's spot, 0.7 s wind, 0.75 s air, a shockwave of the
+    boss's own size and damage, a shout). Player._on_hit_received only shields a BossLeap in the air when it isn't a
+    phase reset: the wind-up and landing are open.
+  - **Kesh's pouring foundry** (phase 2 on, besides the channels): the crucible pours on one of POURS in turn every
+    POUR_CYCLE 9 s (POUR_WARN 2 s of a glowing ring and a telegraph, POUR_BURN 4.5 s of a molten disc with a stream
+    of iron falling into it; POUR_DPS 30 and a burn to our own captain in it), from Ocean.clock on every machine.
+  - **Marrow's prison riot:** the cell block's phase-2 fight is three waves (5, 6, 6) of berserk prisoners, fodder
+    hunters rushing out (FodderMarine), the last wave led by two hammer brutes (full grunts); ragged looks.
+  - **Vane on the roof:** at 65% he leaps up through the hall's roof onto the balcony (his phase-2 BossLeap goes to
+    `roof()`), and his marine adds come out onto the roof after him; at 30% (the Verdict) "sh_scouring" is set and
+    StrongholdScouring starts on it (as well as on "sh_seal_keep"): the broadcast, the dark sky and the fleet round
+    the duel. His fall still opens the vault in the hall below (hoist down).
+- **Revive, else rejoin** (decided): the crew revives as usual; a captain who would get up on their own (spared) or
+  bleeds out inside a boss's arena (`contains`: the room, the yard, Vane's roof) gets back up at its checkpoint
+  (BOSSES "checkpoint", outside the door) after REJOIN_SECS 8 (Player._bleed_tick, GameManager._respawn_player:
+  StrongholdBoss.rejoin_point / rejoin). Rooms' grates have a postern (F while the fight's on) to slip back in.
+  - **Only a full wipe resets the boss** (`_wiped` -> `reset_fight`, host): the phase flags cleared
+    (Net.clear_world_flag, new), the boss healed and back at its spot waiting (brain "hold"), its adds called off
+    (StrongholdEncounter.call_off), a banner; it starts again when a captain on their feet walks in. The Scouring's
+    brig-on-wipe leaves a wipe in a boss's arena to this.
+- **The journal line:** the stronghold run's first step is now the gate (`["sh_gate"]` marks it); Vane's step names
+  the roof; district_hint: the Landing says to breach the gate until it's up, the Keep sends you up the hoist once
+  Vane is on the roof.
+- Tests: t/stronghold/gate (the bars, the winch's hold, open for good, the hoist up and down), t/stronghold/set_pieces
+  (Kesh: card, pace, signature leap, pours that burn, the checkpoint, a wipe's reset and the rejoin; Vane: the roof at
+  65%, the Scouring at 30%); t/stronghold/marrow and t/capital/queen_line updated for the riot and the gate step.
+  Renders: strongholdshot `gate`, `roof_below`, `roof`, `casting_pour`, `yard`.
+- Per frame: the gate, the hoists and the boss nodes as before (a flag check, the pours' visibility from the clock in
+  Kesh's hall only); the signature leap is a host check 4x a second while a fight is on.
+- Gadget hooks used: the gate's ChargeTarget, the grapple ledges, stunned takedowns (piece 2). Open: the cell block
+  has no building of its own (the riot comes out of the yard's corner; Part A), Vane's quarters still flare in the
+  hall below while he's on the roof.

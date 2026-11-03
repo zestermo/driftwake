@@ -171,6 +171,16 @@ func _build() -> void:
 	_btn(v, "Stronghold: both seals (keep opens)", func(): _flag("sh_seal_arsenal"); _flag("sh_seal_prison"))
 	_btn(v, "Stronghold: Commodore falls (the Scouring)", func(): _flag("sh_seal_keep"))
 	_btn(v, "Stronghold: the Scouring now (shells in 8 s, at the fortress)", _scouring_now)
+	# (1.30) the stronghold run's acts: the crew there with the flags each needs (StrongholdActs.ACTS)
+	var acts := OptionButton.new()
+	for a in StrongholdActs.ACTS:
+		acts.add_item(str(a[0]))
+	v.add_child(acts)
+	_btn(v, "Stronghold: go to that act", func():
+		if _player() != null and acts.selected >= 0:
+			_panel.visible = false
+			Settings.capture_mouse()
+			StrongholdActs.jump(_player(), acts.selected))
 	row = HBoxContainer.new()
 	v.add_child(row)
 	_btn(row, "Next weather (F6)", func(): _key(KEY_F6))

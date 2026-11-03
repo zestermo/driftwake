@@ -227,6 +227,53 @@ func show_banner(title: String, subtitle: String = "", chime: bool = false) -> v
 		_chime.play()
 
 
+var _name_card: PanelContainer
+var _name_tween: Tween
+
+
+## (1.30) A boss's intro card (the stronghold's officers): a slate strip slammed in across the screen's middle, the name
+## big, its epithet under it, held a moment, gone. Every machine shows it when it sees the fight start.
+func show_name_card(boss_name: String, epithet: String) -> void:
+	if _name_card == null:
+		_name_card = PanelContainer.new()
+		_name_card.add_theme_stylebox_override("panel", UIStyle.chrome("slate", 12, 9))
+		_name_card.set_anchors_preset(Control.PRESET_CENTER)
+		_name_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_name_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_name_card.custom_minimum_size = Vector2(420, 0)
+		_name_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var vb := VBoxContainer.new()
+		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_theme_constant_override("separation", 2)
+		_name_card.add_child(vb)
+		var ep := UIStyle.label("", 12, Color(0.95, 0.55, 0.4))
+		ep.name = "Epithet"
+		ep.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(ep)
+		var nm := UIStyle.title("", 30)
+		nm.name = "Name"
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(nm)
+		add_child(_name_card)
+	(_name_card.find_child("Name", true, false) as Label).text = boss_name.to_upper()
+	(_name_card.find_child("Epithet", true, false) as Label).text = epithet
+	if _name_tween:
+		_name_tween.kill()
+	_name_card.visible = true
+	_name_card.modulate.a = 0.0
+	_name_card.pivot_offset = _name_card.size * 0.5
+	_name_card.scale = Vector2(1.6, 1.6)
+	_name_tween = create_tween()
+	_name_tween.set_parallel(true)
+	_name_tween.tween_property(_name_card, "modulate:a", 1.0, 0.18)
+	_name_tween.tween_property(_name_card, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_name_tween.chain().tween_interval(2.4)
+	_name_tween.chain().tween_property(_name_card, "modulate:a", 0.0, 0.5)
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	if me:
+		FX.sfx("peril", me.global_position, -4.0, 0.0, 0.7)
+
+
 var _tree_card: PanelContainer
 var _tree_tween: Tween
 

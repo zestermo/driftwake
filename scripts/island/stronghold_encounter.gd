@@ -11,6 +11,7 @@ const WAVES := 3
 ## Each wave's size, and how long the room stands quiet between two waves.
 const SIZES := [4, 5, 6]
 const BETWEEN := 2.5
+const FODDER := "res://scripts/enemies/fodder_marine.gd"
 
 ## The room (a StrongholdPlan.ROOMS row) and the island it's on.
 var rm: Array = []
@@ -70,15 +71,38 @@ func wave_specs(g: int) -> Array:
 		var officer := g == waves and i == 0 and not prisoners
 		if not prisoners:
 			EnemyShip.marine_look(lk, rng, officer)
+		else:
+			lk["hat"] = "none"
+			lk["coat"] = "none"
+			lk["top"] = "bare" if lk["body"] == "masc" else "shirt"
+			lk["top_color"] = Color(0.55, 0.5, 0.42)
 		# (rows across the room, back from the door)
 		var across := (float(i % 3) - 1.0) * minf(r.size.x, r.size.y) * 0.22
 		var back := -0.25 - 0.15 * float(i / 3)
 		var side := Vector2(-door.y, door.x)
 		var p: Vector2 = side * across + door * back * (r.size.x if absf(door.x) > 0.5 else r.size.y)
-		out.append({"post": Vector3(p.x, 0.0, p.y), "yaw": atan2(door.x, door.y), "mode": "stand", "look": lk,
+		var spec := {"post": Vector3(p.x, 0.0, p.y), "yaw": atan2(door.x, door.y), "mode": "stand", "look": lk,
 			"title": "Prisoner" if prisoners else ("Admiralty officer" if officer else "Admiralty marine"), "seed": hash([str(rm[0]), g, i]),
-			"role": "rifle" if g >= 2 and i == n - 1 and not prisoners else "sword", "elite": prisoners, "trait": "berserk" if prisoners else ""})
+			"role": "rifle" if g >= 2 and i == n - 1 and not prisoners else "sword", "elite": prisoners, "trait": "berserk" if prisoners else ""}
+		# (1.30, the prison riot) the cells' rabble are fodder hunters, rushing out; the last wave's first two the brutes
+		if prisoners and not (g == waves and i < 2):
+			spec["script"] = FODDER
+			spec["hunt"] = true
+			spec["elite"] = false
+		elif prisoners:
+			spec["role"] = "hammer"
+		out.append(spec)
 	return out
+
+
+## (host) The fight called off (its boss reset by a wipe): whoever's up slips away, and it waits to be armed again.
+func call_off() -> void:
+	for g in grunts:
+		if is_instance_valid(g) and not (g as PirateGrunt).is_dead():
+			(g as PirateGrunt).vanish(false)
+	_quiet = 0.0
+	gen = 0
+	Net.spawned(self, gen)
 
 
 func _spawn_all() -> void:

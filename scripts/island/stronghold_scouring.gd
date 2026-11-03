@@ -93,7 +93,8 @@ func _process(delta: float) -> void:
 		_banner("escaped", "Out of the ring", "You survived the Scouring. %s burns behind you." % isl.island_name)
 		return
 	if t0 < 0.0:
-		if not _flag("sh_seal_keep"):
+		# (1.30) ordered as the Commodore makes his last stand on the Verdict's roof ("sh_scouring"), or at his fall
+		if not _flag("sh_seal_keep") and not _flag("sh_scouring"):
 			return
 		t0 = _clock()
 		_banner("broadcast", "All ships. %s has fallen." % isl.island_name, "The Scouring is ordered.")
@@ -345,6 +346,9 @@ func _wipe(step: float) -> void:
 		if Vector2(pl.global_position.x - centre.x, pl.global_position.z - centre.z).length() < ISLAND_R + 30.0:
 			here.append(pl)
 	if here.is_empty() or here.any(func(pl): return pl.is_standing()):
+		return
+	# (1.30) down in a boss's arena: that boss's fight starts over and the crew rejoins at its checkpoint (StrongholdBoss)
+	if here.any(func(pl): return StrongholdBoss.rejoin_point(pl.global_position) != Vector3.INF):
 		return
 	_wiped_t = 15.0
 	var ward: Rect2 = StrongholdPlan.DISTRICTS[1][1]
