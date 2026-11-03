@@ -9874,3 +9874,26 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   the same runs. Not done: a far ring drawn by vertex/MultiMesh animation (fodder past ~20 m), fodder movers on a
   cheaper kinematic step.
 - BurnStatus: a burn whose source was freed (a burning grunt sunk away) no longer hands a freed attacker to take_hit.
+
+## 2026-11-03: the level gap (1.30, docs/v1_30_plan.md "round 5")
+- **What:** g = the foe's level minus the captain's, per captain, on top of Levels' hp_k/dmg_k curves (0 = the old
+  balance). The captain's damage to it x(1 - 0.06g, 0.7-1.5); its damage to the captain x(1 + 0.12g, 0.4-2.0); its
+  poise x(1 + 0.12g, 0.3-1.8) against the captain hitting it; the overkill a throw needs x(1 + 0.15g, 0.1-2.0)
+  (Splat.wants' 50%/15%), and a captain thrown by a foe uses -g (a foe above you throws you with less: 30%/20% lines).
+- **Where:** all the math in `Levels` (gap_dmg_out/in, gap_poise, gap_splat, badge, foe_level, hit_gap, gap_to).
+  `Hurtbox.take_hit` works the gap out (Levels.hit_gap) and scales the damage, and carries it on `HitData.gap`;
+  `Poise.take` divides a foe's (coop) poise damage by gap_poise; `Splat.wants` / `flattens` scale their lines.
+- **Co-op:** the gap is worked out on the captain's own machine: a guest's blow on a host-run foe is scaled on the
+  guest and arrives with its gap packed (Net.hit_pack index 19), and the host (attacker a puppet, not is_local) leaves
+  it alone; a foe's blow on a guest is worked out when it reaches the guest's own hurtbox. The host never needs the
+  guest's level.
+- **Which foes:** anything in group "enemies" with a `level` (grunts, marines, fodder, bosses, apes, beasts, bugs,
+  creatures, ships' crews) and AI captains. A level-0 foe counts as the level its curves treat it as (its `_lv_ref`:
+  REF 3, 6 for apes and beasts), so a level-3 captain on Brinehollow's grunts is gap 0. AI captains have no level of
+  their own: the first ancestor with a `level` > 0 (a ghost captain's) or an island's node level, else REF.
+- **Bars:** EnemyBars 22x2 (was 28x4) with the foe's level in a box left of the bar (Silkscreen 8), coloured by
+  Levels.badge (grey g <= -5, white, red g >= +3), read at each 0.25 s poll. The bosses' top bar and the minibosses'
+  OverheadBar show no level, so no badge there.
+- **Not through Hurtbox, so no gap:** anything that calls a body's damage directly instead of take_hit.
+- **Tests:** t/combat/level_gap (the table, both ways through real hurtboxes, poise, the splat lines, badge colours),
+  t/ui/enemy_bars (the badge's level and gap); render `levelbadgeshot`.
