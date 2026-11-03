@@ -9455,3 +9455,12 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   BOARD); a pursuer ignores the land while within her far range + HIDE_LAND_IN 20 (`_huntable`); fog and storm never
   cut her lose range below far range + SIGHT_FLOOR 40 (`_lose_r`; a cutter 98 m). Pirates unchanged (no grace).
   Test: t/ship/hunt_holds (a fight 40 m off a no-go ring for 12 s, fog+storm with the cutter 85 m off, a cutter at 20%).
+
+## 2026-11-03: 1.30 land fixes, piece 3: Morrow's Tide Rush stays in his arena (playtest row 7)
+- `PirateGrunt._rush_lane` (pirate_grunt.gd): when the lane is set, it's stepped in 1 m with a ray down; it ends before
+  water (Ocean depth > 0.3), a drop over RUSH_DROP (1.5 m) or a spot `_rush_ok` refuses, minus a step and the skid's
+  length (speed^2 / 2 RUSH_SKID). A lane under RUSH_MIN cancels the rush (a short recover). The run out of the lane is
+  a hard skid (accel RUSH_SKID 90, was a 14 coast: ~20 m at Morrow's 24 m/s, now ~3 m).
+- `PirateBoss._rush_ok`: inside `RedtideFort.WALL_R - 1` of his arena (so the gate's gap doesn't count).
+- Per tick: nothing new; ~18 rays plus an Ocean depth query once per rush wind-up (host).
+- Test: t/combat/rush_lane (the stage's shore, a stand-in arena, a real rush at a captain past the "gate").

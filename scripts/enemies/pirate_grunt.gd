@@ -185,6 +185,10 @@ const RUSH_MAX := 15.0
 const RUSH_LOCK := 0.35
 const RUSH_OVER := 2.5
 const RUSH_COLOR := Color(1.0, 0.72, 0.2)
+## The lane ends before water or a drop of more than RUSH_DROP m (stepped in 1 m); the run out of it is a hard skid at
+## RUSH_SKID m/s^2 (it used to coast ~20 m past the lane: Morrow went out his gate into the sea).
+const RUSH_DROP := 1.5
+const RUSH_SKID := 90.0
 var _rush_cd: float = 0.0
 var _rush_dir := Vector3.ZERO
 var _rush_len: float = 0.0
@@ -951,7 +955,7 @@ func _physics_process(delta: float) -> void:
 						hitbox.deactivate()
 						Net.fx("dust", [global_position + _rush_dir * 0.6, 8, 0.8])
 				else:
-					accel = 14.0
+					accel = RUSH_SKID
 					if st_t > _rush_stop + 0.5:
 						_end_attack(0.8)
 			elif _attack == "lunge":
@@ -1714,8 +1718,13 @@ func _rush_aim(p: Node3D, dir_p: Vector3, dist: float, dur: float) -> void:
 		_face(dir_p)
 		if st_t < RUSH_LOCK:
 			return
+		var want := clampf((dist if p else RUSH_MIN) + RUSH_OVER, 4.0, RUSH_MAX + RUSH_OVER)
+		var lane := _rush_lane(global_position, dir_p, want)
+		if lane < RUSH_MIN:
+			_end_attack(0.3)
+			return
 		_rush_dir = dir_p
-		_rush_len = clampf((dist if p else RUSH_MIN) + RUSH_OVER, 4.0, RUSH_MAX + RUSH_OVER)
+		_rush_len = lane
 		var from := global_position
 		Net.fx("lane", [from, from + _rush_dir * _rush_len, _rush_width(), dur - st_t, RUSH_COLOR])
 		_glint()
@@ -1724,6 +1733,27 @@ func _rush_aim(p: Node3D, dir_p: Vector3, dist: float, dur: float) -> void:
 
 func _rush_width() -> float:
 	return 2.0
+
+
+## How far a rush from `from` along `dir` may run (up to `want`): stepped in 1 m, the lane ends before water, a drop of
+## more than RUSH_DROP or a spot _rush_ok refuses, short enough that the skid stops on safe ground.
+func _rush_lane(from: Vector3, dir: Vector3, want: float) -> float:
+	var space := get_world_3d().direct_space_state
+	var d := 1.0
+	while d <= want:
+		var at := from + dir * d
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * RUSH_DROP, at + Vector3.DOWN * RUSH_DROP, 1)
+		q.exclude = [get_rid()]
+		var hit := space.intersect_ray(q)
+		if hit.is_empty() or _water_depth_at(hit["position"]) > 0.3 or not _rush_ok(at):
+			return maxf(d - 2.0 - _rush_speed() * _rush_speed() / (2.0 * RUSH_SKID), 0.0)
+		d += 1.0
+	return want
+
+
+## A spot a rush may cross (Morrow: inside his arena wall).
+func _rush_ok(_at: Vector3) -> bool:
+	return true
 
 
 ## Head-on into something solid (not a body: crewmates and captains don't stop it).

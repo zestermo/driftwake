@@ -262,6 +262,14 @@ func _rush_width() -> float:
 	return 1.6
 
 
+## His lane stays inside his arena wall, the gate too (it once took him down the stair and into the sea).
+func _rush_ok(at: Vector3) -> bool:
+	if arena == null:
+		return true
+	var l := (arena as Node3D).to_local(at)
+	return Vector2(l.x, l.z).length() < RedtideFort.WALL_R - 1.0
+
+
 func _rush_barks() -> Array:
 	return ["Running won't save you!", "Too slow!", "The tide comes in!"]
 
