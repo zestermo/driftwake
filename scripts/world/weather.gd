@@ -60,6 +60,12 @@ var sand: float = 0.0
 var murk: float = 0.0
 ## A beast's sandstorm round this screen's camera (BeastFX.sandstorm, the Sand King): blowing sand at least this thick.
 var sand_boost: float = 0.0
+## (1.30) A burning fortress's smoke over this screen (StrongholdScouring's ScouringFX sets it, 0..1): like a sandstorm,
+## the sky dark grey even at noon, the sun dimmed and orange, the fog brown-grey and nearer, so fire and glow pop.
+var smoke: float = 0.0
+const SMOKE_SKY := Color(0.09, 0.085, 0.085)
+const SMOKE_HOR := Color(0.3, 0.19, 0.12)
+const SMOKE_FOG := Color(0.2, 0.17, 0.155)
 const SNOW_LIGHT := 0.22
 var sun_dir := Vector3(0, 1, 0)
 var in_cloud: float = 0.0
@@ -547,10 +553,10 @@ func _update_sun(h: float) -> void:
 		var light_dir := sun_dir if sun_dir.y > -0.04 else -sun_dir
 		light_dir.y = maxf(light_dir.y, 0.12)
 		_sun.global_basis = Basis.looking_at(-light_dir.normalized(), Vector3.UP if absf(light_dir.y) < 0.98 else Vector3.FORWARD)
-		var e := _sun_e * (1.0 - storm * 0.72) * (1.0 - in_cloud * 0.6)
+		var e := _sun_e * (1.0 - storm * 0.72) * (1.0 - in_cloud * 0.6) * (1.0 - smoke * 0.85)
 		_sun.light_energy = e + flash * 2.5
 		var storm_light := STORM_LIGHT.lerp((_zone_style["storm_color"] as Color).lightened(0.35), float(_zone[1]))
-		_sun.light_color = _sun_col.lerp(storm_light, storm * 0.6)
+		_sun.light_color = _sun_col.lerp(storm_light, storm * 0.6).lerp(Color(1.0, 0.56, 0.32), smoke * 0.7)
 		_sun.shadow_enabled = e > 0.12
 
 
@@ -582,6 +588,9 @@ func _update_env() -> void:
 	top = top.lerp(Color(hz.r, hz.g, hz.b) * lerpf(1.0, 0.2, night), maxf(hz.a * zk * 0.4, misty * 0.85))
 	var hor := _hor.lerp(grey * 1.2 * (1.0 - night * 0.75), storm * 0.7)
 	hor = hor.lerp(Color(hz.r, hz.g, hz.b) * lerpf(1.0, 0.2, night), misty * 0.9)
+	# (a burning fortress's smoke: the sky dark grey, its horizon lit from below by the fires)
+	top = top.lerp(SMOKE_SKY * lerpf(1.0, 0.5, night), smoke)
+	hor = hor.lerp(SMOKE_HOR * lerpf(1.0, 0.6, night), smoke * 0.95)
 	if _sky_mat:
 		_sky_mat.set_shader_parameter("top_color", top)
 		_sky_mat.set_shader_parameter("horizon_color", hor)
@@ -590,19 +599,19 @@ func _update_env() -> void:
 		_sky_mat.set_shader_parameter("moon_dir", Vector3(-sun_dir.x, -sun_dir.y, sun_dir.z * 0.6 + 0.3).normalized())
 		_sky_mat.set_shader_parameter("sun_color", _sun_col)
 		_sky_mat.set_shader_parameter("night", night)
-		_sky_mat.set_shader_parameter("coverage", coverage)
-		_sky_mat.set_shader_parameter("storm", storm)
+		_sky_mat.set_shader_parameter("coverage", maxf(coverage, smoke))
+		_sky_mat.set_shader_parameter("storm", maxf(storm, smoke * 0.9))
 		_sky_mat.set_shader_parameter("flash", flash)
 		_sky_mat.set_shader_parameter("fog_color", fog_color)
 		_sky_mat.set_shader_parameter("haze_height", haze_height)
 		var lit := Color(0.92, 0.93, 0.95).lerp(_sun_col, 0.3).lerp(Color(0.2, 0.22, 0.3), night * 0.85) * clampf(_sun_e / 1.2, 0.55, 1.0)
-		_sky_mat.set_shader_parameter("cloud_lit", lit.lerp(Color(0.5, 0.52, 0.56), storm * 0.7))
-		_sky_mat.set_shader_parameter("cloud_shade", (_amb * 1.1).lerp(Color(0.25, 0.26, 0.3), storm * 0.8))
+		_sky_mat.set_shader_parameter("cloud_lit", lit.lerp(Color(0.5, 0.52, 0.56), storm * 0.7).lerp(Color(0.32, 0.24, 0.2), smoke))
+		_sky_mat.set_shader_parameter("cloud_shade", (_amb * 1.1).lerp(Color(0.25, 0.26, 0.3), storm * 0.8).lerp(Color(0.08, 0.07, 0.07), smoke))
 	if _env:
-		var amb := _amb.lerp(Color(0.42, 0.44, 0.5).lerp(Color(0.3, 0.34, 0.5), night), storm * 0.5)
+		var amb := _amb.lerp(Color(0.42, 0.44, 0.5).lerp(Color(0.3, 0.34, 0.5), night), storm * 0.5).lerp(Color(0.5, 0.38, 0.3), smoke * 0.6)
 		_env.ambient_light_color = amb
-		_env.ambient_light_energy = maxf(_amb_e * (1.0 - storm * 0.3), AMBIENT_FLOOR / amb.get_luminance()) + flash * 1.5
-		var fogc := haze_here(hor, _zone_style, zk, murk).lerp(Color(0.85, 0.88, 0.92), in_cloud)
+		_env.ambient_light_energy = maxf(_amb_e * (1.0 - storm * 0.3) * (1.0 - smoke * 0.45), AMBIENT_FLOOR / amb.get_luminance()) + flash * 1.5
+		var fogc := haze_here(hor, _zone_style, zk, murk).lerp(SMOKE_FOG * lerpf(1.0, 0.45, night), smoke * 0.85).lerp(Color(0.85, 0.88, 0.92), in_cloud)
 		_env.fog_light_color = fogc
 		# Long-range fog: the sea is fully fogged well inside its edge (1 km),
 		# and the sky shader hazes into the same colour at the horizon.
@@ -611,6 +620,8 @@ func _update_env() -> void:
 		# (a whiteout or a sandstorm: the next house is a shape in it)
 		begin = lerpf(begin, 2.0, murk)
 		end = lerpf(end, 65.0, murk)
+		begin = lerpf(begin, 12.0, smoke)
+		end = lerpf(end, 460.0, smoke)
 		# (a misty place, the fog isle: the fog close in all round, thinned round a lit lantern)
 		var mist := float(_zone_style["mist"]) * zk * (1.0 - LANTERN_CLEAR * lantern_clear)
 		begin = lerpf(begin, 3.0, mist)
@@ -633,11 +644,11 @@ func _update_env() -> void:
 		fog_begin = begin
 		fog_end = end
 		var hazed := float((_zone_style["haze_color"] as Color).a) * zk * 0.3 * (1.0 - LANTERN_CLEAR * lantern_clear)
-		haze_height = lerpf(lerpf(lerpf(lerpf(0.09, 0.3, fog) + hazed, 1.0, mist), 1.3, murk), 1.6, in_cloud)
+		haze_height = lerpf(lerpf(lerpf(lerpf(lerpf(0.09, 0.3, fog) + hazed, 1.0, mist), 1.3, murk), 0.75, smoke), 1.6, in_cloud)
 		RenderingServer.global_shader_parameter_set("sky_haze", Vector4(fogc.r, fogc.g, fogc.b, haze_height))
 		RenderingServer.global_shader_parameter_set("fog_range", Vector2(begin, end))
 	if _ocean_mat:
-		var dk := 1.0 - storm * 0.35
+		var dk := (1.0 - storm * 0.35) * (1.0 - smoke * 0.5)
 		var dc := Color(_base_deep.r * dk, _base_deep.g * dk, _base_deep.b * dk * 1.02, _base_deep.a)
 		var sc := _base_shallow.lerp(Color(0.25, 0.32, 0.36, _base_shallow.a), storm * 0.5)
 		# (a misty place, the fog isle: the sea goes grey and dark under its fog)
@@ -651,7 +662,7 @@ func _update_env() -> void:
 		# the glitter path: the sun's while it's up, the moon's (fainter, blue-white) at night; gone under cloud and storm
 		var by_moon := sun_dir.y < 0.02
 		var gd := Vector3(-sun_dir.x, -sun_dir.y, sun_dir.z * 0.6 + 0.3).normalized() if by_moon else sun_dir
-		var clear := (1.0 - storm) * (1.0 - in_cloud) * (1.0 - coverage * 0.6) * (1.0 - misty)
+		var clear := (1.0 - storm) * (1.0 - in_cloud) * (1.0 - coverage * 0.6) * (1.0 - misty) * (1.0 - smoke)
 		var gc := Color(0.7, 0.8, 1.0) * 0.55 if by_moon else _sun_col
 		_ocean_mat.set_shader_parameter("glint_dir", gd)
 		_ocean_mat.set_shader_parameter("glint_color", Color(gc.r, gc.g, gc.b, clampf((gd.y + 0.02) * 10.0, 0.0, 1.0) * clear * GLINT))
@@ -668,7 +679,7 @@ func _drift_sky(delta: float) -> void:
 		_sky_mat.set_shader_parameter("cloud_time", _sky_t)
 	var wd := wind_dir() * (3.0 + wind * 9.0)
 	_shadow_drift += wd * delta
-	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud)
+	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud) * (1.0 - smoke)
 	cloud_shadow = Vector4(clampf(coverage * 0.75, 0.0, 0.85), strength if _env else 0.0, _shadow_drift.x, _shadow_drift.y)
 	RenderingServer.global_shader_parameter_set("cloud_shadow", cloud_shadow)
 
@@ -679,16 +690,16 @@ func _update_clouds() -> void:
 		in_cloud = 0.0
 		_cloud_target = 0.0
 		return
-	_clouds.set("coverage", coverage)
-	_clouds.set("storm", storm)
+	_clouds.set("coverage", maxf(coverage, smoke * 0.8))
+	_clouds.set("storm", maxf(storm, smoke))
 	_clouds.set("wind_speed", 3.0 + wind * 9.0)
 	_clouds.set("fog_color", fog_color)
 	_clouds.set("haze_height", haze_height)
 	_clouds.set("fog_begin", fog_begin)
 	_clouds.set("fog_end", fog_end)
 	var lit := Color(1, 1, 1).lerp(_sun_col, 0.3).lerp(Color(0.24, 0.26, 0.36), night * 0.85)
-	_clouds.set("lit_color", lit.lerp(Color(0.48, 0.5, 0.55), storm * 0.75))
-	_clouds.set("shade_color", (_amb * 1.05).lerp(Color(0.22, 0.23, 0.27), storm * 0.8).lerp(Color(0.08, 0.09, 0.14), night * 0.6))
+	_clouds.set("lit_color", lit.lerp(Color(0.48, 0.5, 0.55), storm * 0.75).lerp(Color(0.3, 0.22, 0.18), smoke))
+	_clouds.set("shade_color", (_amb * 1.05).lerp(Color(0.22, 0.23, 0.27), storm * 0.8).lerp(Color(0.08, 0.09, 0.14), night * 0.6).lerp(Color(0.07, 0.06, 0.06), smoke))
 	_cloud_target = 0.0
 	if cam and _clouds.has_method("density_at"):
 		_cloud_target = float(_clouds.density_at(cam.global_position))
@@ -810,7 +821,7 @@ func _update_rays() -> void:
 	# strongest with a lowish sun and broken cloud, none at night or in rain
 	var k := smoothstep(0.02, 0.15, elev) * (1.0 - smoothstep(0.55, 0.85, elev))
 	var cloudy := 1.0 - absf(coverage - 0.55) / 0.55
-	k *= clampf(0.35 + cloudy, 0.0, 1.0) * (1.0 - rain) * (1.0 - storm) * (1.0 - in_cloud)
+	k *= clampf(0.35 + cloudy, 0.0, 1.0) * (1.0 - rain) * (1.0 - storm) * (1.0 - in_cloud) * (1.0 - smoke)
 	_ray_mat.set_shader_parameter("intensity", k * 0.22)
 	_ray_mat.set_shader_parameter("sun_dir", sun_dir)
 	_ray_mat.set_shader_parameter("ray_color", _sun_col)

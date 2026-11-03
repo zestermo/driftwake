@@ -4,8 +4,9 @@ extends Node3D
 ## Admiral). When the Commodore falls ("sh_seal_keep") every machine, from the moment it sees that flag:
 ## - the emergency broadcast (a banner), and the garrison stops refilling (no more respawns, no more officers);
 ## - GRACE s to loot, then COUNT s of countdown (banners), then the Scouring: a shell every SHELL_EVERY s somewhere on
-##   the island (every third at our own captain while inside the ring, RING_R), each telegraphed WARN s ahead, a blast
-##   that hurts our captain within SHELL_R and leaves a burning patch (FIRE_LIFE s) behind;
+##   the island (every third volley one more at each captain inside the ring, RING_R), each telegraphed WARN s ahead, a
+##   blast that hurts our captain within SHELL_R and leaves a burning patch (FIRE_LIFE s) behind; how it all looks and
+##   sounds (the smoke-dark sky, the shells' flight and whistle, the bursts) is ScouringFX's (1.30);
 ## - the crew's ship out of the ring (RING_R from the island) ends it ("sh_escaped": the host sees it, a bounty; 1.30:
 ##   was 500 m, and the shells aimed at a captain followed the ship all the way).
 ## The shells are worked out from the shared clock on every machine and hurt only its own captain, so nothing about
@@ -47,12 +48,15 @@ var _hurt := 0.0
 var _said := {}
 var _blink := 0.0
 var _check := 0.0
+var fx: ScouringFX
 
 
 func setup(island: Node3D, watched: Array) -> StrongholdScouring:
 	isl = island
 	camps = watched
 	name = "Scouring"
+	fx = ScouringFX.new().setup(self)
+	add_child(fx)
 	return self
 
 
@@ -116,35 +120,62 @@ func _stand_down() -> void:
 			(c as Node).set_process(false)
 
 
-## Shell k: where it falls (every third at our own captain, while inside the ring), telegraphed now, landing WARN s later.
+## Shell k, telegraphed now and landing WARN s later: every third volley one at each captain inside the ring (each
+## screen aims at its own view of them; only a captain's own screen hurts them), the rest across the island, most on
+## the fortress's districts: where each lands is the first thing a ray from the sky meets (a roof, a wall's walk, a
+## tower's top, the cobbles, the sea).
 func _shell(k: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(isl.node["seed"]), k])
-	var at: Vector3
-	var me := get_tree().get_first_node_in_group("player") as Node3D
-	if k % 3 == 2 and me and in_ring(me.global_position):
-		at = me.global_position + Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3))
+	var lands := _clock() + WARN
+	if k % 3 == 2:
+		var caps: Array = get_node("/root/Net").all_players().filter(func(p): return in_ring((p as Node3D).global_position))
+		caps.sort_custom(func(a, b): return str(a.name) < str(b.name))
+		for p in caps:
+			var at: Vector3 = (p as Node3D).global_position + Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3))
+			_fire(at, Vector3.UP, false, lands, k)
+	var q: Vector2
+	if rng.randf() < 0.6:
+		var r: Rect2 = StrongholdPlan.DISTRICTS[rng.randi() % StrongholdPlan.DISTRICTS.size()][1]
+		q = Vector2(rng.randf_range(r.position.x - 6.0, r.end.x + 6.0), rng.randf_range(r.position.y - 6.0, r.end.y + 6.0))
 	else:
-		var q: Vector2 = StrongholdPlan.LAND_C + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * ISLAND_R
-		var g := StrongholdPlan.ground(q)
-		at = isl.city_global(q, g if g > -INF else maxf(StrongholdPlan.terrain(q), 0.0))
+		q = StrongholdPlan.LAND_C + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * ISLAND_R
+	var hit := _from_sky(isl.city_global(q, 0.0))
+	_fire(hit[0], hit[1], hit[2], lands, k)
+
+
+func _fire(at: Vector3, n: Vector3, water: bool, lands: float, k: int) -> void:
 	FX.telegraph(at, SHELL_R, WARN, Color(1.0, 0.25, 0.08))
-	_pending.append([at, _clock() + WARN])
+	_pending.append([at, lands, n, water])
+	fx.incoming(at, lands, k)
+
+
+## What a shell falling straight down at p's x, z meets first: [where, its normal, in the sea].
+func _from_sky(p: Vector3) -> Array:
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 260.0, p.z), Vector3(p.x, -30.0, p.z), 1)
+	var r := get_world_3d().direct_space_state.intersect_ray(q)
+	if r.is_empty() or (r["position"] as Vector3).y < 0.2:
+		return [Vector3(p.x, 0.0, p.z), Vector3.UP, true]
+	return [r["position"], r["normal"], false]
 
 
 func _land(_delta: float) -> void:
 	var now := _clock()
 	var me := get_tree().get_first_node_in_group("player") as Player
-	while not _pending.is_empty() and float(_pending[0][1]) <= now:
-		var at: Vector3 = _pending.pop_front()[0]
-		FX.blast(at, Vector3.UP, 2.6)
-		FX.flash_light(at + Vector3.UP * 2.0, FX.FIRE_LIGHT, 4.0, 14.0, 0.4)
-		FX.fire_ring(at, FIRE_R, 30)
-		fires.append([at, now + FIRE_LIFE])
-		if me and me.global_position.distance_to(at) < SHELL_R:
+	var due := _pending.filter(func(e): return float(e[1]) <= now)
+	if due.is_empty():
+		return
+	_pending = _pending.filter(func(e): return float(e[1]) > now)
+	for e: Array in due:
+		var at: Vector3 = e[0]
+		fx.landed(at, e[2], e[3])
+		if not e[3]:
+			fires.append([at, now + FIRE_LIFE])
+		var d := me.global_position.distance_to(at) if me else INF
+		if d < SHELL_R:
 			var hd := HitData.new()
-			hd.damage = SHELL_DMG
-			hd.knockback_force = 9.0
+			hd.damage = SHELL_DMG * lerpf(1.0, 0.45, d / SHELL_R)
+			hd.knockback_force = 11.0
 			hd.unblockable = true
 			hd.camera_shake_intensity = 0.5
 			me.hurtbox.take_hit(hd, null)

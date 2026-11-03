@@ -12,6 +12,10 @@ var idx := 0
 var settle := 0
 var frames: Array = []
 var caption: Label
+## (1.30, CSHOT_SCOURING=1) the Scouring under way: the smoke at full, and before each shot a few shells bursting round
+## where it looks, caught mid-burst.
+var sc
+var shot_at := 0.0
 
 
 func _initialize():
@@ -52,6 +56,10 @@ func _process(d: float) -> bool:
 	settle += 1
 	if settle < 10:
 		return false
+	if sc and float(root.get_node("Ocean").clock()) < shot_at + 1.1:
+		return false
+	if sc:
+		print("scouring %s: %s, %d shells pending, %d cards, smoke %.2f" % [shots[idx][0], sc.state, sc._pending.size(), sc.fx._cards.size(), root.get_node("Weather").smoke])
 	var img := root.get_texture().get_image()
 	img.save_png("%s_%s.png" % [out, shots[idx][0]])
 	frames.append(img)
@@ -141,6 +149,18 @@ func _setup(island) -> void:
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))
+	if OS.get_environment("CSHOT_SCOURING") == "1":
+		sc = isl.city.get_node("Scouring")
+		sc.grace = 0.0
+		sc.count = 0.0
+		me.health_component.max_health = 1.0e7
+		me.health_component.current_health = 1.0e7
+		# (once the ship's settled at her mooring, inside the ring)
+		settle = -1000000
+		await create_timer(2.0).timeout
+		root.get_node("GameManager").world_flags["sh_seal_keep"] = true
+		await create_timer(1.0).timeout
+		settle = 0
 	_aim()
 
 
@@ -151,6 +171,16 @@ func _aim():
 	var to: Vector2 = s[4]
 	cam.global_position = isl.city_global(from, _base(from) + float(s[3]))
 	cam.look_at(isl.city_global(to, _base(to) + float(s[5])), Vector3.UP)
+	if sc:
+		sc.fx.level = 1.0
+		shot_at = float(root.get_node("Ocean").clock())
+		var rng := RandomNumberGenerator.new()
+		rng.seed = idx
+		var dir := (to - from).normalized()
+		for j in range(4):
+			var q: Vector2 = from + dir * rng.randf_range(14.0, 60.0) + Vector2(-dir.y, dir.x) * rng.randf_range(-22.0, 22.0)
+			var hit: Array = sc._from_sky(isl.city_global(q, 0.0))
+			sc._fire(hit[0], hit[1], hit[2], shot_at + 0.45 + j * 0.15, 900000 + idx * 10 + j)
 
 
 ## The height a shot's heights are over: a district or way's floor, else the rock, else the sea.

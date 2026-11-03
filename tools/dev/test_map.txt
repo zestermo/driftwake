@@ -710,6 +710,9 @@ scripts/island/stronghold_plan.gd       t/stronghold
 scripts/island/stronghold_shell.gd      t/stronghold
 scripts/island/stronghold_island.gd     t/stronghold
 scripts/island/stronghold_boss.gd       t/stronghold
+scripts/island/stronghold_scouring.gd   t/stronghold/scouring t/stronghold/scouring_sky
+scripts/island/scouring_fx.gd           t/stronghold/scouring t/stronghold/scouring_sky
+shaders/psx/scouring_glow.gdshader      t/stronghold/scouring_sky
 scripts/powers/fruit_pool.gd            t/stronghold/vault
 scripts/loot/item_db.gd                 t/stronghold/vault
 scripts/island/city_undercity.gd        t/canal/undercity t/capital/catacombs

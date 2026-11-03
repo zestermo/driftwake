@@ -173,6 +173,9 @@ In-game loudness = file LU + typical call volume. Before -> now.
 | gunshot | gen | pistols, rifles, grunts | 1 take, 96% sub-200, centroid 97 Hz | a muffled boom, no crack | 3 takes, -15 LU, crack + bark + boom + slap-back |
 | cannon | gen | broadsides | 1 take, 98% sub-200 | no mid body | 2 takes, -13.4 LU, mid crump added |
 | cannon_hit | gen | ball impacts | 1 take | | 2 takes, -14.4 LU |
+| shell_whistle | gen (1.30) | the Scouring's shells, 1.8 s before each lands (FX.far_sfx, 140 m) | | | 3 takes, -15.2 LU, airy whistle falling 2.4 kHz -> 520 Hz, swelling, cut at the end |
+| shell_boom | gen (1.30) | the Scouring's shell bursts (FX.far_sfx, 170 m) | | | 3 takes, -12 LU, crack + chest boom + blast roar + falling stone, centroid ~330 Hz |
+| shell_far | gen (1.30) | the same bursts heard far off (800 m) | | | 2 takes, -17.2 LU, low boom + rolling rumble with reflections |
 | wood_crack | gen | hull hits, patching | 1 take | | 2 takes, -16.4 LU |
 | splash | gen | water entry, swimming, wading | 1 take, 54% above 2 kHz | hissy, used for strokes too | 3 takes, -17.3 LU, darker; strokes have their own sound |
 | land | gen | landings, grunt drops, skids | 1 take, 95% sub-200 | | 3 takes, -17.3 LU, with a scuff; plus the surface step |

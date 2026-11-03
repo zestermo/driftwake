@@ -9684,3 +9684,35 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 ## 2026-11-03: a captain beaten by an AI captain in co-op lay down for good (stronghold bosses)
 
 Duel.beaten spares a captain beaten with a rival within 40 m (downed, dead, 0 hp, not bleeding): only RivalEncounter and the brig stood them up, so the Commodore (or any officer) beating a guest while a crewmate still stood left them unreviveable and unrespawnable. Player.spared_down (from Duel.spare) now makes them bleed (revivable, F) when a crewmate stands; the bleed running out stands them up at 30% (spared_up clears it; Duel.stand_up too); with the whole crew down they lie for the wipe (the brig stands them up). t/coop/spared_revive.
+## 2026-11-03 - The Scouring's look, piece 1: the smoke-dark sky and the shelling (1.30)
+
+Zach's direction (docs/v1_30_plan.md "The Scouring's look"): huge bursts round the captain, heavy shake and orange
+flashes, the sky dark grey with smoke like the sandstorm even at noon.
+- **ScouringFX** (`scripts/island/scouring_fx.gd`, a child of StrongholdScouring, local on every screen: the shells
+  are already the same everywhere from the shared clock, so nothing new goes over the net). The smoke level climbs to
+  1 over 7 s once the barrage starts and clears over 18 s once escaped, scaled down past the ring by our captain's
+  distance (360-780 m from the island's middle); it writes `Weather.smoke`.
+- **Weather.smoke** (`weather.gd`, a small hook like sand_boost): the sky top and horizon to SMOKE_SKY / SMOKE_HOR
+  (darker at night), sky clouds full and storm-dark, sun x(1-0.85 s) and orange, ambient warmer and x(1-0.45 s), fog
+  to SMOKE_FOG and in to 12-460 m, haze 0.75, the sea darker, no glitter, rays or cloud shadows.
+- **Shells** (StrongholdScouring._shell): every third volley one at each captain inside the ring (all screens show
+  them; only a captain's own screen hurts them), the rest 60% on a district (+6 m round it), 40% over the island; a ray
+  from 260 m down (mask 1) picks what it meets: roofs, wall walks, tower tops, the cobbles, or the sea (below 0.2 m).
+  Damage falls from SHELL_DMG at the middle to 45% at SHELL_R. Due shells land by time, not queue order.
+- **Each shell**: fired from a point on the ring 0.85 x RING_R out (a glow and a smoke puff there), flies a 70 m arc
+  for its 2 s warning (a bright head and three trailing glows), `shell_whistle` 1.8 s before it lands; on land a
+  4.5-size FX.blast in soot black, a rising fireball plume, stone debris, a dust ring, embers, an 11 m shock ring, a
+  flash light (14 energy, 34 m, 0.8 s; the pool of 6), a big glow and a 30 m smoke card rising; on the sea a column
+  of white water, a ring, mist. `shell_boom` to 170 m, `shell_far` to 800 m (FX.far_sfx, new: sfx stops at 60 m).
+  Shake by the camera's distance (0.4 x (1 - d/60)^1.6, the rig's trauma; the Camera shake setting scales it), an
+  orange screen flash under 32 m (alpha 0.42 x (1 - d/32); Reduce flashing thirds it).
+- **Long-range cards**: one MultiMesh (CARDS 320, `shaders/psx/scouring_glow.gdshader`, premultiplied: glows add,
+  smoke blends, one draw, not fogged so the glow reads through the smoke); FX bursts stop at 160 m.
+- Per frame: ScouringFX writes the live cards (typically 40-70 after a minute, at most 320) and the flights into the
+  MultiMesh, two array filters, one Weather write; the bursts are ~9 FX nodes per shell (one every 1.2 s, plus one
+  per captain every 3.6 s). Nothing runs before the Commodore falls.
+- Debug: F4's "Stronghold: the Scouring now" (warp there first) cuts the grace and countdown to 3 and 5 s.
+- Renders: `CSHOT_SCOURING=1` on strongholdshot (the smoke full, four shells bursting in front of each view);
+  `tools/dev/out/scour/noon_sheet.png`, `night_sheet.png` (CSHOT_HOUR=22).
+- Tests: t/stronghold/scouring_sky (smoke in and clearing, a shell telegraphed, in flight from the ring, its whistle
+  queued, no harm before it lands, hurt after; shells on the Mess Hall's roof and in the sea), t/stronghold/scouring.

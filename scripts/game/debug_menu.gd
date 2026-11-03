@@ -170,6 +170,7 @@ func _build() -> void:
 	_btn(v, "Stronghold: on the chart", func(): _flag("stronghold_known"))
 	_btn(v, "Stronghold: both seals (keep opens)", func(): _flag("sh_seal_arsenal"); _flag("sh_seal_prison"))
 	_btn(v, "Stronghold: Commodore falls (the Scouring)", func(): _flag("sh_seal_keep"))
+	_btn(v, "Stronghold: the Scouring now (shells in 8 s, at the fortress)", _scouring_now)
 	row = HBoxContainer.new()
 	v.add_child(row)
 	_btn(row, "Next weather (F6)", func(): _key(KEY_F6))
@@ -387,6 +388,18 @@ func _warp_picked() -> void:
 func _flag(f: String) -> void:
 	get_node("/root/Net").world_flag(f)
 	_say("World flag: %s" % f)
+
+
+## (1.30) The Scouring without the wait: the Commodore down and the grace and countdown cut to 3 and 5 s (warp to the
+## stronghold first: it has to be built).
+func _scouring_now() -> void:
+	var sc := get_tree().root.find_child("Scouring", true, false) as StrongholdScouring
+	if sc == null:
+		_say("No stronghold built here: warp to it first")
+		return
+	sc.grace = 3.0
+	sc.count = 5.0
+	_flag("sh_seal_keep")
 
 
 ## A debug key pressed for you (the weather's F6 and F7 stay the one way they work).
