@@ -306,7 +306,7 @@ func _process(d: float) -> bool:
 			step = 8
 		8:
 			check("Morrow defeated: the story's done", not story().active())
-			check("  the objective is gone", not hud()._objective._box.visible)
+			check("  the objective moves on to the chain (%s)" % hud()._objective.objective().get("goal", ""), hud()._objective.objective().get("kind", "") == "chain")
 			# saved and restored mid-story
 			story().from_dict({"step": "grell", "won": ["smugglers"]})
 			var dd: Dictionary = story().to_dict()

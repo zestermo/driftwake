@@ -299,8 +299,7 @@ func apply(op: String, args: Array) -> void:
 			e["order"] = _order
 			_toast("Quest over: %s" % e["title"])
 			if tracked == e["id"]:
-				var left := active()
-				tracked = left[0]["id"] if not left.is_empty() else "story"
+				_retrack()
 		"done":
 			_finish(args[0], args[1], int(args[2]), args[3])
 		"favour":
@@ -313,8 +312,7 @@ func apply(op: String, args: Array) -> void:
 			var title := str(entries[args[0]]["title"]) if entries.has(args[0]) else ""
 			entries.erase(args[0])
 			if tracked == args[0]:
-				var left := active()
-				tracked = left[0]["id"] if not left.is_empty() else "story"
+				_retrack()
 			_toast("Quest dropped: %s" % title)
 		"rumour":
 			rumours.append(args[0])
@@ -351,8 +349,13 @@ func _finish(id: String, at: Vector3, by: int, chart: Array) -> void:
 			get_tree().call_group("hud", "show_banner", "Quest done: %s" % e["title"], got, true)
 	UIStyle.sfx("quest_done")
 	if tracked == id:
-		var left := active()
-		tracked = left[0]["id"] if not left.is_empty() else "story"
+		_retrack()
+
+
+## The followed quest ended: the newest live one, else the story while it's on, else "" (the chain's next step).
+func _retrack() -> void:
+	var left := active()
+	tracked = left[0]["id"] if not left.is_empty() else ("story" if Story.active() else "")
 
 
 func _live(id: String) -> bool:

@@ -63,7 +63,7 @@ func _process(_d: float) -> bool:
 			var pt: Vector3 = src.quests[0]["point"]
 			check("...its mark on the held map, labelled (%s)" % m, not m.is_empty() and m["kind"] == "quest" and m["label"] == "A look at the reef"
 				and (m["at"] as Vector2).distance_to(Vector2(pt.x, pt.z)) < 0.01)
-			check("...as a quest, with its distance (%s)" % hud._head.text, hud._head.text.contains("QUEST") and hud._head.text.contains("60m"))
+			check("...as a quest, with its distance (%s %s)" % [hud._head.text, hud._dist.text], hud._head.text.contains("QUEST") and hud._dist.text == "60m")
 			check("...its step's goal (%s)" % hud._goal.text, hud._goal.text == "Scout the reef")
 			check("...the marker on the place", hud._target().distance_to(src.quests[0]["point"]) < 0.01 and not hud._person())
 			hud._flash = 0.0
