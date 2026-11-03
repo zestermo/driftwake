@@ -11,6 +11,9 @@ extends Node3D
 ##   caltrops  spikes strewn on the ground: foes on them slowed and cut, Mk III's draw blood
 ##   lantern_bomb  a burst of light, then the lamp burning on in its own light (radius = the tier's "light"): foes in
 ##          it are marked on the compass (GadgetMarks) and revealed; by night the host's sends beasts off (scare)
+##   charge (1.30) planted (GadgetState), not thrown: the satchel on its surface (`normal`), the fuse ticking on every
+##          screen, then a big blast; the host's hurts and floors everything in the radius and breaches the
+##          ChargeTargets in it
 ## Damage goes through the foes' hurtboxes (a query on the enemies' layer) as the thrower's (`by`).
 
 const TICK := 0.25
@@ -25,6 +28,11 @@ const TAR := Color(0.035, 0.03, 0.028, 0.96)
 ## (1.30) The flash dazzles a screen whose camera looks within this of it (a dot), for FLASH_SECS.
 const FACING_DOT := 0.5
 const FLASH_SECS := 0.9
+## (1.30) The powder charge: its zone stays this long after the blast (the smoke), the fuse's tick, and how far a
+## camera still shakes.
+const CHARGE_AFTER := 1.5
+const FUSE_TICK := 0.5
+const CHARGE_SHAKE := 35.0
 
 ## Every zone alive on this machine (the smoke also in GadgetVeil.clouds).
 static var active: Array = []
@@ -47,15 +55,25 @@ var _emit: CPUParticles3D
 var _pool: MeshInstance3D
 var by: Node
 var _cough: Dictionary = {}
+## (1.30) The charge: the surface it sits on (out of it), its fuse, the satchel, its tick.
+var normal := Vector3.UP
+var fuse := 0.0
+var _beep := 0.0
+var _satchel: MeshInstance3D
+var _fuse_timer: Timer
 
 
-static func spawn(tree: SceneTree, gid: String, t: int, at: Vector3, thrower: Node = null) -> GadgetZone:
+static func spawn(tree: SceneTree, gid: String, t: int, at: Vector3, thrower: Node = null, normal := Vector3.UP) -> GadgetZone:
 	var z := GadgetZone.new()
 	z.kind = gid
 	z.tier = t
 	z.by = thrower
+	z.normal = normal.normalized()
 	z.radius = float(GadgetData.tier_val(gid, "radius" if GadgetData.GADGETS[gid].has("radius") else "light", t))
 	z.secs = float(GadgetData.tier_val(gid, "secs", t)) if GadgetData.GADGETS[gid].has("secs") else BURST_SECS
+	if GadgetData.GADGETS[gid].has("fuse"):
+		z.fuse = float(GadgetData.tier_val(gid, "fuse", t))
+		z.secs = z.fuse + CHARGE_AFTER
 	(tree.current_scene if tree.current_scene else tree.root).add_child(z)
 	z.global_position = at
 	return z
@@ -85,6 +103,8 @@ func _ready() -> void:
 			_caltrops_strew()
 		"lantern_bomb":
 			_lantern_burst()
+		"charge":
+			_charge_set()
 	var life := Timer.new()
 	life.one_shot = true
 	life.wait_time = secs
@@ -99,6 +119,14 @@ func _ready() -> void:
 		add_child(t)
 		t.start()
 		_lantern_tick.call_deferred()
+		return
+	if kind == "charge":
+		# (every screen: the fuse's tick and the blast; the host's also hurts and breaches)
+		_fuse_timer = Timer.new()
+		_fuse_timer.wait_time = FUSE_TICK
+		_fuse_timer.timeout.connect(_fuse_tick)
+		add_child(_fuse_timer)
+		_fuse_timer.start()
 		return
 	if Net.is_host():
 		if kind in ["flash", "star"]:
@@ -206,6 +234,71 @@ func _caltrops_strew() -> void:
 	FX.sfx("clack", global_position, -4.0, 0.15, 1.5)
 	FX.sfx("clack", global_position, -6.0, 0.15, 1.1)
 	FX.puff_ring(global_position, "dust_low", 6, 0.3, 0.7, 0.5, Color(0.8, 0.75, 0.65, 0.7), 4.0)
+
+
+## (1.30) The powder charge set down: the satchel against its surface, the fuse sputtering.
+func _charge_set() -> void:
+	_satchel = MeshInstance3D.new()
+	_satchel.mesh = GadgetModels.mesh("charge", tier)
+	var x := (Vector3.FORWARD if absf(normal.y) > 0.95 else Vector3.UP).cross(normal).normalized()
+	_satchel.basis = Basis(x, normal, x.cross(normal)).scaled(Vector3.ONE * 2.4)
+	_satchel.position = normal * 0.05
+	_satchel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_satchel.visibility_range_end = 90.0
+	add_child(_satchel)
+	_emit = FX.flip_emitter(self, "dust", 6, 0.12, 0.35, {"radius": 0.03, "spread": 40.0, "direction": normal,
+		"vel_min": 0.6, "vel_max": 1.4, "gravity": Vector3(0, -2.0, 0), "fade": 0.4, "color": Color(1.0, 0.7, 0.25, 1.0), "range": 60.0})
+	_emit.position = normal * 0.32
+	FX.sfx("hiss", global_position, -6.0, 0.1, 1.3)
+
+
+## The fuse burns down (every screen): a tick and a spit of sparks, then the blast.
+func _fuse_tick() -> void:
+	_beep += FUSE_TICK
+	if _beep < fuse - 0.01:
+		var near_end := fuse - _beep <= 1.0
+		FX.sfx("blip_high" if near_end else "clack", global_position, -8.0, 0.02, 1.6 if near_end else 1.2)
+		FX.puff(global_position + normal * 0.35, "dust", 1, 0.15, 0.3, Color(1.0, 0.75, 0.35, 0.9), 0.25)
+		return
+	_fuse_timer.stop()
+	_charge_blow()
+
+
+func _charge_blow() -> void:
+	var c := global_position + normal * 0.4
+	_satchel.visible = false
+	_emit.emitting = false
+	FX.blast(c, normal, 2.4 + 0.4 * tier, true, Color(0.35, 0.33, 0.3, 0.9), 9.0)
+	FX.blast(c + normal * 0.9 + Vector3.UP * 0.5, normal, 1.5 + 0.3 * tier, true, Color(0.3, 0.28, 0.26, 0.9), 6.0)
+	FX.debris(c, normal, 20 + 6 * tier, Color(0.38, 0.33, 0.28), 10.0)
+	FX.ring(global_position + normal * 0.1, normal, radius, Color(1.0, 0.7, 0.35, 0.9), 0.35, 0.2)
+	FX.puff_ring(global_position, "dust_low", 14, 0.6, 2.2, 1.4, Color(0.5, 0.45, 0.4, 0.85), 10.0)
+	FX.plume(c, Vector3.UP, "smoke", 8, radius * 0.7, 3.0, Color(0.25, 0.23, 0.22, 0.9), 4.0, 25.0)
+	FX.flash_light(c, Color(1.0, 0.7, 0.4), 8.0, radius * 3.0, 0.35)
+	if normal.y > 0.7:
+		FX.ground_crack(global_position, Vector3.FORWARD, radius, Color(1.0, 0.45, 0.15), randi(), 0.15)
+	FX.sfx("cannon_hit", c, 2.0, 0.08, 0.8)
+	FX.sfx("fire_burst", c, 0.0, 0.1, 0.6)
+	var cam := get_viewport().get_camera_3d()
+	if cam:
+		var d := cam.global_position.distance_to(c)
+		if d < CHARGE_SHAKE:
+			CombatManager.apply_camera_shake(0.1 + 0.5 * (1.0 - d / CHARGE_SHAKE), 0.45)
+		if d < radius * 2.0:
+			FX.screen_flash(c, Color(1.0, 0.85, 0.6, 0.4), 0.2)
+	if not Net.is_host():
+		return
+	var hd := HitData.new()
+	hd.damage = float(GadgetData.tier_val("charge", "damage", tier))
+	hd.knockdown = true
+	hd.poise = 999.0
+	hd.knockback_force = 12.0
+	hd.stagger_duration = 0.6
+	hd.hitstop_duration = 0.06
+	hd.camera_shake_intensity = 0.0
+	hd.impact = "punch_heavy"
+	_hurt(hd)
+	ChargeTarget.blast(global_position, radius + 0.5, by if by and is_instance_valid(by) else null)
 
 
 ## The lantern bomb lands: a burst of light (a flash, sparks), then the lamp lying lit in a pool of warm light.

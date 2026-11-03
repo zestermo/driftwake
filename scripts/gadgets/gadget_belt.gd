@@ -246,7 +246,7 @@ func fire() -> bool:
 		_lob(gid, tier_of(gid))
 	elif gid == "skimmer":
 		player.state_machine.force_state("Skimmer", {"tier": tier_of(gid), "at": why[1]})
-	elif GadgetData.GADGETS[gid]["kind"] == "traversal" or gid == "lockpick":
+	elif GadgetData.GADGETS[gid]["kind"] == "traversal" or gid in ["lockpick", "charge"]:
 		player.state_machine.force_state("Gadget", {"id": gid, "tier": tier_of(gid), "at": why[1]})
 	else:
 		GadgetUtility.use(player, gid, tier_of(gid))
@@ -368,6 +368,10 @@ static func wear(body: Humanoid, tier: int) -> void:
 
 ## Another captain's throw arriving on this screen (Player.net_event "gadget").
 static func remote(p: Node, args: Array) -> void:
+	# (1.30) a planted charge: [id, tier, normal, at]
+	if GadgetData.GADGETS[str(args[0])].get("plant", false):
+		GadgetZone.spawn(p.get_tree(), str(args[0]), int(args[1]), args[3], p, args[2])
+		return
 	GadgetThrow.launch(p.get_tree(), str(args[0]), int(args[1]), args[2], args[3], p)
 
 

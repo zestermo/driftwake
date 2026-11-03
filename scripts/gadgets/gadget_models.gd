@@ -95,6 +95,20 @@ static func _build(gid: String, tier: int) -> ArrayMesh:
 			for k in range(4):
 				var d := Vector3(cos(k * 1.6), 0.9, sin(k * 1.6)).normalized()
 				mb.add_cone(PSXMat.lit("metal", IRON), Transform3D(Basis(Vector3.UP.cross(d).normalized(), Vector3.UP.angle_to(d)), d * 0.035), 0.008, 0.03, 3)
+		"charge":
+			# (1.30) a squat satchel of powder (lying on its surface, up = out of it), strapped, a fuse curling from the top
+			var bag: Color = [Color(0.62, 0.55, 0.42), Color(0.5, 0.42, 0.3), Color(0.2, 0.19, 0.2)][tier]
+			mb.add_blob(PSXMat.flat(bag), Transform3D(Basis(), Vector3(0, 0.028, 0)), Vector3(0.055, 0.03, 0.042), rng, 0.1, 4, 6, 4.0)
+			var strap := LEATHER if tier < 2 else LACQUER
+			for z in [-0.018, 0.018]:
+				mb.add_box(PSXMat.flat(strap), Transform3D(Basis(), Vector3(0, 0.03, z)), Vector3(0.115, 0.064, 0.008), 4.0)
+			if tier >= 1:
+				mb.add_box(PSXMat.lit("metal", BRASS), Transform3D(Basis(), Vector3(0.0, 0.062, 0.018)), Vector3(0.016, 0.006, 0.014), 4.0)
+			if tier == 2:
+				for x in [-0.045, 0.045]:
+					mb.add_box(PSXMat.lit("metal", IRON), Transform3D(Basis(), Vector3(x, 0.03, 0)), Vector3(0.01, 0.066, 0.088), 4.0)
+			mb.add_cylinder(PSXMat.flat(Color(0.3, 0.26, 0.22)), Transform3D(Basis(), Vector3(0, 0.062, 0)), 0.01, 0.012, 0.012, 6, 4.0)
+			mb.add_tube(PSXMat.flat(Color(0.82, 0.76, 0.6)), MeshBuilder.curve_points(Vector3(0, 0.066, 0), Vector3(0.02, 0.1, 0.0), Vector3(0.045, 0.09, 0.012), 5), 0.005, 0.004, 4)
 		"grapple":
 			var reel: Color = [Color(0.45, 0.33, 0.22), BRASS, LACQUER][tier]
 			mb.add_cylinder(PSXMat.lit("metal", IRON), Transform3D(Basis(), Vector3(0, -0.02, 0)), 0.01, 0.01, 0.12, 5, 4.0)

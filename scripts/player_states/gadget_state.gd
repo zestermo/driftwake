@@ -8,6 +8,8 @@ extends PlayerState
 ##                 tier's time folds it (Fall / Idle)
 ##   spike         driven into the wall in front: you hang on it up to the tier's hold, forward climbs, jump kicks off
 ##                 (up and away); climbing past the top hops you over it
+##   charge        (1.30) knelt and planted on the ChargeTarget in reach (or the ground ahead), then up and clear: the
+##                 fuse burns on in its GadgetZone
 
 ## The grapple gives up hauling after this long, or when it's barely moving (snagged).
 const PULL_MAX := 2.2
@@ -27,6 +29,13 @@ const GLIDE_TURN := 0.25
 const PICK_REACH := 2.6
 const PICK_CLICK := 0.35
 const SKIMMER := preload("res://scripts/player_states/skimmer_state.gd")
+## (1.30) The charge: set this far ahead on the ground; the plant's length and when in it the satchel's down.
+const PLANT_AHEAD := 0.8
+const PLANT := 0.7
+const PLANT_SET := 0.42
+## (1.30) A marked ledge (GrapplePoints.add_ledge) bites from this far, whatever the hook's tier, this far off the aim.
+const LEDGE_REACH := 25.0
+const LEDGE_ANGLE := 0.3
 
 var id := ""
 var tier := 0
@@ -61,7 +70,24 @@ static func reason(p: Player, gid: String, t: int) -> Array:
 			return ["No lock here to pick: stand at a locked chest", Vector3.ZERO] if b == null else ["", b.global_position]
 		"skimmer":
 			return SKIMMER.launch_point(p)
+		"charge":
+			return ["Plant it standing on firm ground", Vector3.ZERO] if not p.is_on_floor() else ["", charge_spot(p)[0]]
 	return ["", Vector3.ZERO]
+
+
+## (1.30) Where a charge goes: [point, normal] on the ChargeTarget within its reach in front, else the ground just
+## ahead of the captain's feet.
+static func charge_spot(p: Player) -> Array:
+	var fwd: Vector3 = -p.player_model.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var t := ChargeTarget.near(p.global_position + Vector3.UP + fwd * 0.8, ChargeTarget.REACH)
+	if t:
+		return [t.global_position, t.normal()]
+	var at: Vector3 = p.global_position + fwd * PLANT_AHEAD
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.0, at + Vector3.DOWN * 2.0, 1, [p.get_rid()])
+	var h := p.get_world_3d().direct_space_state.intersect_ray(q)
+	return [h["position"], h["normal"]] if not h.is_empty() else [p.global_position, Vector3.UP]
 
 
 ## The locked chest within PICK_REACH of the captain (null none).
@@ -81,9 +107,17 @@ static func hook_point(p: Player, r: float) -> Vector3:
 	if cam:
 		from = cam.global_position
 		dir = -cam.global_basis.z
+	# (1.30) a marked ledge near the aim (a fortress wall, a tower, a rooftop) bites first, from further off
+	var space := p.get_world_3d().direct_space_state
+	var ledge := GrapplePoints.best_ledge(from, dir.normalized(), p.global_position, maxf(r, LEDGE_REACH), LEDGE_ANGLE, p.global_position.y + HOOK_ABOVE)
+	if ledge != Vector3.INF:
+		var chest: Vector3 = p.global_position + Vector3.UP * 1.4
+		var lq := PhysicsRayQueryParameters3D.create(chest, ledge + (chest - ledge).normalized() * 0.5, 1, [p.get_rid()])
+		if space.intersect_ray(lq).is_empty():
+			return ledge
 	var reach := r + from.distance_to(p.global_position)
 	var q := PhysicsRayQueryParameters3D.create(from, from + dir.normalized() * reach, 1, [p.get_rid()])
-	var h := p.get_world_3d().direct_space_state.intersect_ray(q)
+	var h := space.intersect_ray(q)
 	if h.is_empty():
 		return Vector3.INF
 	var at: Vector3 = h["position"]
@@ -151,6 +185,15 @@ func enter(data: Dictionary) -> void:
 			Net.fx("parry_sparks", [_at, _normal])
 			Net.fx("sfx", ["clash", _at, -4.0, 0.08, 1.4])
 			player.cam_shake(0.08, 0.12)
+		"charge":
+			var spot := charge_spot(player)
+			_at = spot[0]
+			_normal = spot[1]
+			_face(_at - player.global_position if _normal.y > 0.7 else -_normal)
+			player.velocity = Vector3.ZERO
+			h.play("gd_plant", PLANT)
+			_look = 0.0
+			Net.fx("sfx", ["clack", _at, -8.0, 0.1, 0.8])
 		"lockpick":
 			_bag = lock_near(player)
 			_face(_bag.global_position - player.global_position)
@@ -187,6 +230,22 @@ func physics_update(delta: float) -> void:
 			_hang(delta)
 		"lockpick":
 			_pick(delta)
+		"charge":
+			_plant(delta)
+
+
+## (1.30) Knelt at it: the satchel goes down at PLANT_SET (its zone on every screen, the fuse lit), then back up.
+func _plant(delta: float) -> void:
+	apply_gravity(delta)
+	player.velocity.x = 0.0
+	player.velocity.z = 0.0
+	player.move_and_slide()
+	if t >= PLANT_SET and _look >= 0.0:
+		_look = -1.0
+		GadgetZone.spawn(player.get_tree(), "charge", tier, _at, player, _normal)
+		Net.event(player, "gadget", ["charge", tier, _normal, _at])
+	if t >= PLANT:
+		transitioned.emit(self, "Idle", {})
 
 
 ## Picking the lock: the picks click at it for the tier's time, then it springs open and the chest opens. Moving,

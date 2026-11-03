@@ -11,7 +11,7 @@ extends RefCounted
 ## No autoloads by name here (ItemDB calls make_items before they exist).
 
 ## The gadgets the bench offers (all of GadgetData since piece 5).
-const WORKING := ["smoke", "tar", "flash", "pepper", "star", "decoy", "caltrops", "grapple", "spring_boots", "glider", "spike",
+const WORKING := ["smoke", "tar", "flash", "pepper", "star", "charge", "decoy", "caltrops", "grapple", "spring_boots", "glider", "spike",
 	"spyglass", "diving_helmet", "auto_reel", "lockpick", "lantern_bomb", "skimmer", "burst_launcher", "paddle_boost", "smoke_screen", "harpoon"]
 
 
@@ -192,7 +192,7 @@ const STAT_WORDS := {"range": "range %s m", "radius": "radius %s m", "secs": "la
 	"slow": "speed x%s", "stun": "stuns %s s", "dps": "%s dmg/s", "damage": "%s dmg", "lure": "lures from %s m",
 	"pull": "pulls %s m/s", "jump": "jump %s m/s", "fall": "falls %s m/s", "hold": "holds %s s", "reach": "marks to %s m",
 	"breath": "breath x%s", "reel": "reel +%s", "catches": "%s catches", "pick_secs": "picks in %s s", "light": "light %s m",
-	"impulse": "+%s m/s", "boost": "speed +%s", "bleed": "bleeds %s s", "burst": "bursts for %s", "speed": "%s m/s", "hop": "hops %s m/s"}
+	"impulse": "+%s m/s", "boost": "speed +%s", "bleed": "bleeds %s s", "burst": "bursts for %s", "speed": "%s m/s", "hop": "hops %s m/s", "fuse": "fuse %s s"}
 
 
 static func _num(v) -> String:

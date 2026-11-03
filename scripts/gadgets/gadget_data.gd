@@ -70,6 +70,13 @@ const GADGETS := {
 		"radius": [2.2, 2.8, 3.4], "secs": [8.0, 10.0, 12.0], "dps": [3.0, 5.0, 7.0], "slow": [0.7, 0.6, 0.5], "bleed": [0.0, 0.0, 3.0],
 		"cost": [[30, {"iron": 2}], [90, {"iron": 3, "springs": 1}], [240, {"iron": 4, "chitin_shard": 2, "ember_ore": 1}]],
 		"refill": {"iron": 1}},
+	# (1.30) planted, not thrown: on a ChargeTarget within its reach (a gate, a barricade, a marked wall) or the ground
+	"charge": {"name": "Powder Charge", "kind": "combat", "plant": true, "from": "chandlers' and Nessa's packs; Admiralty supply crates",
+		"desc": "A satchel of blackpowder on a slow fuse. Plant it on a gate, a barricade or a wall marked for it (or on the ground) and get clear: it blows the way open and throws foes flat.",
+		"charges": [2, 3, 4], "cd": [3.0, 3.0, 3.0], "fuse": [3.0, 3.0, 2.5],
+		"radius": [4.5, 5.0, 5.5], "damage": [90.0, 130.0, 180.0],
+		"cost": [[50, {"black_powder": 3, "canvas": 1}], [130, {"black_powder": 4, "iron": 1, "springs": 1}], [320, {"black_powder": 5, "brass": 1, "ember_ore": 2}]],
+		"refill": {"black_powder": 2}},
 	# --- traversal (cooldown only) ---
 	"grapple": {"name": "Grappling Hook", "kind": "traversal", "from": "the forge town's tinkerer",
 		"desc": "A folding iron hook on a sprung reel: aim at a ledge, a branch or a mast and it hauls you up to it.",
@@ -185,13 +192,14 @@ const SHOP_PARTS := [["black_powder", 6], ["pitch", 4], ["springs", 3]]
 const KITS := {
 	"smoke": ["Smoke Pellets", 12, "A paper twist of three clay smoke pellets, fuses ready."],
 	"flash": ["Flash Pellets", 18, "Two magnesium flash pellets in a tin, packed in sawdust."],
+	"charge": ["Powder Charges", 30, "Two satchels of blackpowder on slow fuses: for gates, walls and anything else in the way."],
 	"grapple": ["Grappling Hook", 50, "A ready-made folding hook on a sprung reel."],
 }
 ## The packs a stall sells (Shops stock entries).
-const SHOP_KITS := [["kit_smoke"], ["kit_flash"], ["kit_grapple"]]
+const SHOP_KITS := [["kit_smoke"], ["kit_flash"], ["kit_charge"], ["kit_grapple"]]
 ## A supply crate's packs: how many (min, max) and the weights of each kind.
 const CRATE_N := [1, 2]
-const CRATE_KITS := {"smoke": 3.0, "flash": 2.0}
+const CRATE_KITS := {"smoke": 3.0, "flash": 2.0, "charge": 2.0}
 
 
 static func tier_val(gid: String, key: String, tier: int) -> Variant:
