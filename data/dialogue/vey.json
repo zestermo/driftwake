@@ -3,7 +3,7 @@
 	"voice": 0.9,
 	"start": "intro",
 	"return": "menu",
-	"story": { "see_vey": "story_vey", "vey_rack": "story_rack", "vey_drills": "story_drills", "smugglers": "story_smugglers", "vey_skills": "story_skills", "shrine": "story_shrine","grell": "story_grell" },
+	"story": { "see_vey": "story_vey", "vey_rack": "story_rack", "vey_ready": "story_ready", "vey_drills": "story_drills", "smugglers": "story_smugglers", "vey_skills": "story_skills", "shrine": "story_shrine","grell": "story_grell" },
 	"nodes": {
 		"story_vey": {
 			"text": [
@@ -17,6 +17,15 @@
 		},
 		"story_rack": {
 			"text": "The rack, by the north fence. Try them on the dummies. When one feels like yours, keep it.",
+			"next": "menu"
+		},
+		"story_ready": {
+			"text": [
+				"That's the one, is it? Fine. A weapon you like is a weapon you'll practise with.",
+				"Now the drills. The list's on your left: every move on it, on the dummies. Light, heavy, the dodge, the parry, the lot. Whatever your hand's holding, its heavy counts.",
+				"Every move on the list, then we talk smugglers."
+			],
+			"event": "story:vey_ready",
 			"next": "menu"
 		},
 		"story_drills": {

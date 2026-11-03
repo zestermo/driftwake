@@ -99,7 +99,7 @@ func _physics_process(_d: float) -> void:
 					tick("air")
 			"Shoot":
 				tick("light")
-			"HeavyAttack":
+			"HeavyAttack", "Iai", "Technique":
 				tick("heavy")
 			"Dodge":
 				tick("dodge")

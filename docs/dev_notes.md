@@ -9436,3 +9436,15 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   fruit tree pass; powertest's chest check reads WIDE_POOL.
 - Test: t/stronghold/vault (rays from the hall's middle and down onto the chest, the map mark, the fruit and its
   reservation, every legendary resolves).
+
+## 2026-11-03: 1.30 land fixes, piece 2: Vey's rack and the drills (playtest rows 10, 11)
+- Trying weapons on Vey's rack gave mastery, found every tried tree and so 2 points each. Now `Progression.on_hit`
+  teaches nothing while the local captain's Story step is "vey_rack"; `StoryRack.keep` discovers the kept weapon's
+  tree. `FOUND_AT_START` is just ["captain"] (the cutlass isn't found at start); a save that bought cutlass nodes
+  under the old default still finds the tree on load (any tree with bought nodes or steps).
+- A new step "vey_ready" (talk to Vey, `story_ready` in data/dialogue/vey.json) between the rack and the drills, so
+  keeping a weapon no longer throws the checklist up at once.
+- The drills' "heavy" ticks on HeavyAttack, Iai (the katana's heavy) and Technique (a bought alternate heavy).
+- Tests: t/story/rack_keeps_one (no mastery or points on the rack, the kept tree found, rack -> Vey -> drills),
+  t/story/opening_steps (22 steps), t/ui/drills_katana (new); t/progression/tree_found and t/ui/skills_hidden_trees
+  updated for no cutlass at start.

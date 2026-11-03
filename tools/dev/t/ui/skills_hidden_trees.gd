@@ -40,6 +40,7 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			pr = stage.player.progression
+			pr.discover("sword")
 			pr.add_mastery("katana", 200)
 			root.size = Vector2i(1280, 720)
 			root.get_node("Story").step = "done"

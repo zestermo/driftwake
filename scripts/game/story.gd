@@ -22,6 +22,7 @@ const STEPS := [
 	{"id": "brawl", "goal": "Deal with the dock toughs on the quay: fists only", "place": "brawl", "bout": "brawl", "who": "The quay"},
 	{"id": "see_vey", "goal": "Find Sergeant Vey at the training yard", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "vey_rack", "goal": "Try the blades on Vey's rack and keep one", "place": "rack", "who": "Weapon rack"},
+	{"id": "vey_ready", "goal": "Show Sergeant Vey the weapon you kept", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "vey_drills", "goal": "Show Vey every move on the training dummies", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "smugglers", "goal": "Drive the smugglers out of the south cove", "place": "smugglers", "who": "Smugglers' camp"},
 	{"id": "vey_skills", "goal": "Report back to Sergeant Vey", "npc": "Sergeant Vey", "who": "Vey"},

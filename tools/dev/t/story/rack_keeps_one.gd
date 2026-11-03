@@ -1,7 +1,8 @@
 extends SceneTree
 ## 1.25.4 Vey's rack (StoryRack, Story step "vey_rack"): it holds every weapon kind; an unarmed new captain takes one
 ## down (bag and hands), the next one taken puts the last back, so they only ever carry one; keeping it finishes the
-## step (on to Vey's drills) and leaves exactly that weapon; after that the rack gives nothing.
+## step (on to Vey, then his drills) and leaves exactly that weapon, its tree found; after that the rack gives nothing.
+## 1.30: trying the kinds teaches no mastery and finds no tree (no points).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -64,10 +65,23 @@ func _process(_d: float) -> bool:
 			SR.take(p, "spear")
 			SR.take(p, "musket")
 			check("two more tried: only the last one carried (%s)" % [_weapons()], _weapons() == ["musket"] and p.equipped_weapon.id == "musket")
+			var pr = p.progression
+			var t: String = pr.hand_tree()
+			var lv0: Dictionary = pr.mastery_of(t).duplicate()
+			var pts0: int = pr.earned("combat")
+			pr.found.erase(t)
+			for i in range(4):
+				pr.on_hit(rack, null)
+			check("trying a rack weapon teaches nothing (%s %s -> %s, %d points)" % [t, lv0, pr.mastery_of(t), pr.earned("combat")],
+				pr.mastery_of(t) == lv0 and pr.earned("combat") == pts0 and not pr.found.has(t))
+			check("no weapon tree found at the start", not load("res://scripts/progression/progression.gd").FOUND_AT_START.has("sword"))
 			until = TK.wait_ticks(10)
 		1:
 			SR.keep(p)
-			check("kept: on to Vey's drills (%s)" % story.step, story.step == "vey_drills")
+			check("kept: on to see Vey (%s)" % story.step, story.step == "vey_ready")
+			check("...and the kept weapon's tree is found", p.progression.found.has(p.progression.hand_tree()))
+			root.get_node("Dialogue").dialogue_event.emit("story:vey_ready")
+			check("Vey's talk: on to the drills (%s)" % story.step, story.step == "vey_drills")
 			check("...with exactly the kept weapon (%s)" % [_weapons()], _weapons() == ["musket"] and p.equipped_weapon.id == "musket")
 			SR.take(p, "greatsword")
 			check("the rack gives nothing after", _weapons() == ["musket"])

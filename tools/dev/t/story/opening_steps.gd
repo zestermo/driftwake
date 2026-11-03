@@ -1,10 +1,10 @@
 extends SceneTree
-## 1.25.4 the Brinehollow opening: the story's 21 steps in order; an old save's step resumes where it was (every
+## 1.25.4 the Brinehollow opening: the story's 22 steps in order (1.30: "vey_ready", talking to Vey between the rack and the drills); an old save's step resumes where it was (every
 ## pre-1.25.4 id is still on the list), an unknown one finishes the story; a new game starts with no weapon in the bag
 ## or the hands; the quay brawl (Story step "brawl") is a bare-handed bout with a dock tough that fights at once, and
 ## putting him down moves the story on to Vey (a loss doesn't).
 const TK := preload("res://tools/dev/test_kit.gd")
-const ORDER := ["find_town", "see_gus", "see_nessa", "lighthouse", "brawl", "see_vey", "vey_rack", "vey_drills", "smugglers",
+const ORDER := ["find_town", "see_gus", "see_nessa", "lighthouse", "brawl", "see_vey", "vey_rack", "vey_ready", "vey_drills", "smugglers",
 	"vey_skills", "shrine", "tomo", "ruins", "grell", "see_odile", "see_tackett", "forest", "queen", "tackett_ship",
 	"see_gus_redtide", "morrow"]
 const OLD := ["find_town", "see_gus", "see_nessa", "see_vey", "vey_drills", "smugglers", "vey_skills", "grell", "see_odile",
@@ -37,7 +37,7 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			story = root.get_node("Story")
 			var ids: Array = story.STEPS.map(func(s): return s["id"])
-			check("21 steps in order (%s)" % ", ".join(ids), ids == ORDER)
+			check("22 steps in order (%s)" % ", ".join(ids), ids == ORDER)
 			var kept := true
 			for id in OLD:
 				story.from_dict({"step": id, "won": ["smugglers"]})

@@ -54,8 +54,8 @@ const PASSIVE_SLOTS := 2
 const BUNK_REACH := 2.5
 ## How close to a rest spot (an inn's, the bunk's interactable) builds can be switched.
 const REST_REACH := 3.5
-## Trees a new captain sees.
-const FOUND_AT_START := ["captain", "sword"]
+## Trees a new captain sees (since 1.30 no weapon's: the one kept from Vey's rack is found then).
+const FOUND_AT_START := ["captain"]
 ## Save format: 2 = per-tree points, mastery, tiers; 3 = families and life skills; 4 = the trimmed trees (older
 ## saves are refunded once); 5 = the redesign (steps, versions, passive slots, found trees); 6 = the two pools
 ## (bought nodes; an older save's nodes and steps are bought back while the pools afford them, the rest refunded);
@@ -454,6 +454,9 @@ func on_hit(target: Node = null, hit: HitData = null) -> void:
 				if not is_instance_id_valid(k):
 					_foe_hits.erase(k)
 		_foe_hits[id] = n + 1
+	# (Vey's rack: trying the kinds teaches nothing; the one kept is found then)
+	if _mine() and Story.step == "vey_rack":
+		return
 	add_mastery(hand_tree(), MASTERY_PER_HIT)
 
 
@@ -1331,6 +1334,11 @@ func from_dict(d: Dictionary) -> void:
 	for t in mastery.keys():
 		if SkillTrees.has_tree(t) and (mastery_level(t) > 1 or int(mastery[t]["xp"]) > 0):
 			found[t] = true
+	# (before 1.30 the cutlass was found at start and so never saved: a save that spent in it still finds it)
+	for k in bought.keys() + steps.keys():
+		var nt := str(SkillTrees.node_def(k).get("tree", ""))
+		if SkillTrees.has_tree(nt):
+			found[nt] = true
 	passives.clear()
 	for p in d.get("passives", []):
 		passives.append(str(p))
