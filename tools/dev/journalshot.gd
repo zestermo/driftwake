@@ -18,7 +18,7 @@ func _initialize() -> void:
 	root.size = Vector2i(int(wh[0]), int(wh[1]))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	TK.seed_of(self)
-	stage = TK.stage(self, {"npc": {"name": "Net-mender Kai", "at": Vector3(-6, 0, -14)}})
+	stage = TK.stage(self, {"npc": {"name": "Net-mender Kai", "at": Vector3(-6, 0, -14)}, "grunts": [{"post": Vector3(1.5, 0, -5.0), "role": "sword", "seed": 71}]})
 
 
 func entry(id: String, title: String, giver: String, isle: String, src: String, goals: Array, at: int, reward: Dictionary, by := 1) -> Dictionary:
@@ -66,24 +66,34 @@ func _process(_d: float) -> bool:
 			stage.hud.pin_news("rival", "The Lantern Saints have anchored off the harbour", "Their captain is asking for you by name.")
 			stage.hud.show_toast("+40 gold  -  arena purse")
 			stage.hud.show_toast("Katana mastery 19")
-			until = 40
+			# (an engaged foe: its bar and marker)
+			for g in stage.camp.grunts:
+				g.health.current_health = g.health.max_health * 0.4
+				g.state = g.S.CHASE
+				g.process_mode = Node.PROCESS_MODE_DISABLED
+			until = 37
 		1:
+			# (the stage's own "new skill tree" card is in the way of the shot)
+			if stage.hud._tree_card:
+				stage.hud._tree_card.visible = false
+			until = 3
+		2:
 			shot("hud.png")
 			j.open()
 			until = 30
-		2:
+		3:
 			shot("next.png")
 			j.screen.show_tab("quests")
 			until = 20
-		3:
+		4:
 			shot("quests.png")
 			j.screen.show_tab("news")
 			until = 20
-		4:
+		5:
 			shot("news.png")
 			j.screen.show_tab("done")
 			until = 20
-		5:
+		6:
 			shot("done.png")
 			quit()
 	step += 1

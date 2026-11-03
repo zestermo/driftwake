@@ -9523,3 +9523,45 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - **Expected at prepush:** seatest, r8test and the other sea-fight suites (pirates now crowd on sail in a fight and run
   abreast of a ship under way, Admiralty ships appear a few seconds after a deed or patrol call), nettest (Admiralty
   `net_gen` has a third list; guests queue ships), any suite timing an Admiralty spawn.
+
+## 2026-11-03: 1.30 guidance and the Captain's Log (playtest 2026-11-02 row 12; docs/v1_30_plan.md "Guidance", "Journal rework", "Enemy health bars")
+- **The standing chain goal** (`scripts/quests/chain_goal.gd`, ChainGoal): with no live quest followed, the objective box shows
+  the chain's next step instead of nothing: Brinehollow's story while it's on; then Morrow (no log pose), the level the needle
+  waits for (Lv 5), "Sail to <island>" (or "A or B" at a fork; the nearer one's marker, bearing and `Chain.describe`), and on a
+  chain island whose needle hasn't set: its elder's trouble (the arc, untaken; marker on the elder), the arc's own step (taken),
+  the beast (`Site_boss/Arena`), else "Explore" with the wait. All from shared state (chain_at/chain_set, the journal), so every
+  captain sees the same step (the Lv 5 gate is each captain's own, like the needle's). `ChainGoal.followed()` is what the box
+  and the log's NOW card show. `Journal._retrack` no longer falls back to a finished "story" ("" = the chain).
+- **The objective box** (`objective_hud.gd`): a gold-rimmed panel (head "* QUEST" / "* OBJECTIVE - THE CHAIN", the distance
+  right, "1.2 KM" past a km, the goal, a dim line under it), the pinned news card under it, and in the stronghold a coral
+  district line (`LineQuests.district_hint`: what to do in the district you stand in, its muster flag while it's down).
+  Kept top left (the mock drew it right, where the gold/meal/pickup feed live). `tracker_height` covers the card too.
+- **Story lines as journal quests** (`scripts/quests/line_quests.gd`, LineQuests; src "line"): a step finishes when the world
+  says (`until`: ["done", quest] / ["perk", journal perk] / ["flag", world flag] / ["flags", [..]] counted "(n/m)" /
+  ["opened", save id]) and points where `at` says (["npc", name] / ["quest", id, giver] / ["sh"] / ["sh_room", room] /
+  ["sh_seals"]). Both are copied into the entry (`entry["line"]`), so a loaded save, a guest or a captain far from the city
+  carries on with no island built. `Journal._lines()` (1 s of game time, every machine) asks `advance` / `turn_in` (the host
+  takes the first word, as ever), opens offered lines (`Journal.offer(def, open)`) and the stronghold run once
+  "stronghold_known". The rulers' lines come from `CityFavour.ruler_line` (the Queen: her investigation, her thanks, the
+  fortress found, the writ, the fortress fallen, her thanks; the Doge: his investigation, his thanks); the run: both seals,
+  the Commodore, the vault, out of the Scouring. Lines are the crew's (`by` 0, they don't take anyone's tracking), can't be
+  dropped, and reward nothing themselves (the rulers already pay: reward `note` text, xp 0).
+- **The Captain's Log** (`journal_screen.gd`, Zach's mock): tabs NEXT / QUESTS / NEWS / DONE (Rumours moved under NEWS; Fish
+  stays). NEXT: the NOW card (what you follow, chips for the crew lit for those following it, the owner/distance line), the
+  leads on this island numbered (owner chips YOURS / <NAME>'S / SHARED: `Journal.owner_chip`), the chain dashed ("ALWAYS
+  ON"), a LogMap with the same numbers (the island's MapIsleView, or a sea sheet fitted round you and the marks) and the
+  news you might have missed. W/S pick, T follows (the chain: follows nothing). Who follows what: `Journal.follows` (peer ->
+  tracked, an op "follow" re-sent by each machine's poll when it differs: joining and leaving heal themselves). Fits 640x360.
+- **News** (`Journal.note(kind, title, text, pin)`, `announce` for every screen via the journal's host route; HUD
+  `pin_news(kind, title, text)` for this screen): kept (60, this session) for the NEWS tab; pinned ones are a cream card
+  under the objective box until this captain opens the log (`Journal.seen`); the rest stack bottom left (4, ~4.5 s each).
+  `show_toast` is small news now; banners are kept as "event" news. Pinned: a new quest, a chart marked, a story line's
+  step. **Hook for the rival arrival:** `Journal.announce("rival", title, text, true)` (or `call_group("hud", "pin_news", ...)`
+  on each machine).
+- **Enemy health bars** (`scripts/ui/enemy_bars.gd`, EnemyBars on the HUD): one Control draws a small bar and red marker over
+  each engaged foe (group "enemies": in_combat, a health drop, or within 15 m with a `_player`); fades 5 s after; bosses (group
+  "bosses") and foes with their own OverheadBar skipped; NPCs aren't enemies. Per frame: only the shown foes (a projection
+  and four rects each); a 4 Hz poll walks the enemies group with a distance check (45 m). Guests read synced state/health.
+- Tests: t/quests/chain_goal, t/capital/queen_line, t/stronghold/district_hint, t/ui/captains_log, t/ui/news_pin,
+  t/ui/enemy_bars; hud_tracked and storytest updated (storytest: after Morrow the box moves on to the chain). Render:
+  `journalshot` (hud/next/quests/news/done.png). Expected to touch storytest, lifetest, nettest (the follow op, lines).

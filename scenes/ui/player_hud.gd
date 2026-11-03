@@ -32,6 +32,7 @@ var _clock_t := 0.0
 var _in_dialogue: bool = false
 const OBJECTIVE := preload("res://scripts/ui/objective_hud.gd")
 var _objective: Control
+var _enemy_bars: EnemyBars
 var _pc: PixelCanvas
 
 
@@ -103,6 +104,11 @@ func _ready() -> void:
 	_build_meal()
 	_build_compass()
 	_build_news()
+	# (1.30) health bars and markers over engaged foes, under the rest of the HUD
+	_enemy_bars = EnemyBars.new()
+	_enemy_bars.name = "EnemyBars"
+	add_child(_enemy_bars)
+	move_child(_enemy_bars, 0)
 	_objective = OBJECTIVE.new()
 	_objective.name = "Objective"
 	add_child(_objective)
@@ -789,6 +795,8 @@ func set_menu_open(open: bool) -> void:
 	banner.visible = not open
 	if _objective:
 		_objective.hidden_by_menu = open
+	if _enemy_bars:
+		_enemy_bars.visible = not open
 	if _feed:
 		_feed.visible = not open
 
