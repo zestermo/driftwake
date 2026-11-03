@@ -62,7 +62,8 @@ func enter(data: Dictionary) -> void:
 	splat = data.has("splat")
 	_daze_t = -1.0
 	if splat:
-		Splat.throw_body(player.body_model, data["splat"], bool(data.get("up", false)), not player.bloodless(), true)
+		Splat.throw_body(player.body_model, data["splat"], bool(data.get("up", false)), not player.bloodless(), true,
+			float(data.get("power", 1.0)))
 	else:
 		# on a ship under way the body keeps the deck's speed (or the deck sails out from under it)
 		player.body_model.start_ragdoll(v + _deck_velocity(), spin, not dead and not tumble)

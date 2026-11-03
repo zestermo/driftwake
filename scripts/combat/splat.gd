@@ -6,6 +6,9 @@ extends Node
 ## STICK s and drops limp. Nothing near: a back throw lands (a small mark) and skids, a launch goes up and falls
 ## back to a small mark. Whoever simulates the body flies it (kinematic parts, Ragdoll.hold); the other screens'
 ## copies follow its snapshot and get the marks through Net.fx. Raycasts only when thrown and under a skid.
+## (Round 5) The throw's power grows with how far past its line the blow went (power_of): just over, a mellow throw of
+## a metre or two that finds a wall only right behind; POWER_FULL x the line or more, the full REACH at SPEED_MAX.
+## Foes in the flight's path (and a duel's other captain) are knocked down, or aside when it only grazes them.
 
 ## Overkill (damage past the health left) that throws anything, as a share of its max health (plan: assumed 50%).
 const OVERKILL_K := 0.5
@@ -15,15 +18,28 @@ const CAPTAIN_K := 0.3
 const DUEL_K := 0.2
 ## A captain let go: the muscles barely brace (dazed).
 const DAZED_BRACE := 0.3
+## Power 0 -> 1 between the line and this many times it.
+const POWER_FULL := 3.0
+const REACH_MIN := 1.6
 const REACH := 8.0
-const SPEED := 21.0
+const SPEED_MIN := 6.0
+const SPEED_MAX := 25.0
 const STICK := 1.0
 const SKID := 2.4
+const SKID_MIN := 0.25
 const SKID_SECS := 0.5
+const LAND_AHEAD_MIN := 0.8
 const LAND_AHEAD := 2.6
+const UP_SPEED_MIN := 5.0
 const UP_SPEED := 10.5
 ## Bodies bigger than this (the rig's scale) don't fly.
 const MAX_SCALE := 1.6
+## The flying body bowls over what's in its path: knocked down within BUMP_DOWN m of its line, staggered aside to
+## BUMP_ASIDE m, BUMP_DMG (+ BUMP_DMG_POWER at full power) damage, half for a graze.
+const BUMP_DOWN := 0.8
+const BUMP_ASIDE := 1.3
+const BUMP_DMG := 4.0
+const BUMP_DMG_POWER := 6.0
 
 enum Phase {FLY, STICK, SKID, AIR}
 
@@ -47,30 +63,54 @@ var _skid_to := Vector3.ZERO
 var _dust_t := 0.0
 var _vy := 0.0
 var _seed := 0
+var power := 1.0
+var _reach := REACH
+var _speed := SPEED_MAX
+## The thrown one (never bowled by its own flight), the ones already bowled, and where the body was last tick.
+var _who: Node
+var _bumped := {}
+var _prev := Vector3.INF
+var _from: Node3D
 
 
 ## A killing blow worth a throw: `hp_before` is the health it had left.
 static func wants(hit: HitData, hp_before: float, max_hp: float) -> bool:
+	return kill_power(hit, hp_before, max_hp) >= 0.0
+
+
+## How hard a killing blow throws (0 just over its line, 1 at POWER_FULL x it); -1 when it doesn't.
+static func kill_power(hit: HitData, hp_before: float, max_hp: float) -> float:
 	if hit == null or hit.dot:
-		return false
+		return -1.0
 	var over := hit.damage - hp_before
-	if over < 0.0:
-		return false
 	var k := Levels.gap_splat(hit.gap)
-	if over >= max_hp * OVERKILL_K * k:
-		return true
-	return strong(hit) and not hit.ranged and over >= max_hp * STRONG_K * k
+	var line := max_hp * OVERKILL_K * k
+	if strong(hit) and not hit.ranged:
+		line = max_hp * STRONG_K * k
+	return power_of(over, line)
 
 
 ## A blow that broke a captain's poise and throws them flat: a strong one (not a shot) taking CAPTAIN_K of their max
 ## health (plan: assumed 30%), or DUEL_K from another captain (duel blows land at Duel.DAMAGE_K; tuned). The level gap
 ## from the attacker's side: a foe above the captain throws them with less.
 static func flattens(hit: HitData, dmg: float, max_hp: float, attacker: Node) -> bool:
+	return flat_power(hit, dmg, max_hp, attacker) >= 0.0
+
+
+## How hard that throws the captain (as kill_power); -1 when it doesn't.
+static func flat_power(hit: HitData, dmg: float, max_hp: float, attacker: Node) -> float:
 	if hit.ranged or hit.dot or not strong(hit):
-		return false
+		return -1.0
 	var by_captain := attacker != null and attacker.is_in_group("players")
 	var k := Levels.gap_splat(hit.gap if Levels.captain(attacker) else -hit.gap)
-	return dmg >= max_hp * (DUEL_K if by_captain else CAPTAIN_K) * k
+	return power_of(dmg, max_hp * (DUEL_K if by_captain else CAPTAIN_K) * k)
+
+
+## 0 at the line, 1 at POWER_FULL x the line, linear between; -1 short of it.
+static func power_of(amount: float, line: float) -> float:
+	if amount < line or amount < 0.0:
+		return -1.0
+	return clampf((amount / maxf(line, 0.001) - 1.0) / (POWER_FULL - 1.0), 0.0, 1.0)
 
 
 static func strong(hit: HitData) -> bool:
@@ -79,14 +119,16 @@ static func strong(hit: HitData) -> bool:
 
 ## A humanoid killed by `hit`: spread out, ragdolled and thrown. False (nothing done) when it isn't one.
 static func kill(h: Humanoid, hit: HitData, hp_before: float, max_hp: float, dir: Vector3, bleeds: bool) -> bool:
-	if h.ragdoll != null or h.scale.y > MAX_SCALE or not wants(hit, hp_before, max_hp):
+	var p := kill_power(hit, hp_before, max_hp)
+	if h.ragdoll != null or h.scale.y > MAX_SCALE or p < 0.0:
 		return false
-	throw_body(h, dir, hit.launch > 0.0, bleeds, false)
+	throw_body(h, dir, hit.launch > 0.0, bleeds, false, p)
 	return true
 
 
-## Throw `h` (whoever simulates it): spread, ragdolled (`alive`: braced, a captain who'll get up) and flown.
-static func throw_body(h: Humanoid, dir: Vector3, up: bool, bleeds: bool, alive: bool) -> Splat:
+## Throw `h` (whoever simulates it): spread, ragdolled (`alive`: braced, a captain who'll get up) and flown, as hard
+## as `pw` (0 mellow, 1 full).
+static func throw_body(h: Humanoid, dir: Vector3, up: bool, bleeds: bool, alive: bool, pw: float = 1.0) -> Splat:
 	spread(h)
 	var r := h.start_ragdoll(Vector3.ZERO, Vector3.ZERO, alive)
 	var s := Splat.new()
@@ -94,6 +136,12 @@ static func throw_body(h: Humanoid, dir: Vector3, up: bool, bleeds: bool, alive:
 	s.rag = r
 	s.blood = bleeds
 	s._k = h.scale.y
+	s.power = pw
+	s._reach = lerpf(REACH_MIN, REACH, pw)
+	s._speed = lerpf(SPEED_MIN, SPEED_MAX, pw)
+	s._who = h
+	while s._who != null and not (s._who.is_in_group("enemies") or s._who.is_in_group("players")):
+		s._who = s._who.get_parent()
 	r.add_child(s)
 	s._begin(dir, up)
 	return s
@@ -129,12 +177,12 @@ func _begin(dir: Vector3, up: bool) -> void:
 	if not hit.is_empty():
 		_to_surface(hit)
 	elif up:
-		_to_air(Vector3.UP * UP_SPEED + _d * 2.0)
+		_to_air(Vector3.UP * lerpf(UP_SPEED_MIN, UP_SPEED, power) + _d * lerpf(1.0, 2.0, power))
 	else:
 		_to_ground(chest)
 
 
-## The nearest wall (or, thrown up, ceiling) the body would fly into within REACH; empty when none.
+## The nearest wall (or, thrown up, ceiling) the body would fly into within its reach; empty when none.
 func _find(from: Vector3, up: bool) -> Dictionary:
 	var dirs: Array = []
 	if up:
@@ -147,7 +195,7 @@ func _find(from: Vector3, up: bool) -> Dictionary:
 	var best_score := INF
 	for i in dirs.size():
 		var v: Vector3 = dirs[i]
-		var h := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + v * REACH, 1))
+		var h := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + v * _reach, 1))
 		if h.is_empty():
 			continue
 		var hn: Vector3 = h["normal"]
@@ -176,7 +224,7 @@ func _to_surface(hit: Dictionary) -> void:
 		u = (u - n * u.dot(n)).normalized()
 	_at = hit["at"]
 	_aim(_flat_on(_at, u), u)
-	_dur = clampf(_p0.origin.distance_to(_p1.origin) / SPEED, 0.08, 0.42)
+	_dur = clampf(_p0.origin.distance_to(_p1.origin) / _speed, 0.08, 0.42)
 	rag.hold(true)
 
 
@@ -195,20 +243,20 @@ func _aim(origin: Vector3, u: Vector3) -> void:
 ## Nothing behind it: down on its back a little way off, then a skid.
 func _to_ground(chest: Vector3) -> void:
 	var space := rag.get_world_3d().direct_space_state
-	var ahead := chest + _d * LAND_AHEAD
+	var ahead := chest + _d * lerpf(LAND_AHEAD_MIN, LAND_AHEAD, power)
 	var g := space.intersect_ray(PhysicsRayQueryParameters3D.create(ahead + Vector3.UP * 0.5, ahead + Vector3.DOWN * 8.0, 1))
 	var water := float(get_node("/root/Ocean").call("surface_at", ahead))
 	if g.is_empty() or water > (g["position"] as Vector3).y:
-		_to_air(_d * 9.0 + Vector3.UP * 3.0)
+		_to_air(_d * lerpf(3.0, 9.0, power) + Vector3.UP * lerpf(2.0, 3.0, power))
 		return
 	kind = "skid"
 	n = (g["normal"] as Vector3).normalized()
 	_at = g["position"]
 	_aim(_at + n * 0.14 * _k, _d)
 	_dur = 0.2
-	_arc = 0.5
+	_arc = lerpf(0.25, 0.5, power)
 	var low := _at + n * 0.3
-	var run := SKID * (0.8 + 0.4 * float(_seed % 50) / 50.0)
+	var run := SKID * lerpf(SKID_MIN, 1.0, power) * (0.8 + 0.4 * float(_seed % 50) / 50.0)
 	var block := space.intersect_ray(PhysicsRayQueryParameters3D.create(low, low + _d * (run + 0.4), 1))
 	if not block.is_empty():
 		run = maxf(low.distance_to(block["position"]) - 0.5, 0.0)
@@ -232,8 +280,75 @@ func _pose(xf: Transform3D) -> void:
 		(rag.parts[i]["body"] as RigidBody3D).global_transform = xf * (_rels[i] as Transform3D)
 
 
+func _exit_tree() -> void:
+	if _from != null:
+		_from.queue_free()
+
+
+## What the flight can bowl over: foes (AI captains among them), and a duel's other captain when it's one flying.
+func _targets() -> Array:
+	var out := get_tree().get_nodes_in_group("enemies")
+	for p in get_tree().get_nodes_in_group("players"):
+		if p.get("is_ai") or Duel.foes(_who, p):
+			out.append(p)
+	return out
+
+
+## The body's path since last tick against everyone near it: knocked down on the line, staggered aside off it.
+func _sweep() -> void:
+	var at := rag.root_body().global_position
+	var from := _prev
+	_prev = at
+	if from == Vector3.INF or from.distance_squared_to(at) < 0.0001:
+		return
+	var mid := (from + at) * 0.5
+	var r := from.distance_to(at) * 0.5 + BUMP_ASIDE + 1.0
+	for e in _targets():
+		var t := e as Node3D
+		if t == null or t == _who or _bumped.has(t.get_instance_id()) or not (t.get("hurtbox") is Hurtbox):
+			continue
+		var c := t.global_position + Vector3.UP * 0.9
+		if c.distance_to(mid) > r:
+			continue
+		var hc = t.get("health") if t.get("health") != null else t.get("health_component")
+		if hc is HealthComponent and (hc as HealthComponent).current_health <= 0.0:
+			continue
+		# (its side distance from the line, once the body has drawn level with it: not while it's still ahead)
+		var seg := Vector2(at.x - from.x, at.z - from.z)
+		var u := seg.normalized()
+		var rel := Vector2(c.x - from.x, c.z - from.z)
+		var along := rel.dot(u)
+		if along > seg.length() + 0.4 or along < -BUMP_ASIDE:
+			continue
+		var d := (rel - u * along).length()
+		var on := from.lerp(at, clampf(along / maxf(seg.length(), 0.001), 0.0, 1.0))
+		if d > BUMP_ASIDE or absf(c.y - on.y) > 1.4:
+			continue
+		_bumped[t.get_instance_id()] = true
+		_bump(t, on, d <= BUMP_DOWN)
+
+
+func _bump(t: Node3D, on: Vector3, down: bool) -> void:
+	var h := HitData.new()
+	h.damage = (BUMP_DMG + BUMP_DMG_POWER * power) * (1.0 if down else 0.5)
+	h.knockdown = down
+	h.unblockable = true
+	h.poise = 400.0 if down else Poise.FINISHER
+	h.knockback_force = lerpf(5.0, 9.0, power) if down else 5.0
+	h.impact = "punch_heavy" if down else "punch"
+	if _from == null:
+		_from = Node3D.new()
+		_from.name = "SplatBump"
+		get_tree().current_scene.add_child(_from)
+	# (pushed away from the flight's line: a graze goes aside, one in the way along the throw)
+	_from.global_position = on - _d * 0.6 if down else on
+	(t.get("hurtbox") as Hurtbox).take_hit(h, _from)
+
+
 func _physics_process(delta: float) -> void:
 	_t += delta
+	if phase != Phase.STICK:
+		_sweep()
 	match phase:
 		Phase.FLY:
 			var k := minf(_t / _dur, 1.0)

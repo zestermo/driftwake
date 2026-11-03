@@ -56,7 +56,8 @@ func _process(_d: float) -> bool:
 			b.global_position = Vector3(0, GY + 3.0, -6.5)
 			until = TK.wait_ticks(5)
 		1:
-			p._on_hit_received(blow(0.45), g)
+			# (90%: three times the 30% line, the full throw that reaches the wall 6 m back)
+			p._on_hit_received(blow(0.9), g)
 			check("the blow floors the captain (%s)" % p.current_state_name(), p.current_state_name() == "Downed")
 			var r = p.body_model.ragdoll
 			check("thrown flat (a Splat on the body)", r != null and r.get_node_or_null("Splat") != null)

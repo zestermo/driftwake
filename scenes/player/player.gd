@@ -805,9 +805,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if poise:
 		var took := poise.take(hit)
 		if took == Poise.BREAK:
-			# (1.30) a strong blow over the line throws you flat into the nearest wall (Splat)
-			if Splat.flattens(hit, dmg, health_component.max_health, attacker):
-				splat(dir, hit.launch > 0.0)
+			# (1.30) a strong blow over the line throws you flat into the nearest wall (Splat), harder the further over
+			var pw := Splat.flat_power(hit, dmg, health_component.max_health, attacker)
+			if pw >= 0.0:
+				splat(dir, hit.launch > 0.0, pw)
 				return
 			# (1.26) a launcher sends a broken captain up (Juggle's throw), like a grunt
 			knock_down(Vector3.UP * hit.launch + dir * Juggle.CARRY if hit.launch > 0.0 else _last_hit_velocity)
@@ -820,8 +821,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if _own_poise == null:
 			_own_poise = Poise.make("player")
 		if _own_poise.take(hit) == Poise.BREAK:
-			if Splat.flattens(hit, dmg, health_component.max_health, attacker):
-				splat(dir, hit.launch > 0.0)
+			var pw := Splat.flat_power(hit, dmg, health_component.max_health, attacker)
+			if pw >= 0.0:
+				splat(dir, hit.launch > 0.0, pw)
 				return
 			knock_down(_last_hit_velocity)
 			return
@@ -938,11 +940,12 @@ func knock_down(throw_velocity: Vector3) -> void:
 	state_machine.force_state("Downed", {"velocity": throw_velocity})
 
 
-## (1.30) Thrown flat along `dir` (or up) into the nearest wall or ceiling (Splat), then dazed and a slower get-up.
-func splat(dir: Vector3, up: bool) -> void:
+## (1.30) Thrown flat along `dir` (or up) into the nearest wall or ceiling (Splat) as hard as `power` (0-1), then dazed
+## and a slower get-up.
+func splat(dir: Vector3, up: bool, power: float = 1.0) -> void:
 	if context == Context.HELM:
 		return
-	state_machine.force_state("Downed", {"splat": dir, "up": up})
+	state_machine.force_state("Downed", {"splat": dir, "up": up, "power": power})
 
 
 func _on_died() -> void:

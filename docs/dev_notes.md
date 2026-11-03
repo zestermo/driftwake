@@ -9978,3 +9978,19 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
 - Gadget hooks used: the gate's ChargeTarget, the grapple ledges, stunned takedowns (piece 2). Open: the cell block
   has no building of its own (the riot comes out of the yard's corner; Part A), Vane's quarters still flare in the
   hall below while he's on the roof.
+## 2026-11-03: splat power by overkill (1.30, round 5's last bullet)
+- **What:** a splat's flight grows with how far past its line the blow went (after the gap multiplier). Power =
+  (amount / line - 1) / 2, clamped 0-1 (`Splat.power_of`; POWER_FULL 3x the line): the overkill against Splat's
+  50%/15% line for a foe (`kill_power`), the blow against the 30%/20% line for a captain (`flat_power`, passed through
+  `Player.splat(dir, up, power)` and DownedState's "power"). Lerped by power: wall/ceiling reach 1.6 -> 8 m, flight
+  speed 6 -> 25 m/s, landing ahead 0.8 -> 2.6 m, skid x0.25 -> x1 of 2.4 m, an up throw 5 -> 10.5 m/s. Just over:
+  ~1.5 m all told, a wall only if one is right behind; a huge blow: as before, faster.
+- **Bowling:** while the body flies, skids or falls, `Splat._sweep` checks its path since the last tick against the
+  foes near it (group "enemies" and AI captains; a duel's other captain when a captain is the one flying). Once the
+  body draws level: within BUMP_DOWN 0.8 m of the line a knockdown (poise 400, unblockable) and 4 + 6 x power damage,
+  to BUMP_ASIDE 1.3 m a stagger aside at half. Each once a throw, through their hurtbox from a "SplatBump" point on
+  the line (so a guest's flying captain routes its bumps to the host). Per tick only while a Splat lives (~0.2-4 s):
+  a loop over the enemies group with a distance reject, no physics queries.
+- **Tests:** t/combat/splat_power (curve, mellow vs far, the knockdown and the graze), splat_captain now throws at
+  90% (the full throw that reaches the wall 6 m back; 45% is a short one now); render splatshot `_open` (bowls one
+  over) and `_mellow`.

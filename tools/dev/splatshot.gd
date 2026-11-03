@@ -1,7 +1,8 @@
 extends SceneTree
 ## (1.30) Wall splats render (Splat): three overkills on the light stage, each a strip of frames along game time
 ## from a side camera: into a wall 6 m behind, a launcher up into a ceiling, and in the open (the landing and skid).
-## Args: <out_prefix>. Shots: <out>_wall.png, <out>_ceiling.png, <out>_open.png, <out>_mark.png (the wall mark close).
+## (Round 5) the open one bowls over a grunt in its path; `mellow` is a kill just past the line (a short throw).
+## Args: <out_prefix>. Shots: <out>_wall.png, <out>_ceiling.png, <out>_open.png, <out>_mellow.png, <out>_mark.png.
 const TK := preload("res://tools/dev/test_kit.gd")
 const GY := 3.0
 const TIMES := [0.0, 0.12, 0.3, 0.7, 1.25, 2.0]
@@ -21,7 +22,9 @@ func _initialize() -> void:
 	stage = TK.stage(self, {"hud": false, "grunts": [
 		{"post": Vector3(0.0, 0, -4.0), "role": "sword", "seed": 1},
 		{"post": Vector3(-14.0, 0, 0.0), "role": "sword", "seed": 2},
-		{"post": Vector3(14.0, 0, 0.0), "role": "sword", "seed": 3}]})
+		{"post": Vector3(14.0, 0, 0.0), "role": "sword", "seed": 3},
+		{"post": Vector3(30.0, 0, 0.0), "role": "sword", "seed": 4},
+		{"post": Vector3(17.0, 0, 0.0), "role": "sword", "seed": 5}]})
 
 
 func slab(at: Vector3, size: Vector3) -> void:
@@ -60,7 +63,7 @@ func _process(_d: float) -> bool:
 	var gs: Array = stage.camp.grunts
 	match step:
 		0:
-			if gs.size() < 3:
+			if gs.size() < 5:
 				return false
 			stage.player.hurtbox.monitorable = false
 			stage.player.process_mode = Node.PROCESS_MODE_DISABLED
@@ -76,7 +79,9 @@ func _process(_d: float) -> bool:
 			cases = [
 				["wall", gs[0], Vector3(0, 0, -1), 0.0, Vector3(6.5, 2.4, -2.5), Vector3(0, 1.6, -8.0)],
 				["ceiling", gs[1], Vector3(0, 0, -1), 9.0, Vector3(-14.0, 2.4, 8.0), Vector3(-14.0, 2.6, 0)],
-				["open", gs[2], Vector3(1, 0, 0), 0.0, Vector3(17.5, 2.2, 8.0), Vector3(17.5, 0.6, 0)]]
+				["open", gs[2], Vector3(1, 0, 0), 0.0, Vector3(17.5, 2.2, 8.0), Vector3(17.5, 0.6, 0)],
+				["mellow", gs[3], Vector3(1, 0, 0), 0.0, Vector3(31.0, 2.2, 6.0), Vector3(31.0, 0.6, 0), 0.52]]
+			gs[4].facing.rotation.y = PI * 0.5
 			aim()
 			until = TK.wait_secs(0.8)
 		1:
@@ -84,6 +89,9 @@ func _process(_d: float) -> bool:
 			var g = c[1]
 			var h := HitData.new()
 			h.damage = 500.0
+			if c.size() > 6:
+				g.health.current_health = 5.0
+				h.damage = 5.0 + g.health.max_health * float(c[6])
 			h.poise = 6.0
 			h.launch = c[3]
 			var src := Node3D.new()
