@@ -71,6 +71,13 @@ Gap = the foe's level minus the captain's (per captain). Multipliers on top of L
   (up to ~25 m/s) to the full 8 m reach. The same for captains. **Bodies in the flight's path are knocked down or
   aside** (a knockdown and small damage to foes; captains in a duel too), host-decided.
 
+## Decided (2026-11-03, round 6): enemy personalities, verticality, riflemen
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Personalities | **Four, rolled per foe** (grunts, marines, fodder, AI captains/officers): **Berserker** (crazy aggression: closes at once, long combos, chases), **Opportunist** (waits for a couple of others to engage first, then strikes an occupied or staggered captain), **Duelist** (favours parrying: reads swings, parries and ripostes), **Bulwark** (blocks a lot, pushes forward behind the guard, punishes whiffs). Readable tells (stance, a short bark) so a captain can spot which is which. Weights per kind (assumed: fodder mostly berserker/opportunist; officers and captains any) | Zach: more variance | Play |
+| Verticality | **Strong foes (elites, officers, AI captains, the stronghold's Admiralty) use jumping attacks now and then**: a leaping overhead, a jump-in slash from range, a dive off a ledge or stair onto a captain below. Cooldowns so it's occasional | Zach | Play |
+| Riflemen | **More moves, less predictable**: reposition between shots (side-steps, falling back to cover or high ground), a quick hip shot at close range, a bayonet/stock strike when rushed, a kneeling aimed shot with a visible tell, a dodge roll, staggered timings so a group doesn't fire in rhythm | "Too predictable" | Play |
+
 ### Open / deferred
 - The brig and galleon and the creatures keep their own grill (docs/v1_29_plan.md said "1.30's grill").
 - The order inside 1.30 is the lead's: the bugs (A, B) first, so the next playtest runs on a fixed game.
