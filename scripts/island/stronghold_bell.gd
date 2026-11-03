@@ -10,7 +10,7 @@ const BELLS := {
 	"landing": [Vector2(-48, 41)],
 	"ward": [Vector2(-25, 17), Vector2(25, -12.5)],
 	"arsenal": [Vector2(57, -43)],
-	"prison": [Vector2(-57, 11)],
+	"prison": [Vector2(-92, 6)],
 	"keep": [Vector2(-18, -51)],
 }
 const H := 3.4
@@ -27,7 +27,7 @@ var _check := 0.0
 var _swing := 0.0
 
 
-static func build(isl: Node3D, d: String, i: int) -> StrongholdBell:
+static func build(_isl: Node3D, d: String, i: int) -> StrongholdBell:
 	var b := StrongholdBell.new()
 	b.district = d
 	b.index = i

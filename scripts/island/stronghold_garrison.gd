@@ -79,6 +79,8 @@ static func build(isl: Node3D) -> Array:
 		squads[key] = camp
 		if baker:
 			baker.add_zone(camp, 70.0, false, isl.nav_faces)
+		for i in range((StrongholdBell.BELLS[key] as Array).size()):
+			isl.city.add_child(StrongholdBell.build(isl, key, i))
 		sources[key] = []
 		var srcs: Array = SOURCES[key]
 		for i in range(srcs.size()):
