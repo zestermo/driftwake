@@ -70,7 +70,8 @@ func decide(n: Dictionary, id: int) -> void:
 	pl["pending"] = -1
 	_ashore = 0.0
 	_warn_left = -1.0
-	if str(n.get("role", "")) == "capital":
+	# (never the cities' crowds or the stronghold: 1.30, the old check named a role no chain node has)
+	if n.get("capital", false) or str(n.get("role", "")) in ["city", "stronghold"]:
 		return
 	pl["officer"] = -1
 	var come := false

@@ -9514,3 +9514,12 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   the Scouring (`sh_escaped`, the bounty) with the banner "Out of the ring" ("You survived the Scouring. X burns behind
   you."). The visuals are a later piece. Test: t/stronghold/scouring (a captain 60 m outside the ring draws no shell
   while the ship's still in it; the ship 20 m outside ends it).
+- **Piece 5, rivals skip the cities and the stronghold (RivalWatch.decide):** the skip checked role "capital", which no
+  chain node has (the capital is role "city" with `capital`), so Lantern Saints walked into Port Solenne's crowds. Now
+  `capital`, role "city" (the capital and the canal city) and "stronghold" are skipped. t/combat/rival_placement builds
+  its nodes from real chains (Chain.make: the capital, the canal city, the stronghold, layer 1, then regular islands of
+  seeded chains) instead of hand-made roles. The warning's "a strange ship has dropped anchor" is left for the rival
+  arrival piece (a real ship, out of this one's scope).
+- **Expected at prepush:** seatest, r8test and the other sea-fight suites (pirates now crowd on sail in a fight and run
+  abreast of a ship under way, Admiralty ships appear a few seconds after a deed or patrol call), nettest (Admiralty
+  `net_gen` has a third list; guests queue ships), any suite timing an Admiralty spawn.
