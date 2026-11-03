@@ -44,6 +44,14 @@ fast boss fights; the enemies felt like sponges, only a few groups of 5 at a tim
 | Bosses | **Set-piece arenas**: each officer owns a district with a gimmick (Kesh in a pouring foundry, Marrow in a prison riot, Vane on the keep's roof as the Scouring starts), an intro name card, mid-fight events, faster aggressive movesets with big readable attacks | "Not memorable or interesting" | Play |
 | Downed in a boss fight | **Revive, else rejoin**: the crew revives as usual; bled out, a captain respawns at a checkpoint just outside the arena and walks back in; only a full crew wipe resets the boss. (The playtest's stuck death is a bug, being fixed) | Zach | Play |
 
+## Decided (2026-11-03, round 4): overkill launches and wall splats
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Overkill launch | **A big hit that overkills a foe by a margin** (assumed: the overkill is >= 50% of its max health, or the hit is a heavy/technique/ultimate finisher) **throws it flat**: back for a forward blow, up for a launcher | Zach | Play |
+| Wall splat | **Within ~6-9 m (20-30 ft)** of a wall or ceiling the body flies flat into it, **leaves an impact mark** (cracks, dust, blood where fitting), sticks ~1 s, then ragdolls to the floor. **Nothing near:** it drops and skids a few feet, or falls back from a launch and lands with a small impact mark | Zach | Play |
+| On captains | **Enemy moves can do it to a captain**: only a real strong move that breaks poise and does over a set damage (assumed: >= 30% of max health in one hit). Captains can do it to each other in duels and to AI captains. **Dazed ~1 s**, and it takes slightly longer to get up than a normal knockdown | Zach | Play |
+| Blood | **A blood splatter** from the hit and on the surface it hits, where fitting (none for spirits, bloodless kinds, or with the gore setting off) | Zach | Play |
+
 ### Open / deferred
 - The brig and galleon and the creatures keep their own grill (docs/v1_29_plan.md said "1.30's grill").
 - The order inside 1.30 is the lead's: the bugs (A, B) first, so the next playtest runs on a fixed game.
