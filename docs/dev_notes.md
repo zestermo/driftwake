@@ -9565,3 +9565,54 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Tests: t/quests/chain_goal, t/capital/queen_line, t/stronghold/district_hint, t/ui/captains_log, t/ui/news_pin,
   t/ui/enemy_bars; hud_tracked and storytest updated (storytest: after Morrow the box moves on to the chain). Render:
   `journalshot` (hud/next/quests/news/done.png). Expected to touch storytest, lifetest, nettest (the follow op, lines).
+## 2026-11-03: 1.30 skill maps, pacing and the new movement (docs/v1_30_previews.md sections 1-5)
+- **Edy pacing** (`WillPaths.SOURCES`): a story villain or Leviathan 2, an island/beast boss, each stronghold boss
+  ("commodore", "stronghold_officer"), a hunter or a rival 1; officers, sergeants, minibosses none. Morrow is a boss (1)
+  plus RedtideFort._victory's `will_point(1, "Captain Morrow")`. Meditation a point per 6 game days. Old saves' Wills
+  still come back at `OLD_WILL_PTS` (2).
+- **Adventure curve** (`Progression.mastery_to_next(lv, tree)`): Adventure trees 40 x lv^1.15, weapons/fruit keep
+  60 x lv^1.3; pass the tree everywhere. `LIFE_XP_K` doubles `add_life` for defense, cook, sea (Seamanship now goes
+  through add_life), swim, tinker, fish, stealth. Debug F9/Alt+F9 use add_mastery (no doubling). Acrobatics xp only
+  from `ACRO_XP` deeds: an air jump, wall jump, air dash, a perfect dodge (DodgeState._perfect_dodge), a fall lived
+  through (Player._fall_damage), a sky leap, a moonstep. **Save format 9**: `_recurve` re-levels each Adventure tree's
+  total old-curve xp on the new curve (Acrobatics' halved), never below its old level (playtest: Acrobatics 12 stays 12,
+  Seamanship 4 -> 6).
+- **Parent check** (`Progression.parent_why`): every node past the root needs one of its links (or "needs") owned, or
+  all of "needs_all" (a bridge like Rebound, Heavenward); a step counts once a step is bought. Before, only steps checked
+  (that's how the playtest bought past a parent). `_buy_back` sets `_loading` so an old save keeps what it bought.
+  Tests that bought out of order own the parents with a local `own_parents()`.
+- **Strike speed** (`PlayerState.strike_speed()`): gear + `aspd_<tree>` (style_stat) + Flowing Edge + Edy flow/haste,
+  capped at `STRIKE_CAP` 0.35; light and heavy attacks multiply `_spd` by it (techniques keep their keyed timing).
+  `SkillTrees.QUICK_HANDS`: a step chain `<pre>_qhands` off every melee root with `step_levels` (katana 5 x 4% at
+  3/7/11/15/19 ... greatsword/hammer 3 x 3%); dual, dual_dagger, corsair are 4 x 4%, dual_axe 3 x 4%; no guns. Flowing
+  Edge `k_flowing` (slot passive, katana 20, after Clean Line): +10% for 3 s after a perfect dodge or a riposte counter.
+- **Acrobatics map** (`_build_acrobatics`, `_at` / `_steps` helpers): Air, Walls, Footwork, Slides, per the preview's
+  table. Kept ids where the node lives on (m_geppo, m_skywalk, m_swift now a 3-step chain, ac_dodge, m_soru, ...); the
+  Landing variant `ac_feather` stays (Feather Fall / Crash Landing, 1 point) so Crash Landing isn't lost; Will Legs,
+  Light Step, Quick Feet, Spring, Wind and the old Hang Time step are gone (their points come back). Moonstep remapped:
+  out of air steps, jump kicks ~3 m up for 10 stamina, again for 2 s (was a once-a-jump dodge). Skyward Dash: an air
+  dash with nothing held goes straight up (and still the Breakfall righting's dash and steps).
+- **Map layout** (`SkillTrees._map_layout`): every converted tree but the Captain's is laid out radially at build: the
+  root at 0,0, branches clockwise from the upper left (MAP_START), each node a ring (MAP_R 70, a step MAP_STEP_R 44)
+  out from its map parent (first link / need), sharing its parent's slice by subtree weight. Overwrites the old
+  three-branch "pos".
+- **Movement** (scripts/player_states): `SlideState` ("Slide", free): C while moving on a slope >= ~11 deg (Long Slide:
+  at a sprint on the flat) or C pressed/held on the way down (meta "slide_land", FallState) slides; g x sin(slope) pull,
+  friction, steering, top 15 m/s (+slide_pct); jump keeps 60% (Slide Jump all), Spring Heels higher; Slide Kick floors a
+  foe slid into. Wall jumps (`PlayerState.wants_wall_jump`/`wall_normal`, JumpState `_wall`/`_wall_jump`/`_wall_run`):
+  up 1.05 x jump and 6.5 m/s out, `wall_jumps` a landing, Rebound gives back an air step and dash, Wall Run three steps
+  along a wall when you come in at a slant. Wall Cling in FallState._cling. Air dashes (`air_dashes_left`,
+  DodgeState._air_dash): `air_dash` + `air_dashes`, Dash Distance; Dash Strike (`wants_dash_strike`, 0.55 s window) is
+  PlungeState's plain plunge with `_dash` (no hang, dives on along the dash). Hang Time halves gravity in air attack
+  states (apply_gravity), Aerial Combo `air_combo_max()`, Air Control scales `air_speed()`. Air steps now 1.0 x the jump
+  (was 0.92). Feather Fall: no damage under FEATHER_SAFE_SPEED (12 m), half past it, no reel.
+- **Poses** (MovePoses): slide, wall_kick, wall_cling, wall_run (dash_dir.x = the wall's side, synced); humanoid's air
+  locomotion blends a windmilling, pedalling long-fall pose after ~0.5 s of falling. Puppets get them as actions
+  (hold/play mirror through net_sync); dust and rings through Net.fx.
+- **Per frame/tick added:** the slide's tick only while sliding (one shape query a tick with Slide Kick); a wall ray or two
+  per tick in Fall/Jump only when the node is owned and on a jump press (cling: per tick while falling with the stick
+  held); a long-fall blend in airborne locomotion. No new always-on nodes.
+- **Tests:** t/progression adventure_curve, parent_check, quick_hands (+ will_points, acrobatics, tree_shape and the
+  out-of-order buyers updated); t/player air_dash, wall_jump, slope_slide, acro_nodes, moonstep and skyward_dash updated.
+  Expected at prepush: progtest (updated), techtest/airtest (air combo, plunge), stamtest/balancetest (strike speed),
+  anything buying tree nodes out of order or summing Adventure xp on the weapon curve.
