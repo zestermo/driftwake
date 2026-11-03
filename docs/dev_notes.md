@@ -9507,3 +9507,10 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - `CapitalModels.mat("beam")` (capital_district's market stall frames) had no case: it now shares "dark" (planks_dark).
 - stronghold_muster's flag poles asked for `stone.png` / `cloth.png`, which don't exist: now stone_brick and canvas
   (the flags keep their tints). t/stronghold/muster and t/capital/favour logs are clean of both.
+- **Piece 4, the Scouring ends once you're out of the ring (StrongholdScouring, ring logic only):** the "ring" that
+  followed the ship was the Scouring's own shelling: every third shell aimed at each machine's captain wherever they
+  were, until the ship was 500 m out. Now the ring is RING_R 300 m from the island's middle (`in_ring`; the berth is
+  ~100 m, the coast ~150): an aimed shell only while that captain is inside it, and the crew's ship out of it ends
+  the Scouring (`sh_escaped`, the bounty) with the banner "Out of the ring" ("You survived the Scouring. X burns behind
+  you."). The visuals are a later piece. Test: t/stronghold/scouring (a captain 60 m outside the ring draws no shell
+  while the ship's still in it; the ship 20 m outside ends it).

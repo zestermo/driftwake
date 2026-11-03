@@ -4,9 +4,10 @@ extends Node3D
 ## Admiral). When the Commodore falls ("sh_seal_keep") every machine, from the moment it sees that flag:
 ## - the emergency broadcast (a banner), and the garrison stops refilling (no more respawns, no more officers);
 ## - GRACE s to loot, then COUNT s of countdown (banners), then the Scouring: a shell every SHELL_EVERY s somewhere on
-##   the island (every third at our own captain), each telegraphed WARN s ahead, a blast that hurts our captain within
-##   SHELL_R and leaves a burning patch (FIRE_LIFE s) behind;
-## - the crew's ship past ESCAPE_R from the island ends it ("sh_escaped": the host sees it, a bounty).
+##   the island (every third at our own captain while inside the ring, RING_R), each telegraphed WARN s ahead, a blast
+##   that hurts our captain within SHELL_R and leaves a burning patch (FIRE_LIFE s) behind;
+## - the crew's ship out of the ring (RING_R from the island) ends it ("sh_escaped": the host sees it, a bounty; 1.30:
+##   was 500 m, and the shells aimed at a captain followed the ship all the way).
 ## The shells are worked out from the shared clock on every machine and hurt only its own captain, so nothing about
 ## them goes over the net.
 ## The Admiral (at a top captain's level ADMIRAL_LEVEL+ or a Dreaded bounty): comes ashore when it starts, very tanky
@@ -22,7 +23,7 @@ const SHELL_DMG := 20.0
 const FIRE_LIFE := 8.0
 const FIRE_R := 3.5
 const FIRE_DPS := 8.0
-const ESCAPE_R := 500.0
+const RING_R := 300.0
 const ISLAND_R := 150.0
 const ADMIRAL_LEVEL := 32
 const ADMIRAL_HP := 30.0
@@ -77,7 +78,7 @@ func _process(delta: float) -> void:
 		_wipe(delta)
 	if _flag("sh_escaped"):
 		state = "escaped"
-		_banner("escaped", "Survived the Scouring", "%s burns behind you." % isl.island_name)
+		_banner("escaped", "Out of the ring", "You survived the Scouring. %s burns behind you." % isl.island_name)
 		return
 	if t0 < 0.0:
 		if not _flag("sh_seal_keep"):
@@ -115,13 +116,13 @@ func _stand_down() -> void:
 			(c as Node).set_process(false)
 
 
-## Shell k: where it falls (every third at our own captain), telegraphed now, landing WARN s later.
+## Shell k: where it falls (every third at our own captain, while inside the ring), telegraphed now, landing WARN s later.
 func _shell(k: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(isl.node["seed"]), k])
 	var at: Vector3
 	var me := get_tree().get_first_node_in_group("player") as Node3D
-	if k % 3 == 2 and me:
+	if k % 3 == 2 and me and in_ring(me.global_position):
 		at = me.global_position + Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3))
 	else:
 		var q: Vector2 = StrongholdPlan.LAND_C + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * ISLAND_R
@@ -180,13 +181,10 @@ func _host(delta: float) -> void:
 	_check = 0.25
 	var net := get_node("/root/Net")
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
-	var centre: Vector3 = isl.city_global(StrongholdPlan.LAND_C, 0.0)
-	if state == "barrage" and ship:
-		var d := Vector2(ship.global_position.x - centre.x, ship.global_position.z - centre.z).length()
-		if d > ESCAPE_R:
-			net.world_flag("sh_escaped")
-			net.bounty("scouring", ship.global_position, 200.0)
-			return
+	if state == "barrage" and ship and not in_ring(ship.global_position):
+		net.world_flag("sh_escaped")
+		net.bounty("scouring", ship.global_position, 200.0)
+		return
 	if state != "barrage" or _flag("sh_admiral_gone"):
 		return
 	if admiral == null:
@@ -194,6 +192,12 @@ func _host(delta: float) -> void:
 			_spawn_admiral()
 		return
 	_drive_admiral(0.25, ship)
+
+
+## Inside the Scouring's ring: within RING_R of the island's middle.
+func in_ring(p: Vector3) -> bool:
+	var centre: Vector3 = isl.city_global(StrongholdPlan.LAND_C, 0.0)
+	return Vector2(p.x - centre.x, p.z - centre.z).length() < RING_R
 
 
 ## At a top captain's level ADMIRAL_LEVEL+ or a Dreaded bounty (or a test's say-so).
