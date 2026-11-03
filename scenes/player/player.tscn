@@ -1,4 +1,4 @@
-[gd_scene load_steps=47 format=3]
+[gd_scene load_steps=48 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/state_machine/state_machine.gd" id="2"]
@@ -41,6 +41,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/grabbed_state.gd" id="grabbed_state"]
 [ext_resource type="Script" path="res://scripts/player_states/crew_technique_state.gd" id="crew_technique_state"]
 [ext_resource type="Script" path="res://scripts/player_states/fruit_cast_state.gd" id="fruit_cast_state"]
+[ext_resource type="Script" path="res://scripts/player_states/boss_leap_state.gd" id="boss_leap_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -205,6 +206,9 @@ script = ExtResource("grabbed_state")
 
 [node name="CrewTechnique" type="Node" parent="StateMachine"]
 script = ExtResource("crew_technique_state")
+
+[node name="BossLeap" type="Node" parent="StateMachine"]
+script = ExtResource("boss_leap_state")
 
 [node name="Hurtbox" type="Area3D" parent="."]
 collision_layer = 128

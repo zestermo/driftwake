@@ -1,7 +1,7 @@
 extends SceneTree
 ## 1.23 beast pass: the Silverback's phases escalate. Phase 1 has its four moves and none of the later ones; dropping
-## below 60% is a moment (it reels, rears up roaring, a ring pushes the captain 7 m off back and the look changes:
-## steam on its breath) and adds the canopy and the Rock Barrage; below 30% adds the Grab and the Berserk Pound, and it
+## below 60% is a reset (1.30: it bounds to the middle, its landing's shockwave hurts the captain 6 m off, and the
+## look changes: steam on its breath) and adds the canopy and the Rock Barrage; below 30% adds the Grab and the Berserk Pound, and it
 ## chains three moves; its openings shorten phase by phase; the pound cracks the floor four times walking in.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -56,17 +56,17 @@ func _process(_d: float) -> bool:
 			hp0 = _hp()
 			ape.health.current_health = ape.health.max_health * 0.55
 			ape._phase_check()
-			check("below 60%: phase 2 and its moment (it reels first)", ape.phase == 2 and ape._special == "roar" and ape._moment and ape.humanoid.current_action() == "ape_reel")
-			until = TK.wait_secs(2.6)
+			check("below 60%: phase 2 and its reset (it crouches to bound to the middle)", ape.phase == 2 and ape._special == "reset" and ape.reset.active() and ape.humanoid.current_action() == "ape_crouch")
+			until = TK.wait_secs(3.0)
 		3:
 			var m: Array = ape.moves()
-			check("...the moment's ring pushes the captain back (%.0f)" % (hp0 - _hp()), _hp() < hp0)
+			check("...the landing's shockwave hurts the captain (%.0f)" % (hp0 - _hp()), _hp() < hp0)
 			check("...its breath steams now", ape._steam.size() == 1)
 			check("phase 2 adds the canopy and the Rock Barrage (%s)" % str(m), "climb" in m and "barrage" in m and not "grab" in m)
 			check("openings shorten: %.1f s, then %.1f, then %.1f" % [ape.OPEN[0], ape.OPEN[1], ape.OPEN[2]], ape.OPEN[0] > ape.OPEN[1] and ape.OPEN[1] > ape.OPEN[2])
 			ape.health.current_health = ape.health.max_health * 0.25
 			ape._phase_check()
-			until = TK.wait_secs(2.8)
+			until = TK.wait_secs(3.0)
 		4:
 			var m: Array = ape.moves()
 			check("phase 3 adds the Grab and the Berserk Pound (%s)" % str(m), ape.phase == 3 and "grab" in m and "pound" in m)

@@ -628,6 +628,11 @@ func attack_cost_k() -> float:
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished() or power.will.untouchable():
 		return
+	# (1.30) an AI boss's phase reset: nothing hurts it from the crouch to the roar's end
+	if current_state_name() == "BossLeap":
+		if is_local:
+			state_machine.current_state.reset.deflect(global_position + Vector3.UP * 1.3)
+		return
 	# (1.27) Ember's Flame Body, by its form (FruitForms on Flicker's uses): the blow passes through the flames
 	if power.fruit == "ember" and _flame_body(hit):
 		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])

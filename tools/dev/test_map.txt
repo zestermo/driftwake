@@ -17,6 +17,11 @@ scripts/enemies/boss_reset.gd           t/boss
 scripts/enemies/beasts/jungle_beast.gd  t/boss
 scripts/enemies/pirate_boss.gd          t/boss
 scripts/player_states/stagger_state.gd  t/boss
+scripts/player_states/boss_leap_state.gd t/boss/captain_phase_reset t/stronghold
+scripts/enemies/brood_queen.gd          t/boss/brood_phase_reset
+scripts/enemies/ghost_captain.gd        t/boss/captain_phase_reset t/island/fog_isle
+scripts/enemies/jungle_ape.gd           t/beast/ape_phases
+scripts/island/stronghold_boss.gd       t/boss/captain_phase_reset t/stronghold
 scripts/enemies/jungle_ape.gd           t/beast
 scripts/npc/ape_poses.gd                t/beast
 scripts/npc/ape_builder.gd              t/beast

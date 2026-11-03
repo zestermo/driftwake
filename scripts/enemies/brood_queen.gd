@@ -12,8 +12,9 @@ extends Scuttlebug
 ##     races at you under the ground, a red ring marks where she'll come up
 ##     (move, roll or jump), and she bursts out there, wide open for a moment.
 ## Blows don't throw her; enough of them in a short while stagger her, wide
-## open. Below half health she roars, moves faster, sprays wider and calls
-## the brood again. Co-op: host-run; the slam is judged on every screen.
+## open. Below half health she bounds back onto her nest, lands with a
+## shockwave that throws everyone off and shrieks, untouchable (BossReset),
+## then moves faster, sprays wider and calls the brood again. Co-op: host-run; the slam is judged on every screen.
 
 const SIZE := 4.2
 const HP := 1100.0
@@ -41,6 +42,8 @@ var _erupt_at := Vector3.ZERO
 var _lock_t: float = 0.0
 var _trail_t: float = 0.0
 var _sunk: float = 0.0
+## (1.30) her phase change: back onto her nest in one bound, a shockwave, a shriek (BossReset)
+var reset := BossReset.new(self)
 
 
 ## Call before adding to the tree.
@@ -84,6 +87,7 @@ func reset_fight() -> void:
 	if state == S.DEAD:
 		return
 	_special = ""
+	reset.stop()
 	hitbox.deactivate()
 	health.heal(health.max_health)
 	phase = 1
@@ -128,7 +132,7 @@ func _physics_process(delta: float) -> void:
 			turn = 4.0 if phase == 1 else 5.5
 			var speed := 3.0 if phase == 1 else 3.9
 			if phase == 1 and health_frac() < 0.5:
-				_begin("roar")
+				_begin("reset")
 			elif _brood_cd <= 0.0 and cave and cave.call("brood_alive") < 2:
 				_begin("brood")
 			elif _burrow_cd <= 0.0 and dist > BURROW_RANGE and dist < 28.0 and _player_ok(p):
@@ -146,8 +150,8 @@ func _physics_process(delta: float) -> void:
 				want = -to_p.normalized() * 1.5
 		S.SPECIAL:
 			_special_tick(p, to_p, dist)
-	if _buried():
-		# under the floor: moved by hand, no physics
+	if _buried() or reset.stage() == "air":
+		# under the floor or leaping home: moved by hand, no physics
 		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
 		return
 	if is_on_floor() and velocity.y < 0.0:
@@ -167,9 +171,11 @@ func _begin(what: String) -> void:
 	_set_state(S.SPECIAL)
 	Net.event(self, "special", [what])
 	match what:
-		"roar":
+		"reset":
 			phase = 2
-			Net.fx("sfx", ["roar", global_position, 3.0, 0.05, 1.35])
+			reset.start(_floor_at(home))
+			_face(_flat(reset.to - global_position))
+			Net.fx("sfx", ["bug_hiss", global_position, 3.0, 0.05, 0.5])
 		"brood":
 			Net.fx("sfx", ["chitter", global_position, 3.0, 0.05, 0.5])
 		"volley":
@@ -253,15 +259,14 @@ func _burrow_tick(p: Node3D, to_p: Vector3) -> void:
 
 func _special_tick(p: Node3D, to_p: Vector3, dist: float) -> void:
 	match _special:
-		"roar":
-			_shake = 1.0
-			if _fired == 0 and st_t > 0.3:
-				_fired = 1
-				Net.fx("dust_ring", [global_position, 24, 1.8])
-				get_node("/root/CombatManager").apply_camera_shake(0.3)
-			if st_t > 1.3:
+		"reset":
+			if reset.tick(get_physics_process_delta_time()) == "done":
 				_brood_cd = 0.0
 				_end_special(0.5)
+			elif reset.stage() == "roar":
+				_shake = 1.0
+				if p:
+					_face(to_p)
 		"brood":
 			_shake = 1.0
 			if _fired == 0 and st_t > 0.7:
@@ -354,6 +359,9 @@ func _aoe_local(center: Vector3, radius: float, dmg: float) -> void:
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
+	if reset.active():
+		reset.deflect(global_position + Vector3(0, 0.45 * size_k, 0))
+		return
 	if hit.dot:
 		_number(hit.damage)
 		health.take_damage(hit.damage)
@@ -440,8 +448,11 @@ func _process(delta: float) -> void:
 				target = 1.0
 			"slam":
 				target = 1.5 if st_t < 0.95 else -0.25
-			"brood", "roar":
+			"brood":
 				target = 0.6
+			"reset":
+				var w := BossReset.WIND
+				target = -0.3 if st_t < w else (0.9 if st_t < w + BossReset.AIR else 1.3)
 	elif state == S.REAR:
 		target = 1.0
 	_qrear = lerpf(_qrear, target, minf(delta * (14.0 if target < _qrear else 7.0), 1.0))
@@ -456,5 +467,7 @@ func net_event(what: String, args: Array) -> void:
 			st_t = 0.0
 		"aoe":
 			_aoe_local(args[0], float(args[1]), float(args[2]))
+		"reset_shock":
+			BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))
 		_:
 			super.net_event(what, args)

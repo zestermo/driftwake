@@ -16,23 +16,36 @@ const SHOCK_PUSH := 15.0
 const COL := Color(1.0, 0.55, 0.25)
 
 var boss: Node3D
+## The node the shockwave's event goes out on (its net_event plays it elsewhere): the boss, or for an AI captain boss
+## the node that holds it.
+var events: Node3D
 var t := -1.0
 var from := Vector3.ZERO
 var to := Vector3.ZERO
 var _guard_fx := 0.0
 
 
-func _init(b: Node3D) -> void:
+func _init(b: Node3D, ev: Node3D = null) -> void:
 	boss = b
+	events = ev if ev != null else b
 
 
 ## Off to `centre` (a point on the arena's floor).
-func start(centre: Vector3) -> void:
+func start(centre: Vector3) -> BossReset:
 	t = 0.0
 	from = boss.global_position
 	to = centre
 	Net.fx("telegraph", [to, SHOCK_R, WIND + AIR, COL])
 	Net.fx("sfx", ["whoosh_big", from, 0.0, 0.05, 0.6])
+	return self
+
+
+## The floor under `p` (the world's ground, layer 1), past the body `n` itself.
+static func floor_at(n: CollisionObject3D, p: Vector3) -> Vector3:
+	var q := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 4.0, p + Vector3.DOWN * 14.0, 1)
+	q.exclude = [n.get_rid()]
+	var hit := n.get_world_3d().direct_space_state.intersect_ray(q)
+	return hit["position"] if not hit.is_empty() else p
 
 
 func active() -> bool:
@@ -68,7 +81,7 @@ func tick(delta: float) -> String:
 	elif s == "roar" and was != "roar":
 		boss.global_position = to
 		boss.set("velocity", Vector3.ZERO)
-		BossReset.shock(boss, to, SHOCK_R, SHOCK_DMG, SHOCK_PUSH)
+		BossReset.shock(events, to, SHOCK_R, SHOCK_DMG, SHOCK_PUSH)
 		Net.fx("sfx", ["roar", to, 6.0, 0.03, 0.85])
 		return "land"
 	return s if s != was else ""

@@ -148,16 +148,38 @@ func _process(delta: float) -> void:
 	var hp := boss.health_component.current_health / maxf(boss.health_component.max_health, 1.0)
 	if phase() == 1 and hp <= float(BOSSES[key]["p2"]):
 		net.world_flag(flag_p2())
+		_leap_home()
 		if key == "marrow":
+			_perch_in = BossReset.WIND + BossReset.AIR + BossReset.ROAR_S
+	if _perch_in > 0.0:
+		_perch_in -= 0.25
+		if _perch_in <= 0.0:
 			_perch()
 	if key == "marrow":
 		_marrow(0.25)
 	if phase() == 2 and BOSSES[key].has("p3") and hp <= float(BOSSES[key]["p3"]):
 		net.world_flag(flag_p3())
+		_leap_home()
 		_enrage()
 	if hp <= 0.0:
 		net.world_flag(flag_seal())
 		net.bounty("commodore" if key == "vane" else "stronghold_officer", boss.global_position, 120.0)
+
+
+## (1.30) Each new phase starts from the room's middle: a leap there, a shockwave, a roar it can't be hurt in (BossReset
+## through its BossLeap state; the shockwave's event goes out on this node).
+var _perch_in := 0.0
+
+
+func _leap_home() -> void:
+	if boss.current_state_name() == "Downed":
+		return
+	boss.state_machine.force_state("BossLeap", {"reset": BossReset.new(boss, self).start(BossReset.floor_at(boss, global_position))})
+
+
+func net_event(what: String, args: Array) -> void:
+	if what == "reset_shock":
+		BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))
 
 
 func _anyone_inside() -> bool:

@@ -15,8 +15,8 @@ class_name JungleApe
 ## openings (OPEN) and chains moves (CHAIN: one at a time, then pairs, then three in a row with a long opening at the
 ## end). Phase 2 takes to the trees (the canopy drop, below) and throws Rock Barrages (three boulders running); phase 3
 ## grabs (mash out) and Berserk Pounds (four one-fist slams walking at you, cracking the floor), 15% quicker. Each
-## change is a moment: it reels, rears up roaring, a ring of dust pushes everyone back, the camera punches in, and its
-## look changes (eyes hotter, breath steaming, the mane bristling; in phase 3 steam off its back).
+## change is a reset (1.30, BossReset): one bound to the floor's middle, a shockwave throws everyone out, it beats its
+## chest roaring, untouchable, and its look changes (eyes hotter, breath steaming, the mane bristling; in phase 3 steam off its back).
 ## Up in the canopy it runs the ring from limb to limb (crowns shake, leaves come down, its grunts and the
 ## rustle move round you, now and then a glimpse of it crouched on a branch),
 ## hurls boulders down from wherever it is (it shows itself to throw: the
@@ -97,10 +97,6 @@ const POUND_R := 3.0
 const REEL_S := 2.4
 const VULN_S := 3.0
 const VULN_K := 2.0
-## The phase change: it reels this long before it rears up roaring; its ring pushes everyone back.
-const MOMENT_REEL := 0.5
-const MOMENT_R := 9.5
-const MOMENT_COL := Color(1.0, 0.62, 0.3)
 ## Parts (BeastParts): [share of its health a part takes to break, reach (m), item, colour]; broken fists shrink the
 ## slams' rings to FIST_K; a part breaking drains PART_POISE.
 const PARTS := {"tusks": [0.08, 1.4, "ivory", Color(0.93, 0.88, 0.74)], "fists": [0.1, 1.3, "knuckle", Color(0.6, 0.57, 0.52)]}
@@ -132,8 +128,6 @@ var _barrage := 0
 var _pound_i := 0
 var _beat_i := 0
 var _grab_caught := false
-## The phase change's roar (not the wake's).
-var _moment := false
 ## Double damage until this physics frame (a poise break).
 var _vuln_until := -1
 var parts := BeastParts.new()
@@ -397,12 +391,51 @@ func _phase_check() -> void:
 	_chain_left = 0
 	_in_chain = false
 	phase_changed.emit(phase)
+	start_reset()
+
+
+# ==========================================================================
+# (1.30) The phase change's reset (BossReset): down off its limb or from wherever it is, one bound to the floor's
+# middle, a shockwave as it lands, then it beats its chest roaring, untouchable from the crouch to the roar's end
+# ==========================================================================
+var reset := BossReset.new(self)
+var _roared := false
+
+
+func start_reset() -> void:
+	_drop_held()
 	if up:
-		_moment_fx()
-	else:
-		_drop_held()
-		_moment = true
-		_begin_special("roar")
+		_go_up(false)
+	_set_peril(false)
+	_special = "reset"
+	_attack = "reset"
+	_sp_t = 0.0
+	_roared = false
+	_set_state(S.WIND)
+	reset.start(_ground_at(arena.centre() if arena else post))
+	_face(_flat(reset.to - global_position))
+	humanoid.hold("ape_crouch", BossReset.WIND)
+
+
+## Its reset this tick: whether it's on the ground (not in the air).
+func _reset_update(delta: float) -> bool:
+	match reset.tick(delta):
+		"air":
+			humanoid.hold("ape_air")
+		"land":
+			humanoid.play("ape_slam", ActionSpecs.length("ape_slam"))
+			_leaves(global_position, 40)
+		"done":
+			_special = ""
+			_recover(0.2)
+			return true
+	if reset.stage() == "roar" and not _roared and reset.t > BossReset.WIND + BossReset.AIR + 0.35:
+		_roared = true
+		humanoid.play("ape_beat", BossReset.ROAR_S - 0.35)
+	var p := _target()
+	if reset.stage() != "wind" and p:
+		_face(_flat(p.global_position - global_position))
+	return reset.stage() != "air"
 
 
 # ==========================================================================
@@ -423,13 +456,8 @@ func _begin_special(what: String) -> void:
 	match what:
 		"roar":
 			_beat_i = 0
-			remove_meta("beating")
-			if _moment:
-				_stagger_fx()
-				humanoid.hold("ape_reel", 0.12)
-			else:
-				humanoid.play("ape_beat", ROAR_LEN)
-				Net.fx("sfx", ["roar", global_position, 6.0, 0.03, 0.7])
+			humanoid.play("ape_beat", ROAR_LEN)
+			Net.fx("sfx", ["roar", global_position, 6.0, 0.03, 0.7])
 		"swipe":
 			humanoid.play("ape_swipe", ActionSpecs.length("ape_swipe"))
 			Net.fx("sfx", ["whoosh_big", global_position, -2.0, 0.05, 0.7])
@@ -488,6 +516,8 @@ func _special_update(delta: float) -> void:
 	var grounded := true
 	var p := _target()
 	match _special:
+		"reset":
+			grounded = _reset_update(delta)
 		"roar":
 			_roar_update()
 		"swipe":
@@ -585,17 +615,9 @@ func _special_update(delta: float) -> void:
 		humanoid.grounded = false
 
 
-## The wake's roar, or a phase change's moment (it reels first, then rears up): each chest beat a ring off its chest,
-## then the roar's ring of dust that pushes everyone back.
+## The wake's roar: each chest beat a ring off its chest, then the roar's ring of dust that pushes everyone back.
 func _roar_update() -> void:
-	var t0 := MOMENT_REEL if _moment else 0.0
-	if _sp_t < t0:
-		return
-	if _moment and not has_meta("beating"):
-		set_meta("beating", true)
-		humanoid.play("ape_beat", ROAR_LEN)
-		Net.fx("sfx", ["roar", global_position, 8.0, 0.03, 0.62])
-	var rt := _sp_t - t0
+	var rt := _sp_t
 	var beats := [0.28, 0.48, 0.68]
 	if _beat_i < beats.size() and rt > float(beats[_beat_i]) * ROAR_LEN:
 		_beat_i += 1
@@ -603,25 +625,12 @@ func _roar_update() -> void:
 		Net.fx("sfx", ["punch_heavy", global_position + Vector3.UP * 2.5, 2.0, 0.05, 0.55])
 	if rt > ROAR_LEN * 0.8 and not _sp_hit:
 		_sp_hit = true
-		if _moment:
-			_aoe(global_position, MOMENT_R, 6.0, false, 0.6)
-			_moment_fx()
-		else:
-			_aoe(global_position, ROAR_R, 10.0, false)
-			Net.fx("dust_ring", [global_position, 30, 2.2])
-			get_node("/root/CombatManager").apply_camera_shake(0.35)
+		_aoe(global_position, ROAR_R, 10.0, false)
+		Net.fx("dust_ring", [global_position, 30, 2.2])
+		get_node("/root/CombatManager").apply_camera_shake(0.35)
 	if rt > ROAR_LEN:
-		remove_meta("beating")
-		_moment = false
 		_special = ""
 		_recover(0.2)
-
-
-## The phase change's moment on every screen (BeastFX.moment: rings, dust, the camera punching in for whoever's near).
-func _moment_fx() -> void:
-	BeastFX.moment(global_position, 1.0, MOMENT_COL)
-	Net.event(self, "moment", [global_position])
-	_leaves(global_position, 40)
 
 
 ## A low lunge, then whoever's in its arms is held (GrabbedState on their machine) until they mash free or it throws.
@@ -1129,6 +1138,9 @@ func _fly_rocks(delta: float) -> void:
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
+	if reset.active():
+		reset.deflect(global_position + Vector3(0, 2.4, 0))
+		return
 	_hit_by = attacker
 	var dir := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
 	# far too big to throw down or juggle: the blow lands all the same (double while its poise is broken)
@@ -1210,7 +1222,6 @@ func _poise_break(dir: Vector3) -> void:
 
 func _stagger(dir: Vector3, length: float) -> void:
 	_special = ""
-	_moment = false
 	_drop_held()
 	_stagger_len = length
 	velocity = dir * 3.0
@@ -1228,7 +1239,6 @@ func _drop_held() -> void:
 		Net.event(self, "rock", ["drop"])
 	remove_meta("slam_down")
 	remove_meta("hurling")
-	remove_meta("beating")
 	_grab_caught = false
 
 
@@ -1294,7 +1304,7 @@ func reset_fight() -> void:
 		return
 	_come_down()
 	_special = ""
-	_moment = false
+	reset.stop()
 	hitbox.deactivate()
 	_set_peril(false)
 	phase = 1
@@ -1416,8 +1426,8 @@ func net_event(what: String, args: Array) -> void:
 		"react":
 			motion.hit(facing.global_basis.inverse() * (args[0] as Vector3), float(args[1]))
 			return
-		"moment":
-			BeastFX.moment(args[0], 1.0, MOMENT_COL)
+		"reset_shock":
+			BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))
 			return
 		"part":
 			BeastFX.part_break(args[1], parts.color(str(args[0])))
