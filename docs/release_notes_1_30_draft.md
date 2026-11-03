@@ -80,15 +80,19 @@
   - Fires many times a captain's height.
   - The ring of warships fires broadsides.
   - Sirens and drums, and an "Escape the ring" objective.
-- 🔨 **The run reworked as a raid in acts:**
-  - Breach the gate, take both seals in either order, then the keep and Vane, the vault, and the escape.
-  - Placed garrisons and an alarm that brings reinforcements you can see coming. Cleared districts stay clear.
-  - Crowds of 20-30 at once. Rank-and-file marines go down in 2-4 hits; elites and officers are the tough ones.
-  - Stealth before the alarm: sentries, silent takedowns, alarm bells you can cut.
-  - Set-piece boss arenas: Kesh in a pouring foundry, Marrow in a prison riot, Vane on the keep's roof as the Scouring starts. Each gets an intro name card and faster, bigger moves.
-  - Downed in a boss fight: a crewmate revives you. If you bleed out, you respawn just outside the arena and walk back in; only a full wipe resets the boss.
-  - Objectives that split the crew: hold a gate, a sniper perch, two levers at once. All of it is still doable solo.
-  - The side areas reachable, and a polish pass on the layout and models.
+- ✅ **The run reworked as a raid in acts:**
+  - Breach the Landing's gate, by winch, lever or charge. Take both seals in either order, then the keep and Vane, the vault, and the escape.
+  - A placed garrison of 77, mostly fodder marines 4 levels under the fortress. A raised alarm brings about 130 more: from hall doors, through the prison gate, and by longboat to the quay. Cleared districts stay clear.
+  - Up to 25 fighting at once, kept cheap on the frame.
+  - Stealth: silent takedowns from behind, or on foes stunned by flash or smoke. A marine runs for the alarm bell, and you can cut its rope.
+  - Boss set pieces:
+    - Kesh pours molten crucibles across the foundry.
+    - Marrow's prison riot comes in waves out of the cell block.
+    - Vane leaps onto the roof at 65% and orders the Scouring at 30%.
+    - Each has an intro name card and a telegraphed leap attack.
+  - Downed in a boss fight: a crewmate revives you. If you bleed out, you're back up at the arena's checkpoint after 8 s and go back in through a side door. Only a full wipe resets the boss.
+  - Crew-split objectives: one captain winds the gate while the others hold off the boats, a sniper perch with long guns, and the vault's two locks pulled together. Each still has a solo window.
+- 🔨 **The fortress made fuller and more detailed:** side areas, wall walks, and a dressing and model pass. Posts now have braziers, racks and crates, and the prison yard has a cell block.
 - ✅ **Gadget packs:** buy smoke, flash, powder charges and the grappling hook at Nessa's and the chandlers (U uses, O cycles). Smoke now hides you behind the cloud too and lasts longer; flash stuns longer and dazzles a captain looking at it; the new powder charge blows gates, crates and crowds.
 
 ## The world
