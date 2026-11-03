@@ -2590,6 +2590,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 	h.poise = {"": Poise.LIGHT, "finisher": Poise.FINISHER, "heavy": Poise.HEAVY}.get(kind, clampf(base * 1.2, Poise.LIGHT, Poise.TECH_MAX))
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0) + (pr.stat("heavy_pct") if kind == "heavy" else 0.0)
 	h.damage = base * damage_multiplier() * k
+	h.sneak = pr.sneaking_recently()
 	# (Sidestep: a blow slipped makes the next one a sure crit)
 	var slipped := power.buff("slipped")
 	power.buffs.erase("slipped")

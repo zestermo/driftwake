@@ -66,6 +66,10 @@ Gap = the foe's level minus the captain's (per captain). Multipliers on top of L
 - Fodder marines: normal marine stats at **the fortress's level - 4** (not a fixed 30 HP).
 - Health bars: 22x2 px (was 28x4) on the 800x450 canvas, a small level number in a box to the bar's left.
 - Approved by Zach 2026-11-03.
+- **Splat power by overkill** (Zach, same day): the flight's speed and reach grow with how far past the splat line the
+  blow went. Just over: a mellow throw of a few feet (~1-2 m, no wall unless one is right there). Far over: shot fast
+  (up to ~25 m/s) to the full 8 m reach. The same for captains. **Bodies in the flight's path are knocked down or
+  aside** (a knockdown and small damage to foes; captains in a duel too), host-decided.
 
 ### Open / deferred
 - The brig and galleon and the creatures keep their own grill (docs/v1_29_plan.md said "1.30's grill").

@@ -1,6 +1,6 @@
 extends SceneTree
 ## The stronghold's alarm (1.30, StrongholdAlarm, StrongholdReinforce): a fight with a district's garrison raises its
-## alarm (only that district's) after a few seconds; then its gate swings open on waves of hunters who come straight for
+## alarm (only that district's) once a runner rings its bell; then its gate swings open on waves of hunters who come straight for
 ## the captain, wave after wave until its pool is spent; with every man down the district is cleared for good and nothing
 ## more comes. The Landing's waves come by boat and leap ashore onto the quay.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -65,8 +65,13 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.5)
 			return false
 		3:
-			# (up to 10 s for the post to notice and the fight to run ALARM_AFTER)
-			if not alarm.alarmed("prison") and Engine.get_physics_frames() - t0 < 600:
+			# (up to 25 s for the post to notice and a runner to reach the bell and ring it)
+			if not alarm.alarmed("prison") and Engine.get_physics_frames() - t0 < 60 * 25:
+				var r = alarm.runner.get("prison")
+				if r != null and is_instance_valid(r) and (Engine.get_physics_frames() - t0) % 120 < 30:
+					var b = r.bell
+					print("  runner %s state %d at %s, bell %s, %.1f m to it, rang %s, fight %.1f" % [r.name, r.state, isl.city.to_local(r.global_position),
+						b.name if b else "-", r.global_position.distance_to(b.ring_spot()) if b else -1.0, r.rang, alarm._fight_t["prison"]])
 				until = TK.wait_secs(0.5)
 				return false
 			check("a fight with the prison's garrison raises its alarm (%.1f s)" % ((Engine.get_physics_frames() - t0) / 60.0), alarm.alarmed("prison"))

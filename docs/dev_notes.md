@@ -9884,7 +9884,7 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   `Hurtbox.take_hit` works the gap out (Levels.hit_gap) and scales the damage, and carries it on `HitData.gap`;
   `Poise.take` divides a foe's (coop) poise damage by gap_poise; `Splat.wants` / `flattens` scale their lines.
 - **Co-op:** the gap is worked out on the captain's own machine: a guest's blow on a host-run foe is scaled on the
-  guest and arrives with its gap packed (Net.hit_pack index 19), and the host (attacker a puppet, not is_local) leaves
+  guest and arrives with its gap packed (Net.hit_pack index 20, after `sneak`), and the host (attacker a puppet, not is_local) leaves
   it alone; a foe's blow on a guest is worked out when it reaches the guest's own hurtbox. The host never needs the
   guest's level.
 - **Which foes:** anything in group "enemies" with a `level` (grunts, marines, fodder, bosses, apes, beasts, bugs,
@@ -9897,3 +9897,31 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
 - **Not through Hurtbox, so no gap:** anything that calls a body's damage directly instead of take_hit.
 - **Tests:** t/combat/level_gap (the table, both ways through real hurtboxes, poise, the splat lines, badge colours),
   t/ui/enemy_bars (the badge's level and gap); render `levelbadgeshot`.
+## 2026-11-03: 1.30 the stronghold run reworked, piece 2: stealth infiltration
+- **Silent takedowns** (FodderMarine._on_hit): a melee blow on an unaware fodder marine (IDLE, or ALERT under TURNING
+  0.6 s: caught as he turns) from within TAKEDOWN_R 2.4 m, struck out of a sneak (HitData.sneak, or the attacker still
+  in Crouch) from behind the way he faced while calm (`_calm_fwd`), kills him outright: a ragdoll slump, a muffled punch,
+  "Takedown", no barks. A stunned one (the gadgets' flash/smoke: `is_stunned()`) goes down the same way from any side.
+  - **HitData.sneak** (new, packed as field 19 in Net.hit_pack): set by Player.melee_hit from
+    `Progression.sneaking_recently()` (the Ambush window, AMBUSH_TICKS 45), so a guest's blow from a sneak counts on
+    the host though the attack state already replaced Crouch.
+  - A sentry who notices you shouts to his camp only SHOUT_AFTER 0.7 s later (FodderMarine.alert): cut down first,
+    nobody else heard. From behind he still notices a sneak inside 1.5 m (Stealth.BEHIND_K of 5 m), so the takedown's
+    window is 1.5-2.4 m, or the half-second as he turns.
+- **Alarm bells** (StrongholdBell, BELLS: one per district, two in the ward): an iron frame, a bronze bell, a rope.
+  - Once a district's garrison is fighting, the host sends the fodder nearest a working bell running for it
+    (FodderMarine.run_to_bell: out of the fight, shouting, its own move in `_run_bell`); RING_SECS 2 at the rope, then
+    StrongholdAlarm.raise. Cut down, another goes RUNNER_GAP 3 s later. A fight the runners keep losing still raises it
+    after LONG_FIGHT x 2 (28 s).
+  - F at a bell cuts its rope ("sh_bell_<district>_<i>", every captain's). Every bell cut: no runner, the alarm only
+    after LONG_FIGHT 14 s of fighting, and the district's waves every WAVE_EVERY x SLOW_K (14 s, `wave_every`).
+  - Every machine swings the district's bells when its alarm flag shows up.
+- Tests: t/stronghold/stealth (the takedown from behind, nobody stirring; none from the front; the runner, a second
+  runner, the ring; a cut bell, no runner, the long fight, slower waves; a dazed marine from the front); t/stronghold/alarm
+  waits for the runner now.
+- Per tick: the runner's own move instead of his brain (one marine a district at a time); bells check their flag
+  twice a second.
+## 2026-11-03: uitest fixes (stale + yard overflow)
+- uitest opens the skills menu with no weapon tree found (new games start without one since b21bc8b1, so the map had no tree and drew no nodes): the test now discovers "sword" first. The shipwright yard's Refits list (14 lines + 6 group heads since 1.29) made the panel 374 px high on the 360 canvas: the list now sits in a ScrollContainer (250 px, follows focus). Covered by uitest, yardtest, t/ship/yard_buy.
+- (same day, round 5 the level gap) FodderMarine drops its fixed 30 health: a plain marine (MAX_HP, no +30%) at its
+  camp's level - LEVEL_GAP 4; the level-gap multipliers (Levels, the gap agent's) make it quick to cut down. t/stronghold/garrison checks the level and health.

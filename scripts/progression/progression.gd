@@ -471,6 +471,11 @@ func on_hit(target: Node = null, hit: HitData = null) -> void:
 	add_mastery(hand_tree(), MASTERY_PER_HIT)
 
 
+## (1.30) Still within AMBUSH_TICKS of sneaking: a blow now is struck out of a sneak (HitData.sneak).
+func sneaking_recently() -> bool:
+	return Engine.get_physics_frames() - _sneak_frame < AMBUSH_TICKS
+
+
 ## CrouchState's tick: sneaking, `metres` moved. Every SNEAK_M metres with a foe within SNEAK_NEAR teaches Stealth,
 ## and a blow struck within AMBUSH_TICKS of it is a sneak attack (on_hit: Ambush's damage and more Stealth).
 func sneak(metres: float) -> void:
