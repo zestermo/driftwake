@@ -13,6 +13,7 @@ var _buy: Dictionary = {}
 var _pips: Dictionary = {}
 var _cycles: Array = []
 var _flag: TextureRect
+var _scroll: ScrollContainer
 var _refits: VBoxContainer
 var _paint: VBoxContainer
 var _tabs: Dictionary = {}
@@ -65,9 +66,15 @@ func _init(menu: Node) -> void:
 	_gold = UIStyle.label("", 8, UIStyle.ACCENT)
 	_gold.add_theme_font_override("font", SILK)
 	vb.add_child(_gold)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.follow_focus = true
+	_scroll.custom_minimum_size = Vector2(0, 250)
+	vb.add_child(_scroll)
 	_refits = VBoxContainer.new()
 	_refits.add_theme_constant_override("separation", 0)
-	vb.add_child(_refits)
+	_refits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_refits)
 	_build_tree()
 	_paint = VBoxContainer.new()
 	_paint.add_theme_constant_override("separation", 2)
@@ -182,7 +189,7 @@ func _build_paint() -> void:
 
 func show_tab(id: String) -> void:
 	tab = id
-	_refits.visible = id == "refits"
+	_scroll.visible = id == "refits"
 	_paint.visible = id == "paint"
 	for k in _tabs.keys():
 		(_tabs[k] as Button).modulate = Color.WHITE if k == id else Color(1, 1, 1, 0.6)

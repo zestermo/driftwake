@@ -52,6 +52,7 @@ func _process(d: float) -> bool:
 			p = get_first_node_in_group("player")
 			p.progression.level = 8
 			p.progression.skill_points = 4
+			p.progression.discover("sword")
 			until = TK.wait_ticks(10)
 			step = 1
 		1:

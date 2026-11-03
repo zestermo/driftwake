@@ -9899,3 +9899,5 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   waits for the runner now.
 - Per tick: the runner's own move instead of his brain (one marine a district at a time); bells check their flag
   twice a second.
+## 2026-11-03: uitest fixes (stale + yard overflow)
+- uitest opens the skills menu with no weapon tree found (new games start without one since b21bc8b1, so the map had no tree and drew no nodes): the test now discovers "sword" first. The shipwright yard's Refits list (14 lines + 6 group heads since 1.29) made the panel 374 px high on the 360 canvas: the list now sits in a ScrollContainer (250 px, follows focus). Covered by uitest, yardtest, t/ship/yard_buy.
