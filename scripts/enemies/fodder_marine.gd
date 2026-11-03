@@ -1,13 +1,15 @@
 class_name FodderMarine
 extends PirateGrunt
 ## The stronghold's fodder (1.30, docs/v1_30_plan.md round 3: "20-30 fighting at once, most a cheap fodder tier"): an
-## Admiralty marine that drops in 2-4 blows (HP of its own: no +30%, no co-op health scaling), a cutlass and a short
+## Admiralty marine LEVEL_GAP levels under its camp (no +30%, no co-op health scaling), a cutlass and a short
 ## moveset (the two-cut combo, the lunge from further out, now and then the red chop), no pistol, rush, shield, horn
 ## or elite trait. Its rig stays on the lod path in a fight and it thinks on a slower beat. A hunter (sent by the
 ## alarm: StrongholdAlarm) goes for the nearest captain as it musters and follows them across the fortress instead of
 ## minding a post. A sentry (StrongholdGarrison) is a fodder marine posted to watch a way in.
 
-const HP := 30.0
+## (1.30 round 5, the level gap) A marine's own numbers (no +30%) at the fortress's level less this: the gap does the
+## rest (a captain at the fortress's level hits it x1.24, takes x0.52 from it, its poise x0.52).
+const LEVEL_GAP := 4
 const HUNT_RANGE := 90.0
 const THINK := 10
 const XP_K := 0.35
@@ -42,6 +44,8 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 
 
 func _ready() -> void:
+	if level > 0:
+		level = maxi(level - LEVEL_GAP, 1)
 	super()
 	add_to_group("fodder")
 	# (a crowd pressing on one captain: bodies pushing bodies were most of its physics; they keep apart by steering)
@@ -178,10 +182,6 @@ func elite() -> bool:
 
 func _crew_k() -> float:
 	return 1.0
-
-
-func _max_hp() -> float:
-	return HP * Levels.hp_k(level, _lv_ref())
 
 
 func net_rescale(_k: float) -> void:

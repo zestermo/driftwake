@@ -9901,3 +9901,5 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   twice a second.
 ## 2026-11-03: uitest fixes (stale + yard overflow)
 - uitest opens the skills menu with no weapon tree found (new games start without one since b21bc8b1, so the map had no tree and drew no nodes): the test now discovers "sword" first. The shipwright yard's Refits list (14 lines + 6 group heads since 1.29) made the panel 374 px high on the 360 canvas: the list now sits in a ScrollContainer (250 px, follows focus). Covered by uitest, yardtest, t/ship/yard_buy.
+- (same day, round 5 the level gap) FodderMarine drops its fixed 30 health: a plain marine (MAX_HP, no +30%) at its
+  camp's level - LEVEL_GAP 4; the level-gap multipliers (Levels, the gap agent's) make it quick to cut down. t/stronghold/garrison checks the level and health.
