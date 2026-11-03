@@ -6,8 +6,9 @@ extends RefCounted
 ## captain who joins mid-line carries on with no island built) and an "at" (where its marker goes). Journal polls the
 ## live lines on every machine and asks the host to move them on (it takes the first word).
 ## until: ["done", quest id] / ["perk", journal perk] / ["flag", world flag] / ["flags", [world flags]] (all of them,
-## counted "(n/m)") / ["opened", save id]. at: ["npc", name] / ["quest", quest id, giver] (its own marker while it's
-## live, else its giver) / ["sh"] (the stronghold) / ["sh_room", room] / ["sh_seals"] (the nearest seal not yet taken).
+## counted "(n/m)") / ["opened", save id] / ["any", [untils]]. at: ["npc", name] / ["quest", quest id, giver] (its own
+## marker while it's live, else its giver) / ["sh"] (the stronghold) / ["sh_room", room] / ["sh_seals"] (the nearest seal
+## not yet taken) / ["sh_gap"] (the gap in the Scouring's ring).
 
 const RULERS := {"capital": "Queen Ilsabet", "canal": "Doge Benedetto Vael"}
 const LINE_TITLE := {"capital": "The Queen's line", "canal": "The Doge's line"}
@@ -43,8 +44,8 @@ static func stronghold(chain: Chain) -> Dictionary:
 		{"goal": "Take the keep's two seals: Lieutenant Kesh in the Arsenal, Captain Marrow at the Prison Tower",
 			"until": ["flags", SEAL_BOSSES.keys()], "at": ["sh_seals"]},
 		{"goal": "Cross the Bridge of Judgement: beat Commodore Vane in the Command Hall", "until": ["flag", "sh_seal_keep"], "at": ["sh_room", "command"]},
-		{"goal": "Open the Commodore's vault before his dais", "until": ["opened", vault], "at": ["sh_room", "command"]},
-		{"goal": "Escape the Scouring: out of the warships' ring", "until": ["flag", "sh_escaped"], "at": []}]}
+		{"goal": "Open the Commodore's vault before his dais", "until": ["any", [["opened", vault], ["flag", "sh_barrage"]]], "at": ["sh_room", "command"]},
+		{"goal": "Escape the ring: get to your ship and sail out through the gap in the warships' line", "until": ["flag", "sh_escaped"], "at": ["sh_gap"]}]}
 
 
 ## Is `until` met?
@@ -63,6 +64,8 @@ static func met(tree: SceneTree, until: Array) -> bool:
 			return (until[1] as Array).all(func(f): return gm.world_flags.has(str(f)))
 		"opened":
 			return gm.opened.has(str(until[1]))
+		"any":
+			return (until[1] as Array).any(func(u): return met(tree, u))
 	push_error("LineQuests: no until \"%s\"" % until[0])
 	return false
 
@@ -90,6 +93,9 @@ static func where(tree: SceneTree, at: Array) -> Vector3:
 			return npc(tree, str(at[2]))
 		"sh":
 			return _stronghold_pos(tree)
+		"sh_gap":
+			var isl = _stronghold(tree)
+			return StrongholdScouring.gap_at(isl) if isl != null else _stronghold_pos(tree)
 		"sh_room":
 			var isl = _stronghold(tree)
 			for r in StrongholdPlan.ROOMS:
@@ -138,6 +144,8 @@ static func district_hint(tree: SceneTree, at: Vector3) -> String:
 		return ""
 	var gm: Node = tree.root.get_node("GameManager")
 	var f: Dictionary = gm.world_flags
+	if f.has("sh_barrage") and not f.has("sh_escaped"):
+		return "THE SCOURING  -  get to your ship and sail out through the gap in the warships' line"
 	var seals := SEAL_BOSSES.keys().filter(func(s): return f.has(s)).size()
 	var key := str(StrongholdPlan.DISTRICTS[di][0])
 	var hint := ""

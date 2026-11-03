@@ -9783,3 +9783,43 @@ docs/v1_30_plan.md round 3 ("40 people over 30 minutes, groups of 5, sponges").
   snapshot (player net_pack); the marks and stars via Net.fx.
 - Tests: t/combat/splat_captain (+ player_poise, breakfall, rival_duel, wall_slide, crash_landing, freefall_tumble
   rerun). Not run: nettest (push gate).
+## 2026-11-03 - The Scouring, piece 2: the ring of warships, the great fires, sirens and drums, "Escape the ring" (1.30)
+
+After the lead's review of piece 1 (bursts small and puffy, the telegraph discs read as UI, the night near black):
+- **Bigger bursts** (ScouringFX.landed): a white-hot flash card, glow and rising fire cards 12-30 m, the `explosion`
+  sheet (3 x 13 m), FX.blast at 6, a fireball plume of 8 x 7 m, stone (28) and dark tiles (14) thrown, a 15 m shock
+  ring, a flash light of 22 energy / 42 m / 0.9 s, and a dark column of four smoke cards rolling up over ~3 s and
+  lingering 14 s. Within 30 m of the camera the fire parts shrink to 55% so the captain stays readable.
+- **The telegraph** is now the shell itself: FX.telegraph's discs are gone; the shell's shadow grows (1.2 m to 0.6 x
+  SHELL_R) and darkens on the ground under it with a flickering ember rim, its streak (a hot head and six fading)
+  arcs in from a ring ship's gun port, the whistle comes 1.8 s before it lands.
+- **The ring** (ScouringFX._build_ring, at the countdown): 11 Admiralty warship hulls (HullBuilder, the warship look,
+  x2.2, one built and duplicated), 245 m round the island side-on, a gap of 0.36 rad either side of
+  StrongholdScouring.GAP (out past the sea gate); they heave and roll. Each shell comes from one of their gun ports
+  (a flash, a bank of smoke, sometimes the boom); every 2.6 s (from the clock, the same on every screen) one fires a
+  six-gun ripple whose shot falls in the sea off the coast (columns of white water).
+- **The great fires** (StrongholdScouring: every BLAZE_EVERY = 3rd shell that hits land, deterministic, at most 26):
+  `shaders/psx/scouring_fire.gdshader` on one MultiMesh, three upright camera-facing cards per fire (up to 15 m x 11 m
+  x its size 0.8-1.25), tongues on the GPU, growing in over 3 s and burning on (they still burn after the escape:
+  "burns behind you"); each sends up a smoke card every 1.1 s; the 3 nearest within 120 m get a flickering
+  OmniLight (no shadow, 26 m). A captain within BLAZE_R x size burns at BLAZE_DPS 14.
+- **Night**: the smoke cards' undersides glow orange from the fires (`under` = night x smoke level), the fires and
+  the lit columns carry the fortress.
+- **Sirens and drums** (`siren_loop`, `war_drums_loop`, gen_psx_audio.py): the siren from the broadcast (full in the
+  countdown), drums under the barrage, both by our captain's nearness and fading once out.
+- **Escape the ring**: a banner when the shells start; the host sets `sh_barrage`; the journal's stronghold line:
+  the vault step passes on `["any", [opened vault, flag sh_barrage]]` (new until kind) and the escape step reads
+  "Escape the ring: get to your ship and sail out through the gap in the warships' line" with its marker `["sh_gap"]`
+  (StrongholdScouring.gap_at: RING_R + 30 m out through the gap); the stronghold's district line says the same while
+  the shells fall. Saved lines keep their old steps (lines are stored in the entry); new runs get these.
+- **Gotchas**: MultiMesh custom data is half floats: birth times lost their seconds (fires never grew), so the
+  driven cards and fires carry their numbers in the instance basis (float32); a MultiMesh in world space needs a
+  custom AABB as wide as the chain (the stronghold can be thousands of metres out).
+- Per frame (no bench): the shells in flight and their shadows written into a small MultiMesh (7 + 1 per shell, a few
+  shells), three shader uniforms, 11 ship transforms, 3 light energies, array filters on the few queued whistles and
+  splashes; on spawn only, a card write (3 setters). Every 0.3 s a sort of the fires by distance. The cards and fires
+  move on the GPU. Draws: 3 MultiMeshes and 11 hulls (no shadows, 1.4 km range).
+- Renders: `tools/dev/out/scour/p2noon_sheet.png`, `p2night_sheet.png`, `p2eve_sheet.png` (strongholdshot with
+  CSHOT_SCOURING=1 now starts fourteen fires first and has a "ring" view).
+- Tests: t/stronghold/scouring_ring (new), scouring_sky, scouring, district_hint, solid_ground; t/quests,
+  t/capital/queen_line.

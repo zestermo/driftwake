@@ -85,6 +85,8 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 | Sound | Made in | Played | Before | Problem | Now |
 |---|---|---|---|---|---|
 | hull_wash_loop | gen_psx_audio | Ambience "wash", -9 dB x speed, pitch 0.85-1.25 | 8 s (played 1.6 s), -14.6 LU, 42% at 1-5 kHz, 6 Hz flutter | the worst sound in the game: short, bright, boxy, loudest layer | **removed**, replaced by the three below |
+| siren_loop | gen (1.30) | ScouringFX, Ambience bus, -4 dB: full in the Scouring's countdown, 0.55 in the grace and the barrage, fading past the ring | | | 24 s, -20.2 LU, two detuned rotor sirens wailing up and down (6 s cycle), a rock echo; repeat 0.83@12 s (a siren cycles) |
+| war_drums_loop | gen (1.30) | ScouringFX, Ambience bus, -3 dB under the barrage | | | 19.2 s (32 beats at 100 bpm), -19.2 LU, low drums BOOM . BOOM-BOOM ., rim knocks, a roll every fourth bar |
 | hull_rush_loop | new | "wash", -9 dB, pow(spd/8, 0.7), pitch 0.88-1.08 | | | 37 s, -20 LU, centroid 585 Hz, 6% at 2-5k; dark and bright takes crossfaded on a slow random curve, slow surges, a low body |
 | hull_gurgle_loop | new | "gurgle", -13 dB, most of the sound when slow | | | 23 s, bubbles as rising chirps in clusters, a churning mid bed, deeper gloops |
 | hull_foam_loop | new | "foam", -17 dB, comes in above 4 m/s | | | 29 s, soft fizz of bursting foam (bright, rolled off above 6 kHz) |

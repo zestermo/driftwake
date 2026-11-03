@@ -25,6 +25,14 @@ const FIRE_LIFE := 8.0
 const FIRE_R := 3.5
 const FIRE_DPS := 8.0
 const RING_R := 300.0
+## (1.30) The gap in the warships' line, the way out (a frame direction from the island's middle: out past the sea
+## gate), its marker GAP_OUT m past the ring; every BLAZE_EVERY-th shell, on the land, sets a great fire burning, its
+## reach (x its size) and burn.
+const GAP := Vector2(0.12, 1.0)
+const GAP_OUT := 30.0
+const BLAZE_EVERY := 3
+const BLAZE_R := 3.2
+const BLAZE_DPS := 14.0
 const ISLAND_R := 150.0
 const ADMIRAL_LEVEL := 32
 const ADMIRAL_HP := 30.0
@@ -101,6 +109,7 @@ func _process(delta: float) -> void:
 				_banner("count%d" % int(mark), "The Scouring", "Shells in %d seconds. Get to your ship." % int(mark))
 	else:
 		state = "barrage"
+		_banner("barrage", "Escape the ring", "The warships open fire. Get to your ship and sail out through the gap in their line.")
 		var k := int(floor((t - grace - count) / SHELL_EVERY))
 		while _next <= k:
 			_shell(_next)
@@ -141,13 +150,19 @@ func _shell(k: int) -> void:
 	else:
 		q = StrongholdPlan.LAND_C + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * ISLAND_R
 	var hit := _from_sky(isl.city_global(q, 0.0))
-	_fire(hit[0], hit[1], hit[2], lands, k)
+	_fire(hit[0], hit[1], hit[2], lands, k, not hit[2] and k % BLAZE_EVERY == 0)
 
 
-func _fire(at: Vector3, n: Vector3, water: bool, lands: float, k: int) -> void:
-	FX.telegraph(at, SHELL_R, WARN, Color(1.0, 0.25, 0.08))
-	_pending.append([at, lands, n, water])
+## A shell on its way to `at`, landing at clock `lands` (its shadow and whistle are ScouringFX's telegraph); `blaze`:
+## it leaves a great fire.
+func _fire(at: Vector3, n: Vector3, water: bool, lands: float, k: int, blaze := false) -> void:
+	_pending.append([at, lands, n, water, blaze])
 	fx.incoming(at, lands, k)
+
+
+## The gap's marker: out past the ring through the gap in the warships' line (world, at sea level).
+static func gap_at(island: Node3D) -> Vector3:
+	return island.city_global(StrongholdPlan.LAND_C + GAP.normalized() * (RING_R + GAP_OUT), 0.0)
 
 
 ## What a shell falling straight down at p's x, z meets first: [where, its normal, in the sea].
@@ -168,7 +183,7 @@ func _land(_delta: float) -> void:
 	_pending = _pending.filter(func(e): return float(e[1]) > now)
 	for e: Array in due:
 		var at: Vector3 = e[0]
-		fx.landed(at, e[2], e[3])
+		fx.landed(at, e[2], e[3], e[4])
 		if not e[3]:
 			fires.append([at, now + FIRE_LIFE])
 		var d := me.global_position.distance_to(at) if me else INF
@@ -200,6 +215,14 @@ func _burn(delta: float) -> void:
 			me.hurtbox.take_hit(hd, null)
 			# (one burn a tick, however many patches overlap)
 			me = null
+	# (1.30) the great fires: harder, for as long as they burn
+	for b in fx.blazes:
+		if me and me.global_position.distance_to(b[0]) < BLAZE_R * float(b[1]):
+			var hd := HitData.new()
+			hd.damage = BLAZE_DPS * 0.5
+			hd.dot = true
+			me.hurtbox.take_hit(hd, null)
+			me = null
 
 
 # --------------------------------------------------------------------------
@@ -212,6 +235,9 @@ func _host(delta: float) -> void:
 	_check = 0.25
 	var net := get_node("/root/Net")
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
+	# (the journal's escape step takes over from the vault's once the shells fall)
+	if state == "barrage" and not _flag("sh_barrage"):
+		net.world_flag("sh_barrage")
 	if state == "barrage" and ship and not in_ring(ship.global_position):
 		net.world_flag("sh_escaped")
 		net.bounty("scouring", ship.global_position, 200.0)

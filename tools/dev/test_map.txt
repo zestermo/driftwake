@@ -714,14 +714,16 @@ scripts/island/stronghold_plan.gd       t/stronghold
 scripts/island/stronghold_shell.gd      t/stronghold
 scripts/island/stronghold_island.gd     t/stronghold
 scripts/island/stronghold_boss.gd       t/stronghold
-scripts/island/stronghold_scouring.gd   t/stronghold/scouring t/stronghold/scouring_sky
-scripts/island/scouring_fx.gd           t/stronghold/scouring t/stronghold/scouring_sky
+scripts/island/stronghold_scouring.gd   t/stronghold/scouring t/stronghold/scouring_sky t/stronghold/scouring_ring
+scripts/island/scouring_fx.gd           t/stronghold/scouring t/stronghold/scouring_sky t/stronghold/scouring_ring
 shaders/psx/scouring_glow.gdshader      t/stronghold/scouring_sky
 scripts/island/stronghold_garrison.gd   t/stronghold
 scripts/island/stronghold_alarm.gd      t/stronghold/alarm t/stronghold/garrison
 scripts/island/stronghold_reinforce.gd  t/stronghold/alarm
 scripts/island/stronghold_bell.gd       t/stronghold
 scripts/enemies/fodder_marine.gd        t/stronghold/fodder_crowd t/stronghold/garrison t/stronghold/alarm
+shaders/psx/scouring_fire.gdshader      t/stronghold/scouring_ring
+scripts/quests/line_quests.gd           t/stronghold/scouring_ring t/stronghold/district_hint
 scripts/powers/fruit_pool.gd            t/stronghold/vault
 scripts/loot/item_db.gd                 t/stronghold/vault
 scripts/island/city_undercity.gd        t/canal/undercity t/capital/catacombs

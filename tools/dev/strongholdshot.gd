@@ -59,7 +59,7 @@ func _process(d: float) -> bool:
 	if sc and float(root.get_node("Ocean").clock()) < shot_at + 1.1:
 		return false
 	if sc:
-		print("scouring %s: %s, %d shells pending, %d cards, smoke %.2f" % [shots[idx][0], sc.state, sc._pending.size(), sc.fx._cards.size(), root.get_node("Weather").smoke])
+		print("scouring %s: %s, %d shells pending, %d blazes, %d ships, smoke %.2f" % [shots[idx][0], sc.state, sc._pending.size(), sc.fx.blazes.size(), sc.fx.ships.size(), root.get_node("Weather").smoke])
 	var img := root.get_texture().get_image()
 	img.save_png("%s_%s.png" % [out, shots[idx][0]])
 	frames.append(img)
@@ -145,6 +145,8 @@ func _setup(island) -> void:
 		["under_bridge", "under the bridge from the chasm", Vector2(10.0, -31.0), 1.5, Vector2(0, -31.0), 18.0],
 		["up_gate", "up under the keep gate", Vector2(0, -46.0), 1.7, Vector2(0, -52.0), 14.0],
 		["up_verdict", "up the Verdict from its foot", Vector2(6.0, -58.0), 1.7, Vector2(0, -86.0), 160.0],
+		# (1.30, the Scouring's ring: with CSHOT_SCOURING)
+		["ring", "the warships' ring from over the keep", Vector2(0, -70), 60.0, Vector2(-170, 150), 0.0],
 	]
 	var only := OS.get_environment("CSHOT_ONLY")
 	if only != "":
@@ -160,6 +162,14 @@ func _setup(island) -> void:
 		await create_timer(2.0).timeout
 		root.get_node("GameManager").world_flags["sh_seal_keep"] = true
 		await create_timer(1.0).timeout
+		# (a fortress already burning: fourteen shells over its districts, each setting a great fire)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 77
+		for j in range(14):
+			var r: Rect2 = StrongholdPlan.DISTRICTS[j % StrongholdPlan.DISTRICTS.size()][1]
+			var hit: Array = sc._from_sky(isl.city_global(Vector2(rng.randf_range(r.position.x, r.end.x), rng.randf_range(r.position.y, r.end.y)), 0.0))
+			sc._fire(hit[0], hit[1], hit[2], float(root.get_node("Ocean").clock()) + 0.5 + j * 0.15, 800000 + j, true)
+		await create_timer(7.0).timeout
 		settle = 0
 	_aim()
 
@@ -178,7 +188,7 @@ func _aim():
 		rng.seed = idx
 		var dir := (to - from).normalized()
 		for j in range(4):
-			var q: Vector2 = from + dir * rng.randf_range(14.0, 60.0) + Vector2(-dir.y, dir.x) * rng.randf_range(-22.0, 22.0)
+			var q: Vector2 = from + dir * rng.randf_range(40.0, 90.0) + Vector2(-dir.y, dir.x) * rng.randf_range(-28.0, 28.0)
 			var hit: Array = sc._from_sky(isl.city_global(q, 0.0))
 			sc._fire(hit[0], hit[1], hit[2], shot_at + 0.45 + j * 0.15, 900000 + idx * 10 + j)
 
