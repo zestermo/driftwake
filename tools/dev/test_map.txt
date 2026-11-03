@@ -785,3 +785,5 @@ scripts/ui/game_menu.gd                 t/player/unstuck_menu
 scripts/world/ground_net.gd             t/player/unstuck_auto
 scripts/island/capital_shell.gd         t/capital/solid_ground
 scripts/island/capital_models.gd        t/capital/solid_ground
+scripts/combat/splat.gd                 t/combat/splat_captain
+scripts/player_states/downed_state.gd   t/combat/splat_captain

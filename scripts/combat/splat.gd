@@ -11,6 +11,10 @@ extends Node
 const OVERKILL_K := 0.5
 ## A strong blow (a heavy, a knockdown, a launcher, a technique or ultimate) throws with only this much (tuned: 15%).
 const STRONG_K := 0.15
+const CAPTAIN_K := 0.3
+const DUEL_K := 0.2
+## A captain let go: the muscles barely brace (dazed).
+const DAZED_BRACE := 0.3
 const REACH := 8.0
 const SPEED := 21.0
 const STICK := 1.0
@@ -55,6 +59,15 @@ static func wants(hit: HitData, hp_before: float, max_hp: float) -> bool:
 	if over >= max_hp * OVERKILL_K:
 		return true
 	return strong(hit) and not hit.ranged and over >= max_hp * STRONG_K
+
+
+## A blow that broke a captain's poise and throws them flat: a strong one (not a shot) taking CAPTAIN_K of their max
+## health (plan: assumed 30%), or DUEL_K from another captain (duel blows land at Duel.DAMAGE_K; tuned).
+static func flattens(hit: HitData, dmg: float, max_hp: float, attacker: Node) -> bool:
+	if hit.ranged or hit.dot or not strong(hit):
+		return false
+	var by_captain := attacker != null and attacker.is_in_group("players")
+	return dmg >= max_hp * (DUEL_K if by_captain else CAPTAIN_K)
 
 
 static func strong(hit: HitData) -> bool:
@@ -204,6 +217,7 @@ func _to_ground(chest: Vector3) -> void:
 func _to_air(v: Vector3) -> void:
 	kind = "fall"
 	phase = Phase.AIR
+	rag.stiffness_target = minf(rag.stiffness_target, DAZED_BRACE)
 	for p in rag.parts:
 		var b: RigidBody3D = p["body"]
 		b.linear_velocity = v
@@ -273,6 +287,7 @@ func _contact() -> void:
 
 func _release(v: Vector3) -> void:
 	rag.hold(false)
+	rag.stiffness_target = minf(rag.stiffness_target, DAZED_BRACE)
 	for p in rag.parts:
 		var b: RigidBody3D = p["body"]
 		b.linear_velocity = v

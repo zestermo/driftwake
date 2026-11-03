@@ -9770,3 +9770,16 @@ docs/v1_30_plan.md round 3 ("40 people over 30 minutes, groups of 5, sponges").
   grunts yet: posing and move_and_slide dominate, and both run every frame near the camera. Open: a crowd pass
   (half-rate posing past ~8 m for fodder, cheaper locomotion ticks); the lead's prepush bench decides.
 - Tests: t/stronghold/garrison (rewritten), t/stronghold/alarm, t/stronghold/fodder_crowd.
+## 2026-11-03: 1.30 wall splats, piece 2: captains
+
+- A blow that breaks a captain's poise (Player._on_hit_received: an AI captain's `poise`, or a player's own) throws
+  them flat (`Player.splat(dir, up)` -> DownedState with "splat") when `Splat.flattens`: a strong blow (knockdown,
+  launcher, poise >= HEAVY; never a shot or a burn) taking >= 30% of max health after reductions (plan, assumed), or
+  >= 20% from another captain (duels: their blows land at Duel.DAMAGE_K 0.6; AI captains both ways) (tuned).
+- DownedState: `Splat.throw_body(body, dir, up, not bloodless, alive)` instead of the plain ragdoll; down while the
+  Splat holds it; after it lets go and settles, DAZE 1 s (stars over the head every 0.3 s, a low ring), then the
+  get-up x1.3 (`get_up_from_ragdoll(slow)`). Let go, the muscles brace at 0.3 (dazed, limp-ish).
+- Co-op: a captain's hits are taken on their own machine, so it flies its own body; the others follow its ragdoll
+  snapshot (player net_pack); the marks and stars via Net.fx.
+- Tests: t/combat/splat_captain (+ player_poise, breakfall, rival_duel, wall_slide, crash_landing, freefall_tumble
+  rerun). Not run: nettest (push gate).

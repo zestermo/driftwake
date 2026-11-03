@@ -804,6 +804,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if poise:
 		var took := poise.take(hit)
 		if took == Poise.BREAK:
+			# (1.30) a strong blow over the line throws you flat into the nearest wall (Splat)
+			if Splat.flattens(hit, dmg, health_component.max_health, attacker):
+				splat(dir, hit.launch > 0.0)
+				return
 			# (1.26) a launcher sends a broken captain up (Juggle's throw), like a grunt
 			knock_down(Vector3.UP * hit.launch + dir * Juggle.CARRY if hit.launch > 0.0 else _last_hit_velocity)
 			return
@@ -815,6 +819,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if _own_poise == null:
 			_own_poise = Poise.make("player")
 		if _own_poise.take(hit) == Poise.BREAK:
+			if Splat.flattens(hit, dmg, health_component.max_health, attacker):
+				splat(dir, hit.launch > 0.0)
+				return
 			knock_down(_last_hit_velocity)
 			return
 		state_machine.force_state("Stagger", {"stagger_duration": 0.35, "knockback_dir": dir,
@@ -930,6 +937,13 @@ func knock_down(throw_velocity: Vector3) -> void:
 	state_machine.force_state("Downed", {"velocity": throw_velocity})
 
 
+## (1.30) Thrown flat along `dir` (or up) into the nearest wall or ceiling (Splat), then dazed and a slower get-up.
+func splat(dir: Vector3, up: bool) -> void:
+	if context == Context.HELM:
+		return
+	state_machine.force_state("Downed", {"splat": dir, "up": up})
+
+
 func _on_died() -> void:
 	if not is_local:
 		return
@@ -966,14 +980,14 @@ func reset_lean() -> void:
 
 ## Stand up where the ragdoll came to rest: face the right way, then play the
 ## get-up from the fallen pose. Returns how long the get-up takes.
-func get_up_from_ragdoll() -> float:
+func get_up_from_ragdoll(slow: float = 1.0) -> float:
 	var info := body_model.ragdoll_rest_info()
 	var face_up: bool = info["face_up"]
 	var head_dir: Vector3 = info["head_dir"]
 	var f := -head_dir if face_up else head_dir
 	player_model.rotation.y = atan2(-f.x, -f.z)
 	reset_lean()
-	var dur := 1.05 if face_up else 0.95
+	var dur := (1.05 if face_up else 0.95) * slow
 	body_model.begin_getup(face_up, dur, info["hips_xform"])
 	return dur
 
