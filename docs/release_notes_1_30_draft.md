@@ -67,7 +67,7 @@
 - ✅ **Fixed: falling through the fortress.** Every district has a solid floor under its cobbles.
 - ✅ **Fixed: stuck dead after Vane.** A captain beaten by an AI captain in co-op was left down for good: no respawn, no revive. Now they bleed out normally, so a crewmate can revive them, and they get up on their own if nobody comes.
 - ✅ **The Scouring ends** once you're 300 m out ("Out of the ring"). It no longer follows the ship.
-- 🔨 **The Scouring as an escape set piece:**
+- ✅ **The Scouring as an escape set piece:**
   - The sky goes dark grey with smoke, even at noon.
   - Huge explosions and fireballs on the walls, roofs and water around you, with heavy screen shake and orange flashes.
   - Fires many times a captain's height.
