@@ -600,6 +600,11 @@ func _build_camp() -> void:
 # ==========================================================================
 # The captain
 # ==========================================================================
+## The fight's middle (where a phase change's leap lands him: BossReset).
+func centre() -> Vector3:
+	return to_global(ARENA)
+
+
 func _spawn_boss() -> void:
 	if boss and is_instance_valid(boss) and boss.state != PirateGrunt.S.DEAD:
 		boss.queue_free()

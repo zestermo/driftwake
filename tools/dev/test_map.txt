@@ -12,6 +12,11 @@ tools/dev/test_kit.gd                   t
 tools/dev/t/player/*                    t/player
 tools/dev/t/combat/*                    t/combat
 tools/dev/t/beast/*                     t/beast
+tools/dev/t/boss/*                      t/boss
+scripts/enemies/boss_reset.gd           t/boss
+scripts/enemies/beasts/jungle_beast.gd  t/boss
+scripts/enemies/pirate_boss.gd          t/boss
+scripts/player_states/stagger_state.gd  t/boss
 scripts/enemies/jungle_ape.gd           t/beast
 scripts/npc/ape_poses.gd                t/beast
 scripts/npc/ape_builder.gd              t/beast

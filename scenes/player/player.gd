@@ -908,6 +908,13 @@ func hit_freeze(duration: float) -> void:
 	body_model.freeze(duration)
 
 
+## (1.30) Thrown back on your feet by a boss's shockwave or clearing roar: a reel that slides out at `v` (along walls).
+func shoved(v: Vector3) -> void:
+	if context == Context.HELM or power.buff("tekkai") or power.buff("berserk") or current_state_name() in ["Downed", "Swim", "Grabbed"]:
+		return
+	state_machine.force_state("Stagger", {"stagger_duration": v.length() / 20.0, "knockback_dir": v.normalized(), "knockback_force": v.length(), "flinch": false})
+
+
 ## Thrown off your feet: physics ragdoll, then get back up.
 func knock_down(throw_velocity: Vector3) -> void:
 	if context == Context.HELM:

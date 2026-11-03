@@ -6,9 +6,9 @@ class_name PirateBoss
 ## 1. (full health) Three-hit combos ending in a heavy downward cut, the
 ##    lunge, the red unblockable chop, and a pistol volley (three quick
 ##    telegraphed shots) when you keep your distance.
-## 2. (below 60%) He roars - a shockwave that throws everyone near him off
-##    their feet (dodge or jump it) - and calls his crew over the walls. Adds
-##    a leaping slam: a red ring marks where he'll land.
+## 2. (below 60%) He leaps back to the arena's middle, lands with a shockwave
+##    that throws everyone out, roars (untouchable: BossReset) and calls his crew
+##    over the walls. Adds a leaping slam: a red ring marks where he'll land.
 ## 3. (below 30%) "Red Tide": the blade glows red, he's quicker, and he adds
 ##    a whirling blade storm that chases you down.
 ##
@@ -19,7 +19,6 @@ class_name PirateBoss
 signal phase_changed(phase: int)
 
 const BOSS_HP := 900.0
-const ROAR_LEN := 1.7
 const SLAM_WIND := 0.75
 const SLAM_AIR := 0.8
 const WHIRL_LEN := 1.9
@@ -128,6 +127,9 @@ func _physics_process(delta: float) -> void:
 	_taunt_t -= delta
 	if state != S.DEAD and humanoid.ragdoll == null:
 		_phase_check()
+		if reset.active():
+			_reset_update(delta)
+			return
 		if _special != "":
 			_special_update(delta)
 			return
@@ -150,17 +152,71 @@ func _phase_check() -> void:
 	var f := health_frac()
 	if phase == 1 and f < 0.6 and state not in [S.DOWN, S.GETUP, S.DEAD]:
 		phase = 2
-		_begin_special("roar")
+		start_reset()
 		bark(_barks("phase2"), 1.0)
 		phase_changed.emit(2)
 		if arena and arena.has_method("call_crew"):
 			arena.call_crew()
 	elif phase == 2 and f < 0.3 and state not in [S.DOWN, S.GETUP, S.DEAD]:
 		phase = 3
-		_begin_special("roar")
+		start_reset()
 		bark(_barks("phase3"), 1.0)
 		_set_red(true)
 		phase_changed.emit(3)
+
+
+# --------------------------------------------------------------------------
+# (1.30) The phase change's reset (BossReset): back to the arena's middle in a leap, a shockwave as he lands, then the
+# roar, untouchable from the crouch to its end
+# --------------------------------------------------------------------------
+var reset := BossReset.new(self)
+var _roared := false
+
+
+func arena_centre() -> Vector3:
+	return arena.call("centre") if arena != null and arena.has_method("centre") else post
+
+
+func start_reset() -> void:
+	_release_token()
+	hitbox.deactivate()
+	_drop_aim()
+	_special = ""
+	_set_peril(false)
+	_volley_left = 0
+	_set_state(S.WIND)
+	_attack = "reset"
+	_roared = false
+	reset.start(_ground_at(arena_centre()))
+	_face(_flat(reset.to - global_position))
+	humanoid.play("lunge_wind", BossReset.WIND)
+
+
+func _reset_update(delta: float) -> void:
+	st_t += delta
+	match reset.tick(delta):
+		"air":
+			humanoid.play("plunge_air", BossReset.AIR)
+		"land":
+			humanoid.play("plunge_land", 0.45)
+		"done":
+			_end_special(0.3)
+			return
+	if reset.stage() == "roar" and not _roared and reset.t > BossReset.WIND + BossReset.AIR + 0.4:
+		_roared = true
+		humanoid.play("parry", BossReset.ROAR_S - 0.4)
+		Net.fx("impact", [global_position + Vector3(0, 2.2, 0), Color(1.0, 0.3, 0.2)])
+	var p := _target()
+	if reset.stage() != "wind" and p:
+		_face(_flat(p.global_position - global_position))
+	facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
+	if reset.stage() == "air":
+		_feed_body(Vector3.ZERO, false)
+		humanoid.grounded = false
+		return
+	velocity = Vector3(0.0, -0.5 if is_on_floor() else velocity.y - GRAVITY * delta, 0.0)
+	move_and_slide()
+	_feed_body(Vector3.ZERO, false)
 
 
 func _choose_attack(dist: float) -> String:
@@ -293,10 +349,6 @@ func _begin_special(what: String) -> void:
 	_attack = what
 	_sense(_target(), "big")
 	match what:
-		"roar":
-			humanoid.play("parry", ROAR_LEN)
-			Net.fx("sfx", ["roar", global_position, 4.0, 0.03, 0.95])
-			Net.fx("impact", [global_position + Vector3(0, 2.2, 0), Color(1.0, 0.3, 0.2)])
 		"slam":
 			var p := _target()
 			_sp_from = global_position
@@ -327,15 +379,6 @@ func _special_update(delta: float) -> void:
 	var accel := 20.0
 	var g := true
 	match _special:
-		"roar":
-			if _sp_t > ROAR_LEN * 0.55 and not _sp_hit:
-				_sp_hit = true
-				_aoe(global_position, 5.5, 8.0, true)
-				Net.fx("dust_ring", [global_position, 24, 1.4])
-				Net.fx("impact", [global_position + Vector3(0, 1.2, 0), Color(1.0, 0.5, 0.3)])
-				get_node("/root/CombatManager").apply_camera_shake(0.25)
-			if _sp_t > ROAR_LEN:
-				_end_special(0.3)
 		"slam":
 			if _sp_t < SLAM_WIND:
 				_face(_flat(_sp_target - global_position))
@@ -442,6 +485,9 @@ func _aoe_local(center: Vector3, radius: float, dmg: float, knock: bool) -> void
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
+	if reset.active():
+		reset.deflect(global_position + Vector3(0, 1.4, 0))
+		return
 	_hit_by = attacker
 	var h := hit
 	# (floored only when his poise breaks: Poise "miniboss")
@@ -474,6 +520,8 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 ## A parried whirl stops the storm (and staggers him like anyone else).
 func parried(by: Node) -> void:
 	if Net.forward(self, "parried", [by]):
+		return
+	if reset.active():
 		return
 	if _special == "whirl":
 		_special = ""
@@ -524,6 +572,7 @@ func reset_fight() -> void:
 	if state == S.DEAD:
 		return
 	_special = ""
+	reset.stop()
 	_set_peril(false)
 	_set_red(false)
 	phase = 1
@@ -580,5 +629,8 @@ func _net_update(delta: float) -> void:
 func net_event(what: String, args: Array) -> void:
 	if what == "aoe":
 		_aoe_local(args[0], float(args[1]), float(args[2]), bool(args[3]))
+		return
+	if what == "reset_shock":
+		BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))
 		return
 	super.net_event(what, args)

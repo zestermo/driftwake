@@ -487,6 +487,9 @@ func _physics_process(delta: float) -> void:
 			return
 	if wake_r > 0.0:
 		_watch(delta)
+	if reset and reset.active():
+		_reset_tick(delta)
+		return
 	st_t += delta
 	for k in _cd.keys():
 		_cd[k] -= delta * (1.0 + 0.25 * float(phase - 1))
@@ -577,11 +580,65 @@ func _phase_check() -> void:
 		phase += 1
 		phase_changed.emit(phase)
 		_on_phase(phase)
-	if bp and phase != was and state != S.DEAD:
+	if phase == was or state == S.DEAD:
+		return
+	if bp:
 		bp.phase_up(phase)
+	if is_in_group("bosses"):
+		start_reset()
+	elif bp:
 		end_move()
 		_set_state(S.FIGHT)
 		begin("moment")
+
+
+## (1.30) A boss's new phase starts over from the arena's middle (BossReset): it leaps there, lands with a shockwave and
+## roars, untouchable, then fights on with its new moves. Its pose: move "leap_home" (BossReset.pose_beast), then the
+## phase change's "moment" from its rear.
+var reset: BossReset
+var _leap_posed := false
+
+
+func arena_centre() -> Vector3:
+	return arena.call("centre") if arena != null and arena.has_method("centre") else post
+
+
+func start_reset() -> void:
+	end_move()
+	if bp:
+		bp.chain_over()
+	_on_stagger()
+	_set_state(S.FIGHT)
+	if reset == null:
+		reset = BossReset.new(self)
+	reset.start(ground_at(arena_centre()))
+	move = "leap_home"
+	mv_t = 0.0
+	_hit = false
+	_fly = false
+
+
+func _reset_tick(delta: float) -> void:
+	mv_t += delta
+	match reset.tick(delta):
+		"land":
+			move = "moment"
+			mv_t = BeastPass.MOMENT_REAR
+			_hit = true
+			_on_moment()
+			say("bellow", _hit_point(), 8.0, 0.55, 140.0)
+		"done":
+			end_move(0.3)
+	var p := _target()
+	if reset.stage() == "wind":
+		_face(_flat(reset.to - global_position))
+	elif p:
+		_face(_flat(p.global_position - global_position))
+	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
+	if reset.stage() == "air":
+		return
+	velocity = Vector3(0.0, -0.5 if is_on_floor() else velocity.y - GRAVITY * delta, 0.0)
+	move_and_slide()
 
 
 ## (beast pass) The phase change's moment: it reels, rears up roaring (the kind poses move "moment"), and at
@@ -603,6 +660,8 @@ func reset_fight() -> void:
 	if state == S.DEAD:
 		return
 	end_move()
+	if reset:
+		reset.stop()
 	phase = 1
 	_poise = 0.0
 	health.current_health = health.max_health
@@ -700,6 +759,9 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		return
 	if spirit and (hit.ranged or hit.impact == "shot"):
 		Net.fx("sparkle", [_hit_point(), 6, Humanoid.SPIRIT])
+		return
+	if reset and reset.active():
+		reset.deflect(_hit_point())
 		return
 	_hit_by = attacker
 	if hit.dot:
@@ -905,6 +967,7 @@ func _process(delta: float) -> void:
 	if bp:
 		bp.motion.tick(delta, state == S.STAGGER, clampf([0.25, 0.55, 0.85][phase - 1] + (0.3 if move == "" and mv_t < 0.0 else 0.0), 0.0, 1.0))
 	_animate(delta)
+	_leap_posed = BossReset.pose_beast(model, move == "leap_home", mv_t, _leap_posed)
 
 
 # ==========================================================================
@@ -954,6 +1017,8 @@ func net_event(what: String, args: Array) -> void:
 				bp.motion.hit(model.global_basis.inverse() * (args[0] as Vector3), float(args[1]))
 		"moment":
 			BeastFX.moment(args[0], 1.0, _moment_color())
+		"reset_shock":
+			BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))
 		"part":
 			if bp:
 				BeastFX.part_break(args[1], bp.parts.color(str(args[0])))
