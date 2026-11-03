@@ -78,11 +78,14 @@ func _process(_d: float) -> bool:
 			check("J opens the journal", j.is_open())
 			check("...the tracker hides under it", not hud._box.visible)
 			var scr = j.screen
-			check("...Active lists the quest, picked", scr.tab == "active" and scr.rows.size() == 1 and scr.rows[scr.sel]["id"] == "t_look")
-			key(KEY_T)
-			check("T untracks it", j.tracked == "")
+			check("...on NEXT, the quest followed as 1 (%s)" % [scr.rows], scr.tab == "next" and not scr.rows.is_empty() and scr.rows[0]["id"] == "t_look" and scr.rows[0]["n"] == 1)
 			key(KEY_D)
-			check("D: the Done tab", scr.tab == "done" and scr.rows.is_empty())
+			check("D: QUESTS lists the quest, picked", scr.tab == "quests" and scr.rows.size() == 1 and scr.rows[scr.sel]["id"] == "t_look")
+			key(KEY_T)
+			check("T unfollows it", j.tracked == "")
+			key(KEY_D)
+			key(KEY_D)
+			check("D D: the Done tab", scr.tab == "done" and scr.rows.is_empty())
 			key(KEY_J)
 			until = TK.wait_ticks(25)
 		5:

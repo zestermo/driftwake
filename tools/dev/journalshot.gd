@@ -1,7 +1,7 @@
 extends SceneTree
-## The crew journal (J) on the light stage, filled with made-up quests and rumours: the objective tracker on
-## the HUD, then the journal's Active, Done and Rumours tabs. Args: <out dir> [WxH] (default 1280x720: the
-## tightest canvas, 640x360). Writes hud.png, active.png, done.png, rumours.png.
+## The Captain's Log (J) on the light stage, filled with made-up quests, news and rumours, a real chain for the chain's
+## step: the HUD (the objective box, a pinned card, small news), then the log's NEXT, QUESTS, NEWS and DONE tabs.
+## Args: <out dir> [WxH] (default 1280x720: the tightest canvas, 640x360). Writes hud/next/quests/news/done.png.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var j
@@ -21,8 +21,9 @@ func _initialize() -> void:
 	stage = TK.stage(self, {"npc": {"name": "Net-mender Kai", "at": Vector3(-6, 0, -14)}})
 
 
-func entry(id: String, title: String, giver: String, isle: String, src: String, goals: Array, at: int, reward: Dictionary) -> Dictionary:
-	return {"id": id, "title": title, "giver": giver, "isle": isle, "pos": Vector3(0, 2, -40), "src": src, "goals": goals, "step": at, "done": false, "reward": reward, "cost": []}
+func entry(id: String, title: String, giver: String, isle: String, src: String, goals: Array, at: int, reward: Dictionary, by := 1) -> Dictionary:
+	return {"id": id, "title": title, "giver": giver, "isle": isle, "pos": Vector3(30, 2, -60 - at * 30), "src": src, "goals": goals, "step": at,
+		"done": false, "reward": reward, "cost": [], "by": by}
 
 
 func shot(name: String) -> void:
@@ -42,36 +43,48 @@ func _process(_d: float) -> bool:
 			DisplayServer.window_set_size(root.size)
 			j = root.get_node("Journal")
 			j.reset()
+			root.get_node("Story").step = "done"
+			load("res://tools/dev/t/capital/_world.gd").take_over(stage, 4242)
+			root.get_node("Dialogue").set_flag("log_pose")
+			stage.player.progression.level = 8
+			root.get_node("GameManager").play_time = 900.0
 			j.apply("take", [entry("q1", "Kai's shell necklace", "Net-mender Kai", "Mokuhala", "npc",
 				["Find the shell necklace in the old stones", "Bring the shell necklace back to Kai"], 0, {"gold": 32, "favour": {"who": "Kai", "gift": [["rum", 2]]}})])
 			j.apply("take", [entry("q2", "Bounty: Captain Rusk", "Elder Mako", "Mokuhala", "board",
 				["Defeat Captain Rusk at the pirate camp", "Bring word to Elder Mako"], 0, {"gold": 60, "discount": ["t", 0.15, "Wiremu's Trade Goods"]})])
-			j.apply("take", [entry("q3", "A parcel for Lea", "Healer Hoku", "Mokuhala", "npc",
-				["Take a bundle of fever herbs to Lea, at the market stalls", "Tell Hoku it's delivered"], 1, {"gold": 18, "items": [["tonic", 2]]})])
+			j.apply("take", [entry("q3", "The Queen's line", "Queen Ilsabet", "Port Solenne", "line",
+				["Find the Guild's forger", "Tell Queen Ilsabet it's done", "Bring the writ to Saint Odran's Rock"], 2, {"xp": 0.0, "note": "the Crown's purse and favour"}, 0)])
 			for e in [entry("q4", "Three fish for Tane", "Carver Tane", "Kalani Reach", "npc", ["Bring three fish to Tane"], 0, {"gold": 35, "reveal": true}),
 					entry("q5", "The view from the summit", "Lookout Ari", "Kalani Reach", "npc", ["Climb to the lookout", "Tell Ari what you saw"], 1, {"gold": 22})]:
 				j.apply("take", [e])
 				j.apply("done", [e["id"], Vector3(9999, 0, 0), 1, []])
 			for r in [["They say Captain Rusk buried something in the jungle before setting up camp.", "Hunter Noa"],
-					["The needle pulls toward Ashfall Key next. A sun-baked desert isle, pack light.", "Storyteller Mele"],
-					["Something big walks the far side of the island at night. We don't go there.", "Elder Mako"]]:
+					["The needle pulls toward Ashfall Key next. A sun-baked desert isle, pack light.", "Storyteller Mele"]]:
 				j.apply("rumour", [{"text": r[0], "who": r[1], "isle": "Mokuhala"}])
-			j.track("q1")
-			until = 60
+			j.seen()
+			j.track("q3")
+			stage.hud.pin_news("rival", "The Lantern Saints have anchored off the harbour", "Their captain is asking for you by name.")
+			stage.hud.show_toast("+40 gold  -  arena purse")
+			stage.hud.show_toast("Katana mastery 19")
+			until = 40
 		1:
 			shot("hud.png")
 			j.open()
 			until = 30
 		2:
-			shot("active.png")
-			j.screen.show_tab("done")
+			shot("next.png")
+			j.screen.show_tab("quests")
 			until = 20
 		3:
-			shot("done.png")
-			j.screen.show_tab("rumours")
+			shot("quests.png")
+			j.screen.show_tab("news")
 			until = 20
 		4:
-			shot("rumours.png")
+			shot("news.png")
+			j.screen.show_tab("done")
+			until = 20
+		5:
+			shot("done.png")
 			quit()
 	step += 1
 	return false

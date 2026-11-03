@@ -11,6 +11,18 @@ extends RefCounted
 const DIRS := ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
 
 
+## What this captain follows: the tracked quest while it's live, else the chain's next step.
+static func followed(tree: SceneTree) -> Dictionary:
+	var j: Node = tree.root.get_node("Journal")
+	var id: String = j.tracked
+	if j.has(id) and not j.is_done(id):
+		var e: Dictionary = j.entries[id]
+		var n: int = (e["goals"] as Array).size()
+		return {"kind": "quest", "goal": j.goal(id), "who": str(e["title"]), "id": id, "head": "QUEST", "person": j.target_is_person(id),
+			"sub": "%s  -  step %d of %d" % [e["title"], mini(int(e["step"]) + 1, n), n], "pos": j.target(id)}
+	return next(tree)
+
+
 static func next(tree: SceneTree) -> Dictionary:
 	var story: Node = tree.root.get_node("Story")
 	if story.active():

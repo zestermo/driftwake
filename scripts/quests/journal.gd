@@ -37,6 +37,12 @@ var _defs := {}
 var _sources := {}
 ## Lines someone will tell when asked: dialogue event "rumour:<key>" -> [lines, who, island]
 var _told := {}
+## News (note): {"kind", "title", "text", "at": GameManager.play_time, "pin"}, oldest first, NEWS kept (this session).
+var news: Array = []
+const NEWS := 60
+signal news_changed
+## Who follows what in the crew (each captain's `tracked`, sent round): peer id -> quest id ("" / "story": the chain).
+var follows := {}
 ## Story lines waiting to open: quest id -> Callable (true: the crew takes it).
 var _open := {}
 var _line_t := 0.0
@@ -77,6 +83,8 @@ func _process(delta: float) -> void:
 ## Story lines (LineQuests): open the ones whose time has come, and move the live ones on as the world says (any
 ## machine asks; the host takes the first word).
 func _lines() -> void:
+	if follows.get(Net.my_id(), null) != tracked:
+		_ask("follow", [Net.my_id(), tracked])
 	var c: Chain = GameManager.chain()
 	if c != null and c.stronghold_id() >= 0 and Chain.stronghold_known(get_tree()):
 		var sq := LineQuests.stronghold(c)
@@ -335,14 +343,21 @@ func apply(op: String, args: Array) -> void:
 			# the captain who took it follows it at once (a crewmate's new quest only if you follow nothing)
 			if int(e.get("by", -1)) == Net.my_id() or not tracking():
 				tracked = e["id"]
-			_toast("New quest: %s" % e["title"])
+			var by := int(e.get("by", 0))
+			var taker := "the crew's" if by <= 0 else ("taken by you" if by == Net.my_id() else "taken by " + owner_name(e))
+			note("quest", "New quest: %s" % e["title"], "%s  -  %s" % [e["goals"][0], taker], true)
 			UIStyle.sfx("quest_accept")
 		"step":
 			var e: Dictionary = entries[args[0]]
 			var n := int(args[1])
 			e["step"] = n + 1
 			var d := def(e["id"])
-			_toast(str(d["steps"][n].get("said", goal(e["id"]))) if not d.is_empty() else goal(e["id"]))
+			var said := str(d["steps"][n].get("said", goal(e["id"]))) if not d.is_empty() else goal(e["id"])
+			# (a story line's step is big news: pinned; a quest's own steps stack small)
+			if e.has("line"):
+				note("stronghold" if str(e["id"]).begins_with("stronghold") else "quest", "%s: %s" % [e["title"], said], "Next: " + goal(e["id"]), true)
+			else:
+				note("info", said)
 			if tracked == e["id"]:
 				get_tree().call_group("hud", "show_objective_banner", goal(e["id"]))
 		"jump":
@@ -376,6 +391,10 @@ func apply(op: String, args: Array) -> void:
 			rumours.append(args[0])
 			if rumours.size() > RUMOURS:
 				rumours.pop_front()
+		"follow":
+			follows[int(args[0])] = str(args[1])
+		"news":
+			note(str(args[0]), str(args[1]), str(args[2]), bool(args[3]))
 	changed.emit()
 
 
@@ -393,7 +412,7 @@ func _finish(id: String, at: Vector3, by: int, chart: Array) -> void:
 	if not chart.is_empty():
 		MapFog.apply(GameManager, str(chart[0]), int(chart[3]), chart[4])
 		MapFog.find(GameManager, str(chart[0]), str(chart[1]))
-		_toast("%s marked %s on your map (M)" % [e["giver"], chart[2]])
+		note("chart", "%s marked %s on your map" % [e["giver"], chart[2]], "Open the map (M) to see it", true)
 	var me := _me()
 	if me:
 		if by == Net.my_id():
@@ -430,8 +449,62 @@ func _me() -> Player:
 
 
 func _toast(text: String) -> void:
-	get_tree().call_group("hud", "show_toast", text)
+	note("info", text)
 
+
+# ==========================================================================
+# News (1.30): everything that happened, kept for the log's NEWS tab
+# ==========================================================================
+## Something happened: kept in `news` and shown on the HUD (show_news): `pin` makes it a card under the objective box
+## that stays until this captain opens the log; the rest stack small, bottom left. Kinds (the colour and mark):
+## quest, chart, rival, boss, stronghold, event (a banner: kept, not shown again), info. This machine only: announce()
+## is everyone's.
+func note(kind: String, title: String, text := "", pin := false, show := true) -> void:
+	var n := {"kind": kind, "title": title, "text": text, "at": GameManager.play_time, "pin": pin}
+	news.append(n)
+	if news.size() > NEWS:
+		news.pop_front()
+	for h in get_tree().get_nodes_in_group("hud"):
+		if show and h.has_method("show_news"):
+			h.show_news(n)
+	news_changed.emit()
+
+
+## News for every captain (co-op: the host sends it round): a rival crew's arrival, a boss's fall.
+func announce(kind: String, title: String, text := "", pin := false) -> void:
+	_ask("news", [kind, title, text, pin])
+
+
+func pinned() -> Array:
+	return news.filter(func(n): return n["pin"])
+
+
+## The log was opened: nothing's missed any more.
+func seen() -> void:
+	for n in news:
+		n["pin"] = false
+	news_changed.emit()
+
+
+## Who took a quest, as the log names them: "" (the crew's, or yours: see owner_chip()), else their name.
+func owner_name(e: Dictionary) -> String:
+	var by := int(e.get("by", 0))
+	if by <= 0 or by == Net.my_id():
+		return ""
+	for p in Net.all_players():
+		if int(p.net_id) == by:
+			return str(p.display_name())
+	return "a crewmate"
+
+
+## The log's chip for a quest: "SHARED" (a story line, or no taker on record), "YOURS" or "<NAME>'S".
+func owner_chip(e: Dictionary) -> String:
+	var by := int(e.get("by", 0))
+	if e.get("src", "") == "line" or by <= 0:
+		return "SHARED"
+	if not Net.active or by == Net.my_id():
+		return "YOURS"
+	return owner_name(e).to_upper() + "'S"
 
 # ==========================================================================
 # Saves and joining
@@ -451,6 +524,8 @@ func from_dict(d: Dictionary) -> void:
 func reset() -> void:
 	from_dict({})
 	tracked = "story"
+	news.clear()
+	follows.clear()
 
 
 # ==========================================================================
@@ -474,6 +549,7 @@ func open() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	UIStyle.sfx("open")
 	screen.on_open()
+	seen()
 	Walkthrough.first(get_tree(), "journal")
 
 
