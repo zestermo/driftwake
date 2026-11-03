@@ -56,18 +56,21 @@ static func wants(hit: HitData, hp_before: float, max_hp: float) -> bool:
 	var over := hit.damage - hp_before
 	if over < 0.0:
 		return false
-	if over >= max_hp * OVERKILL_K:
+	var k := Levels.gap_splat(hit.gap)
+	if over >= max_hp * OVERKILL_K * k:
 		return true
-	return strong(hit) and not hit.ranged and over >= max_hp * STRONG_K
+	return strong(hit) and not hit.ranged and over >= max_hp * STRONG_K * k
 
 
 ## A blow that broke a captain's poise and throws them flat: a strong one (not a shot) taking CAPTAIN_K of their max
-## health (plan: assumed 30%), or DUEL_K from another captain (duel blows land at Duel.DAMAGE_K; tuned).
+## health (plan: assumed 30%), or DUEL_K from another captain (duel blows land at Duel.DAMAGE_K; tuned). The level gap
+## from the attacker's side: a foe above the captain throws them with less.
 static func flattens(hit: HitData, dmg: float, max_hp: float, attacker: Node) -> bool:
 	if hit.ranged or hit.dot or not strong(hit):
 		return false
 	var by_captain := attacker != null and attacker.is_in_group("players")
-	return dmg >= max_hp * (DUEL_K if by_captain else CAPTAIN_K)
+	var k := Levels.gap_splat(hit.gap if Levels.captain(attacker) else -hit.gap)
+	return dmg >= max_hp * (DUEL_K if by_captain else CAPTAIN_K) * k
 
 
 static func strong(hit: HitData) -> bool:

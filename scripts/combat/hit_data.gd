@@ -40,3 +40,6 @@ class_name HitData
 @export var launch: float = 0.0
 ## A brute's grab: the captain it lands on is held (GrabbedState) until they mash free or are thrown.
 @export var grab: bool = false
+## (1.30) The level gap, the foe's level minus the captain's (Levels.hit_gap; set by Hurtbox.take_hit): poise and
+## throws read it where the blow lands.
+@export var gap: int = 0

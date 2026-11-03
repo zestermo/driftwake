@@ -100,6 +100,8 @@ func take(hit: HitData) -> int:
 	var dmg := Poise.of(hit)
 	if dmg <= 0.0:
 		return NONE
+	if coop:
+		dmg /= Levels.gap_poise(hit.gap)
 	if immune():
 		return FLINCH if flinches(hit, dmg) else NONE
 	value = current() - dmg
