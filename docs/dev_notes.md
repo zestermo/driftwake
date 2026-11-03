@@ -9765,10 +9765,6 @@ docs/v1_30_plan.md round 3 ("40 people over 30 minutes, groups of 5, sponges").
   pool spent (or never called: a quiet clearing forfeits it) is cleared for good. The Commodore's fall stands it down.
   ~77 placed + ~130 reinforcements + the sealed rooms and boss adds: ~220 over a run.
 - Officers: reinforcement camps don't bring a district's first officer (they still roll CHANCE per wave, CAP 5).
-- **Cost** (t/stronghold/fodder_crowd, the light stage, the debug runner on the laptop, run alone): 25 fodder in a
-  fight +17 ms a frame (process +10, of it rigs 4 and brains 0.4; physics +7.4), 25 full grunts +15. Not cheaper than
-  grunts yet: posing and move_and_slide dominate, and both run every frame near the camera. Open: a crowd pass
-  (half-rate posing past ~8 m for fodder, cheaper locomotion ticks); the lead's prepush bench decides.
 - Tests: t/stronghold/garrison (rewritten), t/stronghold/alarm, t/stronghold/fodder_crowd.
 ## 2026-11-03: 1.30 wall splats, piece 2: captains
 
@@ -9858,3 +9854,23 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   no clouds). hook_point loops the ledges once per fire.
 - **Tests:** t/gadgets packs, smoke_sight, flash_stun, charge_breach, grapple_ledge; smoke (a grunt in the cloud can't
   see out). Render: `abilityshot ... gadget:charge:0 sword game,side 8 1.4 3.2` (tools/dev/out/gadget/).
+### (same day) The crowd pass: 25 fighting fodder from ~+17 to ~+5 ms a frame
+- **How it's measured** (t/stronghold/fodder_crowd, prints "FODDER CROWD"): the runner steps one physics tick a frame
+  as fast as the machine goes (headless, fixed fps), so the wall time between frames is the whole frame's CPU cost
+  (scripts, physics, posing, the scene's transform updates; no GPU). 300 frames each: the empty stage before and after,
+  25 fodder in a fight on the captain, the same with their rigs' processing off (the posing share), 25 full grunts all
+  alerted. Performance.TIME_PROCESS / TIME_PHYSICS_PROCESS were useless for this: they sample one frame a second.
+  The first piece's "+17 ms" was those monitors; the same crowd by wall time was +7.9 ms (full grunts +9.5).
+- **Where it went:** posing ~4.8 ms (19 parts a rig: the pose and the transforms it dirties), movers ~2.8 (their
+  scripts ~1.6 with move_and_slide, the bodies the rest), idle bodies ~0.
+- **Changes:** Humanoid `crowd` (set by FodderMarine except while it swings or grabs): posed every frame only inside
+  CROWD_FULL_R 3.5 m of the camera, every 3rd frame to 12 m, every 4th past it, every 8th off screen (PS1 15-20 fps
+  animation); no foot IK (two ray casts and ankle transforms a pose), no hair/cloth springs, a shadow only within
+  CROWD_SHADOW_R 9 m (draw calls the headless measure can't see). FodderMarine between thinks (THINK 10 ticks, moving
+  about) runs only gravity and the move on its last decision, the skipped time going into the next full tick's
+  clocks. Still at most ATTACKERS 4 swinging at one captain (measured: 4), the rest circle.
+- **Numbers** (the laptop, other agents' tests sharing it, so +-1.5 ms): 25 fodder +4.9 ms a frame on a quieter
+  machine (+6.8 with all five slots busy), of it posing ~3.6-4 and the rest ~2.8-3.2; 25 full grunts +8.7 to +12 in
+  the same runs. Not done: a far ring drawn by vertex/MultiMesh animation (fodder past ~20 m), fodder movers on a
+  cheaper kinematic step.
+- BurnStatus: a burn whose source was freed (a burning grunt sunk away) no longer hands a freed attacker to take_hit.
