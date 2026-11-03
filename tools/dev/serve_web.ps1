@@ -1,4 +1,4 @@
-# A small local web server for the site (website).
+# A small local web server for the site (web/site).
 #
 #   .\tools\dev\serve_web.ps1            # http://localhost:8060/
 #   .\tools\dev\serve_web.ps1 -Threads   # also sends COOP/COEP, which a threaded export needs
