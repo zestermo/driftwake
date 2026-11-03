@@ -22,6 +22,9 @@ const PEPPER := Color(0.85, 0.25, 0.12, 0.85)
 const REACH_Y := 2.5
 const SMOKE_TINT := [Color(0.74, 0.73, 0.7, 0.9), Color(0.64, 0.68, 0.78, 0.92), Color(0.46, 0.42, 0.56, 0.94)]
 const TAR := Color(0.035, 0.03, 0.028, 0.96)
+## (1.30) The flash dazzles a screen whose camera looks within this of it (a dot), for FLASH_SECS.
+const FACING_DOT := 0.5
+const FLASH_SECS := 0.9
 
 ## Every zone alive on this machine (the smoke also in GadgetVeil.clouds).
 static var active: Array = []
@@ -161,9 +164,11 @@ func _flash_burst() -> void:
 	FX.sparkle(c, 16 + 6 * tier, Color(1.0, 1.0, 0.9))
 	FX.sfx("fire_burst", c, -4.0, 0.1, 1.6)
 	FX.sfx("edy_flash", c, -6.0, 0.05, 1.2)
+	# (1.30) a captain looking into it is dazzled white a moment; looking away, only the glare
 	var cam := get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(c) < radius * 3.0:
-		FX.screen_flash(c, Color(1, 1, 1, 0.55), 0.3)
+		var facing := (-cam.global_basis.z).dot((c - cam.global_position).normalized()) > FACING_DOT
+		FX.screen_flash(c, Color(1, 1, 1, 0.92 if facing else 0.35), FLASH_SECS if facing else 0.3)
 
 
 func _pepper_burst() -> void:

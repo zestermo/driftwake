@@ -161,9 +161,37 @@ func _bag_look() -> void:
 		GadgetBag.set_open(body, bag_open())
 
 
+## (1.30) Ready-made packs of `gid` carried in the bag.
+func packs(gid: String) -> int:
+	return player.inventory_component.count(Gadgets.kit_id(gid)) if GadgetData.KITS.has(gid) else 0
+
+
+var _unpacking := false
+
+
+## (1.30) A pack of a gadget not built yet becomes it, Mk I with full charges, on a free slot (its blueprint learned).
+## The rest stay in the bag as refills (fire). Deferred: it changes the inventory from its own changed signal.
+func unpack() -> void:
+	_unpacking = false
+	for gid in GadgetData.KITS.keys():
+		if owned.has(gid) or packs(gid) <= 0:
+			continue
+		player.inventory_component.remove_item(ItemDB.get_item(Gadgets.kit_id(gid)), 1)
+		known["bp_" + gid] = true
+		give(gid, 0)
+		var nm: String = GadgetData.GADGETS[gid]["name"]
+		if gid in slots:
+			player.call("_toast", "%s on your belt (%s)" % [nm, Glyphs.of("gadget_fire").to_upper()])
+		else:
+			player.call("_toast", "%s built: no room on the belt (a gadget belt or bag carries more; swap at a workbench)" % nm)
+
+
 ## The slots fitted to what's carried (a bag gained or lost; an older save's three slots): shrinking keeps the first
 ## filled ones (the rest stay built, off the slots); growing takes up the built gadgets off them. The bag worn to match.
 func fit() -> void:
+	if not _unpacking:
+		_unpacking = true
+		unpack.call_deferred()
 	var cap := capacity()
 	if slots.size() != cap:
 		var cur := gadget() if sel < slots.size() else ""
@@ -200,8 +228,12 @@ func fire() -> bool:
 	if cooldown_left(gid) > 0.0:
 		return false
 	if max_charges(gid) > 0 and charges(gid) <= 0:
-		player.call("_toast", "Out of %s: refill at a workbench or a camp" % GadgetData.GADGETS[gid]["name"])
-		return false
+		if packs(gid) <= 0:
+			player.call("_toast", "Out of %s: refill at a workbench or a camp" % GadgetData.GADGETS[gid]["name"])
+			return false
+		player.inventory_component.remove_item(ItemDB.get_item(Gadgets.kit_id(gid)), 1)
+		refill(gid)
+		player.call("_toast", "A fresh pack of %s (%d left)" % [GadgetData.KITS[gid][0], packs(gid)])
 	var why: Array = GADGET_STATE.reason(player, gid, tier_of(gid))
 	if why[0] != "":
 		player.call("_toast", why[0])

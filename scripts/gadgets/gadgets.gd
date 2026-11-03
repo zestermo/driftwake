@@ -72,7 +72,38 @@ static func make_items(items: Dictionary) -> void:
 		it.icon_kind = "blueprint"
 		it.icon = GadgetModels.part_icon("blueprint")
 		items[bp] = it
+	for gid in GadgetData.KITS.keys():
+		var k: Array = GadgetData.KITS[gid]
+		var it := ItemData.new()
+		it.id = kit_id(gid)
+		it.display_name = str(k[0])
+		it.value = int(k[1])
+		it.description = "%s\nCarried, it goes on your gadget belt as the %s Mk I if you haven't one, or refills yours when it runs dry." % [k[2], GadgetData.GADGETS[gid]["name"]]
+		it.item_type = ItemData.ItemType.LOOT
+		it.max_stack = 10
+		it.icon_kind = "part"
+		it.icon = GadgetModels.icon(gid, 0)
+		items[it.id] = it
 	GadgetBag.make_items(items)
+
+
+## (1.30) A ready-made pack's item id ("kit_<gadget>").
+static func kit_id(gid: String) -> String:
+	return "kit_" + gid
+
+
+## (1.30, for the stronghold's supply crates) a few ready-made packs into `out` (ItemStacks), from `rng`.
+static func supply_crate(out: Array, rng: RandomNumberGenerator) -> void:
+	var total := 0.0
+	for w in GadgetData.CRATE_KITS.values():
+		total += float(w)
+	for i in range(rng.randi_range(int(GadgetData.CRATE_N[0]), int(GadgetData.CRATE_N[1]))):
+		var r := rng.randf() * total
+		for gid in GadgetData.CRATE_KITS.keys():
+			r -= float(GadgetData.CRATE_KITS[gid])
+			if r <= 0.0:
+				_stack(out, kit_id(str(gid)), 1)
+				break
 
 
 ## (1.28.1) The forge town's master tinkerer sells a gadget bag in `colour`: his answer (the bag in yours if paid).

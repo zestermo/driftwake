@@ -31,7 +31,7 @@ const GADGETS := {
 	"smoke": {"name": "Smoke Pellet", "kind": "combat", "throw": true, "from": "known from the start",
 		"desc": "A clay pellet of blackpowder and soot. It bursts into a thick cloud: foes inside stagger coughing, and nobody can notice or attack you while you're in it.",
 		"charges": [3, 4, 5], "cd": [6.0, 5.0, 4.0], "range": [14.0, 16.0, 18.0],
-		"radius": [3.5, 4.5, 5.5], "secs": [6.0, 8.0, 10.0], "blind": [1.6, 2.0, 2.6],
+		"radius": [3.5, 4.5, 5.5], "secs": [8.0, 10.0, 12.0], "blind": [1.6, 2.0, 2.6],
 		"cost": [[30, {"black_powder": 2, "canvas": 1}], [90, {"black_powder": 3, "springs": 1, "copper": 1}], [240, {"black_powder": 4, "brass": 2, "ember_ore": 1}]],
 		"refill": {"black_powder": 1}},
 	"tar": {"name": "Tar Bomb", "kind": "combat", "throw": true, "from": "chests (any); the forge town's tinkerer",
@@ -43,7 +43,7 @@ const GADGETS := {
 	"flash": {"name": "Flash Pellet", "kind": "combat", "throw": true, "from": "the forge town's tinkerer",
 		"desc": "Magnesium and a ground lens: a white burst that dazzles every foe facing it.",
 		"charges": [2, 3, 4], "cd": [10.0, 9.0, 8.0], "range": [14.0, 16.0, 18.0],
-		"radius": [4.0, 5.0, 6.0], "stun": [1.2, 1.6, 2.0],
+		"radius": [4.0, 5.0, 6.0], "stun": [2.0, 2.5, 3.0],
 		"cost": [[45, {"black_powder": 1, "lens": 1, "copper": 1}], [120, {"black_powder": 2, "lens": 1, "brass": 1}], [300, {"lens": 2, "brass": 2, "ember_ore": 1}]],
 		"refill": {"black_powder": 1, "copper": 1}},
 	"pepper": {"name": "Pepper Bomb", "kind": "combat", "throw": true, "from": "hidden chests; books",
@@ -177,6 +177,21 @@ const CHEST_POOLS := {"ordinary": ["tar", "caltrops", "lockpick"], "hidden": ["p
 	"hoard": ["spring_boots", "glider", "decoy", "diving_helmet"]}
 ## Stalls that sell parts (Shops ids -> [[item id, stock]]), added to their stock.
 const SHOP_PARTS := [["black_powder", 6], ["pitch", 4], ["springs", 3]]
+
+## (1.30) Ready-made packs ("kit_<gadget>", an item): carried, a pack of a gadget the captain hasn't built makes it Mk I
+## on the belt (its blueprint learned); one of a gadget they have refills it when it runs dry (GadgetBelt). Sold by
+## chandlers and Nessa's Notions, found in Admiralty supply crates (Gadgets.supply_crate). gadget id -> [pack name,
+## item value (a trader asks x3: Economy), what's in it].
+const KITS := {
+	"smoke": ["Smoke Pellets", 12, "A paper twist of three clay smoke pellets, fuses ready."],
+	"flash": ["Flash Pellets", 18, "Two magnesium flash pellets in a tin, packed in sawdust."],
+	"grapple": ["Grappling Hook", 50, "A ready-made folding hook on a sprung reel."],
+}
+## The packs a stall sells (Shops stock entries).
+const SHOP_KITS := [["kit_smoke"], ["kit_flash"], ["kit_grapple"]]
+## A supply crate's packs: how many (min, max) and the weights of each kind.
+const CRATE_N := [1, 2]
+const CRATE_KITS := {"smoke": 3.0, "flash": 2.0}
 
 
 static func tier_val(gid: String, key: String, tier: int) -> Variant:

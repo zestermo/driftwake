@@ -575,6 +575,9 @@ scripts/player_states/skimmer_state.gd  t/gadgets/skimmer_ride
 tools/dev/skimmershot.gd                t/gadgets/skimmer_ride
 tools/dev/bagshot.gd                    t/gadgets/bag_slots
 scripts/island/themes/volcanic_tinkerer.gd t/gadgets/bag_buy
+scripts/combat/stealth.gd               t/gadgets/smoke_sight t/gadgets/flash_stun
+scripts/island/harbour_vendor.gd        t/gadgets/packs
+scripts/game/shops.gd                   t/gadgets/packs
 # --- sailing downtime: the lashed helm, activities, Blender clips (v1.18 lane F) ---
 tools/dev/t/downtime/*                  t/downtime
 scripts/game/downtime.gd                t/downtime

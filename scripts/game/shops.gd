@@ -15,7 +15,7 @@ const SHOPS := {
 		"stock": [["rum", 9], ["biscuit", 3], ["tonic", 30],
 			["accessory", "earring", {"earring": true}, 1, 40],
 			["accessory", "eyepatch", {"eyepatch": true}, 0, 25],
-			["accessory", "pouch", {"pouch": true}, 0, 30]],
+			["accessory", "pouch", {"pouch": true}, 0, 30]] + GadgetData.SHOP_KITS,
 		"buys": {"loot": 1.0, "gear": 0.5, "weapon": 0.5},
 	},
 	"gus": {
