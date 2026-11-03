@@ -9489,3 +9489,16 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   drowned override it to 1. Morrow (his own BOSS_HP) and the ape (its own _max_hp) are unchanged solo.
 - Tests: t/combat/coop_scaling (the numbers, a fake four-captain roster for Poise.cap and dmg_scale), t/stronghold/vane
   (rescale keeps him full at x2.7). nettest modes are affected (enemy health and damage in co-op): the lead's prepush.
+- **Piece 3, no Admiralty spawn hitch (Admiralty):** the blockade, the ring and patrols no longer build every ship and
+  crew in one frame. `_queue` adds the spec and starts its crew's bodies on a worker (`Humanoid.prebuild` of
+  `EnemyShip.crew_plan`); `_process` makes the first waiting ship (`_pending`, in order) once `prebuilt_for` all her
+  men, at most one a frame, then `Net.spawned`. Ahead: a deed books the ring's seeds and starts its crews at once
+  (`ring_due.plan`, `_plan_for` reuses booked seeds whose kind still matches at `_close_ring`); a patrol's are booked
+  PATROL_AHEAD 20 s before it sails (`_patrol_plan`). `net_gen` carries a third list, the ships on their way (the ring
+  plan, the patrol plan, the pending), so guests prebuild them too; guests' `net_set_gen` queues new ships the same way
+  and drops pending ones the host no longer has. A blockade ship made after her line broke gives chase (`break_line`);
+  `_line_tick` and `_tidy` leave pending names alone. `_spawn` still makes one at once (tests). Gotcha: under a loaded
+  machine the worker takes ~5 s for a blockade and ring (~45 bodies) where the deed comes with no warning: the
+  booms and banner come first, the ships a few seconds later. Per frame: one `_pending.is_empty()` check.
+  Tests: new t/ship/admiralty_warm (a deed's blockade and ring, then a patrol: no "a body built on the main thread" mark,
+  one ship a frame); t/ship/admiralty_ring, admiralty_hunt, marine_chaser wait for the ships.

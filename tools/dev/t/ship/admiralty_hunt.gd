@@ -15,6 +15,7 @@ var started := 0
 var escaped := 0
 var d0 := 0.0
 var pat: Array = []
+var waited := 0.0
 
 
 func _initialize() -> void:
@@ -63,7 +64,14 @@ func _process(_d: float) -> bool:
 			check("at sea her wake is laid down (%d points)" % adm.wake.size(), adm.wake.size() >= 4)
 			ship.sail = 1.0 / 3.0
 			adm.send_patrol(ship, 3)
+			until = TK.wait_secs(0.5)
+		2:
+			# (1.30: made once their crews' bodies are built on a worker)
 			pat = adm.get_children().filter(func(c): return c.get("role") == "patrol")
+			waited += 0.5
+			if pat.size() < 2 and waited < 30.0:
+				until = TK.wait_secs(0.5)
+				return false
 			var fwd: Vector3 = -ship.global_basis.z
 			print("   patrol: %s" % [pat.map(func(s): return "%s %dm" % [s.kind, int(s.global_position.distance_to(ship.global_position))])])
 			check("an Infamous crew draws a frigate and a cutter (%d)" % pat.size(), pat.size() == 2 and pat.any(func(s): return s.kind == "frigate"))
@@ -71,7 +79,7 @@ func _process(_d: float) -> bool:
 			check("...tracking her wake", pat.all(func(s): return s.state == s.S.TRACK))
 			d0 = pat[0].global_position.distance_to(ship.global_position)
 			until = TK.wait_secs(25.0)
-		2:
+		3:
 			var d: float = pat[0].global_position.distance_to(ship.global_position)
 			print("   %s: %.0f m -> %.0f m (%s)" % [pat[0].kind, d0, d, pat[0].S.keys()[pat[0].state]])
 			check("they close on her", d < d0 - 40.0)
@@ -80,12 +88,12 @@ func _process(_d: float) -> bool:
 			var to: Vector3 = ship.global_position - ship.global_basis.z * 900.0
 			ship.place(to, ship.global_rotation.y)
 			until = TK.wait_ticks(2)
-		3:
+		4:
 			p.global_position = ship.to_global(Vector3(0.5, 0.6, 3.0))
 			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			until = TK.wait_secs(4.0)
-		4:
+		5:
 			check("lost by distance: they turn away (%s)" % [pat.filter(func(s): return is_instance_valid(s)).map(func(s): return s.S.keys()[s.state])], pat.all(func(s): return not is_instance_valid(s) or not s.pursuing()))
 			check("...the crew hears they've escaped", not adm.hunted and escaped == 1)
 			check("...and the sea goes quiet: no patrol for a while (%.0f s)" % (adm._quiet_until - adm.clock), adm._quiet_until - adm.clock > A.QUIET - 10.0)

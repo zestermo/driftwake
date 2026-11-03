@@ -101,15 +101,23 @@ func _process(_d: float) -> bool:
 					break
 			until = TK.wait_secs(4.0)
 		4:
+			# (made once her crew's bodies are built on a worker: a moment later)
 			adm.send_patrol(ship, 1)
+			es = null
+			until = TK.wait_secs(0.5)
+		5:
 			for c in adm.get_children():
 				if c.has_method("pursuing") and not c.is_queued_for_deletion() and c.role == "patrol":
 					es = c
+			secs += 1
+			if es == null and secs < 60:
+				until = TK.wait_secs(0.5)
+				return false
 			es.set_meta("no_sleep", true)
 			check("a patrol starts on her wake, ~330 m off (%s, %.0f m)" % [es.S.keys()[es.state], es.global_position.distance_to(ship.global_position)], es.state == es.S.TRACK)
 			secs = 0
 			until = TK.wait_secs(1.0)
-		5:
+		6:
 			secs += 1
 			var d: float = es.global_position.distance_to(ship.global_position)
 			var far_r: float = es.spec["range"][1]
