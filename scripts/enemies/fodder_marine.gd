@@ -137,8 +137,10 @@ func _run_bell(delta: float) -> void:
 ## Hit while unaware by a captain sneaking up from behind: a silent takedown (no shout, nobody near alerted).
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	var unaware := state == S.IDLE or (state == S.ALERT and st_t < TURNING)
-	if unaware and not hit.ranged and not hit.dot and attacker is Node3D and (attacker as Node3D).is_in_group("players") \
-			and (hit.sneak or Stealth.sneaking(attacker)) and Stealth.behind(attacker as Node3D, global_position, _calm_fwd) \
+	var from_sneak := unaware and (hit.sneak or Stealth.sneaking(attacker)) and attacker is Node3D \
+		and Stealth.behind(attacker as Node3D, global_position, _calm_fwd)
+	# (1.30 gadgets) dazed by flash powder or blinded in smoke: from any side, sneaking or not
+	if (from_sneak or is_stunned()) and not hit.ranged and not hit.dot and attacker is Node3D and (attacker as Node3D).is_in_group("players") \
 			and global_position.distance_to((attacker as Node3D).global_position) < TAKEDOWN_R:
 		_takedown(attacker as Node3D)
 		return

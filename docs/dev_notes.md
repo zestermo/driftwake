@@ -9874,3 +9874,28 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   the same runs. Not done: a far ring drawn by vertex/MultiMesh animation (fodder past ~20 m), fodder movers on a
   cheaper kinematic step.
 - BurnStatus: a burn whose source was freed (a burning grunt sunk away) no longer hands a freed attacker to take_hit.
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 2: stealth infiltration
+- **Silent takedowns** (FodderMarine._on_hit): a melee blow on an unaware fodder marine (IDLE, or ALERT under TURNING
+  0.6 s: caught as he turns) from within TAKEDOWN_R 2.4 m, struck out of a sneak (HitData.sneak, or the attacker still
+  in Crouch) from behind the way he faced while calm (`_calm_fwd`), kills him outright: a ragdoll slump, a muffled punch,
+  "Takedown", no barks. A stunned one (the gadgets' flash/smoke: `is_stunned()`) goes down the same way from any side.
+  - **HitData.sneak** (new, packed as field 19 in Net.hit_pack): set by Player.melee_hit from
+    `Progression.sneaking_recently()` (the Ambush window, AMBUSH_TICKS 45), so a guest's blow from a sneak counts on
+    the host though the attack state already replaced Crouch.
+  - A sentry who notices you shouts to his camp only SHOUT_AFTER 0.7 s later (FodderMarine.alert): cut down first,
+    nobody else heard. From behind he still notices a sneak inside 1.5 m (Stealth.BEHIND_K of 5 m), so the takedown's
+    window is 1.5-2.4 m, or the half-second as he turns.
+- **Alarm bells** (StrongholdBell, BELLS: one per district, two in the ward): an iron frame, a bronze bell, a rope.
+  - Once a district's garrison is fighting, the host sends the fodder nearest a working bell running for it
+    (FodderMarine.run_to_bell: out of the fight, shouting, its own move in `_run_bell`); RING_SECS 2 at the rope, then
+    StrongholdAlarm.raise. Cut down, another goes RUNNER_GAP 3 s later. A fight the runners keep losing still raises it
+    after LONG_FIGHT x 2 (28 s).
+  - F at a bell cuts its rope ("sh_bell_<district>_<i>", every captain's). Every bell cut: no runner, the alarm only
+    after LONG_FIGHT 14 s of fighting, and the district's waves every WAVE_EVERY x SLOW_K (14 s, `wave_every`).
+  - Every machine swings the district's bells when its alarm flag shows up.
+- Tests: t/stronghold/stealth (the takedown from behind, nobody stirring; none from the front; the runner, a second
+  runner, the ring; a cut bell, no runner, the long fight, slower waves; a dazed marine from the front); t/stronghold/alarm
+  waits for the runner now.
+- Per tick: the runner's own move instead of his brain (one marine a district at a time); bells check their flag
+  twice a second.

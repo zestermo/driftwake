@@ -72,11 +72,13 @@ func _process(_d: float) -> bool:
 			check("bells stand in every district (%d)" % isl.city.get_children().filter(func(c): return str(c.name).begins_with("Bell_")).size(),
 				["landing", "ward", "arsenal", "prison", "keep"].all(func(d): return isl.city.get_children().any(func(c): return str(c.name).begins_with("Bell_" + d))))
 			# behind the ward's west sentry (he looks west), sneaking
-			p.state_machine.force_state("Crouch", {})
-			_put(isl.city.to_global(Vector3(-38.2, 12.05, -12)), Vector3.ZERO)
-			until = TK.wait_ticks(4)
+			# (landing from the teleport he isn't sneaking for a tick or two: set down well behind, out of earshot, first)
+			_put(isl.city.to_global(Vector3(-33.0, 12.05, -12)), Vector3.ZERO)
+			until = TK.wait_ticks(20)
 		3:
 			p.state_machine.force_state("Crouch", {})
+			p.global_position = isl.city.to_global(Vector3(-38.2, 12.0, -12))
+			p.reset_physics_interpolation()
 			until = TK.wait_ticks(30)
 		4:
 			var s = _sentry(Vector2(-40, -12))
@@ -150,6 +152,17 @@ func _process(_d: float) -> bool:
 			var gate = isl.city.get_node("Reinforce_prison_0")
 			check("...its waves come (%d), and slower: every %.0f s against the ward's %.0f" % [gate.gen, alarm.wave_every("prison"), alarm.wave_every("ward")],
 				gate.gen >= 1 and alarm.wave_every("prison") > alarm.wave_every("ward") and alarm._wave_t["prison"] > 0.0)
+			# dazed (flash powder, smoke): a takedown from any side, sneaking or not
+			var f = isl.city.get_node("Garrison_prison").grunts.filter(func(g): return is_instance_valid(g) and g.is_in_group("fodder") and not g.is_dead())[0]
+			f._set_state(f.S.STAGGER)
+			f.stunned_until = 1.0e9
+			p.state_machine.force_state("Idle", {})
+			_put(f.global_position + (f._fwd() * 1.5), Vector3.ZERO)
+			_strike(f)
+			until = TK.wait_ticks(5)
+		14:
+			var dead: Array = isl.city.get_node("Garrison_prison").grunts.filter(func(g): return is_instance_valid(g) and g.is_in_group("fodder") and g.is_dead())
+			check("a dazed marine goes down to one blow from the front, no sneak (%d down)" % dead.size(), dead.size() >= 1)
 			return TK.done(fails)
 	step += 1
 	return false
