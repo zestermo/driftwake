@@ -7,7 +7,7 @@ extends PirateGrunt
 ## alarm: StrongholdAlarm) goes for the nearest captain as it musters and follows them across the fortress instead of
 ## minding a post. A sentry (StrongholdGarrison) is a fodder marine posted to watch a way in.
 
-const HP := 40.0
+const HP := 30.0
 const HUNT_RANGE := 90.0
 const THINK := 8
 const XP_K := 0.35
@@ -29,6 +29,9 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 func _ready() -> void:
 	super()
 	add_to_group("fodder")
+	# (a crowd pressing on one captain: bodies pushing bodies were most of its physics; they keep apart by steering)
+	collision_layer = 4
+	collision_mask = 1 | 2
 	if hunt and not net_puppet:
 		alert.call_deferred(0.15)
 
@@ -84,6 +87,22 @@ func _think_skip(delta: float) -> bool:
 		_think_acc += delta
 		return true
 	return false
+
+
+## The sea and fire check once a think, not every tick (the same want comes back on the ticks between).
+var _aw_in := Vector3.INF
+var _aw_out := Vector3.ZERO
+var _aw_tick := -100
+
+
+func _avoid_water(want: Vector3) -> Vector3:
+	var f := Engine.get_physics_frames()
+	if want == _aw_in and f - _aw_tick < THINK:
+		return _aw_out
+	_aw_in = want
+	_aw_tick = f
+	_aw_out = super(want)
+	return _aw_out
 
 
 func _feed_body(hv: Vector3, running: bool) -> void:

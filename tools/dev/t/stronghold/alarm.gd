@@ -42,9 +42,10 @@ func _put(q: Vector2, y: float) -> void:
 
 
 func _process(_d: float) -> bool:
+	if stage.up:
+		_heal()
 	if not stage.up or TK.ticking(until):
 		return false
-	_heal()
 	match step:
 		0:
 			w = load("res://tools/dev/t/capital/_world.gd").take_over(stage, 4242)

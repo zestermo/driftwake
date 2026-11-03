@@ -31,6 +31,8 @@ func _kill_all(camp) -> void:
 
 
 func _process(_d: float) -> bool:
+	if stage.up:
+		stage.player.health_component.current_health = stage.player.health_component.max_health
 	if not stage.up or TK.ticking(until):
 		return false
 	var p = stage.player
@@ -64,9 +66,10 @@ func _process(_d: float) -> bool:
 				if fl == -INF or absf(l.y - fl) > 1.2 or (g.idle_mode != "patrol" and drift > 1.5):
 					off.append("%s %s (%.1f, %.1f, %.1f) floor %.1f drift %.1f" % [g.get_parent().name, g.name, l.x, l.y, l.z, fl, drift])
 			check("every man stands where he was placed, on his district's floor %s" % [off], off.is_empty())
-			# toughness: 2-4 light blows (a cutlass's 10-12, the captain's multiplier), no co-op growth
+			# toughness: 2-4 light blows (a cutlass's 10-12 from a captain of the fortress's level: captains' blows grow as
+			# foes' health does, Levels.hp_k), no co-op growth
 			var f = fod[0]
-			var blow: float = 11.0 * p.damage_multiplier()
+			var blow: float = 11.0 * Levels.hp_k(f.level)
 			var hits := ceili(f.health.max_health / blow)
 			check("a fodder marine falls in 2-4 light blows (%d: %.0f health, %.1f a blow)" % [hits, f.health.max_health, blow], hits >= 2 and hits <= 4)
 			var hp0: float = f.health.max_health

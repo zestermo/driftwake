@@ -26,7 +26,7 @@ const POSTS := {
 		["sentry", Vector2(-40, -12), Vector2(-1, 0)], ["sentry", Vector2(40, -12), Vector2(1, 0)],
 		["post", Vector2(0, 4), 4, "sit"], ["post", Vector2(-9, -7), 3, "stand"], ["post", Vector2(10, 11), 3, "stand"],
 		["patrol", [Vector2(-14, 15), Vector2(14, 15), Vector2(14, -10), Vector2(-14, -10)], 2],
-		["rifle", Vector2(-15, 17), Vector2(0, 1)], ["rifle", Vector2(15, 17), Vector2(0, 1)],
+		["rifle", Vector2(-15, 13), Vector2(0, 1)], ["rifle", Vector2(15, 13), Vector2(0, 1)],
 		["sergeant", Vector2(0, -9), Vector2(0, 1)],
 	],
 	"arsenal": [
@@ -40,15 +40,15 @@ const POSTS := {
 		["sentry", Vector2(-57, -1), Vector2(1, 0)], ["sentry", Vector2(-103, -14), Vector2(1, 0)],
 		["post", Vector2(-62, -38), 4, "sit"], ["post", Vector2(-100, 8), 3, "stand"],
 		["patrol", [Vector2(-64, -20), Vector2(-82, -36), Vector2(-100, -20), Vector2(-82, -1)], 3],
-		["rifle", Vector2(-58, -44), Vector2(-1, 0)], ["rifle", Vector2(-108, -40), Vector2(1, 0)],
+		["rifle", Vector2(-61, -41), Vector2(-1, 0)], ["rifle", Vector2(-108, -40), Vector2(1, 0)],
 		["sergeant", Vector2(-66, -8), Vector2(1, 0)],
 	],
 	"keep": [
 		["sentry", Vector2(-5, -51), Vector2(0, 1)], ["sentry", Vector2(5, -51), Vector2(0, 1)],
 		["sentry", Vector2(-7, -60), Vector2(0, 1)], ["sentry", Vector2(7, -60), Vector2(0, 1)],
-		["post", Vector2(30, -56), 4, "stand"], ["post", Vector2(-36, -80), 3, "sit"],
-		["patrol", [Vector2(-34, -52), Vector2(34, -52)], 2],
-		["rifle", Vector2(-38, -50), Vector2(0, 1)], ["rifle", Vector2(38, -50), Vector2(0, 1)],
+		["post", Vector2(19, -55), 4, "stand"], ["post", Vector2(-36, -80), 3, "sit"],
+		["patrol", [Vector2(-30, -52), Vector2(30, -52)], 2],
+		["rifle", Vector2(-34, -55), Vector2(0, 1)], ["rifle", Vector2(34, -55), Vector2(0, 1)],
 		["sergeant", Vector2(0, -56), Vector2(0, 1)],
 	],
 }

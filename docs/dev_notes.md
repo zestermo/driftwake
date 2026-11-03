@@ -9740,3 +9740,33 @@ flashes, the sky dark grey with smoke like the sandstorm even at noon.
 - Co-op: the host flies the body; guests' ragdolls follow its snapshot (the grunt's ragdoll net_pack); marks via
   Net.fx. Per tick: only while a body flies/sticks (~1.5 s): the part poses, one ray a tick in a skid.
 - Tests: t/combat/splat_wall. Render: `splatshot.gd -- <out>` (wall, ceiling, open strips, the mark close).
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 1: the fodder tier, the placed garrison and the alarm
+docs/v1_30_plan.md round 3 ("40 people over 30 minutes, groups of 5, sponges").
+- **FodderMarine** (scripts/enemies/fodder_marine.gd, extends PirateGrunt, nothing restructured): HP 30 x Levels.hp_k
+  (3 cutlass blows from a captain of the fortress's level), no +30%, `net_rescale` pinned at 1 (no co-op health); no
+  role roll, extras, shield, horn, pistol or rush, elite() false; attacks: combo, the lunge from 2.9 m+ (50%), the red
+  chop (25%, 10-16 s). Thinks every 8 ticks (THINK), the rig stays `lod` in a fight, the sea/fire check once a think.
+  XP x0.35, coins halved. Dies through `_on_died` (the splat agent's hook works on it). Body layer 4 and mask 1|2:
+  fodder don't collide with bodies (EnemySolid 2048), only steer apart; crowd physics went 17 -> 8 ms for 25.
+  `hunt` (alarm waves): alerts as it musters, `_lost` only past HUNT_RANGE 90 m, a lost hunter's post is where it stands.
+- **StrongholdGarrison** rewritten: POSTS per district (sentries, posts of 3-4 sat/stood, a patrol, riflemen, a
+  sergeant), one GruntCamp "Garrison_<district>" each (warm start, never respawns, ATTACKERS 4): 77 men, 64 fodder.
+  The 90 s squad respawn is gone.
+- **StrongholdReinforce** (extends GruntCamp; SOURCES): `muster()` adds a wave of SIZE hunters, named by gen
+  (`net_set_gen` on a guest spawns every wave it missed; the island catch-up frees the host's dead). Kinds: `door` (the
+  Barracks and Mess, the Casting Hall, the Command Hall: they muster inside and run out), `gate` (its own iron-banded
+  door on the prison drum, leaves swing open), `boat` (a longboat rows 34 m in from the sea gate in 7 s, its six leap onto
+  the quay, it rows out; Net.event "boat" plays it on guests). Turns are shared with the district's garrison camp.
+- **StrongholdAlarm** (host decides; world flags "sh_alarm_<d>", "sh_clear_<d>"): a district's garrison fighting
+  ALARM_AFTER 3 s raises its alarm (bells rung 3x through Net.fx, a banner); its garrison goes hunting; a wave every
+  WAVE_EVERY 7 s while < PRESS 18 of its men are fighting and < PEAK 30 in the fortress, POOL waves per district
+  (landing 3 boats of 6, ward 6, arsenal 5, prison 5 of 4, keep 5: ~130 men). A district with its garrison down and its
+  pool spent (or never called: a quiet clearing forfeits it) is cleared for good. The Commodore's fall stands it down.
+  ~77 placed + ~130 reinforcements + the sealed rooms and boss adds: ~220 over a run.
+- Officers: reinforcement camps don't bring a district's first officer (they still roll CHANCE per wave, CAP 5).
+- **Cost** (t/stronghold/fodder_crowd, the light stage, the debug runner on the laptop, run alone): 25 fodder in a
+  fight +17 ms a frame (process +10, of it rigs 4 and brains 0.4; physics +7.4), 25 full grunts +15. Not cheaper than
+  grunts yet: posing and move_and_slide dominate, and both run every frame near the camera. Open: a crowd pass
+  (half-rate posing past ~8 m for fodder, cheaper locomotion ticks); the lead's prepush bench decides.
+- Tests: t/stronghold/garrison (rewritten), t/stronghold/alarm, t/stronghold/fodder_crowd.
