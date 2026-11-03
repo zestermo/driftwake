@@ -9421,3 +9421,11 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   Crossed behind, Headpiece). Co-op: all in the kit (Net.set_ship_kit), every screen paints the same.
 - Tests: t/ship/flag_builder (old kits keep their look, skull 0 = old flag, 168 distinct jolly rogers, the sail emblem,
   the paint on her, ten figureheads build). Renders: tools/dev/out/shipshape/figures_* (modelshot), looks_*, fig10_bow.
+
+## 1.30 sea fixes (2026-11-03, docs/playtest_2026_11_02.md rows 1-4, docs/v1_30_plan.md)
+- **Piece 1, no false "Escaped" mid-fight (EnemyShip, Admiralty):** a pursuer in FLEE still counts as `pursuing()`, and
+  `Admiralty._hunt_note` counts a ship that ran (`fled()`) as beaten, not as one that lost the crew. Losing sight by an
+  island's no-go ring or a smoke screen now takes HIDE_GRACE 8 s on end (`_gave_up`, `_hide_t`; HUNT, BROADSIDE, RAM,
+  BOARD); a pursuer ignores the land while within her far range + HIDE_LAND_IN 20 (`_huntable`); fog and storm never
+  cut her lose range below far range + SIGHT_FLOOR 40 (`_lose_r`; a cutter 98 m). Pirates unchanged (no grace).
+  Test: t/ship/hunt_holds (a fight 40 m off a no-go ring for 12 s, fog+storm with the cutter 85 m off, a cutter at 20%).
