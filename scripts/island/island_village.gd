@@ -604,7 +604,7 @@ func _stalls(m: Dictionary) -> void:
 	var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])), 6.2, 5.4, 8.2, [8.0, 9.5], 9.0, shape)
 	market = {"c": m["c"], "stalls": stalls}
 	for s in stalls:
-		work_spots.append({"kind": "market", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})
+		work_spots.append({"kind": "stall", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})
 
 
 ## The cobbles, and the trodden earth a little under them (where they'd meet).
