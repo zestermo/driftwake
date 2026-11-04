@@ -109,6 +109,7 @@
 - ✅ **Brinehollow polished:** Tackett's ironwood grove off the path (trees you fell), a chapel square left of Old Pell with three walk-in houses whose keepers teach fishing, gadgets and reading, a new lighthouse on a graded hill road with the keeper's cottage, and the opening now takes you to the farmlands mill, Wick's bench and Aldous's book.
 - ✅ **Frozen rivers and lakes walk clean** on the snow islands (no falling through the ice, no lips at the banks).
 - ✅ **The helm camera:** taking the wheel eases in from your view instead of cutting to a view from under the sea, the scroll wheel zooms at the helm, and with a weapon out the scroll wheel works at once.
+- ✅ **The chain sickle moves like a reaper:** the heavy coils low and bursts into a two-turn whirl with the weight thrown out wide and a lunging reap to finish; the lights are its own hook and rip, a bigger lash with a haul, and the weight swings in your hand as you move.
 
 ## Behind the scenes
 - ✅ **The browser version is retired.** The website deploys on its own, and /play links go home.
