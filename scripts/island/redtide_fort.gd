@@ -268,7 +268,7 @@ func _col(a: float) -> Dictionary:
 
 ## The flat point `r` out along bearing `a` of column `c`, the arms hooked in round the cove (more the further out).
 func _bent(a: float, c: Dictionary, r: float) -> Vector3:
-	var hook := -signf(angle_difference(OPEN_A, a)) * 0.24 *(1.0 - smoothstep(0.0, 0.5, _from_cove(a)))
+	var hook := -signf(angle_difference(OPEN_A, a)) * 0.24 * (1.0 - smoothstep(0.0, 0.5, _from_cove(a)))
 	var aj := a + hook * smoothstep(float(c["rin"]) + 8.0, float(c["rout"]) + 6.0, r)
 	return Vector3(cos(aj) * r, 0.0, sin(aj) * r)
 
@@ -300,15 +300,38 @@ func _profile(c: Dictionary) -> Array:
 
 func _massif_pick(n: Vector3, m: Vector3) -> Material:
 	if n.y > 0.8 and _noise.get_noise_2d(m.x * 1.7, m.z * 1.7) > -0.15:
+		_green.append([m, n])
 		return _grass_m
 	if n.y > 0.45 and m.y > TOP:
 		return _ledge_m
+	# the red strata the rock's named for, in wavy bands
+	if m.y > 2.0 and sin(m.y * 0.42 + 2.6 * _noise.get_noise_2d(m.x * 0.6, m.z * 0.6)) > 0.72:
+		return _band_m
 	return _massif_m
+
+
+## Grassy facets ([centre, normal]) as the massif's built: where its plants go.
+var _green: Array = []
+var _band_m: Material
+
+
+## The ground's height at fort-local (x, z) (SkyBirds' flocks, islandshot's "~"): the arena's top inside the
+## mountain, its crest over it, the sea outside.
+func height_at(x: float, z: float) -> float:
+	var r := Vector2(x, z).length()
+	var a := atan2(z, x)
+	if _from_cove(a) < 0.0:
+		return TOP if r < 22.0 else 0.0
+	var c := _col(a)
+	if r < float(c["rin"]):
+		return TOP
+	return float(c["h"]) if r < float(c["rout"]) else 0.0
 
 
 func _build_massif() -> void:
 	_massif_m = PSXMat.lit("rock", Color(0.74, 0.66, 0.62), {"affine": 0.5})
 	_ledge_m = PSXMat.lit("rock", Color(0.7, 0.72, 0.58), {"affine": 0.5})
+	_band_m = PSXMat.lit("rock", Color(0.8, 0.52, 0.44), {"affine": 0.5})
 	var span := TAU - 2.0 * OPEN_HALF
 	var a0 := OPEN_A + OPEN_HALF
 	var cols: Array = []
@@ -364,6 +387,71 @@ func _build_massif() -> void:
 	var cs := CollisionShape3D.new()
 	cs.shape = mi.mesh.create_trimesh_shape()
 	body.add_child(cs)
+	_dress_massif(cols)
+
+
+## Plants on the grassy facets (tufts, bushes and ferns; pines on the high tops, seen from the sea) and boulders
+## along the foot (in the surf, nothing to stand on: no colliders). MultiMeshes, no shadows.
+func _dress_massif(cols: Array) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4251
+	var kinds := {"tuft": [Props.grass_mesh(), 140.0], "bush": [Props.bush_mesh(4252), 220.0], "fern": [Props.fern_mesh(4253), 180.0], "pine": [Props.pine_mesh(4254), 900.0]}
+	var xfs := {"tuft": [], "bush": [], "fern": [], "pine": []}
+	for g in _green:
+		var m: Vector3 = g[0]
+		var n: Vector3 = g[1]
+		var up := Basis(Vector3.UP.cross(n).normalized(), Vector3.UP.angle_to(n) * 0.5) if n.y < 0.999 else Basis()
+		var roll := rng.randf()
+		var kind := "tuft"
+		if m.y > 16.0 and n.y > 0.9 and roll < 0.1:
+			kind = "pine"
+		elif roll < 0.3:
+			kind = "bush"
+		elif roll < 0.45:
+			kind = "fern"
+		elif roll > 0.85:
+			continue
+		var s := rng.randf_range(0.7, 1.3) if kind != "pine" else rng.randf_range(0.6, 1.0)
+		if kind == "pine":
+			up = Basis()
+		var b := (up * Basis(Vector3.UP, rng.randf() * TAU)).scaled(Vector3.ONE * s)
+		(xfs[kind] as Array).append(Transform3D(b, m - n * 0.1))
+		# (a second tuft beside most: the grass reads as a patch, not dots)
+		if kind == "tuft" and rng.randf() < 0.7:
+			var off := Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
+			(xfs["tuft"] as Array).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU), m + off - n * 0.15))
+	for kind in xfs:
+		var list: Array = xfs[kind]
+		if list.is_empty():
+			continue
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = kinds[kind][0]
+		mm.instance_count = list.size()
+		for i in range(list.size()):
+			mm.set_instance_transform(i, list[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Massif_" + kind
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = kinds[kind][1]
+		mmi.visibility_range_end_margin = float(kinds[kind][1]) * 0.1
+		add_child(mmi)
+	# boulders in the surf along the foot
+	var mb := MeshBuilder.new()
+	for k in range(0, cols.size(), 2):
+		var a: float = cols[k][0]
+		var c := _col(a)
+		if rng.randf() < 0.35:
+			continue
+		var r := rng.randf_range(0.9, 2.4)
+		var p := _bent(a, c, float(c["rout"]) + rng.randf_range(0.2, 2.5)) + Vector3(0, rng.randf_range(-1.4, -0.2), 0)
+		mb.add_blob(_massif_m, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), p), Vector3(r * 1.3, r * 0.8, r), rng, 0.25, 3, 6, 0.5, Color(1, 1, 1) * rng.randf_range(0.7, 0.9), 0.0)
+	var foot := mb.to_instance("FootRocks")
+	foot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	foot.visibility_range_end = 400.0
+	foot.visibility_range_end_margin = 40.0
+	add_child(foot)
 
 
 # --------------------------------------------------------------------------
@@ -613,7 +701,7 @@ const CRAGS := [
 	[-2.5, 11.0, 3.6, 15.0], [2.95, 8.0, 3.0, 10.5], [0.3, 12.0, 2.4, 8.0],
 ]
 ## Stacks out past the cove's mouth: [bearing, distance, base radius, height above the sea]
-const MOUTH := [[1.12, 80.0, 2.8, 12.0], [2.0, 78.0, 2.2, 9.0]]
+const MOUTH := [[1.12, 80.0, 2.8, 12.0], [1.9, 86.0, 2.2, 9.0]]
 ## Spires on the crest: [bearing, height, base radius]
 const CREST := [[-1.75, 11.0, 2.6], [-1.62, 7.0, 1.8], [-1.15, 8.5, 2.2], [-2.55, 9.0, 2.4], [-2.35, 5.5, 1.6],
 	[0.15, 7.0, 2.0], [-0.55, 6.0, 1.8], [2.95, 7.5, 2.1], [2.6, 5.0, 1.5], [-0.95, 4.5, 1.4], [0.6, 6.0, 2.0], [2.52, 6.5, 2.0]]
@@ -647,7 +735,53 @@ func _build_crags() -> void:
 		shape.points = pts
 		cs.shape = shape
 		body.add_child(cs)
+	_arch(mb, body, rng)
 	body.add_child(mb.to_instance("CragMesh"))
+
+
+## A sea arch off the west arm's tip: a ragged rock bow from the arm's cliff out into the sea and down.
+const ARCH_SPAN := 24.0
+const ARCH_H := 17.0
+
+
+func _arch(mb: MeshBuilder, body: StaticBody3D, rng: RandomNumberGenerator) -> void:
+	var a := OPEN_A + OPEN_HALF + 0.03
+	var c := _col(a)
+	var root := _bent(a, c, float(c["rout"]) - 3.0)
+	var out := (_bent(a, c, float(c["rout"]) + 30.0) - root).normalized()
+	var foot := root + out * ARCH_SPAN
+	var side := out.cross(Vector3.UP).normalized()
+	var sides := 7
+	var rings: Array = []
+	var n := 14
+	for i in range(n + 1):
+		var t := float(i) / n
+		var centre := root.lerp(foot, t) + Vector3(0, -8.0 + (ARCH_H + 8.0) * sin(PI * t), 0)
+		# (the lintel lifted and thinned mid-span, the legs thick)
+		var along := (foot - root) + Vector3(0, (ARCH_H + 8.0) * PI * cos(PI * t), 0)
+		var nrm := along.cross(side).normalized()
+		var thick := lerpf(4.2, 2.4, sin(PI * t)) * rng.randf_range(0.85, 1.15)
+		var wide := lerpf(4.8, 3.0, sin(PI * t)) * rng.randf_range(0.85, 1.15)
+		var ring: Array = []
+		for k in range(sides):
+			var th := TAU * (k + rng.randf_range(-0.15, 0.15)) / sides
+			ring.append(centre + side * cos(th) * wide * rng.randf_range(0.8, 1.15) + nrm * sin(th) * thick * rng.randf_range(0.8, 1.15))
+		rings.append([centre, ring])
+	for i in range(rings.size() - 1):
+		var r0: Array = rings[i][1]
+		var r1: Array = rings[i + 1][1]
+		var pts := PackedVector3Array()
+		for k in range(sides):
+			var k2 := (k + 1) % sides
+			var mid: Vector3 = ((rings[i][0] as Vector3) + (rings[i + 1][0] as Vector3)) * 0.5
+			_cell(mb, r0[k], r0[k2], r1[k2], r1[k], ((r0[k] as Vector3) - mid).normalized(), _stack_pick, (i + k) % 2 == 0)
+			pts.append(r0[k])
+			pts.append(r1[k])
+		var cs := CollisionShape3D.new()
+		var shape := ConvexPolygonShape3D.new()
+		shape.points = pts
+		cs.shape = shape
+		body.add_child(cs)
 
 
 ## A jagged spire from `base` up `h` m: a faceted, leaning, tapering column.

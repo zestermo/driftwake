@@ -10293,3 +10293,18 @@ The playtest's meetings happened on land unnoticed and the warning promised a sh
   the meeting only after, she sails off), t/ship/rival_ship_nogo (no crew at the three, a coming ship turns back).
   Render: rivalshipshot (light stage: horizon, sailing in, anchored with the banner, close, ashore).
 - Not done: a guest joining mid-arrival doesn't get the ship (world sync); meeting them at sea / boarding is after 1.30.
+
+## 2026-11-04: Redtide's mountain (1.30, piece 2: dressing)
+- **Rock:** red strata in wavy bands (`_band_m`, the stone the rock's named for: sin of height + noise), the mossy
+  ledge rock and noise-gated grass from piece 1. Five surfaces on the massif.
+- **Plants** (`_dress_massif`): every grassy facet the massif picks is kept (`_green`) and gets a tuft patch, a bush,
+  a fern, or (high tops, flat) a pine: one MultiMesh per kind (Props meshes), no shadows, ranges tuft 140 / fern 180 /
+  bush 220 / pine 900 m (the pines read from the sea). Boulders in the surf along the foot: one merged mesh, no
+  colliders (nothing to climb from the water), 400 m.
+- **Sea arch** off the west arm's tip (`_arch`: 15 rings of 7 jittered sides on a sine bow, legs thick, lintel
+  thin, a convex collider per segment), 24 m span, 17 m high. The second mouth stack moved out to 86 m.
+- **Birds:** SkyBirds lists Redtide like an island ("redtide", radius 60): its high flocks wheel over the peaks
+  (`RedtideFort.height_at`: the arena's top, the crest over the massif, the sea; also islandshot's "~" heights).
+  No harbour gulls (no DockingArea).
+- **Per frame:** nothing new of Redtide's own; SkyBirds' flock birds (inside its MAX 72, the GPU flock path).
+- Tests: t/world/redtide_way_in green with the arch; t/world/sky_long_tail, sky_flock_gpu green.

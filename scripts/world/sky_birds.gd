@@ -317,6 +317,9 @@ func _scan(cam: Vector3) -> void:
 	var bh = wg.get("starter_island")
 	if bh != null and is_instance_valid(bh):
 		list["brinehollow"] = [bh, BRINEHOLLOW_SEED, 200.0, "brinehollow"]
+	var rt = wg.get("redtide")
+	if rt != null and is_instance_valid(rt):
+		list["redtide"] = [rt, BRINEHOLLOW_SEED + 1, float(rt.REACH) * 0.6, "brinehollow"]
 	for id in wg.chain_islands:
 		var isl = wg.chain_islands[id]
 		list["isle%d" % id] = [isl, int(isl.node["seed"]), float(isl.radius), str(isl.theme)]
