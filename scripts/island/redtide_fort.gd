@@ -960,7 +960,7 @@ func _boss_hud(me: Node3D) -> void:
 	var show := me != null and boss != null and is_instance_valid(boss) and boss.state != PirateGrunt.S.DEAD \
 		and boss.in_combat() and me.global_position.distance_to(to_global(ARENA)) < RESET_RANGE + 8.0
 	if show:
-		get_tree().call_group("hud", "show_boss", "Captain Morrow \"Red Tide\"", boss.health_frac(), boss.phase)
+		get_tree().call_group("hud", "show_boss", "Captain Morrow \"Red Tide\"", boss.health_frac(), boss.phase, boss)
 		_boss_ui = true
 	elif _boss_ui:
 		_boss_ui = false
