@@ -68,11 +68,12 @@
 - ✅ **The Admiralty arrives without the 2-3 s freezes.** Ships and crews are built in the background, one ship a frame, on guests too.
 - ✅ **The skimmer is faster:** 11 / 13.5 / 16 m/s by tier (was 9 / 11 / 13), and it keeps 55% of its speed straight into the wind (was 45%).
 - ✅ **Rival crews never come to the capital, the canal city or the stronghold.** The check that kept them out was broken.
-- 📋 **Rival crews arrive in a ship you can see.** It sails in and anchors off the harbour, with a named banner, a music sting, and their captain calling you out by name.
+- ✅ **Rival crews arrive in a ship you can see.** It sails in and anchors off the harbour, with a named banner, a music sting, and their captain calling you out by name.
 
 ## The Admiralty stronghold
 - ✅ **The vault works.** The chest sits on the hall floor and is marked. It gives a legendary Driftfruit, the first fruit in the world (one per save). Seeds with broken legendary ids no longer lose their vault.
 - ✅ **Fixed: falling through the fortress.** Every district has a solid floor under its cobbles.
+- ✅ **Stronghold fixes:** the Scouring is announced as ordered (the fortress "has fallen" only when Vane does), Vane's hall hazards rest while he's on the roof, a late joiner no longer gets every missed reinforcement wave at once, and the cell block matches the rest of the fortress. Boss bars show the level badge, and Brinehollow's apes no longer read as 3 levels above you.
 - ✅ **Fixed: stuck dead after Vane.** A captain beaten by an AI captain in co-op was left down for good: no respawn, no revive. Now they bleed out normally, so a crewmate can revive them, and they get up on their own if nobody comes.
 - ✅ **The Scouring ends** once you're 300 m out ("Out of the ring"). It no longer follows the ship.
 - ✅ **The Scouring as an escape set piece:**
