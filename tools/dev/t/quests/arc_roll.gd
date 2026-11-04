@@ -127,8 +127,8 @@ func _built() -> void:
 	var dlg = root.get_node("Dialogue")
 	var v = isl.get_node("Site_village/Village")
 	var elder: Dictionary = dlg._load(v._key("elder"))["nodes"]
-	var board: Dictionary = dlg._load(v._key("board"))["nodes"]
-	check("the elder tells of it and the board has its poster", elder.has("arc_tell") and elder.has("arc_pay") and board.has("arc_poster"))
+	check("the elder tells of it (1.30: the board's page shows its poster, nothing to take there)", elder.has("arc_tell") and elder.has("arc_pay")
+		and not str(load("res://scripts/quests/island_record.gd").of(isl)["main"].get("poster", "{")).contains("{"))
 	var told := false
 	for fo in isl.life.folk:
 		for l in fo.get("own", {}).get("heard", []) + fo.get("own", {}).get("day", []):

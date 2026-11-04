@@ -2,25 +2,29 @@ class_name ChainGoal
 extends RefCounted
 ## The chain's next step (1.30 guidance): what the objective box shows when no quest is followed, and the Captain's
 ## Log's always-on chain lead. Brinehollow's story while it's on; then Morrow (his log pose), the level the needle
-## waits for, "Sail to <island>" along the log pose, and on a chain island its elder's trouble (the arc, untaken),
+## waits for, "Sail to <island>" along the log pose, and on a chain island (1.30) find the town, then its elder's
+## trouble (the arc, untaken), then check the notice board,
 ## the arc's own step (taken), the beast (its fall sets the needle), or the wait. Read from shared state (the chain's
 ## place and needle, the crew's journal), so every captain sees the same step.
 ## {"kind": "story" / "chain", "goal", "sub", "who" (the marker's label), "pos" (Vector3.INF: none), "person",
 ## "head" (what the box calls it), "id" (an arc's journal key, else "")}; {} outside the world.
 
-const DIRS := ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
+const BOARD_GOAL := "Check the notice board"
+const DIRS :=["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
 
 
 ## What this captain follows: the tracked quest while it's live, else the chain's next step.
 static func followed(tree: SceneTree) -> Dictionary:
 	var j: Node = tree.root.get_node("Journal")
 	var id: String = j.tracked
-	if j.has(id) and not j.is_done(id):
+	# (1.30) the island's trouble just taken: the landing's last step (check the board) comes before it
+	var nx := next(tree)
+	if j.has(id) and not j.is_done(id) and not (nx.get("goal", "") == BOARD_GOAL and str(nx["arc"]) == id):
 		var e: Dictionary = j.entries[id]
 		var n: int = (e["goals"] as Array).size()
 		return {"kind": "quest", "goal": j.goal(id), "who": str(e["title"]), "id": id, "head": "QUEST", "person": j.target_is_person(id),
 			"sub": "%s  -  step %d of %d" % [e["title"], mini(int(e["step"]) + 1, n), n], "pos": j.target(id)}
-	return next(tree)
+	return nx
 
 
 static func next(tree: SceneTree) -> Dictionary:
@@ -70,9 +74,20 @@ static func _on_island(tree: SceneTree, n: Dictionary, gm: Node) -> Dictionary:
 		return _goal("chain", "Explore %s" % name, wait, name, Vector3.INF, false)
 	var arc = isl.life.arc if isl.get("life") != null and isl.life.get("arc") != null else null
 	var journal: Node = tree.root.get_node("Journal")
+	# (1.30 round 9) landing: find the town, ask the elder, check the board (world flags: the crew's)
+	var flags: Dictionary = gm.world_flags
+	if arc != null and is_instance_valid(arc) and not journal.has(arc.key) and not flags.has(isl.life.town_flag()):
+		var vc: Vector2 = isl.sites["village"]
+		return _goal("chain", "Find the town on %s" % name, "Its elder will know what troubles the island  -  " + wait.to_lower(), "The town",
+			isl.to_global(Vector3(vc.x, isl.hv(vc), vc.y)), false)
 	if arc != null and is_instance_valid(arc) and not journal.has(arc.key):
 		return _goal("chain", "Ask %s what troubles %s" % [arc.village.elder_name, name], "Every island has its trouble  -  " + wait.to_lower(),
 			arc.village.elder_name, _npc_at(tree, arc.village.elder_name), true)
+	if arc != null and is_instance_valid(arc) and not journal.is_done(arc.key) and not flags.has(isl.life.board_flag()):
+		var b := _goal("chain", BOARD_GOAL, "What %s offers: its bounties, who needs a hand, how much you've explored" % name,
+			"Notice board", arc.village.board_node.global_position + Vector3.UP * 2.0, true)
+		b["arc"] = arc.key
+		return b
 	if arc != null and is_instance_valid(arc) and not journal.is_done(arc.key):
 		var g := _goal("chain", journal.goal(arc.key), "%s  -  %s's trouble" % [arc.def["title"], name], str(arc.def["title"]),
 			journal.target(arc.key), journal.target_is_person(arc.key))

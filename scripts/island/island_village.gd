@@ -3,13 +3,14 @@ extends Node3D
 ## A generated island's village (GenIsland.sites["village"]), from its seed: one of the
 ## layouts in VillageLayouts' pool (a town, hamlets, a walled trading post, a raised
 ## village on stilts, an abandoned one with its survivors nearby), each with the inn, a
-## walk-in trader's store and cookhouse, the elder, a job board and villagers where its
+## walk-in trader's store and cookhouse, the elder, a notice board and villagers where its
 ## people are. `plan` lays it out as data in GenIsland.prepare (a worker thread); `build`
 ## (IslandContent's village step) makes the inn and the people; `steps` the rest a piece
 ## a frame.
 ##
-## Jobs: the camp's captain, the bug lair, the beast ({"name", "at", "check"}), posted on the board as
-## notices by IslandLife (the crew's Journal), each turned in to whoever posted it. Everyone's lines
+## Jobs: the camp's captain, the bug lair, the beast ({"name", "at", "check"}), posted as bounties by IslandLife (the
+## crew's Journal), no taking (1.30): the crew's once a captain gets there, each turned in to whoever posted it. The
+## board's page (NoticeBoardScreen) lists them with the island's record and who needs a hand. Everyone's lines
 ## come from the theme's pools, dealt by the island's LineDeck (no two people say the same thing).
 
 ## (1.26) The elder's title (neutral: the body is rolled apart from it), before a name from the theme's folk.
@@ -29,10 +30,11 @@ var ctx: KitContext
 ## job id (camp, lair, beast) -> {"name", "at": island point, "check": Callable (done?)}
 var jobs := {}
 var elder_name := ""
-var _board_line := ""
-## Callable(choices, nodes) each, adding to the elder's menu and the board's (the island's arc, IslandArcs).
+## (1.30) The board's own line (the theme's "notices"/"board", dealt): its page's subtitle.
+var board_line := ""
+var board_node: Node3D
+## Callable(choices, nodes) each, adding to the elder's menu (the island's arc, IslandArcs).
 var elder_hooks: Array = []
-var board_hooks: Array = []
 
 # For villagers' routines (island space; filled as the village is built):
 ## Which of VillageLayouts.POOL this is.
@@ -217,7 +219,8 @@ func _build_board(rng: RandomNumberGenerator) -> void:
 	rcs.position = Vector3(0, 1.2, 0.6)
 	read.add_child(rcs)
 	board.add_child(read)
-	read.interacted.connect(func(_p): Dialogue.start(_key("board"), board))
+	read.interacted.connect(read_board)
+	board_node = board
 	# (1.28) the fishing contest's sign beside it: once a game day, ENTRY gold, LENGTH s (FishingContest)
 	var sign := Interactable.new()
 	sign.name = "FishingContest"
@@ -669,20 +672,19 @@ func _npc(cfg: Dictionary, p: Vector2, face: Vector2, y := INF) -> NPC:
 	return npc
 
 
-## The board's and the elder's talk with the notices posted (`notices`: KitQuests defs, src "board"; `qn` their
-## KitQuests): the board offers each, the elder takes the report of those the elder posted.
+## The elder's talk with the notices posted (`notices`: KitQuests defs, src "board"; `qn` their KitQuests): the elder
+## takes the report of those the elder posted. (1.30) The board itself has nothing to take: its page (read_board).
 func define_talk(notices: Array, qn: KitQuests) -> void:
-	if _board_line == "":
-		_board_line = isl.life.deck.one("board", LifePools.of(isl.theme)["notices"]["board"])
-	var board: Array = []
-	var nodes := {"start": {"text": _board_line, "choices": board}}
-	for q in notices:
-		qn.post(q, board, nodes)
-	for f in board_hooks:
-		f.call(board, nodes)
-	board.append({"text": "Leave it.", "next": "end"})
-	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": nodes})
+	if board_line == "":
+		board_line = isl.life.deck.one("board", LifePools.of(isl.theme)["notices"]["board"])
 	_define_elder(notices.filter(func(q): return q["giver"] == elder_name), qn)
+
+
+## (1.30) Reading the board: its page (NoticeBoardScreen), and the landing's "check the board" done for the crew.
+func read_board(_pl = null) -> void:
+	if not GameManager.world_flags.has(isl.life.board_flag()):
+		Net.world_flag(isl.life.board_flag())
+	GameMenu.open_board(isl)
 
 
 func _define_elder(notices: Array, qn: KitQuests) -> void:
@@ -695,7 +697,7 @@ func _define_elder(notices: Array, qn: KitQuests) -> void:
 	]}
 	var nodes := {
 		"intro": {"text": ["Visitors! It's been a long season. Welcome to %s." % isl.island_name,
-			"I'm %s. The board by the path has work, if you're the sort who takes it." % elder_name], "next": "menu"},
+			"I'm %s. The board by the path says what this island needs, and who's asking." % elder_name], "next": "menu"},
 		"menu": menu,
 		"about": {"text": LifePools.of(isl.theme)["elder_about"], "next": "menu"},
 		"beyond": {"text": [beyond] + ahead.map(func(n): return UniquePlaces.rumour(n)) + ["Your needle needs time on an island before it sets on the next, or something to happen here worth remembering."], "next": "menu"},

@@ -44,6 +44,12 @@ const HEAD := 2.2
 ## kind: lost "at" "yaw" "search"; scout "point" "r"; deliver "recipient" "recipient_i" "hand" "got"; clear "clear" "poi"}; and "after" (a
 ## quest id: offered only once that one is done)
 var quests: Array = []
+## (1.30) A generated island's IslandLife (null for the capital and the canal city): the town to find.
+var life: IslandLife
+## (1.30) A "walk_in" quest (a generated island's bounties) is the crew's once a captain comes this close to its place,
+## or its target falls: no taking at the board. Reaching the town: this close to the village's middle.
+const WALK_IN := 45.0
+const TOWN := 30.0
 var _marks := {}
 var _people := {}
 var _t := 0.0
@@ -52,6 +58,11 @@ var _glint_t := 0.0
 
 func _ready() -> void:
 	Dialogue.dialogue_event.connect(_on_event)
+
+
+func _exit_tree() -> void:
+	for q in quests:
+		MapMarks.clear("notice:" + str(q["id"]))
 
 
 ## The index of `q`'s first step of kind `what` (-1: none).
@@ -185,6 +196,21 @@ func report(q: Dictionary, choices: Array, nodes: Dictionary) -> void:
 	_favour(q, choices, nodes)
 
 
+## A bounty with no taking: on the held map (an X) until it's paid; the crew's once a captain comes near its place or
+## its target is down (the fight starts when you get there).
+func _walk_in(q: Dictionary, me: Node3D) -> void:
+	var id: String = q["id"]
+	if Journal.is_done(id):
+		MapMarks.clear("notice:" + id)
+		return
+	MapMarks.put("notice:" + id, q["poi"], "x", str(q["title"]))
+	if Journal.has(id):
+		return
+	var to: Vector3 = me.global_position - (q["poi"] as Vector3)
+	if Vector2(to.x, to.z).length() < WALK_IN or _cleared(id):
+		Journal.take(id)
+
+
 func _can_pay(cost: Array) -> bool:
 	var me := get_tree().get_first_node_in_group("player") as Player
 	return cost.is_empty() or (me != null and QuestRewards.can_pay(cost, me))
@@ -296,6 +322,11 @@ func _process(delta: float) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me == null:
 		return
+	if life and not get_node("/root/GameManager").world_flags.has(life.town_flag()):
+		var vc: Vector2 = life.isl.sites["village"]
+		var mp := life.isl.to_local(me.global_position)
+		if Vector2(mp.x, mp.z).distance_to(vc) < TOWN:
+			Net.world_flag(life.town_flag())
 	var glint := _glint_t <= 0.0
 	if glint:
 		_glint_t = 2.5
@@ -307,6 +338,8 @@ func _process(delta: float) -> void:
 		# first seen cleared is remembered as a world flag (saved, everyone's)
 		if Net.is_host() and q.has("clear") and not _cleared(id) and (q["clear"] as Callable).call():
 			Net.world_flag(CLEARED + id)
+		if q.get("walk_in", false):
+			_walk_in(q, me)
 		if not Journal.has(id) or Journal.is_done(id):
 			continue
 		var step := Journal.step_of(id)

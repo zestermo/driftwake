@@ -147,6 +147,15 @@ func key(what: String) -> String:
 	return "isle%d_%d_%s" % [int(isl.node["id"]), int(isl.node["seed"]), what]
 
 
+## (1.30) World flags of the landing's steps (ChainGoal): a captain reached the town, a captain read its board.
+func town_flag() -> String:
+	return key("town_found")
+
+
+func board_flag() -> String:
+	return key("board_read")
+
+
 func _notification(what: int) -> void:
 	# (let go before its people were made: the bodies plan built for them would wait forever)
 	if what == NOTIFICATION_PREDELETE:
@@ -203,6 +212,7 @@ func _setup() -> void:
 		return
 	quest_node = KitQuests.new()
 	quest_node.name = "Quests"
+	quest_node.life = self
 	isl.add_child(quest_node)
 	for q in given:
 		quest_node.add(q, isl)
@@ -241,7 +251,7 @@ func _post(v: IslandVillage) -> void:
 		var q := {"id": key("notice_" + kind), "kind": kind, "giver": by, "isle": isl.island_name, "pos": isl.position, "src": "board",
 			"title": _cap(LifePools.fill(KitQuests.NOTICE_TITLE[kind], tok)), "clear": j["check"], "poi_at": j["at"],
 			"notice": LifePools.fill(deck.one("notice_" + kind, N.get(kind, KitQuests.NOTICE_TEXT.get(kind, []))), tok), "posted": deck.one("posted", N["posted"]), "steps": [],
-			"favour_ask": FAVOUR_ASK}
+			"favour_ask": FAVOUR_ASK, "walk_in": true}
 		q["reward"] = _reward(q, 100 + k)
 		q["favour_thanks"] = deck.deal("favour", FAVOUR_THANKS, 1) if q["reward"].has("favour") else []
 		for s in KitQuests.STEPS[kind]:
