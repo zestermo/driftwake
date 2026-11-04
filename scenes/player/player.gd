@@ -3799,3 +3799,73 @@ func echo_dodge_reflex() -> bool:
 
 ## (1.27) Clockwork's Haste (Net._all_haste): this much quicker.
 const HASTE_K := 1.25
+
+
+## (1.30) The ground step-up: walking or running into a ledge up to STEP_MAX (a fallen log, a footing, a low wall) lifts
+## the captain onto it over a few ticks (STEP_RATE), the stick's velocity untouched; taller still needs a jump. The Move
+## state asks: step_lift before its slide, step_check after it, stepping() while it would otherwise fall.
+const STEP_MAX := 0.62
+const STEP_RATE := 7.0
+const STEP_PROBE := 0.3
+var _step_left := 0.0
+var _step_grace := 0
+
+
+func stepping() -> bool:
+	return _step_left > 0.0 or _step_grace > 0
+
+
+func step_stop() -> void:
+	_step_left = 0.0
+	_step_grace = 0
+
+
+func step_lift(delta: float) -> void:
+	if _step_grace > 0:
+		_step_grace -= 1
+	if _step_left <= 0.0:
+		return
+	var lift := minf(_step_left, STEP_RATE * delta)
+	if test_move(global_transform, Vector3.UP * lift):
+		_step_left = 0.0
+		return
+	global_position.y += lift
+	_step_left -= lift
+	velocity.y = 0.0
+	_step_grace = 8
+	_step_y = global_position.y
+
+
+var _step_y := 0.0
+
+
+## After the slide: blocked by a wall while pushing into it, is there a walkable top within STEP_MAX over our feet?
+func step_check(dir: Vector3) -> void:
+	# (the capsule's round foot rides up the edge by itself near the top: that much less left to lift)
+	if _step_left > 0.0:
+		_step_left = maxf(_step_left - maxf(global_position.y - _step_y, 0.0), 0.0)
+		if _step_left <= 0.0:
+			apply_floor_snap()
+		return
+	if dir.length_squared() < 0.01 or not is_on_floor():
+		return
+	var flat := Vector3(dir.x, 0.0, dir.z).normalized()
+	var blocked := false
+	for i in range(get_slide_collision_count()):
+		var n := get_slide_collision(i).get_normal()
+		if absf(n.y) < 0.3 and n.dot(flat) < -0.4:
+			blocked = true
+	if not blocked:
+		return
+	var from := global_transform
+	if test_move(from, Vector3.UP * STEP_MAX):
+		return
+	var raised := from.translated(Vector3.UP * STEP_MAX)
+	if test_move(raised, flat * STEP_PROBE):
+		return
+	var hit := KinematicCollision3D.new()
+	if not test_move(raised.translated(flat * STEP_PROBE), Vector3.DOWN * STEP_MAX, hit):
+		return
+	var rise := STEP_MAX - hit.get_travel().length()
+	if hit.get_normal().y > cos(floor_max_angle) and rise > 0.05:
+		_step_left = rise + 0.03

@@ -27,7 +27,9 @@ func physics_update(delta: float) -> void:
 
 	player.velocity.x = direction.x * speed
 	player.velocity.z = direction.z * speed
+	player.step_lift(delta)
 	player.move_and_slide()
+	player.step_check(direction)
 
 	# Combat stance strafes (faces the camera); otherwise face where we run.
 	if player.armed and not player.sprinting:
@@ -35,7 +37,7 @@ func physics_update(delta: float) -> void:
 	else:
 		face_direction(direction, delta)
 
-	if not player.is_on_floor():
+	if not player.is_on_floor() and not player.stepping():
 		transitioned.emit(self, "Fall", {})
 		return
 
@@ -55,3 +57,4 @@ func physics_update(delta: float) -> void:
 
 func exit() -> void:
 	player.sprinting = false
+	player.step_stop()
