@@ -86,9 +86,9 @@ static func captain(n: Node) -> bool:
 	return n != null and n.is_in_group("players") and not n.get("is_ai")
 
 
-## A foe's level for the gap; -1 when `n` isn't one. A level-0 foe (Brinehollow's, unscaled) is the level its curves
-## treat it as (its _lv_ref: REF, 6 for apes and beasts). An AI captain has no level of its own: what it serves under
-## (a ghost captain's, an island's), else REF.
+## A foe's level for the gap; -1 when `n` isn't one. A level-0 foe (Brinehollow's, unscaled) and an AI captain have no
+## level of their own: the island's they stand under (a ghost captain's, an island's), else REF (its _lv_ref is only
+## where its numbers were tuned, not what it's called).
 static func foe_level(n: Node) -> int:
 	if n == null:
 		return -1
@@ -99,7 +99,7 @@ static func foe_level(n: Node) -> int:
 	var lv: int = n.get("level")
 	if lv > 0:
 		return lv
-	return n.call("_lv_ref") if n.has_method("_lv_ref") else REF
+	return _served_level(n)
 
 
 static func _served_level(n: Node) -> int:

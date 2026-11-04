@@ -833,7 +833,7 @@ func _process(delta: float) -> void:
 func _boss_hud(me: Node3D, alive: bool) -> void:
 	var show := me != null and alive and queen.in_combat() and me.global_position.distance_to(global_position) < R_OUT + 10.0
 	if show:
-		get_tree().call_group("hud", "show_boss", "The Brood Queen", queen.health_frac(), queen.phase)
+		get_tree().call_group("hud", "show_boss", "The Brood Queen", queen.health_frac(), queen.phase, queen)
 		_boss_ui = true
 	elif _boss_ui:
 		_boss_ui = false

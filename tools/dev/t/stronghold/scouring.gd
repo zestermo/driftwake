@@ -51,9 +51,11 @@ func _process(_d: float) -> bool:
 			sc.grace = 1.0
 			sc.count = 1.0
 			sc.force_admiral = true
-			gm.world_flags["sh_seal_keep"] = true
+			gm.world_flags["sh_scouring"] = true
 			until = TK.wait_secs(0.5)
 		3:
+			check("ordered at Vane's last stand: the Scouring is ordered, not 'has fallen' (%s)" % [sc._said.keys()], sc._said.has("broadcast") and not sc._said.has("fallen"))
+			gm.world_flags["sh_seal_keep"] = true
 			check("the broadcast: the grace before it (%s)" % sc.state, sc.state == "grace")
 			check("...and the garrison stands down", isl.city.get_node("Garrison_ward").respawn_time > 1.0e8 and not isl.city.get_node("Officers").is_processing())
 			# our captain out in the ward
@@ -62,6 +64,7 @@ func _process(_d: float) -> bool:
 			hp0 = p.health_component.current_health
 			until = TK.wait_secs(9.0)
 		4:
+			check("'has fallen' once the Commodore is beaten", sc._said.has("fallen"))
 			check("the Scouring: shells falling (%d so far, %d burning)" % [sc._next, sc.fires.size()], sc.state == "barrage" and sc._next >= 5 and sc.fires.size() >= 1)
 			check("...our captain hurt by them (%.0f -> %.0f)" % [hp0, p.health_component.current_health], p.health_component.current_health < hp0)
 			var adm = isl.city.get_node_or_null("Admiral")

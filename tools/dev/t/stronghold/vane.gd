@@ -60,6 +60,10 @@ func _process(_d: float) -> bool:
 			var adds = isl.city.get_node_or_null("Encounter_adds_vane")
 			check("at 65%% the fortress answers: phase %d, marines pour in (%d)" % [bnode.phase(), adds.alive_count() if adds else -1], bnode.phase() == 2 and adds != null and adds.alive_count() == 5)
 			check("...and the hall's quarters flare in turn (%d zones)" % bnode.zones().size(), bnode.zones().size() == 4 and bnode._strips.size() == 4)
+			check("(1.30) up on the roof, the hall's quarters rest (away %s, live %s)" % [bnode.away(), bnode.channel_now()], bnode.away() and bnode.channel_now()[0] == -1)
+			vane.global_position = bnode.global_position + Vector3(0, 0.6, 0)
+			vane.reset_physics_interpolation()
+			check("...and flare again if he comes back down", not bnode.away() and bnode.channel_now()[0] >= 0)
 			vane.health_component.take_damage(vane.health_component.max_health * 0.4)
 			until = TK.wait_secs(1.0)
 		5:

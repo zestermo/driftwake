@@ -157,7 +157,9 @@ static func _perch() -> StaticBody3D:
 
 ## The cell block in the prison yard: stone walls and a roof, the yard side barred cells either side of its door.
 static func _cells() -> StaticBody3D:
-	var stone := PSXMat.lit("stone_brick", Color(0.5, 0.53, 0.58))
+	var stone := StrongholdShell._wall_m()
+	var navy := StrongholdShell._trim_m()
+	var gold := StrongholdShell._gold_m()
 	var iron := PSXMat.lit("metal", Color(0.3, 0.31, 0.34))
 	var r := CELLS
 	var y := 14.0
@@ -169,7 +171,8 @@ static func _cells() -> StaticBody3D:
 		[Transform3D(Basis(), Vector3(r.position.x + t * 0.5, y + h * 0.5, r.get_center().y)), Vector3(t, h, r.size.y), stone],
 		[Transform3D(Basis(), Vector3(r.get_center().x, y + h * 0.5, r.position.y + t * 0.5)), Vector3(r.size.x, h, t), stone],
 		[Transform3D(Basis(), Vector3(r.get_center().x, y + h * 0.5, r.end.y - t * 0.5)), Vector3(r.size.x, h, t), stone],
-		[Transform3D(Basis(), Vector3(r.get_center().x, y + h + 0.3, r.get_center().y)), Vector3(r.size.x + 0.8, 0.6, r.size.y + 0.8), stone],
+		[Transform3D(Basis(), Vector3(r.get_center().x, y + h + 0.3, r.get_center().y)), Vector3(r.size.x + 0.8, 0.6, r.size.y + 0.8), navy],
+		[Transform3D(Basis(), Vector3(r.get_center().x, y + h + 0.05, r.get_center().y)), Vector3(r.size.x + 0.9, 0.12, r.size.y + 0.9), gold, false],
 	]
 	for s: float in [-1.0, 1.0]:
 		var zc := r.get_center().y + s * (door * 0.5 + seg * 0.5)
@@ -177,8 +180,8 @@ static func _cells() -> StaticBody3D:
 		var n := int(seg / 0.45)
 		for k in range(n + 1):
 			boxes.append([Transform3D(Basis(), Vector3(r.end.x - t * 0.5, y + h * 0.45, zc - seg * 0.5 + k * seg / n)), Vector3(0.1, h * 0.9, 0.1), iron, false])
-		boxes.append([Transform3D(Basis(), Vector3(r.end.x - t * 0.5, y + h - 0.3, zc)), Vector3(t, 0.6, seg), stone, false])
-	boxes.append([Transform3D(Basis(), Vector3(r.end.x - t * 0.5, y + h - 0.6, r.get_center().y)), Vector3(t + 0.2, 1.2, door + 0.4), stone, false])
+		boxes.append([Transform3D(Basis(), Vector3(r.end.x - t * 0.5, y + h - 0.3, zc)), Vector3(t, 0.6, seg), navy, false])
+	boxes.append([Transform3D(Basis(), Vector3(r.end.x - t * 0.5, y + h - 0.6, r.get_center().y)), Vector3(t + 0.2, 1.2, door + 0.4), navy, false])
 	return _body("CellBlock", boxes)
 
 

@@ -922,6 +922,8 @@ func _tiny_label() -> Label:
 # --------------------------------------------------------------------------
 var _boss_box: VBoxContainer
 var _boss_name: Label
+var _boss_badge: PanelContainer
+var _boss_badge_label: Label
 var _boss_bar: ProgressBar
 var _boss_ticks: Array = []
 var _boss_shown: float = 0.0
@@ -949,7 +951,29 @@ func _build_bars() -> void:
 	_boss_name.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
 	_boss_name.add_theme_constant_override("outline_size", 4)
 	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_boss_box.add_child(_boss_name)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_box.add_child(row)
+	_boss_badge = PanelContainer.new()
+	_boss_badge.name = "Level"
+	_boss_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_boss_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_badge.visible = false
+	var bs := StyleBoxFlat.new()
+	bs.bg_color = Color("0c2427")
+	bs.set_border_width_all(1)
+	bs.content_margin_left = 2
+	bs.content_margin_right = 2
+	bs.content_margin_top = 0
+	bs.content_margin_bottom = 0
+	_boss_badge.add_theme_stylebox_override("panel", bs)
+	_boss_badge_label = UIStyle.label("", 8, Levels.BADGE_WHITE)
+	_boss_badge_label.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	_boss_badge.add_child(_boss_badge_label)
+	row.add_child(_boss_badge)
+	row.add_child(_boss_name)
 	# the bar sunk in a gilt-rimmed well
 	var well := PanelContainer.new()
 	well.add_theme_stylebox_override("panel", UIStyle.framed(UIStyle.OUTLINE, UIStyle.BORDER_DIM, "well", 3, 3))
@@ -1006,12 +1030,20 @@ func _build_bars() -> void:
 	add_child(_sail_gauge)
 
 
-## The boss's name and health across the top (phase marks on the bar).
-func show_boss(boss_name: String, frac: float, phase: int) -> void:
+## The boss's name and health across the top (phase marks on the bar), its level in a badge before the name when `foe`
+## (the boss itself) has one, coloured by the gap to this captain as the small bars' (EnemyBars).
+func show_boss(boss_name: String, frac: float, phase: int, foe: Node = null) -> void:
 	if _boss_box == null:
 		return
 	_boss_box.visible = not _menu_open
 	_boss_name.text = boss_name
+	var lv := Levels.foe_level(foe)
+	_boss_badge.visible = lv >= 0
+	if lv >= 0:
+		var col := Levels.badge(Levels.gap_to(foe, player))
+		_boss_badge_label.text = str(lv)
+		_boss_badge_label.add_theme_color_override("font_color", col)
+		(_boss_badge.get_theme_stylebox("panel") as StyleBoxFlat).border_color = col
 	var prev := _boss_bar.value
 	_boss_bar.value = clampf(frac, 0.0, 1.0)
 	if _boss_bar.value < prev - 0.001:

@@ -10229,3 +10229,12 @@ bells, posts, patrols, doors, arenas) where it was.
 - Tests: t/stronghold (all), new t/stronghold/dressing (props built and off the anchors, the warships solid, the cell
   tiers' catwalks hold a captain). Renders: strongholdshot (new shots foundry_yard, cellblock, battery, warships,
   hall_side).
+
+## 2026-11-04: 1.30 stronghold + badge fixes
+
+- **Scouring broadcast** (StrongholdScouring): "Scour <island>" / "The Scouring is ordered" when it starts (sh_scouring at Vane's 30%, or his fall); "<island> has fallen" only at sh_seal_keep. t/stronghold/scouring checks both.
+- **Vane's hall hazards** (StrongholdBoss.away): the quarters rest while BossVane is above the hall (on the roof), flare again when he's down. Read from the boss node on every machine. t/stronghold/vane.
+- **Late joiners** (StrongholdReinforce.net_set_gen): more than one wave behind -> only the host's current wave spawns, nothing replays; the island's catch-up frees the dead. Earlier waves' survivors aren't spawned on the late joiner's screen. t/stronghold/late_join.
+- **Cell block** (StrongholdActs._cells): the Admiralty palette (white stone walls, navy roof and lintels, a gold line on the roof).
+- **Boss bar level badge** (PlayerHUD.show_boss gets the boss as a 4th arg): the same badge as EnemyBars (Levels.badge by gap). Passed by beast_arena, brood_cave, dungeon, leviathan, sea_king; Redtide's call (redtide_fort.gd) and the duel's still show none. t/ui/boss_badge.
+- **Level-0 foes** (Levels.foe_level): the level of the island they stand under (REF with none), no longer their _lv_ref (the apes' 6 gave a red badge to a level-3 captain on Brinehollow). _lv_ref still only scales their numbers.

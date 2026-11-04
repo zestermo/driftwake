@@ -130,9 +130,11 @@ func net_gen():
 	return gen
 
 
-## Co-op client: the host is on wave g; every wave we haven't seen comes (the host's dead among them are freed by the
-## island's catch-up).
+## Co-op client: the host is on wave g. The next wave comes as it's called; a captain who joined late (more than one
+## wave behind) gets the current wave only, the earlier ones aren't replayed (the island's catch-up frees the dead).
 func net_set_gen(g) -> void:
+	if int(g) - gen > 1:
+		gen = int(g) - 1
 	while gen < int(g):
 		gen += 1
 		_wave(gen)

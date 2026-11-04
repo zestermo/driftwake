@@ -494,9 +494,17 @@ func _build_zones() -> void:
 		_strips.append(mi)
 
 
+## Vane up on his roof, out of the hall: its quarters rest until he's back down (any machine: the boss is on each).
+func away() -> bool:
+	if key != "vane" or rm.is_empty():
+		return false
+	var b := isl.city.get_node_or_null("Boss%s" % key.capitalize()) as Node3D
+	return b != null and b.global_position.y > global_position.y + float(rm[4])
+
+
 ## Which zone is live now and how ([index, "warn" / "burn" / ""]): the same on every machine (Ocean.clock).
 func channel_now() -> Array:
-	if _strips.is_empty() or phase() < 2 or beaten():
+	if _strips.is_empty() or phase() < 2 or beaten() or away():
 		return [-1, ""]
 	var t := float(get_node("/root/Ocean").clock())
 	var i := int(floor(t / CYCLE)) % _strips.size()

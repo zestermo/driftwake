@@ -92,12 +92,14 @@ func _process(delta: float) -> void:
 		state = "escaped"
 		_banner("escaped", "Out of the ring", "You survived the Scouring. %s burns behind you." % isl.island_name)
 		return
+	if _flag("sh_seal_keep"):
+		_banner("fallen", "All ships. %s has fallen." % isl.island_name, "The Commodore is dead.")
 	if t0 < 0.0:
 		# (1.30) ordered as the Commodore makes his last stand on the Verdict's roof ("sh_scouring"), or at his fall
 		if not _flag("sh_seal_keep") and not _flag("sh_scouring"):
 			return
 		t0 = _clock()
-		_banner("broadcast", "All ships. %s has fallen." % isl.island_name, "The Scouring is ordered.")
+		_banner("broadcast", "All ships. Scour %s." % isl.island_name, "The Scouring is ordered.")
 		_stand_down()
 	var t := _clock() - t0
 	if t < grace:
