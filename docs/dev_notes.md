@@ -10180,6 +10180,18 @@ bells, posts, patrols, doors, arenas) where it was.
     plaza, a drill corner (dummies, rack, board), laundry over the strips behind the halls.
   - Galleries (new ways): timber galleries on brackets 1.4 m under the walk along the inside of the Arsenal's and the
     Prison's outer walls (a captain grappled onto the wall steps down onto one), railed, each with a stair to the yard.
+- **Interiors shaped** (`scripts/island/stronghold_interiors.gd`, StrongholdInteriors.build from StrongholdDress's
+  "dress interiors" step; Zach: "not just completely square"): per room (`SPEC`: bay, spring, rise, window walls, hearth)
+  skirting, dado rail and a cornice at the spring; a blind arcade of pilasters (colliders) with plinths and gold-banded
+  capitals and arches between, cut round the door; tall arched leaded windows in alternate bays; a segmental barrel vault
+  with navy ribs and lamps on chains (Mess, Barracks, Command Hall), king-post trusses on corbels, purlins, hooks and a
+  travelling crane (Casting Hall); a fireplace built into a wall (Mess west, Barracks east, Command Hall east between the
+  desk and the shelf). The door's frame inside with an arched head. Pilasters skip `keep_out` rects (the kitchen, the
+  dresser, the racks, the furnaces, the bench). Everything within 1.6 m of a wall or overhead: Kesh's channels and pours
+  and Vane's quadrants untouched. Density: the Mess's crockery dresser, food on the tables, hams, sacks, posters; the
+  Barracks' runner, boots, a clothes rail, a second rack; the Command Hall's charts, armour stands, a globe; the Casting
+  Hall's bellows (between the furnaces and the middle channel), coal, anvils, ingots. Outside, the Verdict's base gets a
+  blind arcade with windows round its front and sides and the Command Hall's door a deep arched frame.
 - **Warships moored** (`StrongholdIsland.MOORED`, finish step "warships"): one Admiralty warship hull built
   (HullBuilder, the warship look), absorbed four times into one mesh outside the sea walls (clear of the boat lanes and the
   channel), a box collider over each hull.

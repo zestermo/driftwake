@@ -948,9 +948,7 @@ static func _furnish(mb: MeshBuilder, cols: Array, rm: Array) -> void:
 					_block(mb, cols, wood, M.xf(M.v3(c + Vector2(-1.0, z + s * 1.4), y + 0.45)), Vector3(14.0, 0.12, 0.5))
 				for x: float in [-7.0, 5.0]:
 					mb.add_box(wood, M.xf(M.v3(c + Vector2(x, z), y + 0.4)), Vector3(0.2, 0.8, 1.4), 0.5)
-			var hc := Vector2(r.position.x + 0.8, c.y)
-			_block(mb, cols, _dark_m(), M.xf(M.v3(hc, y + 1.8)), Vector3(1.6, 3.6, 4.0))
-			mb.add_box(_fire_m(), M.xf(M.v3(hc + Vector2(0.85, 0), y + 0.7)), Vector3(0.1, 1.0, 2.4), 1.0, Color.WHITE, false)
+			# (the hearth: StrongholdInteriors builds it into the west wall)
 			lights.append([M.v3(c, y + h - 2.0), 16.0])
 		"barracks":
 			# bunks two high along both long walls

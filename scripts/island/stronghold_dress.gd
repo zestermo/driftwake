@@ -26,7 +26,8 @@ static func build(build_ms: Dictionary) -> Dictionary:
 	_placed = {}
 	_anchors = _anchor_list()
 	for step in [["dress landing", _landing], ["dress foundry", _foundry], ["dress prison", _prison], ["dress keep", _keep],
-			["dress halls", _halls], ["dress batteries", _batteries], ["dress ward", _ward], ["dress galleries", _galleries]]:
+			["dress halls", _halls], ["dress batteries", _batteries], ["dress ward", _ward], ["dress galleries", _galleries],
+			["dress interiors", _interiors]]:
 		var t0 := Time.get_ticks_usec()
 		step[1].call(out)
 		build_ms[step[0]] = (Time.get_ticks_usec() - t0) / 1000.0
@@ -314,8 +315,6 @@ static func _foundry(out: Array) -> void:
 			var ln := float(rr[1]) - float(rr[0])
 			mb.add_box(soot, M.xf(M.v3(e + al * u, iy + 2.5), M.yaw_of(al)), Vector3(0.04, 5.0, ln), 0.5, Color(0.75, 0.72, 0.7))
 			mb.add_box(soot, M.xf(M.v3(e + al * u - f * 0.01, iy + 7.0), M.yaw_of(al)), Vector3(0.04, 4.0, ln), 0.5, Color(1.6, 1.55, 1.5))
-	for k in range(6):
-		mb.add_box(wood, M.xf(M.v3(Vector2(ir.position.x + 2.0 + k * (ir.size.x - 4.0) / 5.0, ir.get_center().y), iy + 13.2)), Vector3(0.5, 0.6, ir.size.y), 0.5, Color(0.4, 0.38, 0.36))
 	CapitalShell._piece(out, "DressFoundry", mb, _cols, RANGE, false)
 
 
@@ -540,6 +539,41 @@ static func _keep(out: Array) -> void:
 		mb.add_box(PSXMat.glow(Color(1.0, 0.5, 0.15), 2.0), M.xf(M.v3(q, ty + 2.0)), Vector3(0.7, 0.4, 0.7), 1.0)
 		mb.add_cylinder(gold, M.xf(M.v3(q + cn * -0.5, ty + 1.2)), 0.08, 0.06, 7.0, 5, 1.0)
 		mb.add_box_unit_uv(S._banner_m(), Transform3D(Basis(Vector3.UP, M.yaw_of(cn) + PI * 0.5), M.v3(q + cn * -0.5, ty + 7.0)) * Transform3D(Basis(), Vector3(1.3, 0, 0)), Vector3(2.6, 1.7, 0.04))
+	# the Verdict's base outside: a blind arcade round its front and sides (pilasters with capitals, arches, tall
+	# arched windows in every other bay), the Command Hall's door in a deep arched frame
+	var hw0: float = S.SPIRE_STAGES[0][0]
+	var spring := y + 9.6
+	for f: Vector2 in [Vector2(0, 1), Vector2(1, 0), Vector2(-1, 0)]:
+		var al := Vector2(-f.y, f.x)
+		var e := P.KEEP + f * hw0
+		var bays := 12
+		var step := hw0 * 2.0 / bays
+		for k in range(1, bays):
+			var u := -hw0 + k * step
+			if f.y > 0.0 and absf(u) < 6.0:
+				continue
+			var q := e + al * u + f * 0.2
+			_solid(mb, S._wall_m(), M.xf(M.v3(q, (y + spring) * 0.5), M.yaw_of(al)), Vector3(0.4, spring - y, 0.9))
+			mb.add_box(trim, M.xf(M.v3(q + f * 0.05, y + 0.5), M.yaw_of(al)), Vector3(0.55, 1.0, 1.1), 0.5)
+			mb.add_box(S._dark_m(), M.xf(M.v3(q + f * 0.06, spring - 0.4), M.yaw_of(al)), Vector3(0.6, 0.8, 1.2), 0.5)
+			mb.add_box(gold, M.xf(M.v3(q + f * 0.08, spring - 0.85), M.yaw_of(al)), Vector3(0.62, 0.08, 1.2), 1.0)
+		for k in range(bays):
+			var um := -hw0 + (k + 0.5) * step
+			if f.y > 0.0 and absf(um) < 6.0:
+				continue
+			var half := step * 0.5 - 0.45
+			StrongholdInteriors._arch(mb, S._dark_m(), e + al * um, al, -f, spring - 0.8 - half * 0.6, half, 0.35, 0.16, half * 0.6)
+			if k % 2 == 1:
+				StrongholdInteriors._window(mb, e + al * um, al, -f, y + 3.4, spring - 1.1, minf(step * 0.34, 1.1))
+		for rr: Array in ([[-hw0, -6.0], [6.0, hw0]] if f.y > 0.0 else [[-hw0, hw0]]):
+			var u := (float(rr[0]) + float(rr[1])) * 0.5
+			mb.add_box(trim, M.xf(M.v3(e + al * u + f * 0.3, spring + 0.3), M.yaw_of(al)), Vector3(0.6, 0.6, float(rr[1]) - float(rr[0])), 0.5)
+	var fe := P.KEEP + Vector2(0, hw0)
+	for s: float in [-1.0, 1.0]:
+		_solid(mb, S._dark_m(), M.xf(M.v3(fe + Vector2(s * 5.0, 0.6), y + 5.5)), Vector3(1.6, 11.0, 1.2))
+		mb.add_box(trim, M.xf(M.v3(fe + Vector2(s * 5.0, 0.65), y + 0.6)), Vector3(1.9, 1.2, 1.4), 0.5)
+	StrongholdInteriors._arch(mb, S._dark_m(), fe, Vector2(1, 0), Vector2(0, -1), y + 9.0, 4.2, 1.6, 1.2, 2.6)
+	StrongholdInteriors._arch(mb, trim, fe + Vector2(0, 0.6), Vector2(1, 0), Vector2(0, -1), y + 9.0, 5.8, 0.4, 0.3, 4.0)
 	CapitalShell._piece(out, "DressKeep", mb, _cols, RANGE, false)
 
 
@@ -676,6 +710,139 @@ static func _halls(out: Array) -> void:
 	_put("ward", "rack", Vector2(br.end.x - 0.4, bc.y - 4.0), by, -PI * 0.5, Vector3(0.4, 1.8, 1.6))
 	_put("ward", "board", Vector2(br.end.x - 0.25, bc.y + 4.0), by, -PI * 0.5)
 	CapitalShell._piece(out, "DressHalls", mb, _cols, 140.0, false)
+
+
+# --------------------------------------------------------------------------
+# The rooms shaped and filled
+# --------------------------------------------------------------------------
+## StrongholdInteriors (vaults, arcades, windows, trim, hearths) round what's against the walls, then the density pass:
+## the Mess's crockery dresser, food on the tables, hams and sacks by the kitchen, posters; the Barracks' runner, a
+## clothes rail, boots, a second rack; the Command Hall's maps on the walls, armour stands, a globe; the Casting
+## Hall's bellows, coal, anvils and ingots by the furnaces.
+static func _interiors(out: Array) -> void:
+	var mb := MeshBuilder.new()
+	_cols = []
+	var rng := _rng(7801)
+	var mr: Rect2 = (P.ROOMS[0][2] as Rect2).grow(-1.2)
+	var br: Rect2 = (P.ROOMS[1][2] as Rect2).grow(-1.2)
+	var cr: Rect2 = (P.ROOMS[2][2] as Rect2).grow(-1.2)
+	var kr: Rect2 = (P.ROOMS[3][2] as Rect2).grow(-1.2)
+	var mc := mr.get_center()
+	var bc := br.get_center()
+	var keep_out := [Rect2(mc.x - 5.8, mr.position.y, 3.6, 1.4), Rect2(mc.x + 0.5, mr.position.y, 5.0, 1.4),
+		Rect2(mr.position.x + 3.5, mr.end.y - 1.0, 4.0, 1.0), Rect2(mr.position.x, mc.y - 1.8, 1.0, 3.6),
+		Rect2(br.end.x - 1.0, bc.y - 5.0, 1.0, 2.0), Rect2(br.end.x - 1.0, bc.y + 3.0, 1.0, 2.0),
+		Rect2(cr.end.x - 3.4, cr.get_center().y - 8.5, 3.4, 5.0), Rect2(cr.end.x - 3.4, cr.get_center().y + 3.5, 3.4, 5.0),
+		Rect2(cr.end.x - 1.4, cr.position.y + 1.0, 1.4, 2.8)]
+	StrongholdInteriors.build(mb, _cols, keep_out)
+	var wood := PSXMat.lit("planks_dark")
+	var iron := S._iron_m()
+	var pewter := PSXMat.lit("metal", Color(0.72, 0.74, 0.78))
+	var my: float = P.ROOMS[0][3]
+	# the Mess: a crockery dresser on the south wall (the keep-out above), food along the tables, hams and sacks
+	var dq := Vector2(mr.position.x + 5.5, mr.end.y - 0.5)
+	_solid(mb, wood, M.xf(M.v3(dq, my + 0.45), PI), Vector3(4.0, 0.9, 0.9))
+	mb.add_box(wood, M.xf(M.v3(dq + Vector2(0, 0.3), my + 1.9)), Vector3(4.0, 2.0, 0.1), 1.0)
+	for row in range(3):
+		mb.add_box(wood, M.xf(M.v3(dq + Vector2(0, 0.15), my + 1.3 + row * 0.6)), Vector3(4.0, 0.05, 0.3), 1.0)
+		for k in range(9):
+			mb.add_cylinder(pewter if (k + row) % 3 else PSXMat.lit("glaze", Color(0.9, 0.92, 0.98)), Transform3D(Basis(Vector3.RIGHT, -1.3), M.v3(dq + Vector2(-1.8 + k * 0.45, 0.2), my + 1.55 + row * 0.6)), 0.18, 0.18, 0.03, 8, 1.0)
+	for z: float in [-6.0, 0.0, 6.0]:
+		for k in range(3):
+			var q := mc + Vector2(-5.5 + k * 4.5, z)
+			mb.add_box(wood, M.xf(M.v3(q, my + 0.9)), Vector3(0.6, 0.04, 0.4), 1.0, Color(0.8, 0.7, 0.55))
+			mb.add_blob(PSXMat.lit("straw", Color(0.9, 0.62, 0.32)), M.xf(M.v3(q, my + 0.98)), Vector3(0.22, 0.1, 0.14), rng, 0.1, 2, 6, 1.0)
+			mb.add_blob(PSXMat.lit("leather", Color(0.75, 0.3, 0.2)), M.xf(M.v3(q + Vector2(0.4, 0.1), my + 0.95)), Vector3(0.12, 0.08, 0.12), rng, 0.2, 2, 5, 1.0)
+	for k in range(4):
+		var hq := Vector2(mc.x - 5.6 + k * 0.5, mr.position.y + 1.6)
+		mb.add_box(iron, M.xf(M.v3(hq, my + 3.4)), Vector3(0.03, 0.6, 0.03), 1.0)
+		mb.add_blob(PSXMat.lit("leather", Color(0.6, 0.32, 0.22)), M.xf(M.v3(hq, my + 2.8)), Vector3(0.16, 0.3, 0.14), rng, 0.15, 3, 5, 1.0)
+	for k in range(5):
+		mb.add_blob(PSXMat.lit("canvas", Color(0.8, 0.74, 0.6)), M.xf(M.v3(Vector2(mr.end.x - 1.0, mr.position.y + 2.6 + k * 0.6), my)), Vector3(0.3, 0.42, 0.28), rng, 0.15, 3, 6, 1.0, Color.WHITE, true)
+	_posters(mb, Vector2(mr.end.x - 0.01, mc.y - 7.0), my + 2.0, Vector2(-1, 0))
+	# the Barracks: a runner down the middle, a clothes rail of uniforms, boots by the bunks, a second rack
+	var by: float = P.ROOMS[1][3]
+	mb.add_box(PSXMat.lit("fabric", Color(0.22, 0.28, 0.52)), M.xf(M.v3(bc, by + 0.02)), Vector3(br.size.x - 2.0, 0.03, 1.6), 0.5)
+	for s: float in [-1.0, 1.0]:
+		mb.add_box(S._gold_m(), M.xf(M.v3(bc + Vector2(0, s * 0.8), by + 0.03)), Vector3(br.size.x - 2.0, 0.03, 0.08), 1.0)
+	var n := int(br.size.x / 2.6)
+	for k in range(n):
+		var x := br.position.x + (k + 0.5) * br.size.x / n
+		for s: float in [-1.0, 1.0]:
+			var b := Vector2(x + 0.35, bc.y + s * (br.size.y * 0.5 - 2.3))
+			for j: float in [-0.1, 0.1]:
+				mb.add_box(PSXMat.lit("leather", Color(0.18, 0.15, 0.14)), M.xf(M.v3(b + Vector2(j, 0), by + 0.12)), Vector3(0.12, 0.24, 0.26), 1.0)
+	var rail := Vector2(br.position.x + 1.2, bc.y - 4.0)
+	if rail.distance_to(Vector2(22.0, 1.0)) > 4.0:
+		for z: float in [-1.2, 1.2]:
+			mb.add_box(wood, M.xf(M.v3(rail + Vector2(0, z), by + 0.9)), Vector3(0.08, 1.8, 0.08), 1.0)
+		mb.add_box(wood, M.xf(M.v3(rail, by + 1.75)), Vector3(0.06, 0.06, 2.4), 1.0)
+		for k in range(6):
+			mb.add_box(PSXMat.lit("fabric", Color(0.94, 0.95, 0.97) if k % 2 else Color(0.22, 0.28, 0.55)), M.xf(M.v3(rail + Vector2(0, -1.0 + k * 0.4), by + 1.2)), Vector3(0.5, 1.0, 0.08), 1.0)
+		M.box(_cols, M.xf(M.v3(rail, by + 0.9)), Vector3(0.6, 1.8, 2.5))
+	_put("ward", "rack", Vector2(br.position.x + 0.5, bc.y + 6.5), by, PI * 0.5, Vector3(0.4, 1.8, 1.6))
+	# the Command Hall: charts framed on the walls between the windows, armour stands, a globe by the desks
+	var ky: float = P.ROOMS[3][3]
+	for s: float in [-1.0, 1.0]:
+		var wx := kr.get_center().x + s * (kr.size.x * 0.5 - 0.02)
+		for z: float in [kr.get_center().y - 10.14, kr.get_center().y + 10.14]:
+			var t := M.xf(M.v3(Vector2(wx, z), ky + 5.2), M.yaw_of(Vector2(-s, 0)))
+			mb.add_box(wood, t, Vector3(3.2, 2.2, 0.08), 1.0, Color(0.6, 0.45, 0.3))
+			mb.add_box(PSXMat.lit("canvas", Color(0.9, 0.84, 0.66)), t * Transform3D(Basis(), Vector3(0, 0, 0.05)), Vector3(2.9, 1.9, 0.02), 0.5)
+			for k in range(5):
+				mb.add_box(PSXMat.lit("canvas", Color(0.5, 0.62, 0.42)), t * Transform3D(Basis(Vector3.BACK, rng.randf() * TAU), Vector3(rng.randf_range(-1.1, 1.1), rng.randf_range(-0.6, 0.6), 0.07)), Vector3(rng.randf_range(0.3, 0.8), rng.randf_range(0.2, 0.5), 0.01), 1.0)
+	for q: Vector2 in [Vector2(kr.position.x + 1.0, kr.end.y - 3.0), Vector2(kr.end.x - 1.0, kr.end.y - 3.0), Vector2(kr.position.x + 1.0, kr.position.y + 4.0), Vector2(kr.end.x - 1.0, kr.position.y + 4.0)]:
+		_armour(mb, q, ky)
+	var gq := Vector2(kr.position.x + 1.2, kr.get_center().y + 0.4)
+	mb.add_cylinder(wood, M.xf(M.v3(gq, ky)), 0.3, 0.12, 0.9, 6, 1.0)
+	mb.add_blob(PSXMat.lit("canvas", Color(0.55, 0.7, 0.75)), M.xf(M.v3(gq, ky + 1.3)), Vector3(0.42, 0.42, 0.42), rng, 0.0, 5, 8, 1.0)
+	mb.add_cylinder(S._gold_m(), Transform3D(Basis(Vector3.RIGHT, 0.4), M.v3(gq, ky + 1.3)), 0.5, 0.5, 0.04, 12, 1.0, Color.WHITE, false)
+	M.box(_cols, M.xf(M.v3(gq, ky + 0.85)), Vector3(1.0, 1.7, 1.0))
+	# the Casting Hall: bellows by each furnace, coal heaped in the corner, anvils and ingots along the walls
+	var cy: float = P.ROOMS[2][3]
+	for z: float in [-6.0, 6.0]:
+		# (between the furnace and the middle channel: Kesh's channels run at -9, 0 and 9)
+		var fq := Vector2(cr.end.x - 0.6, cr.get_center().y + z * 0.42)
+		var t := M.xf(M.v3(fq + Vector2(-1.0, 0), cy))
+		mb.add_extrude(PSXMat.lit("leather", Color(0.5, 0.3, 0.2)), t * Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0.5, 0)), PackedVector2Array([Vector2(-0.9, -0.3), Vector2(0.7, 0.0), Vector2(-0.9, 0.3)]), 0.8, 1.0)
+		mb.add_box(wood, t * Transform3D(Basis(), Vector3(0, 0.25, 0)), Vector3(1.0, 0.5, 2.0), 1.0)
+		mb.add_box(wood, t * Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 1.1, 1.0)), Vector3(0.08, 0.08, 1.4), 1.0)
+		M.box(_cols, t * Transform3D(Basis(), Vector3(0, 0.5, 0)), Vector3(1.0, 1.0, 2.0))
+	var coal := Vector2(cr.end.x - 1.4, cr.end.y - 1.4)
+	mb.add_blob(PSXMat.lit("black_rock", Color(0.2, 0.2, 0.22)), M.xf(M.v3(coal, cy)), Vector3(1.3, 0.9, 1.3), rng, 0.3, 4, 8, 1.0, Color.WHITE, true)
+	M.box(_cols, M.xf(M.v3(coal, cy + 0.45)), Vector3(2.2, 0.9, 2.2))
+	for q: Vector2 in [Vector2(cr.position.x + 1.0, cr.position.y + 1.2), Vector2(cr.position.x + 1.0, cr.end.y - 1.2)]:
+		_put("arsenal", "anvil", q, cy, rng.randf() * TAU, Vector3(0.8, 0.9, 0.5))
+		_put("arsenal", "ingots", q + Vector2(1.6, 0), cy, 0.0, Vector3(1.2, 0.7, 0.8))
+	CapitalShell._piece(out, "DressInteriors", mb, _cols, 140.0, false)
+
+
+## Wanted posters pinned to a wall at frame point q (its face), facing f: a few sheets, slightly askew.
+static func _posters(mb: MeshBuilder, q: Vector2, y: float, f: Vector2) -> void:
+	var m := PSXMat.lit("admiralty_wanted", Color.WHITE, {"vertex_color": false})
+	var al := Vector2(-f.y, f.x)
+	for k in range(3):
+		var t := Transform3D(Basis(Vector3.UP, M.yaw_of(f)) * Basis(Vector3.BACK, (k - 1) * 0.06), M.v3(q + f * 0.02 + al * (k - 1) * 1.0, y + (k % 2) * 0.2))
+		mb.add_box_unit_uv(m, t, Vector3(0.8, 0.8, 0.01))
+
+
+## An officer's armour on a stand: a post and a cross-tree, a navy coat with gold buttons, a breastplate, a sword.
+static func _armour(mb: MeshBuilder, q: Vector2, y: float) -> void:
+	var wood := PSXMat.lit("planks_dark")
+	mb.add_box(wood, M.xf(M.v3(q, y + 0.05)), Vector3(0.6, 0.1, 0.6), 1.0)
+	mb.add_box(wood, M.xf(M.v3(q, y + 0.9)), Vector3(0.08, 1.8, 0.08), 1.0)
+	mb.add_box(PSXMat.lit("fabric", Color(0.22, 0.28, 0.55)), M.xf(M.v3(q, y + 1.2)), Vector3(0.6, 0.8, 0.3), 1.0)
+	mb.add_box(PSXMat.lit("metal", Color(0.8, 0.82, 0.86)), M.xf(M.v3(q, y + 1.35)), Vector3(0.5, 0.5, 0.34), 1.0)
+	for k in range(3):
+		mb.add_box(S._gold_m(), M.xf(M.v3(q, y + 1.05 + k * 0.1)), Vector3(0.05, 0.04, 0.36), 1.0)
+	mb.add_blob(PSXMat.lit("fabric", Color(0.95, 0.95, 0.97)), M.xf(M.v3(q, y + 1.75)), Vector3(0.16, 0.14, 0.18), _rng(int(q.x * 10.0)), 0.0, 3, 6, 1.0)
+	mb.add_box(S._iron_m(), Transform3D(Basis(Vector3.BACK, 0.2), M.v3(q + Vector2(0.3, 0), y + 0.8)), Vector3(0.05, 1.0, 0.08), 1.0)
+	M.box(_cols, M.xf(M.v3(q, y + 0.9)), Vector3(0.7, 1.8, 0.7))
+
+
+static func _solid(mb: MeshBuilder, m: Material, t: Transform3D, size: Vector3) -> void:
+	mb.add_box(m, t, size, 1.0)
+	M.box(_cols, t, size)
 
 
 # --------------------------------------------------------------------------
