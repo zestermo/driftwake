@@ -9653,6 +9653,59 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   floor), t/stronghold/solid_ground (every 1.5 m of every district to its edges, the ways along and across),
   t/player/unstuck_menu, t/player/unstuck_auto, t/ship/unstuck_deck.
 
+## 2026-11-03: 1.30 the atoll's underwater, piece 1: the seabed's edge and dressing (Zach's 1.28 playtest)
+- **The hard edges were two.** (1) The floor's texture: under -1 m the terrain shader swaps the beach sand for the
+  `seafloor` layer, and atoll_seafloor was a darker cream with big blocky turtle-grass blots: a crisp line along every
+  sandbar and head. It's now the beaches' own palette in soft ripples (gen_atoll_textures.py `gen_atoll_seafloor`), so
+  the waterline has no seam. (2) From the surface, grey stair-stepped patches in the lagoon: where a texel of the shore
+  map is FAR (64 m) from any shore, `shore_pick` (`s.y < best.y`) keeps the open sea's NONE, so the colour read the
+  lagoon as 1000 m deep. Fixed in the colour path only (the waves' and the CPU's maths untouched): inside an atoll's
+  `lagoon_disc` (below) `ocean.gdshader` takes the map's depth whatever its swell distance (`lagoon_depth`).
+- **The terrain's two seabeds** (`terrain.gdshader` `sea_mix`, off for every other island): a KitStyle ground "deep"
+  texture (the atoll's: the open sea's dark `seafloor`) laid by the vertex alpha (AtollLand.paint: 1 in the lagoon and
+  on the reef, 0 past the drop-off's foot), dithered, so the island's square of seabed meets the sea's floor without a
+  pale plate; and a broad two-octave mottle of light and shade over the sea and wet layers (`sea_mottle`, PSXMat
+  SEA_MOTTLE 0.32). PSXMat.terrain switches both on when the ground table has "deep".
+- **The dressing** (`scripts/island/themes/atoll_seabed.gd`, steps after the reef): seagrass meadows (cross cards of
+  atoll_seagrass, 16k tufts in clumps where a meadow noise is over 0.12), coral rubble and boulders (round the heads and
+  outside the ring), shells, starfish, urchins (clumped), sponges (deeper), bleached dead coral in patches: ~23k
+  instances, MultiMesh per kind per cell (grass 60 m, the rest 90 m), the colour per instance (MultiMesh colours tint
+  psx_lit's COLOR), ranges 95-150 m from the cell's middle, no shadows, no collision. Planned a kind a step (~20 ms each).
+- **Clear water** (the brief's atoll-only depth-tint fix, gated): `atoll_water.gd` (one per atoll, twice a second) sets
+  `lagoon_disc` (x, z, the lagoon's mean radius + 6, strength fading over 200-420 m past it) on the sea's material while
+  the camera's near; inside it the deep reads `lagoon_color` (clear blue, the floor showing through: alpha -0.16)
+  instead of the open sea's deep colour. A diver's fog is the style's new `under` key ([shallow, deep, dark depth, see
+  near/far]; BRINEHOLLOW has Weather's old constants, the atoll [turquoise, clear blue, 48 m, 70/38 m]), faded in by
+  the zone weight like its weather.
+- Per frame: one AtollWater check every 0.5 s (a distance, a shader parameter); the ocean fragment does the disc's
+  distance, and 4 more shore-map fetches only inside the disc where the map says NONE. ~650 more ranged MultiMesh
+  instances on an atoll (culled by range). Build: +~170 ms over 11 steps.
+- Tests: t/island/atoll_seabed (new). Renders: atollshot `floor`, `flank`, `drop` (new), `wade`, `shoal`, `aerial`.
+
+## 2026-11-03: 1.30 the atoll's underwater, piece 2: the deep basin
+- **Where:** the blue hole grown (land "hole" = [middle, rim radius 56-70, floor -27..-33]; the same rng draws, so the
+  rest of an atoll's plan is unchanged). `AtollLand._plan_basin` (in site_at "boss", once the causeway is known): beside
+  the causeway near the lagoon's middle, its rim BASIN_OFF 22 m off the causeway's crest, BASIN_KEEP 60 m from the
+  village's islet and the boss's flat, all inside the lagoon (shrunk 10% at a time until it fits); the motu then turn
+  round the lagoon until they clear it too (16 tries). Every atoll has one. The atoll_hole place (when the chain rolls it)
+  dresses it as before: gardens round the lip, the drowned shrine and a chest on its floor.
+- **Its shape** (`AtollLand.basin_y`, the rim wobbling 10%/5% by bearing): a reef crest round the lip (-1.5 m, 9 m wide),
+  the upper wall to a ledge (38% of the way down, ~-12 m) from 0.86 to 0.74 of the rim, the lower wall to the floor at
+  0.58, the floor rolling 1.4 m. `basin_r`, `basin_ledge` for the things in it.
+- **In it** (`scripts/island/themes/atoll_basin.gd`, five steps, the slow loops breathe): coral pillars 7-10 (a tapering
+  tube of rock with lumps, crusted and sprouting coral, a table coral or a crown on top, -5..-11 m), table corals on the
+  ledge and floor, giant sea fans, 2-3 floor arches (6-9 m), overhangs off the upper wall, 1-2 swim-through caves (a
+  tunnel 12-16 m, glowing anemones inside), the walls/ledge/floor under ~6k of AtollReef's corals (bigger on the walls).
+  Rock is three merged meshes in the basin's frame (Pillars, Reefwork, Vents: ranged 250 m from its middle, unshadowed);
+  colliders are cylinders and boxes on one body. The coral rock's texture is lifted by vertex colour (ROCK) underwater.
+- **Reach** (the brief's assumption kept, no swim change): breath 20 s, down 2.6 m/s, up 3.4: a straight 30 m round trip
+  is ~21 s. **Breathing vents** (3-4, AtollBasin.Vent; on the ledge and the floor): a column of gas bubbling up (GPU
+  bubbles, atoll_shoal.gdshader mode 2); a diver of this machine's within VENT_R 1.8 m of it gets VENT_REFILL 6 s of
+  breath a second. Surface -> ledge vent ~6 s, ledge -> floor vent ~7 s, floor -> surface ~9 s.
+- Per frame/tick: a vent checks 4x a second near a swimmer (40 m), 1x otherwise; its bubbles and nothing else are the
+  GPU's. +3 draws of rock, ~60 more coral batches near the basin.
+- Tests: t/island/atoll_basin, t/swim/atoll_vent (new). Renders: atollshot `hole`, `basin_*`.
+
 ## 2026-11-03: 1.30 boss phase resets + clearing moves (v1_30_plan "Boss phases", "Boss space"; playtest row 9)
 
 - **`BossReset`** (`scripts/enemies/boss_reset.gd`, a RefCounted the boss owns; the host ticks it). `start(centre)`: a

@@ -629,12 +629,15 @@ func _update_env() -> void:
 		begin = lerpf(begin, 0.0, in_cloud)
 		end = lerpf(end, 28.0, in_cloud)
 		if under_water:
-			var deep := clampf(_under_depth / UNDER_DARK, 0.0, 1.0)
-			var wc := UNDER_SHALLOW.lerp(UNDER_DEEP, deep) * lerpf(1.0, 0.22, night) * (1.0 - storm * 0.4)
+			# (the island's own sea: KitStyle "under", the atoll's clear blue, faded in like its weather)
+			var uw: Array = _zone_style["under"]
+			var deep := clampf(_under_depth / lerpf(UNDER_DARK, float(uw[2]), zk), 0.0, 1.0)
+			var wc := UNDER_SHALLOW.lerp(uw[0], zk).lerp(UNDER_DEEP.lerp(uw[1], zk), deep) * lerpf(1.0, 0.22, night) * (1.0 - storm * 0.4)
 			fogc = Color(wc.r, wc.g, wc.b)
 			_env.fog_light_color = fogc
 			begin = 0.5
-			end = lerpf(UNDER_SEE.x, UNDER_SEE.y, deep)
+			var see: Vector2 = UNDER_SEE.lerp(uw[3], zk)
+			end = lerpf(see.x, see.y, deep)
 			_env.ambient_light_energy *= lerpf(0.9, 0.5, deep)
 		_env.fog_depth_begin = begin
 		_env.fog_depth_end = end

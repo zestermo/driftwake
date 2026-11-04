@@ -143,12 +143,47 @@ static func shape(isl, p: Vector2, h: float) -> float:
 		if d < r * 1.2:
 			s = maxf(s, lerpf(s, float(mo[2]), 1.0 - smoothstep(r * 0.45, r * 1.15, d)))
 	if lp.has("hole"):
-		var hole: Array = lp["hole"]
-		var d := p.distance_to(hole[0])
-		var r: float = hole[1]
-		if d < r + 6.0:
-			s = minf(s, lerpf(s, float(hole[2]), 1.0 - smoothstep(r * 0.55, r + 6.0, d)))
+		s = basin_y(lp, p, s)
 	return s
+
+
+## The deep basin's rim radius at bearing a from its middle (wobbling).
+static func basin_r(lp: Dictionary, a: float) -> float:
+	var hole: Array = lp["hole"]
+	var w: Array = lp["basin_wob"]
+	return float(hole[1]) * (1.0 + D.BASIN_WOB * sin(3.0 * a + float(w[0])) + D.BASIN_WOB * 0.5 * sin(5.0 * a + float(w[1])))
+
+
+## The deep basin over the lagoon floor s: a reef crest round its lip, the upper wall down to a ledge, the lower wall
+## to its rolling floor.
+static func basin_y(lp: Dictionary, p: Vector2, s: float) -> float:
+	var hole: Array = lp["hole"]
+	var off: Vector2 = p - (hole[0] as Vector2)
+	var d := off.length()
+	if d > float(hole[1]) * (1.0 + D.BASIN_WOB * 1.5) + D.BASIN_RIM + 2.0:
+		return s
+	var r := basin_r(lp, off.angle())
+	var u := d / r
+	var fy: float = hole[2]
+	var crest := 1.0 - smoothstep(0.0, D.BASIN_RIM, absf(d - r - 2.0))
+	if u >= 0.97:
+		s = maxf(s, lerpf(s, D.BASIN_CREST, crest))
+	var ledge := lerpf(D.BASIN_CREST, fy, D.LEDGE_K)
+	var y: float
+	if u > D.LEDGE[1]:
+		y = lerpf(ledge, D.BASIN_CREST, smoothstep(D.LEDGE[1], 1.0, u))
+	elif u > D.LEDGE[0]:
+		y = lerpf(ledge - 2.5, ledge, smoothstep(D.LEDGE[0], D.LEDGE[1], u))
+	elif u > D.FLOOR_U:
+		y = lerpf(fy, ledge - 2.5, smoothstep(D.FLOOR_U, D.LEDGE[0], u))
+	else:
+		y = fy + (lp["floor"] as FastNoiseLite).get_noise_2d(p.x * 2.5, p.y * 2.5) * D.BASIN_ROLL
+	return minf(s, y)
+
+
+## Where the basin's ledge runs (u of the rim's radius) and its depth.
+static func basin_ledge(lp: Dictionary) -> Vector2:
+	return Vector2((D.LEDGE[0] + D.LEDGE[1]) * 0.5, lerpf(D.BASIN_CREST, float(lp["hole"][2]), D.LEDGE_K) - 1.2)
 
 
 ## The causeway's sandbar from the village to the boss's flat, with a swim or two across it.
@@ -204,25 +239,19 @@ static func site_at(isl, site: String, p: Vector2) -> Vector2:
 			var far := ring_r(isl, va + PI)[1] as float
 			var b := -v.normalized() * far * D.BOSS_OUT
 			lp["causeway"] = [ring_point(isl, va, 1.0), b]
+			_plan_basin(isl, lp, v, b)
+			var hole: Array = lp["hole"]
 			for mo in lp["motu"]:
-				for k in range(12):
+				for k in range(16):
 					var c: Vector2 = mo[0]
 					var cw: Array = lp["causeway"]
 					var ab: Vector2 = (cw[1] as Vector2) - (cw[0] as Vector2)
 					var t := clampf((c - (cw[0] as Vector2)).dot(ab) / ab.length_squared(), 0.0, 1.0)
 					var clear: bool = c.distance_to(v) > D.MOTU_KEEP and c.distance_to((cw[0] as Vector2) + ab * t) > float(mo[1]) + 14.0 \
-						and c.distance_to(b) > float(mo[1]) + 45.0
+						and c.distance_to(b) > float(mo[1]) + 45.0 and c.distance_to(hole[0]) > float(mo[1]) + float(hole[1]) * 1.15 + D.BASIN_RIM + 8.0
 					if clear:
 						break
 					mo[0] = c.rotated(0.45)
-			var ha := va + PI + float(lp["hole_turn"])
-			var hc := Vector2.ZERO
-			for k in range(8):
-				hc = Vector2.from_angle(ha) * float(ring_r(isl, ha)[1]) * float(lp["hole_out"])
-				if (lp["motu"] as Array).all(func(mo): return hc.distance_to(mo[0]) > float(mo[1]) + float(lp["hole_r"]) + 12.0):
-					break
-				ha += 0.35 * signf(float(lp["hole_turn"]))
-			lp["hole"] = [hc, float(lp["hole_r"]), float(lp["hole_y"])]
 			return b
 		"cave":
 			# (a lagoon islet's: the ring's islets are narrow and the paths run along them)
@@ -250,6 +279,34 @@ static func site_at(isl, site: String, p: Vector2) -> Vector2:
 				a += D.PASS_HALF * 2.0
 			return ring_point(isl, a, 0.5)
 	return p
+
+
+## The deep basin (land "hole"): beside the causeway near the lagoon's middle, its rim BASIN_OFF m clear of the
+## causeway's crest, away from the village and the boss's flat, all of it inside the lagoon (smaller until it fits).
+static func _plan_basin(isl, lp: Dictionary, v: Vector2, b: Vector2) -> void:
+	var cw: Array = lp["causeway"]
+	var a0: Vector2 = cw[0]
+	var ab: Vector2 = (cw[1] as Vector2) - a0
+	var n := ab.normalized().orthogonal()
+	var r := float(lp["hole_r"])
+	var brng := RandomNumberGenerator.new()
+	brng.seed = hash([float(lp["hole_r"]), float(lp["hole_turn"]), "basin"])
+	lp["basin_wob"] = [brng.randf() * TAU, brng.randf() * TAU]
+	var best := Vector2.ZERO
+	for shrink in range(8):
+		var reach := r * (1.0 + D.BASIN_WOB * 1.5) + D.BASIN_RIM
+		for side in [float(lp["side"]), -float(lp["side"])]:
+			for t in [0.55, 0.45, 0.65, 0.35, 0.75]:
+				var c: Vector2 = a0 + ab * t + n * side * (reach + D.CAUSEWAY_HW + D.BASIN_OFF)
+				var inner: float = ring_r(isl, c.angle())[1]
+				if c.length() + reach < inner - 8.0 and c.distance_to(v) > reach + D.VILLAGE_R + D.BASIN_KEEP \
+						and c.distance_to(b) > reach + D.BASIN_KEEP:
+					lp["hole"] = [c, r, float(lp["hole_y"])]
+					return
+				if best == Vector2.ZERO:
+					best = c
+		r *= 0.9
+	lp["hole"] = [best, r, float(lp["hole_y"])]
 
 
 ## The paths: along the ring from the village round to each site on it (wading the sandbars, swimming a pass), straight
@@ -285,14 +342,17 @@ static func growth(isl, p: Vector2) -> Vector2:
 	return Vector2(smoothstep(0.6, 1.3, h), lerpf(0.25, 1.0, smoothstep(0.0, 1.0, h)))
 
 
-## Coral sand everywhere low; worn rock round the islets' sea faces; nothing trodden under the water.
+## Coral sand everywhere low; worn rock round the islets' sea faces; nothing trodden under the water. The alpha is the
+## seabed's kind (PSXMat.terrain's "deep"): the lagoon's and the reef's pale sand, going over to the open sea's dark
+## floor down the drop-off outside the ring (so the island's square of seabed meets the sea's without a line).
 static func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
+	var t: float = isl._coast_t(p)
+	splat.a = 1.0 - smoothstep(D.REEF_FLAT + D.DROP * 0.35, D.REEF_FLAT + D.DROP * 1.6, t)
 	if h < 0.25:
 		splat.r = 0.0
 		splat.g = 0.0
 		splat.b = 1.0
 		return splat
-	var t: float = isl._coast_t(p)
 	if t > -8.0 and t < 2.0:
 		var rock := (1.0 - smoothstep(0.0, 8.0, -t)) * islet_at(isl.land_plan, atan2(p.y, p.x)) * 0.65
 		splat.g = maxf(splat.g, rock * (1.0 - splat.r))
@@ -301,4 +361,16 @@ static func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 static func steps(isl) -> Array:
 	return [["atoll spots", func(): AtollSpots.build(isl)], ["atoll shoals", func(): SHOALS.build(isl)],
-		["atoll reef", func(): load("res://scripts/island/themes/atoll_reef.gd").build(isl)]]
+		["atoll reef", func(): load("res://scripts/island/themes/atoll_reef.gd").build(isl)], ["atoll water", func(): _water(isl)]] \
+		+ load("res://scripts/island/themes/atoll_basin.gd").steps(isl) + load("res://scripts/island/themes/atoll_seabed.gd").steps(isl)
+
+
+## The lagoon's clear water (atoll_water.gd): a disc over it, the lagoon's edge on average.
+static func _water(isl) -> void:
+	var w: Node3D = load("res://scripts/island/themes/atoll_water.gd").new()
+	w.name = "AtollWater"
+	var r := 0.0
+	for k in range(32):
+		r += float(ring_r(isl, TAU * k / 32.0)[1]) / 32.0
+	w.radius = r + 6.0
+	isl.add_child(w)
