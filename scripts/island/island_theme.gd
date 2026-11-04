@@ -59,6 +59,22 @@ static func trunk_cols(body: Node, mesh: Mesh, xf: Transform3D) -> bool:
 	return not tk.is_empty()
 
 
+## Points over a surface's triangles every ~0.5 m (a trunk drawn as one tall cylinder has vertices only at its ends).
+static func wood_points(v: PackedVector3Array) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	for t in range(0, v.size() - 2, 3):
+		var a := v[t]
+		var b := v[t + 1]
+		var c := v[t + 2]
+		if minf(a.y, minf(b.y, c.y)) >= TRUNK_TOP:
+			continue
+		var k := clampi(ceili(maxf(a.distance_to(b), maxf(b.distance_to(c), c.distance_to(a))) / 0.5), 1, 16)
+		for i in range(k + 1):
+			for j in range(k + 1 - i):
+				out.append(a + (b - a) * (float(i) / k) + (c - a) * (float(j) / k))
+	return out
+
+
 static func trunk(mesh: ArrayMesh) -> Array:
 	var n := ceili(TRUNK_TOP / TRUNK_SLICE)
 	var pts: Array = []
@@ -68,7 +84,7 @@ static func trunk(mesh: ArrayMesh) -> Array:
 		var mat := mesh.surface_get_material(si) as ShaderMaterial
 		if mat == null or mat.shader != PSXMat.LIT_SHADER or (mat.has_meta("psx") and foliage(str(mat.get_meta("psx")[0]))):
 			continue
-		for v in (mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
+		for v in wood_points(mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]):
 			if v.y >= 0.0 and v.y < TRUNK_TOP:
 				(pts[int(v.y / TRUNK_SLICE)] as Array).append(v)
 	var out: Array = []

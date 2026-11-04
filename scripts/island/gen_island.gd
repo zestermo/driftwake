@@ -1266,13 +1266,14 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, col_r: 
 
 
 ## (1.30) A tree's trunk colliders where its wood stands (IslandTheme.trunk: a column per bend of a leaning or twisting
-## trunk); false when its mesh has no such profile.
+## trunk; none for one with no wood low down, the desert's reeds); false when its mesh has no profile.
 func _trunk_shapes(mesh: Mesh, xf: Transform3D, s: float) -> bool:
-	var tk: Array = mesh.get_meta("trunk", [])
-	for c in tk:
+	if not mesh.has_meta("trunk"):
+		return false
+	for c in mesh.get_meta("trunk"):
 		var m: Vector2 = c[0]
 		_shapes.append([float(c[3]) * s, (float(c[2]) - float(c[1])) * s, xf * Vector3(m.x, (float(c[1]) + float(c[2])) * 0.5, m.y)])
-	return not tk.is_empty()
+	return true
 
 
 ## A big tree from `trees` ([body, detail, lean]): its trunk's collider and a grapple
