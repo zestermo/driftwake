@@ -10703,3 +10703,19 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Tests:** t/ui, t/items, t/economy, t/quests, t/fishing/journal_screen, t/gear/coat_drape, t/coop crew_roster and
   meet_menu pass (80). Renders: tools/dev/out/review/canvas_inventory*, canvas_shop, canvas_journal*.
   `journalshot` now applies its WxH argument (it was ignored).
+
+## 2026-11-04: the UI canvas is 960x540 (piece 3: wheels, world screens, creator, title)
+
+- **Wheels** (`radial_wheel.gd`, every wheel): the ring's middle radius `max(80, n * 60 / TAU)` (was 64 / 50), the hub
+  up to 54. **Dialogue:** the page 600 wide (was 440), a little taller and higher off the bottom.
+- **Notice board** 860x470 (record 240, bounties 300, folk 290, 8 folk rows); **galley** list/card/pantry 190/280/170
+  and 330 / 300 tall; **workbench** list 190, card 320, 360 tall; **bookshelf** spines 14x40, rows 400, card 260;
+  **fish journal** card 260; **creator** preview 340 wide, name field 180; **chat** 360 wide.
+- **Unchanged on purpose:** the title (already laid out by fractions; now a whole 2x at 1080p), the loading screen
+  (drawn by fractions of the canvas), the cook game (rows by fractions), wanted and crew (they read well centred),
+  toasts, banners and the HUD (anchored to the corners: they follow the canvas).
+- **Tools:** titleshot and creatorshot take `[WxH]`; boardshot now applies its WxH. Renders in
+  tools/dev/out/review/canvas_*.png.
+- **Tests:** t/ui, t/food, t/gadgets, t/jam, t/player, t/books/shelf, t/fishing/journal_screen,
+  t/quests/island_tracker + landing_goals pass (133). t/gadgets/decoy failed once under load ("a Mk III goes off when
+  it falls apart") and passed alone: not UI.

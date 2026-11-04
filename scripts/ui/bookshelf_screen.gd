@@ -3,9 +3,9 @@ extends Control
 ## (BookData.KINDS: read books lit in their cover colour, unread ones dark "???"), the lore sets by volume with their
 ## rewards, and the picked book's card on the right (what it taught). Books has the reading.
 
-const W_ROWS := 300
-const W_CARD := 200
-const SPINE := Vector2(10, 28)
+const W_ROWS := 400
+const W_CARD := 260
+const SPINE := Vector2(14, 40)
 
 var _menu: Node
 var _count: Label

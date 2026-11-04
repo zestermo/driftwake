@@ -328,7 +328,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `count`: (no description)
 - `covemap`: (no description)
 - `creator_shot`: (no description)
-- `creatorshot`: (no description)
+- `creatorshot`: the title screen, then the creator (Appearance) in the world. Args: <out_prefix> [WxH].
 - `dashpose`: Standalone dash poses (armed): forward, left, right, back.
 - `dashpose_dbg`: Standalone dash poses (armed): forward, left, right, back.
 - `dlg`: (no description)
@@ -415,7 +415,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `styleshot2`: Fighting styles, fruit forms and the skill map. Args: <out_prefix>
 - `swimshot`: Swimming shots. Args: <out_prefix>
 - `thornshot`: Thornbrush around the jungle stash: before / burning / after. Args: <out_prefix>
-- `titleshot`: (no description)
+- `titleshot`: the title screen, the save slots and the new-game confirm. Args: <out_prefix> [WxH] (1920x1080 is the 960x540 canvas at 2x).
 - `topview`: High-angle and close views of a few looks to find holes. Args: <out.png> <cam: top|front|side>
 - `tour`: Takes a series of screenshots around Brinehollow (island-local coords + center offset).
 - `ui_shots`: (no description)

@@ -5,7 +5,7 @@ extends Control
 ## a hint of where and when it bites. Fishing.record keeps the log and pays the pages.
 
 const W_ROWS := 300
-const W_CARD := 200
+const W_CARD := 260
 const CELL := Vector2(26, 26)
 
 var _menu: Node

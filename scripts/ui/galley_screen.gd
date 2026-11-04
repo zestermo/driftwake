@@ -3,9 +3,9 @@ extends Control
 ## what one needs), the picked dish's card on the right (what it does and for how long, what it needs
 ## and what of yours it would use) with Cook. Food has the recipes and does the cooking.
 
-const W_LIST := 150
-const W_CARD := 220
-const W_PANTRY := 130
+const W_LIST := 190
+const W_CARD := 280
+const W_PANTRY := 170
 
 ## Portions of each dish from one set of ingredients (the ship's galley line).
 var portions := 1
@@ -63,7 +63,7 @@ func _init(menu: Node) -> void:
 	c1.add_child(InventoryScreen.small("RECIPES", UIStyle.BORDER))
 	# (1.28: island dishes and feasts made it a long list: it scrolls)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(W_LIST + 10, 210)
+	scroll.custom_minimum_size = Vector2(W_LIST + 10, 330)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true
 	c1.add_child(scroll)
@@ -105,7 +105,7 @@ func _init(menu: Node) -> void:
 	_pantry_head = InventoryScreen.small("PANTRY", UIStyle.BORDER)
 	_pantry_col.add_child(_pantry_head)
 	var ps := ScrollContainer.new()
-	ps.custom_minimum_size = Vector2(W_PANTRY, 180)
+	ps.custom_minimum_size = Vector2(W_PANTRY, 300)
 	ps.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_pantry_col.add_child(ps)
 	_pantry_list = VBoxContainer.new()

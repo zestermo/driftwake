@@ -12,6 +12,7 @@ var p
 var j
 var out := "res://tools/dev/out/board"
 var step := 0
+var win := Vector2i(1280, 720)
 var until := 0
 
 
@@ -20,7 +21,8 @@ func _initialize() -> void:
 	if a.size() > 0:
 		out = a[0]
 	var wh := (a[1] if a.size() > 1 else "1280x720").split("x")
-	root.size = Vector2i(int(wh[0]), int(wh[1]))
+	win = Vector2i(int(wh[0]), int(wh[1]))
+	root.size = win
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	TK.seed_of(self)
 	stage = TK.stage(self, {})
@@ -46,7 +48,8 @@ func _process(_d: float) -> bool:
 		return false
 	match step:
 		0:
-			DisplayServer.window_set_size(root.size)
+			DisplayServer.window_set_size(win)
+			root.size = win
 			p = stage.player
 			j = root.get_node("Journal")
 			j.reset()
