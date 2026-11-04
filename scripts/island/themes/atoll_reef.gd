@@ -105,11 +105,24 @@ static func build(isl) -> void:
 		if h > -0.75 or h < -16.0:
 			continue
 		_put(lists, rng, 2 if in_lagoon.call(q) else 3, q, h, rng.randf_range(0.6, 1.4))
+	# (1.30) the heads that reach a wader's depth (1.2 m under) are solid: a column each, about the coral's core
+	var heads := StaticBody3D.new()
+	heads.name = "ReefHeads"
+	heads.collision_layer = 1
+	heads.collision_mask = 0
 	for key in lists:
 		var parts: PackedStringArray = (key as String).split("_")
 		var mid := Vector3((int(parts[2]) + 0.5) * CELL, 0.0, (int(parts[3]) + 0.5) * CELL)
-		_garden(node, _meshes["%s_%s" % [parts[0], parts[1]]], lists[key], mid)
+		var mesh: Mesh = _meshes["%s_%s" % [parts[0], parts[1]]]
+		_garden(node, mesh, lists[key], mid)
+		var box := mesh.get_aabb()
+		for xf in lists[key]:
+			var s: float = (xf as Transform3D).basis.get_scale().y
+			var top: float = (xf as Transform3D).origin.y + box.end.y * s
+			if top > -1.2:
+				KitLandmarks.cyl_col(heads, minf(box.size.x, box.size.z) * 0.35 * s, box.end.y * s, (xf as Transform3D).origin + Vector3.UP * box.end.y * s * 0.5)
 		await GenIsland.breathe()
+	node.add_child(heads)
 	node.set_meta("centres", centres)
 	# swim-through arches and moray crevices on the patches (the harvest's step puts its clams and spars on them too)
 	for i in range(mini(ARCHES, centres.size())):
