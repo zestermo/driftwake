@@ -2,8 +2,9 @@ class_name RivalWatch
 extends Node
 ## Where rival crews turn up (docs/v1_19_plan.md: the first meeting placed, then rolled; nothing else guaranteed),
 ## the host's (a child of GameManager). On each chain arrival (arrived()) it decides whether a crew comes to this
-## island; then, once the captain has been ashore a while, walked inland from the dock and isn't in a fight, the crew
-## comes up from the dock (off their ship) and RivalEncounter takes it from there.
+## island; then, once the captain has been ashore a while, walked inland from the dock and isn't in a fight, their ship
+## sails in and anchors off the harbour (RivalArrival), the crew comes up from the dock and RivalEncounter takes it
+## from there.
 ##   first meeting: the first chain island past Brinehollow, the Mudlark Brigade (rookies: the right first rivals)
 ##   then: once MIN_GAP islands have passed since the last, CHANCE an island (seeded by the island); never the capital;
 ##         the crews you haven't met first, never the same crew twice running
@@ -30,12 +31,12 @@ const HUNTER_CHANCE := 0.35
 const HUNTER_ASHORE_S := 40.0
 const HUNTER_INLAND := 30.0
 
-## (1.26) Every visit is warned of first (a banner on every screen), and comes WARN_S later.
+## (1.26) An officer's or the hunters' visit is warned of first (a banner on every screen), and comes WARN_S later.
+## (1.30) A crew's ship is the warning: RivalArrival sails her in and they come ashore once she's anchored.
 const WARN_S := 35.0
 const WARNINGS := {
 	"officer": ["An Admiralty officer", "Grey coats on the pier, asking after you by name."],
 	"hunters": ["Bounty hunters", "Strangers off a black-sailed boat are asking about you."],
-	"crew": ["A pirate crew", "A strange ship has dropped anchor off the harbour."],
 }
 
 var _t := 0.0
@@ -70,6 +71,9 @@ func decide(n: Dictionary, id: int) -> void:
 	pl["pending"] = -1
 	_ashore = 0.0
 	_warn_left = -1.0
+	var gone := RivalArrival.of(get_tree())
+	if gone:
+		gone.cancel()
 	# (never the cities' crowds or the stronghold: 1.30, the old check named a role no chain node has)
 	if n.get("capital", false) or str(n.get("role", "")) in ["city", "stronghold"]:
 		return
@@ -143,21 +147,12 @@ func _physics_process(delta: float) -> void:
 	if isl == null:
 		return
 	var dock: Vector3 = isl.to_global(Vector3(isl.sites["dock_end"].x, 0.0, isl.sites["dock_end"].y))
-	# the captain they come for: whoever's furthest inland, on foot (any captain in co-op, not only the host's).
-	# Jumps, dodges and swings don't count as leaving the island; only boarding the ship or swimming does.
-	var p: Player = null
-	var flat := -1.0
-	for c in Net.all_players():
-		if not (c is Player) or not is_instance_valid(c) or not c.is_inside_tree():
-			continue
-		var cp := c as Player
-		if cp.context != Player.Context.ON_FOOT or cp.is_swimming() or _aboard(cp) \
-				or (cp.has_method("is_standing") and not cp.is_standing()):
-			continue
-		var d := Vector2(cp.global_position.x - dock.x, cp.global_position.z - dock.z).length()
-		if d > flat:
-			flat = d
-			p = cp
+	# (1.30) a crew's ship already on her way in: RivalArrival has it from here
+	if RivalArrival.of(get_tree()):
+		return
+	var pf := _captain(dock)
+	var p: Player = pf[0]
+	var flat: float = pf[1]
 	_ashore = _ashore + dt if p != null else 0.0
 	if p == null:
 		return
@@ -171,6 +166,14 @@ func _physics_process(delta: float) -> void:
 	elif _ashore >= ASHORE_S and flat >= INLAND:
 		kind = "crew"
 	if kind == "":
+		return
+	if kind == "crew":
+		# (1.30) their ship sails in from the horizon and anchors off the harbour; then they come ashore
+		var crew := str(plan()["crew"])
+		var out: Vector3 = isl.global_basis * Vector3(isl.dock_dir.x, 0.0, isl.dock_dir.y)
+		var a := RivalArrival.start(get_tree(), crew, dock, out, func(): return _captain_ready(dock))
+		if a:
+			a.met.connect(func(_e): _met(crew))
 		return
 	# (1.26) warned first; they come WARN_S later, off the dock and walking in (RivalEncounter)
 	if _warn_left < 0.0:
@@ -186,18 +189,54 @@ func _physics_process(delta: float) -> void:
 			plan()["officer"] = -1
 			plan()["officers_met"] = int(plan().get("officers_met", 0)) + 1
 		return
-	if kind == "hunters":
-		if RivalEncounter.start_ambush(p, int(plan().get("hunters_n", 2)), dock) != null:
-			plan()["hunters"] = -1
-		return
-	var crew := str(plan()["crew"])
-	if RivalEncounter.start(p, crew, dock) == null:
-		return
+	if RivalEncounter.start_ambush(p, int(plan().get("hunters_n", 2)), dock) != null:
+		plan()["hunters"] = -1
+
+
+## Host (debug, Ctrl+Alt+F5): crew `crew`'s ship sails in to the chain island you're on now, the plan untouched.
+## False off a chain island, or one's already coming.
+func bring(crew: String) -> bool:
+	var isl = _island(int(_gm().chain_at))
+	if isl == null:
+		return false
+	var dock: Vector3 = isl.to_global(Vector3(isl.sites["dock_end"].x, 0.0, isl.sites["dock_end"].y))
+	var out: Vector3 = isl.global_basis * Vector3(isl.dock_dir.x, 0.0, isl.dock_dir.y)
+	return RivalArrival.start(get_tree(), crew, dock, out, func(): return _captain_ready(dock)) != null
+
+
+## The crew came ashore and the meeting's on: met, and none again for a while.
+func _met(crew: String) -> void:
 	var pl := plan()
 	pl["pending"] = -1
 	pl["since"] = 0
 	pl["met_first"] = true
 	pl["last"] = crew
+
+
+## The captain they come for: whoever's furthest inland from `dock`, on foot (any captain in co-op, not only the
+## host's), and how far: [Player or null, metres]. Jumps, dodges and swings don't count as leaving the island; only
+## boarding the ship or swimming does.
+func _captain(dock: Vector3) -> Array:
+	var p: Player = null
+	var flat := -1.0
+	for c in Net.all_players():
+		if not (c is Player) or not is_instance_valid(c) or not c.is_inside_tree():
+			continue
+		var cp := c as Player
+		if cp.context != Player.Context.ON_FOOT or cp.is_swimming() or _aboard(cp) \
+				or (cp.has_method("is_standing") and not cp.is_standing()):
+			continue
+		var d := Vector2(cp.global_position.x - dock.x, cp.global_position.z - dock.z).length()
+		if d > flat:
+			flat = d
+			p = cp
+	return [p, flat]
+
+
+## Ready to be met: a captain ashore and not in a fight.
+func _captain_ready(dock: Vector3) -> Player:
+	var p: Player = _captain(dock)[0]
+	return p if p != null and not _hostile_near(p) else null
 
 
 func _island(id: int):

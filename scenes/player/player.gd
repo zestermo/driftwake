@@ -1907,11 +1907,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				_debug_crew += 1
 				_toast("Debug: %s" % RivalCrews.ADMIRALTY[oid]["captain"] if RivalEncounter.start(self, oid) else "Debug: an encounter's already on")
 			elif k.ctrl_pressed:
-				# Ctrl+Alt+F5: the next rival crew turns up (RivalEncounter: the meeting, duels in turn)
+				# Ctrl+Alt+F5: the next rival crew turns up (RivalEncounter: the meeting, duels in turn); on a chain island
+				# their ship sails in first and anchors off the harbour (RivalArrival)
 				var ids := RivalCrews.ids()
 				var crew := str(ids[_debug_crew % ids.size()])
 				_debug_crew += 1
-				if RivalEncounter.start(self, crew) == null:
+				if GameManager.rival_watch.bring(crew):
+					_toast("Debug: %s's ship, sailing in" % RivalCrews.CREWS[crew]["name"])
+				elif RivalEncounter.start(self, crew) == null:
 					_toast("Debug: a crew's already here")
 				else:
 					_toast("Debug: %s" % RivalCrews.CREWS[crew]["name"])

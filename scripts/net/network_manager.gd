@@ -1137,6 +1137,15 @@ func _all_rival_gone(key: String) -> void:
 		n.queue_free()
 
 
+## (1.30) A rival crew's ship sailing in to anchor (RivalShip: placed by the shared clock, so this one call is all).
+func _all_rival_ship(crew: String, from: Vector3, to: Vector3, moor: float, t0: float) -> void:
+	RivalShip.arrive(get_tree(), crew, from, to, moor, t0)
+
+
+func _all_rival_ship_leave(t0: float) -> void:
+	RivalShip.leave_all(get_tree(), t0)
+
+
 
 # --------------------------------------------------------------------------
 # The crew (1.22): its name and everyone who's sailed in this world, the host's; the host decides, everyone applies

@@ -703,6 +703,9 @@ scripts/loot/gear_icons.gd              t/gear/skins
 scripts/npc/body_builder.gd             t/gear/skins cliptest
 scripts/ship/admiralty.gd               t/ship/admiralty_hunt t/ship/hunt_holds t/ship/admiralty_ring
 scripts/ai/rival_encounter.gd           t/combat/rival_walk_in
+scripts/ai/rival_ship.gd                t/ship/rival_ship_arrival t/ship/rival_ship_nogo
+scripts/ai/rival_arrival.gd             t/ship/rival_ship_arrival t/ship/rival_ship_nogo
+scripts/ai/rival_watch.gd               t/ship/rival_ship_nogo t/combat/rival_placement
 scripts/ai/captain_brain.gd             t/combat/rival_walk_in
 scripts/combat/poise.gd                 t/combat/player_poise t/combat/poise_knockdown
 scenes/player/player.gd                 t/combat/player_poise
