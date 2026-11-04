@@ -186,7 +186,7 @@ def gen_water():
 # --------------------------------------------------------------------------
 # Wood / building textures
 # --------------------------------------------------------------------------
-def planks(seed: int, palette, name: str, plank_h=8, gap="2a1c10"):
+def planks(seed: int, palette, name: str, plank_h=8, gap="2a1c10", joints=True):
     rng = np.random.default_rng(seed)
     grain = periodic_noise(64, 2, rng)[:, :1] * 0  # placeholder for shape
     rgb = np.zeros((64, 64, 3), dtype=np.uint8)
@@ -201,6 +201,8 @@ def planks(seed: int, palette, name: str, plank_h=8, gap="2a1c10"):
         rgb[r * plank_h] = hexc(gap)
         # butt joint
         jx = rng.integers(0, 64)
+        if not joints:
+            continue
         rgb[r * plank_h:(r + 1) * plank_h, jx] = hexc(gap)
         # nails
         for nx in ((jx + 2) % 64, (jx - 3) % 64):
@@ -3321,6 +3323,8 @@ def main():
     if "ships" in sys.argv[1:]:
         # the Admiralty's painted hull: blue-grey planks, white seams
         planks(3104, pal("4a525c", "56606a", "626c76", "6e7882", "7a848e"), "planks_grey", plank_h=8, gap="2a3038")
+        # (1.28 sea stops) the warship's white paint: long boards, faint seams, no butt joints
+        planks(3105, pal("b8bec6", "c4cad2", "ced4dc", "d8dee6", "e2e8ee"), "planks_white", plank_h=8, gap="8a929c", joints=False)
         return
     if "jungle" in sys.argv[1:]:
         gen_bamboo(); gen_woven(); gen_palm_thatch(); gen_flagstones(); gen_vines(); gen_broadleaf()

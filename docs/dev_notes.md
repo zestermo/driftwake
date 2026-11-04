@@ -10773,3 +10773,46 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   slots mogged plus an empty ticked hands slot).
 - **Open:** no "show nothing" (an empty cosmetic slot shows the worn piece). The HUD's "Loot: N" line sits under the
   head slots (as before; the cosmetic head slot now covers more of it).
+
+## 1.28 sea stops polish (2026-11-04)
+- **The floating restaurant at double size** (scripts/sea/floating_restaurant.gd): an 84 x 42 m barge (EDGE: the deck's
+  outline; an open lofted hull with flat chines, a transom with five lit gallery windows, gilt rub rails, portholes, planked
+  bulwarks with a gilt cap, two anchor chains) and a carved fish's head past the bow (FISH rings, 26 m: scales, a pale
+  throat, a mouth line curling up at the corners with red lips and teeth, painted eyes with a gold iris and a heavy lid,
+  a brow ridge, carved gill lines, a gilt-spined crest with a red web, swept pectoral fins, nostrils, whiskers). The hall
+  (24 x 38 m, 8 timber bays of BAY 4.75): plaster between posts, sills and girts, framed windows with sills, open shutters
+  and flower boxes, a jettied upper storey with K-braces and its own windows, a balcony over the open front doors, a
+  starboard door onto the landing, the name on two painted boards (Label3D), wall lanterns, the lantern tower and the
+  kitchen chimney (smoke). The stern terrace: a striped awning with a scalloped valance and strung lanterns, six tables.
+  The landing stage at the new size (PONTOON, RAMP, RAMP_HEAD; bollards, fenders, a lamp post), a dinner bell, barrels
+  and crates, life rings, four banner poles.
+- **Inside**: wainscot and a gilt rail, posts and cross beams every bay, two long beams on six pillars, three candle
+  chandeliers, sconces; 15 tables with chairs (the diners sit on them), plates, mugs and candles; a panelled counter
+  (foot rail, stools, bowls, loaves, bottles, a bell) under a hanging menu board; the open kitchen behind (a range under
+  a stone hood, an iron stove and pipe, a prep table with a fish and vegetables, a rack of hams, herbs, garlic and pans,
+  shelves of jars and bottles, sacks, barrels); the room's door and sign, the rumour board with notes, the cook-off
+  table with a cloche and a cup under a banner, a mounted marlin over the door, nets with floats, potted palms.
+- **Placing:** a restaurant leg now asks `SeaStops.room("restaurant")` 110 m (was 70) and passing ships keep
+  `SeaStops.no_go` 75 m off (was 30); the raid's sloop stands 150 m off. Other stops' legs lie as before (only a
+  restaurant leg's leviathan spot can move, as it's placed after the stop).
+- **The flagship and the warship** (scripts/sea/big_ship.gd `_dress`): an overlay on the sloop hull they already use
+  (HullLayout.base(), x K 1.5), so the deck fight, guns, ladders and the duel are untouched: a foremast (FORE_Z) and a
+  mizzen on the quarterdeck (MIZZEN_Z) beside the main, stacked square sails (main course + topsail, fore course +
+  topsail, mizzen topsail), a spanker on gaff and boom, a jib-boom with two jibs, stays, shrouds and ratlines, masthead
+  pennants, an ensign; a painted band with nine gunports (lids propped) down each side and a gilt moulding, quarter
+  gallery windows, a row of lit stern windows between gilt rails, stern lanterns, catheads, a forecastle bulwark rising
+  to the bow (with colliders), a figurehead (the flagship a crowned skull, the warship an eagle), colliders on the new
+  masts. The warship's hull is `planks_white` (new texture, `gen_psx_textures.py ships`: long boards, no butt joints)
+  with a blue band; her old planks_grey read as stone bricks. The brig/galleon HullLayout wasn't used: it would move
+  every deck spot EnemyShip reads from HullLayout.base().
+- **The merchant's deck** (scripts/sea/merchant_ship.gd `_dress`): a stall with turned posts under a pitched striped
+  awning with valances and a lantern, a counter draped in cloth and laid with goods (bolts of cloth, a blade, an open
+  chest of coin, scrolls, a spyglass), a rack of blades and a shelf behind the factor; crate stacks with battens, roped
+  bales, barrels with hoops, sacks of spice (CRATES/BARRELS/BALES, clear of the masts, ladders, stairs and the lane),
+  with colliders. A deckhand moved off the cargo.
+- Per frame/tick: nothing new runs. The restaurant: 4 NightLights (2 always on inside), one chimney smoke; meshes: the
+  outside (2.4 km), dressing and signs (320 m, no shadow), inside (90 m, no shadow), Label3Ds (260 m / 40 m). Big ships:
+  one more mesh (2 km) and the figurehead. Merchant: the cargo mesh (260 m, no shadow) as before.
+- Tests: `t/sea/restaurant` (spots moved to the new pontoon, ramp and deck), `t/sea/cookoff` (the captain's spot moved
+  off a table/pillar), `t/sea/merchant`, `t/sea/big_ship`, `t/sea/stop_rolls`, `t/ship/layout_parity`. Renders:
+  `seastopworld.gd` (shots reframed for the new size, new ones added). Expect legtest (sea_legs.gd) at prepush.

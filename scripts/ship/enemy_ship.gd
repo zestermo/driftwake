@@ -57,7 +57,7 @@ const KINDS := {
 		"look": {"hull": Color(0.22, 0.17, 0.16), "deck": Color(0.6, 0.5, 0.42), "trim": Color(0.75, 0.55, 0.15), "sail": Color(0.45, 0.06, 0.07), "flag": Color(0.12, 0.1, 0.1), "emblem": "jolly"}},
 	"warship": {"speed": 10.5, "hull": 1400.0, "guns": [-7.2, -4.6, -2.0, 0.6], "crew": 8, "range": [36.0, 64.0], "scatter": 0.55,
 		"boards": false, "rams": false, "double": true, "yields": false, "chain": true, "chaser": true,
-		"look": {"hull_tex": "planks_grey", "hull": Color(0.92, 0.94, 0.98), "deck": Color(0.8, 0.82, 0.88), "trim": Color(0.2, 0.26, 0.42), "sail": Color(0.95, 0.96, 0.98), "flag": Color(0.2, 0.24, 0.36), "emblem": "marine"}},
+		"look": {"hull_tex": "planks_white", "hull": Color(1.0, 1.0, 1.0), "deck": Color(0.8, 0.82, 0.88), "trim": Color(0.16, 0.28, 0.6), "sail": Color(0.95, 0.96, 0.98), "flag": Color(0.2, 0.24, 0.36), "emblem": "marine"}},
 }
 ## The Admiralty's kinds (group "admiralty", grey crews, an Admiralty ship's bounty).
 const ADMIRALTY_KINDS := ["marine", "frigate", "warship"]

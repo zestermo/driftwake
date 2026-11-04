@@ -68,6 +68,7 @@ func _process(d: float) -> bool:
 			["merchant_far", "merchant", 4242, Vector3(-200, 14, 120), Vector3(0, 8, 0)],
 			["merchant_near", "", 0, Vector3(30, 9, 26), Vector3(0, 6, 0)],
 			["merchant_deck", "", 0, Vector3(2.5, 2.4, 3.5), Vector3(0, 1.4, -4.2)],
+			["merchant_stall", "", 0, Vector3(1.4, 2.4, 0.4), Vector3(0, 1.2, -4.6)],
 			["rest_far", "restaurant", _restaurant_seed(false), Vector3(-300, 20, 190), Vector3(0, 8, 0)],
 			["rest_near", "", 0, Vector3(90, 24, 80), Vector3(0, 6, -8)],
 			["rest_bow", "", 0, Vector3(-60, 12, -100), Vector3(0, 3, -52)],
@@ -83,6 +84,8 @@ func _process(d: float) -> bool:
 			["flagship_near", "", 0, Vector3(34, 10, 30), Vector3(0, 9, 0)],
 			["flagship_deck", "", 0, Vector3(-2.5, 4.0, -9), Vector3(0.5, 1.5, 0)],
 			["warship_near", "warship", 777, Vector3(34, 10, 30), Vector3(0, 9, 0)],
+			["warship_stern", "", 0, Vector3(16, 6, 36), Vector3(0, 6, 6)],
+			["warship_far", "", 0, Vector3(-240, 16, 160), Vector3(0, 12, 0)],
 		]
 		# the captain stands off on the water's edge of the weather (the weather follows the player)
 		var p = get_first_node_in_group("player")
