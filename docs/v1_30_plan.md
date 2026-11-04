@@ -96,6 +96,20 @@ Zach, after the stronghold renders (blockout-like up close: a plain foundry, an 
 | Budget | A set piece may spend, but inside the perf gate: MultiMesh repeats, shared PSXMat, visibility ranges | CLAUDE.md | Bench at prepush |
 | Scope (Zach, later the same day) | **Keep the current design** (layout, massing, silhouettes): "the design looked cool, it just needs much much more detail and more models and more lived in, alive, rather than all just box shapes". The work is architectural detail on the existing shapes, many more props, and lived-in dressing, in the Marineford / Enies Lobby palette | Zach | Renders |
 
+## Decided (2026-11-04, round 8): the brig, the galleon and the creatures
+Picks the open rows of docs/v1_29_plan.md ("The brig and galleon (1.30)", "Creatures (1.30)").
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Creature themes | **Fog + forest**: the two thinnest (both lean on the shared wolf, boar and fox; fog adds only wisps, forest only deer). 2-3 new hostile creatures each | Zach | Play |
+| Fog creatures | **Eerie and ghostly**: e.g. a pale long-limbed stalker that fades in and out of the mist, drowned bog hounds, giant moths drawn to your lantern. **Plus graveyards and zombies**: fog already has one graveyard per island (FogTheme.plan_places), the drowned and ghosts; grow it into bigger graveyards with crypts and mausoleums, and **zombies that claw up out of the graves**, distinct from the drowned | Zach | Renders, play |
+| Forest creatures | **Fairy-tale forest**: e.g. mushroom crawlers, thorn-backed boars, owl-beasts that hunt at night | Zach | Renders, play |
+| Brig and galleon | **Yours to buy** at the canal city's shipyard (the galleon later in the chain), each with its own layout on HullLayout, gun deck(s) and cabins. Enemy fleets keep today's hulls | Zach | After 1.30: enemy versions and boarding them |
+| Solo crewing | **The guns fire on their own**: no NPC deckhands; the broadside fires from the helm like the sloop's, with more guns. In co-op, captains can still man guns | Zach | Play |
+| Size | **Brig 1.5x the sloop** (two masts, one gun deck, a bigger cabin); **galleon 2.2x** (three masts, two gun decks, a high stern castle). Slower to turn, much tougher, fits the harbours | Zach | Play |
+| The old ship | **Keep every ship you own, swap at a shipyard.** Paint and figurehead carry over; upgrades are per ship | Zach | Play |
+| Numbers | **The agent picks** price, parts, hull, guns, speed, turn and the galleon's chain unlock on the economy's curve; Zach tunes in play (no preview table) | Zach | Play |
+
 ## Build order (lead, 2026-11-03; two agents at a time)
 Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Driftwake 1.30 UI mocks" canvas).
 1. Running: **sea fixes** (enemy_ship, admiralty, rival_watch) and **land fixes** (vault + fruit, rack and drills,
