@@ -510,12 +510,12 @@ def gull_sound():
     finish("gull", out, 0.8, fade=0.03)
 
 
-def _voice(rng, dur, f0_pts, formants, harm=12, rasp=0.3, gain=2.0):
+def _voice(rng, dur, f0_pts, formants, harm=12, rasp=0.3, gain=2.0, jitter=0.04):
     """A pitched animal call: a saw on a pitch contour, rasp locked to it, through formants."""
     n = int(SR * dur)
     t = np.arange(n) / SR
     f0 = np.interp(t / dur, np.linspace(0, 1, len(f0_pts)), f0_pts)
-    f0 = f0 * (1 + 0.04 * lpf(rng.standard_normal(n), 0.01) / 0.1)
+    f0 = f0 * (1 + jitter * lpf(rng.standard_normal(n), 0.01) / 0.1)
     ph = np.cumsum(f0 / SR)
     src = np.zeros(n)
     for k in range(1, harm + 1):
@@ -2417,37 +2417,42 @@ A_VOWEL = ((750, 5, 1.0), (1200, 6, 0.6), (2500, 8, 0.25))
 E_VOWEL = ((520, 5, 1.0), (1850, 7, 0.55), (2600, 8, 0.3))
 
 
+def _soft_voice(x):
+    """Takes the edge off a human voice: nothing above 3.4 kHz (the PSX grit stays in the low mids)."""
+    return _filt(x, lambda f: _lp(f, 3400, 2) * _hp(f, 90, 2))
+
+
 def laugh_sound():
     """A hearty 'ha-ha-ha-ha-ha', each falling a little, a breath of 'h' on each."""
     rng = np.random.default_rng(1501)
     out = np.zeros(int(SR * 1.15))
     for k in range(5):
-        f0 = 230 - k * 14
-        g = _voice(rng, 0.13, [f0 * 1.05, f0, f0 * 0.9], A_VOWEL, rasp=0.25, gain=2.2)
-        h = _noise(int(SR * 0.04), rng, 800, 4000) * np.linspace(0.5, 0, int(SR * 0.04))
+        f0 = 210 - k * 12
+        g = _voice(rng, 0.13, [f0 * 1.05, f0, f0 * 0.9], A_VOWEL, rasp=0.12, gain=1.3, jitter=0.012)
+        h = _noise(int(SR * 0.04), rng, 800, 3200) * np.linspace(0.5, 0, int(SR * 0.04))
         i = int(SR * (0.02 + k * 0.19))
-        out[i:i + len(h)] += h * 0.4
+        out[i:i + len(h)] += h * 0.25
         out[i + len(h) // 2:i + len(h) // 2 + len(g)] += g
-    _write_shot("laugh", out, -16.0, fade=0.05)
+    _write_shot("laugh", _soft_voice(out), -17.0, fade=0.05)
 
 
 def cheer_sound():
     """A big rising 'hey-YAA!'."""
     rng = np.random.default_rng(1503)
-    a = _voice(rng, 0.18, [210, 250, 240], E_VOWEL, rasp=0.2, gain=2.5)
-    b = _voice(rng, 0.5, [260, 360, 340, 300], A_VOWEL, rasp=0.3, gain=3.0)
+    a = _voice(rng, 0.18, [195, 230, 220], E_VOWEL, rasp=0.1, gain=1.4, jitter=0.012)
+    b = _voice(rng, 0.5, [240, 330, 315, 280], A_VOWEL, rasp=0.15, gain=1.5, jitter=0.012)
     out = np.zeros(int(SR * 0.75))
     out[:len(a)] += a
     i = int(SR * 0.17)
     out[i:i + len(b)] += b
-    _write_shot("cheer", out, -14.0, fade=0.08)
+    _write_shot("cheer", _soft_voice(out), -15.5, fade=0.08)
 
 
 def hup_sound():
     """A short effort grunt for the flex: 'hngh!'."""
     rng = np.random.default_rng(1507)
-    out = _voice(rng, 0.2, [150, 135, 110], ((480, 5, 1.0), (1000, 6, 0.4)), rasp=0.6, gain=3.0)
-    _write_shot("hup", out, -16.0, fade=0.04)
+    out = _voice(rng, 0.2, [140, 125, 105], ((480, 5, 1.0), (1000, 6, 0.4)), rasp=0.3, gain=1.5, jitter=0.015)
+    _write_shot("hup", _soft_voice(out), -17.0, fade=0.04)
 
 
 def heel_click_sound():

@@ -3203,6 +3203,27 @@ func _thrust_mesh() -> ArrayMesh:
 # --------------------------------------------------------------------------
 # Sounds
 # --------------------------------------------------------------------------
+## Human voice one-shots (laughs, cheers, efforts) are capped so a crowd never stacks them: at most VOICE_MAX playing
+## within VOICE_EAR of the listener, and VOICE_GAP physics ticks between one and the next.
+const VOICE_SOUNDS := ["laugh", "cheer", "hup"]
+const VOICE_MAX := 2
+const VOICE_EAR := 25.0
+const VOICE_GAP := 18
+var _voices: Array = []
+var _voice_tick := -1000
+
+
+func voice_ok(cam: Camera3D) -> bool:
+	if Engine.get_physics_frames() - _voice_tick < VOICE_GAP:
+		return false
+	_voices = _voices.filter(func(v): return is_instance_valid(v) and v.playing)
+	var heard := 0
+	for v: AudioStreamPlayer3D in _voices:
+		if cam == null or cam.global_position.distance_to(v.global_position) < VOICE_EAR:
+			heard += 1
+	return heard < VOICE_MAX
+
+
 ## Positional one-shot on the SFX bus. pitch_jitter randomizes pitch +-.
 func sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, pitch_jitter: float = 0.08, pitch: float = 1.0) -> void:
 	if not _streams.has(sound_name):
@@ -3211,7 +3232,13 @@ func sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, pitch_jitter:
 	var cam := get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_squared_to(pos) > 64.0 * 64.0:
 		return
+	var voiced := VOICE_SOUNDS.has(sound_name)
+	if voiced and not voice_ok(cam):
+		return
 	var p := AudioStreamPlayer3D.new()
+	if voiced:
+		_voices.append(p)
+		_voice_tick = Engine.get_physics_frames()
 	p.stream = _streams[sound_name]
 	p.bus = "SFX"
 	p.volume_db = volume_db

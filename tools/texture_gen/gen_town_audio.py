@@ -99,18 +99,56 @@ def _babble(rng, n, voices, density, near_share, f0s=(105, 240)):
     return out
 
 
+def _step(rng, far):
+    """A soft footfall on cobbles: a dull knock and a breath of grit."""
+    n = int(SR * 0.16)
+    t = np.arange(n) / SR
+    knock = _thump(t, 190, 85, 0.02, 38) * rng.uniform(0.6, 1.0)
+    grit = _filt(rng.standard_normal(n) * np.exp(-t * 60), lambda f: _hp(f, 500) * _lp(f, 2600)) * 0.18
+    return _distance(knock + grit, far)
+
+
+def _cloth(rng, far):
+    """Cloth and canvas stirring: a soft swell of filtered noise."""
+    n = int(SR * rng.uniform(0.25, 0.6))
+    t = np.arange(n) / SR
+    env = np.sin(np.pi * t / (n / SR)) ** 2
+    return _distance(_filt(rng.standard_normal(n), lambda f: _hp(f, 700) * _lp(f, 3000)) * env * 0.3, far)
+
+
+def _cart(rng, secs):
+    """A handcart rolling by: a low rumble swelling and fading, wooden clacks as the wheels turn."""
+    n = int(SR * secs)
+    t = np.arange(n) / SR
+    env = np.sin(np.pi * t / secs) ** 2
+    rumble = _filt(rng.standard_normal(n), lambda f: _hp(f, 70) * _lp(f, 420)) * env * 0.9
+    clack = np.zeros(n)
+    at = 0.0
+    while at < secs - 0.1:
+        k = int(at * SR)
+        m = int(SR * 0.05)
+        tt = np.arange(m) / SR
+        c = _modes(tt, rng, [(rng.uniform(380, 520), 1.0, 60), (rng.uniform(900, 1300), 0.4, 90)])
+        clack[k:k + m] += c[:n - k] * env[k] * 0.35
+        at += 1.0 / np.interp(at / secs, [0, 0.5, 1], [3.0, 6.5, 3.0]) * rng.uniform(0.9, 1.1)
+    return rumble + clack
+
+
 def market_murmur():
-    """The market street by day: a crowd's babble near and far, vendors calling, laughs, coins."""
+    """The market street by day, without a voice in it: a gentle wash of distant bustle, soft footfalls, cloth,
+    a handcart rolling past and the odd far clink of a coin or a mug."""
     rng = np.random.default_rng(6101)
     n = int(SR * 47.3)
-    bed = _cband(n, rng, 180, 1500, tilt=0.4) * (0.5 + 0.5 * _cenv(n, rng, 0.25)) * 0.12
-    out = bed + _babble(rng, n, 16, 0.55, 0.3)
-    for k in range(9):
-        _place(out, _distance(_call(rng, rng.uniform(130, 230)), rng.uniform(0.2, 0.7)) * 1.2, rng.uniform(0, n))
-    for k in range(7):
-        _place(out, _distance(_laugh(rng, rng.uniform(140, 260)), rng.uniform(0.1, 0.6)), rng.uniform(0, n))
-    for k in range(24):
-        _place(out, _clink(rng) * rng.uniform(0.15, 0.4), rng.uniform(0, n))
+    out = _cband(n, rng, 160, 1400, tilt=0.5) * (0.55 + 0.45 * _cenv(n, rng, 0.2)) * 0.2
+    out += _cband(n, rng, 2500, 5500, tilt=0.0) * (0.3 + 0.7 * _cenv(n, rng, 0.35)) * 0.02
+    for k in range(70):
+        _place(out, _step(rng, rng.uniform(0.15, 0.85)) * rng.uniform(0.25, 0.7), rng.uniform(0, n))
+    for k in range(18):
+        _place(out, _cloth(rng, rng.uniform(0.2, 0.8)) * rng.uniform(0.3, 0.8), rng.uniform(0, n))
+    for secs, at in ((7.5, 6.0), (6.0, 29.0)):
+        _place(out, _distance(_cart(rng, secs), 0.45) * 0.5, SR * at)
+    for k in range(10):
+        _place(out, _distance(_clink(rng, hi=rng.random() < 0.6), rng.uniform(0.5, 0.9)) * rng.uniform(0.15, 0.35), rng.uniform(0, n))
     _write_loop("market_murmur_loop", out)
 
 
