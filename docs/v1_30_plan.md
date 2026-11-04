@@ -137,7 +137,7 @@ Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Dri
    piece, the rival ship arrival, the Redtide mountain; the brig, galleon and creatures after their own grill.
 
 ## Queue (2026-11-04; Zach: at most 3 at a time counting the lead, so 2 agents)
-Running: the brig and galleon; the island quests and board. Paused: the fog and forest creatures: Zach, resume them at the first free slot; the collision audit takes the next.
+Done: the brig and galleon, the island quests and board, the fog and forest creatures. Running (2026-11-04): the collision audit, Brinehollow polish. Zach raised the 1.30 usage stop to ~60% so the whole queue and the prepush fit. Next: the chain scythe, then the vendor icons + crowd voices fixer, then prepush.
 Queued, in order, each briefed already (resume the stopped agent with its context, or re-brief):
 1. (after the creatures resume) **Collision audit**: a tool that lists visible meshes with no collider per island, fixes by category at the source
    (props, kit, themes, ruins, trees, roofs, walls), and the snow islands' frozen rivers and lakes. Zach: "one of the
