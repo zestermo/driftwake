@@ -712,11 +712,15 @@ static func rock_mats(ctx: KitContext) -> Array:
 
 
 ## Boulders: a mossy lump each (into `mb`), local positions given.
-static func boulders(mb: MeshBuilder, mats: Array, at: Array, rng: RandomNumberGenerator, s0 := 0.6, s1 := 1.6) -> void:
+static func boulders(mb: MeshBuilder, mats: Array, at: Array, rng: RandomNumberGenerator, s0 := 0.6, s1 := 1.6, body: Node = null) -> void:
 	for p in at:
 		var s := rng.randf_range(s0, s1)
+		var m := mb.mark()
 		mb.add_blob(mats[1] if rng.randf() < 0.5 else mats[0], Transform3D(Basis(Vector3.UP, rng.randf() * TAU), p + Vector3(0, s * 0.2, 0)),
 			Vector3(s, s * rng.randf_range(0.55, 0.8), s * rng.randf_range(0.8, 1.1)), rng, 0.25, 3, 6, 0.4, Color.WHITE, -0.5)
+		# (1.30) each its own shape, when the caller has no mesh shape over them
+		if body:
+			mb.hull_since(m, body, "Boulder")
 
 
 ## A vine hanging from `a`, `length` m, swaying out a little (into `mb`).
@@ -888,7 +892,7 @@ static func _waterfall_dressing(ctx: KitContext, pl: Dictionary, items := []) ->
 			continue
 		var q := Vector3(cos(a), 0, sin(a)) * (POOL_R + rng.randf_range(0.2, 1.4))
 		at.append(Vector3(q.x, gy(ctx, pl, q.x, q.z) - 0.2, q.z))
-	boulders(mb, mats, at, rng, 0.5, 1.1)
+	boulders(mb, mats, at, rng, 0.5, 1.1, ledge)
 	var vine_m := PSXMat.lit("leaves", Color(0.55, 0.75, 0.4))
 	for k in range(7):
 		var x := rng.randf_range(1.7, 3.6) * (1.0 if k % 2 == 0 else -1.0)

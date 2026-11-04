@@ -78,6 +78,23 @@ func points_since(m: Dictionary, to := {}) -> PackedVector3Array:
 	return out
 
 
+## (1.30) A mesh collider of the very triangles built since `m`, both sides solid: a shape a hull would bridge (a roof
+## flared up at its eaves). Costlier than a hull: for a few big pieces only.
+func faces_since(m: Dictionary, body: Node, col_name := "Faces") -> CollisionShape3D:
+	var faces := PackedVector3Array()
+	for mat in _order:
+		var v: PackedVector3Array = _surfaces[mat]["v"]
+		faces.append_array(v.slice(int(m.get(mat, 0))))
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(faces)
+	shape.backface_collision = true
+	var cs := CollisionShape3D.new()
+	cs.name = col_name
+	cs.shape = shape
+	body.add_child(cs)
+	return cs
+
+
 ## (1.30) A convex collider round what was built since `m` (a roof, a canopy, a round tower): one shape where boxes
 ## won't fit. Added to `body` (a CollisionObject3D), named `col_name`.
 func hull_since(m: Dictionary, body: Node, col_name := "Hull") -> CollisionShape3D:

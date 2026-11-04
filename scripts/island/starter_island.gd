@@ -2106,8 +2106,7 @@ func _build_wilds() -> void:
 			continue
 		var g := hv(q)
 		at.append(Vector3(q.x, g, q.y))
-		KitLandmarks.cyl_col(rocks, 1.3, 2.4, Vector3(q.x, g - 0.4, q.y))
-	KitLandmarks.boulders(rmb, mats, at, rng, 1.4, 2.8)
+	KitLandmarks.boulders(rmb, mats, at, rng, 1.4, 2.8, rocks)
 	rocks.add_child(rmb.to_instance("Mesh"))
 	kit.add(rocks)
 	town_spots["wreck"] = wnode

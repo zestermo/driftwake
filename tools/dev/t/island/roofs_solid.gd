@@ -50,7 +50,9 @@ func _make() -> Array:
 		["tavern", B.tavern_hall()],
 		["smithy", B.smithy()],
 		["chapel", B.chapel()],
-		["harbour tower", B.harbor_tower()],
+		["Brinehollow's pagoda", load("res://scripts/props/brinehollow_models.gd").pagoda(1)],
+		["Brinehollow's shrine", load("res://scripts/props/brinehollow_models.gd").shrine(2)],
+		["Brinehollow's teahouse", load("res://scripts/props/brinehollow_models.gd").teahouse(3)],
 		["snow round house", SP.round_house(1, 6.0)],
 		["snow tall round house", SP.round_house(2, 7.0, 2)],
 		["snow store", SP.storehouse(3)],
@@ -88,6 +90,7 @@ func _scan(n: Node3D) -> Array:
 	var space := root.world_3d.direct_space_state
 	var rays := 0
 	var ceils := 0
+	var first_ceil := ""
 	var open := {}
 	var x := box.position.x + STEP * 0.5
 	while x < box.end.x:
@@ -103,17 +106,20 @@ func _scan(n: Node3D) -> Array:
 				rays += 1
 				var col := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * (box.size.y + 3.0), 2049))
 				var cy: float = col["position"].y if not col.is_empty() else -INF
-				# (a ray right on a box's edge slips past it: look a hand's width round)
+				# (a ray right on a box's edge slips past it: look a hand's width round, from just over the drawn top)
 				for o in [Vector3(0.1, 0, 0), Vector3(-0.1, 0, 0), Vector3(0, 0, 0.1), Vector3(0, 0, -0.1)]:
 					if top - cy > GAP:
-						var c2 := space.intersect_ray(PhysicsRayQueryParameters3D.create(from + o, from + o + Vector3.DOWN * (box.size.y + 3.0), 2049))
-						if not c2.is_empty():
+						var s2 := Vector3(x + o.x, top + 0.3, z + o.z)
+						var c2 := space.intersect_ray(PhysicsRayQueryParameters3D.create(s2, s2 + Vector3.DOWN * (GAP + 0.6), 2049))
+						if not c2.is_empty() and c2["position"].y <= top + 0.05:
 							cy = maxf(cy, c2["position"].y)
 				if top - cy > GAP:
 					open[Vector2i(roundi(x / STEP), roundi(z / STEP))] = "(%.1f, %.1f) drawn %.2f, solid %.2f" % [x - n.global_position.x, z - n.global_position.z,
 						top - n.global_position.y, cy - n.global_position.y]
 				elif cy - top > CEIL:
 					ceils += 1
+					if first_ceil == "":
+						first_ceil = "(%.1f, %.1f) drawn %.2f, solid %.2f" % [x - n.global_position.x, z - n.global_position.z, top - n.global_position.y, cy - n.global_position.y]
 			z += STEP
 		x += STEP
 	# (a gap counts when its neighbour is one too: a lone ray is a pole, a finial or a torch's head)
@@ -124,7 +130,7 @@ func _scan(n: Node3D) -> Array:
 			gaps += 1
 			if first == "":
 				first = open[k]
-	return [rays, gaps, ceils, first]
+	return [rays, gaps, ceils, first, first_ceil]
 
 
 func _process(_d: float) -> bool:
@@ -143,7 +149,7 @@ func _process(_d: float) -> bool:
 				var r := _scan(m[1])
 				var share := float(r[1]) / maxf(float(r[0]), 1.0)
 				var ceil_share := float(r[2]) / maxf(float(r[0]), 1.0)
-				check("%s is solid where it's drawn (%d rays: %d gaps%s, %d false ceilings)" % [m[0], r[0], r[1], (" first at " + str(r[3])) if r[1] > 0 else "", r[2]],
+				check("%s is solid where it's drawn (%d rays: %d gaps%s, %d false ceilings%s)" % [m[0], r[0], r[1], (" first at " + str(r[3])) if r[1] > 0 else "", r[2], (" first at " + str(r[4])) if r[2] > 0 else ""],
 					r[0] > 10 and share < MAX_SHARE and ceil_share < MAX_SHARE)
 			return TK.done(fails)
 	step += 1

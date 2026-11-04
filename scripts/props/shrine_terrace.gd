@@ -58,7 +58,7 @@ static func reading_hall(seed_value: int) -> StaticBody3D:
 			mb.add_box(post, M._xf(Vector3(x, fl + h * 0.5, -d * 0.5 + 0.1)), Vector3(0.22, h, 0.22), 0.6)
 	mb.add_box(post, M._xf(Vector3(0, fl + h - 0.08, 0)), Vector3(w + 0.5, 0.2, d + 0.5), 0.6)
 	mb.add_box(red, M._xf(Vector3(0, fl + h - 0.35, d * 0.5 + 0.04)), Vector3(w + 0.3, 0.14, 0.12), 0.6)
-	M.flared_roof(mb, roof, under, Vector3(0, fl + h + 0.05, 0), w + 0.6, d + 0.6, 1.5, 0.9, 0.45)
+	M.flared_roof(mb, roof, under, Vector3(0, fl + h + 0.05, 0), w + 0.6, d + 0.6, 1.5, 0.9, 0.45, body)
 	# the five banners, one per Edy type, along the back wall
 	for i in range(EdyTypes.ORDER.size()):
 		var col := EdyTypes.color_of(str(EdyTypes.ORDER[i]))

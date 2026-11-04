@@ -875,7 +875,9 @@ static func _springs(isl: GenIsland, ctx: KitContext, pl: Dictionary, node: Node
 		var a := rng.randf() * TAU
 		var q := top_c + Vector3(cos(a), 0, sin(a)) * (float(e0[1]) + rng.randf_range(1.2, 3.0))
 		at.append(Vector3(q.x, KitLandmarks.gy(ctx, pl, q.x, q.z), q.z))
-	KitLandmarks.boulders(dress, mats, at, rng, 0.5, 1.2)
+	var stones := KitLandmarks.body("SpringStonesCol")
+	KitLandmarks.boulders(dress, mats, at, rng, 0.5, 1.2, stones)
+	node.add_child(stones)
 	node.add_child(KitLandmarks.far_off(dress.to_instance("SpringStones")))
 	var up := top_c - Vector3(0, 0, float(e0[1]) + 1.6)
 	KitLandmarks.chest(ctx, pl, up + Vector3(0, KitLandmarks.gy(ctx, pl, up.x, up.z), 0), 0.0, "springs_cache", KitLandmarks.loot(isl, rng, false), 0.85)
