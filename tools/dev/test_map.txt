@@ -813,3 +813,10 @@ scripts/island/capital_shell.gd         t/capital/solid_ground
 scripts/island/capital_models.gd        t/capital/solid_ground
 scripts/combat/splat.gd                 t/combat/splat_captain
 scripts/player_states/downed_state.gd   t/combat/splat_captain
+scripts/island/island_life.gd           t/island/crowd_size t/island/vendors_stay
+scripts/island/island_village.gd        t/island/vendors_stay t/quests/landing_goals t/quests/bounty_no_take
+scripts/quests/island_record.gd         t/quests/island_tracker
+scripts/ui/notice_board_screen.gd       t/quests/landing_goals t/quests/island_tracker
+scripts/quests/chain_goal.gd            t/quests/landing_goals t/quests/chain_goal
+scripts/island/kit/kit_quests.gd        t/quests/bounty_no_take t/quests/landing_goals
+scripts/ui/game_menu.gd                 t/quests/landing_goals
