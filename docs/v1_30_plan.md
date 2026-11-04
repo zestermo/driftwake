@@ -137,6 +137,9 @@ Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Dri
    piece, the rival ship arrival, the Redtide mountain; the brig, galleon and creatures after their own grill.
 
 ## Queue (2026-11-04; Zach: at most 3 at a time counting the lead, so 2 agents)
+**Scope frozen (Zach, 2026-11-04):** nothing more goes into 1.30 beyond this queue; new asks go to 1.31 (docs/todo.md).
+When it's done: prepush.ps1 -Release, then tag v1.30 and release it (stable), with the news post, What's new and the
+releases page section (Zach OK'd the tag and release in advance).
 Done: the brig and galleon, the island quests and board, the fog and forest creatures. Running (2026-11-04): the collision audit, Brinehollow polish. Zach raised the 1.30 usage stop to ~60%, then ~68% for transmog, then ~74% for the sea stops polish. Next: the chain scythe, then the 960x540 UI canvas, then transmog, with the vendor icons + crowd voices fixer beside it, then prepush.
 Queued, in order, each briefed already (resume the stopped agent with its context, or re-brief):
 1. (after the creatures resume) **Collision audit**: a tool that lists visible meshes with no collider per island, fixes by category at the source
