@@ -32,7 +32,7 @@ const STEPS := [
 	{"id": "grell", "goal": "Defeat Captain Grell at the pirate den", "place": "den", "who": "Pirate den"},
 	{"id": "see_odile", "goal": "Tell Harbormaster Odile that Grell is beaten", "npc": "Harbormaster Odile", "who": "Odile"},
 	{"id": "see_tackett", "goal": "Ask Shipwright Tackett about a ship", "npc": "Shipwright Tackett", "who": "Tackett"},
-	{"id": "forest", "goal": "Cut seasoned timber in the old forest for Tackett", "place": "forest", "who": "Old forest"},
+	{"id": "forest", "goal": "Fell the three ironwoods Tackett marked in his grove off the forest path", "place": "forest", "who": "Tackett's grove"},
 	{"id": "queen", "goal": "Slay the Brood Queen in the forest cave", "place": "cave", "who": "Brood cave"},
 	{"id": "tackett_ship", "goal": "Bring the timber and the queen's chitin to Tackett", "npc": "Shipwright Tackett", "who": "Tackett"},
 	{"id": "see_gus_redtide", "goal": "Ask Gus who rules these waters", "npc": "Gus Brannock", "who": "Gus"},

@@ -10461,3 +10461,27 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   t/island/forest_* stay green. Render: `creaturesheet.gd` (every new kind).
 - **Per tick:** each on the spawner's LOD; the owl's 0.3 s night look. Triangles: crawler 432, owl 1000, thorn boar 1930
   (the thorn tubes), stalker 492, moth 404, bog hound 971, zombie 723.
+
+## 2026-11-04: Brinehollow polish, piece 1 - Tackett's ironwood grove (1.30)
+- **What:** the forest step's three fallen trunks (StoryDeadfall, lined up beside the path in front of the cave) are
+  gone. `scripts/game/story_grove.gd` (StoryGrove, node "IronwoodGrove") is a clearing (StarterIsland.GROVE, r GROVE_R 9)
+  south of the forest path, 50 m from the cave, at the end of a worn trail (GROVE_TRAIL, a real path appended last in
+  `_define_paths`, `_grove_trail` its index) with a signpost where it leaves the forest path. Three standing ironwoods
+  (stump with buttress roots; trunk and crown on a "Hinge"; Tackett's blaze: a white paint band and a red rag) round
+  its edge, two old stumps, his chopping block with an axe and a roofed stack of seasoned lengths.
+- **Felling:** F at a marked tree on the "forest" step: the new `gesture_chop` (EmotePoses, two axe bites), chop
+  sounds at the bites, a crack, the trunk leans then falls (a tween on the hinge, the butt kicking off the stump to the
+  ground), a thud, dust rings along it, a small camera shake; a length of timber; three and the step's done. Stumps
+  stay; the "Trunk" shape goes off and the "Log" one on. Off the step: "Tackett's blaze is on it". Each captain fells
+  their own (Dialogue flags `ironwood_<i>`; the grove shows this screen's captain's trees down, refreshed on
+  Story.changed); the fall and dust are local, the sounds through Net.fx. The marker leads to the trail's mouth, then
+  the nearest standing tree. Tackett's lines, the step's goal ("Fell the three ironwoods Tackett marked...") too.
+- **Brinehollow's dump:** the grove's reserve is in the grown layer, so the old forest's plants inside it and along the
+  trail are left out with their draws kept (15 trunk colliders, the forest's MultiMesh squares); spitters skip crowns
+  over the grove and the trail. Nothing else moved. Old saves mid-step fell three trees (their deadfall flags are
+  ignored).
+- **Per frame/tick:** nothing (a felling runs one 2.5 s tween). Draws: ~21 surfaces for the three trees (stump 2, tree
+  5), ~6 for the dressing, 2 the signpost, against 9 for the old trunks; ranges 160 m (stumps), 260 m (trees), 120 m
+  (dressing, no shadow).
+- **Tests:** t/story/ironwood_grove (new), t/story/island_steps (to the grove). Renders: `tools/dev/groveshot.gd`
+  (standing, felled). Tool: `brineprobe.gd` (ground, slope, paths and reserves at island points).

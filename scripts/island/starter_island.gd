@@ -118,7 +118,15 @@ const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
 	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787,
-	"terrace_story": 8888, "deadfall": 8989}
+	"terrace_story": 8888, "grove": 8989}
+## Tackett's ironwood grove (StoryGrove, 1.30): a clearing off the forest path, its trail in from the path, the marked
+## trees round it [offset, fall direction], his old stumps, the chopping block [offset, yaw].
+const GROVE := Vector2(-106, 80)
+const GROVE_R := 9.0
+const GROVE_TRAIL := [Vector2(-98, 58.6), Vector2(-101, 66), Vector2(-104, 71.5)]
+const GROVE_TREES := [[Vector2(-5.0, -1.5), Vector2(0.3, 1.0)], [Vector2(4.5, -3.5), Vector2(1.0, 0.15)], [Vector2(2.5, 5.0), Vector2(1.0, -0.2)]]
+const GROVE_STUMPS := [Vector2(6.0, -0.5), Vector2(-6.0, 4.5)]
+const GROVE_BLOCK := [Vector2(-1.0, -0.5), PI]
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -257,8 +265,9 @@ var woods := {"trees": [], "under": 0, "keys_before": 0, "keys_after": 0}
 var _town_parts: Array = []
 ## Master Isao's reading hall on the shrine terrace (1.25.4; his place is its "Master" marker).
 var reading_hall: Node3D
-## The old forest's ironwood deadfall (StoryDeadfall), in order.
-var deadfall: Array = []
+## Tackett's ironwood grove (StoryGrove).
+var grove: StoryGrove
+var _grove_trail := -1
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -320,6 +329,7 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("shrine terrace", _build_shrine_terrace)
 	kit.timed("farmland", _build_farmland)
 	kit.timed("wild places", _build_wilds)
+	kit.timed("story", _build_grove)
 	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
@@ -330,7 +340,6 @@ func build(world_seed: int) -> Dictionary:
 	# the town's life (people, smoke, harbour traffic, their lights), from its own file once it's there
 	if ResourceLoader.exists(LIFE):
 		kit.timed("life", func(): load(LIFE).build(self))
-	kit.timed("story", _build_deadfall)
 	_add_arrival_zone()
 	kit.timed("draw lod", func(): DrawLOD.apply(self))
 
@@ -918,7 +927,7 @@ func place_of(place: String) -> Vector3:
 ## The ground at a story place (place_of), world space.
 func ground_of(place: String) -> Vector3:
 	var p: Vector2 = harbour.quay_pt(BRAWL_S, BRAWL_IN) if place == "brawl" else \
-		{"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE, "rack": RACK, "spar": SPAR, "ruins": RUINS, "forest": FOREST}[place]
+		{"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE, "rack": RACK, "spar": SPAR, "ruins": RUINS, "forest": GROVE}[place]
 	return to_global(Vector3(p.x, hv(p), p.y))
 
 
@@ -926,7 +935,7 @@ func ground_of(place: String) -> Vector3:
 ## foot of its cliff path, then the top of the path once you're on it, then the den.
 func guide_to(place: String, from: Vector3) -> Vector3:
 	if place == "forest":
-		return _next_deadfall(from)
+		return _next_ironwood(from)
 	if place != "den":
 		return place_of(place)
 	var l := to_local(from)
@@ -943,44 +952,46 @@ func guide_to(place: String, from: Vector3) -> Vector3:
 	return to_global(Vector3(start.x, hv(start) + 2.5, start.y))
 
 
-## The nearest ironwood deadfall this captain hasn't split (the forest step's marker), else the forest.
-func _next_deadfall(from: Vector3) -> Vector3:
+## The nearest marked ironwood this captain hasn't felled (the forest step's marker): the trail's mouth on the forest
+## path until you're on the trail or in the grove, then the tree.
+func _next_ironwood(from: Vector3) -> Vector3:
+	var l := to_local(from)
+	var at2 := Vector2(l.x, l.z)
+	var mouth: Vector2 = GROVE_TRAIL[0]
+	if at2.distance_to(GROVE) > GROVE_R + 4.0 and _path_dist(at2, _grove_trail + 1, _grove_trail, true) > 3.0:
+		return to_global(Vector3(mouth.x, hv(mouth) + 2.0, mouth.y))
 	var best := place_of("forest")
 	var bd := INF
-	for i in range(deadfall.size()):
-		if Dialogue.has_flag(StoryDeadfall.flag(i)):
+	for i in range(grove.trees.size()):
+		if Dialogue.has_flag(StoryGrove.flag(i)):
 			continue
-		var at: Vector3 = (deadfall[i] as Node3D).global_position + Vector3.UP * 1.5
-		if at.distance_to(from) < bd:
-			bd = at.distance_to(from)
-			best = at
+		var tp: Vector3 = (grove.trees[i] as Node3D).global_position + Vector3.UP * 2.2
+		if tp.distance_to(from) < bd:
+			bd = tp.distance_to(from)
+			best = tp
 	return best
 
 
-## The old forest's deadfall (Story step "forest"): StoryDeadfall.COUNT fallen trunks beside the paths through the forest,
-## a good way apart and clear of the cave's mouth, each 2.6 m off its path.
-func _build_deadfall() -> void:
-	var rng := kit.rng(0, SEEDS["deadfall"])
+## Tackett's ironwood grove (Story step "forest", StoryGrove): a clearing GROVE_R round GROVE off the forest path at
+## the end of its trail (GROVE_TRAIL), the marked trees round its edge each falling across open ground, his stumps
+## and chopping block. Reserved in the grown layer: the old forest's plants there are left out, their draws kept.
+## A signpost where the trail leaves the forest path.
+func _build_grove() -> void:
+	reserve(GROVE, GROVE_R)
+	var gy := hv(GROVE)
 	var spots: Array = []
-	for path: PackedVector2Array in paths:
-		for k in range(1, path.size()):
-			var q: Vector2 = path[k]
-			var d := q.distance_to(FOREST)
-			if d < 12.0 or d > 50.0 or q.distance_to(CAVE) < 26.0:
-				continue
-			if spots.any(func(s: Array) -> bool: return (s[0] as Vector2).distance_to(q) < 16.0):
-				continue
-			var along: Vector2 = (path[k] - path[k - 1]).normalized()
-			spots.append([q + Vector2(-along.y, along.x) * 2.6, along])
-			if spots.size() == StoryDeadfall.COUNT:
-				break
-		if spots.size() == StoryDeadfall.COUNT:
-			break
-	assert(spots.size() == StoryDeadfall.COUNT, "the old forest's paths have room for only %d deadfall" % spots.size())
-	for i in range(spots.size()):
-		var s: Array = spots[i]
-		var trunk := StoryDeadfall.build(i, rng.randi())
-		deadfall.append(kit.place(trunk, s[0], face_yaw(s[1]) + PI * 0.5, 0.0, -0.05))
+	for t: Array in GROVE_TREES:
+		var q: Vector2 = GROVE + (t[0] as Vector2)
+		var d: Vector2 = (t[1] as Vector2).normalized()
+		spots.append([Vector3(q.x - GROVE.x, hv(q) - gy - 0.05, q.y - GROVE.y), atan2(-d.y, d.x)])
+	var stumps: Array = GROVE_STUMPS.map(func(o: Vector2) -> Vector3: return Vector3(o.x, hv(GROVE + o) - gy, o.y))
+	var bo: Vector2 = GROVE_BLOCK[0]
+	grove = StoryGrove.make(spots, stumps, [Vector3(bo.x, hv(GROVE + bo) - gy, bo.y), GROVE_BLOCK[1]], SEEDS["grove"])
+	kit.put(grove, Vector3(GROVE.x, gy, GROVE.y))
+	var mouth: Vector2 = GROVE_TRAIL[0]
+	var into: Vector2 = (GROVE_TRAIL[1] as Vector2) - mouth
+	var sign_at := mouth + into.normalized().rotated(PI * 0.5) * 2.4
+	kit.place(Props.signpost([atan2(-into.y, into.x)]), sign_at, 0.0, 0.6)
 
 
 ## Where a new captain wakes: on the sand just past the quay's west end, a
@@ -1104,6 +1115,9 @@ func _define_paths() -> void:
 	var ws: Vector2 = wreck_site[0] - (wreck_site[1] as Vector2) * 13.0
 	_add_path([Vector2(14, 278), Vector2(40, 284), ws.lerp(Vector2(40, 284), 0.4), ws], 1.1)
 	_add_path([Vector2(-14, 232), Vector2(-36, 284), Vector2(-46, 312), COVE2 + Vector2(4, -31)], 1.1)
+	# (1.30) the trail off the forest path to Tackett's ironwood grove
+	_grove_trail = paths.size()
+	_add_path(GROVE_TRAIL, 0.9)
 
 
 ## The grown land's paths count from here on (its pieces and plants).
@@ -2092,7 +2106,8 @@ func _build_spitters() -> void:
 		var a := rng.randf() * TAU
 		var anchor := crown + Vector3(cos(a) * 1.4, -1.3, sin(a) * 1.4)
 		var g := Vector2(anchor.x, anchor.z)
-		if g.distance_to(FOREST) > 72.0 or g.distance_to(CAVE) < 36.0 or _slope_at(g) > 0.3 or anchor.y - hv(g) < 6.0:
+		if g.distance_to(FOREST) > 72.0 or g.distance_to(CAVE) < 36.0 or _slope_at(g) > 0.3 or anchor.y - hv(g) < 6.0 or g.distance_to(GROVE) < GROVE_R + 5.0 \
+				or _path_dist(g, _grove_trail + 1, _grove_trail, true) < 4.5:
 			continue
 		var clear := true
 		for q in taken:

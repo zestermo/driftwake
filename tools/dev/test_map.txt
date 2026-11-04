@@ -85,9 +85,9 @@ tools/dev/t/story/*                     t/story
 scripts/game/arena_bout.gd              t/story t/weapons/black_leg_master
 data/dialogue/*                         t/story storytest
 scripts/game/story_rack.gd              t/story/rack_keeps_one
-scripts/game/story_deadfall.gd          t/story/island_steps
+scripts/game/story_grove.gd             t/story/island_steps t/story/ironwood_grove
 scripts/props/shrine_terrace.gd         t/story/tomo_terrace t/island/brinehollow_outskirts
-scripts/island/starter_island.gd        t/story/tomo_terrace t/story/island_steps
+scripts/island/starter_island.gd        t/story/tomo_terrace t/story/island_steps t/story/ironwood_grove
 scripts/island/brinehollow_cast.gd      t/story/tomo_terrace
 scripts/quests/journal.gd               t/quests
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
