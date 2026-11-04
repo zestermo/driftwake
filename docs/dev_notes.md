@@ -10664,3 +10664,16 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   Rush, both ultimates) pose these actions, so they pick the new keys up without changes of their own.
 - **Tests:** sickle_combo, sickle_moves, plus_sickle, sickle_heavy pass; sickle_tree's step count 30 -> 34 (stale since
   Quick Hands, c40c6924). Renders: tools/dev/out/review/scythe_*.png.
+
+## 2026-11-04: 1.30 the ground step-up (Zach, with the collision audit: fallen logs solid)
+- Walking or running (the Move state only: not swimming, the deck's rider code, dashes or the air) into a ledge up to
+  `Player.STEP_MAX` 0.62 m lifts the captain onto it: after the slide, `step_check` sees a wall pushed into, finds room
+  above (test_move up STEP_MAX, then 0.3 m forward) and a walkable top under there (test_move down), and `step_lift`
+  raises the body STEP_RATE 7 m/s (0.12 m a tick) before the next slides, velocity.y 0, the stick's x/z untouched;
+  the capsule's round foot riding the edge near the top counts against what's left, then a floor snap. `stepping()`
+  holds off Fall for 8 ticks. Taller (a ship's bulwark, 0.8 m over the deck) still needs a jump.
+- Per tick: on the floor and only when a slide hit a wall the stick pushes into, three test_moves; otherwise a loop over
+  the slide's collisions.
+- Tests: t/player/step_up (0.3 and 0.6 m up and over without falling, the climb at most the lift plus the edge's ride a
+  tick, 0.9 m blocked, the flat walk exactly the move speed); t/ship/boarding_boat, enemy_boarding, hull_ladder,
+  unstuck_deck; t/story/close_steps; the t/player and t/ship groups.
