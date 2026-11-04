@@ -28,8 +28,8 @@ static func meshes(theme: String) -> Dictionary:
 						(m as ArrayMesh).set_meta("log", lying(m) if key == "broadleaf" else [])
 				# (a giant's buttresses and roots are in its detail mesh: the body's shape takes both)
 				if key in ["giant", "fig", "kapok", "emergent"] and e is Array and not (e[0] as ArrayMesh).has_meta("hull"):
-					var hp := hull_points(e[0])
-					hp.append_array(hull_points(e[1]))
+					var hp := hull_points(e[0], GIANT_TOP)
+					hp.append_array(hull_points(e[1], GIANT_TOP))
 					(e[0] as ArrayMesh).set_meta("hull", hp)
 		for e in _meshes[theme].get("rock", []):
 			(e as ArrayMesh).set_meta("hull", hull_points(e))
@@ -52,6 +52,8 @@ static func meshes(theme: String) -> Dictionary:
 ## the mesh's arrays); [] for a mesh with no wood low down.
 const TRUNK_TOP := 5.0
 const TRUNK_SLICE := 2.5
+## A giant's shape goes higher: a captain who climbs or grapples its roots and buttresses meets its trunk above them.
+const GIANT_TOP := 10.0
 const FOLIAGE := ["pine_snow", "fir_needles", "palm_frond", "fern", "bush", "grass_tuft", "thornbrush", "moss", "snow", "volcanic_ash", "bamboo"]
 
 
@@ -79,13 +81,13 @@ static func trunk_cols(body: Node, mesh: Mesh, xf: Transform3D) -> bool:
 
 
 ## Points over a surface's triangles every ~0.5 m (a trunk drawn as one tall cylinder has vertices only at its ends).
-static func wood_points(v: PackedVector3Array) -> PackedVector3Array:
+static func wood_points(v: PackedVector3Array, top := TRUNK_TOP) -> PackedVector3Array:
 	var out := PackedVector3Array()
 	for t in range(0, v.size() - 2, 3):
 		var a := v[t]
 		var b := v[t + 1]
 		var c := v[t + 2]
-		if minf(a.y, minf(b.y, c.y)) >= TRUNK_TOP:
+		if minf(a.y, minf(b.y, c.y)) >= top:
 			continue
 		var k := clampi(ceili(maxf(a.distance_to(b), maxf(b.distance_to(c), c.distance_to(a))) / 0.5), 1, 16)
 		for i in range(k + 1):
@@ -132,7 +134,7 @@ static func trunk(mesh: ArrayMesh) -> Array:
 
 ## (1.30) A big tree's or a rock's own convex shape: its wood's (or stone's) vertices up to TRUNK_TOP, each once. A giant's
 ## buttresses and a rock's long side stood out of the one upright cylinder or sphere they had.
-static func hull_points(mesh: ArrayMesh) -> PackedVector3Array:
+static func hull_points(mesh: ArrayMesh, top := TRUNK_TOP) -> PackedVector3Array:
 	var seen := {}
 	var out := PackedVector3Array()
 	for si in range(mesh.get_surface_count()):
@@ -140,9 +142,9 @@ static func hull_points(mesh: ArrayMesh) -> PackedVector3Array:
 		if mat == null or mat.shader != PSXMat.LIT_SHADER or (mat.has_meta("psx") and foliage(str(mat.get_meta("psx")[0]))):
 			continue
 		# (a quarter-metre grid: enough to keep the shape, few enough points to build it quick)
-		for v in wood_points(mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]):
+		for v in wood_points(mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX], top):
 			var k := Vector3i((v * 4.0).round())
-			if v.y < TRUNK_TOP and not seen.has(k):
+			if v.y < top and not seen.has(k):
 				seen[k] = true
 				out.append(v)
 	return out
