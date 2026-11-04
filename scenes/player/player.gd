@@ -465,7 +465,7 @@ func _wear_outfit_of(lk: Dictionary) -> void:
 func refresh_look() -> void:
 	if body_model == null:
 		return
-	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden, equipment.draped)
+	var lk := Gear.compose(appearance, equipment.look_slots(), equipment.hidden, equipment.draped)
 	lk["log_pose"] = has_log_pose() and not is_ai
 	body_model.apply_look(lk)
 	if not is_ai:
@@ -504,7 +504,7 @@ func show_equipment(on: bool) -> void:
 
 ## (1.29) Wear the coat draped over the shoulders, its sleeves empty, or with the arms in them.
 func drape_coat(on: bool) -> void:
-	var it := equipment.get_item("coat")
+	var it := equipment.look_item("coat")
 	if it == null:
 		return
 	equipment.set_draped(it, on)
@@ -1202,7 +1202,7 @@ func set_hybrid(on: bool, full: bool = false) -> void:
 		return
 	hybrid = on
 	beast_full = on and full
-	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden, equipment.draped)
+	var lk := Gear.compose(appearance, equipment.look_slots(), equipment.hidden, equipment.draped)
 	var form: Dictionary = BEAST_FORMS.get(power.fruit, BEAST_FORMS["wolf"])
 	var fur: Color = form["fur"]
 	if on:

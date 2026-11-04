@@ -42,8 +42,8 @@ func _ready() -> void:
 	_canvas.visible = false
 
 
-## The window's width on the canvas (at least 640x360), centred at the bottom.
-const WIDTH := 440.0
+## The window's width on the canvas (at least 960x540), centred at the bottom.
+const WIDTH := 600.0
 
 
 func _build() -> void:
@@ -65,10 +65,10 @@ func _build() -> void:
 	_panel.anchor_bottom = 1.0
 	_panel.offset_left = -WIDTH * 0.5
 	_panel.offset_right = WIDTH * 0.5
-	_panel.offset_top = -70
-	_panel.offset_bottom = -8
+	_panel.offset_top = -84
+	_panel.offset_bottom = -12
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_panel.custom_minimum_size = Vector2(WIDTH, 62)
+	_panel.custom_minimum_size = Vector2(WIDTH, 72)
 	_root.add_child(_panel)
 	_panel.resized.connect(_layout)
 

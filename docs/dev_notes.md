@@ -10715,3 +10715,46 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   dressing; the harbour tower's rail ring is drawn as a solid disc (a model bug, the mesh unchanged here).
 - Tests: t/island/pier_rails (new), roofs_solid (plus Brinehollow's pagoda, shrine and teahouse), trunk_cols, the
   t/capital, t/canal and t/stronghold/solid_ground groups.
+## 2026-11-04: the UI canvas is 960x540 (piece 2: the inventory and the menu tabs)
+
+- **Inventory** (`inventory_screen.gd`): slots 52 px with their 24 px icons at 2x (`ICON` 48, `GAP` 4), so the bag,
+  the gear columns, the hands and the chest window all double; the bag panel 450 wide (details 150, tips 180), the
+  chest window ~4.5 rows tall before it scrolls. The gear columns sit `h * 0.2` either side of the captain with a
+  slot's width clear on their outer side (room for a second slot beside each clothing slot, for transmog); rows
+  step `max(h * 0.118, SLOT + 12)` so DRAPE fits under the coat; SHOW now sits beside the equipment slot.
+  The shop and inspect panels use the same slots (their info / tips widened to 170 / 180).
+- **Captain's Log** (`journal_screen.gd`): 820x470 (was 632x350), the list, map and news widened with it.
+  **Fish journal:** its list 380 tall. The HUD's small-news stack hides with a menu open (it showed through).
+- **Tests:** t/ui, t/items, t/economy, t/quests, t/fishing/journal_screen, t/gear/coat_drape, t/coop crew_roster and
+  meet_menu pass (80). Renders: tools/dev/out/review/canvas_inventory*, canvas_shop, canvas_journal*.
+  `journalshot` now applies its WxH argument (it was ignored).
+
+## 2026-11-04: the UI canvas is 960x540 (piece 3: wheels, world screens, creator, title)
+
+- **Wheels** (`radial_wheel.gd`, every wheel): the ring's middle radius `max(80, n * 60 / TAU)` (was 64 / 50), the hub
+  up to 54. **Dialogue:** the page 600 wide (was 440), a little taller and higher off the bottom.
+- **Notice board** 860x470 (record 240, bounties 300, folk 290, 8 folk rows); **galley** list/card/pantry 190/280/170
+  and 330 / 300 tall; **workbench** list 190, card 320, 360 tall; **bookshelf** spines 14x40, rows 400, card 260;
+  **fish journal** card 260; **creator** preview 340 wide, name field 180; **chat** 360 wide.
+- **Unchanged on purpose:** the title (already laid out by fractions; now a whole 2x at 1080p), the loading screen
+  (drawn by fractions of the canvas), the cook game (rows by fractions), wanted and crew (they read well centred),
+  toasts, banners and the HUD (anchored to the corners: they follow the canvas).
+- **Tools:** titleshot and creatorshot take `[WxH]`; boardshot now applies its WxH. Renders in
+  tools/dev/out/review/canvas_*.png.
+- **Tests:** t/ui, t/food, t/gadgets, t/jam, t/player, t/books/shelf, t/fishing/journal_screen,
+  t/quests/island_tracker + landing_goals pass (133). t/gadgets/decoy failed once under load ("a Mk III goes off when
+  it falls apart") and passed alone: not UI.
+
+## 2026-11-04: 1.30 transmog, piece 1: cosmetic slots (data, look, save)
+
+- **What:** each clothing slot (EquipmentComponent.MOG_SLOTS: head, face, torso, vest, coat, belt, back, hands, legs,
+  feet; all draw on the body via Gear.SLOT_KEYS) can show a cosmetic piece instead of the worn one. `cosmetic` (slot ->
+  piece, out of the bag while it sits there: `mog_from_bag` / `unmog_to_bag`, any piece of that slot's kind) and `mog`
+  (the ticked slots). `look_slots()` is the worn slots with the mogged, filled ones swapped: Player.refresh_look and
+  set_hybrid compose from it, so stats (`_recalc_stats`, defense, load) still read `slots`. An empty cosmetic slot
+  shows the worn piece (no "show nothing" yet); an unticked slot keeps its cosmetic piece for the next tick.
+  DRAPE drapes the coat that's shown (`look_item("coat")`). `clear()` (a new outfit) drops both.
+- **Save:** "worn_mog" (slot -> item ref) and "mog" (slots); saves without them load unmogged.
+- **Co-op:** nothing new on the wire: the composed look carries it (`_net_look`), the host's stats never see it.
+- Per frame: nothing (only on a gear change).
+- **Tests:** t/gear/mog_look, mog_bag, mog_save (new); coat_drape, stats, t/items/equipment_slot pass.

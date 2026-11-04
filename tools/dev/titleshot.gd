@@ -1,10 +1,15 @@
 extends SceneTree
 var t := 0.0
+## Args: <out_prefix> [WxH] (e.g. 1920x1080, the 960x540 canvas at 2x).
+var win := Vector2i.ZERO
 var out := ""
 var step := 0
 var SG
 func _initialize():
 	out = OS.get_cmdline_user_args()[0]
+	if OS.get_cmdline_user_args().size() > 1:
+		var wh := OS.get_cmdline_user_args()[1].split("x")
+		win = Vector2i(int(wh[0]), int(wh[1]))
 	SG = load("res://scripts/game/save_game.gd")
 	SG.use_test_dir("user://shot_slots")
 	change_scene_to_file("res://scenes/world/world.tscn")
@@ -12,6 +17,9 @@ func _process(d: float) -> bool:
 	t += d
 	match step:
 		0:
+			if win != Vector2i.ZERO and root.size != win:
+				DisplayServer.window_set_size(win)
+				root.size = win
 			if t < 3.0: return false
 			for n in root.find_children("*", "CharacterCreator", true, false): n._finish(true)
 			var p = root.get_tree().get_first_node_in_group("player")

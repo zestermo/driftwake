@@ -5,7 +5,7 @@ extends PanelContainer
 const STYLES := {"fist": "Brawler", "black_leg": "Black Leg","sword": "Cutlass", "axe": "Axe", "katana": "Katana", "dagger": "Dagger", "polearm": "Polearm", "hammer": "Hammer", "greatsword": "Greatsword", "rapier": "Rapier", "staff": "Staff", "sickle": "Chain Sickle",
 	"dual_sword": "Twin blades", "dual_dagger": "Twin daggers", "dual_axe": "Twin axes", "sword_pistol": "Blade and pistol",
 	"pistol": "Pistol", "dual_pistol": "Twin pistols", "claw": "Beast claws", "long_gun": "Long gun", "cannon": "Cannon", "slingshot": "Slingshot"}
-const TIP_W := 150
+const TIP_W := 180
 
 var viewer: Node
 ## What's shown, by slot ("weapon", "offhand", the doll's slots, "quick0").

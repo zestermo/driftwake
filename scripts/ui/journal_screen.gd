@@ -7,16 +7,16 @@ extends Control
 ##   QUESTS: every live quest (the story first while it's on) with its owner chip (YOURS / <CAPTAIN>'S / SHARED), the
 ##   picked one's steps, reward and who follows it; T follows, X drops (twice). NEWS: everything that happened, newest
 ##   first, then the rumours heard. DONE: finished quests.
-## Keys: A/D tabs, W/S pick, T follow, X drop, J or Esc close; the mouse works too. Fits the 640x360 canvas.
+## Keys: A/D tabs, W/S pick, T follow, X drop, J or Esc close; the mouse works too. Laid out for the 960x540 canvas.
 
 const TABS := ["next", "quests", "news", "done"]
 const NAMES := {"next": "NEXT", "quests": "QUESTS", "news": "NEWS", "done": "DONE"}
-const W := 632.0
-const H := 350.0
-const LEFT_W := 332.0
-const LIST_W := 220.0
-const BODY_H := 286.0
-const MAP_H := 168.0
+const W := 820.0
+const H := 470.0
+const LEFT_W := 430.0
+const LIST_W := 290.0
+const BODY_H := 404.0
+const MAP_H := 250.0
 const SMALL := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const PAPER := Color("e9d9b0")

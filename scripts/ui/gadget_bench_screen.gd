@@ -4,9 +4,9 @@ extends Control
 ## tier, the next tier's price against your bag and the Tinkering it needs, Build / Upgrade, its charges and Refill,
 ## and which belt slot it sits in. Refill all at the foot. Gadgets does the work; this only shows and asks.
 
-const W_LIST := 150
-const W_CARD := 250
-const LIST_H := 300
+const W_LIST := 190
+const W_CARD := 320
+const LIST_H := 360
 
 var bench: Node3D
 var _menu: Node

@@ -249,6 +249,9 @@ static func save(player: Player) -> bool:
 		var it: ItemData = player.equipment.slots[slot]
 		if it:
 			worn[slot] = item_ref(it)
+	var mogged := {}
+	for slot in player.equipment.cosmetic.keys():
+		mogged[slot] = item_ref(player.equipment.cosmetic[slot])
 	var stored: Array = []
 	var chest: Array = []
 	var pantry: Array = []
@@ -302,6 +305,8 @@ static func save(player: Player) -> bool:
 		"worn": worn,
 		"equip_hidden": player.equipment.hidden.keys(),
 		"coat_draped": player.equipment.draped.keys(),
+		"worn_mog": mogged,
+		"mog": player.equipment.mog.keys(),
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
 		"kicks": player.kicks,
@@ -417,6 +422,16 @@ static func load_into(player: Player) -> bool:
 	player.equipment.draped.clear()
 	for id in data.get("coat_draped", []):
 		player.equipment.draped[str(id)] = true
+	# (1.30) transmog: saves before it have neither key, so every slot loads unmogged
+	player.equipment.cosmetic.clear()
+	var mogged: Dictionary = data.get("worn_mog", {})
+	for slot in mogged.keys():
+		var it := item_from(mogged[slot])
+		if it:
+			player.equipment.cosmetic[str(slot)] = it
+	player.equipment.mog.clear()
+	for slot in data.get("mog", []):
+		player.equipment.mog[str(slot)] = true
 	player.refresh_look()
 	var w := item_from(data.get("weapon", []))
 	if w:

@@ -1,13 +1,14 @@
 extends SceneTree
 ## The Captain's Log (J) on the light stage, filled with made-up quests, news and rumours, a real chain for the chain's
 ## step: the HUD (the objective box, a pinned card, small news), then the log's NEXT, QUESTS, NEWS and DONE tabs.
-## Args: <out dir> [WxH] (default 1280x720: the tightest canvas, 640x360). Writes hud/next/quests/news/done.png.
+## Args: <out dir> [WxH] (default 1280x720; 1920x1080 is the 960x540 canvas at 2x). Writes hud/next/quests/news/done.png.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var j
 var out := "res://tools/dev/out/journal"
 var step := 0
 var until := 0
+var win := Vector2i(1280, 720)
 
 
 func _initialize() -> void:
@@ -15,7 +16,7 @@ func _initialize() -> void:
 	if a.size() > 0:
 		out = a[0]
 	var wh := (a[1] if a.size() > 1 else "1280x720").split("x")
-	root.size = Vector2i(int(wh[0]), int(wh[1]))
+	win = Vector2i(int(wh[0]), int(wh[1]))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	TK.seed_of(self)
 	stage = TK.stage(self, {"npc": {"name": "Net-mender Kai", "at": Vector3(-6, 0, -14)}, "grunts": [{"post": Vector3(1.5, 0, -5.0), "role": "sword", "seed": 71}]})
@@ -40,7 +41,8 @@ func _process(_d: float) -> bool:
 		return false
 	match step:
 		0:
-			DisplayServer.window_set_size(root.size)
+			DisplayServer.window_set_size(win)
+			root.size = win
 			j = root.get_node("Journal")
 			j.reset()
 			root.get_node("Story").step = "done"
