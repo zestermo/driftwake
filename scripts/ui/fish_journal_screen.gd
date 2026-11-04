@@ -44,7 +44,7 @@ func _init(menu: Node) -> void:
 	body.add_theme_constant_override("separation", 10)
 	vb.add_child(body)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(W_ROWS + 10, 250)
+	scroll.custom_minimum_size = Vector2(W_ROWS + 10, 380)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true
 	body.add_child(scroll)

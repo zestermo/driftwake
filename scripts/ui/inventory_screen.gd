@@ -6,12 +6,14 @@ extends Control
 ## show only in their slots. Drawn into a SubViewport shown at a whole multiple of its pixels
 ## (_fit_canvas), so the pixel fonts and icons stay crisp at any window size.
 
-const SLOT := 28
-const GAP := 2
+## Slots show their 24 px icons at 2x (ICON) on the 960x540 canvas.
+const SLOT := 52
+const ICON := 48
+const GAP := 4
 const COLS := 5
-const PANEL_W := 304
-const INFO_W := 130
-const TIP_W := 150
+const PANEL_W := 450
+const INFO_W := 150
+const TIP_W := 180
 const SMALL := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const LIGHT := preload("res://scripts/player_states/light_attack_state.gd")
@@ -57,9 +59,10 @@ class Slot extends Button:
 		tex = TextureRect.new()
 		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tex.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		tex.size = Vector2(24, 24)
-		tex.pivot_offset = Vector2(12, 12)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.size = Vector2(ICON, ICON)
+		tex.pivot_offset = Vector2(ICON, ICON) * 0.5
 		tex.position = Vector2(2, 2)
 		add_child(tex)
 		count = InventoryScreen.small("", UIStyle.TEXT)
@@ -175,7 +178,7 @@ var _loot_title: Label
 var _loot_grid: GridContainer
 var _loot_tabs: HBoxContainer
 ## The storage window's slots on show before it scrolls (canvas px).
-const LOOT_VIEW_H := 190.0
+const LOOT_VIEW_H := 252.0
 var _loot_slots: Array[Slot] = []
 var _container: Node = null
 var _view: Array[int] = []
@@ -501,20 +504,21 @@ func _layout() -> void:
 	_par.clear()
 	_park(_panel, pp, -3.0, true)
 	_cx = roundf((w - PANEL_W - 10) * 0.5)
-	var dx := roundf(h * 0.235)
-	var y0 := roundf(h * 0.17)
-	var step := roundf(h * 0.108)
+	# (the gear columns keep a slot's width clear on their outer side, for a second slot beside each)
+	var dx := roundf(h * 0.2)
+	var y0 := roundf(h * 0.15)
+	var step := maxf(roundf(h * 0.118), SLOT + 12)
 	for c in range(2):
 		for r in range((DOLL[c] as Array).size()):
 			var x := _cx - dx - SLOT if c == 0 else _cx + dx
 			_park(_doll[DOLL[c][r]], Vector2(x, y0 + step * r), 2.0, false)
-	# the hands, and the equipment a little apart (its SHOW box under it)
-	var wy := y0 + step * 6
+	# the hands, and the equipment a little apart (its SHOW box beside it)
+	var wy := y0 + step * 5 + SLOT + 12
 	var wx := _cx - roundf((SLOT * 3 + 10) * 0.5)
 	_park(_weapon_slot, Vector2(wx, wy), 2.0, false)
 	_park(_offhand_slot, Vector2(wx + SLOT + 2, wy), 2.0, false)
 	_park(_doll["equipment"], Vector2(wx + SLOT * 2 + 10, wy), 2.0, false)
-	_park(_show_box, Vector2(wx + SLOT * 2 + 10, wy + SLOT + 2), 2.0, false)
+	_park(_show_box, Vector2(wx + SLOT * 3 + 13, wy + SLOT - 10), 2.0, false)
 	var cp: Vector2 = _par[_doll["coat"]][0]
 	_park(_drape_box, cp + Vector2(0, SLOT + 2), 2.0, false)
 	for l in [_name_label, _stats_label]:
@@ -1425,9 +1429,10 @@ func _drag_from(s: Slot):
 	var prev := TextureRect.new()
 	prev.texture = it.icon
 	prev.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	prev.size = Vector2(24, 24)
-	prev.position = Vector2(-12, -12)
-	prev.pivot_offset = Vector2(12, 12)
+	prev.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	prev.size = Vector2(ICON, ICON)
+	prev.position = -Vector2(ICON, ICON) * 0.5
+	prev.pivot_offset = Vector2(ICON, ICON) * 0.5
 	var holder := Control.new()
 	holder.add_child(prev)
 	s.set_drag_preview(holder)

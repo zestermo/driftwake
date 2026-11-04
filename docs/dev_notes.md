@@ -10689,3 +10689,17 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Options:** the panel 500 wide, its list 360 tall (was 210).
 - **Tests:** `t/ui/canvas_960` (new); every `t/ui/skills_*` and vendor_marks size the window 1920x1080; uitest's
   checks now 960x540 at 2x in a 1920x1080 window (a world suite: runs at prepush).
+
+## 2026-11-04: the UI canvas is 960x540 (piece 2: the inventory and the menu tabs)
+
+- **Inventory** (`inventory_screen.gd`): slots 52 px with their 24 px icons at 2x (`ICON` 48, `GAP` 4), so the bag,
+  the gear columns, the hands and the chest window all double; the bag panel 450 wide (details 150, tips 180), the
+  chest window ~4.5 rows tall before it scrolls. The gear columns sit `h * 0.2` either side of the captain with a
+  slot's width clear on their outer side (room for a second slot beside each clothing slot, for transmog); rows
+  step `max(h * 0.118, SLOT + 12)` so DRAPE fits under the coat; SHOW now sits beside the equipment slot.
+  The shop and inspect panels use the same slots (their info / tips widened to 170 / 180).
+- **Captain's Log** (`journal_screen.gd`): 820x470 (was 632x350), the list, map and news widened with it.
+  **Fish journal:** its list 380 tall. The HUD's small-news stack hides with a menu open (it showed through).
+- **Tests:** t/ui, t/items, t/economy, t/quests, t/fishing/journal_screen, t/gear/coat_drape, t/coop crew_roster and
+  meet_menu pass (80). Renders: tools/dev/out/review/canvas_inventory*, canvas_shop, canvas_journal*.
+  `journalshot` now applies its WxH argument (it was ignored).
