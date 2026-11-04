@@ -37,6 +37,7 @@ var _galley: Control
 var _bench: Control
 const BOOKSHELF := preload("res://scripts/ui/bookshelf_screen.gd")
 const FISH_JOURNAL := preload("res://scripts/ui/fish_journal_screen.gd")
+const BOARD := preload("res://scripts/ui/notice_board_screen.gd")
 # suggest an idea (a QR for the companion app)
 const IDEA := preload("res://scripts/ui/idea_screen.gd")
 var _idea: Control
@@ -92,6 +93,7 @@ func _ready() -> void:
 	_screens["books"] = BOOKSHELF.new(self)
 	_screens["fish_journal"] = FISH_JOURNAL.new(self)
 	_screens["fish_journal"].register_wheel()
+	_screens["notice_board"] = BOARD.new(self)
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -232,6 +234,12 @@ func _on_dialogue_event(ev: String) -> void:
 func open_workbench(at: Node3D) -> void:
 	_bench.bench = at
 	open("workbench")
+
+
+## (1.30) A generated village's notice board: its page (NoticeBoardScreen).
+func open_board(isl: Node) -> void:
+	_screens["notice_board"].isl = isl
+	open("notice_board")
 
 
 ## A trader's stall, now or (talking) when the talk ends.
@@ -409,6 +417,11 @@ func _build_pause() -> Control:
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
 		["Suggest an Idea", func(): open("idea")],
+		["Unstuck", func():
+			var pl := _player()
+			close()
+			if pl:
+				pl.call("_toast", pl.unstuck.request(pl))],
 		["Save Game", func():
 			var pl := _player()
 			if pl:
@@ -488,13 +501,13 @@ func _open_appearance() -> void:
 # Options
 # ==========================================================================
 func _build_options() -> Control:
-	var p := _centered_panel(Vector2(420, 0))
+	var p := _centered_panel(Vector2(500, 0))
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 4)
 	p.add_child(outer)
 	outer.add_child(UIStyle.title("Options"))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(400, 210)
+	scroll.custom_minimum_size = Vector2(480, 360)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	outer.add_child(scroll)
 	var list := VBoxContainer.new()
@@ -506,7 +519,6 @@ func _build_options() -> Control:
 	_toggle_row(list, "Fullscreen", "video", "fullscreen")
 	_toggle_row(list, "Pixelation", "video", "pixelate")
 	_toggle_row(list, "Dithering", "video", "dither")
-	_toggle_row(list, "Finer menus", "video", "fine_ui")
 	_slider_row(list, "Vertex wobble", "video", "wobble", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Texture warp", "video", "warp", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Field of view", "video", "fov", 60.0, 100.0, 1.0, "%d", 1.0)
@@ -565,7 +577,7 @@ func _row(list: VBoxContainer, text: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var l := UIStyle.label(text)
-	l.custom_minimum_size = Vector2(140, 0)
+	l.custom_minimum_size = Vector2(180, 0)
 	row.add_child(l)
 	list.add_child(row)
 	return row
@@ -591,7 +603,7 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 	s.min_value = lo
 	s.max_value = hi
 	s.step = step
-	s.custom_minimum_size = Vector2(150, 14)
+	s.custom_minimum_size = Vector2(190, 14)
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	s.focus_mode = Control.FOCUS_ALL
 	row.add_child(s)
@@ -683,13 +695,18 @@ func _ship_event(action: String, cls: String) -> void:
 	if pl == null or not ShipClasses.CLASSES.has(cls):
 		return
 	var name_: String = ShipClasses.CLASSES[cls]["name"]
+	var was: String = ShipClasses.CLASSES[ShipClasses.class_of(GameManager.ship_kit)]["name"]
 	if action == "buy":
+		var why := ShipClasses.locked_why(cls, ShipClasses.chain_layer(GameManager), GameManager.log_pose_set())
+		if why != "":
+			get_tree().call_group("hud", "show_toast", why)
+			return
 		var short := ShipClasses.short_of(pl.inventory_component, cls)
 		if short != "":
 			get_tree().call_group("hud", "show_toast", "The %s costs %s: you're short %s." % [name_.to_lower(), ShipClasses.price_text(cls), short])
 			return
 		ShipClasses.pay(pl.inventory_component, cls)
-		get_tree().call_group("hud", "show_banner", "A %s of your own!" % name_.to_lower(), "She's at the berth. Your sloop's laid up at the yard, upgrades and all.", true)
+		get_tree().call_group("hud", "show_banner", "A %s of your own!" % name_.to_lower(), "She's at the berth, in your colours. Your %s's laid up at the yard, upgrades and all." % was.to_lower(), true)
 	else:
 		get_tree().call_group("hud", "show_toast", "You'll sail the %s. The other's laid up at the yard." % name_.to_lower())
 	get_node("/root/Net").request_ship(action, cls)

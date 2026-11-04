@@ -24,7 +24,7 @@ func _process(d: float) -> bool:
 			root.get_texture().get_image().save_png("%s_fresh.png" % out)
 			var pr = get_first_node_in_group("player").progression
 			while pr.mastery_level("sea") < 7:
-				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
+				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea"), "sea"))
 			for k in ["sea_hand", "sea_gunner", "f_helm", "sea_turn"]:
 				pr.buy(k)
 			gm._skills.set_tab("adventure", "sea")

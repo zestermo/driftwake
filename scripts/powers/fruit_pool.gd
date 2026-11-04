@@ -36,6 +36,25 @@ static func draw(tree: SceneTree, tier: String, rng: RandomNumberGenerator) -> S
 	return id
 
 
+## The stronghold vault's legendary fruit (1.30): the same on every machine from the shared flags alone. Once drawn it's
+## "vault_fruit:<id>" beside its "fruit:<id>", so a machine that opens the vault later finds the same one; "" when no
+## legendary is free.
+static func vault(tree: SceneTree, salt: int) -> String:
+	var gm := _gm(tree)
+	for id: String in TIERS:
+		if gm.world_flags.has("vault_fruit:" + id):
+			return id
+	var ids := free_of(tree, "legendary")
+	if ids.is_empty():
+		return ""
+	ids.sort()
+	var id: String = ids[posmod(hash([salt, "vault_fruit"]), ids.size())]
+	var net := tree.root.get_node("/root/Net")
+	net.world_flag("fruit:" + id)
+	net.world_flag("vault_fruit:" + id)
+	return id
+
+
 ## A fruit back in the pool (its enemy user beaten, or lost): the host clears its flag for everyone.
 static func release(tree: SceneTree, id: String) -> void:
 	var gm := _gm(tree)

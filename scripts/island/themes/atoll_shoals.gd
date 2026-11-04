@@ -63,7 +63,7 @@ static func _add(node: Node3D, mesh: Mesh, mode: int, at: Vector3, count: int, r
 	mat.set_shader_parameter("radius", radius)
 	mat.set_shader_parameter("height", height)
 	var mmi := MultiMeshInstance3D.new()
-	mmi.name = ("Shoal%d" if mode == 0 else "Gulls%d") % node.get_child_count()
+	mmi.name = (["Shoal%d", "Gulls%d", "Bubbles%d"][mode] as String) % node.get_child_count()
 	mmi.multimesh = mm
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

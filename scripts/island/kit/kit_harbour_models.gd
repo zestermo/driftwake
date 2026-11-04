@@ -121,6 +121,31 @@ static func rope_rail(mb: MeshBuilder, post: Material, rope: Material, posts: Pa
 			mb.add_tube(rope, MeshBuilder.sag_points(posts[i] + Vector3(0, y, 0), posts[i + 1] + Vector3(0, y, 0), 0.12, 6), 0.025, -1.0, 3)
 
 
+## (1.30) The rope rail's colliders: a thin wall a metre high from post to post (none across a break).
+static func rail_cols(body: Node3D, posts: PackedVector3Array, breaks := []) -> void:
+	for i in range(posts.size() - 1):
+		if breaks.has(i):
+			continue
+		var a := posts[i]
+		var b := posts[i + 1]
+		var d := Vector2(b.x - a.x, b.z - a.z)
+		_box_col(body, Vector3(0.12, 1.0, d.length() + 0.12), (a + b) * 0.5 + Vector3(0, 0.5, 0), atan2(d.x, d.y))
+
+
+## (1.30) Pile colliders, from a wader's depth (WADE under the sea) to the pile's top: a swimmer or the skimmer meets
+## them; deeper down they're passable. `list` as piles() takes it.
+const WADE := 1.2
+static func pile_cols(body: Node3D, list: Array) -> void:
+	for e in list:
+		var foot: Vector3 = e[0]
+		var top: Vector3 = e[1]
+		var y0 := maxf(foot.y, -WADE)
+		if top.y - y0 < 0.3:
+			continue
+		var p := foot.lerp(top, (y0 - foot.y) / maxf(top.y - foot.y, 0.01))
+		KitLandmarks.cyl_col(body, float(e[2]) * 1.06, top.y - y0, Vector3((p.x + top.x) * 0.5, (y0 + top.y) * 0.5, (p.z + top.z) * 0.5))
+
+
 ## A mooring post: a stout pile standing proud of the deck, a rope turned round it.
 static func bollard(mb: MeshBuilder, pile: Material, rope: Material, at: Vector3) -> void:
 	mb.add_cylinder(pile, _xf(at), 0.19, 0.17, 0.6, 6, 0.8)
@@ -400,11 +425,13 @@ static func warehouse(spec: Dictionary) -> StaticBody3D:
 			mb.add_box(beam, wx * _xf(Vector3(0, -0.3, 0.04)), Vector3(0.9, 0.07, 0.12), 0.8)
 	Buildings.wall_lantern(mb, Vector3(dw + 0.55, fl + 2.1, d * 0.5), beam)
 	# the roof, its ridge and barge boards
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, top + 0.1, 0)), w, d, ridge, 0.55, 0.5, Color.WHITE, wall)
 	mb.add_box(PSXMat.lit(spec["roof"], Color(0.7, 0.66, 0.62), {"affine": 0.8}), _xf(Vector3(0, top + 0.1 + ridge + 0.04, 0)), Vector3(0.3, 0.18, d + 1.2), 0.8)
 	for z in [-(d * 0.5 + 0.55), d * 0.5 + 0.55]:
 		for s in [-1.0, 1.0]:
 			Buildings.beam_between(mb, beam, Vector3(s * (w * 0.5 + 0.55), top + 0.1 - 0.55 * pitch * 2.0, z), Vector3(0, top + 0.1 + ridge, z), 0.16, 0.07)
+	mb.hull_since(rm, body, "RoofCol")
 	body.add_child(mb.to_instance("WarehouseMesh"))
 	KitLandmarks.box_col(body, Vector3(w + 0.3, fl + h + found, d + 0.3), Vector3(0, (fl + h - found) * 0.5, 0))
 	Buildings._marker(body, "Door", Vector3(0, 0, d * 0.5 + 1.4))
@@ -451,8 +478,10 @@ static func boathouse(spec: Dictionary) -> StaticBody3D:
 		mb.add_box(beam, _xf(Vector3(s, 1.1, -l * 0.5)), Vector3(0.16, 2.25, 0.2), 0.8)
 	mb.add_box(beam, _xf(Vector3(0, h, l * 0.5 - 0.1)), Vector3(w + 0.2, 0.22, 0.22), 0.6)
 	mb.add_box(beam, _xf(Vector3(0, h, -l * 0.5)), Vector3(w + 0.2, 0.22, 0.22), 0.6)
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, h + 0.1, 0)), w, l, w * 0.45, 0.6, 0.5, Color.WHITE, wall)
 	mb.add_box(PSXMat.lit(spec["roof"], Color(0.7, 0.66, 0.62), {"affine": 0.8}), _xf(Vector3(0, h + 0.14 + w * 0.45, 0)), Vector3(0.3, 0.18, l + 1.3), 0.8)
+	mb.hull_since(rm, body, "RoofCol")
 	body.add_child(mb.to_instance("BoathouseMesh"))
 	return body
 

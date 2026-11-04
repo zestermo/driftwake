@@ -28,7 +28,7 @@ func check(what: String, cond: bool) -> void:
 func to_level(tree: String, lv: int) -> void:
 	while pr.mastery_level(tree) < lv:
 		var m: Dictionary = pr.mastery_of(tree)
-		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"]), tree) - int(m["xp"]))
 
 
 func tree_checks(t: String) -> void:
@@ -45,6 +45,7 @@ func tree_checks(t: String) -> void:
 	to_level(t, 14)
 	check("%s: at 14 the sprint alternate, not yet the right-click" % t, pr.owns(pre + "_alt_sprint") and not pr.owns(pre + "_alt_heavy"))
 	pr.gift(t, 40)
+	own_parents(pre + "_airheavy")
 	check("%s: the aerial heavy bought at 10+" % t, pr.buy(pre + "_airheavy") and pr.stat(WP.air_heavy_key(t)) > 0.0)
 	var b: Dictionary = STS.node_def(d["bridges"][0][0])
 	var a: String = b["needs"][0]
@@ -63,10 +64,26 @@ func tree_checks(t: String) -> void:
 	check("%s: the second ultimate waits on its lead-up (%s)" % [t, pr.buy_why(ub)], pr.buy_why(ub).begins_with("Needs"))
 	check("%s: the lead-up waits on the second element (%s)" % [t, pr.buy_why(lb)], pr.buy_why(lb).begins_with("Needs"))
 	pr.gift(t, 40)
+	own_parents(pre + "_elem2")
+	pr.owned.erase(pre + "_elem")
 	check("%s: elements, lead-up and the second ultimate bought" % t, pr.buy(pre + "_elem") and pr.buy(pre + "_elem2") and pr.buy(lb) and pr.buy(ub) and pr.knows(str(d["ult_b"][1])))
+	own_parents(pre + "_crew")
 	check("%s: the crew variant bought, the first technique still on C" % t, pr.buy(pre + "_crew") and pr.stat("crew2_" + t) == 0.0)
 	check("%s: switched to %s anywhere" % [t, d["crew"]], pr.set_version(pre + "_crew", 1) and pr.stat("crew2_" + t) > 0.0)
 
+
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
 
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
@@ -79,6 +96,7 @@ func _process(_d: float) -> bool:
 			WP = load("res://scripts/progression/weapon_plus.gd")
 			for t in WP.TREES.keys():
 				tree_checks(t)
+			own_parents("s_kraken")
 			check("Kraken's Wake bought and on R", pr.buy("s_kraken") and p.power.equip("kraken_wake", p.power.ULT))
 			var ub: String = WP.TREES["sword"]["ult_b"][1]
 			p.fought()

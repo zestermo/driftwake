@@ -6,12 +6,14 @@ extends Control
 ## show only in their slots. Drawn into a SubViewport shown at a whole multiple of its pixels
 ## (_fit_canvas), so the pixel fonts and icons stay crisp at any window size.
 
-const SLOT := 28
-const GAP := 2
+## Slots show their 24 px icons at 2x (ICON) on the 960x540 canvas.
+const SLOT := 52
+const ICON := 48
+const GAP := 4
 const COLS := 5
-const PANEL_W := 304
-const INFO_W := 130
-const TIP_W := 150
+const PANEL_W := 450
+const INFO_W := 150
+const TIP_W := 180
 const SMALL := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const LIGHT := preload("res://scripts/player_states/light_attack_state.gd")
@@ -57,9 +59,10 @@ class Slot extends Button:
 		tex = TextureRect.new()
 		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tex.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		tex.size = Vector2(24, 24)
-		tex.pivot_offset = Vector2(12, 12)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.size = Vector2(ICON, ICON)
+		tex.pivot_offset = Vector2(ICON, ICON) * 0.5
 		tex.position = Vector2(2, 2)
 		add_child(tex)
 		count = InventoryScreen.small("", UIStyle.TEXT)
@@ -145,7 +148,7 @@ class Slot extends Button:
 var menu: Node  # GameMenu (close / blip)
 var _svc: PixelCanvas
 var _ui: Control
-var _canvas := Vector2(640, 360)
+var _canvas := Vector2(960, 540)
 var _cx := 160.0
 var _tab := "inventory"
 var _tab_buttons: Dictionary = {}
@@ -159,6 +162,9 @@ var _offhand_slot: Slot
 ## The equipment piece's visibility box (ticked: drawn on the body).
 var _show_box: Button
 var _drape_box: Button
+## (1.30) Transmog: each clothing slot's cosmetic slot (beside it, on the column's outer side) and its MOG box.
+var _mog: Dictionary = {}  # slot id -> Slot
+var _mog_box: Dictionary = {}  # slot id -> Button
 var _doll_nodes: Array[Control] = []
 var _name_label: Label
 var _stats_label: Label
@@ -175,7 +181,7 @@ var _loot_title: Label
 var _loot_grid: GridContainer
 var _loot_tabs: HBoxContainer
 ## The storage window's slots on show before it scrolls (canvas px).
-const LOOT_VIEW_H := 190.0
+const LOOT_VIEW_H := 252.0
 var _loot_slots: Array[Slot] = []
 var _container: Node = null
 var _view: Array[int] = []
@@ -313,6 +319,14 @@ func _build_doll() -> void:
 	_ui.add_child(_show_box)
 	_drape_box = _drape_toggle()
 	_ui.add_child(_drape_box)
+	for id in EquipmentComponent.MOG_SLOTS:
+		var slot: String = id
+		var m := _slot("LOOK", {"src": "mog", "slot": slot})
+		m.pressed.connect(func(): _on_mog_pressed(slot))
+		_ui.add_child(m)
+		_mog[slot] = m
+		_mog_box[slot] = _mog_toggle(slot)
+		_ui.add_child(_mog_box[slot])
 	_name_label = _text("", UIStyle.GILT, UIStyle.TITLE_FONT)
 	_name_label.add_theme_font_size_override("font_size", 18)
 	_stats_label = small("", UIStyle.TEXT)
@@ -342,9 +356,23 @@ func _drape_toggle() -> Button:
 	var b := _tick_box("DrapeCoat", "DRAPE", "Wear it draped over your shoulders, the sleeves empty")
 	b.toggled.connect(func(on: bool):
 		var pl := _player()
-		if pl and pl.equipment.is_draped(pl.equipment.get_item("coat")) != on:
+		if pl and pl.equipment.is_draped(pl.equipment.look_item("coat")) != on:
 			pl.drape_coat(on)
 			menu._play("equip")
+		b.queue_redraw())
+	return b
+
+
+## (1.30) Under a clothing slot's cosmetic place: MOG shows the cosmetic slot, and the body wears what's in it.
+func _mog_toggle(slot: String) -> Button:
+	var b := _tick_box("Mog_" + slot, "MOG", "Wear another piece for looks: this slot still gives the stats")
+	b.toggled.connect(func(on: bool):
+		var pl := _player()
+		if pl and pl.equipment.is_mogged(slot) != on:
+			pl.equipment.set_mog(slot, on)
+			pl.refresh_look()
+			menu._play("equip")
+			refresh()
 		b.queue_redraw())
 	return b
 
@@ -472,7 +500,7 @@ func _grow_bag(n: int) -> void:
 		b.pressed.connect(func(): _click_bag(cell))
 		b.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT and cell < _view.size():
-				_offhand_from_bag(_view[cell]))
+				_right_click_bag(_view[cell]))
 		_grid.add_child(b)
 		_bag.append(b)
 
@@ -501,22 +529,29 @@ func _layout() -> void:
 	_par.clear()
 	_park(_panel, pp, -3.0, true)
 	_cx = roundf((w - PANEL_W - 10) * 0.5)
-	var dx := roundf(h * 0.235)
-	var y0 := roundf(h * 0.17)
-	var step := roundf(h * 0.108)
+	# (the gear columns keep a slot's width clear on their outer side, for a second slot beside each)
+	var dx := roundf(h * 0.2)
+	var y0 := roundf(h * 0.15)
+	var step := maxf(roundf(h * 0.118), SLOT + 12)
 	for c in range(2):
 		for r in range((DOLL[c] as Array).size()):
 			var x := _cx - dx - SLOT if c == 0 else _cx + dx
 			_park(_doll[DOLL[c][r]], Vector2(x, y0 + step * r), 2.0, false)
-	# the hands, and the equipment a little apart (its SHOW box under it)
-	var wy := y0 + step * 6
+	# the hands, and the equipment a little apart (its SHOW box beside it)
+	var wy := y0 + step * 5 + SLOT + 12
 	var wx := _cx - roundf((SLOT * 3 + 10) * 0.5)
 	_park(_weapon_slot, Vector2(wx, wy), 2.0, false)
 	_park(_offhand_slot, Vector2(wx + SLOT + 2, wy), 2.0, false)
 	_park(_doll["equipment"], Vector2(wx + SLOT * 2 + 10, wy), 2.0, false)
-	_park(_show_box, Vector2(wx + SLOT * 2 + 10, wy + SLOT + 2), 2.0, false)
+	_park(_show_box, Vector2(wx + SLOT * 3 + 13, wy + SLOT - 10), 2.0, false)
 	var cp: Vector2 = _par[_doll["coat"]][0]
 	_park(_drape_box, cp + Vector2(0, SLOT + 2), 2.0, false)
+	for c in range(2):
+		for slot in DOLL[c]:
+			if _mog.has(slot):
+				var mp: Vector2 = _par[_doll[slot]][0] + Vector2(-(SLOT + GAP) if c == 0 else SLOT + GAP, 0)
+				_park(_mog[slot], mp, 2.0, false)
+				_park(_mog_box[slot], mp + Vector2(0, SLOT + 2), 2.0, false)
 	for l in [_name_label, _stats_label]:
 		l.size = Vector2(260, 0)
 	_park(_name_label, Vector2(_cx - 130, y0 - 42), 1.0, false)
@@ -706,7 +741,15 @@ func refresh() -> void:
 	_show_box.visible = eq != null and _container == null
 	_show_box.set_pressed_no_signal(eq != null and not pl.equipment.is_hidden(eq))
 	_show_box.queue_redraw()
-	var ct := pl.equipment.get_item("coat")
+	for slot in _mog.keys():
+		var on := pl.equipment.is_mogged(slot)
+		var cos := pl.equipment.get_cosmetic(slot)
+		_mog[slot].show_item(cos, 1 if cos else 0)
+		_mog[slot].visible = on and _container == null
+		_mog_box[slot].visible = _container == null
+		_mog_box[slot].set_pressed_no_signal(on)
+		_mog_box[slot].queue_redraw()
+	var ct := pl.equipment.look_item("coat")
 	_drape_box.visible = ct != null and _container == null
 	_drape_box.set_pressed_no_signal(pl.equipment.is_draped(ct))
 	_drape_box.queue_redraw()
@@ -814,6 +857,9 @@ func _locate(it: ItemData) -> Dictionary:
 	for slot in _doll.keys():
 		if pl.equipment.get_item(slot) == it:
 			return {"src": "doll", "slot": slot}
+	for slot in _mog.keys():
+		if pl.equipment.get_cosmetic(slot) == it:
+			return {"src": "mog", "slot": slot}
 	if inv.quick == it.id and inv.count(it.id) > 0:
 		return {"src": "quick", "idx": 0}
 	for i in _view:
@@ -860,7 +906,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 	var sub := HBoxContainer.new()
 	sub.add_theme_constant_override("separation", 6)
 	sub.add_child(small(("%s %s" % [it.rarity_name(), _kind(it)]).to_upper(), UIStyle.TEXT_DIM))
-	var where: String = {"weapon": "IN HAND", "offhand": "OFF HAND", "doll": "WORN", "quick": "QUICK SLOT"}.get(src, "")
+	var where: String = {"weapon": "IN HAND", "offhand": "OFF HAND", "doll": "WORN", "quick": "QUICK SLOT", "mog": "FOR LOOKS"}.get(src, "")
 	if where != "":
 		sub.add_child(small(where, UIStyle.ACCENT))
 	box.add_child(sub)
@@ -1058,6 +1104,8 @@ func _hints_for(src: String, it: ItemData) -> Array:
 				out = [["LMB", "EQUIP"], ["RMB", "OFF HAND"]]
 			elif it.is_gear():
 				out = [["LMB", "WEAR"]]
+				if _player().equipment.is_mogged(it.gear_slot):
+					out.append(["RMB", "FOR LOOKS"])
 			elif it.is_consumable():
 				out = [["LMB", "EAT" if it.devil_fruit != "" else "USE"]]
 				if InventoryComponent.quick_ok(it):
@@ -1069,7 +1117,7 @@ func _hints_for(src: String, it: ItemData) -> Array:
 			if has_container():
 				out.append(["SHIFT", "STORE"])
 			out.append(["X", "DROP"])
-		"doll":
+		"doll", "mog":
 			out = [["LMB", "TAKE OFF"]]
 		"weapon", "offhand":
 			out = [["LMB", "PUT AWAY"]]
@@ -1207,6 +1255,45 @@ func _bounce_item(it: ItemData) -> void:
 		if b.item == it:
 			b.bounce()
 			return
+
+
+## Right-click in the bag: a weapon to the off hand, a piece of clothing into its slot's cosmetic place (MOG ticked).
+func _right_click_bag(idx: int) -> void:
+	var pl := _player()
+	if pl == null or idx >= pl.inventory_component.items.size():
+		return
+	var it := pl.inventory_component.items[idx].item
+	if it.is_weapon():
+		_offhand_from_bag(idx)
+	elif it.is_gear() and pl.equipment.is_mogged(it.gear_slot):
+		mog_from_bag(idx)
+
+
+## Put a bag piece in its slot's cosmetic place: the body wears it for looks.
+func mog_from_bag(idx: int) -> void:
+	var pl := _player()
+	var it := pl.inventory_component.items[idx].item
+	if not pl.equipment.mog_from_bag(pl.inventory_component, idx):
+		return
+	pl.refresh_look()
+	menu._play("equip")
+	refresh()
+	_mog[it.gear_slot].bounce()
+
+
+## Click a cosmetic slot: its piece back into the bag (the body shows the worn piece).
+func _on_mog_pressed(slot: String) -> void:
+	var pl := _player()
+	var it := pl.equipment.get_cosmetic(slot)
+	if it == null:
+		return
+	if not pl.equipment.unmog_to_bag(pl.inventory_component, slot):
+		_flash("No room in your bag")
+		return
+	pl.refresh_look()
+	menu._play("unequip")
+	refresh()
+	_bounce_item(it)
 
 
 ## Right-click a weapon in the bag: hold it in the off hand (dual wielding).
@@ -1403,6 +1490,8 @@ func _item_of(data: Dictionary) -> ItemData:
 			return inv.items[i].item if i < inv.items.size() else null
 		"doll":
 			return pl.equipment.get_item(str(data["slot"]))
+		"mog":
+			return pl.equipment.get_cosmetic(str(data["slot"]))
 		"weapon":
 			return pl.equipped_weapon
 		"offhand":
@@ -1425,9 +1514,10 @@ func _drag_from(s: Slot):
 	var prev := TextureRect.new()
 	prev.texture = it.icon
 	prev.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	prev.size = Vector2(24, 24)
-	prev.position = Vector2(-12, -12)
-	prev.pivot_offset = Vector2(12, 12)
+	prev.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	prev.size = Vector2(ICON, ICON)
+	prev.position = -Vector2(ICON, ICON) * 0.5
+	prev.pivot_offset = Vector2(ICON, ICON) * 0.5
 	var holder := Control.new()
 	holder.add_child(prev)
 	s.set_drag_preview(holder)
@@ -1452,9 +1542,11 @@ func _can_drop_on(target: Dictionary, d) -> bool:
 	var src := str(d["src"])
 	match str(target.get("src", "")):
 		"bag":
-			return src in ["bag", "doll", "weapon", "offhand", "quick", "loot"]
+			return src in ["bag", "doll", "mog", "weapon", "offhand", "quick", "loot"]
 		"doll":
 			return src == "bag" and it != null and it.is_gear() and pl.equipment.slot_for(it) == str(target["slot"])
+		"mog":
+			return src == "bag" and pl.equipment.fits_cosmetic(it, str(target["slot"]))
 		"weapon", "offhand":
 			return src == "bag" and it != null and it.is_weapon()
 		"quick":
@@ -1479,6 +1571,11 @@ func _drop_on(target: Dictionary, d) -> void:
 					inv.move_stack(int(d["idx"]), to)
 				"doll":
 					pl.unequip_gear(str(d["slot"]))
+				"mog":
+					if not pl.equipment.unmog_to_bag(inv, str(d["slot"])):
+						_flash("No room in your bag")
+						return
+					pl.refresh_look()
 				"weapon", "offhand":
 					if not inv.has_room():
 						_flash("No room in your bag")
@@ -1496,6 +1593,10 @@ func _drop_on(target: Dictionary, d) -> void:
 			var bi := inv.items.find(_stack_of(inv, int(d["idx"]), it))
 			if bi >= 0:
 				pl.equip_gear_from_bag(bi)
+		"mog":
+			var mi := inv.items.find(_stack_of(inv, int(d["idx"]), it))
+			if mi >= 0 and pl.equipment.mog_from_bag(inv, mi, str(target["slot"])):
+				pl.refresh_look()
 		"weapon":
 			pl.equip_weapon(it, false)
 		"offhand":

@@ -134,24 +134,33 @@ const STYLE := {
 }
 
 ## Each kind: its zones, how likely an island has it, how many groups, a group's size. Few living things: crows
-## and bats, a starved wolf pack, shore crabs on the strand, a rotting boar; and the ghost-lights drifting
-## between the dead trees.
+## and bats, a starved wolf pack, shore crabs on the strand, a rotting boar; the ghost-lights drifting between the
+## dead trees; and the fog's own (1.30): pale stalkers flickering in the mist, packs of drowned bog hounds, grave moths
+## that come to a lit lantern.
 const FAUNA := {
 	"wisp": {"zones": ["floor"], "p": 0.95, "dens": [3, 5], "pack": [2, 4]},
-	"wolf": {"zones": ["floor"], "p": 0.45, "dens": [1, 2], "pack": [2, 4]},
-	"boar": {"zones": ["floor"], "p": 0.3, "dens": [1, 2]},
-	"fox": {"zones": ["floor"], "p": 0.25, "dens": [1, 2], "pack": [1, 2]},
+	"pale_stalker": {"zones": ["floor"], "p": 0.6, "dens": [1, 3]},
+	"bog_hound": {"zones": ["floor"], "p": 0.55, "dens": [1, 2], "pack": [2, 4]},
+	"grave_moth": {"zones": ["floor"], "p": 0.65, "dens": [2, 3], "pack": [2, 3]},
+	"wolf": {"zones": ["floor"], "p": 0.25, "dens": [1, 2], "pack": [2, 4]},
+	"boar": {"zones": ["floor"], "p": 0.2, "dens": [1, 2]},
+	"fox": {"zones": ["floor"], "p": 0.2, "dens": [1, 2], "pack": [1, 2]},
 	"bat": {"zones": ["canopy", "cave"], "p": 0.8, "dens": [2, 4]},
 	"crab": {"zones": ["shore"], "p": 0.7, "dens": [2, 5]},
 }
 const CREATURES := {
 	"wisp": "res://scripts/enemies/fauna/wisp.gd",
+	"pale_stalker": "res://scripts/enemies/fauna/pale_stalker.gd",
+	"bog_hound": "res://scripts/enemies/fauna/bog_hound.gd",
+	"grave_moth": "res://scripts/enemies/fauna/grave_moth.gd",
 	"wolf": "res://scripts/enemies/fauna/wolf.gd",
 	"boar": "res://scripts/enemies/fauna/boar.gd",
 	"fox": "res://scripts/enemies/fauna/red_fox.gd",
 	"bat": "res://scripts/enemies/fauna/bat.gd",
 	"crab": "res://scripts/enemies/fauna/crab.gd",
 	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
+	# (the graveyard's own: FogPlaces.graveyard puts them under its fresh graves)
+	"zombie": "res://scripts/enemies/fauna/zombie.gd",
 }
 
 func _init() -> void:

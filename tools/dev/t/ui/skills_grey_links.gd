@@ -1,6 +1,7 @@
 extends SceneTree
-## The skills menu draws every path of a tree, bought or not: at katana mastery 3 each link between the katana's nodes
-## is drawn, filled only where its node is yours (locked ones grey); buying the Keen Edge step fills its path.
+## The skills menu draws every path of a tree in view, bought or not (1.30: one map, zoomed and panned): at katana
+## mastery 3 the paths round the root are drawn, filled only where both its ends are yours (locked ones grey); buying the
+## Keen Edge step fills its path.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var gm
@@ -38,7 +39,7 @@ func _process(_d: float) -> bool:
 			pr = stage.player.progression
 			pr.mastery_of("katana")["lv"] = 2
 			pr.add_mastery("katana", pr.mastery_to_next(2))
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			gm.open("skills")
@@ -46,15 +47,15 @@ func _process(_d: float) -> bool:
 			sm.set_tab("combat", "katana")
 			until = TK.wait_ticks(4)
 		1:
-			check("every path of the katana tree is drawn", sm.links.size() == expected() and expected() > 10)
-			check("a path is filled exactly when its node is yours", sm.links.all(func(l): return l[2] == pr.owns_node(l[1])))
+			check("the katana map's paths in view are drawn (%d of %d)" % [sm.links.size(), expected()], sm.links.size() > 10 and sm.links.size() <= expected() + 8)
+			check("a path is filled exactly when both its ends are yours", sm.links.all(func(l): return l[2] == (pr.owns_node(l[1]) and pr.owns_node(l[0]))))
 			check("paths to locked nodes are drawn (grey)", sm.links.any(func(l): return not l[2] and int(SkillTrees.node_def(l[1])["level"]) > pr.tree_level("katana")))
 			check("Keen Edge's path starts grey", sm.links.any(func(l): return l[1] == "k_keen" and not l[2]))
 			check("a step was bought", pr.buy("k_keen"))
 			until = TK.wait_ticks(3)
 		2:
 			check("the bought step's path fills", sm.links.any(func(l): return l[1] == "k_keen" and l[2]))
-			check("the rest stay drawn", sm.links.size() == expected())
+			check("the rest stay drawn", sm.links.size() > 10)
 			return TK.done(fails)
 	step += 1
 	return false

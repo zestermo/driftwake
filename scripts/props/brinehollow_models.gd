@@ -46,7 +46,8 @@ static func _done(body: StaticBody3D, mb: MeshBuilder, range_end := RANGE) -> St
 
 ## A hip roof whose eaves sweep up at the corners: eaves `over` out round a w x d plan at height y,
 ## the corners `lift` higher than the middles, up `h` to a ridge along X. Top and underside.
-static func flared_roof(mb: MeshBuilder, mat: Material, under: Material, c: Vector3, w: float, d: float, h: float, over: float, lift: float) -> void:
+static func flared_roof(mb: MeshBuilder, mat: Material, under: Material, c: Vector3, w: float, d: float, h: float, over: float, lift: float, body: Node = null) -> void:
+	var m := mb.mark()
 	var W := w * 0.5 + over
 	var D := d * 0.5 + over
 	var rl := maxf((w - d) * 0.5, 0.0)
@@ -80,6 +81,9 @@ static func flared_roof(mb: MeshBuilder, mat: Material, under: Material, c: Vect
 	for s: float in [-1.0, 1.0]:
 		var e := (r2 if s > 0.0 else r1) + Vector3(s * 0.3, 0.08, 0)
 		Buildings.beam_between(mb, ridge, e, e + Vector3(s * 0.35, 0.4, 0), 0.12)
+	# (1.30) the roof's own faces (a hull bridged its flared eaves, a ceiling over the veranda)
+	if body:
+		mb.faces_since(m, body, "Roof")
 
 
 ## The shrine: a hall on a stone plinth with a veranda round it and steps up the front, two roofs (the
@@ -149,10 +153,10 @@ static func shrine(seed_value: int) -> StaticBody3D:
 	Buildings.beam_between(mb, red, Vector3(-w * 0.5 - 0.6, fl + 0.6, -d * 0.5 - 0.6), Vector3(w * 0.5 + 0.6, fl + 0.6, -d * 0.5 - 0.6), 0.08)
 	_box(body, Vector3(w - 0.4, h, d - 0.4), Vector3(0, fl + h * 0.5, 0))
 	# the roofs: the lower sweeping out over the veranda, the upper over a short clerestory
-	flared_roof(mb, roof, under, Vector3(0, fl + h + 0.05, 0), w + 1.2, d + 1.2, 1.7, 1.1, 0.55)
+	flared_roof(mb, roof, under, Vector3(0, fl + h + 0.05, 0), w + 1.2, d + 1.2, 1.7, 1.1, 0.55, body)
 	mb.add_box(plaster, _xf(Vector3(0, fl + h + 1.6, 0)), Vector3(w * 0.55, 1.1, d * 0.5), 0.5, Color(0.9, 0.88, 0.82))
 	mb.add_box(post, _xf(Vector3(0, fl + h + 2.15, 0)), Vector3(w * 0.55 + 0.2, 0.2, d * 0.5 + 0.2), 0.6)
-	flared_roof(mb, roof, under, Vector3(0, fl + h + 2.2, 0), w * 0.6, d * 0.55, 1.9, 0.9, 0.45)
+	flared_roof(mb, roof, under, Vector3(0, fl + h + 2.2, 0), w * 0.6, d * 0.55, 1.9, 0.9, 0.45, body)
 	# the rope over the doors, its streamers; the offering box; the bell and its rope
 	var rope := PSXMat.lit("rope", Color(0.95, 0.88, 0.7))
 	var ra := Vector3(-3.0, fl + h - 0.75, d * 0.5 + 0.75)
@@ -219,7 +223,7 @@ static func pagoda(seed_value: int, tiers := 3) -> StaticBody3D:
 				var b := Basis(Vector3.UP, a * PI * 0.5)
 				mb.add_box_unit_uv(window, Transform3D(b, b * Vector3(0, y + h * 0.55, w * 0.5 + 0.03)), Vector3(0.6, 0.7, 0.05))
 		_box(body, Vector3(w, h, w), Vector3(0, y + h * 0.5, 0))
-		flared_roof(mb, roof, under, Vector3(0, y + h, 0), w, w, 1.0, 1.1 - k * 0.1, 0.45)
+		flared_roof(mb, roof, under, Vector3(0, y + h, 0), w, w, 1.0, 1.1 - k * 0.1, 0.45, body)
 		y += h + 0.75
 	mb.add_cylinder(bronze, _xf(Vector3(0, y - 0.6, 0)), 0.12, 0.08, 3.2, 6, 1.0)
 	for k in range(5):
@@ -477,7 +481,7 @@ static func teahouse(seed_value: int, w := 8.0, d := 5.0) -> StaticBody3D:
 	for x: float in [-w * 0.5, -w * 0.17, w * 0.17, w * 0.5]:
 		mb.add_cylinder(post, _xf(Vector3(x, fl, d * 0.5 + ver - 0.1)), 0.11, 0.1, h + 0.1, 6, 0.6)
 	mb.add_box(post, _xf(Vector3(0, fl + h + 0.05, d * 0.5 + ver - 0.1)), Vector3(w + 0.3, 0.18, 0.2), 0.6)
-	flared_roof(mb, roof, under, Vector3(0, fl + h + 0.15, ver * 0.5), w, d + ver, 1.6, 0.8, 0.35)
+	flared_roof(mb, roof, under, Vector3(0, fl + h + 0.15, ver * 0.5), w, d + ver, 1.6, 0.8, 0.35, body)
 	# red-felt benches out front, a parasol, paper lanterns under the eaves
 	var glow := PSXMat.lit("canvas", Color(1.0, 0.85, 0.6), {"emission": Color(1.0, 0.6, 0.3), "emission_energy": 0.8, "emission_tex": "canvas"})
 	var seats := [Vector3(-w * 0.3, fl, d * 0.5 + ver * 0.55), Vector3(w * 0.05, fl, d * 0.5 + ver * 0.55), Vector3(w * 0.35, fl, d * 0.5 + ver + 1.1)]
@@ -492,6 +496,8 @@ static func teahouse(seed_value: int, w := 8.0, d := 5.0) -> StaticBody3D:
 	mb.add_cylinder(post, _xf(pp), 0.04, 0.04, 2.4, 5, 1.0)
 	var pc := PSXMat.lit("fabric", Color(0.8, 0.22, 0.18))
 	var top := pp + Vector3(0, 2.5, 0)
+	_box(body, Vector3(0.1, 2.4, 0.1), pp + Vector3(0, 1.2, 0))
+	var shade := mb.mark()
 	for k in range(10):
 		var a0 := TAU * k / 10.0
 		var a1 := TAU * (k + 1) / 10.0
@@ -500,6 +506,7 @@ static func teahouse(seed_value: int, w := 8.0, d := 5.0) -> StaticBody3D:
 		var nrm := (e1 - top).cross(e0 - top).normalized()
 		mb.add_tri(pc, top, e1, e0, nrm, nrm, nrm, Vector2(0.5, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE if k % 2 == 0 else Color(0.85, 0.85, 0.85), nrm)
 		mb.add_tri(pc, top, e0, e1, -nrm, -nrm, -nrm, Vector2(0.5, 0), Vector2(0, 1), Vector2(1, 1), Color(0.6, 0.6, 0.6), -nrm)
+	mb.hull_since(shade, body, "Parasol")
 	for k in range(4):
 		var x := -w * 0.375 + k * w * 0.25
 		var lp := Vector3(x, fl + h - 0.35, d * 0.5 + ver - 0.1)

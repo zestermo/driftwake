@@ -13,6 +13,18 @@ download (co-op by hosted / forwarded address) is the way to play; nothing web o
   (the suite compiles before the autoloads exist; no suite had named Props -> Buildings until Props used Buildings). Add a lint
   to compilecheck: any `FX.`/`Net.`/`Weather.`... use inside a `static func` in scripts/ fails, and reach it through the tree.
 
+## 1.31 candidates (from Zach, 2026-11-04; grill before building)
+- **Life after Brinehollow:** why the generated islands feel a step down (authored intent, sightlines, named people,
+  compactness, polish hours). Ideas: a story spine per island (3-4 real places, each named by the last), 1-2 hero set
+  pieces per island placed in view of the landing, smaller and denser islands, a named cast of 3-5 per island, and
+  fidelity metrics for it (time to the first interesting thing, a landmark visible from the pier, NPCs with unique lines).
+- **The voyage:** keep the chain one-way; Brinehollow as the hub between seas (the log pose swings home after the sea
+  boss, the town changed); legs 3-5 km growing by layer, with more on them per km; a winding strip folded inside the
+  7.5 km ring (legs may cross old ground, since islands behind are freed), the chart drawn as the route; only the next
+  island exists (Brinehollow leaves once you set out, a fork's other island is freed past a commit point); the Calm
+  Belt off the lane (no wind, Sea Kings); scenery islands you pass but can't land on. A floating origin only if a
+  true endless strip is wanted (waves, saves and co-op all touch it).
+
 ## Now: v1.12, light, music and a living sea (started 2026-10-14)
 
 Three agents, one worktree each:

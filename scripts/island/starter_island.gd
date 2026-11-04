@@ -118,7 +118,39 @@ const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
 	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787,
-	"terrace_story": 8888, "deadfall": 8989}
+	"terrace_story": 8888, "grove": 8989, "close": 9191, "hilltop": 9292}
+## Tackett's ironwood grove (StoryGrove, 1.30): a clearing off the forest path, its trail in from the path, the marked
+## trees round it [offset, fall direction], his old stumps, the chopping block [offset, yaw].
+const GROVE := Vector2(-106, 80)
+const GROVE_R := 9.0
+const GROVE_TRAIL := [Vector2(-98, 58.6), Vector2(-101, 66), Vector2(-104, 71.5)]
+const GROVE_TREES := [[Vector2(-5.0, -1.5), Vector2(0.3, 1.0)], [Vector2(4.5, -3.5), Vector2(1.0, 0.15)], [Vector2(2.5, 5.0), Vector2(1.0, -0.2)]]
+const GROVE_STUMPS := [Vector2(6.0, -0.5), Vector2(-6.0, 4.5)]
+const GROVE_BLOCK := [Vector2(-1.0, -0.5), PI]
+## The chapel close (1.30): the ground behind the quay's east end levelled (CLOSE_RECT at CLOSE_Y, eased over
+## CLOSE_EASE), the chapel turned to face it across the drowned sailors' cross, three walk-in houses round it
+## (BrinehollowRooms: [kind, name, at, face, spec]) and the churchyard by the chapel. The chapel's old spot
+## (OLD_CHAPEL) keeps its reserve so the old island's plants draw as they did.
+const CLOSE := Vector2(44, -91)
+const CLOSE_RECT := Rect2(27, -100, 34, 28)
+const CLOSE_Y := 1.5
+const CLOSE_EASE := 6.0
+const OLD_CHAPEL := Vector2(42, -82)
+## The lighthouse hill's road (1.30): a switchback graded into the west slope from the town path to the hilltop
+## ([x, road height, z]; the first key's height is the ground's), HILL_ROAD_HW wide each side, eased into the slope over
+## HILL_ROAD_EASE. The tower's door faces the town; the keeper's cottage on the plateau's south-west edge.
+const HILL_ROAD := [Vector3(50, 0, -43), Vector3(61, 17.0, -24), Vector3(64.5, 17.6, -22.5), Vector3(68.5, 21.4, -37), Vector3(72.5, 22.6, -36)]
+const HILL_ROAD_HW := 2.2
+const HILL_ROAD_EASE := 2.5
+const COTTAGE := Vector2(71.5, -22.0)
+const CHAPEL := Vector2(44, -77.5)
+const CLOSE_ROOMS := [
+	["loft", "NetLoft", Vector2(31.5, -89.5), Vector2(1, 0), {"w": 6.5, "d": 5.0, "h": 2.8, "wall": "planks_weathered", "roof_tex": "thatch",
+		"pitch": 0.8, "door_x": -1.4, "chimney": true, "trim": Color(0.3, 0.45, 0.55)}],
+	["tinker", "TinkerShop", Vector2(56.5, -89.5), Vector2(-1, 0), {"w": 7.0, "d": 5.5, "h": 3.0, "wall": "plaster", "roof_tex": "roof_tiles",
+		"pitch": 0.6, "door_x": 1.7, "chimney": true, "trim": Color(0.55, 0.35, 0.2)}],
+	["scribe", "ScribeHouse", Vector2(32.5, -77.5), Vector2(0.6, -1), {"w": 6.0, "d": 5.0, "h": 2.9, "floors": 2, "wall": "stone_brick",
+		"wall2": "plaster", "roof_tex": "roof_tiles", "pitch": 0.75, "door_x": 0.6, "trim": Color(0.45, 0.2, 0.18)}]]
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -257,8 +289,13 @@ var woods := {"trees": [], "under": 0, "keys_before": 0, "keys_after": 0}
 var _town_parts: Array = []
 ## Master Isao's reading hall on the shrine terrace (1.25.4; his place is its "Master" marker).
 var reading_hall: Node3D
-## The old forest's ironwood deadfall (StoryDeadfall), in order.
-var deadfall: Array = []
+## Tackett's ironwood grove (StoryGrove).
+var grove: StoryGrove
+var _grove_trail := -1
+## The chapel close's walk-in houses by kind ("loft", "tinker", "scribe"; brinehollow_cast.gd puts their keepers in).
+var close_rooms := {}
+## The lighthouse tower (BrinehollowLighthouse; Ambrose stands at its "Keeper" marker on the gallery).
+var lighthouse: Node3D
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -320,6 +357,9 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("shrine terrace", _build_shrine_terrace)
 	kit.timed("farmland", _build_farmland)
 	kit.timed("wild places", _build_wilds)
+	kit.timed("story", _build_grove)
+	kit.timed("chapel close", _build_close)
+	kit.timed("lighthouse", _build_hilltop)
 	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
@@ -330,7 +370,6 @@ func build(world_seed: int) -> Dictionary:
 	# the town's life (people, smoke, harbour traffic, their lights), from its own file once it's there
 	if ResourceLoader.exists(LIFE):
 		kit.timed("life", func(): load(LIFE).build(self))
-	kit.timed("story", _build_deadfall)
 	_add_arrival_zone()
 	kit.timed("draw lod", func(): DrawLOD.apply(self))
 
@@ -508,6 +547,49 @@ func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 	var p := Vector2(x, z)
 	return _falls(p, _upper(p, _grown(p, shelf, _height_old(x, z, shelf))))
+
+
+## The chapel close's ground (1.30): CLOSE_RECT flat at CLOSE_Y, eased into the land round it over CLOSE_EASE. Only in
+## the built grid (not the old island's ground, nor the harbour's shore scan, which it would nudge), so the old plants
+## there are left out with their draws kept and the quay stays where it was.
+static func _close(p: Vector2, h: float) -> float:
+	var dx := maxf(maxf(CLOSE_RECT.position.x - p.x, p.x - CLOSE_RECT.end.x), 0.0)
+	var dz := maxf(maxf(CLOSE_RECT.position.y - p.y, p.y - CLOSE_RECT.end.y), 0.0)
+	var d := Vector2(dx, dz).length()
+	if d >= CLOSE_EASE:
+		return h
+	return lerpf(h, CLOSE_Y, 1.0 - _smooth(0.0, CLOSE_EASE, d))
+
+
+## The lighthouse hill's road graded into the slope (1.30, the built grid only like `_close`): the nearest leg's
+## height along it (the first leg from the ground's own), full within HILL_ROAD_HW, eased out over HILL_ROAD_EASE.
+static func _hill_road(p: Vector2, h: float) -> float:
+	if p.distance_to(HILL) > 40.0:
+		return h
+	var best := INF
+	var y := h
+	for i in range(HILL_ROAD.size() - 1):
+		var a: Vector3 = HILL_ROAD[i]
+		var b: Vector3 = HILL_ROAD[i + 1]
+		var a2 := Vector2(a.x, a.z)
+		var ab := Vector2(b.x, b.z) - a2
+		var t := clampf((p - a2).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		var d := p.distance_to(a2 + ab * t)
+		if d < best:
+			best = d
+			y = lerpf(h if i == 0 else a.y, b.y, t)
+	if best >= HILL_ROAD_HW + HILL_ROAD_EASE:
+		return h
+	return lerpf(h, y, 1.0 - _smooth(HILL_ROAD_HW, HILL_ROAD_HW + HILL_ROAD_EASE, best))
+
+
+## 0..1: the chapel close's grass (no beach sand on its levelled ground), off the quay's edge.
+static func _close_mask(p: Vector2) -> float:
+	var r := CLOSE_RECT.grow(-2.0)
+	r.position.y += 3.0
+	var dx := maxf(maxf(r.position.x - p.x, p.x - r.end.x), 0.0)
+	var dz := maxf(maxf(r.position.y - p.y, p.y - r.end.y), 0.0)
+	return 1.0 - _smooth(0.0, 3.0, Vector2(dx, dz).length())
 
 
 ## The falls' pool: its ground levelled round it, its basin dug (KitLandmarks.POOL_DEPTH).
@@ -695,7 +777,7 @@ func _generate_heights() -> void:
 			var z := -HALF + iz * CELL + GRID_C.y
 			var h := _height_old(x, z)
 			a[ix] = h
-			b[ix] = _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h)))
+			b[ix] = _close(Vector2(x, z), _hill_road(Vector2(x, z), _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h)))))
 		rows[iz] = [a, b], RES + 1)
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	var old := PackedFloat32Array()
@@ -917,8 +999,10 @@ func place_of(place: String) -> Vector3:
 
 ## The ground at a story place (place_of), world space.
 func ground_of(place: String) -> Vector3:
+	if place == "bench":
+		return (close_rooms["tinker"].find_child("Workbench", false, false) as Node3D).global_position
 	var p: Vector2 = harbour.quay_pt(BRAWL_S, BRAWL_IN) if place == "brawl" else \
-		{"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE, "rack": RACK, "spar": SPAR, "ruins": RUINS, "forest": FOREST}[place]
+		{"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE, "rack": RACK, "spar": SPAR, "ruins": RUINS, "forest": GROVE}[place]
 	return to_global(Vector3(p.x, hv(p), p.y))
 
 
@@ -926,7 +1010,7 @@ func ground_of(place: String) -> Vector3:
 ## foot of its cliff path, then the top of the path once you're on it, then the den.
 func guide_to(place: String, from: Vector3) -> Vector3:
 	if place == "forest":
-		return _next_deadfall(from)
+		return _next_ironwood(from)
 	if place != "den":
 		return place_of(place)
 	var l := to_local(from)
@@ -943,44 +1027,103 @@ func guide_to(place: String, from: Vector3) -> Vector3:
 	return to_global(Vector3(start.x, hv(start) + 2.5, start.y))
 
 
-## The nearest ironwood deadfall this captain hasn't split (the forest step's marker), else the forest.
-func _next_deadfall(from: Vector3) -> Vector3:
+## The nearest marked ironwood this captain hasn't felled (the forest step's marker): the trail's mouth on the forest
+## path until you're on the trail or in the grove, then the tree.
+func _next_ironwood(from: Vector3) -> Vector3:
+	var l := to_local(from)
+	var at2 := Vector2(l.x, l.z)
+	var mouth: Vector2 = GROVE_TRAIL[0]
+	if at2.distance_to(GROVE) > GROVE_R + 4.0 and _path_dist(at2, _grove_trail + 1, _grove_trail, true) > 3.0:
+		return to_global(Vector3(mouth.x, hv(mouth) + 2.0, mouth.y))
 	var best := place_of("forest")
 	var bd := INF
-	for i in range(deadfall.size()):
-		if Dialogue.has_flag(StoryDeadfall.flag(i)):
+	for i in range(grove.trees.size()):
+		if Dialogue.has_flag(StoryGrove.flag(i)):
 			continue
-		var at: Vector3 = (deadfall[i] as Node3D).global_position + Vector3.UP * 1.5
-		if at.distance_to(from) < bd:
-			bd = at.distance_to(from)
-			best = at
+		var tp: Vector3 = (grove.trees[i] as Node3D).global_position + Vector3.UP * 2.2
+		if tp.distance_to(from) < bd:
+			bd = tp.distance_to(from)
+			best = tp
 	return best
 
 
-## The old forest's deadfall (Story step "forest"): StoryDeadfall.COUNT fallen trunks beside the paths through the forest,
-## a good way apart and clear of the cave's mouth, each 2.6 m off its path.
-func _build_deadfall() -> void:
-	var rng := kit.rng(0, SEEDS["deadfall"])
+## Tackett's ironwood grove (Story step "forest", StoryGrove): a clearing GROVE_R round GROVE off the forest path at
+## the end of its trail (GROVE_TRAIL), the marked trees round its edge each falling across open ground, his stumps
+## and chopping block. Reserved in the grown layer: the old forest's plants there are left out, their draws kept.
+## A signpost where the trail leaves the forest path.
+func _build_grove() -> void:
+	reserve(GROVE, GROVE_R)
+	var gy := hv(GROVE)
 	var spots: Array = []
-	for path: PackedVector2Array in paths:
-		for k in range(1, path.size()):
-			var q: Vector2 = path[k]
-			var d := q.distance_to(FOREST)
-			if d < 12.0 or d > 50.0 or q.distance_to(CAVE) < 26.0:
-				continue
-			if spots.any(func(s: Array) -> bool: return (s[0] as Vector2).distance_to(q) < 16.0):
-				continue
-			var along: Vector2 = (path[k] - path[k - 1]).normalized()
-			spots.append([q + Vector2(-along.y, along.x) * 2.6, along])
-			if spots.size() == StoryDeadfall.COUNT:
-				break
-		if spots.size() == StoryDeadfall.COUNT:
-			break
-	assert(spots.size() == StoryDeadfall.COUNT, "the old forest's paths have room for only %d deadfall" % spots.size())
-	for i in range(spots.size()):
-		var s: Array = spots[i]
-		var trunk := StoryDeadfall.build(i, rng.randi())
-		deadfall.append(kit.place(trunk, s[0], face_yaw(s[1]) + PI * 0.5, 0.0, -0.05))
+	for t: Array in GROVE_TREES:
+		var q: Vector2 = GROVE + (t[0] as Vector2)
+		var d: Vector2 = (t[1] as Vector2).normalized()
+		spots.append([Vector3(q.x - GROVE.x, hv(q) - gy - 0.05, q.y - GROVE.y), atan2(-d.y, d.x)])
+	var stumps: Array = GROVE_STUMPS.map(func(o: Vector2) -> Vector3: return Vector3(o.x, hv(GROVE + o) - gy, o.y))
+	var bo: Vector2 = GROVE_BLOCK[0]
+	grove = StoryGrove.make(spots, stumps, [Vector3(bo.x, hv(GROVE + bo) - gy, bo.y), GROVE_BLOCK[1]], SEEDS["grove"])
+	kit.put(grove, Vector3(GROVE.x, gy, GROVE.y))
+	var mouth: Vector2 = GROVE_TRAIL[0]
+	var into: Vector2 = (GROVE_TRAIL[1] as Vector2) - mouth
+	var sign_at := mouth + into.normalized().rotated(PI * 0.5) * 2.4
+	kit.place(Props.signpost([atan2(-into.y, into.x)]), sign_at, 0.0, 0.6)
+
+
+## The chapel close (1.30): the levelled ground behind the quay's east end, cobbled round the drowned sailors' cross
+## with benches and lamps; the chapel facing it from the south, its churchyard beside it; the net loft, the tinker's
+## shop and the scribe's house round it, each a walk-in room (BrinehollowRooms) with its keeper (brinehollow_cast.gd);
+## the loft's net racks and traps, the tinker's crates. The shells fold into one mesh (CloseMeshes).
+func _build_close() -> void:
+	var rng := kit.rng(0, SEEDS["close"])
+	reserve(CLOSE_RECT.get_center(), CLOSE_RECT.size.length() * 0.5)
+	var parts: Array = []
+	parts.append(KitLandmarks.chapel(kit, CHAPEL, Vector2(0, -1)))
+	for r: Array in CLOSE_ROOMS:
+		var spec: Dictionary = (r[4] as Dictionary).merged({"kind": r[0], "name": r[1], "seed": rng.randi()})
+		var room := BrinehollowRooms.room(spec)
+		kit.place(room, r[2], face_yaw(r[3]), maxf(spec["w"], spec["d"]) * 0.5)
+		close_rooms[r[0]] = room
+		parts.append(room)
+	var quads: Array = []
+	KitPaving.plan_disk(kit, quads, CLOSE, 9.5, rng)
+	KitPaving.plan_path(kit, quads, PackedVector2Array([CLOSE, CHAPEL + Vector2(0, -6.5)]), 1.6)
+	KitPaving.plan_path(kit, quads, PackedVector2Array([CLOSE, Vector2(CLOSE.x, CLOSE_RECT.position.y - 1.0)]), 2.0)
+	for r: Array in CLOSE_ROOMS:
+		KitPaving.plan_path(kit, quads, PackedVector2Array([CLOSE, kit.marker_point(close_rooms[r[0]], "Door")]), 1.0)
+	KitPaving.build(kit, quads, "CloseCobbles")
+	var cross := BrinehollowRooms.sea_cross(rng.randi())
+	kit.place(cross, CLOSE + Vector2(0, -1.0), 0.0, 1.4)
+	parts.append(cross)
+	var yard_c := Vector2(53.5, -76.5)
+	var yard := BrinehollowRooms.churchyard(Vector2(7.0, 6.0), func(x: float, z: float) -> float: return hv(yard_c + Vector2(x, z)) - hv(yard_c), rng.randi())
+	kit.place(yard, yard_c, 0.0, 0.0)
+	reserve(yard_c, 4.5)
+	parts.append(yard)
+	for s: float in [-1.0, 1.0]:
+		kit.place(Props.bench(), CLOSE + Vector2(s * 4.2, -3.0), face_yaw(Vector2(-s, 0.6)), 0.8)
+		KitLights.post(kit, CLOSE + Vector2(s * 7.5, -5.0), face_yaw(Vector2(-s, 0)) - PI * 0.5, 0.4, 1.4)
+	# the loft's nets drying, its traps; the tinker's salvage at his door
+	var loft: Node3D = close_rooms["loft"]
+	kit.place(HarbourModels.net_rack(rng.randi(), "planks_dark", [Color(0.92, 0.55, 0.18), Color(0.88, 0.86, 0.8)]), kit.local_point(loft, Vector3(-4.7, 0, 0.6)), 0.0, 1.2)
+	kit.place(_wrap(HarbourModels.fish_traps(rng.randi()), Vector3(1.5, 0.95, 1.0)), kit.local_point(loft, Vector3(2.3, 0, 3.6)), rng.randf() * TAU)
+	var shop: Node3D = close_rooms["tinker"]
+	for k in range(3):
+		kit.place(Props.crate(0.6 + 0.12 * k), kit.local_point(shop, Vector3(-1.4 - (k % 2) * 0.7, 0, 3.4 + (k / 2) * 0.7)), rng.randf() * TAU, 0.0)
+	kit.place(Props.barrel(), kit.local_point(shop, Vector3(3.0, 0, 3.4)), 0.0, 0.5)
+	KitStreet.merge_meshes(kit, parts, "CloseMeshes")
+	for k: String in ["interact", "gadget_fire", "gadget_cycle", "action_wheel", "inventory"]:
+		Dialogue.register_token("key_" + {"gadget_fire": "gadget", "action_wheel": "wheel", "inventory": "bag"}.get(k, k), func() -> String: return Glyphs.of(k))
+
+
+## A loose mesh as a solid the kit can place (a box `size` round it, on the ground).
+static func _wrap(mi: MeshInstance3D, size: Vector3) -> StaticBody3D:
+	var n := StaticBody3D.new()
+	n.name = mi.name
+	mi.visibility_range_end = 120.0
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(mi)
+	KitLandmarks.box_col(n, size, Vector3(0, size.y * 0.5, 0))
+	return n
 
 
 ## Where a new captain wakes: on the sand just past the quay's west end, a
@@ -1084,6 +1227,12 @@ func _define_paths() -> void:
 	_add_path([Vector2(-44, -41), Vector2(-60, -62), Vector2(-90, -80), Vector2(-112, -100), Vector2(-128, -120), climb_start()[0]], 1.3)
 	# (the old pieces and plants keep to the paths as they ran before the upper town)
 	_frozen = [paths.duplicate(), path_widths.duplicate(), path_bounds.duplicate()]
+	# (1.30) the lighthouse path climbs its hill by the switchback road (HILL_ROAD) to the tower's steps
+	var road: Array = [VILLAGE + Vector2(11, 3), Vector2(32, -52), Vector2(46, -46)]
+	for k: Vector3 in HILL_ROAD:
+		road.append(Vector2(k.x, k.z))
+	road.append(HILL + Vector2(-4.6, -1.5))
+	_add_path(road, 1.4, 2)
 	# the ruins and cove paths now skirt the upper town's hill
 	_add_path([VILLAGE + Vector2(-3, 14), Vector2(-14, -36), Vector2(-26, -14), Vector2(-33, 8), Vector2(-34, 28), Vector2(-48, 46), RUINS + Vector2(6, -5)], 1.3, 3)
 	_add_path([VILLAGE + Vector2(4, 14), Vector2(20, -38), Vector2(32, -14), Vector2(40, 12), Vector2(46, 44), CAMP + Vector2(-2, -4)], 1.3, 4)
@@ -1104,6 +1253,9 @@ func _define_paths() -> void:
 	var ws: Vector2 = wreck_site[0] - (wreck_site[1] as Vector2) * 13.0
 	_add_path([Vector2(14, 278), Vector2(40, 284), ws.lerp(Vector2(40, 284), 0.4), ws], 1.1)
 	_add_path([Vector2(-14, 232), Vector2(-36, 284), Vector2(-46, 312), COVE2 + Vector2(4, -31)], 1.1)
+	# (1.30) the trail off the forest path to Tackett's ironwood grove
+	_grove_trail = paths.size()
+	_add_path(GROVE_TRAIL, 0.9)
 
 
 ## The grown land's paths count from here on (its pieces and plants).
@@ -1228,7 +1380,7 @@ func _build_terrain() -> void:
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
 				# the fields' tilled ground, the hamlet's yard
 				dirt = maxf(dirt, maxf(KitFarm.tilled(FIELDS, p) * 0.9, _disk(p, FARM, 8.0, 12.0) * 0.75))
-				sand = 1.0 - _smooth(1.7, 2.8, h)
+				sand = (1.0 - _smooth(1.7, 2.8, h)) * (1.0 - _close_mask(p))
 				sand = maxf(sand, _disk(p, CAMP, 4.0, 9.0))
 				dirt *= (1.0 - _disk(p, CAMP, 0.0, 9.0)) * (1.0 - rock)
 				sand *= (1.0 - dirt) * (1.0 - rock)
@@ -1342,7 +1494,8 @@ func _build_market() -> void:
 func _build_village_rest() -> void:
 	kit.place(Props.signpost([PI, 0.0, PI * 0.75, PI * 0.25]), VILLAGE + Vector2(2.5, 17), 0.0, 0.6)
 	_smithy = kit.place(Buildings.smithy(), Vector2(-38, -78), face_yaw(Vector2(1, 0.25)), 4.6)
-	KitLandmarks.chapel(kit, Vector2(42, -82), Vector2(-1, 0.35))
+	# (the chapel moved to the close in 1.30, _build_close: its old footprint's reserve stays for the old plants' draws)
+	kit.reserve(OLD_CHAPEL, 6.2 + 1.5)
 	var wh := kit.house({"w": 9.0, "d": 6.0, "h": 3.6, "roof": "gable", "wall": "planks_weathered", "roof_tex": "roof_tiles", "door_x": -2.2,
 		"name": "Warehouse", "flowers": false, "trim": Color(0.55, 0.5, 0.45), "lamp_light": true, "pitch": 0.38}, Vector2(20, -106), Vector2(-1, 0))
 	for k in range(4):
@@ -1404,7 +1557,9 @@ func _build_port() -> void:
 		KitLandmarks.harbour_tower(kit, harbour.quay_pt(port_x1 - 4.0, 8.0), Vector2(-0.6, 1))
 		if port_x1 > 34.0:
 			KitLandmarks.crane(kit, harbour.quay_pt(25.5, 3.0), Vector2(0, -1)))
-	kit.timed("waterfront", func(): harbour.build_waterfront(kit, harbour.plan_waterfront(kit, rng)))
+	# (1.30: the rows' houses on the chapel close's ground make way for it; their reserves stay)
+	kit.timed("waterfront", func(): harbour.build_waterfront(kit, harbour.plan_waterfront(kit, rng).filter(func(e: Array) -> bool:
+		return not CLOSE_RECT.grow(1.0).has_point(e[1]))))
 	kit.timed("quay dressing", func():
 		kit.build_list(harbour.plan_dressing(kit, rng, [-40.0, -26.0, -8.0, 14.0, 22.0, 37.0, 52.0], [-24.0, 18.0, 40.0], [["fish", -9.5], ["fruit", 24.5]])))
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.dockhands(self)))
@@ -1951,8 +2106,7 @@ func _build_wilds() -> void:
 			continue
 		var g := hv(q)
 		at.append(Vector3(q.x, g, q.y))
-		KitLandmarks.cyl_col(rocks, 1.3, 2.4, Vector3(q.x, g - 0.4, q.y))
-	KitLandmarks.boulders(rmb, mats, at, rng, 1.4, 2.8)
+	KitLandmarks.boulders(rmb, mats, at, rng, 1.4, 2.8, rocks)
 	rocks.add_child(rmb.to_instance("Mesh"))
 	kit.add(rocks)
 	town_spots["wreck"] = wnode
@@ -1975,9 +2129,49 @@ func _build_wilds() -> void:
 
 
 func _build_lighthouse() -> void:
-	# (the keeper's cottage on the levelled hilltop)
-	_keeper_hut = KitLandmarks.lighthouse(kit, HILL, Vector2(-1, 0.3), {"w": 4.5, "d": 4.0, "h": 2.3, "wall": "stone_brick", "roof": "gable",
-		"roof_tex": "roof_tiles", "chimney": true}, Vector2(-7.5, 5.5), Vector2(-0.6, -1), [Vector2(-4.0, 8.5), Vector2(-3.4, 9.6)])
+	# (1.30: the tower, the cottage and the hilltop are built in the grown layer, _build_hilltop; the old ones'
+	# reserves stay so the old island's plants draw as they did)
+	kit.reserve(HILL, 3.5 + 1.5)
+	kit.reserve(HILL + Vector2(-7.5, 5.5), maxf(4.5, 4.0) * 0.6 + 1.5)
+
+
+## The lighthouse hill's top (1.30): BrinehollowLighthouse's tower facing the town (its gallery Ambrose keeps), a
+## flagged yard round its plinth, the keeper's walk-in cottage, his oil and stores, the signal mast, the fog bell, a
+## bench looking out to sea, a low wall along the cliff side, lamps up the switchback road.
+func _build_hilltop() -> void:
+	var rng := kit.rng(0, SEEDS["hilltop"])
+	reserve(HILL, 11.5)
+	lighthouse = BrinehollowLighthouse.tower()
+	kit.place(lighthouse, HILL, face_yaw(Vector2(-1, 0)), 0.0)
+	var quads: Array = []
+	KitPaving.plan_disk(kit, quads, HILL + Vector2(-0.5, 0), 5.5, rng)
+	KitPaving.build(kit, quads, "HillFlags", "flagstones", Color(0.92, 0.9, 0.86))
+	_keeper_hut = BrinehollowRooms.room({"kind": "keeper", "name": "KeeperCottage", "w": 5.5, "d": 4.5, "h": 2.6, "wall": "stone_brick",
+		"roof_tex": "roof_tiles", "pitch": 0.75, "door_x": -1.1, "chimney": true, "trim": Color(0.2, 0.32, 0.3), "seed": rng.randi()})
+	kit.place(_keeper_hut, COTTAGE, face_yaw(HILL - COTTAGE), 3.0)
+	for i in range(4):
+		var q := kit.local_point(_keeper_hut, Vector3(3.7, 0, -1.2 + i * 0.75))
+		kit.place(Props.barrel() if i % 2 == 0 else Props.crate(0.7), q, rng.randf() * TAU, 0.5)
+	kit.place(BrinehollowLighthouse.signal_mast(rng.randi()), HILL + Vector2(5.5, -7.0), 0.0, 0.6)
+	kit.place(BrinehollowLighthouse.fog_bell(), HILL + Vector2(7.5, 4.0), face_yaw(Vector2(-1, 0)), 1.0)
+	kit.place(Props.bench(), HILL + Vector2(9.0, -1.5), face_yaw(Vector2(1, 0)), 0.8)
+	var wb := MeshBuilder.new()
+	var wbody := StaticBody3D.new()
+	wbody.name = "HillWall"
+	var pts := PackedVector3Array()
+	for k in range(13):
+		var a := deg_to_rad(-75.0 + k * 15.0)
+		var q := HILL + Vector2(cos(a), sin(a)) * 10.6
+		pts.append(Vector3(q.x, hv(q) + 0.6, q.y))
+	KitStreet.wall(kit, wb, wbody, pts, 0.45, 0.0)
+	KitStreet.finish(kit, wb, wbody)
+	for k in range(HILL_ROAD.size() - 1):
+		var a: Vector3 = HILL_ROAD[k]
+		var b: Vector3 = HILL_ROAD[k + 1]
+		var mid := Vector2(a.x + b.x, a.z + b.z) * 0.5
+		var side := Vector2(-(b.z - a.z), b.x - a.x).normalized() * (HILL_ROAD_HW + 0.6)
+		# (glowing lanterns, no lights of their own: the night budget is the town's)
+		kit.place(Props.lantern_post(), mid + side, face_yaw(-side) - PI * 0.5, 0.4)
 
 
 ## A rowboat pulled up on the cove beach, a crate and a barrel by the castaway's camp.
@@ -1992,7 +2186,7 @@ func _build_cove() -> void:
 ## strongbox holds the crew's best hat (and, with fruits in the world, the Ember Fruit).
 func _build_smugglers_camp() -> void:
 	var items: Array = []
-	if DevilFruits.IN_WORLD:
+	if DevilFruits.WIDE_POOL:
 		items.append([load("res://resources/items/ember_fruit.tres"), 1])
 	items.append([load("res://resources/items/treasure.tres"), 2])
 	items.append([load("res://resources/items/gold.tres"), 6])
@@ -2092,7 +2286,8 @@ func _build_spitters() -> void:
 		var a := rng.randf() * TAU
 		var anchor := crown + Vector3(cos(a) * 1.4, -1.3, sin(a) * 1.4)
 		var g := Vector2(anchor.x, anchor.z)
-		if g.distance_to(FOREST) > 72.0 or g.distance_to(CAVE) < 36.0 or _slope_at(g) > 0.3 or anchor.y - hv(g) < 6.0:
+		if g.distance_to(FOREST) > 72.0 or g.distance_to(CAVE) < 36.0 or _slope_at(g) > 0.3 or anchor.y - hv(g) < 6.0 or g.distance_to(GROVE) < GROVE_R + 5.0 \
+				or _path_dist(g, _grove_trail + 1, _grove_trail, true) < 4.5:
 			continue
 		var clear := true
 		for q in taken:
@@ -2601,6 +2796,11 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	if _veg_skip:
 		return crown
 	GrapplePoints.add(self, crown)
+	# (1.30) the trunk's columns where its wood stands (a palm leans out of an upright cylinder at its foot)
+	if not tree_mesh.has_meta("trunk"):
+		tree_mesh.set_meta("trunk", IslandTheme.trunk(tree_mesh))
+	if IslandTheme.trunk_cols(_tree_colliders, tree_mesh, xf):
+		return crown
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = col_r * s
@@ -2683,9 +2883,9 @@ func _spawn_loot() -> void:
 		var extra := ""
 		if s[0] == CAMP + Vector2(-6.0, -4.0):
 			extra = "pistol"
-		elif s[0] == RUINS + Vector2(-1.5, 2.2) and DevilFruits.IN_WORLD:
+		elif s[0] == RUINS + Vector2(-1.5, 2.2) and DevilFruits.WIDE_POOL:
 			extra = "wolf_fruit"
-		elif s[0] == HILL + Vector2(4.0, 3.5) and DevilFruits.IN_WORLD:
+		elif s[0] == HILL + Vector2(4.0, 3.5) and DevilFruits.WIDE_POOL:
 			extra = "vine_fruit"
 		elif s[0] == COVE + Vector2(9, -21):
 			extra = "katana"

@@ -134,7 +134,8 @@ static func keep(p: Player) -> void:
 		return
 	var it := ItemDB.get_item(str(story.trial))
 	story.trial = ""
-	p.get_tree().call_group("hud", "show_banner", "The %s is yours" % it.display_name, "Its mastery starts here. The other kinds are Haldor's to sell.", true)
+	p.progression.discover(SkillTree.style_tree(Player.style_of(it, null)))
+	p.get_tree().call_group("hud", "show_banner", "The %s is yours" % it.display_name, "Its mastery starts here. Show Sergeant Vey.", true)
 	story.complete("vey_rack")
 
 

@@ -23,7 +23,6 @@ extends CanvasLayer
 var player: Player
 var ship: Node3D
 var _banner_tween: Tween
-var _toast_tween: Tween
 var _chime: AudioStreamPlayer
 var _skill_bar: SkillBar
 var _reticle: Reticle
@@ -33,6 +32,7 @@ var _clock_t := 0.0
 var _in_dialogue: bool = false
 const OBJECTIVE := preload("res://scripts/ui/objective_hud.gd")
 var _objective: Control
+var _enemy_bars: EnemyBars
 var _pc: PixelCanvas
 
 
@@ -103,6 +103,12 @@ func _ready() -> void:
 	_build_gold()
 	_build_meal()
 	_build_compass()
+	_build_news()
+	# (1.30) health bars and markers over engaged foes, under the rest of the HUD
+	_enemy_bars = EnemyBars.new()
+	_enemy_bars.name = "EnemyBars"
+	add_child(_enemy_bars)
+	move_child(_enemy_bars, 0)
 	_objective = OBJECTIVE.new()
 	_objective.name = "Objective"
 	add_child(_objective)
@@ -146,6 +152,7 @@ func _process(delta: float) -> void:
 	_update_reticle()
 	_update_party(delta)
 	_update_feed(delta)
+	_update_news(delta)
 	_update_hull()
 	_update_gold(delta)
 	_update_compass()
@@ -155,7 +162,8 @@ func _process(delta: float) -> void:
 	_party.position.y = 46.0 + oh
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT and player.current_state_name() != "Wake"
 	_skill_bar.visible = show_bar and not _menu_open
-	toast.visible = true
+	# (the old toast line only holds the newest small news' words now: the News stack shows it)
+	toast.visible = false
 	# (the clock moves a minute a second, the FPS once a second)
 	_clock_t -= delta
 	if _clock_t <= 0.0:
@@ -201,6 +209,8 @@ func _process(delta: float) -> void:
 
 ## Big centered title card, e.g. when arriving at an island.
 func show_banner(title: String, subtitle: String = "", chime: bool = false) -> void:
+	# (kept in the log's news too: a banner mid-fight is easy to miss)
+	Journal.note("event", title, subtitle, false, false)
 	banner_title.text = title
 	banner_title.remove_theme_color_override("font_color")
 	banner_sub.text = subtitle
@@ -215,6 +225,53 @@ func show_banner(title: String, subtitle: String = "", chime: bool = false) -> v
 	_banner_tween.tween_property(banner, "modulate:a", 0.0, 1.2)
 	if chime:
 		_chime.play()
+
+
+var _name_card: PanelContainer
+var _name_tween: Tween
+
+
+## (1.30) A boss's intro card (the stronghold's officers): a slate strip slammed in across the screen's middle, the name
+## big, its epithet under it, held a moment, gone. Every machine shows it when it sees the fight start.
+func show_name_card(boss_name: String, epithet: String) -> void:
+	if _name_card == null:
+		_name_card = PanelContainer.new()
+		_name_card.add_theme_stylebox_override("panel", UIStyle.chrome("slate", 12, 9))
+		_name_card.set_anchors_preset(Control.PRESET_CENTER)
+		_name_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_name_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_name_card.custom_minimum_size = Vector2(420, 0)
+		_name_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var vb := VBoxContainer.new()
+		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_theme_constant_override("separation", 2)
+		_name_card.add_child(vb)
+		var ep := UIStyle.label("", 12, Color(0.95, 0.55, 0.4))
+		ep.name = "Epithet"
+		ep.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(ep)
+		var nm := UIStyle.title("", 30)
+		nm.name = "Name"
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(nm)
+		add_child(_name_card)
+	(_name_card.find_child("Name", true, false) as Label).text = boss_name.to_upper()
+	(_name_card.find_child("Epithet", true, false) as Label).text = epithet
+	if _name_tween:
+		_name_tween.kill()
+	_name_card.visible = true
+	_name_card.modulate.a = 0.0
+	_name_card.pivot_offset = _name_card.size * 0.5
+	_name_card.scale = Vector2(1.6, 1.6)
+	_name_tween = create_tween()
+	_name_tween.set_parallel(true)
+	_name_tween.tween_property(_name_card, "modulate:a", 1.0, 0.18)
+	_name_tween.tween_property(_name_card, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_name_tween.chain().tween_interval(2.4)
+	_name_tween.chain().tween_property(_name_card, "modulate:a", 0.0, 0.5)
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	if me:
+		FX.sfx("peril", me.global_position, -4.0, 0.0, 0.7)
 
 
 var _tree_card: PanelContainer
@@ -275,15 +332,82 @@ func show_objective_banner(_goal: String, done: bool = false) -> void:
 	UIStyle.sfx("quest_done" if done else "quest_accept")
 
 
-## Small message bottom-left (loot picked up, banking...).
+## Small message bottom-left (loot picked up, banking...): small news, kept in the Captain's Log (Journal.note).
 func show_toast(text: String) -> void:
-	toast.text = text
-	if _toast_tween:
-		_toast_tween.kill()
-	toast.modulate.a = 1.0
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(2.0)
-	_toast_tween.tween_property(toast, "modulate:a", 0.0, 0.8)
+	Journal.note("info", text)
+
+
+## (1.30) Important news on this screen: a card pinned under the objective box until you open the log (J), kept in its
+## NEWS tab. Kinds: quest, chart, rival, boss, stronghold. For every captain's screen use Journal.announce.
+func pin_news(kind: String, title: String, text: String = "") -> void:
+	Journal.note(kind, title, text, true)
+
+
+# ---- News (1.30, Journal.note): small news stacked bottom left, a few seconds each; pinned news is the objective's card ----
+const NEWS_TIME := 4.5
+const NEWS_MAX := 4
+const NEWS_COL := {"quest": Color("f2c45e"), "chart": Color("9be08a"), "rival": Color("f17c62"), "boss": Color("f17c62"),
+	"stronghold": Color("f17c62"), "info": Color("65c9c0")}
+var _news_stack: VBoxContainer
+## [row, seconds left] each, oldest first.
+var _news_rows: Array = []
+
+
+func _build_news() -> void:
+	_news_stack = VBoxContainer.new()
+	_news_stack.name = "News"
+	_news_stack.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_news_stack.offset_left = 8
+	_news_stack.offset_right = 228
+	_news_stack.offset_top = -80
+	_news_stack.offset_bottom = -80
+	_news_stack.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_news_stack.add_theme_constant_override("separation", 2)
+	_news_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_news_stack)
+
+
+## A note from Journal.note: pinned ones are the objective's card; the rest go on the stack.
+func show_news(n: Dictionary) -> void:
+	if n["pin"]:
+		_chime.play()
+		return
+	toast.text = str(n["title"])
+	var row := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(UIStyle.BG_DARK, 0.9)
+	sb.border_color = NEWS_COL.get(n["kind"], NEWS_COL["info"])
+	sb.border_width_left = 3
+	sb.content_margin_left = 6
+	sb.content_margin_right = 5
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 2
+	row.add_theme_stylebox_override("panel", sb)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var l := UIStyle.label(str(n["title"]), 12, UIStyle.TEXT)
+	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	l.clip_text = true
+	l.custom_minimum_size = Vector2(190, 0)
+	row.add_child(l)
+	_news_stack.add_child(row)
+	_news_rows.append([row, NEWS_TIME])
+	while _news_rows.size() > NEWS_MAX:
+		(_news_rows.pop_front()[0] as Node).queue_free()
+
+
+func news_text() -> Array:
+	return _news_rows.map(func(e): return (e[0].get_child(0) as Label).text)
+
+
+func _update_news(delta: float) -> void:
+	_news_stack.visible = not _menu_open and not _in_dialogue
+	for e in _news_rows.duplicate():
+		e[1] = float(e[1]) - delta
+		(e[0] as Control).modulate.a = clampf(float(e[1]) / 0.6, 0.0, 1.0)
+		if float(e[1]) <= 0.0:
+			_news_rows.erase(e)
+			(e[0] as Node).queue_free()
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -715,12 +839,15 @@ func set_menu_open(open: bool) -> void:
 	_menu_open = open
 	if _skill_bar:
 		_skill_bar.visible = not open
-	toast.visible = not open
 	banner.visible = not open
 	if _objective:
 		_objective.hidden_by_menu = open
+	if _enemy_bars:
+		_enemy_bars.visible = not open
 	if _feed:
 		_feed.visible = not open
+	if _news_stack:
+		_news_stack.visible = not open
 
 
 # ---- Co-op: crew list, knocked-out / revive prompt ----
@@ -797,6 +924,8 @@ func _tiny_label() -> Label:
 # --------------------------------------------------------------------------
 var _boss_box: VBoxContainer
 var _boss_name: Label
+var _boss_badge: PanelContainer
+var _boss_badge_label: Label
 var _boss_bar: ProgressBar
 var _boss_ticks: Array = []
 var _boss_shown: float = 0.0
@@ -824,7 +953,29 @@ func _build_bars() -> void:
 	_boss_name.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
 	_boss_name.add_theme_constant_override("outline_size", 4)
 	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_boss_box.add_child(_boss_name)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_box.add_child(row)
+	_boss_badge = PanelContainer.new()
+	_boss_badge.name = "Level"
+	_boss_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_boss_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_badge.visible = false
+	var bs := StyleBoxFlat.new()
+	bs.bg_color = Color("0c2427")
+	bs.set_border_width_all(1)
+	bs.content_margin_left = 2
+	bs.content_margin_right = 2
+	bs.content_margin_top = 0
+	bs.content_margin_bottom = 0
+	_boss_badge.add_theme_stylebox_override("panel", bs)
+	_boss_badge_label = UIStyle.label("", 8, Levels.BADGE_WHITE)
+	_boss_badge_label.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	_boss_badge.add_child(_boss_badge_label)
+	row.add_child(_boss_badge)
+	row.add_child(_boss_name)
 	# the bar sunk in a gilt-rimmed well
 	var well := PanelContainer.new()
 	well.add_theme_stylebox_override("panel", UIStyle.framed(UIStyle.OUTLINE, UIStyle.BORDER_DIM, "well", 3, 3))
@@ -881,12 +1032,20 @@ func _build_bars() -> void:
 	add_child(_sail_gauge)
 
 
-## The boss's name and health across the top (phase marks on the bar).
-func show_boss(boss_name: String, frac: float, phase: int) -> void:
+## The boss's name and health across the top (phase marks on the bar), its level in a badge before the name when `foe`
+## (the boss itself) has one, coloured by the gap to this captain as the small bars' (EnemyBars).
+func show_boss(boss_name: String, frac: float, phase: int, foe: Node = null) -> void:
 	if _boss_box == null:
 		return
 	_boss_box.visible = not _menu_open
 	_boss_name.text = boss_name
+	var lv := Levels.foe_level(foe)
+	_boss_badge.visible = lv >= 0
+	if lv >= 0:
+		var col := Levels.badge(Levels.gap_to(foe, player))
+		_boss_badge_label.text = str(lv)
+		_boss_badge_label.add_theme_color_override("font_color", col)
+		(_boss_badge.get_theme_stylebox("panel") as StyleBoxFlat).border_color = col
 	var prev := _boss_bar.value
 	_boss_bar.value = clampf(frac, 0.0, 1.0)
 	if _boss_bar.value < prev - 0.001:

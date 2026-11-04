@@ -4,9 +4,11 @@ extends Node3D
 ## Admiral). When the Commodore falls ("sh_seal_keep") every machine, from the moment it sees that flag:
 ## - the emergency broadcast (a banner), and the garrison stops refilling (no more respawns, no more officers);
 ## - GRACE s to loot, then COUNT s of countdown (banners), then the Scouring: a shell every SHELL_EVERY s somewhere on
-##   the island (every third at our own captain), each telegraphed WARN s ahead, a blast that hurts our captain within
-##   SHELL_R and leaves a burning patch (FIRE_LIFE s) behind;
-## - the crew's ship past ESCAPE_R from the island ends it ("sh_escaped": the host sees it, a bounty).
+##   the island (every third volley one more at each captain inside the ring, RING_R), each telegraphed WARN s ahead, a
+##   blast that hurts our captain within SHELL_R and leaves a burning patch (FIRE_LIFE s) behind; how it all looks and
+##   sounds (the smoke-dark sky, the shells' flight and whistle, the bursts) is ScouringFX's (1.30);
+## - the crew's ship out of the ring (RING_R from the island) ends it ("sh_escaped": the host sees it, a bounty; 1.30:
+##   was 500 m, and the shells aimed at a captain followed the ship all the way).
 ## The shells are worked out from the shared clock on every machine and hurt only its own captain, so nothing about
 ## them goes over the net.
 ## The Admiral (at a top captain's level ADMIRAL_LEVEL+ or a Dreaded bounty): comes ashore when it starts, very tanky
@@ -22,7 +24,15 @@ const SHELL_DMG := 20.0
 const FIRE_LIFE := 8.0
 const FIRE_R := 3.5
 const FIRE_DPS := 8.0
-const ESCAPE_R := 500.0
+const RING_R := 300.0
+## (1.30) The gap in the warships' line, the way out (a frame direction from the island's middle: out past the sea
+## gate), its marker GAP_OUT m past the ring; every BLAZE_EVERY-th shell, on the land, sets a great fire burning, its
+## reach (x its size) and burn.
+const GAP := Vector2(0.12, 1.0)
+const GAP_OUT := 30.0
+const BLAZE_EVERY := 3
+const BLAZE_R := 3.2
+const BLAZE_DPS := 14.0
 const ISLAND_R := 150.0
 const ADMIRAL_LEVEL := 32
 const ADMIRAL_HP := 30.0
@@ -46,12 +56,15 @@ var _hurt := 0.0
 var _said := {}
 var _blink := 0.0
 var _check := 0.0
+var fx: ScouringFX
 
 
 func setup(island: Node3D, watched: Array) -> StrongholdScouring:
 	isl = island
 	camps = watched
 	name = "Scouring"
+	fx = ScouringFX.new().setup(self)
+	add_child(fx)
 	return self
 
 
@@ -77,13 +90,16 @@ func _process(delta: float) -> void:
 		_wipe(delta)
 	if _flag("sh_escaped"):
 		state = "escaped"
-		_banner("escaped", "Survived the Scouring", "%s burns behind you." % isl.island_name)
+		_banner("escaped", "Out of the ring", "You survived the Scouring. %s burns behind you." % isl.island_name)
 		return
+	if _flag("sh_seal_keep"):
+		_banner("fallen", "All ships. %s has fallen." % isl.island_name, "The Commodore is dead.")
 	if t0 < 0.0:
-		if not _flag("sh_seal_keep"):
+		# (1.30) ordered as the Commodore makes his last stand on the Verdict's roof ("sh_scouring"), or at his fall
+		if not _flag("sh_seal_keep") and not _flag("sh_scouring"):
 			return
 		t0 = _clock()
-		_banner("broadcast", "All ships. %s has fallen." % isl.island_name, "The Scouring is ordered.")
+		_banner("broadcast", "All ships. Scour %s." % isl.island_name, "The Scouring is ordered.")
 		_stand_down()
 	var t := _clock() - t0
 	if t < grace:
@@ -96,6 +112,7 @@ func _process(delta: float) -> void:
 				_banner("count%d" % int(mark), "The Scouring", "Shells in %d seconds. Get to your ship." % int(mark))
 	else:
 		state = "barrage"
+		_banner("barrage", "Escape the ring", "The warships open fire. Get to your ship and sail out through the gap in their line.")
 		var k := int(floor((t - grace - count) / SHELL_EVERY))
 		while _next <= k:
 			_shell(_next)
@@ -115,35 +132,68 @@ func _stand_down() -> void:
 			(c as Node).set_process(false)
 
 
-## Shell k: where it falls (every third at our own captain), telegraphed now, landing WARN s later.
+## Shell k, telegraphed now and landing WARN s later: every third volley one at each captain inside the ring (each
+## screen aims at its own view of them; only a captain's own screen hurts them), the rest across the island, most on
+## the fortress's districts: where each lands is the first thing a ray from the sky meets (a roof, a wall's walk, a
+## tower's top, the cobbles, the sea).
 func _shell(k: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(isl.node["seed"]), k])
-	var at: Vector3
-	var me := get_tree().get_first_node_in_group("player") as Node3D
-	if k % 3 == 2 and me:
-		at = me.global_position + Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3))
+	var lands := _clock() + WARN
+	if k % 3 == 2:
+		var caps: Array = get_node("/root/Net").all_players().filter(func(p): return in_ring((p as Node3D).global_position))
+		caps.sort_custom(func(a, b): return str(a.name) < str(b.name))
+		for p in caps:
+			var at: Vector3 = (p as Node3D).global_position + Vector3(rng.randf_range(-3, 3), 0, rng.randf_range(-3, 3))
+			_fire(at, Vector3.UP, false, lands, k)
+	var q: Vector2
+	if rng.randf() < 0.6:
+		var r: Rect2 = StrongholdPlan.DISTRICTS[rng.randi() % StrongholdPlan.DISTRICTS.size()][1]
+		q = Vector2(rng.randf_range(r.position.x - 6.0, r.end.x + 6.0), rng.randf_range(r.position.y - 6.0, r.end.y + 6.0))
 	else:
-		var q: Vector2 = StrongholdPlan.LAND_C + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * ISLAND_R
-		var g := StrongholdPlan.ground(q)
-		at = isl.city_global(q, g if g > -INF else maxf(StrongholdPlan.terrain(q), 0.0))
-	FX.telegraph(at, SHELL_R, WARN, Color(1.0, 0.25, 0.08))
-	_pending.append([at, _clock() + WARN])
+		q = StrongholdPlan.LAND_C + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * ISLAND_R
+	var hit := _from_sky(isl.city_global(q, 0.0))
+	_fire(hit[0], hit[1], hit[2], lands, k, not hit[2] and k % BLAZE_EVERY == 0)
+
+
+## A shell on its way to `at`, landing at clock `lands` (its shadow and whistle are ScouringFX's telegraph); `blaze`:
+## it leaves a great fire.
+func _fire(at: Vector3, n: Vector3, water: bool, lands: float, k: int, blaze := false) -> void:
+	_pending.append([at, lands, n, water, blaze])
+	fx.incoming(at, lands, k)
+
+
+## The gap's marker: out past the ring through the gap in the warships' line (world, at sea level).
+static func gap_at(island: Node3D) -> Vector3:
+	return island.city_global(StrongholdPlan.LAND_C + GAP.normalized() * (RING_R + GAP_OUT), 0.0)
+
+
+## What a shell falling straight down at p's x, z meets first: [where, its normal, in the sea].
+func _from_sky(p: Vector3) -> Array:
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 260.0, p.z), Vector3(p.x, -30.0, p.z), 1)
+	var r := get_world_3d().direct_space_state.intersect_ray(q)
+	if r.is_empty() or (r["position"] as Vector3).y < 0.2:
+		return [Vector3(p.x, 0.0, p.z), Vector3.UP, true]
+	return [r["position"], r["normal"], false]
 
 
 func _land(_delta: float) -> void:
 	var now := _clock()
 	var me := get_tree().get_first_node_in_group("player") as Player
-	while not _pending.is_empty() and float(_pending[0][1]) <= now:
-		var at: Vector3 = _pending.pop_front()[0]
-		FX.blast(at, Vector3.UP, 2.6)
-		FX.flash_light(at + Vector3.UP * 2.0, FX.FIRE_LIGHT, 4.0, 14.0, 0.4)
-		FX.fire_ring(at, FIRE_R, 30)
-		fires.append([at, now + FIRE_LIFE])
-		if me and me.global_position.distance_to(at) < SHELL_R:
+	var due := _pending.filter(func(e): return float(e[1]) <= now)
+	if due.is_empty():
+		return
+	_pending = _pending.filter(func(e): return float(e[1]) > now)
+	for e: Array in due:
+		var at: Vector3 = e[0]
+		fx.landed(at, e[2], e[3], e[4])
+		if not e[3]:
+			fires.append([at, now + FIRE_LIFE])
+		var d := me.global_position.distance_to(at) if me else INF
+		if d < SHELL_R:
 			var hd := HitData.new()
-			hd.damage = SHELL_DMG
-			hd.knockback_force = 9.0
+			hd.damage = SHELL_DMG * lerpf(1.0, 0.45, d / SHELL_R)
+			hd.knockback_force = 11.0
 			hd.unblockable = true
 			hd.camera_shake_intensity = 0.5
 			me.hurtbox.take_hit(hd, null)
@@ -168,6 +218,14 @@ func _burn(delta: float) -> void:
 			me.hurtbox.take_hit(hd, null)
 			# (one burn a tick, however many patches overlap)
 			me = null
+	# (1.30) the great fires: harder, for as long as they burn
+	for b in fx.blazes:
+		if me and me.global_position.distance_to(b[0]) < BLAZE_R * float(b[1]):
+			var hd := HitData.new()
+			hd.damage = BLAZE_DPS * 0.5
+			hd.dot = true
+			me.hurtbox.take_hit(hd, null)
+			me = null
 
 
 # --------------------------------------------------------------------------
@@ -180,13 +238,13 @@ func _host(delta: float) -> void:
 	_check = 0.25
 	var net := get_node("/root/Net")
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
-	var centre: Vector3 = isl.city_global(StrongholdPlan.LAND_C, 0.0)
-	if state == "barrage" and ship:
-		var d := Vector2(ship.global_position.x - centre.x, ship.global_position.z - centre.z).length()
-		if d > ESCAPE_R:
-			net.world_flag("sh_escaped")
-			net.bounty("scouring", ship.global_position, 200.0)
-			return
+	# (the journal's escape step takes over from the vault's once the shells fall)
+	if state == "barrage" and not _flag("sh_barrage"):
+		net.world_flag("sh_barrage")
+	if state == "barrage" and ship and not in_ring(ship.global_position):
+		net.world_flag("sh_escaped")
+		net.bounty("scouring", ship.global_position, 200.0)
+		return
 	if state != "barrage" or _flag("sh_admiral_gone"):
 		return
 	if admiral == null:
@@ -194,6 +252,12 @@ func _host(delta: float) -> void:
 			_spawn_admiral()
 		return
 	_drive_admiral(0.25, ship)
+
+
+## Inside the Scouring's ring: within RING_R of the island's middle.
+func in_ring(p: Vector3) -> bool:
+	var centre: Vector3 = isl.city_global(StrongholdPlan.LAND_C, 0.0)
+	return Vector2(p.x - centre.x, p.z - centre.z).length() < RING_R
 
 
 ## At a top captain's level ADMIRAL_LEVEL+ or a Dreaded bounty (or a test's say-so).
@@ -284,6 +348,9 @@ func _wipe(step: float) -> void:
 		if Vector2(pl.global_position.x - centre.x, pl.global_position.z - centre.z).length() < ISLAND_R + 30.0:
 			here.append(pl)
 	if here.is_empty() or here.any(func(pl): return pl.is_standing()):
+		return
+	# (1.30) down in a boss's arena: that boss's fight starts over and the crew rejoins at its checkpoint (StrongholdBoss)
+	if here.any(func(pl): return StrongholdBoss.rejoin_point(pl.global_position) != Vector3.INF):
 		return
 	_wiped_t = 15.0
 	var ward: Rect2 = StrongholdPlan.DISTRICTS[1][1]

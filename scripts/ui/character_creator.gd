@@ -91,7 +91,7 @@ func _build_ui() -> void:
 
 	# ---- preview
 	var pv_panel := PanelContainer.new()
-	pv_panel.custom_minimum_size = Vector2(250, 0)
+	pv_panel.custom_minimum_size = Vector2(340, 0)
 	pv_panel.add_theme_stylebox_override("panel", UIStyle.panel(STAGE, UIStyle.BORDER, 0))
 	hb.add_child(pv_panel)
 	var pv_box := VBoxContainer.new()
@@ -161,7 +161,7 @@ func _build_ui() -> void:
 	_name_edit = LineEdit.new()
 	_name_edit.text = str(look.get("name", "Captain"))
 	_name_edit.max_length = 18
-	_name_edit.custom_minimum_size = Vector2(130, 0)
+	_name_edit.custom_minimum_size = Vector2(180, 0)
 	_name_edit.add_theme_font_size_override("font_size", ROW_FONT + 1)
 	_name_edit.text_changed.connect(func(t: String): look["name"] = t.strip_edges() if t.strip_edges() != "" else "Captain")
 	bar.add_child(_name_edit)

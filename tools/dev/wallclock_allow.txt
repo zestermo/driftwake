@@ -31,3 +31,4 @@ scripts/island/canal_shell.gd | build timing (build_ms) per shell piece
 scripts/island/canal_district.gd | build timing (build_ms) per district piece
 scripts/island/stronghold_island.gd | build timing (build_ms) per step
 scripts/island/stronghold_shell.gd | build timing (build_ms) per shell piece
+scripts/island/stronghold_dress.gd | build timing (build_ms) per dressing piece

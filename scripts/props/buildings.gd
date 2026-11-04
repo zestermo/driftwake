@@ -164,6 +164,18 @@ static func _roof_col(body: Node3D, kind: String, uw: float, ud: float, y0: floa
 	body.add_child(cs)
 
 
+## (1.30) A thin sloped roof's collider (a porch roof, an awning, a lean-to): a slab `w` wide from the middle of its
+## high edge `a` down to its low edge's `b` (running along z).
+static func slab_col(body: Node3D, a: Vector3, b: Vector3, w: float) -> void:
+	var v := b - a
+	var cs := CollisionShape3D.new()
+	var s := BoxShape3D.new()
+	s.size = Vector3(w, 0.15, v.length())
+	cs.shape = s
+	cs.transform = Transform3D(Basis(Vector3.RIGHT, atan2(-v.y, v.z)), (a + b) * 0.5 + Vector3.DOWN * 0.05)
+	body.add_child(cs)
+
+
 const TRIM_COLORS := [Color(0.27, 0.42, 0.62), Color(0.25, 0.5, 0.44), Color(0.6, 0.22, 0.16), Color(0.78, 0.62, 0.26),
 	Color(0.86, 0.85, 0.8), Color(0.35, 0.3, 0.45)]
 const BLOOMS := [Color(0.9, 0.2, 0.22), Color(0.95, 0.82, 0.25), Color(0.92, 0.5, 0.7), Color(0.95, 0.95, 0.92), Color(0.6, 0.4, 0.85)]
@@ -556,6 +568,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			ct = maxf(ct, _roof_y(roof_kind, uw, ud, y0, top, pitch, ev, cx + (0.35 if k % 2 == 0 else -0.35), cz + (0.35 if k < 2 else -0.35)) + 0.6)
 		mb.add_box(stone, _xf(Vector3(cx, (ct + top - 0.4) * 0.5, cz)), Vector3(0.7, ct - top + 0.4, 0.7), 0.6, Color.WHITE, true, false)
 		mb.add_box(stone, _xf(Vector3(cx, ct + 0.05, cz)), Vector3(0.86, 0.12, 0.86), 0.6)
+		_box_col(body, Vector3(0.8, ct - top + 0.5, 0.8), Vector3(cx, (ct + top) * 0.5 - 0.15, cz))
 		mb.add_cylinder(PSXMat.lit("plaster", Color(0.72, 0.42, 0.28)), _xf(Vector3(cx, ct + 0.1, cz)), 0.13, 0.11, 0.3, 6, 1.0)
 		if spec.get("smoke", true):
 			_smoke(body, Vector3(cx, ct + 0.5, cz))
@@ -590,6 +603,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_box(seat, _xf(bz + Vector3(0, 0.42, 0)), Vector3(1.2, 0.07, 0.34), 1.0)
 			for s in [-1.0, 1.0]:
 				mb.add_box(beam, _xf(bz + Vector3(s * 0.48, 0.2, 0)), Vector3(0.08, 0.4, 0.3), 1.0)
+			_box_col(body, Vector3(1.2, 0.45, 0.34), bz + Vector3(0, 0.225, 0))
 
 	# covered porch along the front
 	if porch > 0.0:
@@ -610,6 +624,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 				mb.add_box(beam, _xf(Vector3(x, (post_top + post_y) * 0.5, pz - 0.1)), Vector3(0.16, post_top - post_y, 0.16), 0.6)
 			if lashings:
 				_lash(mb, Vector3(x, fl - 0.25, pz - 0.1), 0.1)
+			_box_col(body, Vector3(0.2, post_top - post_y, 0.2), Vector3(x, (post_top + post_y) * 0.5, pz - 0.1))
 		mb.add_box(beam, _xf(Vector3(0, post_top + 0.07, pz - 0.1)), Vector3(w - 0.1, 0.14, 0.14), 0.6, Color.WHITE, false)
 		var porch_roof_y := fl + h * 0.9
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
@@ -618,6 +633,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(-w * 0.5 - 0.2, porch_roof_y - 0.2, pz + 0.3),
 			Vector3(w * 0.5 + 0.2, porch_roof_y - 0.2, pz + 0.3), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
 			Vector2.ZERO, Vector2(0, 1), Vector2(w * 0.5, 1), Vector2(w * 0.5, 0), Color(0.55, 0.55, 0.55), Vector3(0, -1, -0.3).normalized())
+		slab_col(body, Vector3(0, fl + h - 0.05, d * 0.5), Vector3(0, porch_roof_y - 0.2, pz + 0.3), w + 0.4)
 
 	# lean-to shed on one side
 	var lean: String = spec.get("lean_to", "")
@@ -628,7 +644,9 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		var lh := h * 0.75
 		mb.add_box(PSXMat.lit("planks_weathered"), _xf(Vector3(lx, fl + lh * 0.5 - 0.15, 0)), Vector3(lw, lh, d * 0.8), 0.5, Color.WHITE, true, true)
 		var rx := _xf(Vector3(lx, fl + lh - 0.15, 0), -s * PI * 0.5)
+		var rm := mb.mark()
 		add_shed_roof(mb, roof, PSXMat.lit("planks_weathered"), rx, d * 0.8, lw, 0.6, 0.3)
+		mb.hull_since(rm, body, "LeanRoofCol")
 		mb.add_box(stone, _xf(Vector3(lx, (0.3 - found) * 0.5 + stilts * 0.5, 0)), Vector3(lw + 0.2, 0.3 + found + stilts, d * 0.8 + 0.2), 0.5, Color.WHITE, true, false)
 		_box_col(body, Vector3(lw, lh + 0.3, d * 0.8), Vector3(lx, (fl + lh) * 0.5, 0))
 
@@ -654,10 +672,13 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_tri(cloth, Vector3(x0, ay - 0.55, z0 + ad), tip - Vector3(0, 0, 0.02), Vector3(x1, ay - 0.55, z0 + ad), Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0.9), Vector2(0.12, 1.0), Vector2(0.25, 0.9), Color(0.6, 0.6, 0.6), Vector3.FORWARD)
 		for s in [-1.0, 1.0]:
 			mb.add_box(beam, _xf(Vector3(s * aw * 0.5, (ay - 0.55) * 0.5, z0 + ad)), Vector3(0.08, ay - 0.55, 0.08), 1.0)
+			_box_col(body, Vector3(0.12, ay - 0.55, 0.12), Vector3(s * aw * 0.5, (ay - 0.55) * 0.5, z0 + ad))
+		slab_col(body, Vector3(0, ay, z0), Vector3(0, ay - 0.55, z0 + ad), aw)
 		# goods out front on the ground either side of the steps: a crate and a basket
 		var cx := door_x - dw * 0.5 - 0.8
 		if cx > -aw * 0.5 + 0.4:
 			mb.add_box(PSXMat.lit("planks", Color(0.9, 0.85, 0.75)), _xf(Vector3(cx, 0.3, z0 + 0.7)), Vector3(0.7, 0.6, 0.6), 1.2)
+			_box_col(body, Vector3(0.7, 0.6, 0.6), Vector3(cx, 0.3, z0 + 0.7))
 		var kx := door_x + dw * 0.5 + 0.75
 		if kx < aw * 0.5 - 0.35:
 			mb.add_cylinder(PSXMat.lit("straw"), _xf(Vector3(kx, 0.0, z0 + 0.8)), 0.26, 0.3, 0.32, 7, 1.0)
@@ -802,8 +823,10 @@ static func tavern_hall() -> Node3D:
 	for x in [-uw * 0.375, -uw * 0.125, uw * 0.125, uw * 0.375]:
 		mb.add_box_unit_uv(window, _xf(Vector3(x, y2 + 1.35, ud * 0.5 + 0.04)), Vector3(0.8, 0.8, 0.06))
 		mb.add_box_unit_uv(window, _xf(Vector3(x, y2 + 1.35, -ud * 0.5 - 0.04)), Vector3(0.8, 0.8, 0.06))
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, y2 + h2 + 0.09, 0), PI * 0.5), ud, uw, 3.2, 0.6, 0.5, Color.WHITE, plaster)
-	_box_col(body, Vector3(uw, h2 + 3.3, ud), Vector3(0, y2 + (h2 + 3.3) * 0.5, 0))
+	mb.hull_since(rm, body, "RoofCol")
+	_box_col(body, Vector3(uw, h2 + 0.1, ud), Vector3(0, y2 + (h2 + 0.1) * 0.5, 0))
 	# roof trim: ridge tiles, barge boards, fascias
 	var ry := y2 + h2 + 0.09 + 3.2
 	var drop := 0.6 * 3.2 / (ud * 0.5)
@@ -1077,7 +1100,9 @@ static func smithy() -> Node3D:
 		mb.add_box(beam, _xf(Vector3(x, 1.4, d * 0.5 - 0.15)), Vector3(0.22, 2.6, 0.22), 0.6)
 		_box_col(body, Vector3(0.22, 2.6, 0.22), Vector3(x, 1.4, d * 0.5 - 0.15))
 	mb.add_box(beam, _xf(Vector3(0, 2.75, d * 0.5 - 0.15)), Vector3(w + 0.2, 0.2, 0.24), 0.6)
+	var rm := mb.mark()
 	add_shed_roof(mb, roof, planks, _xf(Vector3(0, 2.85, 0)), w, d, 1.0, 0.45)
+	mb.hull_since(rm, body, "RoofCol")
 	# the forge: a stone hearth, glowing coals, a hood and its chimney
 	var fp := Vector3(w * 0.5 - 1.3, 0.1, -d * 0.5 + 1.05)
 	mb.add_box(stone, _xf(fp + Vector3(0, 0.45, 0)), Vector3(1.8, 0.9, 1.3), 0.5)
@@ -1166,14 +1191,16 @@ static func chapel(found: float = 1.4) -> Node3D:
 	mb.add_box(dark, _xf(Vector3(0, (0.2 - found) * 0.5, 0)), Vector3(w + 0.5, found + 0.2, d + 0.5), 0.5, Color.WHITE, true, false)
 	tiled_box(mb, stone, Vector3(0, 0.2 + h * 0.5, 0), Vector3(w, h, d), 2.4, 0.5)
 	_box_col(body, Vector3(w + 0.5, h + 0.2 + found, d + 0.5), Vector3(0, (h + 0.2 - found) * 0.5, 0))
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, h + 0.29, 0)), w, d, 2.6, 0.5, 0.5, Color.WHITE, stone)
 	mb.add_box(PSXMat.lit("roof_tiles", Color(0.6, 0.65, 0.72), {"affine": 0.8}), _xf(Vector3(0, h + 0.29 + 2.62, 0)), Vector3(0.28, 0.18, d + 1.1), 0.8)
-	_box_col(body, Vector3(w, 2.6, d), Vector3(0, h + 1.5, 0))
+	mb.hull_since(rm, body, "RoofCol")
 	# buttresses and tall windows down both sides
 	for s in [-1.0, 1.0]:
 		for k in range(4):
 			var z := -d * 0.5 + 1.2 + k * 2.55
 			mb.add_box(dark, Transform3D(Basis(), Vector3(s * (w * 0.5 + 0.3), 1.4, z)), Vector3(0.6, 2.8, 0.55), 0.5)
+			_box_col(body, Vector3(0.6, 2.8, 0.55), Vector3(s * (w * 0.5 + 0.3), 1.4, z))
 			mb.add_box(dark, Transform3D(Basis(Vector3.BACK, -s * 0.5), Vector3(s * (w * 0.5 + 0.15), 3.0, z)), Vector3(0.4, 0.9, 0.5), 0.5)
 			if k < 3:
 				var wz := z + 1.27
@@ -1189,8 +1216,11 @@ static func chapel(found: float = 1.4) -> Node3D:
 	for x in [-tw * 0.5 + 0.2, tw * 0.5 - 0.2]:
 		for z in [tz - tw * 0.5 + 0.2, tz + tw * 0.5 - 0.2]:
 			mb.add_box(stone, _xf(Vector3(x, th + 1.25, z)), Vector3(0.4, 1.8, 0.4), 0.5)
+			_box_col(body, Vector3(0.4, 1.8, 0.4), Vector3(x, th + 1.25, z))
+	var tower_roof := mb.mark()
 	mb.add_box(dark, _xf(Vector3(0, th + 2.2, tz)), Vector3(tw + 0.3, 0.2, tw + 0.3), 0.5)
 	add_hip_roof(mb, roof, _xf(Vector3(0, th + 2.3, tz)), tw, tw, 2.2, 0.25)
+	mb.hull_since(tower_roof, body, "TowerRoof")
 	# the bell, its yoke, and the weathervane
 	mb.add_box(beam, _xf(Vector3(0, th + 2.0, tz)), Vector3(tw - 0.4, 0.14, 0.14), 1.0)
 	mb.add_cylinder(bronze, _xf(Vector3(0, th + 1.05, tz)), 0.45, 0.22, 0.75, 8, 1.0, Color.WHITE, true, true)
@@ -1280,8 +1310,29 @@ static func harbor_tower() -> Node3D:
 	for k in range(4):
 		var a := TAU * k / 4.0 + PI / 4.0
 		mb.add_box_unit_uv(window, Transform3D(Basis(Vector3.UP, a), Vector3(sin(a), 0, cos(a)) * ((r - 0.4) * cos(PI / n) + 0.03) + Vector3(0, gy + 1.3, 0)), Vector3(0.55, 0.9, 0.06))
+	var cap := mb.mark()
 	mb.add_cone(roof, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy + 2.6, 0)), r + 0.3, 4.2, n)
 	mb.add_cylinder(roof, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy + 2.45, 0)), r + 0.32, r + 0.32, 0.15, n, 0.6, Color(0.6, 0.6, 0.6), false, true)
+	mb.hull_since(cap, body, "Cap")
+	# (1.30) the gallery's floor, the lantern room and the rail round them, side by side of the octagon
+	var gc := CollisionShape3D.new()
+	var gs := CylinderShape3D.new()
+	gs.radius = r + 0.75
+	gs.height = 0.5
+	gc.shape = gs
+	gc.position = Vector3(0, gy - 0.12, 0)
+	body.add_child(gc)
+	var rc := CollisionShape3D.new()
+	var rs := CylinderShape3D.new()
+	rs.radius = r - 0.4
+	rs.height = 2.6
+	rc.shape = rs
+	rc.position = Vector3(0, gy + 1.3, 0)
+	body.add_child(rc)
+	for k in range(n):
+		var a := TAU * (k + 0.5) / n
+		var side := 2.0 * (r + 0.62) * sin(PI / n)
+		_box_col(body, Vector3(side, 1.0, 0.1), Vector3(sin(a), 0, cos(a)) * (r + 0.62) * cos(PI / n) + Vector3(0, gy + 0.6, 0), a)
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, gy + 6.6, 0)), 0.05, 0.04, 2.2, 5, 1.0)
 	var flag := PSXMat.lit("cloth_blue")
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, gy + 8.1, 0.06)), 1.2, 0.7, Rect2(0, 0, 0.5, 0.5))
@@ -1361,6 +1412,8 @@ static func stall(kind: String) -> Node3D:
 			for x in [-w * 0.5, w * 0.5]:
 				for z in [-0.6, 1.1]:
 					mb.add_box(post, _xf(Vector3(x, 1.2, z)), Vector3(0.1, 2.4, 0.1), 0.8)
+					_box_col(body, Vector3(0.14, 2.4, 0.14), Vector3(x, 1.2, z))
+			slab_col(body, Vector3(0, 2.5, -0.7), Vector3(0, 2.35, 1.25), w + 0.4)
 			var canvas := PSXMat.lit("canvas", Color.WHITE, {"affine": 0.6})
 			mb.add_quad(canvas, Vector3(-w * 0.5 - 0.2, 2.45, -0.7), Vector3(w * 0.5 + 0.2, 2.45, -0.7), Vector3(w * 0.5 + 0.2, 2.3, 1.25), Vector3(-w * 0.5 - 0.2, 2.3, 1.25),
 				Vector2.ZERO, Vector2(1.6, 0), Vector2(1.6, 1), Vector2(0, 1), Color.WHITE, Vector3.UP)
@@ -1392,8 +1445,12 @@ static func stall(kind: String) -> Node3D:
 			for x in [-w * 0.5, w * 0.5]:
 				mb.add_box(post, _xf(Vector3(x, 1.25, 0.9)), Vector3(0.1, 2.5, 0.1), 0.8)
 				mb.add_box(post, _xf(Vector3(x, 1.25, -0.6)), Vector3(0.1, 2.5, 0.1), 0.8)
+				for z in [0.9, -0.6]:
+					_box_col(body, Vector3(0.14, 2.5, 0.14), Vector3(x, 1.25, z))
 			var aw := PSXMat.lit("cloth_red", Color.WHITE, {"affine": 0.6})
+			var rm := mb.mark()
 			mb.add_gable_roof(aw, _xf(Vector3(0, 2.5, 0.15)), 1.5, w, 0.6, 0.25, 0.6, Color.WHITE, aw)
+			mb.hull_since(rm, body, "AwningCol")
 		"cloth":
 			# a rack hung with bolts and drapes, a tall pole awning
 			mb.add_box(wood, _xf(Vector3(0, 0.45, 0.4)), Vector3(w, 0.9, 0.7), 1.0, Color.WHITE, true, false)
@@ -1404,6 +1461,9 @@ static func stall(kind: String) -> Node3D:
 			for x in [-w * 0.5 - 0.05, w * 0.5 + 0.05]:
 				mb.add_box(post, _xf(Vector3(x, 1.1, -0.55)), Vector3(0.1, 2.2, 0.1), 0.8)
 				mb.add_box(post, _xf(Vector3(x, 1.25, 1.0)), Vector3(0.1, 2.5, 0.1), 0.8)
+				_box_col(body, Vector3(0.14, 2.2, 0.14), Vector3(x, 1.1, -0.55))
+				_box_col(body, Vector3(0.14, 2.5, 0.14), Vector3(x, 1.25, 1.0))
+			slab_col(body, Vector3(0, 2.8, -0.7), Vector3(0, 2.5, 1.2), w + 0.4)
 			for i in range(4):
 				var cm := PSXMat.lit("fabric", cols[(i + 1) % cols.size()])
 				var x0 := -1.35 + i * 0.72
@@ -1420,6 +1480,7 @@ static func stall(kind: String) -> Node3D:
 			# pots: a cart-like stand with shelves of pottery, no awning but an umbrella
 			mb.add_box(wood, _xf(Vector3(0, 0.4, 0.35)), Vector3(w, 0.8, 0.8), 1.0, Color.WHITE, true, false)
 			mb.add_box(wood, _xf(Vector3(0, 1.1, -0.3)), Vector3(w, 0.06, 0.45), 1.0, Color.WHITE, false, false)
+			_box_col(body, Vector3(w, 1.35, 0.45), Vector3(0, 0.675, -0.3))
 			for x in [-w * 0.5 + 0.05, w * 0.5 - 0.05]:
 				mb.add_box(post, _xf(Vector3(x, 0.6, -0.3)), Vector3(0.08, 1.2, 0.45), 0.8)
 			var clay := [Color(0.72, 0.4, 0.22), Color(0.6, 0.32, 0.18), Color(0.82, 0.72, 0.55)]
@@ -1437,7 +1498,10 @@ static func stall(kind: String) -> Node3D:
 				mb.add_cylinder(post, Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(s * (w * 0.5 + 0.05), 0.35, 0.35)), 0.35, 0.35, 0.08, 8, 1.0, Color.WHITE, true, true)
 			mb.add_box(post, _xf(Vector3(w * 0.5 + 0.25, 1.4, 0.9)), Vector3(0.07, 2.8, 0.07), 0.8)
 			var umb := PSXMat.lit("cloth_red", Color(1.0, 0.85, 0.6), {"affine": 0.6})
+			var rm := mb.mark()
 			mb.add_cylinder(umb, _xf(Vector3(w * 0.5 + 0.25, 2.45, 0.9)), 1.3, 0.05, 0.45, 8, 0.6, Color.WHITE, false, true, false)
+			mb.hull_since(rm, body, "UmbrellaCol")
+			_box_col(body, Vector3(0.12, 2.5, 0.12), Vector3(w * 0.5 + 0.25, 1.25, 0.9))
 	body.add_child(mb.to_instance())
 	_box_col(body, Vector3(w, 1.0, 0.8), Vector3(0, 0.5, 0.35))
 	_marker(body, "Vendor", Vector3(0, 0, -0.75), 0.0)

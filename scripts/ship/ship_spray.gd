@@ -72,6 +72,28 @@ func _ready() -> void:
 		sh.emission_sphere_radius = 0.25
 		sh.scale_amount_curve = FX._curve("hold")
 		_sheets.append(sh)
+	fit(_ship.layout)
+
+
+## (1.30) Onto her hull: the brig's and galleon's are longer and wider, and ride higher (the sloop's is the above).
+var _wl := WL
+var _stem_z := HullLayout.BOW_Z
+
+
+func fit(L: HullLayout) -> void:
+	_wl = 0.1 - L.freeboard
+	_stem_z = L.bow_z
+	var bw := BOW_WAVE_Z * L.kz
+	for i in range(_bow.size()):
+		var s := -1.0 if i == 0 else 1.0
+		_bow[i].position = Vector3(s * (L.side_at(bw, _wl) + 0.25), _wl, bw)
+	var st := float(L.rings[0][0])
+	_stern.position = Vector3(0.0, _wl, st + 0.5)
+	_stern.emission_box_extents = Vector3(L.side_at(st, _wl) * 0.7, 0.05, 0.3)
+	var stem := float(L.rings[L.rings.size() - 1][0]) + 0.3
+	_mist.position = Vector3(0.0, _wl + 0.2, stem)
+	for sh in _sheets:
+		sh.position = Vector3(0.0, _wl + 0.1, stem)
 
 
 ## Her half-width at the waterline `z` m along her (HullLayout.RINGS), 0 past the stem.
@@ -165,7 +187,7 @@ func _physics_process(delta: float) -> void:
 func _meet(delta: float, xf: Transform3D, spd: float, caps: float, air_l: Vector3) -> void:
 	_slap_cd -= delta
 	_sheet_cd -= delta
-	var stem := xf * Vector3(0.0, WL + 0.35, HullLayout.BOW_Z + 0.8)
+	var stem := xf * Vector3(0.0, _wl + 0.35, _stem_z + 0.8)
 	var imm := float(Ocean.get_wave_height(stem)) - stem.y
 	rise = 0.0 if _imm == INF else (imm - _imm) / maxf(delta, 0.0001)
 	_imm = imm
@@ -187,4 +209,4 @@ func _meet(delta: float, xf: Transform3D, spd: float, caps: float, air_l: Vector
 		sh.initial_velocity_max = 6.0 + 6.0 * k
 		sh.restart()
 		_mist_k = maxf(_mist_k, 0.45 + 0.45 * k * clampf(caps + 0.4, 0.0, 1.0))
-		FX.sfx("bow_spray", xf * Vector3(0.0, WL + 1.4, HullLayout.BOW_Z), -9.0 + 7.0 * k + caps * 3.0, 0.1)
+		FX.sfx("bow_spray", xf * Vector3(0.0, _wl + 1.4, _stem_z), -9.0 + 7.0 * k + caps * 3.0, 0.1)

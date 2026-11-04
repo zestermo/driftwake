@@ -181,7 +181,7 @@ func _process(d: float) -> bool:
 			wait = 0.3
 			step = 13
 		13:
-			check("below 60%: phase 2, and it roars", ape.phase == 2 and ape._special == "roar")
+			check("below 60%: phase 2, and it bounds back to the middle", ape.phase == 2 and ape._special == "reset")
 			put(near(90.0))
 			wait = 8.0
 			step = 14

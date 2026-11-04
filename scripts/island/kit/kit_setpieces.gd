@@ -615,6 +615,7 @@ static func _colossus(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 	for sd in [-1.0, 1.0]:
 		var foot := Vector3(sd * 2.0, py, -3.0)
 		mb.add_box(smooth, Transform3D(Basis(), foot + Vector3(0, 0.45, 0.8)), Vector3(1.9, 0.9, 3.6), 0.4)
+		KitLandmarks.box_col(b, Vector3(1.9, 0.9, 4.2), foot + Vector3(0, 0.45, 1.1))
 		for t in range(4):
 			mb.add_box(smooth, Transform3D(Basis(), foot + Vector3(-0.66 + t * 0.44, 0.35, 2.75)), Vector3(0.38, 0.6, 0.6), 0.6, Color(0.92, 0.92, 0.92))
 		var knee := 5.0 + rng.randf_range(-0.8, 1.2)
@@ -627,13 +628,16 @@ static func _colossus(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 		for v in range(3):
 			KitLandmarks.vine(mb, vine_m, foot + Vector3(rng.randf_range(-0.9, 0.9), knee + 0.4, rng.randf_range(-0.9, 0.9)), rng.randf_range(1.5, knee - 0.5), Vector3(sd, 0, 0), rng)
 	var tx := Transform3D(Basis(Vector3.UP, rng.randf_range(-0.3, 0.3)) * Basis(Vector3.RIGHT, PI * 0.5 - 0.08), Vector3(rng.randf_range(-1.5, 1.5), 1.3, 9.0))
+	var torso := mb.mark()
 	mb.add_loft(smooth, tx, [[-4.2, 2.0, 1.4], [-2.5, 2.6, 1.7], [0.0, 3.0, 1.9], [2.5, 3.2, 2.0], [3.6, 2.0, 1.5], [4.2, 1.2, 1.0]],
 		MeshBuilder.profile_oct(0.6), 0.35, Color.WHITE, true, true, true, true)
-	KitLandmarks.box_col_xf(b, Vector3(5.6, 3.2, 8.2), tx * Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO))
+	mb.hull_since(torso, b, "Torso")
 	var sh := tx * Vector3(2.9, 2.6, 0)
 	var hand := sh + Vector3(4.5, -0.6, 3.5)
 	hand.y = maxf(KitLandmarks.gy(ctx, pl, hand.x, hand.z) + 0.5, 0.4)
+	var arm := mb.mark()
 	mb.add_tube(moss, MeshBuilder.curve_points(sh, sh.lerp(hand, 0.5) + Vector3(0, 0.6, 0), hand, 6), 0.95, 0.7, 8, 0.4, Color.WHITE, true, false, true)
+	mb.hull_since(arm, b, "Arm")
 	for f in range(4):
 		var fd := Vector3(cos(f * 0.35 - 0.5), 0.0, sin(f * 0.35 - 0.5))
 		var tip := hand + fd * 1.6 + Vector3(0, 0.9 if f < 3 else 0.3, 0)
@@ -677,6 +681,7 @@ static func _colossus_head(isl: GenIsland, ctx: KitContext, pl: Dictionary) -> v
 	node.add_child(sap)
 	sap.position = hx * Vector3(0, 0.5, -1.0) + Vector3(0, 2.0, 0)
 	sap.scale = Vector3.ONE * 0.55
+	IslandTheme.trunk_cols(b, sap.mesh, sap.transform)
 	var cp := Vector3(rng.randf_range(-3.0, 3.0), 0, -7.5)
 	KitLandmarks.chest(ctx, pl, cp + Vector3(0, KitLandmarks.gy(ctx, pl, cp.x, cp.z), 0), PI, "colossus_chest", KitLandmarks.loot(isl, rng, true), 1.0)
 
@@ -870,7 +875,9 @@ static func _springs(isl: GenIsland, ctx: KitContext, pl: Dictionary, node: Node
 		var a := rng.randf() * TAU
 		var q := top_c + Vector3(cos(a), 0, sin(a)) * (float(e0[1]) + rng.randf_range(1.2, 3.0))
 		at.append(Vector3(q.x, KitLandmarks.gy(ctx, pl, q.x, q.z), q.z))
-	KitLandmarks.boulders(dress, mats, at, rng, 0.5, 1.2)
+	var stones := KitLandmarks.body("SpringStonesCol")
+	KitLandmarks.boulders(dress, mats, at, rng, 0.5, 1.2, stones)
+	node.add_child(stones)
 	node.add_child(KitLandmarks.far_off(dress.to_instance("SpringStones")))
 	var up := top_c - Vector3(0, 0, float(e0[1]) + 1.6)
 	KitLandmarks.chest(ctx, pl, up + Vector3(0, KitLandmarks.gy(ctx, pl, up.x, up.z), 0), 0.0, "springs_cache", KitLandmarks.loot(isl, rng, false), 0.85)

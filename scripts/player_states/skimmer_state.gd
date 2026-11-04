@@ -76,11 +76,11 @@ static func launch_point(p: Player) -> Array:
 	return ["No open water ahead: face the sea to launch the skimmer", Vector3.ZERO]
 
 
-## How the wind drives a sail on `yaw` (a beam reach 1.0, running before it 0.8, into it 0.45), by its strength.
+## How the wind drives a sail on `yaw` (a beam reach 1.0, running before it 0.8, into it 0.55), by its strength.
 static func wind_k(yaw: float, wx: Node) -> float:
 	var wd: Vector2 = wx.wind_dir() if wx else Vector2(1, 0)
 	var a := rad_to_deg(absf(Vector2(-sin(yaw), -cos(yaw)).angle_to(wd)))
-	var pts := [[0.0, 0.8], [45.0, 0.95], [90.0, 1.0], [135.0, 0.7], [180.0, 0.45]]
+	var pts := [[0.0, 0.8], [45.0, 0.95], [90.0, 1.0], [135.0, 0.7], [180.0, 0.55]]
 	var k := 1.0
 	for i in range(pts.size() - 1):
 		if a <= float(pts[i + 1][0]):

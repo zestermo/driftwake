@@ -34,9 +34,78 @@ static func pose(h, n: String, u: float) -> Array:
 			return _leap(h, u)
 		"log_pose":
 			return _log_pose(h, u)
+		"slide":
+			return _slide(h, u)
+		"wall_kick":
+			return _wall_kick(h, u)
+		"wall_cling":
+			return _wall_cling(h, u)
+		"wall_run":
+			return _wall_run(h, u)
 		"draw", "sheathe":
 			return DrawMoves.pose(h, n, u)
 	return []
+
+
+## (held, 1.30) The slope slide: dropped onto the left hip, the right leg out ahead nearly straight, the left folded
+## under it, leaning back with the left hand trailing on the ground and the right arm up and forward for balance; the
+## body rocks a little with the ground (h._t).
+static func _slide(h, u: float) -> Array:
+	var rock := sin(h._t * 9.0) * 0.04
+	var slide := {"pivot": Vector3(0.38 + rock, 0, 0.1), "hips": Vector3(0, 0.25, 0), "torso": Vector3(0.12, -0.2, 0.08), "head": Vector3(-0.35, 0.18, 0),
+		"leg_r": Vector3(1.45, 0, 0.08), "shin_r": Vector3(-0.25, 0, 0), "leg_l": Vector3(0.6, 0, -0.3), "shin_l": Vector3(-2.1, 0, 0),
+		"arm_l": Vector3(-0.35, 0, -0.75), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(1.15, 0, 0.55), "fore_r": Vector3(0.5, 0, 0),
+		"_lift": Vector3(0, -0.5, 0), "_scale": Vector3(1.04, 0.96, 1.04)}
+	var drop := slide.duplicate()
+	drop["_scale"] = Vector3(1.1, 0.88, 1.1)
+	drop["_lift"] = Vector3(0, -0.58, 0)
+	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.35, drop, "out"], [1.0, slide]])), "full", Vector3.ZERO]
+
+
+## (1.30) The wall jump: crouched against the wall (it's behind you now), both legs driven back off it, the body flung
+## up and out with the arms swung up, then a tuck as it rises.
+static func _wall_kick(h, u: float) -> Array:
+	h._jkind = "double"
+	var load_ := {"pivot": Vector3(-0.25, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.35, 0, 0), "head": Vector3(0.3, 0, 0),
+		"leg_l": Vector3(0.6, 0, -0.1), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(0.75, 0, 0.1), "shin_r": Vector3(-2.0, 0, 0),
+		"arm_l": Vector3(-0.5, 0, -0.5), "fore_l": Vector3(0.6, 0, 0), "arm_r": Vector3(-0.5, 0, 0.5), "fore_r": Vector3(0.6, 0, 0),
+		"_scale": Vector3(1.08, 0.86, 1.08)}
+	var push := {"pivot": Vector3(0.15, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.18, 0, 0), "head": Vector3(-0.05, 0, 0),
+		"leg_l": Vector3(-0.55, 0, -0.08), "shin_l": Vector3(-0.2, 0, 0), "leg_r": Vector3(-0.4, 0, 0.08), "shin_r": Vector3(-0.35, 0, 0),
+		"arm_l": Vector3(2.4, 0, -0.5), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(2.3, 0, 0.55), "fore_r": Vector3(0.35, 0, 0),
+		"_scale": Vector3(0.92, 1.14, 0.92)}
+	var tuck := {"pivot": Vector3(-0.05, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.15, 0, 0),
+		"leg_l": Vector3(1.3, 0, -0.12), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(0.7, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0),
+		"arm_l": Vector3(0.9, 0, -1.1), "fore_l": Vector3(0.45, 0, 0), "arm_r": Vector3(0.9, 0, 1.1), "fore_r": Vector3(0.45, 0, 0),
+		"_scale": Vector3.ONE}
+	var keys := [[0.0, load_], [0.22, push, "out"], [0.45, push], [0.8, tuck], [1.0, tuck]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## (held, 1.30) Wall Cling: facing the wall, both hands up on it, one knee braced against it and the other leg hanging,
+## the head tipped back to look up it; a slow breathing sway.
+static func _wall_cling(h, u: float) -> Array:
+	var sway := sin(h._t * 3.0) * 0.03
+	var cling := {"pivot": Vector3(-0.08, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.12 + sway, 0, 0), "head": Vector3(0.4, 0, 0),
+		"arm_l": Vector3(2.35, 0, -0.35), "fore_l": Vector3(0.7, 0, 0), "arm_r": Vector3(2.0, 0, 0.4), "fore_r": Vector3(0.9, 0, 0),
+		"leg_l": Vector3(1.1, 0, -0.1), "shin_l": Vector3(-1.7, 0, 0), "leg_r": Vector3(0.15, 0, 0.1), "shin_r": Vector3(-0.45, 0, 0),
+		"_scale": Vector3.ONE}
+	var hit := cling.duplicate()
+	hit["_scale"] = Vector3(1.06, 0.92, 1.06)
+	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.3, hit, "out"], [1.0, cling]])), "full", Vector3.ZERO]
+
+
+## (held, 1.30) Wall Run: three quick sprinting strides along the wall, the body leaning in toward it (h.dash_dir.x: the
+## wall's side), the near arm up along it, the far one pumping.
+static func _wall_run(h, u: float) -> Array:
+	var side: float = h.dash_dir.x if absf(h.dash_dir.x) > 0.1 else 1.0
+	var s := sin(h._t * 22.0)
+	var run := {"pivot": Vector3(-0.2, 0, 0.32 * side), "hips": Vector3(0, -0.1 * s, 0), "torso": Vector3(-0.25, 0.12 * s, 0.1 * side), "head": Vector3(0.15, 0, -0.2 * side),
+		"leg_l": Vector3(0.3 + 0.9 * s, 0, -0.1), "shin_l": Vector3(-0.5 - 0.8 * maxf(-s, 0.0), 0, 0),
+		"leg_r": Vector3(0.3 - 0.9 * s, 0, 0.1), "shin_r": Vector3(-0.5 - 0.8 * maxf(s, 0.0), 0, 0),
+		"arm_l": Vector3(0.6 - 0.8 * s, 0, -0.35), "fore_l": Vector3(1.2, 0, 0), "arm_r": Vector3(0.6 + 0.8 * s, 0, 0.35), "fore_r": Vector3(1.2, 0, 0),
+		"_lift": Vector3(0, -0.06, 0), "_scale": Vector3(1.0, 0.97, 1.04)}
+	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.2, run, "out"], [1.0, run]])), "full", Vector3.ZERO]
 
 
 ## (held) The left wrist raised in front of the chin like a watch: the forearm angled up across

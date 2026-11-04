@@ -19,7 +19,6 @@ const DEFAULTS := {
 		"vsync": true,          # (1.26)
 		"max_fps": 0.0,         # (1.26) a frame cap; 0 = none
 		"perf_overlay": false,  # F8
-		"fine_ui": true,        # menus on a finer pixel canvas (960x540 at 1080p) where the window allows; off = 640x360
 	},
 	"audio": {
 		"master": 0.8,

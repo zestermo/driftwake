@@ -31,7 +31,7 @@ func sea_xp() -> int:
 	var m: Dictionary = pr.mastery_of("sea")
 	var total := int(m["xp"])
 	for lv in range(1, int(m["lv"])):
-		total += pr.mastery_to_next(lv)
+		total += pr.mastery_to_next(lv, "sea")
 	return total
 
 
@@ -59,7 +59,7 @@ func _process(_d: float) -> bool:
 			check("...no bonus at the helm without the perks", ship._helm_k == Vector3.ONE)
 			check("Sea Hand needs Sailing 2 (%s)" % pr.can_learn("sea_hand"), not pr.learn("sea_hand") and pr.can_learn("sea_hand") == "Needs Sailing 2")
 			while pr.mastery_level("sea") < 7:
-				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
+				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea"), "sea"))
 			check("Sailing 7: 6 Adventure points, nothing by itself", pr.pool("adventure") == 6 and not pr.owns("sea_hand"))
 			check("...Sea Hand, Gun Captain, Helmsman and Hard Over bought with 4 of them", ["sea_hand", "sea_gunner", "f_helm", "sea_turn"].all(func(k): return pr.buy(k)) and pr.pool("adventure") == 2 and not pr.owns("sea_storm"))
 			until = TK.wait_ticks(3)
@@ -95,7 +95,7 @@ func _process(_d: float) -> bool:
 			es.call_deferred("_start_sink")
 			until = TK.wait_ticks(10)
 		5:
-			check("a brig sunk close by: +60 Seamanship (%d)" % (sea_xp() - xp0), sea_xp() - xp0 == 60)
+			check("a brig sunk close by: +60 Seamanship, twice since 1.30 (%d)" % (sea_xp() - xp0), sea_xp() - xp0 == 120)
 			var d: Dictionary = pr.to_dict()
 			pr.from_dict({})
 			check("...forgotten on a blank load", not pr.owns("sea_hand"))

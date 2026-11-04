@@ -13,14 +13,14 @@
 			"text": [
 				"Odile sent you? Then you're the one who did for Grell. Huh. Thought you'd be taller.",
 				"The sloop. Aye, she could be yours. Hull's sound, rigging's new. But her keel's half rot, and her knees with it.",
-				"Two things. Seasoned timber first: there's deadfall in the old forest west of the ruins, ironwood the storms brought down years back. Split me three good lengths for her knees.",
+				"Two things. Timber first: I keep a grove of ironwood in the old forest, west of the ruins. Take the trail off the forest path where my sign stands. Three trees wear my blaze, a white band and a red rag. Fell those three, no others, and bring me the lengths for her knees.",
 				"Then chitin. Brood chitin, off the queen bug nesting in the cave at the forest's far side. Harder than iron, and it never rots. Bring me her shell and I'll lay you a keel the Leviathan couldn't bite through. Then she's yours."
 			],
 			"event": "story:see_tackett",
 			"next": "end"
 		},
 		"story_forest": {
-			"text": "Deadfall in the old forest, west of the ruins. Three good lengths of it. Mind the spitters in the big trees.",
+			"text": "My grove's off the forest path west of the ruins: follow my sign. The three with the white band and the red rag, and nothing else. Mind the spitters in the big trees.",
 			"next": "end"
 		},
 		"story_queen": {

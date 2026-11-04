@@ -1,7 +1,8 @@
 extends SceneTree
 ## The Scouring (1.27, StrongholdScouring; grace and countdown shortened here): the Commodore's fall brings the
 ## broadcast and the garrison stands down; then the shells fall (telegraphed, burning patches, our captain hurt); the
-## Admiral comes ashore, very tanky, and worn to 2/3 he leaves; the ship out past 500 m ends it.
+## Admiral comes ashore, very tanky, and worn to 2/3 he leaves; a captain out of the ring draws no shells (1.30); the
+## ship out of the ring (RING_R) ends it.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var w
@@ -50,9 +51,11 @@ func _process(_d: float) -> bool:
 			sc.grace = 1.0
 			sc.count = 1.0
 			sc.force_admiral = true
-			gm.world_flags["sh_seal_keep"] = true
+			gm.world_flags["sh_scouring"] = true
 			until = TK.wait_secs(0.5)
 		3:
+			check("ordered at Vane's last stand: the Scouring is ordered, not 'has fallen' (%s)" % [sc._said.keys()], sc._said.has("broadcast") and not sc._said.has("fallen"))
+			gm.world_flags["sh_seal_keep"] = true
 			check("the broadcast: the grace before it (%s)" % sc.state, sc.state == "grace")
 			check("...and the garrison stands down", isl.city.get_node("Garrison_ward").respawn_time > 1.0e8 and not isl.city.get_node("Officers").is_processing())
 			# our captain out in the ward
@@ -61,6 +64,7 @@ func _process(_d: float) -> bool:
 			hp0 = p.health_component.current_health
 			until = TK.wait_secs(9.0)
 		4:
+			check("'has fallen' once the Commodore is beaten", sc._said.has("fallen"))
 			check("the Scouring: shells falling (%d so far, %d burning)" % [sc._next, sc.fires.size()], sc.state == "barrage" and sc._next >= 5 and sc.fires.size() >= 1)
 			check("...our captain hurt by them (%.0f -> %.0f)" % [hp0, p.health_component.current_health], p.health_component.current_health < hp0)
 			var adm = isl.city.get_node_or_null("Admiral")
@@ -74,11 +78,23 @@ func _process(_d: float) -> bool:
 			if ship == null:
 				print("   (no ship on this stage: the escape check is skipped)")
 				return TK.done(fails)
+			# (1.30) our captain out of the ring (the ship still in it): no shell comes for them out there
 			var c: Vector3 = isl.city_global(load("res://scripts/island/stronghold_plan.gd").LAND_C, 0.0)
-			ship.place(c + Vector3(620, 0, 0), 0.0)
-			until = TK.wait_secs(1.0)
+			p.global_position = c + Vector3(-sc.RING_R - 60.0, 3.0, 0)
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
+			hp0 = p.health_component.current_health
+			until = TK.wait_secs(6.0)
 		6:
-			check("the ship out past 500 m: escaped, the Scouring over", gm.world_flags.has("sh_escaped") and sc.state == "escaped")
+			var me: Vector3 = p.global_position
+			check("a captain out of the ring: no shell aimed at them (%.0f -> %.0f hp)" % [hp0, p.health_component.current_health],
+				sc.state == "barrage" and p.health_component.current_health >= hp0 and sc._pending.all(func(e): return (e[0] as Vector3).distance_to(me) > 40.0))
+			var ship = get_first_node_in_group("ship")
+			var c: Vector3 = isl.city_global(load("res://scripts/island/stronghold_plan.gd").LAND_C, 0.0)
+			ship.place(c + Vector3(sc.RING_R + 20.0, 0, 0), 0.0)
+			until = TK.wait_secs(1.0)
+		7:
+			check("the ship out of the ring: escaped, the Scouring over", gm.world_flags.has("sh_escaped") and sc.state == "escaped")
 			return TK.done(fails)
 	step += 1
 	return false

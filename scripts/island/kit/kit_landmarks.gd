@@ -99,9 +99,16 @@ static func lookout_tower(h := 6.0, roof := "thatch") -> StaticBody3D:
 	# cross bracing on the sides
 	for side in range(4):
 		var b := Basis(Vector3.UP, side * PI * 0.5)
-		mb.add_box(wood, Transform3D(b * Basis(Vector3.BACK, atan2(W * 2.0, 4.5)), b * Vector3(0, 2.8, W)), Vector3(0.1, Vector2(W * 2.0, 4.5).length(), 0.1), 1.0)
+		var brace := Transform3D(b * Basis(Vector3.BACK, atan2(W * 2.0, 4.5)), b * Vector3(0, 2.8, W))
+		mb.add_box(wood, brace, Vector3(0.1, Vector2(W * 2.0, 4.5).length(), 0.1), 1.0)
+		# (not on the ladder's side: a climber would rub on it)
+		if side != 0 or H > 8.0:
+			box_col_xf(body, Vector3(0.12, Vector2(W * 2.0, 4.5).length(), 0.12), brace)
 		if H > 8.0:
-			mb.add_box(wood, Transform3D(b * Basis(Vector3.BACK, -atan2(W * 2.0, 4.5)), b * Vector3(0, H - 3.2, W)), Vector3(0.1, Vector2(W * 2.0, 4.5).length(), 0.1), 1.0)
+			var hi := Transform3D(b * Basis(Vector3.BACK, -atan2(W * 2.0, 4.5)), b * Vector3(0, H - 3.2, W))
+			mb.add_box(wood, hi, Vector3(0.1, Vector2(W * 2.0, 4.5).length(), 0.1), 1.0)
+			if side != 1:
+				box_col_xf(body, Vector3(0.12, Vector2(W * 2.0, 4.5).length(), 0.12), hi)
 	mb.add_box(planks, Transform3D(Basis(), Vector3(0, H, 0)), Vector3(W * 2 + 0.6, 0.18, W * 2 + 0.6), 0.6)
 	box_col(body, Vector3(W * 2 + 0.6, 0.2, W * 2 + 0.6), Vector3(0, H, 0))
 	# rail on three sides, the ladder side open above the rungs
@@ -119,7 +126,9 @@ static func lookout_tower(h := 6.0, roof := "thatch") -> StaticBody3D:
 		box_col(body, (b * Vector3(e * 2, 1.0, 0.1)).abs(), b * Vector3(0, H + 0.5, e))
 		mb.add_box(wood, Transform3D(b, top), Vector3(e * 2 + 0.1, 0.1, 0.14), 1.0)
 	# a little roof against the sun
+	var rm := mb.mark()
 	mb.add_pyramid_roof(PSXMat.lit(roof), Transform3D(Basis(), Vector3(0, H + 2.3, 0)), e * 2 + 0.5, e * 2 + 0.5, 1.1)
+	mb.hull_since(rm, body, "RoofCol")
 	for x in [-e, e]:
 		for z in [-e, e]:
 			mb.add_box(wood, Transform3D(Basis(), Vector3(x, H + 1.65, z)), Vector3(0.08, 1.3, 0.08), 1.0)
@@ -511,8 +520,9 @@ static func overgrow(ctx: KitContext, pl: Dictionary) -> void:
 		var key := [mesh, kind]
 		if not groups.has(key):
 			groups[key] = []
-		groups[key].append(Transform3D(Basis(Vector3.UP, yaw - node.rotation.y).scaled(Vector3.ONE * s * (0.75 if kind == "tree" else 1.0) / node.scale.x), at))
-		if kind == "tree":
+		var xf := Transform3D(Basis(Vector3.UP, yaw - node.rotation.y).scaled(Vector3.ONE * s * (0.75 if kind == "tree" else 1.0) / node.scale.x), at)
+		groups[key].append(xf)
+		if kind == "tree" and not IslandTheme.trunk_cols(trees, mesh, xf):
 			cyl_col(trees, 0.35 * s, 3.0, at + Vector3(0, 1.5, 0))
 	for key in groups.keys():
 		var xs: Array = groups[key]
@@ -702,11 +712,15 @@ static func rock_mats(ctx: KitContext) -> Array:
 
 
 ## Boulders: a mossy lump each (into `mb`), local positions given.
-static func boulders(mb: MeshBuilder, mats: Array, at: Array, rng: RandomNumberGenerator, s0 := 0.6, s1 := 1.6) -> void:
+static func boulders(mb: MeshBuilder, mats: Array, at: Array, rng: RandomNumberGenerator, s0 := 0.6, s1 := 1.6, body: Node = null) -> void:
 	for p in at:
 		var s := rng.randf_range(s0, s1)
+		var m := mb.mark()
 		mb.add_blob(mats[1] if rng.randf() < 0.5 else mats[0], Transform3D(Basis(Vector3.UP, rng.randf() * TAU), p + Vector3(0, s * 0.2, 0)),
 			Vector3(s, s * rng.randf_range(0.55, 0.8), s * rng.randf_range(0.8, 1.1)), rng, 0.25, 3, 6, 0.4, Color.WHITE, -0.5)
+		# (1.30) each its own shape, when the caller has no mesh shape over them
+		if body:
+			mb.hull_since(m, body, "Boulder")
 
 
 ## A vine hanging from `a`, `length` m, swaying out a little (into `mb`).
@@ -878,7 +892,7 @@ static func _waterfall_dressing(ctx: KitContext, pl: Dictionary, items := []) ->
 			continue
 		var q := Vector3(cos(a), 0, sin(a)) * (POOL_R + rng.randf_range(0.2, 1.4))
 		at.append(Vector3(q.x, gy(ctx, pl, q.x, q.z) - 0.2, q.z))
-	boulders(mb, mats, at, rng, 0.5, 1.1)
+	boulders(mb, mats, at, rng, 0.5, 1.1, ledge)
 	var vine_m := PSXMat.lit("leaves", Color(0.55, 0.75, 0.4))
 	for k in range(7):
 		var x := rng.randf_range(1.7, 3.6) * (1.0 if k % 2 == 0 else -1.0)

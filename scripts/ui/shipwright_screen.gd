@@ -13,6 +13,7 @@ var _buy: Dictionary = {}
 var _pips: Dictionary = {}
 var _cycles: Array = []
 var _flag: TextureRect
+var _scroll: ScrollContainer
 var _refits: VBoxContainer
 var _paint: VBoxContainer
 var _tabs: Dictionary = {}
@@ -65,9 +66,15 @@ func _init(menu: Node) -> void:
 	_gold = UIStyle.label("", 8, UIStyle.ACCENT)
 	_gold.add_theme_font_override("font", SILK)
 	vb.add_child(_gold)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.follow_focus = true
+	_scroll.custom_minimum_size = Vector2(0, 250)
+	vb.add_child(_scroll)
 	_refits = VBoxContainer.new()
 	_refits.add_theme_constant_override("separation", 0)
-	vb.add_child(_refits)
+	_refits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_refits)
 	_build_tree()
 	_paint = VBoxContainer.new()
 	_paint.add_theme_constant_override("separation", 2)
@@ -182,7 +189,7 @@ func _build_paint() -> void:
 
 func show_tab(id: String) -> void:
 	tab = id
-	_refits.visible = id == "refits"
+	_scroll.visible = id == "refits"
 	_paint.visible = id == "paint"
 	for k in _tabs.keys():
 		(_tabs[k] as Button).modulate = Color.WHITE if k == id else Color(1, 1, 1, 0.6)
@@ -242,8 +249,10 @@ func end_preview() -> void:
 
 func _pose_preview(ship: Node3D) -> void:
 	var xf := ship.global_transform
-	_cam.global_position = xf * Vector3(sin(_orbit) * 27.0, 9.5, cos(_orbit) * 27.0)
-	_cam.look_at(xf * Vector3(0, 4.5, 0), Vector3.UP)
+	# (further off for the bigger classes: their layout's length over the sloop's)
+	var k: float = (ship as Ship).layout.kz
+	_cam.global_position = xf * Vector3(sin(_orbit) * 27.0 * k, 9.5 * k, cos(_orbit) * 27.0 * k)
+	_cam.look_at(xf * Vector3(0, 4.5 * k, 0), Vector3.UP)
 
 
 func _process(delta: float) -> void:
@@ -281,6 +290,8 @@ func _refresh() -> void:
 			b.disabled = false
 			b.modulate = Color.WHITE if ShipLines.short_of(inv, entry) == "" else Color(1, 1, 1, 0.55)
 		(_pips[id] as Control).queue_redraw()
+	# (1.30: the brig's and galleon's rooms don't grow, so no Quarters line on them)
+	(_rows["quarters"] as Control).visible = (only.is_empty() or only.has("quarters")) and not HullLayout.for_kit(kit).rooms
 	for c in _cycles:
 		var names: Array = c[2]
 		var v: Variant = names[int(kit[c[0]])]

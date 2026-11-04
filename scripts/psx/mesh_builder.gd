@@ -56,6 +56,57 @@ func surface_count() -> int:
 	return _order.filter(func(m): return not (_surfaces[m]["v"] as PackedVector3Array).is_empty()).size()
 
 
+## Where every surface's vertices stand now: hull_since(mark) is a collider over what was added after it.
+func mark() -> Dictionary:
+	var m := {}
+	for mat in _order:
+		m[mat] = (_surfaces[mat]["v"] as PackedVector3Array).size()
+	return m
+
+
+## The vertices added since `m` (and before mark `to`, if given), each once (to 2 cm).
+func points_since(m: Dictionary, to := {}) -> PackedVector3Array:
+	var seen := {}
+	var out := PackedVector3Array()
+	for mat in _order:
+		var v: PackedVector3Array = _surfaces[mat]["v"]
+		for i in range(int(m.get(mat, 0)), int(to.get(mat, v.size())) if not to.is_empty() else v.size()):
+			var k := Vector3i((v[i] * 50.0).round())
+			if not seen.has(k):
+				seen[k] = true
+				out.append(v[i])
+	return out
+
+
+## (1.30) A mesh collider of the very triangles built since `m`, both sides solid: a shape a hull would bridge (a roof
+## flared up at its eaves). Costlier than a hull: for a few big pieces only.
+func faces_since(m: Dictionary, body: Node, col_name := "Faces") -> CollisionShape3D:
+	var faces := PackedVector3Array()
+	for mat in _order:
+		var v: PackedVector3Array = _surfaces[mat]["v"]
+		faces.append_array(v.slice(int(m.get(mat, 0))))
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(faces)
+	shape.backface_collision = true
+	var cs := CollisionShape3D.new()
+	cs.name = col_name
+	cs.shape = shape
+	body.add_child(cs)
+	return cs
+
+
+## (1.30) A convex collider round what was built since `m` (a roof, a canopy, a round tower): one shape where boxes
+## won't fit. Added to `body` (a CollisionObject3D), named `col_name`.
+func hull_since(m: Dictionary, body: Node, col_name := "Hull") -> CollisionShape3D:
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = points_since(m)
+	var cs := CollisionShape3D.new()
+	cs.name = col_name
+	cs.shape = shape
+	body.add_child(cs)
+	return cs
+
+
 ## Core primitive. `want` is the desired facing direction (used for winding).
 func add_tri(mat: Material, a: Vector3, b: Vector3, c: Vector3,
 		na: Vector3, nb: Vector3, nc: Vector3,
@@ -1049,7 +1100,26 @@ func commit() -> ArrayMesh:
 				snap._order.append(mat)
 				snap._surfaces[mat] = (_surfaces[mat] as Dictionary).duplicate()
 		_kept[mesh] = snap
+	if trace:
+		mesh.set_meta("made_by", made_by())
 	return mesh
+
+
+## While on (tools/dev/collision_audit.gd), each committed mesh keeps the two builder functions that made it as its
+## "made_by" meta.
+static var trace := false
+
+
+static func made_by() -> String:
+	var out := PackedStringArray()
+	for f in get_stack():
+		var src: String = str(f["source"]).get_file().get_basename()
+		if src in ["mesh_builder", "draw_lod"]:
+			continue
+		out.append("%s.%s" % [src, f["function"]])
+		if out.size() == 2:
+			break
+	return " < ".join(out)
 
 
 ## While on (a chain island's build steps, GenIsland.run_step), what each mesh committed on the main thread was built

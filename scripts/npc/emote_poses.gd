@@ -165,6 +165,15 @@ static func pose(h, n: String, u: float) -> Array:
 				"torso": Vector3(-0.3, 0, 0), "head": Vector3(0.2, 0, 0), "hips": Vector3.ZERO,
 				"leg_l": Vector3(0.5, 0, -0.08), "leg_r": Vector3(-0.35, 0, 0.08), "shin_l": Vector3(-0.6, 0, 0), "shin_r": Vector3(-0.2, 0, 0), "_lift": Vector3(0, -0.08, 0)}
 			return [h._keys(u, [[0.0, {}], [0.25, wind], [0.5, shove, "out"], [0.8, shove], [1.0, {}]]), "full", Vector3.ZERO]
+		"gesture_chop":
+			# an axe in both hands: wound up over the right shoulder, driven across into the trunk, twice
+			var up := {"arm_r": Vector3(2.5, 0, 0.45), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(2.3, 0, 0.5), "fore_l": Vector3(1.1, 0, 0),
+				"torso": Vector3(0.12, -0.45, 0), "head": Vector3(0.1, 0.3, 0), "hips": Vector3(0, -0.15, 0),
+				"leg_l": Vector3(0.3, 0, -0.12), "leg_r": Vector3(-0.15, 0, 0.12), "shin_l": Vector3(-0.3, 0, 0), "shin_r": Vector3(-0.2, 0, 0), "_lift": Vector3.ZERO}
+			var bite := {"arm_r": Vector3(1.2, 0, -0.2), "fore_r": Vector3(0.25, 0, 0), "arm_l": Vector3(1.1, 0, 0.1), "fore_l": Vector3(0.35, 0, 0),
+				"torso": Vector3(-0.35, 0.4, 0), "head": Vector3(0.25, -0.2, 0), "hips": Vector3(0, 0.15, 0),
+				"leg_l": Vector3(0.45, 0, -0.12), "leg_r": Vector3(-0.25, 0, 0.12), "shin_l": Vector3(-0.65, 0, 0), "shin_r": Vector3(-0.3, 0, 0), "_lift": Vector3(0, -0.12, 0)}
+			return [h._keys(u, [[0.0, {}], [0.16, up, "out"], [0.3, bite, "in"], [0.42, bite], [0.56, up, "out"], [0.68, bite, "in"], [0.84, bite], [1.0, {}]]), "full", Vector3.ZERO]
 		"gesture_reach":
 			var rc := {"arm_r": Vector3(1.75, 0, 0.1), "fore_r": Vector3(0.25, 0, 0), "torso": Vector3(-0.15, -0.1, 0), "head": Vector3(0.1, 0, 0)}
 			return [h._keys(u, [[0.0, {}], [0.35, rc, "out"], [0.7, rc], [1.0, {}]]), "upper", Vector3.ZERO]

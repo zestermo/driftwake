@@ -45,8 +45,8 @@ func _process(_d: float) -> bool:
 			pr.add_mastery("katana", pr.mastery_to_next(2))
 			# (mastery 3 earns the katana 6 points: 2 of them left to spend)
 			pr.gift("katana", -4)
-			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
-			root.size = Vector2i(1280, 720)
+			# (the runner's window is tiny: the menu lays out for a 960x540 canvas)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			gm.open("skills")

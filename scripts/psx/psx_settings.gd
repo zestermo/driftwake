@@ -6,12 +6,11 @@ extends Node
 ## Values live in the Settings autoload (video section). Hotkeys:
 ## F2 toggles pixelation, F3 toggles dithering, F11 / Alt+Enter fullscreen.
 
-## The UI's canvas: menus and the HUD are laid out on this many pixels and
-## drawn at the window's own resolution (the pixel fonts stay hard-edged, just
-## finer); the 3D's pixel grid is GRID's, laid on by the post pass.
-const UI_SIZE := Vector2i(800, 450)
+## The UI's canvas (2x at 1080p, 4x at 4K: whole screen pixels): menus and the HUD are laid out on at
+## least this many pixels (PixelCanvas); the 3D's pixel grid is GRID's, laid on by the post pass.
+const UI_SIZE := Vector2i(960, 540)
 
-## The one pixel grid (at 800 UI pixels across; coarser grids made distant things too hard to see).
+## The one pixel grid (at 960 UI pixels across; coarser grids made distant things too hard to see).
 const GRID := Vector2i(960, 540)
 
 var _post_layer: CanvasLayer

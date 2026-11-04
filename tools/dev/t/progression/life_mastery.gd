@@ -28,7 +28,7 @@ func total(tree: String) -> int:
 	var m: Dictionary = pr.mastery_of(tree)
 	var n := int(m["xp"])
 	for lv in range(1, int(m["lv"])):
-		n += pr.mastery_to_next(lv)
+		n += pr.mastery_to_next(lv, tree)
 	return n
 
 
@@ -57,11 +57,11 @@ func _process(_d: float) -> bool:
 			var swum: float = p.global_position.x - x0
 			print("   swam %.1f m (%s): Swimming xp %d" % [swum, p.current_state_name(), total("swim")])
 			check("still swimming", p.current_state_name() == "Swim")
-			check("swimming builds Swimming, a point every %.0f m" % pr.SWIM_M, total("swim") > 0 and absf(total("swim") - swum / pr.SWIM_M) <= 2.0)
+			check("swimming builds Swimming, two points every %.0f m (1.30: twice the xp)" % pr.SWIM_M, total("swim") > 0 and absf(total("swim") - 2.0 * swum / pr.SWIM_M) <= 4.0)
 			check("...and nothing for the puppet's own tree", int(stage.crew[0].progression.mastery_of("swim")["xp"]) == 0)
 			check("Strong Strokes needs Swimming 2 (%s)" % pr.can_learn("sw_strokes"), not pr.learn("sw_strokes") and pr.can_learn("sw_strokes") == "Needs Swimming 2")
 			var sp0: float = pr.stat("swim_pct")
-			pr.add_life("swim", pr.mastery_to_next(1) - int(pr.mastery_of("swim")["xp"]))
+			pr.add_mastery("swim", pr.mastery_to_next(1, "swim") - int(pr.mastery_of("swim")["xp"]))
 			check("Swimming 2: an Adventure point, nothing by itself", pr.mastery_level("swim") == 2 and not pr.owns("sw_strokes") and pr.pool("adventure") == 1)
 			check("...Strong Strokes bought with it: swimming 10% faster", pr.buy("sw_strokes") and is_equal_approx(pr.stat("swim_pct") - sp0, 0.1) and pr.pool("adventure") == 0)
 			pr.add_life("cook", 60)

@@ -46,7 +46,7 @@ func _process(_d: float) -> bool:
 			pr.mastery_of("katana")["lv"] = 4
 			pr.add_mastery("katana", pr.mastery_to_next(4))
 			pr.buy("k_draw")
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			gm.open("skills")

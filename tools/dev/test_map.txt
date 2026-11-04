@@ -12,6 +12,20 @@ tools/dev/test_kit.gd                   t
 tools/dev/t/player/*                    t/player
 tools/dev/t/combat/*                    t/combat
 tools/dev/t/beast/*                     t/beast
+tools/dev/t/boss/*                      t/boss
+scripts/enemies/boss_reset.gd           t/boss
+scripts/enemies/beasts/jungle_beast.gd  t/boss
+scripts/enemies/pirate_boss.gd          t/boss
+scripts/player_states/stagger_state.gd  t/boss t/combat/wall_slide
+scripts/combat/splat.gd                 t/combat/splat_wall
+scripts/game/splat_fx.gd                t/combat/splat_wall
+scripts/combat/ragdoll.gd               t/combat/splat_wall
+scripts/enemies/pirate_grunt.gd         t/combat/splat_wall
+scripts/player_states/boss_leap_state.gd t/boss/captain_phase_reset t/stronghold
+scripts/enemies/brood_queen.gd          t/boss/brood_phase_reset
+scripts/enemies/ghost_captain.gd        t/boss/captain_phase_reset t/island/fog_isle
+scripts/enemies/jungle_ape.gd           t/beast/ape_phases
+scripts/island/stronghold_boss.gd       t/boss/captain_phase_reset t/stronghold
 scripts/enemies/jungle_ape.gd           t/beast
 scripts/npc/ape_poses.gd                t/beast
 scripts/npc/ape_builder.gd              t/beast
@@ -50,6 +64,9 @@ scripts/progression/weapon_plus.gd      t/weapons t/crew/plus_duets t/progressio
 tools/dev/t/ship/*                      t/ship
 scripts/ship/enemy_ship.gd              t/ship/admiralty_patrol t/ship/marine_chaser t/ship/hunt_holds t/sea/big_ship
 scripts/enemies/pirate_grunt.gd         t/combat/grunt_roles t/combat/grunt_pressed t/combat/boss_no_heal_return
+scripts/enemies/personality.gd          t/combat/personality_roll t/combat/duelist_parry t/combat/bulwark_guard t/combat/opportunist_waits t/combat/berserker_combo t/combat/grunt_defend
+scripts/npc/foe_poses.gd                t/combat/personality_roll t/combat/duelist_parry t/combat/jump_attack t/combat/rifle_moves
+scripts/ai/captain_brain.gd             t/combat/rival_personality t/combat/rival_duel
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
 scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters t/combat/admiralty_hunter t/combat/arrest
@@ -68,10 +85,12 @@ tools/dev/t/story/*                     t/story
 scripts/game/arena_bout.gd              t/story t/weapons/black_leg_master
 data/dialogue/*                         t/story storytest
 scripts/game/story_rack.gd              t/story/rack_keeps_one
-scripts/game/story_deadfall.gd          t/story/island_steps
+scripts/game/story_grove.gd             t/story/island_steps t/story/ironwood_grove
 scripts/props/shrine_terrace.gd         t/story/tomo_terrace t/island/brinehollow_outskirts
-scripts/island/starter_island.gd        t/story/tomo_terrace t/story/island_steps
-scripts/island/brinehollow_cast.gd      t/story/tomo_terrace
+scripts/island/starter_island.gd        t/story/tomo_terrace t/story/island_steps t/story/ironwood_grove t/island/brinehollow_rooms t/island/brinehollow_lighthouse
+scripts/island/brinehollow_cast.gd      t/story/tomo_terrace t/island/brinehollow_rooms t/island/brinehollow_lighthouse
+scripts/island/brinehollow_rooms.gd     t/island/brinehollow_rooms t/island/brinehollow_lighthouse
+scripts/island/brinehollow_lighthouse.gd t/island/brinehollow_lighthouse
 scripts/quests/journal.gd               t/quests
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene t/ui/intro
@@ -140,7 +159,7 @@ scripts/ui/duel_hud.gd                  t/coop
 
 # --- player ---
 scenes/player/*                         t/player t/combat t/items swimtest
-scenes/player/camera_rig.gd             t/player t/combat
+scenes/player/camera_rig.gd             t/player t/combat t/ship/helm_camera
 scripts/player_states/*                 t/player t/combat
 scripts/player_states/player_state.gd   t/player t/items balancetest airtest
 scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
@@ -264,6 +283,7 @@ scripts/interaction/ladder.gd           swimtest riggingtest
 scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
 scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest isletest netchain
 scripts/island/redtide_fort.gd          r8test perftest
+scripts/island/redtide_fort.gd          t/world/redtide_way_in
 scripts/world/chain.gd                  chaintest isletest legtest landmarktest
 scripts/island/gen_island.gd            isletest apetest chaintest netchain
 scripts/island/coast.gd                 isletest swimtest shiptest storytest harbourtest harbourkindstest
@@ -561,6 +581,10 @@ scripts/player_states/skimmer_state.gd  t/gadgets/skimmer_ride
 tools/dev/skimmershot.gd                t/gadgets/skimmer_ride
 tools/dev/bagshot.gd                    t/gadgets/bag_slots
 scripts/island/themes/volcanic_tinkerer.gd t/gadgets/bag_buy
+scripts/combat/stealth.gd               t/gadgets/smoke_sight t/gadgets/flash_stun
+scripts/island/harbour_vendor.gd        t/gadgets/packs
+scripts/game/shops.gd                   t/gadgets/packs
+scripts/world/grapple_points.gd         t/gadgets/grapple_ledge t/gadgets/grapple
 # --- sailing downtime: the lashed helm, activities, Blender clips (v1.18 lane F) ---
 tools/dev/t/downtime/*                  t/downtime
 scripts/game/downtime.gd                t/downtime
@@ -574,7 +598,7 @@ assets/clips/*                          t/downtime
 art/clips/*                             t/downtime
 tools/blender/*                         t/downtime
 scripts/ship/lashed_helm.gd             t/downtime t/ship
-scripts/player_states/helm_state.gd     t/downtime
+scripts/player_states/helm_state.gd     t/downtime t/ship/helm_camera t/input/ship_look
 # --- the royal capital (2026-10-20) ---
 tools/dev/t/capital/*                   t/capital
 scripts/island/capital_*                t/capital
@@ -618,6 +642,24 @@ scripts/enemies/drowned.gd              t/combat/undead t/island/fog_isle
 scripts/enemies/ghost.gd                t/combat/undead t/island/fog_isle
 scripts/enemies/ghost_captain.gd        t/island/fog_isle
 scripts/world/chain.gd                  t/island/fog_isle
+# --- the 1.30 creatures: fog graveyards and zombies, the fog and forest creatures ---
+tools/dev/t/fauna/*                     t/fauna
+scripts/island/themes/fog_places.gd     t/island/fog_graveyard t/island/fog_isle
+scripts/enemies/fauna/zombie.gd         t/fauna/zombie t/fauna/zombie_rise t/island/fog_graveyard
+scripts/island/fauna_spawner.gd         t/island/fog_graveyard faunatest
+scripts/player_states/grabbed_state.gd  t/fauna/zombie_rise
+scripts/enemies/fauna/pale_stalker.gd   t/fauna/pale_stalker
+scripts/enemies/fauna/bog_hound.gd      t/fauna/bog_hound
+scripts/enemies/fauna/grave_moth.gd     t/fauna/grave_moth
+scripts/enemies/fauna/wolf.gd           t/fauna/bog_hound
+scripts/enemies/fauna/flyer.gd          t/fauna/grave_moth
+scripts/island/themes/fog_theme.gd      t/fauna
+scripts/enemies/fauna/shroom_crawler.gd t/fauna/shroom_crawler
+scripts/enemies/fauna/thorn_boar.gd     t/fauna/thorn_boar
+scripts/enemies/fauna/owl_beast.gd      t/fauna/owl_beast
+scripts/enemies/fauna/boar.gd           t/fauna/thorn_boar
+scripts/island/themes/forest_theme.gd   t/fauna t/island/forest_fauna
+scripts/enemies/fauna/creature.gd       t/fauna t/combat/creature_tell
 scripts/world/weather.gd                t/swim/dive_shafts
 shaders/world/dive_shafts.gdshader      t/swim/dive_shafts
 shaders/psx/psx_sky.gdshader            r10test t/world/theme_weather
@@ -682,6 +724,9 @@ scripts/loot/gear_icons.gd              t/gear/skins
 scripts/npc/body_builder.gd             t/gear/skins cliptest
 scripts/ship/admiralty.gd               t/ship/admiralty_hunt t/ship/hunt_holds t/ship/admiralty_ring
 scripts/ai/rival_encounter.gd           t/combat/rival_walk_in
+scripts/ai/rival_ship.gd                t/ship/rival_ship_arrival t/ship/rival_ship_nogo
+scripts/ai/rival_arrival.gd             t/ship/rival_ship_arrival t/ship/rival_ship_nogo
+scripts/ai/rival_watch.gd               t/ship/rival_ship_nogo t/combat/rival_placement
 scripts/ai/captain_brain.gd             t/combat/rival_walk_in
 scripts/combat/poise.gd                 t/combat/player_poise t/combat/poise_knockdown
 scenes/player/player.gd                 t/combat/player_poise
@@ -699,6 +744,23 @@ scripts/island/island_life.gd           lifetest
 scripts/island/stronghold_plan.gd       t/stronghold
 scripts/island/stronghold_shell.gd      t/stronghold
 scripts/island/stronghold_island.gd     t/stronghold
+scripts/island/stronghold_dress.gd      t/stronghold
+scripts/island/stronghold_boss.gd       t/stronghold
+scripts/island/stronghold_scouring.gd   t/stronghold/scouring t/stronghold/scouring_sky t/stronghold/scouring_ring
+scripts/island/scouring_fx.gd           t/stronghold/scouring t/stronghold/scouring_sky t/stronghold/scouring_ring
+shaders/psx/scouring_glow.gdshader      t/stronghold/scouring_sky
+scripts/island/stronghold_garrison.gd   t/stronghold
+scripts/island/stronghold_alarm.gd      t/stronghold/alarm t/stronghold/garrison
+scripts/island/stronghold_reinforce.gd  t/stronghold/alarm
+scripts/island/stronghold_bell.gd       t/stronghold
+scripts/island/stronghold_acts.gd       t/stronghold/gate t/stronghold/set_pieces t/stronghold/crew_split t/stronghold/vane
+scripts/island/stronghold_encounter.gd  t/stronghold
+scripts/island/stronghold_scouring.gd   t/stronghold
+scripts/enemies/fodder_marine.gd        t/stronghold/fodder_crowd t/stronghold/garrison t/stronghold/alarm
+shaders/psx/scouring_fire.gdshader      t/stronghold/scouring_ring
+scripts/quests/line_quests.gd           t/stronghold/scouring_ring t/stronghold/district_hint
+scripts/powers/fruit_pool.gd            t/stronghold/vault
+scripts/loot/item_db.gd                 t/stronghold/vault
 scripts/island/city_undercity.gd        t/canal/undercity t/capital/catacombs
 scripts/island/capital_crowd.gd         t/capital/night
 scripts/island/themes/volcanic_land.gd     t/island/volcanic_land t/island/volcanic_eruptions
@@ -749,9 +811,33 @@ scripts/npc/staff_moves.gd              t/weapons/staff_tree t/weapons/staff_mov
 tools/texture_gen/gen_staff_icons.py    t/weapons/staff_tree
 scripts/npc/sickle_moves.gd             t/weapons/sickle_combo
 scripts/npc/sickle_moves.gd             t/weapons/sickle_tree t/weapons/sickle_moves t/weapons/plus_sickle
+scripts/npc/sickle_moves.gd             t/weapons/sickle_heavy
 tools/texture_gen/gen_sickle_icons.py   t/weapons/sickle_tree
 scripts/island/themes/atoll_reef.gd     t/island/atoll_reef
+scripts/island/themes/atoll_seabed.gd   t/island/atoll_seabed
+scripts/island/themes/atoll_deeplife.gd t/island/atoll_harvest t/swim/atoll_shark
+scripts/island/themes/atoll_reef.gd     t/island/atoll_harvest
+scripts/island/themes/atoll_town.gd     t/island/atoll_harvest
+scripts/island/themes/atoll_water.gd    t/island/atoll_seabed
+scripts/island/themes/atoll_basin.gd    t/island/atoll_basin t/swim/atoll_vent
+scripts/island/themes/atoll_land.gd     t/island/atoll_basin t/island/atoll_seabed
+scripts/island/themes/atoll_data.gd     t/island/atoll_basin
+assets/textures/psx/atoll_seafloor.png  t/island/atoll_seabed
 scripts/npc/body_builder.gd             t/gear/coat_drape
 scripts/loot/equipment_component.gd     t/gear/coat_drape
 scripts/ui/inventory_screen.gd          t/gear/coat_drape
 scripts/gadgets/gadget_belt.gd          t/gear/backpack
+scripts/game/unstuck.gd                 t/player/unstuck_menu t/player/unstuck_auto t/ship/unstuck_deck
+scripts/ui/game_menu.gd                 t/player/unstuck_menu
+scripts/world/ground_net.gd             t/player/unstuck_auto
+scripts/island/capital_shell.gd         t/capital/solid_ground
+scripts/island/capital_models.gd        t/capital/solid_ground
+scripts/combat/splat.gd                 t/combat/splat_captain
+scripts/player_states/downed_state.gd   t/combat/splat_captain
+scripts/island/island_life.gd           t/island/crowd_size t/island/vendors_stay
+scripts/island/island_village.gd        t/island/vendors_stay t/quests/landing_goals t/quests/bounty_no_take
+scripts/quests/island_record.gd         t/quests/island_tracker
+scripts/ui/notice_board_screen.gd       t/quests/landing_goals t/quests/island_tracker
+scripts/quests/chain_goal.gd            t/quests/landing_goals t/quests/chain_goal
+scripts/island/kit/kit_quests.gd        t/quests/bounty_no_take t/quests/landing_goals
+scripts/ui/game_menu.gd                 t/quests/landing_goals

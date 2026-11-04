@@ -2,6 +2,8 @@ extends SceneTree
 ## An Admiralty cutter running the crew down (1.26, docs/v1_26_plan.md "Marine chase"): she carries a bow chaser and
 ## fires it dead ahead on the way in, stays on the crew's wake instead of turning broadside while the crew makes way
 ## (turning bled her speed and the chase), and crowds on sail to the crew's own speed and a little more for a while.
+## 1.30: a patrol on the wake of an upgraded sloop (sails 5, copper 2) from 330 m reaches broadside range in 150 s
+## (the chase clock starts at the hunt, the edge grows with the gap).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var ship
@@ -14,6 +16,7 @@ var d0 := 0.0
 var turned_far := false
 var faster := 0
 var samples := 0
+var secs := 0
 
 
 func _initialize() -> void:
@@ -78,6 +81,52 @@ func _process(_d: float) -> bool:
 			es._chase_t = es.CHASE_SECS + 1.0
 			var own: float = es._max_speed()
 			check("...and after the spurt, only her own canvas (%.1f)" % own, own <= spurt and (own < spurt - 0.05 or own >= ship.speed + es.CHASE_EDGE - 0.05))
+			# (1.30) an upgraded sloop (sails 5, copper 2) and a patrol coming up her wake from SPAWN_R
+			es.queue_free()
+			# (her canvas mended and her holes patched after the first chase's chain shot)
+			for t in ship.torn.duplicate():
+				ship.do_work("mend", int(t[0]), 0.0)
+			for b in ship.breaches.duplicate():
+				ship.do_work("patch", int(b[0]), 0.0)
+			ship.flood = 0.0
+			var k: Dictionary = ship.kit.duplicate()
+			k["sails"] = 5
+			k["copper"] = 2
+			ship.apply_kit(k)
+			# (a beam wind for her course: the sloop at her best, ~13 m/s against the cutter's own 13.5)
+			var wx = root.get_node("Weather")
+			for o in range(0, 20000, 10):
+				wx.world_offset = float(o)
+				if absf(wx.wind_dir().angle()) < 0.1:
+					break
+			until = TK.wait_secs(4.0)
+		4:
+			# (made once her crew's bodies are built on a worker: a moment later)
+			adm.send_patrol(ship, 1)
+			es = null
+			until = TK.wait_secs(0.5)
+		5:
+			for c in adm.get_children():
+				if c.has_method("pursuing") and not c.is_queued_for_deletion() and c.role == "patrol":
+					es = c
+			secs += 1
+			if es == null and secs < 60:
+				until = TK.wait_secs(0.5)
+				return false
+			es.set_meta("no_sleep", true)
+			check("a patrol starts on her wake, ~330 m off (%s, %.0f m)" % [es.S.keys()[es.state], es.global_position.distance_to(ship.global_position)], es.state == es.S.TRACK)
+			secs = 0
+			until = TK.wait_secs(1.0)
+		6:
+			secs += 1
+			var d: float = es.global_position.distance_to(ship.global_position)
+			var far_r: float = es.spec["range"][1]
+			if secs % 10 == 0:
+				print("   %d s: crew %.1f m/s, cutter %.1f m/s, %.0f m, %s, chase %.0f s" % [secs, ship.speed, es.speed, d, es.S.keys()[es.state], es._chase_t])
+			if d > far_r and secs < 150 and es.pursuing():
+				until = TK.wait_secs(1.0)
+				return false
+			check("from 330 m astern she reaches broadside range of an upgraded sloop within 150 s (%d s, %.0f m, crew %.1f m/s)" % [secs, d, ship.speed], d <= far_r and secs < 150)
 			return TK.done(fails)
 	step += 1
 	return false

@@ -33,7 +33,7 @@ const DEFEND_SKILL := 0.85
 const DEFEND_WEAPONS := ["cutlass", "katana", "spear", "greatsword", "boarding_axe", "dagger", "warhammer"]
 ## A bout ends when a fighter falls under this share of their health.
 const END_AT := 0.1
-## The champion's prize: the trophy weapon, and (only once DevilFruits.IN_WORLD) this chance at a Driftfruit too.
+## The champion's prize: the trophy weapon, and (only once DevilFruits.WIDE_POOL) this chance at a Driftfruit too.
 const TROPHY := "champion_sabre"
 const FRUIT_CHANCE := 0.25
 ## Where the fighters start on the sand, from its middle (m) and how long the rival stays after.
@@ -379,7 +379,7 @@ static func result(me: Player, key: String, bout_kind: String, at_rank: int, won
 		me.get_tree().call_group("hud", "show_banner", "Champion of the Arena!", "%d gold, the Champion's Sabre, and the crowd on its feet." % purse(bout_kind, at_rank), true)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = roll
-		if DevilFruits.IN_WORLD and rng.randf() < FRUIT_CHANCE:
+		if DevilFruits.WIDE_POOL and rng.randf() < FRUIT_CHANCE:
 			var ids: Array = DevilFruits.FRUITS.keys()
 			var fruit := ItemDB.get_item(str(DevilFruits.FRUITS[ids[rng.randi() % ids.size()]]["item"]))
 			if fruit:

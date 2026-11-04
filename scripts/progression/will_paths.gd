@@ -16,11 +16,14 @@ extends RefCounted
 ## (TIER_AT); the first path is free to pick, a second opens at SECOND_AT Will spent. A passive (PASSIVE_COST) needs the
 ## path's first ability. The nodes themselves are SkillTrees' (the Captain tree's Will branch, pool "will").
 
-## Will points for a big fight (Net.bounty's kinds and the outposts'): a boss, villain, hunter or Leviathan 2; a rival
-## captain, officer, sergeant or miniboss 1.
-const SOURCES := {"boss": 2, "villain": 2, "hunter": 2, "leviathan": 2, "rival": 1, "officer": 1, "sergeant": 1, "miniboss": 1}
-## Meditation (Downtime "meditate"): a point for every 3 game days spent meditating (game seconds).
-const MEDITATE_SECS := 3.0 * 1440.0
+## Edy points for a big fight (Net.bounty's kinds; 1.30, docs/v1_30_previews.md section 1: fewer, bigger moments): a
+## story villain or a Leviathan 2 (Morrow: his boss's 1 and RedtideFort's 1); an island or beast boss, each stronghold
+## boss, a hunter or a rival captain 1; officers, sergeants and minibosses none (bounty and gold only).
+const SOURCES := {"boss": 1, "villain": 2, "leviathan": 2, "hunter": 1, "rival": 1, "commodore": 1, "stronghold_officer": 1}
+## What each Will of a save before 1.23 comes back as (format < 8).
+const OLD_WILL_PTS := 2
+## Meditation (Downtime "meditate"): a point for every 6 game days spent meditating (game seconds).
+const MEDITATE_SECS := 6.0 * 1440.0
 const PATHS := ["iron", "sense", "conq", "tide", "tempo", "fury", "bond"]
 const PATH_NAMES := {"iron": "Iron Will", "sense": "Sense", "conq": "Captain's Will", "tide": "Tide", "tempo": "Tempo", "fury": "Fury", "bond": "Bond"}
 ## The Will page's two sets of columns (A/D or a click flips them).
@@ -108,7 +111,7 @@ const PASSIVES := {
 	"h_crew": ["bond", "Crew's Strength", {"crew_strength": 0.04}, "Passive (a slot). +4% damage for every crewmate within 20 m (alone: your ship)."],
 	"h_blood": ["fury", "Thick Blood", {"thick_blood": 0.5}, "Passive (a slot). Bleeding, burning and poison hurt you half as much."],
 }
-## The Will milestones of saves before 1.23 (format < 8): each comes back as SOURCES["boss"] Will points.
+## The Will milestones of saves before 1.23 (format < 8): each comes back as OLD_WILL_PTS Will points.
 const OLD := ["h_arm", "h_coat", "h_obs", "h_fore", "h_conq"]
 
 

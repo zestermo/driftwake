@@ -25,6 +25,12 @@ var _combat_blend: float = 0.0
 ## Camera shoulder offset and max distance while the weapon is drawn.
 @export var combat_shoulder: float = 0.55
 @export var combat_max_zoom: float = 3.8
+## (1.30) The stance's own distance, set by the scroll wheel while the weapon is out (combat_max_zoom to start).
+var combat_zoom: float = 3.8
+const COMBAT_ZOOM_MAX := 8.0
+## (1.30) A handover from another camera (the helm's): the arm eases out from where that camera was, slowly.
+var _hand := 0.0
+const HAND_SECS := 0.8
 
 ## Showcase (inventory open): the camera swings around in front of the player
 ## and frames them on the left of the screen, beside the inventory panel, at
@@ -70,6 +76,7 @@ func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	Settings.capture_mouse()
 	current_zoom = spring_length
+	combat_zoom = combat_max_zoom
 	spring_arm.spring_length = current_zoom
 	camera.add_to_group("player_camera")
 	camera.make_current()
@@ -105,20 +112,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		if menu == null or not menu.is_open():
 			Settings.capture_mouse()
 
-	# Scroll wheel zoom
-	if event is InputEventMouseButton and _show_target == 0.0:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			current_zoom = maxf(current_zoom - zoom_speed, min_zoom)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			current_zoom = minf(current_zoom + zoom_speed, max_zoom)
+	# Scroll wheel zoom: the stance keeps its own distance (so a scroll with the weapon out shows at once)
+	if event is InputEventMouseButton and event.pressed and _show_target == 0.0:
+		var step := 0.0
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			step = -zoom_speed
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			step = zoom_speed
+		if step != 0.0:
+			if _in_stance():
+				combat_zoom = clampf(combat_zoom + step * 0.5, min_zoom, COMBAT_ZOOM_MAX)
+			else:
+				current_zoom = clampf(current_zoom + step, min_zoom, max_zoom)
 
 
 func _process(delta: float) -> void:
 	_pad_look(delta)
 	# Combat stance pulls the camera in over the right shoulder
-	var in_combat := target is Player and (target as Player).armed and not (target as Player).sprinting
+	var in_combat := _in_stance()
 	_combat_blend = move_toward(_combat_blend, 1.0 if in_combat else 0.0, delta * 3.0)
-	var zoom := lerpf(current_zoom, minf(current_zoom, combat_max_zoom), _combat_blend)
+	var zoom := lerpf(current_zoom, combat_zoom, _combat_blend)
 	var room := 0.0
 	if target:
 		for b in get_tree().get_nodes_in_group("bosses"):
@@ -144,7 +157,9 @@ func _process(delta: float) -> void:
 	var punch := _kick * smoothstep(0.0, 1.0, _kick_t / maxf(_kick_len, 0.01))
 	camera.fov = _base_fov - punch * 14.0
 	zoom *= 1.0 - punch * 0.25
-	spring_arm.spring_length = lerpf(spring_arm.spring_length, zoom, 1.0 - exp(-11.0 * delta))
+	# (a handover from the helm eases out slowly, then the usual quick follow)
+	_hand = maxf(_hand - delta / HAND_SECS, 0.0)
+	spring_arm.spring_length = lerpf(spring_arm.spring_length, zoom, 1.0 - exp(-lerpf(11.0, 2.0, _hand) * delta))
 	var shoulder := combat_shoulder * _combat_blend
 	# the held map
 	_map = move_toward(_map, 1.0 if _map_on else 0.0, delta * MAP_SPEED)
@@ -195,6 +210,27 @@ func _process(delta: float) -> void:
 		camera.rotation.z = SHAKE_ROLL * s * sin(t * 29.0 + 0.7)
 		trauma = maxf(trauma - SHAKE_DECAY * rd, 0.0)
 
+
+## Weapon out, not sprinting: the over-the-shoulder stance.
+func _in_stance() -> bool:
+	return target is Player and (target as Player).armed and not (target as Player).sprinting
+
+
+## (1.30) Take the view from another camera (leaving the helm): the arm points at where that camera stands from
+## the captain's head, at its distance, so the cut is seamless, then eases back to the captain's own distance.
+func take_view(cam_pos: Vector3) -> void:
+	if target == null:
+		return
+	global_position = target.get_global_transform_interpolated().origin + Vector3(0, 1.2, 0)
+	var d := cam_pos - global_position
+	var l := d.length()
+	if l < 0.5:
+		return
+	# the arm's +Z holds the camera: yaw turns +Z to (sin, 0, cos), pitch x tips it to (0, -sin, cos)
+	rotation.y = atan2(d.x, d.z)
+	spring_arm.rotation.x = clampf(asin(clampf(-d.y / l, -1.0, 1.0)), deg_to_rad(min_pitch), deg_to_rad(max_pitch))
+	spring_arm.spring_length = l
+	_hand = 1.0
 
 ## The sideways camera shift that puts the character (at the pivot, spring
 ## length away) at _show_x of the screen. The FOV is vertical (keep height),

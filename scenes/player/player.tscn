@@ -1,4 +1,4 @@
-[gd_scene load_steps=46 format=3]
+[gd_scene load_steps=48 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/state_machine/state_machine.gd" id="2"]
@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/plunge_state.gd" id="23"]
 [ext_resource type="Script" path="res://scripts/player_states/sit_state.gd" id="sit_state"]
 [ext_resource type="Script" path="res://scripts/player_states/crouch_state.gd" id="crouch_state"]
+[ext_resource type="Script" path="res://scripts/player_states/slide_state.gd" id="slide_state"]
 [ext_resource type="Script" path="res://scripts/player_states/skill_state.gd" id="skill_state"]
 [ext_resource type="Script" path="res://scripts/player_states/shoot_state.gd" id="shoot_state"]
 [ext_resource type="Script" path="res://scripts/player_states/swing_state.gd" id="swing_state"]
@@ -40,6 +41,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/grabbed_state.gd" id="grabbed_state"]
 [ext_resource type="Script" path="res://scripts/player_states/crew_technique_state.gd" id="crew_technique_state"]
 [ext_resource type="Script" path="res://scripts/player_states/fruit_cast_state.gd" id="fruit_cast_state"]
+[ext_resource type="Script" path="res://scripts/player_states/boss_leap_state.gd" id="boss_leap_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -160,6 +162,9 @@ script = ExtResource("sit_state")
 [node name="Crouch" type="Node" parent="StateMachine"]
 script = ExtResource("crouch_state")
 
+[node name="Slide" type="Node" parent="StateMachine"]
+script = ExtResource("slide_state")
+
 [node name="Skill" type="Node" parent="StateMachine"]
 script = ExtResource("skill_state")
 
@@ -201,6 +206,9 @@ script = ExtResource("grabbed_state")
 
 [node name="CrewTechnique" type="Node" parent="StateMachine"]
 script = ExtResource("crew_technique_state")
+
+[node name="BossLeap" type="Node" parent="StateMachine"]
+script = ExtResource("boss_leap_state")
 
 [node name="Hurtbox" type="Area3D" parent="."]
 collision_layer = 128

@@ -7,8 +7,8 @@
 	"nodes": {
 		"story_parcel": {
 			"text": [
-				"Footsteps, and a parcel that smells of Nessa's stall. Wicks. And the good tobacco. She remembered.",
-				"You're the one the sea gave back. I saw no wreck that night, captain. I saw a longboat. No lantern, rowing hard for the south cove, where no honest boat lands.",
+				"Footsteps on my stair, and a parcel that smells of Nessa's stall. Wicks. And the good tobacco. She remembered.",
+				"You're the one the sea gave back. Have a look through the glass. That's the south cove. I saw no wreck that night, captain. I saw a longboat. No lantern, rowing hard for the south cove, where no honest boat lands.",
 				"Smugglers. They've been camped down there a month, running cargo for Grell's lot. Grell's men drink on the quay, too, and they don't like new faces.",
 				"Sergeant Vey at the training yard, west of the plaza, is the one to tell. And he's the one to teach you to stand up to men like that. Go the quay way. Keep your head down. Or don't."
 			],
@@ -21,7 +21,7 @@
 		},
 		"intro": {
 			"text": [
-				"Ah. Footsteps. Not many make the climb.",
+				"Ah. Footsteps. A hundred and four steps up the tower, and not many make the climb.",
 				"I keep the light. The light keeps the sea honest. Mostly."
 			],
 			"next": "menu"

@@ -41,7 +41,7 @@ docs/v1_28_plan.md "Gadgets and tinkering".
 | Spring Boots | 6/5/4 | a jump at 11/13/15 m/s up (the normal jump is ~7) | hoard chests |
 | Pocket Glider | 8/7/6 | glide falling at 2.5/2.0/1.6 m/s, 9/10/11 m/s ahead, for up to 6/9/12 s | hoard chests; merchant ship |
 | Climbing Spike | 6/5/4 | hang on any rock or timber face 4/6/8 s and climb on | hidden chests; books |
-| Skimmer (1.28.1, atoll only) | 3/2.5/2 | a windsurfing board ridden on the water: top 9/11/13 m/s times the wind's angle (beam 1.0, running 0.8, into it 0.45); Mk III hops on Space | an atoll's pearl trader; a lagoon wreck |
+| Skimmer (1.28.1, atoll only) | 3/2.5/2 | a windsurfing board ridden on the water: top 11/13.5/16 m/s (1.30; was 9/11/13) times the wind's angle (beam 1.0, running 0.8, into it 0.55); Mk III hops on Space | an atoll's pearl trader; a lagoon wreck |
 
 Skimmer costs: Mk I 80g, 4 coral spar, 2 sea-silk, 1 lagoon pearl; Mk II 200g, 6 spar, 3 silk, 3 pearls, 1 brass; Mk III
 450g, 8 spar, 5 silk, 5 pearls, 2 brass (an atoll gives 20 spar and 8 lagoon pearls, so Mk III wants a second atoll).

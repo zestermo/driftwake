@@ -32,7 +32,7 @@ func check(what: String, cond: bool) -> void:
 func cook_xp() -> int:
 	var t := int(pr.mastery_of("cook")["xp"])
 	for lv in range(1, pr.mastery_level("cook")):
-		t += int(pr.mastery_to_next(lv))
+		t += int(pr.mastery_to_next(lv, "cook"))
 	return t
 
 
@@ -98,8 +98,8 @@ func _process(_d: float) -> bool:
 			check("...the camera and the body back", root.get_viewport().get_camera_3d() == cam0 and p.body_model.visible)
 			check("a Perfect Fisherman's Stew in the bag", inv.count("fish_stew@3") == 1 and ItemDB.get_item("fish_stew@3").display_name == "Perfect Fisherman's Stew")
 			check("...the fish and rice used", inv.count("fish") == 1 and inv.count("rice") == 1)
-			var want := 4 * (Food.COOK_XP + 2 * Food.COOK_XP_PER)
-			check("a first Perfect cook: x4 XP (+%d, want %d)" % [cook_xp() - xp0, want], cook_xp() - xp0 == want)
+			var want := 2 * 4 * (Food.COOK_XP + 2 * Food.COOK_XP_PER)
+			check("a first Perfect cook: x4 XP, twice for Cooking (1.30) (+%d, want %d)" % [cook_xp() - xp0, want], cook_xp() - xp0 == want)
 			gm.close()
 			p.state_machine.force_state("Idle", {})
 			p.heal_cd = 0.0

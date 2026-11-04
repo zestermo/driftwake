@@ -9421,3 +9421,1355 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   Crossed behind, Headpiece). Co-op: all in the kit (Net.set_ship_kit), every screen paints the same.
 - Tests: t/ship/flag_builder (old kits keep their look, skull 0 = old flag, 168 distinct jolly rogers, the sail emblem,
   the paint on her, ten figureheads build). Renders: tools/dev/out/shipshape/figures_* (modelshot), looks_*, fig10_bow.
+
+## 2026-11-04: Redtide's mountain (1.30, piece 1: the shape)
+- **What:** Morrow's arena now sits in the bowl of a mountain rising from the sea instead of on a lone stack.
+  `RedtideFort._build_massif` (redtide_fort.gd): a horseshoe massif on a polar grid round the arena (120 columns
+  over every bearing but the cove's, OPEN_A +Z = toward Brinehollow, OPEN_HALF 0.9 rad), each column a profile
+  (`_col` / `_profile`): the inner foot buried under the arena rock's rim (19 m, so no gap opens), a sheer inner
+  wall with two shelves, the crest (22 m + 26 m at the back, PEAKS, ridge noise; 15 m min, the arms' tips 30% lower),
+  a rolling top (wide on the arms), a sheer outer cliff with a steep (>50 deg) ledge band, a sea notch, the apron
+  down to -36. The arms hook in round the cove (`_bent`, 0.24 rad at their tips) and end in sheer caps
+  (the profile triangulated). Facets with true normals as the stack; grass on flats (noise-gated), a mossy ledge
+  rock, a warmer rock tint. One trimesh. Crest spires (CREST) and sea stacks off the foot (CRAGS, by gap past the
+  foot; MOUTH out past the cove) replace the old crags; the waterline boulders only in the cove.
+- **The one way in:** the cove, the jetty and the stair are unchanged in place; everything else is sheer from the sea
+  (and from the arena: the inner wall). Crest tops slope in, so anyone who got up there (vine chains) slides into
+  the bowl, not out.
+- **Stair fix (an old bug):** the stair's walk collider had a 51-54 deg lip at the east bend (the Catmull-Rom's heights
+  bunched up there, and the ribbon folded on the inside of the bend): a captain walking it stopped dead. The heights
+  are now even along each flight by flat distance, and the walk surface is a 0.4 m grid over the stair's corridor at
+  the height of the line's nearest point (`_line_y`).
+- **Clearances:** `RedtideFort.REACH` 100 m (was 45 no-go / 60 deep-water check): WorldGenerator's deep-water check
+  (the spot is unchanged: deep to 130 m), the ships' no-go circle (so the sea's features keep off too), the patrol
+  zone REACH + 45 (was 115), the arrival banner REACH + 15 (was 75). Redtide has no village; the jetty is its dock.
+- **Per frame:** nothing new (static meshes and colliders; the massif ~4k tris, one mesh of 3-4 surfaces).
+- **Tests:** t/world/redtide_way_in (the fort on the light stage, sea level = the ground: off the jetty up the stair
+  into the arena; from the cliffs' foot at 11 spots running and jumping at the rock nobody gets up; drops over the
+  crest, an arm and the arena land on rock). r8test (Morrow) green.
+## 2026-11-03: 1.30 land fixes, piece 1: the stronghold vault and the Driftfruit (playtest 2026-11-02 row 5)
+- The vault chest stood inside the Command Hall's dais (local (6,0,-17) against the 14x1.2x6 block); it's now
+  `StrongholdBoss.VAULT_AT` (-2,0,-14.4), on the floor before the dais's front step between two pillars, with an X on the
+  map ("The Commodore's vault", cleared when the chest goes). A save with the keep's seal and an unopened vault gets it
+  on load.
+- LEGENDARIES' "hammer"/"axe" were not item ids (those seeds errored and had no vault): now warhammer / boarding_axe.
+  `ItemDB.tiered` / `with_trait` return null for an unknown base instead of erroring.
+- Driftfruit on: `DevilFruits.IN_WORLD` true with one source, the vault's legendary (`FruitPool.vault`: a free
+  legendary picked by the chain seed, reserved as "fruit:<id>" plus "vault_fruit:<id>" so every machine and a later
+  look find the same one; the chest's fruit claim (Net.claim_fruit) lets one captain take it). The other sources
+  (Brinehollow's hidden fruits, the arena champion's chance) moved to a new `DevilFruits.WIDE_POOL` (false) until the
+  fruit tree pass; powertest's chest check reads WIDE_POOL.
+- Test: t/stronghold/vault (rays from the hall's middle and down onto the chest, the map mark, the fruit and its
+  reservation, every legendary resolves).
+
+## 2026-11-03: 1.30 land fixes, piece 2: Vey's rack and the drills (playtest rows 10, 11)
+- Trying weapons on Vey's rack gave mastery, found every tried tree and so 2 points each. Now `Progression.on_hit`
+  teaches nothing while the local captain's Story step is "vey_rack"; `StoryRack.keep` discovers the kept weapon's
+  tree. `FOUND_AT_START` is just ["captain"] (the cutlass isn't found at start); a save that bought cutlass nodes
+  under the old default still finds the tree on load (any tree with bought nodes or steps).
+- A new step "vey_ready" (talk to Vey, `story_ready` in data/dialogue/vey.json) between the rack and the drills, so
+  keeping a weapon no longer throws the checklist up at once.
+- The drills' "heavy" ticks on HeavyAttack, Iai (the katana's heavy) and Technique (a bought alternate heavy).
+- Tests: t/story/rack_keeps_one (no mastery or points on the rack, the kept tree found, rack -> Vey -> drills),
+  t/story/opening_steps (22 steps), t/ui/drills_katana (new); t/progression/tree_found and t/ui/skills_hidden_trees
+  updated for no cutlass at start.
+## 1.30 sea fixes (2026-11-03, docs/playtest_2026_11_02.md rows 1-4, docs/v1_30_plan.md)
+- **Piece 1, no false "Escaped" mid-fight (EnemyShip, Admiralty):** a pursuer in FLEE still counts as `pursuing()`, and
+  `Admiralty._hunt_note` counts a ship that ran (`fled()`) as beaten, not as one that lost the crew. Losing sight by an
+  island's no-go ring or a smoke screen now takes HIDE_GRACE 8 s on end (`_gave_up`, `_hide_t`; HUNT, BROADSIDE, RAM,
+  BOARD); a pursuer ignores the land while within her far range + HIDE_LAND_IN 20 (`_huntable`); fog and storm never
+  cut her lose range below far range + SIGHT_FLOOR 40 (`_lose_r`; a cutter 98 m). Pirates unchanged (no grace).
+  Test: t/ship/hunt_holds (a fight 40 m off a no-go ring for 12 s, fog+storm with the cutter 85 m off, a cutter at 20%).
+
+## 2026-11-03: 1.30 land fixes, piece 3: Morrow's Tide Rush stays in his arena (playtest row 7)
+- `PirateGrunt._rush_lane` (pirate_grunt.gd): when the lane is set, it's stepped in 1 m with a ray down; it ends before
+  water (Ocean depth > 0.3), a drop over RUSH_DROP (1.5 m) or a spot `_rush_ok` refuses, minus a step and the skid's
+  length (speed^2 / 2 RUSH_SKID). A lane under RUSH_MIN cancels the rush (a short recover). The run out of the lane is
+  a hard skid (accel RUSH_SKID 90, was a 14 coast: ~20 m at Morrow's 24 m/s, now ~3 m).
+- `PirateBoss._rush_ok`: inside `RedtideFort.WALL_R - 1` of his arena (so the gate's gap doesn't count).
+- Per tick: nothing new; ~18 rays plus an Ocean depth query once per rush wind-up (host).
+- Test: t/combat/rush_lane (the stage's shore, a stand-in arena, a real rush at a captain past the "gate").
+- **Piece 2, catching the crew (EnemyShip):** `_max_speed` = max(her own canvas `_own_speed()`, the crew's speed +
+  `_edge`: CHASE_EDGE 1 at her far range, +1 per CATCH_PER 40 m further, up to CHASE_EDGE_MAX 3) for the first
+  CHASE_SECS 90 of a fight. The clock runs only in HUNT/BROADSIDE/RAM (it used to run while a patrol tracked from 330 m,
+  spent before the hunt began) and restarts on TRACK->HUNT; a tracking pursuer has the edge without the clock. Hunting
+  pirates get it too (they had none: 12.5 against an upgraded 13.1). BROADSIDE against a crew under way (>= CHASE_SLOW)
+  is a running fight: she steers for a spot abreast of her at mid broadside range on her course, speed by how far
+  ahead the spot is, instead of circling and falling astern (the hunt/broadside loop). Boats and "catchable" read her
+  own canvas. No per-level speed (Admiralty levels are the captains' levels: x(1+0.02 lv) would be +60% at 30).
+  Tests: t/ship/marine_chaser (a patrol from 330 m on an upgraded sloop's wake, beam wind: broadside range in 102 s),
+  new t/ship/pirate_chaser (a pirate sloop from 140 m: in range in ~74 s, then 30 s at her side, a volley);
+  t/ship/enemy_boarding sets its chase past the spurt (its "too fast to catch" premise).
+
+## 2026-11-03: 1.30 land fixes, piece 4: enemy toughness and co-op scaling (playtest row 8; v1_30_plan "Decided")
+- `Net.hp_scale` is 1 + 0.85 per extra captain (x3.55 at four; was +0.6, x2.8). New `Net.dmg_scale` (+10% a captain
+  past the first, applied in `Player.take_hit` to any attacker outside group "players", AI captains included) and
+  `Net.poise_scale` (+0.5 a captain). Static `*_scale_for(n)` forms for tests.
+- `Poise.cap()`: a foe's `full` x Net.poise_scale, read as hits land (so it follows the roster with nothing per
+  frame); `Poise.make("player")` (a captain's own) never scales. The beasts' own thresholds (JungleBeast._poise_max,
+  the Brood Queen's POISE) scale the same.
+- Stronghold bosses (StrongholdBoss): `hp_k = hp x Net.hp_scale()` at spawn, and `rescale(k)` on the host's 0.25 s
+  check when the crew changes (keeps the share of health left). They had no co-op scaling at all.
+- `PirateGrunt.CREW_HP_K` 1.3 (`_crew_k()`): pirate crews, captains and marines +30% health for everyone; the
+  drowned override it to 1. Morrow (his own BOSS_HP) and the ape (its own _max_hp) are unchanged solo.
+- Tests: t/combat/coop_scaling (the numbers, a fake four-captain roster for Poise.cap and dmg_scale), t/stronghold/vane
+  (rescale keeps him full at x2.7). nettest modes are affected (enemy health and damage in co-op): the lead's prepush.
+- **Piece 3, no Admiralty spawn hitch (Admiralty):** the blockade, the ring and patrols no longer build every ship and
+  crew in one frame. `_queue` adds the spec and starts its crew's bodies on a worker (`Humanoid.prebuild` of
+  `EnemyShip.crew_plan`); `_process` makes the first waiting ship (`_pending`, in order) once `prebuilt_for` all her
+  men, at most one a frame, then `Net.spawned`. Ahead: a deed books the ring's seeds and starts its crews at once
+  (`ring_due.plan`, `_plan_for` reuses booked seeds whose kind still matches at `_close_ring`); a patrol's are booked
+  PATROL_AHEAD 20 s before it sails (`_patrol_plan`). `net_gen` carries a third list, the ships on their way (the ring
+  plan, the patrol plan, the pending), so guests prebuild them too; guests' `net_set_gen` queues new ships the same way
+  and drops pending ones the host no longer has. A blockade ship made after her line broke gives chase (`break_line`);
+  `_line_tick` and `_tidy` leave pending names alone. `_spawn` still makes one at once (tests). Gotcha: under a loaded
+  machine the worker takes ~5 s for a blockade and ring (~45 bodies) where the deed comes with no warning: the
+  booms and banner come first, the ships a few seconds later. Per frame: one `_pending.is_empty()` check.
+  Tests: new t/ship/admiralty_warm (a deed's blockade and ring, then a patrol: no "a body built on the main thread" mark,
+  one ship a frame); t/ship/admiralty_ring, admiralty_hunt, marine_chaser wait for the ships.
+
+## 2026-11-03: 1.30 land fixes, piece 5: the playtest log's missing materials
+- `CapitalModels.mat("beam")` (capital_district's market stall frames) had no case: it now shares "dark" (planks_dark).
+- stronghold_muster's flag poles asked for `stone.png` / `cloth.png`, which don't exist: now stone_brick and canvas
+  (the flags keep their tints). t/stronghold/muster and t/capital/favour logs are clean of both.
+- **Piece 4, the Scouring ends once you're out of the ring (StrongholdScouring, ring logic only):** the "ring" that
+  followed the ship was the Scouring's own shelling: every third shell aimed at each machine's captain wherever they
+  were, until the ship was 500 m out. Now the ring is RING_R 300 m from the island's middle (`in_ring`; the berth is
+  ~100 m, the coast ~150): an aimed shell only while that captain is inside it, and the crew's ship out of it ends
+  the Scouring (`sh_escaped`, the bounty) with the banner "Out of the ring" ("You survived the Scouring. X burns behind
+  you."). The visuals are a later piece. Test: t/stronghold/scouring (a captain 60 m outside the ring draws no shell
+  while the ship's still in it; the ship 20 m outside ends it).
+- **Piece 5, rivals skip the cities and the stronghold (RivalWatch.decide):** the skip checked role "capital", which no
+  chain node has (the capital is role "city" with `capital`), so Lantern Saints walked into Port Solenne's crowds. Now
+  `capital`, role "city" (the capital and the canal city) and "stronghold" are skipped. t/combat/rival_placement builds
+  its nodes from real chains (Chain.make: the capital, the canal city, the stronghold, layer 1, then regular islands of
+  seeded chains) instead of hand-made roles. The warning's "a strange ship has dropped anchor" is left for the rival
+  arrival piece (a real ship, out of this one's scope).
+- **Expected at prepush:** seatest, r8test and the other sea-fight suites (pirates now crowd on sail in a fight and run
+  abreast of a ship under way, Admiralty ships appear a few seconds after a deed or patrol call), nettest (Admiralty
+  `net_gen` has a third list; guests queue ships), any suite timing an Admiralty spawn.
+
+## 2026-11-03: 1.30 guidance and the Captain's Log (playtest 2026-11-02 row 12; docs/v1_30_plan.md "Guidance", "Journal rework", "Enemy health bars")
+- **The standing chain goal** (`scripts/quests/chain_goal.gd`, ChainGoal): with no live quest followed, the objective box shows
+  the chain's next step instead of nothing: Brinehollow's story while it's on; then Morrow (no log pose), the level the needle
+  waits for (Lv 5), "Sail to <island>" (or "A or B" at a fork; the nearer one's marker, bearing and `Chain.describe`), and on a
+  chain island whose needle hasn't set: its elder's trouble (the arc, untaken; marker on the elder), the arc's own step (taken),
+  the beast (`Site_boss/Arena`), else "Explore" with the wait. All from shared state (chain_at/chain_set, the journal), so every
+  captain sees the same step (the Lv 5 gate is each captain's own, like the needle's). `ChainGoal.followed()` is what the box
+  and the log's NOW card show. `Journal._retrack` no longer falls back to a finished "story" ("" = the chain).
+- **The objective box** (`objective_hud.gd`): a gold-rimmed panel (head "* QUEST" / "* OBJECTIVE - THE CHAIN", the distance
+  right, "1.2 KM" past a km, the goal, a dim line under it), the pinned news card under it, and in the stronghold a coral
+  district line (`LineQuests.district_hint`: what to do in the district you stand in, its muster flag while it's down).
+  Kept top left (the mock drew it right, where the gold/meal/pickup feed live). `tracker_height` covers the card too.
+- **Story lines as journal quests** (`scripts/quests/line_quests.gd`, LineQuests; src "line"): a step finishes when the world
+  says (`until`: ["done", quest] / ["perk", journal perk] / ["flag", world flag] / ["flags", [..]] counted "(n/m)" /
+  ["opened", save id]) and points where `at` says (["npc", name] / ["quest", id, giver] / ["sh"] / ["sh_room", room] /
+  ["sh_seals"]). Both are copied into the entry (`entry["line"]`), so a loaded save, a guest or a captain far from the city
+  carries on with no island built. `Journal._lines()` (1 s of game time, every machine) asks `advance` / `turn_in` (the host
+  takes the first word, as ever), opens offered lines (`Journal.offer(def, open)`) and the stronghold run once
+  "stronghold_known". The rulers' lines come from `CityFavour.ruler_line` (the Queen: her investigation, her thanks, the
+  fortress found, the writ, the fortress fallen, her thanks; the Doge: his investigation, his thanks); the run: both seals,
+  the Commodore, the vault, out of the Scouring. Lines are the crew's (`by` 0, they don't take anyone's tracking), can't be
+  dropped, and reward nothing themselves (the rulers already pay: reward `note` text, xp 0).
+- **The Captain's Log** (`journal_screen.gd`, Zach's mock): tabs NEXT / QUESTS / NEWS / DONE (Rumours moved under NEWS; Fish
+  stays). NEXT: the NOW card (what you follow, chips for the crew lit for those following it, the owner/distance line), the
+  leads on this island numbered (owner chips YOURS / <NAME>'S / SHARED: `Journal.owner_chip`), the chain dashed ("ALWAYS
+  ON"), a LogMap with the same numbers (the island's MapIsleView, or a sea sheet fitted round you and the marks) and the
+  news you might have missed. W/S pick, T follows (the chain: follows nothing). Who follows what: `Journal.follows` (peer ->
+  tracked, an op "follow" re-sent by each machine's poll when it differs: joining and leaving heal themselves). Fits 640x360.
+- **News** (`Journal.note(kind, title, text, pin)`, `announce` for every screen via the journal's host route; HUD
+  `pin_news(kind, title, text)` for this screen): kept (60, this session) for the NEWS tab; pinned ones are a cream card
+  under the objective box until this captain opens the log (`Journal.seen`); the rest stack bottom left (4, ~4.5 s each).
+  `show_toast` is small news now; banners are kept as "event" news. Pinned: a new quest, a chart marked, a story line's
+  step. **Hook for the rival arrival:** `Journal.announce("rival", title, text, true)` (or `call_group("hud", "pin_news", ...)`
+  on each machine).
+- **Enemy health bars** (`scripts/ui/enemy_bars.gd`, EnemyBars on the HUD): one Control draws a small bar and red marker over
+  each engaged foe (group "enemies": in_combat, a health drop, or within 15 m with a `_player`); fades 5 s after; bosses (group
+  "bosses") and foes with their own OverheadBar skipped; NPCs aren't enemies. Per frame: only the shown foes (a projection
+  and four rects each); a 4 Hz poll walks the enemies group with a distance check (45 m). Guests read synced state/health.
+- Tests: t/quests/chain_goal, t/capital/queen_line, t/stronghold/district_hint, t/ui/captains_log, t/ui/news_pin,
+  t/ui/enemy_bars; hud_tracked and storytest updated (storytest: after Morrow the box moves on to the chain). Render:
+  `journalshot` (hud/next/quests/news/done.png). Expected to touch storytest, lifetest, nettest (the follow op, lines).
+## 2026-11-03: 1.30 skill maps, pacing and the new movement (docs/v1_30_previews.md sections 1-5)
+- **Edy pacing** (`WillPaths.SOURCES`): a story villain or Leviathan 2, an island/beast boss, each stronghold boss
+  ("commodore", "stronghold_officer"), a hunter or a rival 1; officers, sergeants, minibosses none. Morrow is a boss (1)
+  plus RedtideFort._victory's `will_point(1, "Captain Morrow")`. Meditation a point per 6 game days. Old saves' Wills
+  still come back at `OLD_WILL_PTS` (2).
+- **Adventure curve** (`Progression.mastery_to_next(lv, tree)`): Adventure trees 40 x lv^1.15, weapons/fruit keep
+  60 x lv^1.3; pass the tree everywhere. `LIFE_XP_K` doubles `add_life` for defense, cook, sea (Seamanship now goes
+  through add_life), swim, tinker, fish, stealth. Debug F9/Alt+F9 use add_mastery (no doubling). Acrobatics xp only
+  from `ACRO_XP` deeds: an air jump, wall jump, air dash, a perfect dodge (DodgeState._perfect_dodge), a fall lived
+  through (Player._fall_damage), a sky leap, a moonstep. **Save format 9**: `_recurve` re-levels each Adventure tree's
+  total old-curve xp on the new curve (Acrobatics' halved), never below its old level (playtest: Acrobatics 12 stays 12,
+  Seamanship 4 -> 6).
+- **Parent check** (`Progression.parent_why`): every node past the root needs one of its links (or "needs") owned, or
+  all of "needs_all" (a bridge like Rebound, Heavenward); a step counts once a step is bought. Before, only steps checked
+  (that's how the playtest bought past a parent). `_buy_back` sets `_loading` so an old save keeps what it bought.
+  Tests that bought out of order own the parents with a local `own_parents()`.
+- **Strike speed** (`PlayerState.strike_speed()`): gear + `aspd_<tree>` (style_stat) + Flowing Edge + Edy flow/haste,
+  capped at `STRIKE_CAP` 0.35; light and heavy attacks multiply `_spd` by it (techniques keep their keyed timing).
+  `SkillTrees.QUICK_HANDS`: a step chain `<pre>_qhands` off every melee root with `step_levels` (katana 5 x 4% at
+  3/7/11/15/19 ... greatsword/hammer 3 x 3%); dual, dual_dagger, corsair are 4 x 4%, dual_axe 3 x 4%; no guns. Flowing
+  Edge `k_flowing` (slot passive, katana 20, after Clean Line): +10% for 3 s after a perfect dodge or a riposte counter.
+- **Acrobatics map** (`_build_acrobatics`, `_at` / `_steps` helpers): Air, Walls, Footwork, Slides, per the preview's
+  table. Kept ids where the node lives on (m_geppo, m_skywalk, m_swift now a 3-step chain, ac_dodge, m_soru, ...); the
+  Landing variant `ac_feather` stays (Feather Fall / Crash Landing, 1 point) so Crash Landing isn't lost; Will Legs,
+  Light Step, Quick Feet, Spring, Wind and the old Hang Time step are gone (their points come back). Moonstep remapped:
+  out of air steps, jump kicks ~3 m up for 10 stamina, again for 2 s (was a once-a-jump dodge). Skyward Dash: an air
+  dash with nothing held goes straight up (and still the Breakfall righting's dash and steps).
+- **Map layout** (`SkillTrees._map_layout`): every converted tree but the Captain's is laid out radially at build: the
+  root at 0,0, branches clockwise from the upper left (MAP_START), each node a ring (MAP_R 70, a step MAP_STEP_R 44)
+  out from its map parent (first link / need), sharing its parent's slice by subtree weight. Overwrites the old
+  three-branch "pos".
+- **Movement** (scripts/player_states): `SlideState` ("Slide", free): C while moving on a slope >= ~11 deg (Long Slide:
+  at a sprint on the flat) or C pressed/held on the way down (meta "slide_land", FallState) slides; g x sin(slope) pull,
+  friction, steering, top 15 m/s (+slide_pct); jump keeps 60% (Slide Jump all), Spring Heels higher; Slide Kick floors a
+  foe slid into. Wall jumps (`PlayerState.wants_wall_jump`/`wall_normal`, JumpState `_wall`/`_wall_jump`/`_wall_run`):
+  up 1.05 x jump and 6.5 m/s out, `wall_jumps` a landing, Rebound gives back an air step and dash, Wall Run three steps
+  along a wall when you come in at a slant. Wall Cling in FallState._cling. Air dashes (`air_dashes_left`,
+  DodgeState._air_dash): `air_dash` + `air_dashes`, Dash Distance; Dash Strike (`wants_dash_strike`, 0.55 s window) is
+  PlungeState's plain plunge with `_dash` (no hang, dives on along the dash). Hang Time halves gravity in air attack
+  states (apply_gravity), Aerial Combo `air_combo_max()`, Air Control scales `air_speed()`. Air steps now 1.0 x the jump
+  (was 0.92). Feather Fall: no damage under FEATHER_SAFE_SPEED (12 m), half past it, no reel.
+- **Poses** (MovePoses): slide, wall_kick, wall_cling, wall_run (dash_dir.x = the wall's side, synced); humanoid's air
+  locomotion blends a windmilling, pedalling long-fall pose after ~0.5 s of falling. Puppets get them as actions
+  (hold/play mirror through net_sync); dust and rings through Net.fx.
+- **Per frame/tick added:** the slide's tick only while sliding (one shape query a tick with Slide Kick); a wall ray or two
+  per tick in Fall/Jump only when the node is owned and on a jump press (cling: per tick while falling with the stick
+  held); a long-fall blend in airborne locomotion. No new always-on nodes.
+- **Tests:** t/progression adventure_curve, parent_check, quick_hands (+ will_points, acrobatics, tree_shape and the
+  out-of-order buyers updated); t/player air_dash, wall_jump, slope_slide, acro_nodes, moonstep and skyward_dash updated.
+  Expected at prepush: progtest (updated), techtest/airtest (air combo, plunge), stamtest/balancetest (strike speed),
+  anything buying tree nodes out of order or summing Adventure xp on the weapon curve.
+- **The skill map screen** (piece 4; `SkillTreeDraw` rewritten, `SkillMapScreen` `_draw_map` / `_map_*`): the open tree is
+  drawn straight onto the screen into its panel, clipped (`SkillTreeDraw.clip`, Liang-Barsky; nodes past the edge are
+  skipped and register no hit), at `_map_k` px a map unit round `_map_pan`. A new tree opens at zoom 1 centred on the
+  buyable node nearest the root (`_map_next`, also N and the panel's N button); the wheel zooms round the pointer, + / -
+  keys and buttons zoom, a left drag on empty space (or right / middle) pans, the triggers zoom and the right stick pans
+  (`_map_pad`), and an arrow-key pick near the edge eases into view (`_map_follow`). Shapes (`shape_of`): abilities
+  round and gold-rimmed with the icon (move, tech, ult; a variant whose versions are skills or moves), passives blue
+  diamonds (mech, passive, elem, ...; a node's "shape" overrides), stat steps a row of square pips with "Name n/m";
+  past your level dashed with "- level"; bridges dashed coral; the card's tag is "ABILITY · AIR" plus "AFTER <parent>".
+  Render: `skillmapshot.gd -- res://tools/dev/out/skillmap 1200x675` (the mock's 1.5x), `_adventure` is Acrobatics 15
+  with the preview's aerial build. Test: t/ui/skills_map_view (+ skills_grey_links, skills_buy_node, skills_version_bunk
+  pan to their nodes now).
+
+## 2026-11-03: 1.30 collision holes + Unstuck (playtest 2026-11-02 row 6)
+
+- **The capital's back houses are solid.** The massing behind the district (`CapitalShell._massing`) had only occluders,
+  and since 1.27 their roofs are reached from the district's: captains fell through into the block. Now each keeps a
+  body box to its roof line (`_solid`), a pitched roof's two slopes (`CapitalRoofs._slopes`, the district's), a flat
+  roof's parapets and its stair hut (`CapitalModels.house` passes its cols to `roof`), and the square towers their box.
+  Each lot records `solid` = [footprint, roof y]. ~330 houses, a few boxes each, in the chunks' existing bodies.
+- **The fortress districts have floor boxes.** The cobbles were a mesh over the 3 m terrain grid, which sags across
+  every district's edge (and at the ways' ends); `StrongholdShell._paving` now puts a 1.5 m box under each district's
+  rect, top at its height. The ways already had ramp boxes.
+- **Unstuck** (`scripts/game/unstuck.gd`, one per captain: `Player.unstuck`, ticked from `_physics_process` after
+  GroundNet, every 8 ticks). Standing (Idle/Move/Crouch on the floor, on foot) leaves safe spots, 3 m apart, the last six;
+  on a deck kept ship-relative (`_deck_ship`), under an island's ground (the catacombs) not kept. The pause menu's
+  **Unstuck** (`GameMenu._build_pause`) puts the captain on the newest spot 2 m+ away, else by the ship's bunk; 10 s
+  cooldown (game time); refused dead, bleeding, downed, swimming, at the helm/a cannon, on the skimmer, in downtime.
+  **The warp:** 1.5 m+ under the island's ground (`GroundNet.land_height`), not on the floor, nothing within 6 m under
+  the feet, not swimming or downed, for a second (or below y -60): put back the same way. Below the sea it stays
+  GroundNet's (a swimmer under an island). Co-op: each captain moves themselves; puppets follow the snapshot.
+- Per tick: one modulo; every 8 ticks a floor check, the nearest-island height lookup and, only when under the ground
+  and airborne, one ray.
+- Tests: t/capital/solid_ground (rays over every back and district roof's middle and corners and every 2 m of every
+  floor), t/stronghold/solid_ground (every 1.5 m of every district to its edges, the ways along and across),
+  t/player/unstuck_menu, t/player/unstuck_auto, t/ship/unstuck_deck.
+
+## 2026-11-03: 1.30 the atoll's underwater, piece 1: the seabed's edge and dressing (Zach's 1.28 playtest)
+- **The hard edges were two.** (1) The floor's texture: under -1 m the terrain shader swaps the beach sand for the
+  `seafloor` layer, and atoll_seafloor was a darker cream with big blocky turtle-grass blots: a crisp line along every
+  sandbar and head. It's now the beaches' own palette in soft ripples (gen_atoll_textures.py `gen_atoll_seafloor`), so
+  the waterline has no seam. (2) From the surface, grey stair-stepped patches in the lagoon: where a texel of the shore
+  map is FAR (64 m) from any shore, `shore_pick` (`s.y < best.y`) keeps the open sea's NONE, so the colour read the
+  lagoon as 1000 m deep. Fixed in the colour path only (the waves' and the CPU's maths untouched): inside an atoll's
+  `lagoon_disc` (below) `ocean.gdshader` takes the map's depth whatever its swell distance (`lagoon_depth`).
+- **The terrain's two seabeds** (`terrain.gdshader` `sea_mix`, off for every other island): a KitStyle ground "deep"
+  texture (the atoll's: the open sea's dark `seafloor`) laid by the vertex alpha (AtollLand.paint: 1 in the lagoon and
+  on the reef, 0 past the drop-off's foot), dithered, so the island's square of seabed meets the sea's floor without a
+  pale plate; and a broad two-octave mottle of light and shade over the sea and wet layers (`sea_mottle`, PSXMat
+  SEA_MOTTLE 0.32). PSXMat.terrain switches both on when the ground table has "deep".
+- **The dressing** (`scripts/island/themes/atoll_seabed.gd`, steps after the reef): seagrass meadows (cross cards of
+  atoll_seagrass, 16k tufts in clumps where a meadow noise is over 0.12), coral rubble and boulders (round the heads and
+  outside the ring), shells, starfish, urchins (clumped), sponges (deeper), bleached dead coral in patches: ~23k
+  instances, MultiMesh per kind per cell (grass 60 m, the rest 90 m), the colour per instance (MultiMesh colours tint
+  psx_lit's COLOR), ranges 95-150 m from the cell's middle, no shadows, no collision. Planned a kind a step (~20 ms each).
+- **Clear water** (the brief's atoll-only depth-tint fix, gated): `atoll_water.gd` (one per atoll, twice a second) sets
+  `lagoon_disc` (x, z, the lagoon's mean radius + 6, strength fading over 200-420 m past it) on the sea's material while
+  the camera's near; inside it the deep reads `lagoon_color` (clear blue, the floor showing through: alpha -0.16)
+  instead of the open sea's deep colour. A diver's fog is the style's new `under` key ([shallow, deep, dark depth, see
+  near/far]; BRINEHOLLOW has Weather's old constants, the atoll [turquoise, clear blue, 48 m, 70/38 m]), faded in by
+  the zone weight like its weather.
+- **The square's edge** (Zach, from the aerial: the island's 3 m terrain grid ends in a square at -30 m, and past it the
+  sea is drawn over nothing): round an atoll, outside its lagoon, water deeper than ~6-13 m goes opaque
+  (`ocean.gdshader`: alpha to 1 by `lagoon_disc.w * (1 - clear) * smoothstep(0.45, 0.95, depth/14)`), so the seabed
+  square and the open sea past it read the same deep blue from any angle; the shallow reef flat and its drop-off still
+  show through, fading. AtollWater holds the disc from 1300 m past the lagoon's edge (full at 900 m: past the fog's
+  end). Renders: atollshot `aerial`, `edge_high`, `approach`, `approach_near`.
+- Per frame: one AtollWater check every 0.5 s (a distance, a shader parameter); the ocean fragment does the disc's
+  distance, and 4 more shore-map fetches only inside the disc where the map says NONE. ~650 more ranged MultiMesh
+  instances on an atoll (culled by range). Build: +~170 ms over 11 steps.
+- Tests: t/island/atoll_seabed (new). Renders: atollshot `floor`, `flank`, `drop` (new), `wade`, `shoal`, `aerial`.
+
+## 2026-11-03: 1.30 the atoll's underwater, piece 2: the deep basin
+- **Where:** the blue hole grown (land "hole" = [middle, rim radius 56-70, floor -27..-33]; the same rng draws, so the
+  rest of an atoll's plan is unchanged). `AtollLand._plan_basin` (in site_at "boss", once the causeway is known): beside
+  the causeway near the lagoon's middle, its rim BASIN_OFF 22 m off the causeway's crest, BASIN_KEEP 60 m from the
+  village's islet and the boss's flat, all inside the lagoon (shrunk 10% at a time until it fits); the motu then turn
+  round the lagoon until they clear it too (16 tries). Every atoll has one. The atoll_hole place (when the chain rolls it)
+  dresses it as before: gardens round the lip, the drowned shrine and a chest on its floor.
+- **Its shape** (`AtollLand.basin_y`, the rim wobbling 10%/5% by bearing): a reef crest round the lip (-1.5 m, 9 m wide),
+  the upper wall to a ledge (38% of the way down, ~-12 m) from 0.86 to 0.74 of the rim, the lower wall to the floor at
+  0.58, the floor rolling 1.4 m. `basin_r`, `basin_ledge` for the things in it.
+- **In it** (`scripts/island/themes/atoll_basin.gd`, five steps, the slow loops breathe): coral pillars 7-10 (a tapering
+  tube of rock with lumps, crusted and sprouting coral, a table coral or a crown on top, -5..-11 m), table corals on the
+  ledge and floor, giant sea fans, 2-3 floor arches (6-9 m), overhangs off the upper wall, 1-2 swim-through caves (a
+  tunnel 12-16 m, glowing anemones inside), the walls/ledge/floor under ~6k of AtollReef's corals (bigger on the walls).
+  Rock is three merged meshes in the basin's frame (Pillars, Reefwork, Vents: ranged 250 m from its middle, unshadowed);
+  colliders are cylinders and boxes on one body. The coral rock's texture is lifted by vertex colour (ROCK) underwater.
+- **Reach** (the brief's assumption kept, no swim change): breath 20 s, down 2.6 m/s, up 3.4: a straight 30 m round trip
+  is ~21 s. **Breathing vents** (3-4, AtollBasin.Vent; on the ledge and the floor): a column of gas bubbling up (GPU
+  bubbles, atoll_shoal.gdshader mode 2); a diver of this machine's within VENT_R 1.8 m of it gets VENT_REFILL 6 s of
+  breath a second. Surface -> ledge vent ~6 s, ledge -> floor vent ~7 s, floor -> surface ~9 s.
+- Per frame/tick: a vent checks 4x a second near a swimmer (40 m), 1x otherwise; its bubbles and nothing else are the
+  GPU's. +3 draws of rock, ~60 more coral batches near the basin.
+- Tests: t/island/atoll_basin, t/swim/atoll_vent (new). Renders: atollshot `hole`, `basin_*`.
+
+## 2026-11-04: 1.30 the atoll's underwater, piece 3: life, the harvest, the skimmer's parts
+- **The harvest** (`AtollReef.harvest`, step "atoll harvest" after the basin's; its own stream): giant clams 12-18
+  (a Lagoon Pearl + 0-1 pearl; one in each cave), coral outcrops 18-26 (2 Coral Spar), **pen shells** 10-16 (new: a
+  tall bivalve half buried, golden threads at its foot: 1 Sea-silk; GadgetData's text says so), urchin clusters 8-12
+  (2-4 sea urchins), 4-6 of DiveSites' oyster beds / reef gardens on the basin's ledge. About half on the lagoon's
+  patches (clams on the deeper ones, spars on the heads and reef, pen shells on the floor), half in the basin (ledge,
+  floor, pillars' feet). Each taken once per save (GameManager.opened), as before. One atoll now holds ~40 spar,
+  ~13 silk, ~15 lagoon pearls: Mk I (4/2/1) many times over, and a Mk III's 9 pearls in one atoll (1.28.1 meant two).
+- **The tells:** the clams' mantles glow blue round their glowing pearl (and sit 1.35x), the outcrops glow pale with a
+  pink spar, the pen shells' silk glows gold (1.5x), the urchins glow violet; and `AtollReef.Glints` (one per atoll,
+  each screen's own) sparkles what's still to take within 40 m of the camera in its colour, half of them every 0.7 s
+  (2 s checks while the camera's off the atoll).
+- **The hint:** the pearl trader's shop line and a bark point to "the deep reef, out to the <compass>" (from her stall
+  to the basin: `AtollTown._compass`), what's there (clams, spars, pen shells) and the vents; a fisher warns of sharks.
+- **Life** (`scripts/island/themes/atoll_deeplife.gd`, step "atoll deep life"): 8-12 big shoals (40-80 fish, bright reef
+  colours) at every depth round the pillars, 2 schools of silver jacks (the shoal fish x3.2), 3 eagle rays and 2 turtles
+  circling the basin: all the shoal shader. **Reef sharks** (`AtollDeepLife.Prowler`, 2, the second 1.7x and harder):
+  a slow circle through the basin on `Ocean.clock()` (every screen agrees); this machine's diver within 7 m (9 for the
+  big one) gets a tell (it turns on them, 0.7 s), a charge (7.5 m/s, up to 2 s) and a bite (14 / 20) inside 1.8 m,
+  then it swings back and leaves them 7 s. 6 more morays in the basin's walls (13 in all). Spear spots by three
+  pillars (SpearSchool already works anywhere past 2.5 m).
+- **Build time:** the reef's step (was 380 ms in one frame: 9000 `ring_r` calls) now reads a 128-bearing table and
+  breathes (GenIsland.breathe) in its loops, as do the seabed's and the basin's.
+- Per frame/tick: Glints 1.4 checks a second near (a loop over ~60 entries, a few sparkles); a shark is a position
+  and a basis a tick within 140 m of the camera, a distance once a second otherwise; nothing else new on the CPU.
+- **Co-op:** everything is built from the island's seed on every screen; harvests are each captain's own (the saves'
+  opened lists, as the 1.28.1 clams); morays and sharks bite only their own machine's diver (the moray's rule); a
+  shark charging someone else's diver on your screen still circles (its charge isn't sent). Not nettested.
+- Tests: t/island/atoll_harvest, t/swim/atoll_shark (new); t/island/atoll_reef to the new counts.
+
+## 2026-11-03: 1.30 boss phase resets + clearing moves (v1_30_plan "Boss phases", "Boss space"; playtest row 9)
+
+- **`BossReset`** (`scripts/enemies/boss_reset.gd`, a RefCounted the boss owns; the host ticks it). `start(centre)`: a
+  phase reset: crouch WIND 0.4, leap AIR 0.85 (LEAP_H 4.5 arc, position set by hand), land with a shockwave
+  (SHOCK_R 9, 6 dmg, push 15 m/s), roar ROAR_S 1.5; `guarding()` the whole time (hits glance off: `deflect`, sparks at
+  most every 0.25 s). `clear(centre)`: "Boss space": out past CLEAR_LEAP_D 8 m from the middle a leap back there, else
+  a roar ring where it stands (RING_WIND 0.6 tell, rearing up); CLEAR_R 8, 4 dmg, push 17; blows still land.
+  `crowded(delta, reach)` (each tick in the fight): CROWD_S 4 s with captains within reach (two once two or more
+  are fighting, one solo) or BURST_N 8 hits (`hit()`) inside 3 s, at most every CLEAR_CD 12 s (6 s after a phase reset
+  or the fight's start).
+- **The shockwave** (`BossReset.shock`): judged on each captain's own machine (the "reset_shock" event on the boss, or
+  on the node holding an AI captain boss), BeastFX.moment rings and dust on every screen; a captain it lands on (not
+  dodging, not 2.5 m+ up) is thrown out with `Player.shoved(v)` (a Stagger reel at v, v/20 s long).
+- **Knockback slides along walls** (StaggerState): a throw that hits a wall goes on along it at 0.85 of its speed (the
+  side picked at the first contact) instead of pinning you there. Every reel with a knockback gets it.
+- **Who has it:** every JungleBeast in group "bosses" (all the arena beasts: moves "leap_home" / "clear_ring" posed
+  generically by `BossReset.pose_beast` on the model, then "moment" from its rear; non-pass kinds rear up trembling),
+  PirateBoss (Morrow at Redtide's middle `RedtideFort.centre()`, the bandit chief, the huntsman: plunge poses, then the
+  "parry" roar; his old phase roar is gone), the Silverback (its moment replaced: off its limb if up, bound, chest
+  beats; clears on the floor), the Brood Queen (onto her nest; clears from the start, specials "clear_ring" /
+  "clear_leap"), and the captain-style AI bosses through the `BossLeap` player state (the drowned captain; Kesh, Marrow
+  - her catwalk perch after it - and Vane in the stronghold), untouchable in it (Player._on_hit_received).
+  Clearing moves: the beasts, the Silverback, the Brood Queen (not the humanoid bosses).
+- Per tick (host, a boss in a fight): one loop over the captains (<= 4 flat distances) and a pop of old hit ticks; the
+  reset's own tick only while one runs. Nothing on guests beyond the snapshot they already play.
+- Tests: t/boss/beast_phase_reset, morrow_phase_reset, captain_phase_reset, brood_phase_reset, beast_clear;
+  t/combat/wall_slide; t/beast/ape_phases and apetest updated (the reset replaced the moment). Renders:
+  `bossshot.gd -- <dir> <kind> reset,clear` (RESET_FILM on every kind).
+## 2026-11-03: a captain beaten by an AI captain in co-op lay down for good (stronghold bosses)
+
+Duel.beaten spares a captain beaten with a rival within 40 m (downed, dead, 0 hp, not bleeding): only RivalEncounter and the brig stood them up, so the Commodore (or any officer) beating a guest while a crewmate still stood left them unreviveable and unrespawnable. Player.spared_down (from Duel.spare) now makes them bleed (revivable, F) when a crewmate stands; the bleed running out stands them up at 30% (spared_up clears it; Duel.stand_up too); with the whole crew down they lie for the wipe (the brig stands them up). t/coop/spared_revive.
+## 2026-11-03 - The Scouring's look, piece 1: the smoke-dark sky and the shelling (1.30)
+
+Zach's direction (docs/v1_30_plan.md "The Scouring's look"): huge bursts round the captain, heavy shake and orange
+flashes, the sky dark grey with smoke like the sandstorm even at noon.
+- **ScouringFX** (`scripts/island/scouring_fx.gd`, a child of StrongholdScouring, local on every screen: the shells
+  are already the same everywhere from the shared clock, so nothing new goes over the net). The smoke level climbs to
+  1 over 7 s once the barrage starts and clears over 18 s once escaped, scaled down past the ring by our captain's
+  distance (360-780 m from the island's middle); it writes `Weather.smoke`.
+- **Weather.smoke** (`weather.gd`, a small hook like sand_boost): the sky top and horizon to SMOKE_SKY / SMOKE_HOR
+  (darker at night), sky clouds full and storm-dark, sun x(1-0.85 s) and orange, ambient warmer and x(1-0.45 s), fog
+  to SMOKE_FOG and in to 12-460 m, haze 0.75, the sea darker, no glitter, rays or cloud shadows.
+- **Shells** (StrongholdScouring._shell): every third volley one at each captain inside the ring (all screens show
+  them; only a captain's own screen hurts them), the rest 60% on a district (+6 m round it), 40% over the island; a ray
+  from 260 m down (mask 1) picks what it meets: roofs, wall walks, tower tops, the cobbles, or the sea (below 0.2 m).
+  Damage falls from SHELL_DMG at the middle to 45% at SHELL_R. Due shells land by time, not queue order.
+- **Each shell**: fired from a point on the ring 0.85 x RING_R out (a glow and a smoke puff there), flies a 70 m arc
+  for its 2 s warning (a bright head and three trailing glows), `shell_whistle` 1.8 s before it lands; on land a
+  4.5-size FX.blast in soot black, a rising fireball plume, stone debris, a dust ring, embers, an 11 m shock ring, a
+  flash light (14 energy, 34 m, 0.8 s; the pool of 6), a big glow and a 30 m smoke card rising; on the sea a column
+  of white water, a ring, mist. `shell_boom` to 170 m, `shell_far` to 800 m (FX.far_sfx, new: sfx stops at 60 m).
+  Shake by the camera's distance (0.4 x (1 - d/60)^1.6, the rig's trauma; the Camera shake setting scales it), an
+  orange screen flash under 32 m (alpha 0.42 x (1 - d/32); Reduce flashing thirds it).
+- **Long-range cards**: one MultiMesh (CARDS 320, `shaders/psx/scouring_glow.gdshader`, premultiplied: glows add,
+  smoke blends, one draw, not fogged so the glow reads through the smoke); FX bursts stop at 160 m.
+- Per frame: ScouringFX writes the live cards (typically 40-70 after a minute, at most 320) and the flights into the
+  MultiMesh, two array filters, one Weather write; the bursts are ~9 FX nodes per shell (one every 1.2 s, plus one
+  per captain every 3.6 s). Nothing runs before the Commodore falls.
+- Debug: F4's "Stronghold: the Scouring now" (warp there first) cuts the grace and countdown to 3 and 5 s.
+- Renders: `CSHOT_SCOURING=1` on strongholdshot (the smoke full, four shells bursting in front of each view);
+  `tools/dev/out/scour/noon_sheet.png`, `night_sheet.png` (CSHOT_HOUR=22).
+- Tests: t/stronghold/scouring_sky (smoke in and clearing, a shell telegraphed, in flight from the ring, its whistle
+  queued, no harm before it lands, hurt after; shells on the Mess Hall's roof and in the sea), t/stronghold/scouring.
+
+## 2026-11-03: 1.30 overkill launches and wall splats, piece 1: enemies (v1_30_plan "round 4")
+
+- **Splat** (`scripts/combat/splat.gd`): a killing blow throws the body when its overkill (damage past the health
+  left) is >= 50% of max health (plan, assumed), or >= 15% with a strong blow (`Splat.strong`: knockdown, launcher,
+  or poise >= Poise.HEAVY: heavies, techniques, ultimates; not ranged) (tuned: every heavy kill felt too often).
+  `Splat.kill(humanoid, hit, hp_before, max_hp, dir, bleeds)` spreads the rig (arms and legs flung out), ragdolls it
+  and flies it: rays from the chest (a fan of 5 along the blow, or 3 up for a launcher) find the nearest wall or
+  ceiling within REACH 8 m; the parts go kinematic (`Ragdoll.hold`) and move as one body at ~21 m/s, laid flat
+  (back to the surface, face out, head up the wall), stick STICK 1 s (sliding 18 cm down a wall), then let go limp.
+  Nothing near: a back throw lands on its back 2.6 m off (a small mark) and skids ~2.4 m (stops short of an obstacle,
+  rides the ground with one ray a tick, dust), a launch goes up as a loose ragdoll and leaves a small mark where it
+  lands; off an edge or over water it's thrown loose. Bodies scaled > 1.6 skip it.
+- Hook: PirateGrunt._on_died (and so marines, fodder, the drowned's second fall, the ape; the boss too, it's
+  human-sized) calls Splat.kill before its plain ragdoll; `_take_damage` keeps `hp_before` as meta; `bleeds()`
+  (the drowned: false). Beasts, creatures and scuttlebugs keep their own deaths (not done).
+- **Effects** (`scripts/game/splat_fx.gd`, FX.splat / FX.splat_launch through Net.fx): the mark is a pool of 16
+  MeshInstances (the oldest taken over), 3 seeded crack shapes and one unshaded sRGB vertex-colour material kept on
+  FX (static vars outlived the renderer), popped in, held 8 s, shrunk away; dust, chips, a ring, blood on the
+  surface and a spray (bleeds), the crunch; a shake for cameras within 22 m; the launch: a ring, whoosh, dust, and
+  for the captain within 6 m a 0.08 s hit-stop and a punch-in. No lights.
+- Co-op: the host flies the body; guests' ragdolls follow its snapshot (the grunt's ragdoll net_pack); marks via
+  Net.fx. Per tick: only while a body flies/sticks (~1.5 s): the part poses, one ray a tick in a skid.
+- Tests: t/combat/splat_wall. Render: `splatshot.gd -- <out>` (wall, ceiling, open strips, the mark close).
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 1: the fodder tier, the placed garrison and the alarm
+docs/v1_30_plan.md round 3 ("40 people over 30 minutes, groups of 5, sponges").
+- **FodderMarine** (scripts/enemies/fodder_marine.gd, extends PirateGrunt, nothing restructured): HP 30 x Levels.hp_k
+  (3 cutlass blows from a captain of the fortress's level), no +30%, `net_rescale` pinned at 1 (no co-op health); no
+  role roll, extras, shield, horn, pistol or rush, elite() false; attacks: combo, the lunge from 2.9 m+ (50%), the red
+  chop (25%, 10-16 s). Thinks every 8 ticks (THINK), the rig stays `lod` in a fight, the sea/fire check once a think.
+  XP x0.35, coins halved. Dies through `_on_died` (the splat agent's hook works on it). Body layer 4 and mask 1|2:
+  fodder don't collide with bodies (EnemySolid 2048), only steer apart; crowd physics went 17 -> 8 ms for 25.
+  `hunt` (alarm waves): alerts as it musters, `_lost` only past HUNT_RANGE 90 m, a lost hunter's post is where it stands.
+- **StrongholdGarrison** rewritten: POSTS per district (sentries, posts of 3-4 sat/stood, a patrol, riflemen, a
+  sergeant), one GruntCamp "Garrison_<district>" each (warm start, never respawns, ATTACKERS 4): 77 men, 64 fodder.
+  The 90 s squad respawn is gone.
+- **StrongholdReinforce** (extends GruntCamp; SOURCES): `muster()` adds a wave of SIZE hunters, named by gen
+  (`net_set_gen` on a guest spawns every wave it missed; the island catch-up frees the host's dead). Kinds: `door` (the
+  Barracks and Mess, the Casting Hall, the Command Hall: they muster inside and run out), `gate` (its own iron-banded
+  door on the prison drum, leaves swing open), `boat` (a longboat rows 34 m in from the sea gate in 7 s, its six leap onto
+  the quay, it rows out; Net.event "boat" plays it on guests). Turns are shared with the district's garrison camp.
+- **StrongholdAlarm** (host decides; world flags "sh_alarm_<d>", "sh_clear_<d>"): a district's garrison fighting
+  ALARM_AFTER 3 s raises its alarm (bells rung 3x through Net.fx, a banner); its garrison goes hunting; a wave every
+  WAVE_EVERY 7 s while < PRESS 18 of its men are fighting and < PEAK 30 in the fortress, POOL waves per district
+  (landing 3 boats of 6, ward 6, arsenal 5, prison 5 of 4, keep 5: ~130 men). A district with its garrison down and its
+  pool spent (or never called: a quiet clearing forfeits it) is cleared for good. The Commodore's fall stands it down.
+  ~77 placed + ~130 reinforcements + the sealed rooms and boss adds: ~220 over a run.
+- Officers: reinforcement camps don't bring a district's first officer (they still roll CHANCE per wave, CAP 5).
+- Tests: t/stronghold/garrison (rewritten), t/stronghold/alarm, t/stronghold/fodder_crowd.
+## 2026-11-03: 1.30 wall splats, piece 2: captains
+
+- A blow that breaks a captain's poise (Player._on_hit_received: an AI captain's `poise`, or a player's own) throws
+  them flat (`Player.splat(dir, up)` -> DownedState with "splat") when `Splat.flattens`: a strong blow (knockdown,
+  launcher, poise >= HEAVY; never a shot or a burn) taking >= 30% of max health after reductions (plan, assumed), or
+  >= 20% from another captain (duels: their blows land at Duel.DAMAGE_K 0.6; AI captains both ways) (tuned).
+- DownedState: `Splat.throw_body(body, dir, up, not bloodless, alive)` instead of the plain ragdoll; down while the
+  Splat holds it; after it lets go and settles, DAZE 1 s (stars over the head every 0.3 s, a low ring), then the
+  get-up x1.3 (`get_up_from_ragdoll(slow)`). Let go, the muscles brace at 0.3 (dazed, limp-ish).
+- Co-op: a captain's hits are taken on their own machine, so it flies its own body; the others follow its ragdoll
+  snapshot (player net_pack); the marks and stars via Net.fx.
+- Tests: t/combat/splat_captain (+ player_poise, breakfall, rival_duel, wall_slide, crash_landing, freefall_tumble
+  rerun). Not run: nettest (push gate).
+## 2026-11-03 - The Scouring, piece 2: the ring of warships, the great fires, sirens and drums, "Escape the ring" (1.30)
+
+After the lead's review of piece 1 (bursts small and puffy, the telegraph discs read as UI, the night near black):
+- **Bigger bursts** (ScouringFX.landed): a white-hot flash card, glow and rising fire cards 12-30 m, the `explosion`
+  sheet (3 x 13 m), FX.blast at 6, a fireball plume of 8 x 7 m, stone (28) and dark tiles (14) thrown, a 15 m shock
+  ring, a flash light of 22 energy / 42 m / 0.9 s, and a dark column of four smoke cards rolling up over ~3 s and
+  lingering 14 s. Within 30 m of the camera the fire parts shrink to 55% so the captain stays readable.
+- **The telegraph** is now the shell itself: FX.telegraph's discs are gone; the shell's shadow grows (1.2 m to 0.6 x
+  SHELL_R) and darkens on the ground under it with a flickering ember rim, its streak (a hot head and six fading)
+  arcs in from a ring ship's gun port, the whistle comes 1.8 s before it lands.
+- **The ring** (ScouringFX._build_ring, at the countdown): 11 Admiralty warship hulls (HullBuilder, the warship look,
+  x2.2, one built and duplicated), 245 m round the island side-on, a gap of 0.36 rad either side of
+  StrongholdScouring.GAP (out past the sea gate); they heave and roll. Each shell comes from one of their gun ports
+  (a flash, a bank of smoke, sometimes the boom); every 2.6 s (from the clock, the same on every screen) one fires a
+  six-gun ripple whose shot falls in the sea off the coast (columns of white water).
+- **The great fires** (StrongholdScouring: every BLAZE_EVERY = 3rd shell that hits land, deterministic, at most 26):
+  `shaders/psx/scouring_fire.gdshader` on one MultiMesh, three upright camera-facing cards per fire (up to 15 m x 11 m
+  x its size 0.8-1.25), tongues on the GPU, growing in over 3 s and burning on (they still burn after the escape:
+  "burns behind you"); each sends up a smoke card every 1.1 s; the 3 nearest within 120 m get a flickering
+  OmniLight (no shadow, 26 m). A captain within BLAZE_R x size burns at BLAZE_DPS 14.
+- **Night**: the smoke cards' undersides glow orange from the fires (`under` = night x smoke level), the fires and
+  the lit columns carry the fortress.
+- **Sirens and drums** (`siren_loop`, `war_drums_loop`, gen_psx_audio.py): the siren from the broadcast (full in the
+  countdown), drums under the barrage, both by our captain's nearness and fading once out.
+- **Escape the ring**: a banner when the shells start; the host sets `sh_barrage`; the journal's stronghold line:
+  the vault step passes on `["any", [opened vault, flag sh_barrage]]` (new until kind) and the escape step reads
+  "Escape the ring: get to your ship and sail out through the gap in the warships' line" with its marker `["sh_gap"]`
+  (StrongholdScouring.gap_at: RING_R + 30 m out through the gap); the stronghold's district line says the same while
+  the shells fall. Saved lines keep their old steps (lines are stored in the entry); new runs get these.
+- **Gotchas**: MultiMesh custom data is half floats: birth times lost their seconds (fires never grew), so the
+  driven cards and fires carry their numbers in the instance basis (float32); a MultiMesh in world space needs a
+  custom AABB as wide as the chain (the stronghold can be thousands of metres out).
+- Per frame (no bench): the shells in flight and their shadows written into a small MultiMesh (7 + 1 per shell, a few
+  shells), three shader uniforms, 11 ship transforms, 3 light energies, array filters on the few queued whistles and
+  splashes; on spawn only, a card write (3 setters). Every 0.3 s a sort of the fires by distance. The cards and fires
+  move on the GPU. Draws: 3 MultiMeshes and 11 hulls (no shadows, 1.4 km range).
+- Renders: `tools/dev/out/scour/p2noon_sheet.png`, `p2night_sheet.png`, `p2eve_sheet.png` (strongholdshot with
+  CSHOT_SCOURING=1 now starts fourteen fires first and has a "ring" view).
+- Tests: t/stronghold/scouring_ring (new), scouring_sky, scouring, district_hint, solid_ground; t/quests,
+  t/capital/queen_line.
+
+## 2026-11-03: carried gadgets for the stronghold run (1.30, docs/v1_30_plan.md round 3 "Gadgets")
+- **Built on the 1.28 belt** (GadgetBelt, U fires, O cycles / the bag's wheel; 1 slot, 2 with the gadget belt item,
+  4 with a gadget bag). Smoke, flash and the grappling hook were there; new: ready-made packs, the powder charge,
+  hooks for the stronghold.
+- **Packs** (GadgetData.KITS, items `kit_smoke|flash|charge|grapple`, Gadgets.make_items): carried, a pack of a gadget
+  not built yet becomes it Mk I on a free slot (blueprint learned; GadgetBelt.unpack, deferred from fit() on an
+  inventory change); with no free slot it's built off the slots (swap at a workbench). More packs stay in the bag;
+  U on a dry gadget opens one (refill). HUD shows "+n" packs. Prices (Economy, loot x3): smoke 35, flash 55, charge
+  90, hook 150. Sold by chandlers (CHANDLER_STOCK) and Nessa's Notions (Brinehollow); `Gadgets.supply_crate(out, rng)`
+  rolls 1-2 (smoke/flash/charge) for the stronghold's crates.
+- **Smoke:** lasts 8/10/12 s now; a cloud also blocks sight through it (GadgetVeil.blocks, flat segment vs the cloud's
+  circle within REACH_Y): Stealth.range_for gives 0 and PirateGrunt._player_ok refuses a captain behind one.
+  `Stealth.sight_clear(from, captain)` for other vision code.
+- **Flash:** stuns 2/2.5/3 s; `PirateGrunt.stunned_until` / `is_stunned()` (set by blinded, so smoke's cough counts
+  too) and `Stealth.stunned(foe)` for takedowns; the screen flashes near-white for a camera looking into it (dot 0.5),
+  faint otherwise. Host-side only (blinded runs on the host).
+- **Powder charge** ("charge", GadgetData; kind combat, "plant"): U kneels (GadgetState "charge", gd_plant 0.7 s, set
+  at 0.42) and sets the satchel on the ChargeTarget within 2.6 m in front, else the ground ahead; refused airborne.
+  GadgetZone kind "charge" on every screen (Player event "gadget" [id, tier, normal, at]): fuse ticks every 0.5 s
+  (3/3/2.5 s), then a big blast (two FX.blast, debris, ring, dust ring, smoke column, ground crack, shake within 35 m);
+  the host's hits everything in 4.5/5/5.5 m for 90/130/180, knockdown poise 999 (splats via Splat on overkill), and
+  `ChargeTarget.blast`. Old crates (props/breakable.gd) smash from it too. Captains aren't hurt by it.
+- **ChargeTarget** (`scripts/gadgets/charge_target.gd`, group charge_targets): `attach(target, spot, normal,
+  {needs, remove, mark})` paints a red ring-and-cross; breached on the host, then Net.event "breach" on every machine;
+  `breached(by)` signal, `done`, `breach_now()` (late join/save restore), `near`, `blast`. remove (default) hides the
+  target's meshes and disables its colliders.
+- **Grapple ledges:** `GrapplePoints.add_ledge(holder, local, mark := true)` (a bolted iron ring) kept apart from the
+  vine swing's crowns; GadgetState.hook_point picks a ledge within 25 m (any tier) and 0.3 rad of the aim with a clear
+  line from the chest before the plain ray.
+- **Per frame/tick added:** nothing idle. HUD: one inventory count per slot at its 0.1 s poll. A charge: one 0.5 s
+  timer and one small emitter while the fuse burns. Grunts: one sight_clear call in _player_ok (returns at once with
+  no clouds). hook_point loops the ledges once per fire.
+- **Tests:** t/gadgets packs, smoke_sight, flash_stun, charge_breach, grapple_ledge; smoke (a grunt in the cloud can't
+  see out). Render: `abilityshot ... gadget:charge:0 sword game,side 8 1.4 3.2` (tools/dev/out/gadget/).
+### (same day) The crowd pass: 25 fighting fodder from ~+17 to ~+5 ms a frame
+- **How it's measured** (t/stronghold/fodder_crowd, prints "FODDER CROWD"): the runner steps one physics tick a frame
+  as fast as the machine goes (headless, fixed fps), so the wall time between frames is the whole frame's CPU cost
+  (scripts, physics, posing, the scene's transform updates; no GPU). 300 frames each: the empty stage before and after,
+  25 fodder in a fight on the captain, the same with their rigs' processing off (the posing share), 25 full grunts all
+  alerted. Performance.TIME_PROCESS / TIME_PHYSICS_PROCESS were useless for this: they sample one frame a second.
+  The first piece's "+17 ms" was those monitors; the same crowd by wall time was +7.9 ms (full grunts +9.5).
+- **Where it went:** posing ~4.8 ms (19 parts a rig: the pose and the transforms it dirties), movers ~2.8 (their
+  scripts ~1.6 with move_and_slide, the bodies the rest), idle bodies ~0.
+- **Changes:** Humanoid `crowd` (set by FodderMarine except while it swings or grabs): posed every frame only inside
+  CROWD_FULL_R 3.5 m of the camera, every 3rd frame to 12 m, every 4th past it, every 8th off screen (PS1 15-20 fps
+  animation); no foot IK (two ray casts and ankle transforms a pose), no hair/cloth springs, a shadow only within
+  CROWD_SHADOW_R 9 m (draw calls the headless measure can't see). FodderMarine between thinks (THINK 10 ticks, moving
+  about) runs only gravity and the move on its last decision, the skipped time going into the next full tick's
+  clocks. Still at most ATTACKERS 4 swinging at one captain (measured: 4), the rest circle.
+- **Numbers** (the laptop, other agents' tests sharing it, so +-1.5 ms): 25 fodder +4.9 ms a frame on a quieter
+  machine (+6.8 with all five slots busy), of it posing ~3.6-4 and the rest ~2.8-3.2; 25 full grunts +8.7 to +12 in
+  the same runs. Not done: a far ring drawn by vertex/MultiMesh animation (fodder past ~20 m), fodder movers on a
+  cheaper kinematic step.
+- BurnStatus: a burn whose source was freed (a burning grunt sunk away) no longer hands a freed attacker to take_hit.
+
+## 2026-11-03: the level gap (1.30, docs/v1_30_plan.md "round 5")
+- **What:** g = the foe's level minus the captain's, per captain, on top of Levels' hp_k/dmg_k curves (0 = the old
+  balance). The captain's damage to it x(1 - 0.06g, 0.7-1.5); its damage to the captain x(1 + 0.12g, 0.4-2.0); its
+  poise x(1 + 0.12g, 0.3-1.8) against the captain hitting it; the overkill a throw needs x(1 + 0.15g, 0.1-2.0)
+  (Splat.wants' 50%/15%), and a captain thrown by a foe uses -g (a foe above you throws you with less: 30%/20% lines).
+- **Where:** all the math in `Levels` (gap_dmg_out/in, gap_poise, gap_splat, badge, foe_level, hit_gap, gap_to).
+  `Hurtbox.take_hit` works the gap out (Levels.hit_gap) and scales the damage, and carries it on `HitData.gap`;
+  `Poise.take` divides a foe's (coop) poise damage by gap_poise; `Splat.wants` / `flattens` scale their lines.
+- **Co-op:** the gap is worked out on the captain's own machine: a guest's blow on a host-run foe is scaled on the
+  guest and arrives with its gap packed (Net.hit_pack index 20, after `sneak`), and the host (attacker a puppet, not is_local) leaves
+  it alone; a foe's blow on a guest is worked out when it reaches the guest's own hurtbox. The host never needs the
+  guest's level.
+- **Which foes:** anything in group "enemies" with a `level` (grunts, marines, fodder, bosses, apes, beasts, bugs,
+  creatures, ships' crews) and AI captains. A level-0 foe counts as the level its curves treat it as (its `_lv_ref`:
+  REF 3, 6 for apes and beasts), so a level-3 captain on Brinehollow's grunts is gap 0. AI captains have no level of
+  their own: the first ancestor with a `level` > 0 (a ghost captain's) or an island's node level, else REF.
+- **Bars:** EnemyBars 22x2 (was 28x4) with the foe's level in a box left of the bar (Silkscreen 8), coloured by
+  Levels.badge (grey g <= -5, white, red g >= +3), read at each 0.25 s poll. The bosses' top bar and the minibosses'
+  OverheadBar show no level, so no badge there.
+- **Not through Hurtbox, so no gap:** anything that calls a body's damage directly instead of take_hit.
+- **Tests:** t/combat/level_gap (the table, both ways through real hurtboxes, poise, the splat lines, badge colours),
+  t/ui/enemy_bars (the badge's level and gap); render `levelbadgeshot`.
+## 2026-11-03: 1.30 the stronghold run reworked, piece 2: stealth infiltration
+- **Silent takedowns** (FodderMarine._on_hit): a melee blow on an unaware fodder marine (IDLE, or ALERT under TURNING
+  0.6 s: caught as he turns) from within TAKEDOWN_R 2.4 m, struck out of a sneak (HitData.sneak, or the attacker still
+  in Crouch) from behind the way he faced while calm (`_calm_fwd`), kills him outright: a ragdoll slump, a muffled punch,
+  "Takedown", no barks. A stunned one (the gadgets' flash/smoke: `is_stunned()`) goes down the same way from any side.
+  - **HitData.sneak** (new, packed as field 19 in Net.hit_pack): set by Player.melee_hit from
+    `Progression.sneaking_recently()` (the Ambush window, AMBUSH_TICKS 45), so a guest's blow from a sneak counts on
+    the host though the attack state already replaced Crouch.
+  - A sentry who notices you shouts to his camp only SHOUT_AFTER 0.7 s later (FodderMarine.alert): cut down first,
+    nobody else heard. From behind he still notices a sneak inside 1.5 m (Stealth.BEHIND_K of 5 m), so the takedown's
+    window is 1.5-2.4 m, or the half-second as he turns.
+- **Alarm bells** (StrongholdBell, BELLS: one per district, two in the ward): an iron frame, a bronze bell, a rope.
+  - Once a district's garrison is fighting, the host sends the fodder nearest a working bell running for it
+    (FodderMarine.run_to_bell: out of the fight, shouting, its own move in `_run_bell`); RING_SECS 2 at the rope, then
+    StrongholdAlarm.raise. Cut down, another goes RUNNER_GAP 3 s later. A fight the runners keep losing still raises it
+    after LONG_FIGHT x 2 (28 s).
+  - F at a bell cuts its rope ("sh_bell_<district>_<i>", every captain's). Every bell cut: no runner, the alarm only
+    after LONG_FIGHT 14 s of fighting, and the district's waves every WAVE_EVERY x SLOW_K (14 s, `wave_every`).
+  - Every machine swings the district's bells when its alarm flag shows up.
+- Tests: t/stronghold/stealth (the takedown from behind, nobody stirring; none from the front; the runner, a second
+  runner, the ring; a cut bell, no runner, the long fight, slower waves; a dazed marine from the front); t/stronghold/alarm
+  waits for the runner now.
+- Per tick: the runner's own move instead of his brain (one marine a district at a time); bells check their flag
+  twice a second.
+## 2026-11-03: uitest fixes (stale + yard overflow)
+- uitest opens the skills menu with no weapon tree found (new games start without one since b21bc8b1, so the map had no tree and drew no nodes): the test now discovers "sword" first. The shipwright yard's Refits list (14 lines + 6 group heads since 1.29) made the panel 374 px high on the 360 canvas: the list now sits in a ScrollContainer (250 px, follows focus). Covered by uitest, yardtest, t/ship/yard_buy.
+- (same day, round 5 the level gap) FodderMarine drops its fixed 30 health: a plain marine (MAX_HP, no +30%) at its
+  camp's level - LEVEL_GAP 4; the level-gap multipliers (Levels, the gap agent's) make it quick to cut down. t/stronghold/garrison checks the level and health.
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 3: the acts and the set-piece bosses
+- **The acts** (StrongholdActs, scripts/island/stronghold_acts.gd, built by StrongholdGarrison.build):
+  - **Act 1, the gate:** the gatehouse at the grand stair's head (StrongholdShell._gate at (0, 18.6)) gets a real
+    portcullis (Gate: bars 13 x 8 m, solid until "sh_gate_open"). Ways up: the winch on the stair beside it (F, then
+    stay within WINCH_R 2.8: WINCH_SECS 8 of winding on your own machine, walk off and it stops; the Landing's
+    garrison and boats come at you meanwhile), the lever inside (whoever got in by the cove's drain or a grapple),
+    or a powder charge (ChargeTarget on the bars, remove off: the flag opens it). Once up, it rises over 2 s for good.
+  - **Ways round it:** grapple ledges (GrapplePoints.add_ledge, LEDGES) on the ward's front wall, the prison's sea
+    wall over the west cove and the arsenal's east wall.
+  - **The Verdict's roof:** a balcony deck over the Command Hall's door (BALCONY x -16..16, z -62..-50, ROOF_Y 63.2,
+    parapets, iron brackets, braziers) and a slab over the hall's top (TERRACE) so the roof round the second stage is
+    walkable; the hoist (an iron cage, F) carries a captain between the hall (HOIST_DOWN) and the roof (HOIST_UP).
+  - A supply chest (Gadgets.supply_crate, saved by key) in the Barracks.
+  - **Debug:** the F4 menu's "Stronghold: go to that act" (ACTS: the gate, Kesh, Marrow, Vane's hall, the roof, the
+    vault): the crew there with the flags it needs.
+- **The bosses** (StrongholdBoss):
+  - **Intro name cards:** every machine shows HUD.show_name_card (a slate strip slammed in, the name and its epithet)
+    when it sees a boss's "on" flag.
+  - **Faster, more aggressive:** skill 1.0 and CaptainBrain.pace PACE 0.7 (shorter waits between skills and swings).
+  - **The signature leap** (big and readable): every SIG_EVERY 10 / 7.5 / 5.5 s by phase, at a captain within 24 m on
+    its level: a BossReset run (telegraph ring on the captain's spot, 0.7 s wind, 0.75 s air, a shockwave of the
+    boss's own size and damage, a shout). Player._on_hit_received only shields a BossLeap in the air when it isn't a
+    phase reset: the wind-up and landing are open.
+  - **Kesh's pouring foundry** (phase 2 on, besides the channels): the crucible pours on one of POURS in turn every
+    POUR_CYCLE 9 s (POUR_WARN 2 s of a glowing ring and a telegraph, POUR_BURN 4.5 s of a molten disc with a stream
+    of iron falling into it; POUR_DPS 30 and a burn to our own captain in it), from Ocean.clock on every machine.
+  - **Marrow's prison riot:** the cell block's phase-2 fight is three waves (5, 6, 6) of berserk prisoners, fodder
+    hunters rushing out (FodderMarine), the last wave led by two hammer brutes (full grunts); ragged looks.
+  - **Vane on the roof:** at 65% he leaps up through the hall's roof onto the balcony (his phase-2 BossLeap goes to
+    `roof()`), and his marine adds come out onto the roof after him; at 30% (the Verdict) "sh_scouring" is set and
+    StrongholdScouring starts on it (as well as on "sh_seal_keep"): the broadcast, the dark sky and the fleet round
+    the duel. His fall still opens the vault in the hall below (hoist down).
+- **Revive, else rejoin** (decided): the crew revives as usual; a captain who would get up on their own (spared) or
+  bleeds out inside a boss's arena (`contains`: the room, the yard, Vane's roof) gets back up at its checkpoint
+  (BOSSES "checkpoint", outside the door) after REJOIN_SECS 8 (Player._bleed_tick, GameManager._respawn_player:
+  StrongholdBoss.rejoin_point / rejoin). Rooms' grates have a postern (F while the fight's on) to slip back in.
+  - **Only a full wipe resets the boss** (`_wiped` -> `reset_fight`, host): the phase flags cleared
+    (Net.clear_world_flag, new), the boss healed and back at its spot waiting (brain "hold"), its adds called off
+    (StrongholdEncounter.call_off), a banner; it starts again when a captain on their feet walks in. The Scouring's
+    brig-on-wipe leaves a wipe in a boss's arena to this.
+- **The journal line:** the stronghold run's first step is now the gate (`["sh_gate"]` marks it); Vane's step names
+  the roof; district_hint: the Landing says to breach the gate until it's up, the Keep sends you up the hoist once
+  Vane is on the roof.
+- Tests: t/stronghold/gate (the bars, the winch's hold, open for good, the hoist up and down), t/stronghold/set_pieces
+  (Kesh: card, pace, signature leap, pours that burn, the checkpoint, a wipe's reset and the rejoin; Vane: the roof at
+  65%, the Scouring at 30%); t/stronghold/marrow and t/capital/queen_line updated for the riot and the gate step.
+  Renders: strongholdshot `gate`, `roof_below`, `roof`, `casting_pour`, `yard`.
+- Per frame: the gate, the hoists and the boss nodes as before (a flag check, the pours' visibility from the clock in
+  Kesh's hall only); the signature leap is a host check 4x a second while a fight is on.
+- Gadget hooks used: the gate's ChargeTarget, the grapple ledges, stunned takedowns (piece 2). Open: the cell block
+  has no building of its own (the riot comes out of the yard's corner; Part A), Vane's quarters still flare in the
+  hall below while he's on the roof.
+## 2026-11-03: splat power by overkill (1.30, round 5's last bullet)
+- **What:** a splat's flight grows with how far past its line the blow went (after the gap multiplier). Power =
+  (amount / line - 1) / 2, clamped 0-1 (`Splat.power_of`; POWER_FULL 3x the line): the overkill against Splat's
+  50%/15% line for a foe (`kill_power`), the blow against the 30%/20% line for a captain (`flat_power`, passed through
+  `Player.splat(dir, up, power)` and DownedState's "power"). Lerped by power: wall/ceiling reach 1.6 -> 8 m, flight
+  speed 6 -> 25 m/s, landing ahead 0.8 -> 2.6 m, skid x0.25 -> x1 of 2.4 m, an up throw 5 -> 10.5 m/s. Just over:
+  ~1.5 m all told, a wall only if one is right behind; a huge blow: as before, faster.
+- **Bowling:** while the body flies, skids or falls, `Splat._sweep` checks its path since the last tick against the
+  foes near it (group "enemies" and AI captains; a duel's other captain when a captain is the one flying). Once the
+  body draws level: within BUMP_DOWN 0.8 m of the line a knockdown (poise 400, unblockable) and 4 + 6 x power damage,
+  to BUMP_ASIDE 1.3 m a stagger aside at half. Each once a throw, through their hurtbox from a "SplatBump" point on
+  the line (so a guest's flying captain routes its bumps to the host). Per tick only while a Splat lives (~0.2-4 s):
+  a loop over the enemies group with a distance reject, no physics queries.
+- **Tests:** t/combat/splat_power (curve, mellow vs far, the knockdown and the graze), splat_captain now throws at
+  90% (the full throw that reaches the wall 6 m back; 45% is a short one now); render splatshot `_open` (bowls one
+  over) and `_mellow`.
+
+## 2026-11-03: 1.30 the stronghold run reworked, piece 4: crew-split objectives and the first of Part A
+- **Crew-split objectives** (StrongholdActs), each finishable by a captain alone:
+  - **Hold the gate while another opens it:** the gate's winch (piece 3) now rouses the Landing the moment it's
+    worked ("sh_winching" -> StrongholdAlarm raises the Landing's alarm: its boats row in). One winds (stay within
+    2.8 m for 8 s), the others hold the quay; alone, you clear the Landing first or wind between waves.
+  - **The perch:** a timber stair up the inside of the ward's front wall (PERCH_STAIR, a slope collider under the
+    steps) to a deck on its walk (PERCH, y 18) covering the ward and the Landing, with a rack of the fortress's long
+    guns (F: a musket, if you've none).
+  - **Two levers at once:** the Commodore's vault opens only once its two locks either side of the dais (LOCKS) are
+    pulled within LOCK_WINDOW 2 s of each other (VaultLocks: a pull is a Net.event, the host decides,
+    "sh_vault_unlocked"); with one captain on the go the window is LOCK_WINDOW_SOLO 9 s (time to run between them).
+    StrongholdBoss opens the vault chest on beaten + unlocked. The journal's vault step and the keep's hint say so.
+- **Part A (first pieces):** the prison yard's **cell block** (CELLS x -97..-85, z 0..10: stone walls and roof, barred
+  cell fronts, its door to the yard) where Marrow's riot musters and breaks out (the cells encounter's room); the
+  prison's bell moved out of its way; **the posts dressed**: a brazier at every post, a weapon rack and crates by the
+  standing ones (one mesh for the fortress, no shadow, 140 m range); the ward's front wall walk reachable by the perch.
+- Tests: t/stronghold/crew_split (the winch rousing the Landing, the perch and its stair, one long gun from the rack,
+  the locks too far apart and then together, the cell block with the riot inside it); t/stronghold/vane checks the
+  vault shut until both locks turn; t/stronghold/vault sets the unlock; t/stronghold/gate clears the Landing before
+  winding. Renders: strongholdshot `perch`, `cells`, `ward` (the dressing), `yard`.
+- Per frame: VaultLocks reads two flags and the clock (the handles), the perch and cell block are static bodies.
+## 2026-11-03: 1.30 enemy personalities, jumping attacks, riflemen moves (docs/v1_30_plan.md round 6)
+- **Piece 1, personalities** (`scripts/enemies/personality.gd`, PirateGrunt `_roll_personality`, `_personality_tick`,
+  `_my_turn`, `_parry`, `_guard_broken`): berserker, opportunist, duelist, bulwark, rolled per foe from its setup seed
+  (`hash(["personality", seed, kind])`: the same on every machine, so guests roll it too) by kind: fodder 5/4/0.6/0.6,
+  grunts 3/3/2/2, officers (camp captains, elites) even; duelist/bulwark only with a blade's guard (role "sword").
+  Riflemen, bosses and level-0 crews (Brinehollow: the first fights stay plain, like roles and traits) get none; a
+  setup's "personality" wins ("none" for none). Numbers in `Personality.K` are first guesses (the plan's assumed weights).
+  - Berserker: block 8%, breathers 0.35-0.8 s, a third cut in the combo (`_hits` +1; the swings alternate by `_swing_i % 2`),
+    wind-ups x0.9, runs in x1.15, follows x1.5 further, never steps back after an attack.
+  - Opportunist: rings 1.6 m wider, goes in only once `min(2, mates near, the camp's cap - 1)` mates are engaged
+    (`ENGAGED` states or holding a turn), or the captain is staggered/grabbed/swinging with their back to it, or after
+    6 s waiting (alone: 1.5 s). Still takes a turn from the camp: the attacker cap is untouched.
+  - Duelist: on a think it sees the captain's LightAttack start within 3.6 m facing it: 70% raises the parry
+    (`fo_parry_ready`, a blue glint) for 0.6 s, cooldown 2.2-3.2 s. A blow in that window from the front is parried
+    (sparks, a blue flash, "Parried!", the captain `shoved` 5 m/s back: their own machine, Net.event "reel" for a guest),
+    then `fo_parry` and a riposte 0.28 s on. A heavy/kick/breaker into it breaks it (`_guard_broken`: the blow lands,
+    1.4 s stagger, "Guard broken!").
+  - Bulwark: blocks 60% of front blows (twice running allowed), walks in 0.6 m closer behind `fo_guard_walk`, punishes a
+    missed light swing too (`_watch_whiff`); a heavy/kick/breaker or 40 poise piled on the guard (draining 8/s) breaks it.
+  - Tells: the stance held (upper body) while circling or chasing (sword grunts), its own spotting shout, and the bark
+    label in its colour (`Personality.COLOR`). Holds and plays mirror to guests as every grunt action does.
+  - Cost: decisions on the think tick only (fodder every 10 ticks): a few compares; the opportunist's count is one pass
+    over the cached enemy list per think while it circles. No per-frame work; the held stance is a constant pose.
+  - Tests: t/combat/personality_roll, duelist_parry, bulwark_guard, opportunist_waits, berserker_combo.
+- **Piece 2, AI captains and jumping attacks.**
+  - CaptainBrain `personality` (`roll_for(name)`: hash of the captain's name, the same every visit; the brain runs on
+    the host) scales its defence shares (`K`: a duelist's parries x3, a bulwark's blocks x3 held x1.6 and it walks in
+    behind the block, a berserker's answers x0.4-0.5; never over 90% answered), its circling (berserker x0.4,
+    opportunist x1.7), combos (berserker +2), sprint distance and the step back after a combo (never for a berserker);
+    a duelist's parry chains a 2-hit riposte, an opportunist also goes in on a staggered foe. Tell: its personality's
+    line in its colour over its head the first time it squares up (Net.fx float_text).
+  - AI captains jump in: 3.5-7 m from a level foe, on its feet and free, every 10-15 s (first after 3-7 s): the jump
+    tapped and held, the stick at the foe, an orange telegraph on the foe, and the air heavy (the plain plunge or the
+    tree's aerial heavy) at 1.1 m up or the top of the rise. Stronghold officers and rivals are these brains.
+  - Grunts: `_can_jump` = elite() (camp captains, elites, level 12+), not riflemen, boarders, fodder or bosses. In
+    CHASE or at its turn in CIRCLE, `_want_jump` picks a dive (the captain 1.6+ m below within 9 m), a leap (3.6-7.5 m,
+    level) or a jump-in slash (7.5-11 m), with a line of sight and dry ground at the spot (0.9 m short of the captain,
+    led by their velocity); it needs a turn (token). WIND (JUMP_WIND 0.4-0.55 s, `fo_leap_wind`, an orange glint, an
+    orange telegraph on the spot for wind + flight, a bark) then `S.POUNCE` (appended to the enum): a ballistic arc
+    landing on the spot in JUMP_FLIGHT s, the mask to captains off in flight, `_hit_pounce` (20 x level, knockdown,
+    appended to `_hit_set` so puppets arm it by index) live from the top of the arc to 0.18 s after landing
+    (`plunge_land`, a dust ring and a thud). Cooldown JUMP_CD 10-15 s, the first 3-7 s into a fight.
+  - Poses (FoePoses): fo_leap_wind, fo_leap, fo_jump_slash, fo_dive. Renders: tools/dev/out/fo/ (posebench stances,
+    animsheet jump moves), enemyshot's new "leap" strip.
+  - Tests: t/combat/jump_attack, ledge_dive, rival_personality; rival_duel now reads its closest approach in the first
+    5 s (it may jump in or circle out at the moment it used to sample).
+- **Piece 3, riflemen** (PirateGrunt, role "rifle"; FoePoses fo_hip_shot, fo_kneel_aim, fo_bayonet, fo_roll_l/r):
+  - Hip shot: within HIP_RANGE 6 m (beyond the butt's reach), on its own 4-7 s cooldown: a 0.5 s aim (0.18 s locked),
+    9 x level; back to KEEP (no reposition).
+  - Rushed (within BAYONET_RANGE 3.4 m, the shove's cooldown): the butt stroke (a knockdown, as before) or the bayonet
+    thrust (always past the butt's 3 m): a 0.75 s move, the point lands at 0.38 s, a narrow arc tell, 11 x level, a
+    stagger, no knockdown; the rifle levelled forward while it plays.
+  - Kneeling aimed shot: from KNEEL_FROM 9 m, `_kneel_odds` 30% of its rifle shots: a 2.0 s aim (0.55 s locked), down on
+    one knee with a red glint and a line; 22 x level and a knockdown.
+  - Dodge roll (`_rifle_evade`, every think in KEEP/REPOSITION, ROLL_CD 5-8 s, 55%): a heavy/draw/shot coming its way
+    (`_threat_of`) or a captain charging it within 6 m (> 5 m/s at it): a 0.5 s sideways roll at 7.5 m/s (S.DASH with
+    `_dash_len`/`_dash_speed`, the elites' i-frames), `fo_roll_*` spun about the forward axis (SPIN_ACTIONS).
+  - A side-step hop (35%) each time it changes its strafe; reposition spots on ground above the captain score up to 6 m
+    cheaper; rifle aims jittered (-0.2..+0.35 s) and RIFLE_EVERY +-2.5 s; a ball within VOLLEY_GAP 0.35 s of another
+    rifleman's holds its shot 0.15-0.3 s more (static `_volley_tick`), so a group never fires as one.
+  - Co-op: all host-side; puppets get the poses by play, the aim line by the snapshot (`_gun` "hip"/"kneel" picks the
+    rifle's muzzle), the state ints (no new states).
+  - Cost: think-tick only (the evade check reads the captain's state and the projectiles group, as the elites' dash does).
+  - Tests: t/combat/rifle_moves. Renders: enemyshot "kneel" and "bayonet" strips, posebench tools/dev/out/fo/rf_*.
+
+## 2026-11-03: the fortress art pass (1.30, docs/v1_30_plan.md round 7: Marineford / Enies Lobby)
+Zach's correction mid-pass: keep the layout, massing and silhouettes; the job is detail, models and life on the existing
+shapes, in the white-blue-gold palette. Nothing moved; every anchor (gates, winch, lever, ledges, perch, locks, hoists,
+bells, posts, patrols, doors, arenas) where it was.
+- **Palette** (`StrongholdShell._wall_m/_dark_m/_trim_m/_soot_m/_foot_m/_flag_m/_gold_m`): `admiralty_stone` (pale ashlar)
+  in four tints that fold to one surface (white walls, shaded structure, navy trim, soot), `admiralty_paving` slabs for
+  floors and steps, metal in iron and gold (one surface), `admiralty_banner` (navy, gold border, the white gull) for banners
+  and flags, `admiralty_wanted` posters. Textures: `tools/texture_gen/gen_admiralty_textures.py`.
+- **Architecture on the shapes** (shell): walls get a navy band with a gold line under the walk, a navy plinth, capped
+  merlons, and by position buttresses (outer), pilasters (inner; never over the strips behind the halls: the stealth ways)
+  and framed slits; tower crowns (`_cap`) corbels, navy cornice, capped piers and merlons, a flag on the tall ones; the
+  gatehouses rusticated jambs, a voussoir course, the gold-ringed gull crest (`_crest`, an extruded `gull()`) on both
+  faces, merlons, banners down the towers; the halls pilasters, shuttered framed windows, a door frame with the crest, a
+  crenellated parapet and capped stacks; the Verdict navy-gold cornices, pale pilasters for its iron ribs, crests on its
+  base and second stage, merlons and flags on its crowns, the ring's rim in gold; the prison drum navy bands.
+- **Dressing** (`scripts/island/stronghold_dress.gd`, StrongholdDress.build in StrongholdIsland.prepare after the shell):
+  one merged piece per area (DressLanding, DressFoundry, DressPrison, DressKeep, DressHalls, DressBatteries, DressWard,
+  DressGalleries) plus the repeated props as data (`_put`), turned into one MultiMesh per district and kind in the finish
+  step "props" (no shadows, 170 m; flags 600 m). `clear_at(q, pad)` keeps everything off the run's anchors (garrison
+  posts and patrol lines, sources, bells, musters, the acts' winch/lever/rack/supply/hoists/locks/ledges, checkpoints,
+  Marrow's arena, the berth, the vault's spot, the perch and its stair, the stealth test's sneak, the rooms' door aprons).
+  - Landing: bollards and rope coils at the edge, lamp posts, flags and wanted boards at the stair's foot, cargo by the
+    cranes, carts, fenders and gangplanks on the docks, the harbourmaster's lean-to, a marines' tent.
+  - Foundry: soot streaks up the Casting Hall and round its door, glowing vents, slag heaps with glowing cracks, coal and
+    ore piles with barrows, a tramway and ore cart, a cooling crucible, chains and hooks from the gantry, a quench trough,
+    anvils, moulds; inside along the walls (clear of the channels and pours) moulds, tool racks, ingot stacks, a bench.
+  - Prison: two more tiers of barred cells on the yard's cell block (bunks, straw, buckets), each with a catwalk on
+    brackets (tier 2's meets Marrow's catwalk at 19.6), a stair between them; the drum's iron gate where its garrison
+    comes out, shackles on the north wall, a searchlight post.
+  - Keep: the Command Hall's navy runner, pillar plinths and capitals, chandeliers, flags behind the dais, shelves and
+    clerks' desks, the war table's map and markers; the plateau's flags and lamps; the roof terrace's corner braziers
+    and flagstaffs (pylon colliders).
+  - Halls: plates, mugs, pots, a kitchen range and counter with hanging pans in the Mess; blankets, pillows, footlockers,
+    coats, a card table, a musket rack and a board in the Barracks.
+  - Batteries: guns along the quay front (clear of the berth, docks and boat lanes), on the sea walls' tops and the keep's
+    front wall; shot stacks, powder kegs, sandbags.
+  - Ward: porticoes along both halls' fronts (columns with colliders, a navy tiled lean-to), lamps and flags round the
+    plaza, a drill corner (dummies, rack, board), laundry over the strips behind the halls.
+  - Galleries (new ways): timber galleries on brackets 1.4 m under the walk along the inside of the Arsenal's and the
+    Prison's outer walls (a captain grappled onto the wall steps down onto one), railed, each with a stair to the yard.
+- **Interiors shaped** (`scripts/island/stronghold_interiors.gd`, StrongholdInteriors.build from StrongholdDress's
+  "dress interiors" step; Zach: "not just completely square"): per room (`SPEC`: bay, spring, rise, window walls, hearth)
+  skirting, dado rail and a cornice at the spring; a blind arcade of pilasters (colliders) with plinths and gold-banded
+  capitals and arches between, cut round the door; tall arched leaded windows in alternate bays; a segmental barrel vault
+  with navy ribs and lamps on chains (Mess, Barracks, Command Hall), king-post trusses on corbels, purlins, hooks and a
+  travelling crane (Casting Hall); a fireplace built into a wall (Mess west, Barracks east, Command Hall east between the
+  desk and the shelf). The door's frame inside with an arched head. Pilasters skip `keep_out` rects (the kitchen, the
+  dresser, the racks, the furnaces, the bench). Everything within 1.6 m of a wall or overhead: Kesh's channels and pours
+  and Vane's quadrants untouched. Density: the Mess's crockery dresser, food on the tables, hams, sacks, posters; the
+  Barracks' runner, boots, a clothes rail, a second rack; the Command Hall's charts, armour stands, a globe; the Casting
+  Hall's bellows (between the furnaces and the middle channel), coal, anvils, ingots. Outside, the Verdict's base gets a
+  blind arcade with windows round its front and sides and the Command Hall's door a deep arched frame.
+- **Warships moored** (`StrongholdIsland.MOORED`, finish step "warships"): one Admiralty warship hull built
+  (HullBuilder, the warship look), absorbed four times into one mesh outside the sea walls (clear of the boat lanes and the
+  channel), a box collider over each hull.
+- **Cost:** no per-frame or per-tick work (static meshes and MultiMeshes only, no new lights). See the report's numbers.
+- Tests: t/stronghold (all), new t/stronghold/dressing (props built and off the anchors, the warships solid, the cell
+  tiers' catwalks hold a captain). Renders: strongholdshot (new shots foundry_yard, cellblock, battery, warships,
+  hall_side).
+
+## 2026-11-04: 1.30 stronghold + badge fixes
+
+- **Scouring broadcast** (StrongholdScouring): "Scour <island>" / "The Scouring is ordered" when it starts (sh_scouring at Vane's 30%, or his fall); "<island> has fallen" only at sh_seal_keep. t/stronghold/scouring checks both.
+- **Vane's hall hazards** (StrongholdBoss.away): the quarters rest while BossVane is above the hall (on the roof), flare again when he's down. Read from the boss node on every machine. t/stronghold/vane.
+- **Late joiners** (StrongholdReinforce.net_set_gen): more than one wave behind -> only the host's current wave spawns, nothing replays; the island's catch-up frees the dead. Earlier waves' survivors aren't spawned on the late joiner's screen. t/stronghold/late_join.
+- **Cell block** (StrongholdActs._cells): the Admiralty palette (white stone walls, navy roof and lintels, a gold line on the roof).
+- **Boss bar level badge** (PlayerHUD.show_boss gets the boss as a 4th arg): the same badge as EnemyBars (Levels.badge by gap). Passed by beast_arena, brood_cave, dungeon, leviathan, sea_king; Redtide's call (redtide_fort.gd) and the duel's still show none. t/ui/boss_badge.
+- **Level-0 foes** (Levels.foe_level): the level of the island they stand under (REF with none), no longer their _lv_ref (the apes' 6 gave a red badge to a level-3 captain on Brinehollow). _lv_ref still only scales their numbers.
+## 2026-11-04: 1.30 rival crews arrive in a ship you can see (docs/v1_30_plan.md, "Rival crews")
+The playtest's meetings happened on land unnoticed and the warning promised a ship that never came.
+- **The ship** (`scripts/ai/rival_ship.gd`, RivalShip): the pirates' hull (HullBuilder.build, base layout) in the crew's
+  colours (sail from the palette, trim and flag the crew's flag colour, the jolly), with collision. No AI: her place is a
+  function of `Ocean.clock()` from the leg's start (cruise 12 m/s, an even brake over the last 60 m, swinging broadside to
+  the shore over the last 30%), so one `Net.everyone("_all_rival_ship", [crew, from, anchor, heading, t0])` sails the
+  same ship on every screen with no snapshots; `_all_rival_ship_leave(t0)` sails her back out the lane, freed at its end.
+  Lane: anchored 36 m out past the dock's end and 18 m to the side away from the crew's mooring, from 300 m out, 0.3 rad
+  off straight (`RivalShip.lane`; `lane_m` is the tests' short lane). Swell like EnemyShip's (5 wave samples near the
+  camera, height only past 260 m); a wake and bow splashes while moving and near; anchor splash and rope sound.
+- **The arrival** (`scripts/ai/rival_arrival.gd`, RivalArrival, host): RivalWatch's crew trigger (ashore 20 s, 45 m
+  inland, quiet) now starts it instead of the old 35 s warning: the "A sail on the horizon" banner as she appears; once
+  anchored and a captain's ashore, the announcement (below); ROW_S 4 s later RivalEncounter.start from the dock as before
+  (walk in, meeting, duels). The visit ending (`ended`) sails her off; RivalWatch.decide (the crew sailed on) cancels a
+  ship still coming. The plan's "met" bookkeeping moved to the meeting's start (`met` signal).
+- **The announcement** (`Net._all_rival_arrive`): `RivalBanner` (`scripts/ui/rival_banner.gd`, a slate card slammed in on
+  the HUD: their flag drawn, the crew's name, captain and epithet, the call-out; 4.5 s), `Music.rival()` (the new
+  `music_rival` sting, ducking the music like victory), and `Journal.announce("rival", ...)` pinned in the log. The
+  call-out is a per-crew `"callout"` line in RivalCrews with `{name}` = the captain they came for; their captain says it
+  again (speech) when they turn up on the pier.
+- **Sting:** `track_rival` in gen_psx_music.py (`py tools/texture_gen/gen_psx_music.py rival`): 6.0 s, D phrygian brass
+  call over low strings, timpani roll into the last note; -16.9 LU, peak -2.9 dBFS.
+- **Never** in the capital, the canal city or the stronghold: RivalWatch.decide plans no crew there (unchanged check).
+- Debug: Ctrl+Alt+F5 on a chain island brings the next crew's ship in (RivalWatch.bring); off one, the old direct meeting.
+- Per tick: one RivalShip at most, 5 wave samples a tick near (1 far), asleep past 700 m (ActorSleep, by her clock's
+  position); RivalArrival a check every 0.25 s.
+- Tests: t/ship/rival_ship_arrival (spawned out at sea, sails in, anchors broadside, banner/flag/call-out by name/sting/log,
+  the meeting only after, she sails off), t/ship/rival_ship_nogo (no crew at the three, a coming ship turns back).
+  Render: rivalshipshot (light stage: horizon, sailing in, anchored with the banner, close, ashore).
+- Not done: a guest joining mid-arrival doesn't get the ship (world sync); meeting them at sea / boarding is after 1.30.
+
+## 2026-11-04: 1.30 the brig and the galleon (docs/v1_30_plan.md round 8)
+The crew's gun ships on the 1.29 layout system: bought at the canal city's arsenal, kept, swapped at a yard.
+- **Layouts** (`scripts/ship/hull_layout.gd`): `of("brig"|"galleon", _)` (no tiers: `ROOMED`, the Quarters line hidden on
+  them). `_scale(kx, kz, depth, freeboard, bow_up)` stretches the sloop's crew layout (rings, decks, cabin, stairs, helm,
+  mast, ladders, fittings) and sets the 1.30 fields every sloop number used to be: `map(p)` (x by kx, z by kz, heights
+  kept), sprit, stanchions, quarterdeck posts, yard width and sail scale, extra `masts`, anchor/capstan/pump/figurehead,
+  deck seats, mend spots, damage ranges, waterline, camera arm, `base_guns`. The sloop and base() keep every old value
+  (`t/ship/sloop_parity` and `layout_parity` fingerprint the hulls). Brig: 1.5x long, 1.25x beam, freeboard 1.8, two masts
+  (fore -12), five gun pairs down the waist + the Gun deck line's quarterdeck pair. Galleon: 2.2x, 1.5x, freeboard 3.0,
+  fore/main/mizzen (mizzen on the poop), a gun deck at y -2.0 (`lower_*`, `hatch`) with five pairs + five on the main deck
+  + the quarterdeck pair, the cabin at main-deck level (no step down), a poop at qd_y + 2.6 over a stateroom (`poop_*`).
+- **Hull** (`hull_builder.gd`, new `hull_decks.gd`): HullBuilder reads the new fields (bowsprit, stanchions, stays, the
+  quarterdeck's rails stopping at a poop) and draws/collides the poop as a second quarterdeck through `castle_view()` (the
+  same `_quarterdeck`/`_stairs`/`_castle` code one storey up). HullDecks: the extra masts (shrouds, ratlines, a top, stays;
+  a collision cylinder each, no climbing), the gun deck (floor, the hull's inside, the deckhead with the hatch open,
+  beams and knees, bulkheads, the mast through it, lanterns, the hatch's coaming/rails/stair, ports with open lids), its
+  collision in place of the solid hull (keel volume, bow and stern blocks, deck slabs round the hatch, side walls, the
+  stair ramp), and the dress: two wales, the galleon's gun-port strake in the trim colour, lit stern windows per storey with
+  mouldings, quarter galleries. A main-deck segment over the hatch is planked round it.
+- **Rooms** (new `ship_rooms.gd`; ShipCabin's build/seats/solids/table_at/lamp_at hand over when `L.rooms`): a partition
+  with a doorway; forward the lounge (ShipCabin's stove, counter, pantry, chest, mess table and candle ring, panelling, a
+  velvet sofa, armchair, tea table, rug); aft the brig's captain's cabin (curtained bed, bunk beds with a ladder, chart
+  desk, stern windows, wardrobe, coat rack) or the galleon's bunk room (four bunk sets, sea chests); the galleon's
+  stateroom (bookcases, compass rose, chart table and globe, wardrobe, coats, seven stern windows over a window seat,
+  chandelier). Extra lamps (`lamps`) hang under the cabin mesh (hidden with it); the gun deck's dressing (`hold`: shot
+  racks, rammers, buckets, hammocks, barrels) is its own mesh and light, shown only with a camera near it.
+- **Ship** (`ship.gd`): everything that used a sloop const reads `layout` (swell sampling points, freeboard, heave a bit
+  steadier on longer hulls, wake, damage spots, pump/capstan/anchor, mend spots, seats, windows, stripe, figurehead). A
+  class change (`apply_kit` with different rings) runs `_refit_class`: the rig (+ `_rigs` for the other masts, braced,
+  set and furled with the main, painted with it), climbing, anchor and capstan, pump, puddles, guns, spray (`ShipSpray.fit`)
+  and the camera arm are rebuilt, then `_relayout`; ShipParts `strip()`s and rebuilds on the next apply. Guns: `base_guns`
+  pairs, the aft (refit) pair is index base_guns. `Ship.moor_out(tree)`: every island's `mooring()` lays the wider hulls
+  that much further off the quay/pier. ShipParts maps its sloop-placed pieces (`mz`, `layout.map`), skips Quarters on the
+  roomed classes and the galley line's upper bunk and hammocks there (their bunks are two-high already).
+- **Buying and owning** (`ship_classes.gd`): `CLASSES` brig/galleon, `FOR_SALE`, `owned(kit)`, `chain_layer(gm)`,
+  `locked_why(cls, layer, settled)` (galleon: past the canal city's layer, or there with the log pose set). Paint, colours,
+  flag and figurehead are the crew's (`ShipKit.LOOKS`: `switch_to` carries them over; `ShipKit.merged` drops a laid-up
+  ship's own looks, which migrates 1.29 saves). Grane (`CanalLife._ship_choices`) sells all three, says why about the
+  galleon until then; `GameMenu._ship_event` refuses a locked buy. The kit's "class"/"fleet" were already saved and synced
+  (Net.set_ship_kit / request_ship), so co-op guests see the class change and refit the same way.
+- **Numbers** (Zach tunes in play; ShipClasses.CLASSES, HullLayout._brig/_galleon):
+
+  | | Sloop | Caravel | Brig | Galleon |
+  |---|---|---|---|---|
+  | Price | (start) | 1,400 g + 6 timber, 4 canvas, 2 iron | 3,200 g + 10 timber, 6 canvas, 6 iron | 7,500 g + 18 timber, 10 canvas, 12 iron, 4 copper |
+  | Sold | - | canal city | canal city | canal city, once its log pose is set (or past it) |
+  | Length x beam | 22.5 x 8.8 m | same | 34 x 11 m | 50 x 13.2 m |
+  | Hull | 400 | 340 | 800 | 1,200 |
+  | Top speed | 11 m/s | 13 | 10 | 9 |
+  | Turn (full rudder) | 0.55 rad/s | 0.68 | 0.385 | 0.275 |
+  | Accel | 2.6 | 3.1 | 2.2 | 1.8 |
+  | Guns a side (+ Gun deck line) | 2 (+1) | 2 | 5 (+1) | 10 (+1), and a bow chaser |
+  | Bag slots | +0 | +4 | +6 | +12 |
+  | Masts | 1 | 1 + lateen | 2 | 3 |
+- **Debug:** Ctrl+Shift+F10 sails the next class (sloop, caravel, brig, galleon), owned for free.
+- **Per frame/tick** (no bench): the sim is unchanged (5 wave samples, one test_move); `_show_sail` sets the extra rigs'
+  transforms (+1 brig, +2 galleon); every crew gun at rest now returns after a seat lookup (before, each set its aim every
+  frame), so 22 galleon guns cost less than the sloop's 6 did; the cabin check (4/s) also toggles the gun deck. Rooms and
+  gun deck meshes and lights hide unless a camera is near (visibility ranges 40/14/60).
+- Tests (t/ship): sloop_parity, brig_layout, galleon_layout, big_broadside, yard_classes, fleet_save; caravel's paint check
+  updated for the carried colours. Render: `crewshipshot` (tools/dev/out/review/ships_*.png).
+- Not done / open: enemy brigs and galleons, boarding the new hulls, NPC deckhands (out of scope). Captains aboard when the
+  class changes stay where they stood (at a yard, normally ashore). The galleon's bow chaser sits low under her sheer.
+## 2026-11-04: Redtide's mountain (1.30, piece 2: dressing)
+- **Rock:** red strata in wavy bands (`_band_m`, the stone the rock's named for: sin of height + noise), the mossy
+  ledge rock and noise-gated grass from piece 1. Five surfaces on the massif.
+- **Plants** (`_dress_massif`): every grassy facet the massif picks is kept (`_green`) and gets a tuft patch, a bush,
+  a fern, or (high tops, flat) a pine: one MultiMesh per kind (Props meshes), no shadows, ranges tuft 140 / fern 180 /
+  bush 220 / pine 900 m (the pines read from the sea). Boulders in the surf along the foot: one merged mesh, no
+  colliders (nothing to climb from the water), 400 m.
+- **Sea arch** off the west arm's tip (`_arch`: 15 rings of 7 jittered sides on a sine bow, legs thick, lintel
+  thin, a convex collider per segment), 24 m span, 17 m high. The second mouth stack moved out to 86 m.
+- **Birds:** SkyBirds lists Redtide like an island ("redtide", radius 60): its high flocks wheel over the peaks
+  (`RedtideFort.height_at`: the arena's top, the crest over the massif, the sea; also islandshot's "~" heights).
+  No harbour gulls (no DockingArea).
+- **Per frame:** nothing new of Redtide's own; SkyBirds' flock birds (inside its MAX 72, the GPU flock path).
+- Tests: t/world/redtide_way_in green with the arch; t/world/sky_long_tail, sky_flock_gpu green.
+
+## 2026-11-04: how an island's quests read (1.30, docs/v1_30_plan.md round 9)
+- **Crowds** (IslandLife.AMBIENT 12-15 -> 9-11): a quarter fewer villagers on routines on generated islands; the three
+  named, the traders, the elder, keepers and plaza faces as they were. Shifts each seed's quest picks (same stream).
+- **Vendors keep their counter** (IslandLife._routine): KitMarket stalls' Vendor spots are kind "stall" now (was
+  "market", which the lunch walk sent everyone to). Traders route first: their shop, else the first free stall, else a
+  plaza pitch (`_pitch`, a "stall" spot inside the hub ring). Whoever works a stall keeps it (one stay, one-point walk,
+  every hour); a kept stall is left out of everyone else's picks (`kept`). JOBS' "market" is "stall".
+- **Landing objectives** (ChainGoal._on_island, world flags `IslandLife.town_flag()` / `board_flag()`, the crew's):
+  1. "Find the town on <island>" (marker on the village) until a captain comes within KitQuests.TOWN 30 m of it
+  (KitQuests' 0.5 s tick sets the flag); 2. "Ask <elder> what troubles <island>" (as before); 3. "Check the notice
+  board" (marker on the board) until a captain reads it, shown even while the just-taken trouble is tracked
+  (`followed` defers to it); then the trouble's own step.
+- **The board** (IslandVillage.read_board -> GameMenu.open_board -> `scripts/ui/notice_board_screen.gd`, from
+  `IslandRecord.of(isl)` in `scripts/quests/island_record.gd`): no dialogue and nothing to take. Island record (explored
+  % = land fog cells seen, MapFog; the main mission with its poster while untaken; side missions done / all the island's
+  KitQuests; places found / MapIsles spots), the bounties newest first (title, place, poster, reward, state chip), who
+  needs a hand (quest givers, "Wants 3 x" for fetches, where they work, state). All shared state: a guest reads the same.
+  The theme's board line is its subtitle. The arc's WANTED poster choice on the board is gone (IslandArcs._poster).
+- **Bounties without taking** (IslandLife._post marks them `walk_in`; KitQuests._walk_in): an X on the held map
+  (MapMarks "notice:<id>") from the start until paid; the crew's journal takes it when a captain comes within WALK_IN
+  45 m or its target is seen cleared; then "Report to <poster>" as before. The capital's board is unchanged (no walk_in).
+- Per tick: KitQuests' existing 0.5 s tick adds a distance check to the town (until found) and one per bounty plus a
+  MapMarks dict write; the board computes its record only when opened (land cells cached per island).
+- Tests: t/island/crowd_size, t/island/vendors_stay, t/quests/landing_goals, island_tracker, bounty_no_take (new; helper
+  t/quests/_isle.gd); unique_lines and arc_roll updated (no board talk); isletest's board check moved to the notices
+  (not run in this tier). Render: `boardshot.gd` (board_goal_1..4, board_page). Expected to touch isletest, lifetest,
+  villagetest, storytest (the box), netchain (the walk-in take and the world flags go through Journal/Net as before).
+
+## 2026-11-04: 1.30 creatures, piece 1: fog graveyards and zombies (docs/v1_30_plan.md round 8)
+- **The graveyard** (`fog_places.gd` graveyard/_railing/_gate/_crypt/_mausoleum/_headstone/_dead_tree): 15 m reach (11
+  m where no 15 m ground is free; was 9), W 1.45r x D 1.2r. A stone plinth with spear-tipped iron bars and piers round
+  it, one run fallen in; the gate under an iron arch with its leaves hanging open; a gravel walk to the crypt (columns,
+  pediment, steps, black door behind a grille); a mausoleum in each back corner (pyramid or pitched roof, urn, sealed
+  slab); rows of headstones each side (slab, cross, obelisk, broken with its top beside it, fallen), stone tombs, dead
+  trees. One MeshBuilder mesh (6 surfaces, ~7.8k tris), ranged 280 m, ~110 box colliders. The haunt there is one drowned
+  and a ghost now (was two drowned).
+- **Zombies** (`fauna/zombie.gd`, a Creature; FogTheme.CREATURES "zombie", not in FAUNA so never rolled): 4-6 under the
+  graveyard's fresh graves (dark loose mounds), handed to the island's FaunaSpawner by the new `add_spots(kind, pts)`
+  (one group; its LOD, respawns and co-op gen as any creature). States: HIDE buried (no collision, hurtbox off,
+  hidden; a 0.2 s look for a captain within 11 m), NOTICE rising 1.9 s (anim_a the progress, so puppets pose it; dirt
+  bursts at 0 and 0.7 s through Net.fx), then a lurching shamble (1.35 m/s), the tell (both arms up, the red glow) and a
+  rake or a grab. The grab is a HitData.grab hit (GrabbedState: mash free or bitten and thrown, `grab_damage` 16 x
+  level): the grabbed captain's machine tells the host (`grab_held`, new in Net.HOST_CALLS) so it holds (SPECIAL), and
+  GrabbedState now lets go when the grabber's `holding()` says it's put down or dead. Left alone 14 s by its grave it
+  sinks back in. Drops canvas (grave rags), ivory. Sounds `zombie_moan` (3 takes), `grave_burst` (gen_psx_audio.py).
+- **Tests:** t/fauna/zombie (the shared `_creature_case.gd`: pool, build, level, tell before strike, the blow lands, a
+  drop table that drops, death, asleep far), t/fauna/zombie_rise (buried, rises near, stands, grabs, mashed free),
+  t/island/fog_graveyard. Renders: `graveshot.gd` (day/night, rising), `creaturesheet.gd`.
+- **Per tick:** a buried zombie's 0.2 s distance check while the LOD has it awake (<70 m); risen, a creature's usual.
+  The graveyard is static.
+
+## 2026-11-04: 1.30 creatures, piece 2: the fog's eerie creatures
+- **Roster** (FogTheme.FAUNA): pale_stalker p 0.6, bog_hound 0.55 (packs of 2-4), grave_moth 0.65 (2-3); the shared wolf
+  0.45 -> 0.25, boar 0.3 -> 0.2, fox 0.25 -> 0.2. Every fog island's roll changes (kinds sorted, one stream).
+- **Pale stalker** (`fauna/pale_stalker.gd`): 2.5 m, bone-white, faceless, arms to its knees, legs bent back. Faded
+  (anim_a ~0.12, synced) it's drawn on a broken duty in _pose (model.visible flickers: the PS1 way to fade, no alpha in
+  psx_lit). Stalks on a ring 8.5 m round a captain (18 m notice, stealth-scaled), then solid with `stalker_shriek` (the
+  tell: rears up, arms spread, 0.8 s) and lunges across the whole gap (speed from the distance, up to 26 m/s) to rake:
+  20, a knock-down. Fades and swaps its circling side; hit, it comes solid a moment. Drops ivory.
+- **Bog hound** (`fauna/bog_hound.gd`, on Wolf: the pack brain): hunched, weed strings, rotted ribs, cold eyes; the
+  wolf's own part meshes recoloured grey-green once per kind (`_recolour`, cached in Creature._meshes); `bog_bark` on the
+  lead's notice and each tell; drips while running; a landed bite splashes. Drops bear_hide, fish.
+- **Grave moth** (`fauna/grave_moth.gd`, on Flyer): ~2 m wings, eye-spots that glow; rests flat in the grass (its anchor
+  0.15 m up). Lured (0.5 s look) at night or by a captain's lit belt lantern (`body_model.lantern.lit`) within 22 m: up
+  and orbiting, the tell is a 0.6 s hang with its wings flared, then the dive; a landed hit poisons 4 s x 3 (Creature
+  venom) in a puff of scales. Light gone (day, lantern out), it goes home. Drops plume, canvas. `moth_flutter`.
+- **Tests:** t/fauna/pale_stalker, bog_hound, grave_moth (the shared case). Render: `creaturesheet.gd`.
+- **Per tick:** each sleeps on the spawner's LOD like every creature; the moth's lure look and the stalker's flicker
+  (a fposmod in _pose) are the only additions.
+
+## 2026-11-04: 1.30 creatures, piece 3: the forest's fairy-tale creatures
+- **Roster** (ForestTheme.FAUNA): shroom_crawler p 0.65 (groups of 2-4), thorn_boar 0.55 (1-3, the first a big one),
+  owl_beast 0.5; the shared boar 0.55 -> 0.4, fox 0.5 -> 0.4, wolf 0.3 -> 0.2. Every forest island's roll changes.
+- **Mushroom crawler** (`fauna/shroom_crawler.gd`): a cart-wheel toadstool (red with white warts, brown, or a glowing
+  violet) on a stem with six root-feet. Sits as a mushroom (IDLE) until a captain is within 5.5 m, creeps (1.6 m/s);
+  the tell is the cap swelling 1 s with `spore_puff`, then a 5.2 m spore burst round it (9, poisons 5 s x 3: Creature
+  venom). Hit while it swells, it bursts early. Walks home and sits down again. Drops mushrooms.
+- **Thorn-backed boar** (`fauna/thorn_boar.gd`, on Boar): moss hide, a briar ridge of curved thorns; hostile from 7.5 m
+  (stealth-scaled), the boar's paw tell and charge (10.5 m/s), every charge a knock-down. A blow from behind (attacker
+  behind its facing) does x0.45 and throws bark (Creature._armor): take it in the face or flank. Drops haunch, tusk, timber.
+- **Owl-beast** (`fauna/owl_beast.gd`): a bear-sized owl on four legs. By day it sleeps where it is (not hostile; hit, it
+  wakes and hunts). At night it sees a captain from 22 m (0.3 s look), charges at 6.2 m/s, rears up with its wings
+  flung wide and `owl_screech` (the tell, 0.75 s), then drops on you with both talons (22, a knock-down). Below 20% it
+  flees. Drops plumes, bear_claw.
+- **Tests:** t/fauna/shroom_crawler (+ its spores poison), thorn_boar (+ its back turns a blow), owl_beast (night). The
+  shared case now runs night cases on a stage named World so Weather turns the clock (`weather` stage opt).
+  t/island/forest_* stay green. Render: `creaturesheet.gd` (every new kind).
+- **Per tick:** each on the spawner's LOD; the owl's 0.3 s night look. Triangles: crawler 432, owl 1000, thorn boar 1930
+  (the thorn tubes), stalker 492, moth 404, bog hound 971, zombie 723.
+
+## 2026-11-04: Brinehollow polish, piece 1 - Tackett's ironwood grove (1.30)
+- **What:** the forest step's three fallen trunks (StoryDeadfall, lined up beside the path in front of the cave) are
+  gone. `scripts/game/story_grove.gd` (StoryGrove, node "IronwoodGrove") is a clearing (StarterIsland.GROVE, r GROVE_R 9)
+  south of the forest path, 50 m from the cave, at the end of a worn trail (GROVE_TRAIL, a real path appended last in
+  `_define_paths`, `_grove_trail` its index) with a signpost where it leaves the forest path. Three standing ironwoods
+  (stump with buttress roots; trunk and crown on a "Hinge"; Tackett's blaze: a white paint band and a red rag) round
+  its edge, two old stumps, his chopping block with an axe and a roofed stack of seasoned lengths.
+- **Felling:** F at a marked tree on the "forest" step: the new `gesture_chop` (EmotePoses, two axe bites), chop
+  sounds at the bites, a crack, the trunk leans then falls (a tween on the hinge, the butt kicking off the stump to the
+  ground), a thud, dust rings along it, a small camera shake; a length of timber; three and the step's done. Stumps
+  stay; the "Trunk" shape goes off and the "Log" one on. Off the step: "Tackett's blaze is on it". Each captain fells
+  their own (Dialogue flags `ironwood_<i>`; the grove shows this screen's captain's trees down, refreshed on
+  Story.changed); the fall and dust are local, the sounds through Net.fx. The marker leads to the trail's mouth, then
+  the nearest standing tree. Tackett's lines, the step's goal ("Fell the three ironwoods Tackett marked...") too.
+- **Brinehollow's dump:** the grove's reserve is in the grown layer, so the old forest's plants inside it and along the
+  trail are left out with their draws kept (15 trunk colliders, the forest's MultiMesh squares); spitters skip crowns
+  over the grove and the trail. Nothing else moved. Old saves mid-step fell three trees (their deadfall flags are
+  ignored).
+- **Per frame/tick:** nothing (a felling runs one 2.5 s tween). Draws: ~21 surfaces for the three trees (stump 2, tree
+  5), ~6 for the dressing, 2 the signpost, against 9 for the old trunks; ranges 160 m (stumps), 260 m (trees), 120 m
+  (dressing, no shadow).
+- **Tests:** t/story/ironwood_grove (new), t/story/island_steps (to the grove). Renders: `tools/dev/groveshot.gd`
+  (standing, felled). Tool: `brineprobe.gd` (ground, slope, paths and reserves at island points).
+## 2026-11-04: 1.30 collision audit, piece 1 + the snow ice (Zach: "a lot of structures... missing collision"; "janky frozen rivers")
+- **The audit** (`tools/dev/collision_audit.gd`, headless, ~10 min for all): builds every theme on seeds 4242 and 77,
+  Brinehollow, the capital, the canal city and the stronghold, and samples every lit opaque surface every 0.6 m. A sample
+  is open when no collider (the terrain left out) is within 0.3 m and it's 0.3-4 m over the floor below it (or faces up,
+  a roof, to 12 m); open samples of one instance joined into a patch 0.6 m+ on two axes are a hole. Holes group by the
+  builder that made the mesh: `MeshBuilder.trace` (static, the audit turns it on) keeps the two calling functions as the
+  mesh's `made_by` meta (DrawLOD's tint fold carries it over). Skipped: foliage and needles (cutout, or the leaves /
+  pine_snow / fir_needles textures; snow and ash only on plants), water, fabric, decals; ALLOW names cloth, rope, fx,
+  water and paving nodes. `CA_PROBE` prints what's at given spots. Report: out/collision/<tag>/<island>.txt, summary.txt.
+- **The snow ice:** its collider's faces were wound facing down (`[p0, p2, p1]`, the terrain's are `tl, tr, bl`:
+  `(b-a)x(c-a).y < 0` is up), and Jolt lets a body through a mesh shape's back faces: captains fell through the ice onto
+  the bed 0.6 m under it and walked in it to the chest. Also: the river's ice was flat quads per 18 m segment at the
+  bed's height at their ends (the bed between bulged through or fell away), wedge gaps at every bend, a 0.45 m lip at
+  every bank, and on a slope the lake's ice hung over its downhill shore.
+  Now (`snow_land.gd`): every ice face goes through `_sheet` (drawn and collided facing up). The river has a level per
+  point (`_river_levels`: the base land and the peak's flank there, 1.4 m under, smoothed; kept in the river grid beside
+  the distance) and `_bank` shapes the ground round frozen water: the bed 0.6 m under the ice, a shore climbing to 0.6 m
+  over it 2.5 m out, then higher land rising over 12 m+ (no wall cut into a slope) or lower land reached by a dyke. The
+  ice runs 3 m on under the banks (ICE_PAST), so the shore is the ground coming up through the ice. The river's ice is
+  a mitred strip of stations every 3 m (`_river_strip`), laid where the bed and both banks are; where they stop (a
+  site's levelled ground, a cave, a lake) the next station slopes down into the ground. A lake's rim drops into the
+  ground where something levelled its bank away; lakes are reserved (places kept off their banks); spires give way
+  to the river. The plants keep off the wider ice.
+- Tests: t/island/snow_ice (new), t/island/snow_land. Renders: `tools/dev/iceshot.gd` (before/after in
+  tools/dev/out/review/collision_ice_*: before, the captain stood in the river to the chest).
+
+## 2026-11-04: Brinehollow polish, piece 2 - the chapel close and its walk-in houses (1.30)
+- **What:** the ground behind the quay's east end, left of Old Pell (dirt, four stray waterfront houses, the chapel side-on
+  with its door onto a wooded bank), is now a square: StarterIsland.CLOSE_RECT levelled to CLOSE_Y 1.5 (`_close`, in
+  the built grid only, not `_height_fn`: the harbour's shore scan reads that and moved the quay's east end; no sand
+  splat on it, `_close_mask`), cobbled round the drowned sailors' cross (BrinehollowRooms.sea_cross) with benches and
+  two lamp posts; the chapel moved to CHAPEL facing north across it, its churchyard beside it (wall, headstones). The
+  waterfront plan's houses on that ground are filtered out (their reserves stay); the chapel's old spot keeps its
+  reserve (OLD_CHAPEL) so the old plants draw as before.
+- **Walk-in houses** (`scripts/island/brinehollow_rooms.gd`, BrinehollowRooms.room: footing, floor, wainscot and walls
+  with an open doorway and the leaf swung in, steps, timber framing, windows both faces, ceiling, optional jettied upper
+  storey, gable roof with a sloped convex shape, chimney; markers Door / Keeper / Inside; one OmniLight per room, no
+  shadows, faded past 25 m): the net loft (Netmaker Hesk: fishing), the tinker's shop (Wick: gadgets; a real
+  Workbench), the scribe's house (Brother Aldous: reading, books, charts, lore, and who opens what on the island).
+  Dialogue data/dialogue/hesk.json, wick.json, aldous.json; keys through tokens key_interact, key_gadget,
+  key_gadget_cycle, key_wheel (registered by `_build_close`). Keepers in BrinehollowCast.close_keepers (cast last).
+- **Draws:** the shells, chapel, cross and churchyard fold into one mesh (CloseMeshes, one surface a material); the
+  four waterfront houses it replaces were ~32 surfaces. Lights: 3 room omnis (not from the night budget) and 2 posts
+  from it. Nothing per frame.
+- **Brinehollow's dump:** the close's nodes, the chapel moved, the vegetation and trunk colliders on the levelled ground,
+  the village house at (23, -65) its footing a little deeper (the ease reaches its corner). Harbour, quay and boats
+  unchanged.
+- **Tests:** t/island/brinehollow_rooms (new). Renders: `tools/dev/roomshot.gd` (inside and at the door of each),
+  islandshot of the close.
+
+## 2026-11-04: Brinehollow polish, piece 3 - the lighthouse and its hill (1.30)
+- **Tower** (`scripts/island/brinehollow_lighthouse.gd`, BrinehollowLighthouse.tower, node still "Lighthouse" for
+  fidelity): an octagonal stone plinth with steps up to a door facing the town, a 20 m tapered shaft in red and white
+  bands with slit windows, a corbelled gallery (iron deck, a railing of 24 posts and two rails; deck and rail shapes),
+  the watch room with its door, the glazed lamp room (8 mullions), the copper dome, ball and vane, Ambrose's telescope
+  on the rail; the turning lens with its beam and glow as before. Props.lighthouse (generated islands) is untouched.
+- **Climbing:** F at the door ("Climb the lighthouse") puts the captain on the gallery, F at the watch room's door
+  ("Climb down") at the foot of the steps, with a toast (no stairs modelled inside: a 2.5 m shaft). Each captain moves
+  their own body. Ambrose stands on the gallery at the "Keeper" marker facing out to sea (the lighthouse step's
+  marker leads there); his lines mention the stair and the glass; the step's goal says "up the lighthouse".
+- **Hill:** a switchback road (StarterIsland.HILL_ROAD) graded into the west slope in the built grid only
+  (`_hill_road`, like `_close`), the lighthouse path (paths[2]) redefined over it after the old paths are frozen (the
+  old plants still decide on the old line); glowing lantern posts on its legs (no NightLights: the night budget
+  belongs to the town, brinehollow_town checks it); a flagged yard round the plinth; the keeper's walk-in cottage
+  (BrinehollowRooms kind "keeper": box bed, stove, log book, oil cans, the spare lens); his barrels and crates; the
+  signal mast with three flags; the fog bell; a bench looking out to sea; a low stone wall along the cliff side. The
+  old tower's and cottage's reserves stay (old plants' draws).
+- **Per frame:** the lens's spinner, as before. Draws: tower ~12 surfaces (one mesh) + lens; cottage ~14; mast, bell,
+  wall, yard a few each. Lights: the tower's spot and omni as before, the cottage's room omni.
+- **Tests:** t/island/brinehollow_lighthouse (new). Renders: islandshot (from the village, the road, the plateau, the
+  gallery), roomshot (the cottage).
+
+## 2026-11-04: Brinehollow polish, piece 4 - the farmlands errand, tinkering and reading in the opening (1.30)
+- **Steps** (`scripts/game/story.gd` STEPS, now 25): `farm` after `smugglers` (the camp gives up a bag of Brann's flour
+  with a banner; Miller Brann, now with data/dialogue/brann.json, takes it back in the farmlands for FARM_GOLD 30 and
+  sends you to Vey); `tinker` and `read` after `vey_skills` (Vey's lines send you to the chapel close first, then up
+  the long stair). A step's `"then": [flag, place, goal]`: the NPC's talk fires `gift:<step>` (Story.gift, once: the
+  flag), then the objective and marker move on (Wick: the Smoke Pellet's Mk I parts and fee, the marker on his
+  Workbench via StarterIsland.ground_of("bench"), a banner with the keys; Aldous: "Notes of an Old Angler", no marker,
+  a banner saying open the bag). Story's half-second poll finishes them (`_check_done`): the smoke pellet built, the
+  book read. Old saves past these steps skip them; one on an earlier step meets them.
+- **UI** judged at 1920x1080 (`tools/dev/closestepshot.gd`): the objective panel, the banners and the dialogue box read.
+  The marker's label stays the step's "who" (chain_goal.gd, the quests agent's file, untouched).
+- **Tests:** t/story/close_steps (new); opening_steps (the 25 in order), shrine_reading (walks the new list) updated.
+  Expected at prepush: storytest (it walks the opening; the new steps need its walk), savetest if it counts steps.
+
+## 2026-11-04: 1.30 collision audit, piece 2: the fixes by category
+- **The audit needs a window** (headless, the dummy renderer keeps no MultiMesh transforms: every tree, rock and coral
+  read as at the island's origin). It now refuses headless, accepts the character creator, leaves far LOD stand-ins
+  (visibility_range_begin) out, counts tree limbs only in reach (no "roofs" on MultiMesh plants), passes bamboo clumps
+  (Zach: a thicket you push through) and coral and rock deeper than a wader (1.2 m). KitStreet.merge_meshes keeps the
+  pieces apart while MeshBuilder.trace is on, so TownMeshes' holes name their builders.
+- **Roofs as hulls:** `MeshBuilder.mark()` / `points_since(m, to)` / `hull_since(m, body)`: a ConvexPolygonShape3D round
+  what was built since the mark. Used for every pitched roof in the kit (KitHouses room/workshop/shrine/storehouse/well/
+  gate), Buildings (house lean-to, tavern, smithy, chapel and its belfry, stalls' canopies and the pot cart's umbrella),
+  the snow's houses (round house a hull per tier: one over the cone stood 0.5 m proud of the steps), the harbour's
+  warehouse and boathouse, lookout towers, the desert's domes, the capital's towers, cathedral and domes. Thin sloped
+  roofs (porch roofs, awnings, lean-tos) are a `Buildings.slab_col`. City pieces (built on a worker) take a "hull" col
+  entry, made into a shape with the piece's body on the main thread (CapitalModels.hull, CapitalIsland._piece).
+- **Buildings:** chimneys, porch posts, benches, crates (Buildings.house); the desert's flat roofs (they had none: the
+  test found 60% of a home's top open), parapets, arcade, gallery rail, beehive granaries (hulls), ruin walls per
+  standing stretch and the sand drifts, minaret balcony, hall turrets, watchtower kiosk, hideout parapet; the kit ruin's
+  walls in runs (one box at the walls' average hid the doorway: the cache inside couldn't be reached) and its fallen roof;
+  the temple's footing and crowns; the snow castle's merlons, gate lintel and tower roofs; the harbour tower's gallery,
+  rail, lantern room and cap. The canal city's massing houses had no colliders at all: a box to the roof, roofs as hulls,
+  flat roofs' parapets, chimneys (CanalShell.house lost its `solid` flag: every lagoon house is solid). The capital's
+  wall-walk merlons, tower crowns, chimney stacks (CapitalModels.stack takes cols).
+- **Vegetation:** IslandTheme.trunk (on the theme's meshes once, main thread): the wood (not leaves, needles, fronds,
+  moss, snow on a plant: IslandTheme.foliage) sampled over its triangles in 2.5 m slices to TRUNK_TOP 5 m, a column per
+  bend (merged when straight; at most two), ending where the wood does. GenIsland._add_tree, overgrowth, the colossus's
+  sapling and Brinehollow's trees use it (an upright cylinder at the foot missed a palm's lean). Giants and rocks get
+  their own convex shape (IslandTheme.hull_points, a quarter-metre grid; rocks now down to scale 0.45); the undergrowth
+  that stands up (desert column cacti, stumps) its columns; fallen logs a capsule (IslandTheme.lying; GenIsland's veg
+  shapes: [r, h, pos] cylinder/sphere, [r, h, pos, axis] capsule, [points] hull). The snow's crystal clusters a column each.
+- **Water's edge:** coast rocks at the waterline solid (Coast.rocks), cove rocks hulls, pier and boardwalk rope rails a
+  thin wall post to post (none across a break; HarbourModels.rail_cols), piles from a wader's depth up (pile_cols),
+  bollards. trader_ships' merchantman: its masts' feet.
+- **Set pieces:** the colossus's feet, torso and arm (hulls), the sky wreck's draped envelope (a two-sided mesh shape),
+  the beast arena's fallen giant (hull).
+- **Physics cost (shapes per island, before -> after):** in the report.
+- Tests: t/island/roofs_solid (rays down over 36 builders: drawn top vs collider top), t/island/trunk_cols, plus the
+  covering t/capital/solid_ground, t/stronghold/solid_ground, t/canal/*, t/island/brinehollow_*. islanddump on
+  Brinehollow differs only by colliders (and the training dummies' known unseeded heads).
+## 2026-11-04: the chain sickle's heavy reworked (animation audit, piece 1)
+- **Why:** Zach: the chain scythe's right click looked stiff and janky. Causes found: the body held one pose (left arm
+  straight up) while the pivot spun at full speed from a standstill and stopped dead (hips/torso range 0.16/0.10 rad);
+  the weight jumped out of the hand to a point in front when the whirl began, and back at its end; the whirl's angle ran
+  on its own clock, not the body's, so the weight and the turn drifted apart.
+- **The move** (SickleMoves `_reap`, `reap_yaw`, `_trap`): sunk low and wound right (pivot -0.75) with the weight twirled
+  over the head on a short chain, a smoothstep-in burst into two turns on a trapezoid speed profile (no dead start or
+  stop), the chain arm thrown out flat, two steps a turn with a dip and side lean, then the last half-turn a low reap
+  into a lunge, the sickle drawn back up on the landing so the return is short. Squash on the coil, stretch on the burst
+  and the reap (smear), squash on the landing. Spec: len 1.2 -> 1.3, hit [0.18, 0.86] -> [0.24, 0.8] (opens 0.31 s,
+  was 0.22: a real wind-up; closes 1.04 s, was 1.03), "retime" gives the recovery 0.29 s, "swoosh" [0.66, 0.82] draws
+  the sickle's trail on the reap, "sharp" 50, "lead" hips/torso. Trace: hand ~21 m/s through the turns, 33 at the reap,
+  recovery peak 14 (was 28, a whip back faster than the strike).
+- **The chain** (`weight_at`, `_give`, `chain`): whirl paths are now ["whirl", u_out, u_full, u_reel, u_in, radius,
+  height, twirls]: let out of the left hand, twirled overhead, paid out to full length trailing the pivot's actual turn
+  (TRAIL 0.45 rad) on a disc tilted low in front (TILT), reeled back into the hand; it reads the action's retimed u
+  (`_sample_u`). A jump in the weight's path (an action begun or cut short) springs out instead of popping (GIVE_K/C,
+  a little under-damped). Out on the line the chain runs pommel -> left hand (slack) -> weight, bowed back against the
+  weight's swing. Per frame per sickle body: the same one ImmediateMesh rebuild (19 points, was 15), a few vector ops.
+- **Tests:** t/weapons/sickle_heavy (new: the hit window in ticks, lands, full length, no reach pop, ends facing ahead);
+  sickle_combo, sickle_moves, plus_sickle pass. Renders: tools/dev/out/review/scythe_heavy_{before,after}_*.png.
+  Expected at prepush: techtest/abilityshot moves that pose "sk_heavy" (Harvest of Souls, Soul Chain) look different.
+
+## 2026-11-04: the helm camera and the stance's zoom (1.30)
+- **Under the sea at the helm:** the ShipCamera's arm was pitched +20° (ship.tscn, and helm exit reset it to that), and on
+  these rigs a positive pitch tips the arm *under* its pivot: 21 m x sin 20° = 7 m below a pivot 4.5 m up. Now
+  Ship.CAM_PITCH = -0.3 (up behind, looking down), the pitch is clamped to CAM_PITCH_MAX 0.15, and Ship._place_cam lifts
+  the pivot so the camera stays 0.8 m over Ocean.surface_at (the arm only collides with the world, not the water).
+- **No cut taking the wheel:** HelmState.enter calls Ship.begin_cam_handover(rig): the helm camera starts at the rig's
+  pivot (kept as an offset from the ship's pivot so a moving ship doesn't outrun it), yaw, pitch, hit length and FOV,
+  and eases to the ship's view over 0.9 s. cam_yaw is no longer zeroed on entering (that was the snap to the stern).
+  Leaving: CameraRig.take_view(ship camera's position) points the rig's arm at it and eases back to the captain's
+  distance (the arm's follow slows from 11 to 2 for 0.8 s).
+- **Scroll at the helm:** Ship.zoom_cam (35%..150% of layout.cam_arm, 10% a notch), from HelmState.handle_input.
+- **Stance zoom:** the stance used min(current_zoom, 3.8), so scrolling with a weapon out moved a distance you couldn't
+  see and it jumped when you sheathed. CameraRig.combat_zoom is the stance's own distance (2..8, half-steps), the
+  wheel moves whichever is showing.
+- Test: t/ship/helm_camera.
+## 2026-11-04: the chain sickle's lights and the rest (animation audit, piece 2)
+- **Own cuts** (SickleMoves `_hook`, `_rip`; no longer the dagger's dg_slash/dg_rise, parry/deflect still borrowed):
+  sk_1 the hook (wound far right, the weight hand reaching for them, stepped through and hooked across to the left, the
+  arm folding across), sk_2 the rip (out of the hook's follow-through, low across the left hip, ripped up to the high
+  right onto the toes). Hips/torso ranges 1.3/1.9 and 1.0/1.7 rad (the dagger's ~0.85/1.45); squash on the wind,
+  stretch and smear on the strike. Both draw the sickle's real trail now ("swoosh"), as does Chain Rush.
+- **The lash** (`_lash`, sk_3/sk_throw): a deeper wind with the chest open and the sickle out of the face, a lunge throw
+  with the sickle flung back, held at full stretch, then a haul leaning back as the weight comes in.
+- **Reaping Circle** (sk_4): the heavy's whirl with one turn (`_reap(h, g, u, 1)`, its wind-up time-mapped shorter),
+  chain path to match, "retime" for the recovery, sharp 50. **Chain Rush** (sk_dash): the lash's throw, then the hook.
+- **The weight in the hand** hangs off the left hand on 0.18 m and swings as you move (a verlet pendulum, `_give`); after a
+  throw cut short it reels in at 10 m/s instead of snapping. Idle/run poses: the stance's own guard, unchanged.
+- **Timing:** every light's hit window, chain time and length unchanged; sk_4 the same in played time.
+  Recovery peaks (hand m/s, strike in brackets): sk_1 ~19 (37), sk_2 15 (39), sk_3 11 (25), sk_4 trimmed by retime.
+- **Plus moves** (Serpent Lash, Binding Coil, Reel and Reap, Hook Step, Rising Reap, Chain Dive, Grave Drop, Whirling
+  Rush, both ultimates) pose these actions, so they pick the new keys up without changes of their own.
+- **Tests:** sickle_combo, sickle_moves, plus_sickle, sickle_heavy pass; sickle_tree's step count 30 -> 34 (stale since
+  Quick Hands, c40c6924). Renders: tools/dev/out/review/scythe_*.png.
+
+## 2026-11-04: 1.30 the ground step-up (Zach, with the collision audit: fallen logs solid)
+- Walking or running (the Move state only: not swimming, the deck's rider code, dashes or the air) into a ledge up to
+  `Player.STEP_MAX` 0.62 m lifts the captain onto it: after the slide, `step_check` sees a wall pushed into, finds room
+  above (test_move up STEP_MAX, then 0.3 m forward) and a walkable top under there (test_move down), and `step_lift`
+  raises the body STEP_RATE 7 m/s (0.12 m a tick) before the next slides, velocity.y 0, the stick's x/z untouched;
+  the capsule's round foot riding the edge near the top counts against what's left, then a floor snap. `stepping()`
+  holds off Fall for 8 ticks. Taller (a ship's bulwark, 0.8 m over the deck) still needs a jump.
+- Per tick: on the floor and only when a slide hit a wall the stick pushes into, three test_moves; otherwise a loop over
+  the slide's collisions.
+- Tests: t/player/step_up (0.3 and 0.6 m up and over without falling, the climb at most the lift plus the edge's ride a
+  tick, 0.9 m blocked, the flat walk exactly the move speed); t/ship/boarding_boat, enemy_boarding, hull_ladder,
+  unstuck_deck; t/story/close_steps; the t/player and t/ship groups.
+## 2026-11-04: the UI canvas is 960x540 (piece 1: the canvas)
+
+- **What:** `PSX.UI_SIZE` 800x450 -> 960x540 (project.godot's viewport too). PixelCanvas (every HUD and menu canvas)
+  now picks k = floor(window height / 540), at least 1: 1920x1080 and 4K are 960x540 at 2x / 4x, 1440p 1280x720 at 2x,
+  a 1280x720 window 1280x720 at 1x; a window under 540 tall lays out 540 tall and is shrunk to fit (linear filter).
+  The 640x360 tier and the "Finer menus" option (video fine_ui) are gone: every screen lays out for 960x540 or more.
+  At 1080p the menus look as before (fine_ui was on by default); what changes is smaller windows (the editor's
+  embedded game, tool windows) no longer show the cramped 640x360 layout, and the root-canvas screens (title,
+  loading, walkthrough, drills, fish fight, cutscenes) draw at a whole 2x at 1080p instead of 2.4x.
+- **Options:** the panel 500 wide, its list 360 tall (was 210).
+- **Tests:** `t/ui/canvas_960` (new); every `t/ui/skills_*` and vendor_marks size the window 1920x1080; uitest's
+  checks now 960x540 at 2x in a 1920x1080 window (a world suite: runs at prepush).
+
+## 2026-11-04: 1.30 collision audit, pieces 3-4: the rest, and the numbers
+- Brinehollow (free once its polish landed): the flared roofs (BrinehollowModels.flared_roof takes the body:
+  `MeshBuilder.faces_since`, a two-sided mesh shape of the roof's own triangles, as a hull bridged the eaves), the
+  teahouse's parasol, its trees' trunk columns, the wreck's rocks (KitLandmarks.boulders takes a body: a hull each), the
+  harbour tower's gallery. islanddump: only colliders differ.
+- City roofs nothing else covered: CapitalModels._hip(…, cols) and roof(…, cols, solid) add the roof's hull (the
+  district's halls, docks and terrace, the canal's palace, church and tower, the capital's halls); the stronghold's
+  merlons, roof bands, parapets, stacks and skylights. The volcanic isle's cooled lava crust is walked on (faces).
+- Vegetation: giants' hulls take their detail mesh (buttresses, roots) and reach GIANT_TOP 10 m; the bamboo slot's
+  solid kinds (snow crystals, stumps, fumaroles, pandanus) get hulls, the jungle's bamboo none (Zach); coral heads
+  that reach a wader's depth a column each (AtollReef "ReefHeads").
+- **Before -> after** (windowed audit; holes / m2 open / collision shapes): brinehollow 1961/11698/4200 -> 1258/3563/4573;
+  capital 1156/26213/4882 -> 635/11303/6296; canal 1090/84893/4095 -> 921/6599/7245; stronghold 268/13662/1383 ->
+  233/7901/1858; jungle 3806/30422/4050 + 2722/17546/3105 -> 1235/9696/4627 + 875/6562/3733; snow 1711/13791/4840 +
+  1018/6557/3281 -> 588/3427/6372 + 412/2236/4113 (the ice's 4024 m2 went before this run); desert 1037/5879/2114 +
+  1153/5893/2702 -> 716/1485/2733 + 736/1441/3565; forest 3270/12315/4924 + 3311/10959/4377 -> 742/4175/8231 +
+  614/2239/7845; fog 5987/23028/3317 + 6239/29796/3334 -> 2988/22422/5610 + 3551/20386/5560; volcanic 2529/8502/3136 +
+  1688/6309/2779 -> 1885/3532/3717 + 1076/1698/3377; atoll 2141/3869/1732 + 2091/3824/1636 -> 1486/1741/4234 +
+  1517/1667/3678. All static shapes (most in the one VegetationColliders body, built a slice a step).
+- What's left, by design or for later: the fog's spiral giants above 10 m (the audit stands on the shape's top: only a
+  grapple gets there); trees' low limbs and the forest's oaks' spread; thin whips and snags; bamboo (Zach); the canal's
+  boats and the stronghold's moored warships (dressing on the water, out of reach); interior furnishing and dungeon wall
+  dressing; the harbour tower's rail ring is drawn as a solid disc (a model bug, the mesh unchanged here).
+- Tests: t/island/pier_rails (new), roofs_solid (plus Brinehollow's pagoda, shrine and teahouse), trunk_cols, the
+  t/capital, t/canal and t/stronghold/solid_ground groups.
+## 2026-11-04: the UI canvas is 960x540 (piece 2: the inventory and the menu tabs)
+
+- **Inventory** (`inventory_screen.gd`): slots 52 px with their 24 px icons at 2x (`ICON` 48, `GAP` 4), so the bag,
+  the gear columns, the hands and the chest window all double; the bag panel 450 wide (details 150, tips 180), the
+  chest window ~4.5 rows tall before it scrolls. The gear columns sit `h * 0.2` either side of the captain with a
+  slot's width clear on their outer side (room for a second slot beside each clothing slot, for transmog); rows
+  step `max(h * 0.118, SLOT + 12)` so DRAPE fits under the coat; SHOW now sits beside the equipment slot.
+  The shop and inspect panels use the same slots (their info / tips widened to 170 / 180).
+- **Captain's Log** (`journal_screen.gd`): 820x470 (was 632x350), the list, map and news widened with it.
+  **Fish journal:** its list 380 tall. The HUD's small-news stack hides with a menu open (it showed through).
+- **Tests:** t/ui, t/items, t/economy, t/quests, t/fishing/journal_screen, t/gear/coat_drape, t/coop crew_roster and
+  meet_menu pass (80). Renders: tools/dev/out/review/canvas_inventory*, canvas_shop, canvas_journal*.
+  `journalshot` now applies its WxH argument (it was ignored).
+
+## 2026-11-04: the UI canvas is 960x540 (piece 3: wheels, world screens, creator, title)
+
+- **Wheels** (`radial_wheel.gd`, every wheel): the ring's middle radius `max(80, n * 60 / TAU)` (was 64 / 50), the hub
+  up to 54. **Dialogue:** the page 600 wide (was 440), a little taller and higher off the bottom.
+- **Notice board** 860x470 (record 240, bounties 300, folk 290, 8 folk rows); **galley** list/card/pantry 190/280/170
+  and 330 / 300 tall; **workbench** list 190, card 320, 360 tall; **bookshelf** spines 14x40, rows 400, card 260;
+  **fish journal** card 260; **creator** preview 340 wide, name field 180; **chat** 360 wide.
+- **Unchanged on purpose:** the title (already laid out by fractions; now a whole 2x at 1080p), the loading screen
+  (drawn by fractions of the canvas), the cook game (rows by fractions), wanted and crew (they read well centred),
+  toasts, banners and the HUD (anchored to the corners: they follow the canvas).
+- **Tools:** titleshot and creatorshot take `[WxH]`; boardshot now applies its WxH. Renders in
+  tools/dev/out/review/canvas_*.png.
+- **Tests:** t/ui, t/food, t/gadgets, t/jam, t/player, t/books/shelf, t/fishing/journal_screen,
+  t/quests/island_tracker + landing_goals pass (133). t/gadgets/decoy failed once under load ("a Mk III goes off when
+  it falls apart") and passed alone: not UI.
+
+## 2026-11-04: 1.30 transmog, piece 1: cosmetic slots (data, look, save)
+
+- **What:** each clothing slot (EquipmentComponent.MOG_SLOTS: head, face, torso, vest, coat, belt, back, hands, legs,
+  feet; all draw on the body via Gear.SLOT_KEYS) can show a cosmetic piece instead of the worn one. `cosmetic` (slot ->
+  piece, out of the bag while it sits there: `mog_from_bag` / `unmog_to_bag`, any piece of that slot's kind) and `mog`
+  (the ticked slots). `look_slots()` is the worn slots with the mogged, filled ones swapped: Player.refresh_look and
+  set_hybrid compose from it, so stats (`_recalc_stats`, defense, load) still read `slots`. An empty cosmetic slot
+  shows the worn piece (no "show nothing" yet); an unticked slot keeps its cosmetic piece for the next tick.
+  DRAPE drapes the coat that's shown (`look_item("coat")`). `clear()` (a new outfit) drops both.
+- **Save:** "worn_mog" (slot -> item ref) and "mog" (slots); saves without them load unmogged.
+- **Co-op:** nothing new on the wire: the composed look carries it (`_net_look`), the host's stats never see it.
+- Per frame: nothing (only on a gear change).
+- **Tests:** t/gear/mog_look, mog_bag, mog_save (new); coat_drape, stats, t/items/equipment_slot pass.
+
+## 2026-11-04: 1.30 transmog, piece 2: the wardrobe's MOG boxes
+
+- **What** (`inventory_screen.gd`): each clothing slot gets a MOG tick box (`_mog_box`) under the place beside it on
+  the column's outer side (the room the canvas pass left); ticked, a cosmetic slot (`_mog`, src "mog", tag LOOK)
+  shows there. Drag a bag piece of that slot's kind onto it, or right-click it in the bag (hint "RMB FOR LOOKS" while
+  its slot is mogged); click it or drag it to the bag to take it back. Tooltip line "FOR LOOKS"; the details compare
+  and the bag's better-than-worn arrow still use the worn piece. DRAPE now follows the shown coat. All hidden with a
+  chest open, like the rest of the doll.
+- Per frame: nothing new (the boxes and slots park with the doll's parallax like the others).
+- **Tests:** t/ui/mog_slots (new: 1920x1080 layout clear of everything, drag/right-click/click, tooltip, compare, untick).
+  Renders: tools/dev/out/review/transmog_before_*.png / transmog_after_*.png (invshot_real, 1920x1080; `_mog` is four
+  slots mogged plus an empty ticked hands slot).
+- **Open:** no "show nothing" (an empty cosmetic slot shows the worn piece). The HUD's "Loot: N" line sits under the
+  head slots (as before; the cosmetic head slot now covers more of it).

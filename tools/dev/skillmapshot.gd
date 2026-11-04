@@ -36,7 +36,7 @@ func shot(name_: String) -> void:
 func mastery(pr, tree: String, lv: int) -> void:
 	pr.mastery_of(tree)["lv"] = lv - 1
 	pr.mastery_of(tree)["xp"] = 0
-	pr.add_mastery(tree, pr.mastery_to_next(lv - 1))
+	pr.add_mastery(tree, pr.mastery_to_next(lv - 1, tree))
 
 
 func _process(_d: float) -> bool:
@@ -59,10 +59,11 @@ func _process(_d: float) -> bool:
 			mastery(pr, "pistol", 6)
 			mastery(pr, "swim", 6)
 			mastery(pr, "sea", 9)
-			mastery(pr, "acrobatics", 8)
+			mastery(pr, "acrobatics", 15)
 			mastery(pr, "defense", 5)
 			for k in ["k_draw", "k_deflect", "k_wind", "k_full", "k_arc", "k_counter", "k_tiger", "k_keen", "k_nerves",
-					"m_geppo", "m_sprinter", "m_swift", "ac_bound", "ac_light", "sea_hand", "sea_gunner", "f_helm", "sw_strokes", "sw_lungs",
+					"k_qhands", "k_qhands", "k_qhands", "m_geppo", "ac_airdash", "ac_dashdist", "ac_dashdist", "ac_dashstrike", "ac_twindash",
+				"ac_hangtime", "ac_aircombo", "ac_aircontrol", "ac_aircontrol", "ac_walljump", "m_swift", "sea_hand", "sea_gunner", "f_helm", "sw_strokes", "sw_lungs",
 					"df_clean", "df_brace", "v_steadfast"]:
 				pr.buy(k)
 			p.power.eat("vine")
@@ -109,6 +110,7 @@ func _process(_d: float) -> bool:
 			shot("chart")
 			sm.chart = false
 			sm.set_tab("adventure", "acrobatics")
+			sm.sel = "n:ac_dashstrike"
 			until = 20
 		5:
 			shot("adventure")

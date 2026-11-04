@@ -84,7 +84,7 @@ static func _houses(out: Dictionary) -> void:
 			# third of its shops and one house in twelve (about 50 rooms)
 			var sd := int(l["seed"])
 			var enter: bool = (kind != "" and (sd >> 9) % 3 == 0) or (kind == "" and (sd >> 7) % 12 == 0)
-			var h: Array = S.house(mb, cols, l, true, enter)
+			var h: Array = S.house(mb, cols, l, enter)
 			var d := _front(mb, cols, l, h[0], h[1], h[2], h[3], kind, enter)
 			var ht: Transform3D = h[0]
 			l["frame"] = ht
@@ -345,7 +345,7 @@ static func _piazza(out: Dictionary) -> void:
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y - 0.6, 0)), Vector3(w + 0.2, 1.6, d + 0.2), 0.5, Color(0.9, 0.88, 0.84))
 	M.facade_box(mb, M.mat("facade_b"), t, w, d, y + 0.2, h, Color(0.96, 0.9, 0.82))
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y + h + 0.4, 0)), Vector3(w + 0.4, 0.5, d + 0.4), 0.6, Color(0.94, 0.92, 0.88), false)
-	M.roof(mb, "gable", t, w, d, y + h + 0.6, Color(0.92, 0.7, 0.58), rng)
+	M.roof(mb, "gable", t, w, d, y + h + 0.6, Color(0.92, 0.7, 0.58), rng, cols, true)
 	M.box(cols, t * Transform3D(Basis(), Vector3(0, y + h * 0.5, 0)), Vector3(w, h + 2.0, d))
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y + h * 0.5, 0)), Vector3(w - 0.5, h, d - 0.5))
 	var front := t * Transform3D(Basis(), Vector3(0, 0, d * 0.5))
@@ -429,7 +429,7 @@ static func _market(out: Dictionary) -> void:
 			mb.add_cylinder(lime, M.xf(cp), 0.4, 0.34, 5.2, 8, 0.6, Color(0.96, 0.94, 0.9))
 			M.cyl(cols, cp, 0.4, 5.2)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, y + 5.4, 0)), Vector3(w, 0.4, d), 0.6, Color(0.92, 0.9, 0.86), false)
-	M._hip(mb, t * Transform3D(Basis(), Vector3(0, y + 5.6, 0)), w + 0.6, d + 0.6, 2.6, 0.5, Color(0.95, 0.75, 0.62))
+	M._hip(mb, t * Transform3D(Basis(), Vector3(0, y + 5.6, 0)), w + 0.6, d + 0.6, 2.6, 0.5, Color(0.95, 0.75, 0.62), cols)
 	for i in range(3):
 		var st := Buildings.stall("fruit" if i != 1 else "fish")
 		var tt := t * Transform3D(Basis(), Vector3(-w * 0.3 + i * w * 0.3, y, -1.0))
@@ -462,7 +462,7 @@ static func _inn(out: Dictionary) -> void:
 	var sp: Array = P.SPECIAL["inn"]
 	var r: Rect2 = sp[0]
 	var l := {"r": r, "cell": r, "c": r.get_center(), "face": sp[1], "seed": 99121, "floors": 4, "roof": "hip"}
-	var h: Array = S.house(mb, cols, l, true)
+	var h: Array = S.house(mb, cols, l)
 	var t: Transform3D = h[0]
 	var d := _front(mb, cols, l, t, h[1], h[2], h[3], "wine")
 	var y := P.QUAY_Y
@@ -511,7 +511,7 @@ static func _arsenal(out: Dictionary) -> void:
 			var pq := stt * Vector3(-sh.size.y * 0.5 + 1.0 + i * (sh.size.y - 2.0) / 3.0, y, s * (sh.size.x * 0.5 - 0.6))
 			mb.add_box(dark, M.xf(pq + Vector3(0, 4.0, 0)), Vector3(0.5, 8.0, 0.5), 0.8)
 			M.box(cols, M.xf(pq + Vector3(0, 4.0, 0)), Vector3(0.5, 8.0, 0.5))
-	M.roof(mb, "gable", stt, sh.size.y, sh.size.x, y + 8.0, Color(0.85, 0.7, 0.6), rng)
+	M.roof(mb, "gable", stt, sh.size.y, sh.size.x, y + 8.0, Color(0.85, 0.7, 0.6), rng, cols, true)
 	mb.add_box(PSXMat.lit("planks_weathered"), stt * Transform3D(Basis(), Vector3(0, y + 4.0, -sh.size.x * 0.5 + 0.3)), Vector3(sh.size.y, 8.0, 0.4), 0.5, Color(0.86, 0.8, 0.72))
 	M.box(cols, stt * Transform3D(Basis(), Vector3(0, y + 4.0, -sh.size.x * 0.5 + 0.3)), Vector3(sh.size.y, 8.0, 0.4))
 	_hull_frame(mb, cols, stt * Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, y + 1.2, 0)), 14.0, true, rng)
@@ -527,7 +527,7 @@ static func _arsenal(out: Dictionary) -> void:
 	var ms: Array = P.SPECIAL["masters"]
 	var mr: Rect2 = ms[0]
 	var ml := {"r": mr, "cell": mr, "c": mr.get_center(), "face": ms[1], "seed": 55121, "floors": 3, "roof": "gable"}
-	var mh: Array = S.house(mb, cols, ml, true)
+	var mh: Array = S.house(mb, cols, ml)
 	var mt: Transform3D = mh[0]
 	var md := _front(mb, cols, ml, mt, mh[1], mh[2], mh[3], "chart")
 	for s in [-1.0, 1.0]:

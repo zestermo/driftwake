@@ -32,6 +32,11 @@ uniform vec4 tint : source_color = vec4(1.0);
 // (after editing ground_prints.gdshaderinc, touch this file too: a render ran on the cached shader without it)
 uniform bool prints = false;
 uniform vec3 print_tint = vec3(0.7);
+// A seabed of two kinds (the atoll's: KitStyle ground "deep"): under the water the vertex alpha picks between
+// tex_seafloor (1) and tex_sea_deep (0), dithered, and a broad mottle of light and shade drifts over it.
+uniform bool sea_mix = false;
+uniform sampler2D tex_sea_deep : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
+uniform float sea_mottle = 0.0;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -104,12 +109,27 @@ void fragment() {
 	float s5 = w_grass + (hash12(cell + 73.0) - 0.5) * d;
 
 	vec3 col = texture(tex_seafloor, uv).rgb;
+	float m = 0.5;
+	if (sea_mix) {
+		if (splat.a + (hash12(cell + 89.0) - 0.5) * 0.5 < 0.5) {
+			col = texture(tex_sea_deep, uv).rgb;
+		}
+		vec2 mc = world_pos.xz * 0.035;
+		vec2 mi = floor(mc);
+		vec2 mf = smoothstep(0.0, 1.0, fract(mc));
+		m = mix(mix(hash12(mi), hash12(mi + vec2(1.0, 0.0)), mf.x), mix(hash12(mi + vec2(0.0, 1.0)), hash12(mi + vec2(1.0)), mf.x), mf.y);
+		vec2 mc2 = world_pos.xz * 0.11 + 7.0;
+		vec2 mi2 = floor(mc2);
+		vec2 mf2 = smoothstep(0.0, 1.0, fract(mc2));
+		m = m * 0.65 + 0.35 * mix(mix(hash12(mi2), hash12(mi2 + vec2(1.0, 0.0)), mf2.x), mix(hash12(mi2 + vec2(0.0, 1.0)), hash12(mi2 + vec2(1.0)), mf2.x), mf2.y);
+	}
 	float best = s0;
 	if (s1 > best) { best = s1; col = texture(tex_wet_sand, uv).rgb; }
 	if (s2 > best) { best = s2; col = texture(tex_sand, uv).rgb; }
 	if (s3 > best) { best = s3; col = texture(tex_dirt, uv).rgb; }
 	if (s4 > best) { best = s4; col = texture(tex_rock, uv * 0.75).rgb; }
 	if (s5 > best) { best = s5; col = texture(tex_grass, uv).rgb; }
+	col *= 1.0 + (m - 0.5) * sea_mottle * (1.0 - land);
 
 	if (prints) {
 		col *= mix(vec3(1.0), print_tint, ground_print(world_pos.xz) * land);	}

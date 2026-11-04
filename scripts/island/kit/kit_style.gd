@@ -109,6 +109,9 @@ const BRINEHOLLOW := {
 	# the fog's colour here (alpha: how far it leans to it; at home the fog is the sky's horizon) and the sky's and fog's in a storm
 	"haze_color": Color(0.5, 0.72, 0.92, 0.0),
 	"storm_color": Color(0.36, 0.38, 0.42),
+	# under the sea here (Weather, a diver's fog): [colour just under the surface, at its darkest, the depth (m) it's
+	# darkest at, how far you see (m) just under / at that depth]
+	"under": [Color(0.13, 0.45, 0.47), Color(0.02, 0.12, 0.2), 22.0, Vector2(34.0, 13.0)],
 	# footprints in the ground (GroundLayer): "" none, "sand" pressed into the terrain, "snow" also the soft layer you wade through
 	"ground_prints": "",
 	# landmarks (KitLandmarks: Brinehollow's falls and wreck, 2026-10-17): rock, water, the wreck's timbers, bone

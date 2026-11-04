@@ -270,6 +270,7 @@ func enter(data: Dictionary) -> void:
 		_spd = WeaponDesigns.great(player.equipped_weapon.design, "speed")
 	elif cfg.get("fence", false):
 		_spd = WeaponDesigns.rapier(player.equipped_weapon.design, "speed")
+	_spd *= 1.0 + strike_speed()
 	_chop = 0
 	var length := ActionSpecs.length(anim) / _spd
 	var w := ActionSpecs.hit_seconds(anim) / _spd

@@ -33,7 +33,7 @@ func _process(_d: float) -> bool:
 			pr = p.progression
 			pr.tree_found.connect(func(t): heard.append(t))
 			check("a new captain sees the Captain (%s)" % str(pr.visible_trees("captain")), pr.visible_trees("captain") == ["captain"])
-			check("...and the Cutlass in Combat (%s)" % str(pr.visible_trees("combat")), pr.visible_trees("combat") == ["sword"])
+			check("...and no weapon tree before Vey's rack (%s)" % str(pr.visible_trees("combat")), pr.visible_trees("combat").is_empty())
 			check("...no Adventure trees and no fruit yet", pr.visible_trees("adventure").is_empty() and pr.visible_trees("fruit").is_empty())
 			pr.on_hit()
 			check("the first katana hit finds the Katana tree (%s)" % str(heard), heard == ["katana"] and "katana" in pr.visible_trees("combat"))

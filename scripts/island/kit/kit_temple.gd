@@ -171,7 +171,7 @@ static func build(isl: GenIsland, e: Dictionary) -> void:
 	_box(mb, moss, Vector3((px0 + px1) * 0.5, base * 0.5, (pz0 + pz1) * 0.5), Vector3(px1 - px0, -base, pz1 - pz0), body)
 	_box(mb, floor_m, Vector3((px0 + px1) * 0.5, 0.01, (pz0 + pz1) * 0.5), Vector3(px1 - px0 - 0.1, 0.02, pz1 - pz0 - 0.1))
 	if base < -1.2:
-		_box(mb, moss, Vector3((px0 + px1) * 0.5, base * 0.5 - 0.5, (pz0 + pz1) * 0.5), Vector3(px1 - px0 + 2.0, -base - 1.0, pz1 - pz0 + 2.0), null, Color.WHITE * 0.85)
+		_box(mb, moss, Vector3((px0 + px1) * 0.5, base * 0.5 - 0.5, (pz0 + pz1) * 0.5), Vector3(px1 - px0 + 2.0, -base - 1.0, pz1 - pz0 + 2.0), body, Color.WHITE * 0.85)
 	var length: float = e["stair_len"]
 	var drop: float = float(e["floor_y"]) - float(e["mouth_y"])
 	var n := maxi(2, ceili(drop / 0.3))
@@ -218,10 +218,10 @@ static func build(isl: GenIsland, e: Dictionary) -> void:
 	# a stepped crown over the sanctum and a lower one over the hall, the temple's silhouette
 	for t in range(3):
 		var inset := 1.0 + t * 1.6
-		_box(mb, moss if t == 0 else stone, Vector3(0.0, H + 0.7 + t * 1.3 + 0.65, (SANCTUM[2] + SANCTUM[3]) * 0.5), Vector3(SANCTUM[1] - SANCTUM[0] + 2.0 - inset * 2.0, 1.3, SANCTUM[3] - SANCTUM[2] + 2.0 - inset * 2.0) - Vector3(0, 0, 0), null, Color.WHITE * (0.9 + 0.05 * t))
-	_box(mb, stone, Vector3(0.0, H + 0.7 + 3.9 + 1.2, (SANCTUM[2] + SANCTUM[3]) * 0.5), Vector3(3.2, 2.4, 3.2))
+		_box(mb, moss if t == 0 else stone, Vector3(0.0, H + 0.7 + t * 1.3 + 0.65, (SANCTUM[2] + SANCTUM[3]) * 0.5), Vector3(SANCTUM[1] - SANCTUM[0] + 2.0 - inset * 2.0, 1.3, SANCTUM[3] - SANCTUM[2] + 2.0 - inset * 2.0) - Vector3(0, 0, 0), body, Color.WHITE * (0.9 + 0.05 * t))
+	_box(mb, stone, Vector3(0.0, H + 0.7 + 3.9 + 1.2, (SANCTUM[2] + SANCTUM[3]) * 0.5), Vector3(3.2, 2.4, 3.2), body)
 	_box(mb, carved, Vector3(0.0, H + 0.7 + 3.9 + 1.2, (SANCTUM[2] + SANCTUM[3]) * 0.5 + 1.61), Vector3(1.6, 1.4, 0.02))
-	_box(mb, moss, Vector3(0.0, H + 0.7 + 0.5, 0.0), Vector3(HALL[1] - HALL[0] + 0.6, 1.0, HALL[3] - HALL[2] - 2.0) - Vector3(0, 0, 0))
+	_box(mb, moss, Vector3(0.0, H + 0.7 + 0.5, 0.0), Vector3(HALL[1] - HALL[0] + 0.6, 1.0, HALL[3] - HALL[2] - 2.0) - Vector3(0, 0, 0), body)
 	# the doorway: a carved panel over it, guardian statues either side of the porch
 	_box(mb, carved, Vector3(0.0, 5.45, HALL[3] + WT * 0.5 + 0.02), Vector3(3.6, 1.6, 0.04))
 	for sx in [-1.0, 1.0]:

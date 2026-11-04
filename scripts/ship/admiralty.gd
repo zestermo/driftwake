@@ -72,6 +72,12 @@ var _quiet_until: float = 0.0
 var _line: Array = []
 var _line_c := Vector3.ZERO
 var _boom_ships: Dictionary = {}
+## (every screen, 1.30) Ships in `specs` waiting for their crews' bodies (Humanoid.prebuild, on a worker): made in
+## order, at most one a frame, once all of hers are ready (a ring built whole in one frame froze every machine 2-3 s).
+var _pending: Array = []
+## (host) The next patrol's [[kind, seed], ...], booked PATROL_AHEAD s before it sails so its crews build ahead.
+var _patrol_plan: Array = []
+const PATROL_AHEAD := 20.0
 
 
 static func of(tree: SceneTree) -> Admiralty:
@@ -123,6 +129,9 @@ func _deed(at: Vector3, what: String) -> void:
 		_say(["The Admiralty answers", "Warships close the island's mouth. Break out or fight through.", true])
 	else:
 		_say(["Word travels fast", "The Admiralty will be waiting when you put to sea.", false])
+	# (the ring's crews build ahead, on every screen: net_gen carries the plan)
+	ring_due["plan"] = _plan_for(_ring_kinds(), [])
+	Net.spawned(self, net_gen())
 
 
 func _physics_process(delta: float) -> void:
@@ -239,8 +248,7 @@ func _blockade(at: Vector3) -> void:
 		var p: Vector3 = on_arc.call(a)
 		var tangent := Vector3(-sin(a), 0.0, cos(a))
 		# (broadside to her, the middle one the heavy ship once the crew's Infamous)
-		var es := _spawn("frigate" if i == BLOCK_N / 2 and _tier() >= 3 else "marine", p, atan2(-tangent.x, -tangent.z), lv, "block")
-		_line.append(String(es.name))
+		_line.append(_queue("frigate" if i == BLOCK_N / 2 and _tier() >= 3 else "marine", p, atan2(-tangent.x, -tangent.z), lv, "block"))
 		spots.append(p)
 	for i in range(BLOCK_N - 1):
 		var d: Vector3 = (spots[i + 1] - spots[i]).normalized()
@@ -271,6 +279,8 @@ func _line_tick() -> void:
 	var past := ship != null and Vector2(ship.global_position.x - _line_c.x, ship.global_position.z - _line_c.z).length() > BLOCK_R + 25.0
 	var broken := past
 	for nm in _line:
+		if _pending.has(nm):
+			continue
 		var es := get_node_or_null(NodePath(str(nm))) as EnemyShip
 		if es and not es.is_dead() and es.state == EnemyShip.S.BLOCK:
 			continue
@@ -295,9 +305,17 @@ func _line_tick() -> void:
 	_say(["The line is broken!", "The blockade gives chase.", true])
 
 
-func _close_ring(ship: Ship) -> void:
+func _ring_kinds() -> Array:
 	var tier := _tier()
-	var n: int = RING_N[tier]
+	var out: Array = []
+	for i in range(RING_N[tier]):
+		out.append("frigate" if tier >= 3 and i == 0 else "marine")
+	return out
+
+
+func _close_ring(ship: Ship) -> void:
+	var plan := _plan_for(_ring_kinds(), ring_due.get("plan", []))
+	var n: int = plan.size()
 	if n == 0:
 		return
 	var lv := _level()
@@ -316,7 +334,7 @@ func _close_ring(ship: Ship) -> void:
 			continue
 		# (side-on to her, guns run out)
 		var tangent := Vector3.UP.cross(dir)
-		_spawn("frigate" if tier >= 3 and i == 0 else "marine", spot, atan2(-tangent.x, -tangent.z), lv, "ring")
+		_queue(plan[i][0], spot, atan2(-tangent.x, -tangent.z), lv, "ring", plan[i][1])
 	Net.spawned(self, net_gen())
 	_say(["Surrounded!", "An Admiralty ring closes in. Break out or fight through.", true])
 
@@ -331,6 +349,10 @@ func _patrol_tick(ship: Ship) -> void:
 		_patrol_t = 0.0 if every <= 0.0 else _patrol_t
 		return
 	_patrol_t += CHECK
+	# (her crews' bodies start building on a worker a while before she sails)
+	if _patrol_t >= every - PATROL_AHEAD and _patrol_plan.is_empty():
+		_patrol_plan = _plan_for(PATROL_KINDS[tier], [])
+		Net.spawned(self, net_gen())
 	if _patrol_t < every:
 		return
 	_patrol_t = 0.0
@@ -343,11 +365,30 @@ func send_patrol(ship: Ship, tier: int) -> void:
 	var to := ship.global_position - spot
 	var heading := atan2(-to.x, -to.z)
 	var across := Vector3.UP.cross(to.normalized())
-	var kinds: Array = PATROL_KINDS[tier]
+	var plan := _plan_for(PATROL_KINDS[tier], _patrol_plan)
+	_patrol_plan = []
 	var lv := _level()
-	for i in range(kinds.size()):
-		_spawn(kinds[i], spot + across * (float(i) - (kinds.size() - 1) * 0.5) * 40.0, heading, lv, "patrol")
+	for i in range(plan.size()):
+		_queue(plan[i][0], spot + across * (float(i) - (plan.size() - 1) * 0.5) * 40.0, heading, lv, "patrol", plan[i][1])
 	Net.spawned(self, net_gen())
+
+
+## (host) Seeds for ships of `kinds`, reusing `booked`'s where the kind matches (their crews already building), and
+## their crews' bodies started on a worker: [[kind, seed], ...].
+func _plan_for(kinds: Array, booked: Array) -> Array:
+	var out: Array = []
+	for i in range(kinds.size()):
+		if i < booked.size() and booked[i][0] == kinds[i]:
+			out.append(booked[i])
+		else:
+			_n += 1
+			out.append([kinds[i], 9100 + _n])
+		Humanoid.prebuild(_looks(str(out[i][0]), int(out[i][1])))
+	return out
+
+
+func _looks(kind: String, seed_value: int) -> Array:
+	return EnemyShip.crew_plan(seed_value, kind).map(func(e): return e[0])
 
 
 ## A spot SPAWN_R back along her wake (behind her if the wake's too short), in open water.
@@ -376,7 +417,7 @@ func _pursuers() -> int:
 
 
 ## Hunted / escaped: the word on every screen when the first pursuer starts after the crew and when the hunt ends:
-## "Escaped" with ships still afloat that lost her, else they're beaten. Either way the sea goes quiet for QUIET s.
+## "Escaped" with ships still afloat that lost her (one that ran from the fight was beaten), else they're beaten. Either way the sea goes quiet for QUIET s.
 func _hunt_note() -> void:
 	var now := _pursuers() > 0
 	if now == hunted:
@@ -390,7 +431,7 @@ func _hunt_note() -> void:
 	_patrol_t = 0.0
 	var afloat := false
 	for s in get_children():
-		if s is EnemyShip and not (s as EnemyShip).is_dead() and (s as EnemyShip).state not in [EnemyShip.S.BLOCK, EnemyShip.S.PRIZE]:
+		if s is EnemyShip and not (s as EnemyShip).is_dead() and not (s as EnemyShip).fled() and (s as EnemyShip).state not in [EnemyShip.S.BLOCK, EnemyShip.S.PRIZE]:
 			afloat = true
 	if afloat:
 		escaped.emit()
@@ -428,7 +469,7 @@ func _tidy() -> void:
 			specs.erase(String(es.name))
 			changed = true
 	for k in specs.keys():
-		if not has_node(NodePath(str(k))):
+		if not has_node(NodePath(str(k))) and not _pending.has(k):
 			specs.erase(k)
 			changed = true
 	if changed:
@@ -438,11 +479,48 @@ func _tidy() -> void:
 # --------------------------------------------------------------------------
 # Building ships and booms (every screen, from the specs)
 # --------------------------------------------------------------------------
+## (host) A ship made now, crew and all (tests; the game queues them).
 func _spawn(kind: String, at: Vector3, heading: float, lv: int, role: String) -> EnemyShip:
+	return _make_ship(_add_spec(kind, at, heading, lv, role, -1))
+
+
+## (host) A ship made once her crew's bodies are built (_pending, a frame each); her name.
+func _queue(kind: String, at: Vector3, heading: float, lv: int, role: String, seed_value: int = -1) -> String:
+	var nm := _add_spec(kind, at, heading, lv, role, seed_value)
+	_wait_for(nm)
+	return nm
+
+
+func _add_spec(kind: String, at: Vector3, heading: float, lv: int, role: String, seed_value: int) -> String:
 	_n += 1
 	var nm := "AS%d" % _n
-	specs[nm] = [kind, Vector3(at.x, 0.0, at.z), heading, 9100 + _n, lv, role]
-	return _make_ship(nm)
+	specs[nm] = [kind, Vector3(at.x, 0.0, at.z), heading, 9100 + _n if seed_value < 0 else seed_value, lv, role]
+	return nm
+
+
+func _wait_for(nm: String) -> void:
+	Humanoid.prebuild(_looks(str(specs[nm][0]), int(specs[nm][3])))
+	_pending.append(nm)
+
+
+## A waiting ship whose crew is ready: made (one a frame); the host tells every screen.
+func _process(_delta: float) -> void:
+	if _pending.is_empty():
+		return
+	var nm: String = _pending[0]
+	if not specs.has(nm) or has_node(NodePath(nm)):
+		_pending.pop_front()
+		return
+	if not Humanoid.prebuilt_for(_looks(str(specs[nm][0]), int(specs[nm][3]))):
+		return
+	_pending.pop_front()
+	var s := _make_ship(nm)
+	if Net.is_client():
+		return
+	# (a blockade ship whose line broke before she was made gives chase)
+	if s.role == "block" and not _line.has(nm):
+		s.break_line()
+	Net.spawned(self, net_gen())
 
 
 func _make_ship(nm: String) -> EnemyShip:
@@ -483,17 +561,27 @@ func net_gen():
 		var s := get_node_or_null(NodePath(str(k))) as EnemyShip
 		if s and not s.is_dead():
 			live[k] = specs[k]
-	return [live, booms.duplicate()]
+	# (ships on their way: the ring due and the next patrol, whose crews every screen builds ahead)
+	var soon: Array = (ring_due.get("plan", []) as Array) + _patrol_plan
+	for k in _pending:
+		soon.append([specs[k][0], specs[k][3]])
+	return [live, booms.duplicate(), soon]
 
 
 ## (not the host) Build what the host has that we don't; drop what it no longer has.
 func net_set_gen(g) -> void:
 	var live: Dictionary = g[0]
 	var bm: Dictionary = g[1]
+	for e in g[2]:
+		Humanoid.prebuild(_looks(str(e[0]), int(e[1])))
 	for k in live.keys():
-		if not has_node(NodePath(str(k))):
+		if not has_node(NodePath(str(k))) and not _pending.has(k):
 			specs[k] = live[k]
-			_make_ship(str(k))
+			_wait_for(str(k))
+	for k in _pending.duplicate():
+		if not live.has(k):
+			_pending.erase(k)
+			specs.erase(k)
 	for k in bm.keys():
 		if not has_node(NodePath(str(k))):
 			booms[k] = bm[k]

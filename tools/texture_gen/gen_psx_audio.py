@@ -388,6 +388,116 @@ def cannon_hit_sound(name="cannon_hit", seed=167):
     _write_shot(name, out, -14.0, fade=0.2)
 
 
+def shell_whistle_sound(name="shell_whistle", seed=401):
+    """(1.30, the Scouring) A shell coming in: an airy whistle falling from high to low over 1.8 s, swelling as it
+    nears, a rough edge of rushing air under it; it ends abruptly (the blast is its own sound)."""
+    rng = np.random.default_rng(seed)
+    n = int(SR * 1.8)
+    t = np.arange(n) / SR
+    u = t / t[-1]
+    f = 1900.0 * (1 - u) ** 1.4 + 520.0 + rng.uniform(-60, 60)
+    f *= 1 + 0.012 * np.sin(2 * np.pi * 7.0 * t)
+    tone = np.sin(np.cumsum(2 * np.pi * f / SR))
+    tone += 0.25 * np.sin(np.cumsum(2 * np.pi * 2 * f / SR))
+    air = _noise(n, rng, 600, 4200) * (0.35 + 0.65 * u)
+    rush = _noise(n, rng, 120, 900) * u ** 2.0
+    env = np.minimum(1, t / 0.25) * (0.15 + 0.85 * u ** 1.6)
+    out = (tone * 0.7 + air * 0.35 + rush * 0.6) * env
+    out[-int(SR * 0.01):] *= np.linspace(1, 0, int(SR * 0.01))
+    _write_shot(name, out, -15.0, fade=0.01)
+
+
+def shell_boom_sound(name="shell_boom", seed=409, far=False):
+    """(1.30, the Scouring) A naval shell bursting: near, a hard crack, a deep chest-thump boom, a roar of blast
+    noise and falling stone and splinters; far (far=True), only the low boom and a long rolling rumble."""
+    rng = np.random.default_rng(seed)
+    n = int(SR * (3.2 if far else 2.4))
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    f = 52 - 22 * np.minimum(t / 0.7, 1.0) ** 0.7
+    ph = np.cumsum(2 * np.pi * f / SR)
+    boom = np.tanh(3.0 * np.sin(ph)) * np.exp(-t * (1.6 if far else 2.2)) * np.minimum(1, t / (0.03 if far else 0.004))
+    rumble = _noise(n, rng, 25, 260) * np.minimum(1, t / 0.08) * np.exp(-t * (0.9 if far else 1.4))
+    if far:
+        out = boom * 1.0 + rumble * 1.3
+        for delay, gain in ((0.35, 0.4), (0.9, 0.25), (1.6, 0.12)):
+            d = int(SR * delay)
+            out[d:] += lpf(boom + rumble, 0.05)[: n - d] * gain
+        out = lpf(out, 0.18)
+        _write_shot(name, out, -17.0, fade=0.6)
+        return
+    crack = hpf(w, 0.3) * np.exp(-t * 60) * np.minimum(1, t / 0.0006)
+    roar = _noise(n, rng, 80, 2200) * np.exp(-t * 4.5) * np.minimum(1, t / 0.003)
+    stone = _scatter_bursts(n, rng, 90, 0.05, 1.6, 300, 2400, 80, 400, amp_decay=1.8) * 0.8
+    out = crack * 2.0 + boom * 1.0 + roar * 3.0 + rumble * 0.7 + stone * 2.0
+    for delay, gain in ((0.21, 0.3), (0.5, 0.18)):
+        d = int(SR * delay)
+        out[d:] += lpf(crack + roar, 0.1)[: n - d] * gain
+    out = lpf(out, 0.6)
+    _write_shot(name, out, -11.5, fade=0.5)
+
+
+def siren_loop(seconds=24.0):
+    """(1.30, the Scouring) The Admiralty's air-raid siren over the fortress: a rotor siren's slow wail up and down
+    (a 6 s cycle, four in the loop), two detuned rotors and a far echo off the rock; the loop's whole cycles keep
+    it seamless."""
+    rng = np.random.default_rng(419)
+    n = int(SR * seconds)
+    t = np.arange(n) / SR
+    cyc = (t / 6.0) % 1.0
+    rise = np.where(cyc < 0.45, np.sin(np.pi * 0.5 * cyc / 0.45), np.cos(np.pi * 0.5 * (cyc - 0.45) / 0.55) ** 1.5)
+    out = np.zeros(n)
+    for base, top, amp in ((180.0, 620.0, 1.0), (186.0, 638.0, 0.7)):
+        f = base + (top - base) * rise
+        cycles = np.round(np.sum(f) / SR)
+        f *= cycles / (np.sum(f) / SR)
+        ph = np.cumsum(f / SR)
+        tri = 2 * np.abs(2 * (ph % 1.0) - 1) - 1
+        out += amp * (np.sin(2 * np.pi * ph) * 0.6 + tri * 0.4)
+    chop = 1 - 0.18 * (0.5 + 0.5 * np.sin(2 * np.pi * 28.0 * t))
+    out *= chop * (0.55 + 0.45 * rise)
+    X = np.fft.rfft(out)
+    fr = np.maximum(np.fft.rfftfreq(n, 1.0 / SR), 1e-3)
+    out = np.fft.irfft(X * _lp(fr, 1800.0, 2) * _hp(fr, 120.0, 2), n)
+    echo = np.roll(out, int(SR * 0.42)) * 0.35 + np.roll(out, int(SR * 0.97)) * 0.18
+    out = out + echo + _cband(n, rng, 60, 400) * 0.06
+    _write_loop("siren_loop", out, -20.0)
+
+
+def war_drums_loop(seconds=19.2):
+    """(1.30, the Scouring) War drums from the warships: big low drums at 100 bpm (32 beats), a driving
+    BOOM . BOOM-BOOM . figure with rim knocks and a roll into every fourth bar, a hall of water round it."""
+    rng = np.random.default_rng(431)
+    n = int(SR * seconds)
+    beat = n / 32.0
+    out = np.zeros(n)
+
+    def drum(f_hi, f_lo, decay, amp, noise_amp):
+        L = int(SR * 0.9)
+        tt = np.arange(L) / SR
+        body = _thump(tt, f_hi, f_lo, 0.03, decay)
+        skin = _noise(L, rng, 90, 900) * np.exp(-tt * 30) * noise_amp
+        return (body + skin) * amp
+
+    for bar in range(8):
+        b0 = bar * 4
+        for k, a in ((0, 1.0), (1.5, 0.75), (2.0, 0.9), (3.0, 0.6)):
+            _place(out, drum(110, 48, 6.0, a * rng.uniform(0.9, 1.05), 0.4), (b0 + k) * beat + rng.uniform(-60, 60))
+        for k in (0.5, 2.5, 3.5):
+            _place(out, drum(420, 300, 28.0, 0.22, 0.9), (b0 + k) * beat)
+        if bar % 4 == 3:
+            for j in range(6):
+                _place(out, drum(150, 70, 9.0, 0.35 + 0.1 * j, 0.5), (b0 + 3 + j / 6.0) * beat)
+    hall = np.zeros(n)
+    for d, g in ((0.11, 0.35), (0.23, 0.22), (0.41, 0.12)):
+        hall += np.roll(out, int(SR * d)) * g
+    out = out + hall
+    X = np.fft.rfft(out)
+    fr = np.maximum(np.fft.rfftfreq(n, 1.0 / SR), 1e-3)
+    out = np.fft.irfft(X * _lp(fr, 2400.0, 2) * _hp(fr, 35.0, 2), n)
+    _write_loop("war_drums_loop", out, -19.0)
+
+
 def wood_crack_sound(name="wood_crack", seed=173):
     """Hull taking a hit: a splintering crunch, then a strained timber creak."""
     rng = np.random.default_rng(seed)
@@ -564,6 +674,90 @@ def squawk_sound():
         i = int(SR * t0)
         out[i:i + len(g)] += g
     finish("squawk", out, 0.75, fade=0.03)
+
+
+def zombie_moan_takes():
+    """Zombie (1.30): a long wet groan out of a dead throat, low and wavering, the breath rattling in it."""
+    for k in range(3):
+        rng = np.random.default_rng(1301 + k)
+        dur = 1.1 + 0.25 * k
+        f0 = [70 + 6 * k, 92 + 4 * k, 84, 66 - 3 * k, 58]
+        out = _voice(rng, dur, f0, ((420, 3, 1.0), (760 + 60 * k, 5, 0.5), (1500, 7, 0.15)), harm=14, rasp=1.1, gain=2.6)
+        t = np.arange(len(out)) / SR
+        out *= 0.75 + 0.25 * np.sin(2 * np.pi * (5.5 + k) * t)
+        _write_shot(f"zombie_moan_{k + 1}", lpf(out, 0.35), -19.0, fade=0.25)
+
+
+def grave_burst_sound():
+    """A grave bursting open (1.30): a muffled thump under the ground, then clods of earth pattering down."""
+    rng = np.random.default_rng(1311)
+    n = int(SR * 1.2)
+    t = np.arange(n) / SR
+    out = _thump(t, 140, 45, 0.004, 9.0) * 1.2
+    out += _noise(n, rng, 80, 900) * np.exp(-t * 7) * 0.7
+    for _ in range(26):
+        at = rng.uniform(0.08, 0.9)
+        g = _noise(int(SR * 0.04), rng, 300, 2500) * np.exp(-np.arange(int(SR * 0.04)) / SR * 90)
+        i = int(SR * at)
+        out[i:i + len(g)] += g * rng.uniform(0.1, 0.35) * np.exp(-at * 2.0)
+    _write_shot("grave_burst", out, -15.0, fade=0.2)
+
+
+def bog_bark_sound():
+    """Bog hound (1.30): a drowned dog's bark, half water - a gargled cough that bubbles at its end."""
+    rng = np.random.default_rng(1321)
+    out = np.zeros(int(SR * 0.75))
+    for t0, d in ((0.0, 0.2), (0.3, 0.26)):
+        g = _voice(rng, d, [260, 340, 180], ((600, 4, 1.0), (1300, 6, 0.5)), rasp=1.2, gain=3.0)
+        i = int(SR * t0)
+        out[i:i + len(g)] += g
+    t = np.arange(len(out)) / SR
+    out *= 0.7 + 0.3 * np.sign(np.sin(2 * np.pi * 32 * t))
+    _write_shot("bog_bark", lpf(out, 0.45), -17.0, fade=0.08)
+
+
+def stalker_shriek_sound():
+    """Pale stalker (1.30): a thin rising shriek with a second voice beating against it, gone into breath."""
+    rng = np.random.default_rng(1331)
+    a = _voice(rng, 0.9, [600, 1400, 2100, 1700], ((2200, 4, 1.0), (3600, 6, 0.4)), harm=8, rasp=0.3)
+    b = _voice(rng, 0.9, [630, 1460, 2190, 1760], ((2200, 4, 1.0), (3600, 6, 0.4)), harm=8, rasp=0.3)
+    n = len(a)
+    t = np.arange(n) / SR
+    out = (a + b) * 0.6 + hpf(rng.standard_normal(n), 0.3) * np.exp(-((t - 0.75) / 0.12) ** 2) * 0.3
+    _write_shot("stalker_shriek", out, -18.0, fade=0.15)
+
+
+def moth_flutter_sound():
+    """Grave moth (1.30): big soft wings, a dry papery flutter faster than a bird's."""
+    rng = np.random.default_rng(1341)
+    n = int(SR * 0.6)
+    t = np.arange(n) / SR
+    w = lpf(rng.standard_normal(n), 0.25) + hpf(rng.standard_normal(n), 0.6) * 0.25
+    env = np.maximum(0, np.sin(2 * np.pi * 16 * t)) ** 2 * np.minimum(1, t / 0.05) * np.clip((0.6 - t) / 0.2, 0, 1)
+    _write_shot("moth_flutter", w * env, -22.0, fade=0.05)
+
+
+def spore_puff_sound():
+    """Mushroom crawler (1.30): a cap squeezed - a soft hollow pop, then spores hissing out."""
+    rng = np.random.default_rng(1351)
+    n = int(SR * 0.9)
+    t = np.arange(n) / SR
+    out = _thump(t, 220, 90, 0.003, 18.0) * 0.8
+    out += _noise(n, rng, 1500, 7000) * np.minimum(1, t / 0.05) * np.exp(-t * 3.5) * 0.6
+    _write_shot("spore_puff", out, -18.0, fade=0.2)
+
+
+def owl_screech_sound():
+    """Owl-beast (1.30): a barn owl's scream grown huge - a long ragged hiss-shriek over a low hoot."""
+    rng = np.random.default_rng(1361)
+    n = int(SR * 1.1)
+    t = np.arange(n) / SR
+    hoot = np.sin(2 * np.pi * 300 * t) * np.exp(-((t - 0.12) / 0.07) ** 2) * 0.8
+    s = _voice(rng, 0.85, [900, 1300, 1150, 800], ((1800, 3, 1.0), (3200, 4, 0.7)), harm=6, rasp=1.6, gain=2.0)
+    i = int(SR * 0.22)
+    out = hoot
+    out[i:i + len(s)] += s * 0.9
+    _write_shot("owl_screech", out, -16.0, fade=0.12)
 
 
 def flap_sound():
@@ -2574,6 +2768,13 @@ SOUNDS = [
     ("screech", screech_sound),
     ("squawk", squawk_sound),
     ("flap", flap_sound),
+    ("zombie_moan", zombie_moan_takes),
+    ("grave_burst", grave_burst_sound),
+    ("bog_bark", bog_bark_sound),
+    ("stalker_shriek", stalker_shriek_sound),
+    ("moth_flutter", moth_flutter_sound),
+    ("spore_puff", spore_puff_sound),
+    ("owl_screech", owl_screech_sound),
     ("hiss", hiss_sound),
     ("monkey", monkey_sound),
     ("clack", clack_sound),
@@ -2590,6 +2791,11 @@ SOUNDS = [
     ("draw_pistol", pistol_draw_sound),
     ("gun_spin", gun_spin_sound),
     ("holster", holster_sound),
+    ("shell_whistle", lambda: [shell_whistle_sound(f"shell_whistle_{k + 1}", 401 + k * 3) for k in range(3)]),
+    ("shell_boom", lambda: [shell_boom_sound(f"shell_boom_{k + 1}", 409 + k * 3) for k in range(3)]),
+    ("shell_far", lambda: [shell_boom_sound(f"shell_far_{k + 1}", 415 + k * 3, True) for k in range(2)]),
+    ("siren_loop", siren_loop),
+    ("war_drums_loop", war_drums_loop),
 ]
 
 

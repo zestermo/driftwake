@@ -1,5 +1,5 @@
 extends SceneTree
-## The crisp UI (v1.11): at 1280x720 every screen draws on a 640x360 canvas shown at 2x, and each
+## The crisp UI (v1.11; 960x540 since 1.30): at 1920x1080 every screen draws on a 960x540 canvas shown at 2x, and each
 ## one opens and fits it: pause, options, controls, the skills menu (its signs, the open tree's nodes on screen),
 ## yard, a shop (stock, bag, card, tooltip), save slots, the inventory, a dialogue with choices,
 ## the HUD (skill bar, boss bar, prompt), the emote wheel and the creator.
@@ -37,7 +37,7 @@ func fits(c: Control) -> bool:
 
 
 func crisp(pc: PixelCanvas) -> bool:
-	return pc.canvas == Vector2(640, 360) and pc.stretch_shrink == 2
+	return pc.canvas == Vector2(960, 540) and pc.stretch_shrink == 2
 
 
 func _process(d: float) -> bool:
@@ -48,14 +48,15 @@ func _process(d: float) -> bool:
 		0:
 			if t < 2.0:
 				return false
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			p = get_first_node_in_group("player")
 			p.progression.level = 8
 			p.progression.skill_points = 4
+			p.progression.discover("sword")
 			until = TK.wait_ticks(10)
 			step = 1
 		1:
-			check("the menus' canvas is 640x360 at 2x", crisp(gm()._pc))
+			check("the menus' canvas is 960x540 at 2x", crisp(gm()._pc))
 			check("the HUD's too", crisp(get_first_node_in_group("hud")._pc))
 			check("the dialogue's too", crisp(root.get_node("Dialogue")._box._canvas))
 			step = 2
@@ -76,7 +77,7 @@ func _process(d: float) -> bool:
 			var c: Control = gm()._screens[s]
 			match s:
 				"skills":
-					check("skill map fills the canvas", c.size == Vector2(640, 360))
+					check("skill map fills the canvas", c.size == Vector2(960, 540))
 					check("a sign per tab hangs from the beam", c._tab_rects.size() == c.tabs().size() and c._tab_rects.size() >= 3)
 					check("the open tree's nodes are on screen inside the canvas", c._drawn.any(func(h): return str(h[1]).begins_with("n:"))
 						and c._drawn.all(func(h): return Rect2(Vector2.ZERO, c.size).grow(4.0).encloses(h[0])))
@@ -95,7 +96,7 @@ func _process(d: float) -> bool:
 			step = 5
 		5:
 			var inv = gm()._inventory
-			check("inventory canvas 640x360", inv._canvas == Vector2(640, 360))
+			check("inventory canvas 960x540", inv._canvas == Vector2(960, 540))
 			check("inventory panel fits", fits(inv._panel))
 			gm().close()
 			var box = root.get_node("Dialogue")._box
@@ -133,7 +134,7 @@ func _process(d: float) -> bool:
 			for c in (cc[0].get_children() if not cc.is_empty() else []):
 				if c is PixelCanvas:
 					pc = c
-			check("the creator is on a crisp canvas and fits it", pc != null and crisp(pc) and (pc.ui.get_child(0) as Control).get_combined_minimum_size().x <= 640.0 and (pc.ui.get_child(0) as Control).get_combined_minimum_size().y <= 360.0)
+			check("the creator is on a crisp canvas and fits it", pc != null and crisp(pc) and (pc.ui.get_child(0) as Control).get_combined_minimum_size().x <= 960.0 and (pc.ui.get_child(0) as Control).get_combined_minimum_size().y <= 540.0)
 			if not cc.is_empty():
 				cc[0]._finish(false)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)

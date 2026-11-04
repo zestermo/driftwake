@@ -8,7 +8,7 @@ extends CanvasLayer
 const LINES := 6
 const SHOW := 10.0
 const FADE := 1.5
-const W := 300.0
+const W := 360.0
 
 static var typing := false
 

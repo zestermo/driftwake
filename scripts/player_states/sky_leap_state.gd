@@ -118,7 +118,7 @@ func _launch(k: float) -> void:
 	_rising = true
 	player.squash(6.0)
 	player.body_model.hold("sky_leap", 0.5)
-	player.progression.add_life("acrobatics", 10)
+	player.progression.add_life("acrobatics", Progression.ACRO_XP["sky_leap"])
 	var at := player.global_position
 	Net.fx("haki_legs", [player.body_model, 0.05, 0.6 + v0 / _g])
 	Net.fx("puff_ring", [at + Vector3(0, 0.05, 0), "dust_low", 8 + int(6 * k), 0.4, 1.0 + 0.6 * k, 0.9, Color(0.85, 0.8, 0.7, 0.85), 5.0 + 6.0 * k])

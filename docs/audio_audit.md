@@ -85,6 +85,8 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 | Sound | Made in | Played | Before | Problem | Now |
 |---|---|---|---|---|---|
 | hull_wash_loop | gen_psx_audio | Ambience "wash", -9 dB x speed, pitch 0.85-1.25 | 8 s (played 1.6 s), -14.6 LU, 42% at 1-5 kHz, 6 Hz flutter | the worst sound in the game: short, bright, boxy, loudest layer | **removed**, replaced by the three below |
+| siren_loop | gen (1.30) | ScouringFX, Ambience bus, -4 dB: full in the Scouring's countdown, 0.55 in the grace and the barrage, fading past the ring | | | 24 s, -20.2 LU, two detuned rotor sirens wailing up and down (6 s cycle), a rock echo; repeat 0.83@12 s (a siren cycles) |
+| war_drums_loop | gen (1.30) | ScouringFX, Ambience bus, -3 dB under the barrage | | | 19.2 s (32 beats at 100 bpm), -19.2 LU, low drums BOOM . BOOM-BOOM ., rim knocks, a roll every fourth bar |
 | hull_rush_loop | new | "wash", -9 dB, pow(spd/8, 0.7), pitch 0.88-1.08 | | | 37 s, -20 LU, centroid 585 Hz, 6% at 2-5k; dark and bright takes crossfaded on a slow random curve, slow surges, a low body |
 | hull_gurgle_loop | new | "gurgle", -13 dB, most of the sound when slow | | | 23 s, bubbles as rising chirps in clusters, a churning mid bed, deeper gloops |
 | hull_foam_loop | new | "foam", -17 dB, comes in above 4 m/s | | | 29 s, soft fizz of bursting foam (bright, rolled off above 6 kHz) |
@@ -173,6 +175,9 @@ In-game loudness = file LU + typical call volume. Before -> now.
 | gunshot | gen | pistols, rifles, grunts | 1 take, 96% sub-200, centroid 97 Hz | a muffled boom, no crack | 3 takes, -15 LU, crack + bark + boom + slap-back |
 | cannon | gen | broadsides | 1 take, 98% sub-200 | no mid body | 2 takes, -13.4 LU, mid crump added |
 | cannon_hit | gen | ball impacts | 1 take | | 2 takes, -14.4 LU |
+| shell_whistle | gen (1.30) | the Scouring's shells, 1.8 s before each lands (FX.far_sfx, 140 m) | | | 3 takes, -15.2 LU, airy whistle falling 2.4 kHz -> 520 Hz, swelling, cut at the end |
+| shell_boom | gen (1.30) | the Scouring's shell bursts (FX.far_sfx, 170 m) | | | 3 takes, -12 LU, crack + chest boom + blast roar + falling stone, centroid ~330 Hz |
+| shell_far | gen (1.30) | the same bursts heard far off (800 m) | | | 2 takes, -17.2 LU, low boom + rolling rumble with reflections |
 | wood_crack | gen | hull hits, patching | 1 take | | 2 takes, -16.4 LU |
 | splash | gen | water entry, swimming, wading | 1 take, 54% above 2 kHz | hissy, used for strokes too | 3 takes, -17.3 LU, darker; strokes have their own sound |
 | land | gen | landings, grunt drops, skids | 1 take, 95% sub-200 | | 3 takes, -17.3 LU, with a scuff; plus the surface step |
@@ -188,6 +193,7 @@ In-game loudness = file LU + typical call volume. Before -> now.
 | thunder, thunder_far | gen | Weather lightning (2D, delayed by distance) | 97% sub-200 | close strikes could use more crack | unchanged |
 | discover_chime | gen | HUD discoveries (UI) | ok | | unchanged |
 | music_victory | music gen | boss beaten | ok | | unchanged |
+| music_rival | music gen | a rival crew's ship anchors (Music.rival, every screen) | ok | | new 1.30 |
 
 ## Weapon impacts (v1.13)
 
@@ -266,6 +272,7 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | music_combat | 54.9 s (32 bars, 140 bpm, E minor) | | -18.3 | unchanged |
 | music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | | -18.2 | unchanged; 10% at 2-5k (hats, brass): brightest track, fine |
 | music_victory | 5.4 s sting | | -13.9 | unchanged |
+| music_rival | 6.0 s sting (2 bars, 96 bpm, D phrygian brass call, low strings, timpani roll) | | -16.9 | new 1.30 (peak -2.9) |
 
 All loops seamless (circular render; seams 0.4-3x a typical sample step on the decoded
 .ogg, no clicks). Highs capped by the 8 kHz master low-pass and the 22.05 kHz rate.

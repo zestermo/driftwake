@@ -3,7 +3,7 @@
 	"voice": 0.9,
 	"start": "intro",
 	"return": "menu",
-	"story": { "see_vey": "story_vey", "vey_rack": "story_rack", "vey_drills": "story_drills", "smugglers": "story_smugglers", "vey_skills": "story_skills", "shrine": "story_shrine","grell": "story_grell" },
+	"story": { "see_vey": "story_vey", "vey_rack": "story_rack", "vey_ready": "story_ready", "vey_drills": "story_drills", "smugglers": "story_smugglers", "farm": "story_farm", "vey_skills": "story_skills", "tinker": "story_close", "read": "story_close", "shrine": "story_shrine","grell": "story_grell" },
 	"nodes": {
 		"story_vey": {
 			"text": [
@@ -19,12 +19,29 @@
 			"text": "The rack, by the north fence. Try them on the dummies. When one feels like yours, keep it.",
 			"next": "menu"
 		},
+		"story_ready": {
+			"text": [
+				"That's the one, is it? Fine. A weapon you like is a weapon you'll practise with.",
+				"Now the drills. The list's on your left: every move on it, on the dummies. Light, heavy, the dodge, the parry, the lot. Whatever your hand's holding, its heavy counts.",
+				"Every move on the list, then we talk smugglers."
+			],
+			"event": "story:vey_ready",
+			"next": "menu"
+		},
 		"story_drills": {
 			"text": "The dummies won't hit themselves. Every move on the list, then we talk smugglers.",
 			"next": "menu"
 		},
 		"story_shrine": {
 			"text": "Up the long stair, past the gate. Master Isao. Answer him honestly and quickly, and don't touch the bell.",
+			"next": "menu"
+		},
+		"story_close": {
+			"text": "Wick and Brother Aldous, in the chapel close at the quay's east end. A gadget from the one, a book from the other. Then Master Isao, up the long stair.",
+			"next": "menu"
+		},
+		"story_farm": {
+			"text": "Brann's flour, in a smugglers' camp? Take it back to his mill, round the south road to the farmlands. Then come and tell me how it went.",
 			"next": "menu"
 		},
 		"story_smugglers": {
@@ -38,6 +55,7 @@
 				"Open your skill map with K and see what your hand's learned. Here, a head start: one of my drills. Again. Again. There. Feel that?",
 				"Something else woke in you down there. I saw it in the last swing: a current, under the strength. Sailors call it Edy.",
 				"I can't teach that. Master Isao can. Up the long stair, at the shrine on the terrace. He'll read what kind you have and show you what it's for.",
+				"But first, two things this town knows that I don't. Wick, the tinker in the chapel close at the quay's east end: a captain with a smoke pellet in his pocket lives longer. And Brother Aldous, next door to him, keeps books. Read one. You'll learn more from it than from my shouting.",
 				"After that, Grell. His crew holds the old harbour on the north-west beach. A real pirate captain, not some smuggler. He's been bleeding this town for years."
 			],
 			"event": "story:vey_skills",

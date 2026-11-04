@@ -42,7 +42,7 @@ func _process(delta: float) -> void:
 	var s := hash([belt.slots, belt.sel, belt.owned, Glyphs.of("gadget_fire")])
 	for g in belt.slots:
 		if g != "":
-			s ^= hash(ceili(belt.cooldown_left(g) * 4.0)) + hash(g)
+			s ^= hash(ceili(belt.cooldown_left(g) * 4.0)) + hash(g) + belt.packs(g) * 7919
 	if s != _last:
 		_last = s
 		queue_redraw()
@@ -67,6 +67,9 @@ func _draw() -> void:
 			if belt.max_charges(gid) > 0:
 				var n := belt.charges(gid)
 				_text(r.position + Vector2(SLOT - 8.0, SLOT - 2.0), str(n), UIStyle.CORAL if n == 0 else UIStyle.CREAM)
+				# (1.30) ready-made packs in the bag, the refills after these
+				if belt.packs(gid) > 0:
+					_text(r.position + Vector2(2.0, SLOT - 2.0), "+%d" % belt.packs(gid), UIStyle.TEXT_DIM)
 		draw_rect(r, UIStyle.SUN if on else UIStyle.BORDER_DIM, false, 2.0 if on else 1.0)
 		if on:
 			var key := Glyphs.of("gadget_fire").to_upper()

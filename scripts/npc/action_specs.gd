@@ -174,14 +174,19 @@ const SPECS := {
 	# --- polearm (PoleMoves: the body keyed, the two-handed grip solved; no "lead": its offset samples would
 	# overwrite the grip) ---
 	# --- the fighting staff (StaffMoves: keyed like the polearm, held near its middle) ---
-	# --- the chain sickle (SickleMoves: the dagger's cuts, the chain's lash and whirl; the chain drawn by SickleMoves.chain) ---
+	# --- the chain sickle (SickleMoves: the hook and rip, the chain's lash and whirl; the chain drawn by SickleMoves.chain) ---
 	"sk_stance": {"len": 1.0, "stance": "sickle", "weapon": "sickle"},
-	"sk_1": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "stance": "sickle", "weapon": "sickle"},
-	"sk_2": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_1"}},
-	"sk_3": {"len": 0.7, "hit": [0.42, 0.62], "chain": 0.62, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_2"}},
-	"sk_4": {"len": 0.95, "hit": [0.22, 0.82], "chain": 0.82, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_3"}},
-	"sk_heavy": {"len": 1.2, "hit": [0.18, 0.86], "stance": "sickle", "weapon": "sickle"},
-	"sk_dash": {"len": 0.8, "hit": [0.48, 0.66], "stance": "sickle", "weapon": "sickle"},
+	"sk_1": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "swoosh": [0.32, 0.54], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle"},
+	"sk_2": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "swoosh": [0.32, 0.54], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_1"}},
+	"sk_3": {"len": 0.7, "hit": [0.42, 0.62], "chain": 0.62, "lead": {"hips": 0.03, "torso": 0.015}, "stance": "sickle", "weapon": "sickle",
+		"extras": {"after": "sk_2"}},
+	"sk_4": {"len": 0.95, "hit": [0.22, 0.82], "chain": 0.82, "sharp": 50.0, "retime": [[0.0, 0.0], [0.78, 0.83], [1.0, 1.0]], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_3"}},
+	"sk_heavy": {"len": 1.3, "hit": [0.24, 0.8], "swoosh": [0.66, 0.82], "sharp": 50.0, "retime": [[0.0, 0.0], [0.78, 0.83], [1.0, 1.0]], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle"},
+	"sk_dash": {"len": 0.8, "hit": [0.48, 0.66], "swoosh": [0.46, 0.68], "stance": "sickle", "weapon": "sickle"},
 	"sk_throw": {"len": 0.75, "hit": [0.35, 0.6], "stance": "sickle", "weapon": "sickle"},
 	"sk_parry": {"len": 0.6, "stance": "sickle", "weapon": "sickle"},
 	"sk_deflect": {"len": 0.4, "stance": "sickle", "weapon": "sickle"},
@@ -531,6 +536,11 @@ const SPECS := {
 		"variants": [{"dash_dir": Vector2(0, -1)}, {"dash_dir": Vector2(0, 1)}]},
 	"moonstep": {"len": 0.5, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 12.0}},
 	"crash_land": {"len": 0.6, "sharp": 45.0, "snap": true, "stance": "sword", "weapon": "", "extras": {"armed": false}},
+	# (1.30) the slope slide and the wall moves (MovePoses)
+	"slide": {"len": 0.25, "hold": true, "sharp": 40.0, "stance": "sword", "weapon": "", "extras": {"armed": false}},
+	"wall_kick": {"len": 0.4, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 8.0}},
+	"wall_cling": {"len": 0.25, "hold": true, "sharp": 40.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 0.0}},
+	"wall_run": {"len": 0.12, "hold": true, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "dash_dir": Vector2(1, 0)}},
 	"breakfall": {"len": 0.45, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": -4.0}},
 	"hit": {"len": 0.32, "react": true, "stance": "sword", "weapon": "cutlass", "extras": {"push": Vector3(0, 0, 1)},
 		"variants": [{"push": Vector3(0, 0, -1)}, {"push": Vector3(1, 0, 0)}]},
@@ -563,6 +573,7 @@ const SPECS := {
 	"gd_glide": {"len": 0.2, "hold": true, "stance": "sword", "weapon": ""},
 	"gd_hang": {"len": 0.15, "hold": true, "stance": "sword", "weapon": ""},
 	"gd_spy": {"len": 0.9, "stance": "sword", "weapon": "cutlass"},
+	"gd_plant": {"len": 0.7, "stance": "sword", "weapon": ""},
 	# --- fishing (FishPoses, the rod and both hands on it FishRod's; Fishing's lengths) ---
 	"rod_cast": {"len": 1.1, "stance": "sword", "weapon": ""},
 	"rod_wait": {"len": 0.35, "stance": "sword", "weapon": ""},
@@ -598,6 +609,7 @@ const SPECS := {
 	"gesture_lever": {"len": 1.2, "stance": "sword", "weapon": ""},
 	"gesture_push": {"len": 1.1, "stance": "sword", "weapon": ""},
 	"gesture_reach": {"len": 1.0, "stance": "sword", "weapon": ""},
+	"gesture_chop": {"len": 1.3, "stance": "sword", "weapon": ""},
 	"gesture_hand": {"len": 1.3, "stance": "sword", "weapon": ""},
 	# --- healing (quick-slot food, rum, tonics: Player.use_item) ---
 	"bite": {"len": 0.7, "stance": "sword", "weapon": "cutlass"},
@@ -622,6 +634,22 @@ const SPECS := {
 	"aim_pistol": {"len": 1.3, "stance": "pistol", "weapon": "pistol", "extras": {"auto_point_guns": false}},
 	"aim_rifle": {"len": 1.3, "stance": "sword", "weapon": "rifle"},
 	"shove": {"len": 0.95, "stance": "sword", "weapon": "rifle"},
+	# (1.30) the foes' personalities (FoePoses: the stances are held, upper body)
+	"fo_frenzy": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_lurk": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_en_garde": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_guard_walk": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
+	"fo_parry_ready": {"len": 0.08, "stance": "sword", "weapon": "cutlass"},
+	"fo_parry": {"len": 0.42, "stance": "sword", "weapon": "cutlass"},
+	"fo_leap_wind": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
+	"fo_leap": {"len": 0.8, "stance": "sword", "weapon": "cutlass"},
+	"fo_jump_slash": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
+	"fo_dive": {"len": 0.65, "stance": "sword", "weapon": "cutlass"},
+	"fo_hip_shot": {"len": 0.8, "stance": "sword", "weapon": "rifle"},
+	"fo_kneel_aim": {"len": 2.3, "stance": "sword", "weapon": "rifle"},
+	"fo_bayonet": {"len": 0.75, "stance": "sword", "weapon": "rifle"},
+	"fo_roll_l": {"len": 0.6, "stance": "sword", "weapon": "rifle"},
+	"fo_roll_r": {"len": 0.6, "stance": "sword", "weapon": "rifle"},
 }
 
 

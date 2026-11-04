@@ -20,7 +20,42 @@ func enter(data: Dictionary) -> void:
 		player.freefall_from = now_s()
 
 
+## Wall Cling (Acrobatics): pushing into a wall on the way down holds you on it for CLING_S s (once a fall), then you
+## slide down it at CLING_SLIDE m/s while you keep pushing.
+const CLING_S := 1.0
+const CLING_SLIDE := 2.5
+## C pressed this long before landing still drops you into a slide.
+const SLIDE_LAND_S := 3.0
+
+var _fall_vy := 0.0
+
+
+func _cling(input: Vector2) -> void:
+	var n := wall_normal() if player.progression.has_flag("wall_cling") and player.velocity.y <= 0.0 and input.length() > 0.3 else Vector3.ZERO
+	if n == Vector3.ZERO or get_camera_relative_direction(input).dot(-n) < 0.5:
+		if player.body_model.current_action() == "wall_cling":
+			player.body_model.stop_action()
+		return
+	if not player.air_uses.has("cling"):
+		player.air_uses["cling"] = now_s()
+		player.player_model.rotation.y = atan2(n.x, n.z)
+		Net.fx("dust", [player.global_position - n * 0.3 + Vector3(0, 1.4, 0), 4, 0.4])
+		Net.fx("sfx", ["thud", player.global_position, -14.0, 0.05, 1.3])
+	player.body_model.hold("wall_cling")
+	var held := now_s() - float(player.air_uses["cling"]) < CLING_S
+	player.velocity.y = 0.0 if held else maxf(player.velocity.y, -CLING_SLIDE)
+	player.velocity.x = -n.x * 0.5
+	player.velocity.z = -n.z * 0.5
+	player.freefall_from = now_s()
+
+
+func exit() -> void:
+	if player.body_model.current_action() == "wall_cling":
+		player.body_model.stop_action()
+
+
 func physics_update(delta: float) -> void:
+	_fall_vy = player.velocity.y
 	apply_gravity(delta)
 
 	var input := get_movement_input()
@@ -36,14 +71,24 @@ func physics_update(delta: float) -> void:
 			face_direction(direction, delta)
 
 	player.move_and_slide()
+	_cling(input)
+
+	if wants_dash_strike():
+		transitioned.emit(self, "Plunge", {"dash": player.get_meta("air_dash_dir", get_camera_forward())})
+		return
 
 	var air := air_attack_input()
 	if air != "":
 		transitioned.emit(self, air, {})
 		return
 
-	if player.skyward_dash and wants_dodge():
+	if wants_air_dash():
 		transitioned.emit(self, "Dodge", {"air": true})
+		return
+
+	var wall := wants_wall_jump()
+	if wall != Vector3.ZERO and not player.can_coyote_jump():
+		transitioned.emit(self, "Jump", {"wall": wall})
 		return
 
 	if wants_moonstep():
@@ -70,6 +115,12 @@ func physics_update(delta: float) -> void:
 	if player.is_on_floor():
 		player.jumps_remaining = player.max_jumps
 		player.air_speed = 0.0
+		# (C pressed on the way down, or held: come down into the slope slide)
+		var slide_c := now_s() - float(player.get_meta("slide_land", -9.0)) < SLIDE_LAND_S or player.inp.pressed("crouch")
+		if slide_c and SlideState.can_start(player, true):
+			player.remove_meta("slide_land")
+			transitioned.emit(self, "Slide", {"velocity": player.velocity, "fall_vy": _fall_vy})
+			return
 		if player.consume_jump_buffer():
 			transitioned.emit(self, "Jump", {})
 			return
@@ -125,4 +176,3 @@ func crash(speed: float) -> void:
 		if area and area.owner and area.owner != player and not (area.owner in struck) and not area.owner.is_in_group("players"):
 			struck.append(area.owner)
 			area.take_hit(wave, player)
-	player.progression.add_life("acrobatics", 6)

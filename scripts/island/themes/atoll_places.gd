@@ -27,7 +27,8 @@ static func plan(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) ->
 		"atoll_hole":
 			var hole: Array = isl.land_plan["hole"]
 			var c: Vector2 = hole[0]
-			return {"kind": kind, "at": c, "y": 0.0, "face": (-c).normalized() if c.length() > 1.0 else Vector2(0, 1), "r": D.HOLE_PLACE_R, "keep": [[Vector2.ZERO, 4.0]]}
+			return {"kind": kind, "at": c, "y": 0.0, "face": (-c).normalized() if c.length() > 1.0 else Vector2(0, 1), "r": maxf(D.HOLE_PLACE_R, float(hole[1]) * 1.15 + D.BASIN_RIM),
+				"keep": [[Vector2.ZERO, 4.0]]}
 	return {}
 
 
@@ -57,7 +58,7 @@ static func _plan_pearls(isl, rng: RandomNumberGenerator, avoid: Array) -> Dicti
 		var h: float = isl.hv(at)
 		if h > -1.6 or h < -3.2 or not KitLandmarks.clear_of(isl, at, D.PEARL_R, avoid) or at.distance_to(isl.sites["boss"]) < 60.0:
 			continue
-		if (isl.land_plan["hole"][0] as Vector2).distance_to(at) < 40.0:
+		if (isl.land_plan["hole"][0] as Vector2).distance_to(at) < float(isl.land_plan["hole"][1]) * 1.15 + D.BASIN_RIM + D.PEARL_R:
 			continue
 		# (the diver's body made here on the worker, not in the build step)
 		var lk := KitStyle.folk_look(KitStyle.of(isl.theme), rng)

@@ -48,6 +48,11 @@ func _process(_d: float) -> bool:
 			if vane == null:
 				return TK.done(fails)
 			check("...a boss's health (%.0f), the grate down" % vane.health_component.max_health, vane.health_component.max_health >= 1100.0 and bnode.grate_shut())
+			var mh: float = vane.health_component.max_health
+			bnode.rescale(2.7)
+			check("(1.30) a crew of three: x2.7 his health, still full (%.0f)" % vane.health_component.max_health,
+				is_equal_approx(vane.health_component.max_health, mh * 2.7) and is_equal_approx(vane.health_component.current_health, vane.health_component.max_health))
+			bnode.rescale(1.0)
 			vane.get_node("Brain").order = "hold"
 			vane.health_component.take_damage(vane.health_component.max_health * 0.4)
 			until = TK.wait_secs(5.0)
@@ -55,6 +60,10 @@ func _process(_d: float) -> bool:
 			var adds = isl.city.get_node_or_null("Encounter_adds_vane")
 			check("at 65%% the fortress answers: phase %d, marines pour in (%d)" % [bnode.phase(), adds.alive_count() if adds else -1], bnode.phase() == 2 and adds != null and adds.alive_count() == 5)
 			check("...and the hall's quarters flare in turn (%d zones)" % bnode.zones().size(), bnode.zones().size() == 4 and bnode._strips.size() == 4)
+			check("(1.30) up on the roof, the hall's quarters rest (away %s, live %s)" % [bnode.away(), bnode.channel_now()], bnode.away() and bnode.channel_now()[0] == -1)
+			vane.global_position = bnode.global_position + Vector3(0, 0.6, 0)
+			vane.reset_physics_interpolation()
+			check("...and flare again if he comes back down", not bnode.away() and bnode.channel_now()[0] >= 0)
 			vane.health_component.take_damage(vane.health_component.max_health * 0.4)
 			until = TK.wait_secs(1.0)
 		5:
@@ -64,6 +73,16 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.0)
 		6:
 			check("beaten: the keep is the crew's, the grate up", bnode.beaten() and root.get_node("GameManager").world_flags.has("sh_seal_keep") and not bnode.grate_shut())
+			check("(1.30) ...the vault shut till its two locks turn", bnode.find_children("Cache_sh_vault_*", "", false, false).is_empty())
+			# the two locks, a captain alone: one, then the other inside the solo window
+			var locks = isl.city.get_node("VaultLocks")
+			locks.pull(0)
+			check("...one lock alone opens nothing", not root.get_node("GameManager").world_flags.has("sh_vault_unlocked"))
+			locks.pull(1)
+			until = TK.wait_secs(1.0)
+			step = 60
+			return false
+		60:
 			var vault: Array = bnode.find_children("Cache_sh_vault_*", "", false, false)
 			check("...the vault open behind the dais (%d)" % vault.size(), vault.size() == 1)
 			if not vault.is_empty():

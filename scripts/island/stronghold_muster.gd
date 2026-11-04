@@ -43,7 +43,7 @@ func _ready() -> void:
 	all.append(self)
 	var pole := MeshBuilder.new()
 	pole.add_cylinder(PSXMat.lit("planks", Color(0.42, 0.34, 0.26)), Transform3D(Basis(), Vector3(0, POLE_H * 0.5, 0)), 0.07, 0.05, POLE_H, 6, 1.0)
-	pole.add_cylinder(PSXMat.lit("stone", Color(0.5, 0.54, 0.58)), Transform3D(Basis(), Vector3(0, 0.2, 0)), 0.4, 0.32, 0.4, 8, 1.0)
+	pole.add_cylinder(PSXMat.lit("stone_brick", Color(0.5, 0.54, 0.58)), Transform3D(Basis(), Vector3(0, 0.2, 0)), 0.4, 0.32, 0.4, 8, 1.0)
 	pole.add_box(PSXMat.lit("metal", Color(0.7, 0.66, 0.5)), Transform3D(Basis(), Vector3(0, POLE_H + 0.05, 0)), Vector3(0.14, 0.14, 0.14))
 	add_child(pole.to_instance("Pole"))
 	_admiralty = _banner(Color(0.88, 0.9, 0.95), Color(0.2, 0.32, 0.62), "Admiralty")
@@ -72,8 +72,8 @@ func _exit_tree() -> void:
 ## A banner on the pole: a field and a band across it (cards both ways so it reads from either side).
 func _banner(field: Color, band: Color, nm: String) -> Node3D:
 	var b := MeshBuilder.new()
-	b.add_box(PSXMat.lit("cloth", field), Transform3D(Basis(), Vector3(0.62, POLE_H - 0.7, 0)), Vector3(1.15, 1.2, 0.03))
-	b.add_box(PSXMat.lit("cloth", band), Transform3D(Basis(), Vector3(0.62, POLE_H - 0.7, 0)), Vector3(1.17, 0.28, 0.04))
+	b.add_box(PSXMat.lit("canvas", field), Transform3D(Basis(), Vector3(0.62, POLE_H - 0.7, 0)), Vector3(1.15, 1.2, 0.03))
+	b.add_box(PSXMat.lit("canvas", band), Transform3D(Basis(), Vector3(0.62, POLE_H - 0.7, 0)), Vector3(1.17, 0.28, 0.04))
 	var n := b.to_instance("Banner" + nm)
 	add_child(n)
 	return n

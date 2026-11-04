@@ -1,7 +1,8 @@
 extends SceneTree
 ## Where rival crews turn up (RivalWatch, GameManager's): not on the first island, the first meeting on the first chain
-## island past it with the Mudlark Brigade; never the capital; after a meeting none until MIN_GAP islands have passed,
-## then rolled (seeded: the same island decides the same), crews not met yet first and never the same twice running.
+## island past it with the Mudlark Brigade; never the capital, the canal city or the stronghold; after a meeting none until
+## MIN_GAP islands have passed, then rolled (seeded: the same island decides the same), crews not met yet first and never
+## the same twice running. 1.30: every node is a real chain node (Chain.make), not a hand-made role.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -19,8 +20,19 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
-func node(layer: int, s: int, role := "") -> Dictionary:
-	return {"layer": layer, "seed": s, "role": role}
+## (1.30) Real chain nodes (Chain.make): the regular islands of chains seeded 1.., `n` of them, a fresh seed per call.
+var _regular: Array = []
+var _regular_seed := 1
+
+
+func node(_layer: int, s: int, _role := "") -> Dictionary:
+	while _regular.is_empty():
+		var c = load("res://scripts/world/chain.gd").make(_regular_seed, Vector2.ZERO, Vector2(0, -1))
+		_regular_seed += 1
+		_regular = c.nodes.filter(func(n): return n["role"] == "regular" and int(n["layer"]) >= 2)
+	var n: Dictionary = _regular.pop_back().duplicate()
+	n["seed"] = s
+	return n
 
 
 func _process(_d: float) -> bool:
@@ -30,12 +42,19 @@ func _process(_d: float) -> bool:
 	var w = gm.rival_watch
 	gm.rivals.clear()
 	var pl: Dictionary = w.plan()
-	w.decide(node(0, 11), 0)
-	check("not on the first island (layer 0)", int(pl["pending"]) == -1)
-	w.decide(node(1, 12, "capital"), 1)
-	check("never at the capital", int(pl["pending"]) == -1)
-	w.decide(node(1, 13), 2)
-	check("the first meeting: the first chain island past it, the Mudlark Brigade (%s)" % pl["crew"], int(pl["pending"]) == 2 and pl["crew"] == "mudlark_brigade")
+	var chain = load("res://scripts/world/chain.gd").make(4242, Vector2.ZERO, Vector2(0, -1))
+	# (before the first meeting any chain island past Brinehollow would do: the cities and the stronghold must say no)
+	var capital: Dictionary = chain.nodes.filter(func(n): return n.get("capital", false))[0]
+	var canal: Dictionary = chain.nodes.filter(func(n): return n.get("canal", false))[0]
+	w.decide(capital, int(capital["id"]))
+	check("never at the capital (%s, role %s)" % [capital["name"], capital["role"]], int(pl["pending"]) == -1)
+	w.decide(canal, int(canal["id"]))
+	check("never at the canal city (%s)" % canal["name"], int(pl["pending"]) == -1)
+	w.decide(chain.stronghold, int(chain.stronghold["id"]))
+	check("never at the stronghold (%s)" % chain.stronghold["name"], int(pl["pending"]) == -1)
+	var first: Dictionary = chain.nodes.filter(func(n): return int(n["layer"]) == 1)[0]
+	w.decide(first, int(first["id"]))
+	check("the first meeting: the first chain island, the Mudlark Brigade (%s)" % pl["crew"], int(pl["pending"]) == int(first["id"]) and pl["crew"] == "mudlark_brigade")
 	# (the meeting happened: RivalWatch's trigger sets these)
 	pl["pending"] = -1
 	pl["since"] = 0

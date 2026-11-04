@@ -127,6 +127,8 @@ static func _fold(mi: MeshInstance3D, out: Array, folds: Dictionary) -> void:
 			if mb.surface_count() < m.get_surface_count():
 				var f := mb.commit()
 				f.custom_aabb = m.custom_aabb
+				if m.has_meta("made_by"):
+					f.set_meta("made_by", m.get_meta("made_by"))
 				folds[m] = f
 	var to: ArrayMesh = folds[m]
 	if to != m:

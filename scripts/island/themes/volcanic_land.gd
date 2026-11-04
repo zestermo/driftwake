@@ -375,6 +375,14 @@ static func _lava(isl) -> void:
 		var mb: MeshBuilder = pair[0]
 		if mb.is_empty():
 			continue
+		# (1.30) the cooled crust is walked on, not waded through (the hot flow stays the hazard you stand in)
+		if pair[1] == "Crust":
+			var body := StaticBody3D.new()
+			body.name = "CrustCol"
+			body.collision_layer = 1
+			body.collision_mask = 0
+			mb.faces_since({}, body)
+			node.add_child(body)
 		var mi := mb.to_instance(pair[1])
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visibility_range_end = VIS

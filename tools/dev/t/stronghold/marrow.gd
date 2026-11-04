@@ -1,7 +1,7 @@
 extends SceneTree
 ## Captain Ilse Marrow in the prison's yard (1.27, StrongholdBoss, an open arena): nobody until a captain comes into
 ## the yard; then she's there (a captain-style AI, a greatsword, a boss's health, under her name); at half health the
-## cell block opens and its brutes come out (elite, berserk prisoners); beaten, the prison's seal is the crew's. At half health she also leaps onto the catwalks over
+## cell block opens: the prison riot (1.30: waves of berserk prisoners, two brutes leading the last); beaten, the prison's seal is the crew's. At half health she also leaps onto the catwalks over
 ## her yard, and her seastone net leaves a fruit user powerless.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -56,10 +56,12 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(5.0)
 		4:
 			var cells = isl.city.get_node_or_null("Encounter_cells_marrow")
-			check("at half health (phase %d) the cell block opens: its brutes come out (%d)" % [bnode.phase(), cells.alive_count() if cells else -1],
-				bnode.phase() == 2 and cells != null and cells.alive_count() == 4)
+			check("at half health (phase %d) the cell block opens: the riot's first wave comes out (%d)" % [bnode.phase(), cells.alive_count() if cells else -1],
+				bnode.phase() == 2 and cells != null and cells.alive_count() == 5)
 			if cells:
-				check("...berserk prisoners, not marines", cells.grunts.all(func(g): return bool(g.elite_rank)))
+				check("...berserk prisoners rushing the captains (fodder hunters), not marines", cells.grunts.all(func(g): return g.is_in_group("fodder") and g.hunt and g.elite_trait == "berserk"))
+				var last: Array = cells.wave_specs(cells.waves)
+				check("...the last wave led by two brutes", not last[0].has("script") and not last[1].has("script") and str(last[0]["role"]) == "hammer")
 			check("catwalks round her yard", bnode.get_node_or_null("Catwalks") != null)
 			check("...and she's leapt up onto them (%.1f m over the yard)" % (marrow.global_position.y - bnode.global_position.y), marrow.global_position.y - bnode.global_position.y > 4.0)
 			# her seastone net on a fruit user (out of the brutes' way, so nothing knocks you out from under it)

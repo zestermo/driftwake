@@ -38,7 +38,7 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			smith = npc({"name": "Haldor Test", "shop": "haldor"}, p.global_position + Vector3(-1.5, 0, -5.0))
 			talker = npc({"name": "Nessa Test", "dialogue": "nessa"}, p.global_position + Vector3(1.5, 0, -5.0))
 			plain = npc({"name": "Plain Test"}, p.global_position + Vector3(0, 0, -7.0))

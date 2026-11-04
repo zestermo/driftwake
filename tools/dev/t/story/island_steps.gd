@@ -1,7 +1,7 @@
 extends SceneTree
 ## 1.25.4 the opening's places on the real Brinehollow: Nessa's parcel taken up to Ambrose at the lighthouse moves on
-## to the brawl, fought on the quay; the old forest has its ironwood deadfall by the paths (the marker leads to the
-## nearest unsplit one), each split once for a length of timber, three and Tackett's knees are done (on to the queen);
+## to the brawl, fought on the quay; Tackett's grove has its three marked ironwoods (the marker leads to the trail,
+## then the nearest standing one), each felled once for a length of timber, three and his knees are done (on to the queen);
 ## the ruins' standing stone, read on that step, sends you on to Grell.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -59,22 +59,21 @@ func _process(_d: float) -> bool:
 			var b: Vector3 = isl.to_local(isl.ground_of("brawl"))
 			check("...fought on the quay (%.2f m up)" % b.y, isl.harbour.on_platform(Vector2(b.x, b.z)))
 			story.step = "forest"
-			check("the old forest's deadfall: %d trunks" % isl.deadfall.size(), isl.deadfall.size() == 3)
-			var near := true
-			for d in isl.deadfall:
-				near = near and isl.to_local(d.global_position).distance_to(Vector3(isl.FOREST.x, isl.to_local(d.global_position).y, isl.FOREST.y)) < 52.0
-			check("...all in the forest", near)
-			p.global_position = isl.deadfall[1].global_position + Vector3(0, 1, 3)
+			var trees: Array = isl.grove.trees
+			check("Tackett's grove: %d marked ironwoods" % trees.size(), trees.size() == 3)
+			p.global_position = isl.to_global(Vector3(isl.VILLAGE.x, 12.0, isl.VILLAGE.y))
+			var mouth: Vector2 = isl.GROVE_TRAIL[0]
+			check("from town the marker leads to the trail's mouth", isl.to_local(story.target_pos()).distance_to(Vector3(mouth.x, isl.to_local(story.target_pos()).y, mouth.y)) < 0.1)
+			p.global_position = trees[1].global_position + Vector3(0, 1, 3)
 			p.reset_physics_interpolation()
-			check("the marker leads to the nearest", story.target_pos().distance_to(isl.deadfall[1].global_position + Vector3.UP * 1.5) < 0.1)
-			var SD = load("res://scripts/game/story_deadfall.gd")
-			SD.split(p, 1)
-			SD.split(p, 1)
-			check("one split: one length of timber (%d)" % p.inventory_component.count("timber"), p.inventory_component.count("timber") == 1 and story.step == "forest")
-			check("...and the marker moves on to another", story.target_pos().distance_to(isl.deadfall[1].global_position + Vector3.UP * 1.5) > 1.0)
-			SD.split(p, 0)
-			SD.split(p, 2)
-			check("three split: Tackett's timber, on to the queen (%s, %d)" % [story.step, p.inventory_component.count("timber")], story.step == "queen" and p.inventory_component.count("timber") == 3)
+			check("in the grove the marker leads to the nearest", story.target_pos().distance_to(trees[1].global_position + Vector3.UP * 2.2) < 0.1)
+			isl.grove.fell(p, 1)
+			isl.grove.fell(p, 1)
+			check("one felled: one length of timber (%d)" % p.inventory_component.count("timber"), p.inventory_component.count("timber") == 1 and story.step == "forest")
+			check("...and the marker moves on to another", story.target_pos().distance_to(trees[1].global_position + Vector3.UP * 2.2) > 1.0)
+			isl.grove.fell(p, 0)
+			isl.grove.fell(p, 2)
+			check("three felled: Tackett's timber, on to the queen (%s, %d)" % [story.step, p.inventory_component.count("timber")], story.step == "queen" and p.inventory_component.count("timber") == 3)
 			story.step = "ruins"
 			_talk("driftstone")
 			check("the standing stone read on its step: on to Grell (%s)" % story.step, story.step == "grell")

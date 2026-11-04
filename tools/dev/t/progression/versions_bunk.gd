@@ -25,6 +25,19 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
+
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
@@ -38,6 +51,7 @@ func _process(_d: float) -> bool:
 				var m: Dictionary = pr.mastery_of("katana")
 				pr.add_mastery("katana", pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
 			check("katana 12: 26 katana points", pr.pool("katana") == 26)
+			own_parents("k_iai")
 			check("the iai upgrade bought: both versions, the first active", pr.buy("k_iai") and pr.version_of("k_iai") == 0 and pr.owns("k_through"))
 			check("...its iai can't be blocked, no faster charge", pr.style_stat("unblock", "katana") > 0.0 and pr.stat("iai_speed") == 0.0)
 			check("away from the bunk the version stays", not pr.can_respec() and not pr.set_version("k_iai", 1) and pr.version_of("k_iai") == 0)

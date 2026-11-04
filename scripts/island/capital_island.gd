@@ -217,7 +217,7 @@ func harbour_spawn() -> Vector3:
 ## Where the crew's ship lies: alongside the quay, bow along the harbour front.
 func mooring() -> Array:
 	var b := from_city_dir(Vector2(1, 0))
-	return [city_global(CapitalPlan.BERTH, 0.0), atan2(-b.x, -b.y)]
+	return [city_global(CapitalPlan.BERTH + Vector2(0, Ship.moor_out(get_tree())), 0.0), atan2(-b.x, -b.y)]
 
 
 # --------------------------------------------------------------------------
@@ -314,6 +314,10 @@ func _piece(i: int) -> void:
 			var cs := CollisionShape3D.new()
 			if c.has("shape"):
 				cs.shape = c["shape"]
+			elif c.has("hull"):
+				var hs := ConvexPolygonShape3D.new()
+				hs.points = c["hull"]
+				cs.shape = hs
 			elif c.has("box"):
 				var b := BoxShape3D.new()
 				b.size = c["box"]

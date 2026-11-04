@@ -818,8 +818,7 @@ static func _buried(isl, ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 	for k in range(rng.randi_range(1, 2)):
 		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(8.0, 22.0)
 		var dr := rng.randf_range(2.0, 3.0)
-		DesertTown.dome(mb, Vector3(q.x, _gy(ctx, pl, q.x, q.y) - 0.5, q.y), dr, (DesertTown.DOMES[rng.randi() % DesertTown.DOMES.size()] as Color).lerp(SAND, 0.45), rng.randf() < 0.3, 0.3)
-		KitLandmarks.cyl_col(b, dr * 0.85, dr * 0.8, Vector3(q.x, _gy(ctx, pl, q.x, q.y) + dr * 0.4, q.y))
+		DesertTown.dome(mb, Vector3(q.x, _gy(ctx, pl, q.x, q.y) - 0.5, q.y), dr, (DesertTown.DOMES[rng.randi() % DesertTown.DOMES.size()] as Color).lerp(SAND, 0.45), rng.randf() < 0.3, 0.3, b)
 	var mq := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(12.0, 22.0)
 	var mn := DesertTown.minaret(rng.randi(), 16.0)
 	mn.position = Vector3(mq.x, _gy(ctx, pl, mq.x, mq.y) - 9.0, mq.y)

@@ -1,0 +1,65 @@
+{
+	"speaker": "Netmaker Hesk",
+	"voice": 0.92,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Mind the nets. They're older than you and twice as tangled.",
+				"Hesk. I mend what the sea chews up, and I tell anyone who'll stand still how to catch a fish."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Ask away. My hands keep working either way.",
+			"choices": [
+				{ "text": "How do I fish?", "next": "how" },
+				{ "text": "Where do I get a rod?", "next": "rod" },
+				{ "text": "Does bait matter?", "next": "bait" },
+				{ "text": "Where's the best fishing?", "next": "where" },
+				{ "text": "What if something big bites?", "next": "big" },
+				{ "text": "I'll let you work.", "next": "bye" }
+			]
+		},
+		"how": {
+			"text": [
+				"Rod in your equipment slot, face open water, {key_interact} to cast. A shore, a pier, the rail of a ship, all the same to a fish.",
+				"Watch the float. A nibble or two, then it dips with a splash. {key_interact} right then. Too soon and you pull the hook out of its mouth. Too late and it's gone."
+			],
+			"next": "menu"
+		},
+		"rod": {
+			"text": [
+				"Marlo sells driftwood rods at the market, and worms with them. Start there.",
+				"A better rod casts further, gets a bite sooner and gives you longer to strike. Bamboo, then steel-tipped. The master's rods turn up in old chests, if you're lucky."
+			],
+			"next": "menu"
+		},
+		"bait": {
+			"text": [
+				"Click your bait in the bag and it goes on the hook. No bait and you're fishing a bare hook: slow, and only the stupid ones bite.",
+				"Shrimp brings the rarer ones. Glow bait's best by night. Short of it? Cut your own on the action wheel from a crab or a fish and a bit of kelp."
+			],
+			"next": "menu"
+		},
+		"where": {
+			"text": [
+				"What bites depends on the water under your float, the coast and the hour. Shallow water, small fish.",
+				"End of the pier for the deep ones. The cove at dawn. And every island out there has its own, so fish wherever you drop anchor."
+			],
+			"next": "menu"
+		},
+		"big": {
+			"text": [
+				"Then you've got a fight. Hold to reel and the line tightens. Let go when it runs, or it snaps.",
+				"Let it go slack too long and it throws the hook. Reel when it rests. Patience. Fish have more of it than captains."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Bring me a torn net sometime. I'll make it worse and charge you.",
+			"next": "end"
+		}
+	}
+}
