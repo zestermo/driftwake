@@ -648,13 +648,13 @@ func _deep_enough(c: Vector2, r: float) -> bool:
 func _build_redtide() -> void:
 	# north of Brinehollow, past the harbour (or the nearest clear stretch)
 	var spot := starter_center + Vector2(0, -400)
-	if not _deep_enough(spot, 60.0):
+	if not _deep_enough(spot, RedtideFort.REACH):
 		var found := false
 		for r in [400.0, 460.0, 520.0]:
 			for k in range(24):
 				var a := -PI * 0.5 + (k / 2 + 1) * (TAU / 24.0) * (1.0 if k % 2 == 0 else -1.0)
 				var c: Vector2 = starter_center + Vector2(cos(a), sin(a)) * r
-				if _deep_enough(c, 60.0):
+				if _deep_enough(c, RedtideFort.REACH):
 					spot = c
 					found = true
 					break
@@ -671,11 +671,11 @@ func _build_redtide() -> void:
 	EnemyShip.no_go = []
 	for z in StarterIsland.NO_GO:
 		EnemyShip.no_go.append([starter_center + (z[0] as Vector2), z[1]])
-	EnemyShip.no_go.append([spot, 45.0])
+	EnemyShip.no_go.append([spot, RedtideFort.REACH])
 	fleet = EnemyFleet.new()
 	fleet.name = "PirateFleet"
 	add_child(fleet)
-	fleet.add_zone(Vector3(spot.x, 0.0, spot.y), 115.0, ["sloop", "brig"])
+	fleet.add_zone(Vector3(spot.x, 0.0, spot.y), RedtideFort.REACH + 45.0, ["sloop", "brig"])
 	var lanes: Array = [Vector3(spot.x, 0.0, spot.y)]
 	# gunboats on the way out past Redtide, where the log pose points
 	var z2 := spot + (spot - starter_center).normalized() * 320.0

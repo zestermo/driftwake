@@ -9422,6 +9422,31 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
 - Tests: t/ship/flag_builder (old kits keep their look, skull 0 = old flag, 168 distinct jolly rogers, the sail emblem,
   the paint on her, ten figureheads build). Renders: tools/dev/out/shipshape/figures_* (modelshot), looks_*, fig10_bow.
 
+## 2026-11-04: Redtide's mountain (1.30, piece 1: the shape)
+- **What:** Morrow's arena now sits in the bowl of a mountain rising from the sea instead of on a lone stack.
+  `RedtideFort._build_massif` (redtide_fort.gd): a horseshoe massif on a polar grid round the arena (120 columns
+  over every bearing but the cove's, OPEN_A +Z = toward Brinehollow, OPEN_HALF 0.9 rad), each column a profile
+  (`_col` / `_profile`): the inner foot buried under the arena rock's rim (19 m, so no gap opens), a sheer inner
+  wall with two shelves, the crest (22 m + 26 m at the back, PEAKS, ridge noise; 15 m min, the arms' tips 30% lower),
+  a rolling top (wide on the arms), a sheer outer cliff with a steep (>50 deg) ledge band, a sea notch, the apron
+  down to -36. The arms hook in round the cove (`_bent`, 0.24 rad at their tips) and end in sheer caps
+  (the profile triangulated). Facets with true normals as the stack; grass on flats (noise-gated), a mossy ledge
+  rock, a warmer rock tint. One trimesh. Crest spires (CREST) and sea stacks off the foot (CRAGS, by gap past the
+  foot; MOUTH out past the cove) replace the old crags; the waterline boulders only in the cove.
+- **The one way in:** the cove, the jetty and the stair are unchanged in place; everything else is sheer from the sea
+  (and from the arena: the inner wall). Crest tops slope in, so anyone who got up there (vine chains) slides into
+  the bowl, not out.
+- **Stair fix (an old bug):** the stair's walk collider had a 51-54 deg lip at the east bend (the Catmull-Rom's heights
+  bunched up there, and the ribbon folded on the inside of the bend): a captain walking it stopped dead. The heights
+  are now even along each flight by flat distance, and the walk surface is a 0.4 m grid over the stair's corridor at
+  the height of the line's nearest point (`_line_y`).
+- **Clearances:** `RedtideFort.REACH` 100 m (was 45 no-go / 60 deep-water check): WorldGenerator's deep-water check
+  (the spot is unchanged: deep to 130 m), the ships' no-go circle (so the sea's features keep off too), the patrol
+  zone REACH + 45 (was 115), the arrival banner REACH + 15 (was 75). Redtide has no village; the jetty is its dock.
+- **Per frame:** nothing new (static meshes and colliders; the massif ~4k tris, one mesh of 3-4 surfaces).
+- **Tests:** t/world/redtide_way_in (the fort on the light stage, sea level = the ground: off the jetty up the stair
+  into the arena; from the cliffs' foot at 11 spots running and jumping at the rock nobody gets up; drops over the
+  crest, an arm and the arena land on rock). r8test (Morrow) green.
 ## 2026-11-03: 1.30 land fixes, piece 1: the stronghold vault and the Driftfruit (playtest 2026-11-02 row 5)
 - The vault chest stood inside the Command Hall's dais (local (6,0,-17) against the 14x1.2x6 block); it's now
   `StrongholdBoss.VAULT_AT` (-2,0,-14.4), on the floor before the dais's front step between two pillars, with an X on the
@@ -10332,3 +10357,17 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   updated for the carried colours. Render: `crewshipshot` (tools/dev/out/review/ships_*.png).
 - Not done / open: enemy brigs and galleons, boarding the new hulls, NPC deckhands (out of scope). Captains aboard when the
   class changes stay where they stood (at a yard, normally ashore). The galleon's bow chaser sits low under her sheer.
+## 2026-11-04: Redtide's mountain (1.30, piece 2: dressing)
+- **Rock:** red strata in wavy bands (`_band_m`, the stone the rock's named for: sin of height + noise), the mossy
+  ledge rock and noise-gated grass from piece 1. Five surfaces on the massif.
+- **Plants** (`_dress_massif`): every grassy facet the massif picks is kept (`_green`) and gets a tuft patch, a bush,
+  a fern, or (high tops, flat) a pine: one MultiMesh per kind (Props meshes), no shadows, ranges tuft 140 / fern 180 /
+  bush 220 / pine 900 m (the pines read from the sea). Boulders in the surf along the foot: one merged mesh, no
+  colliders (nothing to climb from the water), 400 m.
+- **Sea arch** off the west arm's tip (`_arch`: 15 rings of 7 jittered sides on a sine bow, legs thick, lintel
+  thin, a convex collider per segment), 24 m span, 17 m high. The second mouth stack moved out to 86 m.
+- **Birds:** SkyBirds lists Redtide like an island ("redtide", radius 60): its high flocks wheel over the peaks
+  (`RedtideFort.height_at`: the arena's top, the crest over the massif, the sea; also islandshot's "~" heights).
+  No harbour gulls (no DockingArea).
+- **Per frame:** nothing new of Redtide's own; SkyBirds' flock birds (inside its MAX 72, the GPU flock path).
+- Tests: t/world/redtide_way_in green with the arch; t/world/sky_long_tail, sky_flock_gpu green.
