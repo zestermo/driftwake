@@ -640,6 +640,13 @@ scripts/enemies/drowned.gd              t/combat/undead t/island/fog_isle
 scripts/enemies/ghost.gd                t/combat/undead t/island/fog_isle
 scripts/enemies/ghost_captain.gd        t/island/fog_isle
 scripts/world/chain.gd                  t/island/fog_isle
+# --- the 1.30 creatures: fog graveyards and zombies, the fog and forest creatures ---
+tools/dev/t/fauna/*                     t/fauna
+scripts/island/themes/fog_places.gd     t/island/fog_graveyard t/island/fog_isle
+scripts/enemies/fauna/zombie.gd         t/fauna/zombie t/fauna/zombie_rise t/island/fog_graveyard
+scripts/island/fauna_spawner.gd         t/island/fog_graveyard faunatest
+scripts/player_states/grabbed_state.gd  t/fauna/zombie_rise
+scripts/enemies/fauna/creature.gd       t/fauna t/combat/creature_tell
 scripts/world/weather.gd                t/swim/dive_shafts
 shaders/world/dive_shafts.gdshader      t/swim/dive_shafts
 shaders/psx/psx_sky.gdshader            r10test t/world/theme_weather

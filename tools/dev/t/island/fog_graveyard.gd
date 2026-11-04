@@ -63,7 +63,9 @@ func _process(_d: float) -> bool:
 			var mi = node.get_node("Stones")
 			var tris := 0
 			for s in range(mi.mesh.get_surface_count()):
-				tris += (mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+				var arr: Array = mi.mesh.surface_get_arrays(s)
+				var idx = arr[Mesh.ARRAY_INDEX]
+				tris += (idx.size() if idx != null else (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
 			check("built big: %d colliders, %d triangles in %d surfaces" % [walls.get_child_count(), tris, mi.mesh.get_surface_count()],
 				walls.get_child_count() >= 60 and tris > 4000 and mi.mesh.get_surface_count() <= 8)
 			check("...seen from afar, not forever (%.0f m)" % mi.visibility_range_end, mi.visibility_range_end > 150.0 and mi.visibility_range_end < 400.0)

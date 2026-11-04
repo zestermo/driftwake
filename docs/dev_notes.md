@@ -10336,3 +10336,26 @@ The playtest's meetings happened on land unnoticed and the warning promised a sh
   t/quests/_isle.gd); unique_lines and arc_roll updated (no board talk); isletest's board check moved to the notices
   (not run in this tier). Render: `boardshot.gd` (board_goal_1..4, board_page). Expected to touch isletest, lifetest,
   villagetest, storytest (the box), netchain (the walk-in take and the world flags go through Journal/Net as before).
+
+## 2026-11-04: 1.30 creatures, piece 1: fog graveyards and zombies (docs/v1_30_plan.md round 8)
+- **The graveyard** (`fog_places.gd` graveyard/_railing/_gate/_crypt/_mausoleum/_headstone/_dead_tree): 15 m reach (11
+  m where no 15 m ground is free; was 9), W 1.45r x D 1.2r. A stone plinth with spear-tipped iron bars and piers round
+  it, one run fallen in; the gate under an iron arch with its leaves hanging open; a gravel walk to the crypt (columns,
+  pediment, steps, black door behind a grille); a mausoleum in each back corner (pyramid or pitched roof, urn, sealed
+  slab); rows of headstones each side (slab, cross, obelisk, broken with its top beside it, fallen), stone tombs, dead
+  trees. One MeshBuilder mesh (6 surfaces, ~7.8k tris), ranged 280 m, ~110 box colliders. The haunt there is one drowned
+  and a ghost now (was two drowned).
+- **Zombies** (`fauna/zombie.gd`, a Creature; FogTheme.CREATURES "zombie", not in FAUNA so never rolled): 4-6 under the
+  graveyard's fresh graves (dark loose mounds), handed to the island's FaunaSpawner by the new `add_spots(kind, pts)`
+  (one group; its LOD, respawns and co-op gen as any creature). States: HIDE buried (no collision, hurtbox off,
+  hidden; a 0.2 s look for a captain within 11 m), NOTICE rising 1.9 s (anim_a the progress, so puppets pose it; dirt
+  bursts at 0 and 0.7 s through Net.fx), then a lurching shamble (1.35 m/s), the tell (both arms up, the red glow) and a
+  rake or a grab. The grab is a HitData.grab hit (GrabbedState: mash free or bitten and thrown, `grab_damage` 16 x
+  level): the grabbed captain's machine tells the host (`grab_held`, new in Net.HOST_CALLS) so it holds (SPECIAL), and
+  GrabbedState now lets go when the grabber's `holding()` says it's put down or dead. Left alone 14 s by its grave it
+  sinks back in. Drops canvas (grave rags), ivory. Sounds `zombie_moan` (3 takes), `grave_burst` (gen_psx_audio.py).
+- **Tests:** t/fauna/zombie (the shared `_creature_case.gd`: pool, build, level, tell before strike, the blow lands, a
+  drop table that drops, death, asleep far), t/fauna/zombie_rise (buried, rises near, stands, grabs, mashed free),
+  t/island/fog_graveyard. Renders: `graveshot.gd` (day/night, rising), `creaturesheet.gd`.
+- **Per tick:** a buried zombie's 0.2 s distance check while the LOD has it awake (<70 m); risen, a creature's usual.
+  The graveyard is static.

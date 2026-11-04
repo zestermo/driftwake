@@ -22,9 +22,10 @@ const GRAB_DMG := 16.0
 ## Back into the ground after this long by its grave with nobody within LONELY_R.
 const SINK_AFTER := 14.0
 const LONELY_R := 24.0
-const SKINS := [Color(0.46, 0.5, 0.38), Color(0.52, 0.5, 0.42), Color(0.4, 0.46, 0.42)]
-const SHROUDS := [Color(0.6, 0.57, 0.48), Color(0.46, 0.44, 0.4), Color(0.55, 0.5, 0.42)]
+const SKINS := [Color(0.3, 0.36, 0.22), Color(0.36, 0.34, 0.24), Color(0.26, 0.32, 0.27)]
+const SHROUDS := [Color(0.38, 0.35, 0.28), Color(0.28, 0.27, 0.24), Color(0.34, 0.3, 0.24)]
 const EYE := Color(0.75, 1.0, 0.8)
+const DIRT := Color(0.16, 0.13, 0.1)
 
 var morph: int = 0
 var _move: int = 0
@@ -48,7 +49,7 @@ func _setup(args: Dictionary) -> void:
 	kind = "zombie"
 	morph = int(args.get("morph", 0)) % 3
 	hostile = true
-	skin_tex = "leather"
+	skin_tex = "fur_white"
 	size_k = 1.0 + 0.06 * morph
 	max_hp = 85.0
 	xp = 45
@@ -292,12 +293,12 @@ func rise(_by: Node = null) -> void:
 func _burst(big: bool) -> void:
 	var at := global_position + Vector3.UP * 0.1
 	if big:
-		Net.fx("debris", [at, Vector3.UP, 14, Color(0.3, 0.24, 0.17), 6.0])
+		Net.fx("debris", [at, Vector3.UP, 14, DIRT, 6.0])
 		Net.fx("dust_ring", [at, 12, 0.9])
 		Net.fx("sfx", ["grave_burst", at, 0.0, 0.08, 1.0])
 		Net.fx("sfx", ["zombie_moan", at, -3.0, 0.12, 0.9])
 	else:
-		Net.fx("debris", [at, Vector3.UP, 5, Color(0.3, 0.24, 0.17), 3.0])
+		Net.fx("debris", [at, Vector3.UP, 5, DIRT, 3.0])
 		Net.fx("dust", [at, 4, 0.4])
 		Net.fx("sfx", ["grave_burst", at, -8.0, 0.1, 1.4])
 

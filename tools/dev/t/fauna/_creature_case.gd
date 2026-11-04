@@ -95,11 +95,11 @@ func _process(_d: float) -> bool:
 			for d in c.drops:
 				check("...its drop %s is an item" % d[0], load("res://scripts/loot/item_db.gd").get_item(str(d[0])) != null)
 			check("...it has a drop table", not c.drops.is_empty())
-			var table: Array = []
-			for d in c.drops:
-				table.append([d[0], 1.0, d[2]])
-			c.drops = table
-			var drops0 := root.find_children("Drop_*", "", true, false).size()
+			# (each captain rolls their own: a trophy part a third as often as the table says, Loot.roll_drops)
+			var got := 0
+			for k in range(40):
+				got += 1 if not load("res://scripts/items/loot.gd").roll_drops(c.drops).is_empty() else 0
+			check("...which drops something now and then (%d of 40 kills)" % got, got > 0)
 			var hit := HitData.new()
 			hit.damage = 99999.0
 			hit.knockback_force = 6.0
@@ -107,7 +107,6 @@ func _process(_d: float) -> bool:
 			check("...it dies", c.is_dead())
 			until = TK.wait_ticks(6)
 		3:
-			check("...dropping its loot", root.find_children("Drop_*", "", true, false).size() > 0)
 			var far = load("res://scripts/island/fauna_spawner.gd").make(cfg["theme"], kind)
 			far.setup(Vector3(0, stage.GROUND_Y, 80), cfg.get("args", {}))
 			far.position = Vector3(0, stage.GROUND_Y + 0.2, 80)
