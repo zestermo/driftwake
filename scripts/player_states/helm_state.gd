@@ -26,7 +26,6 @@ func enter(_data: Dictionary) -> void:
 	player.reset_physics_interpolation()
 	player.body_model.at_helm = true
 	ship.is_player_steering = true
-	ship.cam_yaw = 0.0
 	var was_lashed := ship.lashed
 	if was_lashed:
 		Net.lash_helm(false, 0.0)
@@ -43,6 +42,8 @@ func enter(_data: Dictionary) -> void:
 		var ship_cam := ship_camera.get_node("SpringArm3D/Camera3D") as Camera3D
 		if ship_cam:
 			ship_cam.current = true
+		if camera_rig:
+			ship.begin_cam_handover(camera_rig)
 	var steer := "Left stick: sails and rudder" if Glyphs.pad() else "W/S: sails   A/D: rudder"
 	player.call("_toast", ("Lashing cast off.   " if was_lashed else "") + "   ".join([steer, Glyphs.hint("jump", "anchor"),
 		Glyphs.hint("light_attack", "broadside"), Glyphs.hint("action_wheel", "lash the helm"), Glyphs.hint("interact", "leave")]
@@ -110,17 +111,23 @@ func update(delta: float) -> void:
 	var spring_arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 	if spring_arm:
 		spring_arm.rotate_x(-l.y)
-		spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(-60), deg_to_rad(30))
+		spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(-60), Ship.CAM_PITCH_MAX)
 
 
 func handle_input(event: InputEvent) -> void:
+	# The scroll wheel: the ship camera's distance, as on foot
+	if event is InputEventMouseButton and event.pressed and player.current_ship:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			player.current_ship.zoom_cam(-1.0)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			player.current_ship.zoom_cam(1.0)
 	# Mouse look for ship camera
 	if event is InputEventMouseMotion and ship_camera and player.current_ship:
 		player.current_ship.cam_yaw -= event.screen_relative.x * mouse_sensitivity
 		var spring_arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 		if spring_arm:
 			spring_arm.rotate_x(-event.screen_relative.y * mouse_sensitivity)
-			spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(-60), deg_to_rad(30))
+			spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(-60), Ship.CAM_PITCH_MAX)
 
 
 func exit() -> void:
@@ -144,8 +151,8 @@ func exit() -> void:
 	if camera_rig:
 		camera_rig.set_process(true)
 		camera_rig.set_process_unhandled_input(true)
-		if ship_camera:
-			camera_rig.global_rotation.y = ship_camera.global_rotation.y
+		if ship_camera and camera_rig.has_method("take_view"):
+			camera_rig.take_view((ship_camera.get_node("SpringArm3D/Camera3D") as Node3D).global_position)
 		var player_cam := camera_rig.get_node("SpringArm3D/Camera3D") as Camera3D
 		if player_cam:
 			player_cam.current = true
@@ -154,7 +161,7 @@ func exit() -> void:
 	if ship_camera:
 		var spring_arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 		if spring_arm:
-			spring_arm.rotation.x = deg_to_rad(20)
+			spring_arm.rotation.x = Ship.CAM_PITCH
 
 	camera_rig = null
 	ship_camera = null

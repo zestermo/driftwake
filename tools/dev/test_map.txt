@@ -159,7 +159,7 @@ scripts/ui/duel_hud.gd                  t/coop
 
 # --- player ---
 scenes/player/*                         t/player t/combat t/items swimtest
-scenes/player/camera_rig.gd             t/player t/combat
+scenes/player/camera_rig.gd             t/player t/combat t/ship/helm_camera
 scripts/player_states/*                 t/player t/combat
 scripts/player_states/player_state.gd   t/player t/items balancetest airtest
 scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
@@ -598,7 +598,7 @@ assets/clips/*                          t/downtime
 art/clips/*                             t/downtime
 tools/blender/*                         t/downtime
 scripts/ship/lashed_helm.gd             t/downtime t/ship
-scripts/player_states/helm_state.gd     t/downtime
+scripts/player_states/helm_state.gd     t/downtime t/ship/helm_camera t/input/ship_look
 # --- the royal capital (2026-10-20) ---
 tools/dev/t/capital/*                   t/capital
 scripts/island/capital_*                t/capital

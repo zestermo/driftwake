@@ -10593,3 +10593,19 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Tests:** t/weapons/sickle_heavy (new: the hit window in ticks, lands, full length, no reach pop, ends facing ahead);
   sickle_combo, sickle_moves, plus_sickle pass. Renders: tools/dev/out/review/scythe_heavy_{before,after}_*.png.
   Expected at prepush: techtest/abilityshot moves that pose "sk_heavy" (Harvest of Souls, Soul Chain) look different.
+
+## 2026-11-04: the helm camera and the stance's zoom (1.30)
+- **Under the sea at the helm:** the ShipCamera's arm was pitched +20° (ship.tscn, and helm exit reset it to that), and on
+  these rigs a positive pitch tips the arm *under* its pivot: 21 m x sin 20° = 7 m below a pivot 4.5 m up. Now
+  Ship.CAM_PITCH = -0.3 (up behind, looking down), the pitch is clamped to CAM_PITCH_MAX 0.15, and Ship._place_cam lifts
+  the pivot so the camera stays 0.8 m over Ocean.surface_at (the arm only collides with the world, not the water).
+- **No cut taking the wheel:** HelmState.enter calls Ship.begin_cam_handover(rig): the helm camera starts at the rig's
+  pivot (kept as an offset from the ship's pivot so a moving ship doesn't outrun it), yaw, pitch, hit length and FOV,
+  and eases to the ship's view over 0.9 s. cam_yaw is no longer zeroed on entering (that was the snap to the stern).
+  Leaving: CameraRig.take_view(ship camera's position) points the rig's arm at it and eases back to the captain's
+  distance (the arm's follow slows from 11 to 2 for 0.8 s).
+- **Scroll at the helm:** Ship.zoom_cam (35%..150% of layout.cam_arm, 10% a notch), from HelmState.handle_input.
+- **Stance zoom:** the stance used min(current_zoom, 3.8), so scrolling with a weapon out moved a distance you couldn't
+  see and it jumped when you sheathed. CameraRig.combat_zoom is the stance's own distance (2..8, half-steps), the
+  wheel moves whichever is showing.
+- Test: t/ship/helm_camera.

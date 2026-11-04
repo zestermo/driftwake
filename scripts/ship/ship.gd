@@ -99,6 +99,19 @@ const PORT_REACH := 40.0
 var _deck_delta := Transform3D.IDENTITY
 ## Camera yaw offset from the heading while at the helm (mouse look).
 var cam_yaw: float = 0.0
+## (1.30) The helm camera's distance (the scroll wheel at the helm; 0: the layout's cam_arm), and the handover
+## that eases it in from where the captain's own camera was (1 -> 0), so taking the wheel never cuts.
+var cam_zoom: float = 0.0
+var _cam_hand := 0.0
+var _cam_from := Vector3.ZERO  # the captain's rig pivot, as an offset from the ship camera's pivot (she moves on)
+var _cam_len_from := 0.0
+var _cam_pitch_from := 0.0
+var _cam_fov_from := 65.0
+const CAM_FOV := 65.0
+const CAM_HAND_SECS := 0.9
+## The helm camera's pitch: negative is up behind the stern looking down (positive tips the arm under the pivot).
+const CAM_PITCH := -0.3
+const CAM_PITCH_MAX := 0.15
 
 var wheel: Node3D
 var hull: float = MAX_HULL
@@ -209,6 +222,7 @@ func _ready() -> void:
 	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 	arm.add_excluded_object(get_rid())
 	arm.spring_length = layout.cam_arm
+	arm.rotation.x = CAM_PITCH
 	# moved every rendered frame from the hull's interpolated transform
 	ship_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 
@@ -1153,8 +1167,8 @@ func _process(delta: float) -> void:
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
 	_cam_y = lerpf(_cam_y, xf.origin.y, minf(1.5 * delta, 1.0))
-	ship_camera.global_position = Vector3(xf.origin.x, _cam_y + 4.5, xf.origin.z)
 	ship_camera.global_rotation = Vector3(0.0, _cam_heading + cam_yaw, 0.0)
+	_place_cam(Vector3(xf.origin.x, _cam_y + 4.5, xf.origin.z), delta)
 
 
 # ==========================================================================
@@ -2372,3 +2386,46 @@ func net_take_over(state: Array) -> void:
 	_vroll = float(st[10])
 	_init = true
 	_placed = true
+
+
+## (1.30) The helm camera's pivot, distance and pitch this frame: the handover from the captain's camera, the
+## scroll wheel's distance, and never under the sea (the arm only collides with the world, not the water).
+func _place_cam(pivot: Vector3, delta: float) -> void:
+	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
+	var want := cam_zoom if cam_zoom > 0.0 else layout.cam_arm
+	if _cam_hand > 0.0:
+		_cam_hand = maxf(_cam_hand - delta / CAM_HAND_SECS, 0.0)
+		var e := smoothstep(0.0, 1.0, _cam_hand)
+		pivot += _cam_from * e
+		arm.spring_length = lerpf(want, _cam_len_from, e)
+		arm.rotation.x = lerpf(minf(_cam_pitch_from, CAM_PITCH * 0.5), _cam_pitch_from, e)
+		(arm.get_node("Camera3D") as Camera3D).fov = lerpf(CAM_FOV, _cam_fov_from, e)
+	else:
+		arm.spring_length = lerpf(arm.spring_length, want, minf(8.0 * delta, 1.0))
+	var cam_p := pivot + arm.global_basis.z * arm.spring_length
+	var under := Ocean.surface_at(cam_p) + 0.8 - cam_p.y
+	if under > 0.0:
+		pivot.y += under
+	ship_camera.global_position = pivot
+
+
+## (1.30) Taking the wheel: the helm camera starts exactly where the captain's camera rig is (its pivot, yaw, pitch
+## and distance) and eases out to the ship's view over CAM_HAND_SECS.
+func begin_cam_handover(rig: Node3D) -> void:
+	var rig_arm := rig.get_node("SpringArm3D") as SpringArm3D
+	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
+	var xf := get_global_transform_interpolated()
+	_cam_from = rig.global_position - Vector3(xf.origin.x, _cam_y + 4.5, xf.origin.z)
+	_cam_len_from = rig_arm.get_hit_length()
+	_cam_fov_from = (rig_arm.get_node("Camera3D") as Camera3D).fov
+	_cam_pitch_from = clampf(rig_arm.rotation.x, deg_to_rad(-60), CAM_PITCH_MAX)
+	cam_yaw = wrapf(rig.global_rotation.y - _cam_heading, -PI, PI)
+	arm.rotation.x = _cam_pitch_from
+	arm.spring_length = _cam_len_from
+	_cam_hand = 1.0
+
+
+## The scroll wheel at the helm: closer (-1) or further (+1), within 35%..150% of the layout's distance.
+func zoom_cam(dir: float) -> void:
+	var base := layout.cam_arm
+	cam_zoom = clampf((cam_zoom if cam_zoom > 0.0 else base) + dir * base * 0.1, base * 0.35, base * 1.5)
