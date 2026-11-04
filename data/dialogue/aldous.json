@@ -1,0 +1,75 @@
+{
+	"speaker": "Brother Aldous",
+	"voice": 0.88,
+	"start": "intro",
+	"return": "menu",
+	"story": { "read": "story_read" },
+	"nodes": {
+		"story_read": {
+			"text": [
+				"The sergeant's sent me a pupil? He must think highly of you. Or very poorly of me.",
+				"Here. Notes of an Old Angler: Hesk's late husband wrote it, next door. Read it and you'll fish as he did, for the rest of your days.",
+				"Open your bag ({key_bag}) and click the book. Or rest and take Read from the wheel ({key_wheel}). Then up the long stair to Master Isao, with my blessing."
+			],
+			"event": "gift:read",
+			"next": "end"
+		},
+		"intro": {
+			"text": [
+				"Ah. A reader? No. You have the look of someone who reads only what's carved on a cannon.",
+				"Brother Aldous. I keep the chapel's books and the island's records, and I answer questions. Slowly."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Ask. I have all afternoon, and the books have all century.",
+			"choices": [
+				{ "text": "What good is reading?", "next": "why" },
+				{ "text": "How do I read a book?", "next": "how" },
+				{ "text": "What are charts and lore books?", "next": "kinds" },
+				{ "text": "How do I get into things here?", "next": "access" },
+				{ "text": "What's the chapel for?", "next": "chapel" },
+				{ "text": "I'll let you get back to it.", "next": "bye" }
+			]
+		},
+		"why": {
+			"text": [
+				"A manual teaches you for good. Quicker legs, a surer arm, a steadier hand on the rod. Read once, keep forever.",
+				"What you've read goes on your shelf. Your ship's cabin will have one: a captain's library, and proof you can spell."
+			],
+			"next": "menu"
+		},
+		"how": {
+			"text": [
+				"Click a book in your bag and read it. Or sit down for a rest and take Read from the action wheel ({key_wheel}): it reads the first book you haven't.",
+				"Books come from chests, merchants and old libraries. A book you've read is used up. The knowledge stays."
+			],
+			"next": "menu"
+		},
+		"kinds": {
+			"text": [
+				"Charts mark what lies on the sea ahead of you: wrecks, merchants, worse. Read one and look at your map.",
+				"Lore comes in sets. Read a whole set and the sea gives something back. Don't ask me how. I only file them."
+			],
+			"next": "menu"
+		},
+		"access": {
+			"text": [
+				"Sergeant Vey opens the skill map once he's seen you fight. Master Isao, up the long stair, reads your Edy.",
+				"Tackett sells refits once his sloop is yours. And Haldor won't forge for a wanted captain, so keep your name off the posters."
+			],
+			"next": "menu"
+		},
+		"chapel": {
+			"text": [
+				"The bell rings for the boats that come home and once more for the ones that don't. The cross in the close is for them.",
+				"The names go in my records. It's the only voyage everyone finishes."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Go gently. And return anything you borrow, especially books.",
+			"next": "end"
+		}
+	}
+}

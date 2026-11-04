@@ -35,7 +35,7 @@ func _process(_d: float) -> bool:
 			dlg = root.get_node("Dialogue")
 			load("res://scripts/island/starter_island.gd").edy_reading(dlg)
 			story.begin()
-			for id in ["find_town", "see_gus", "see_nessa", "lighthouse", "brawl", "see_vey", "vey_rack", "vey_drills", "smugglers", "vey_skills"]:
+			for id in ["find_town", "see_gus", "see_nessa", "lighthouse", "brawl", "see_vey", "vey_rack", "vey_drills", "smugglers", "farm", "vey_skills", "tinker", "read"]:
 				story.step = id
 				story.complete(id)
 			check("(on the shrine step, unread: '%s')" % p.progression.will_color, story.step == "shrine" and p.progression.will_color == "")

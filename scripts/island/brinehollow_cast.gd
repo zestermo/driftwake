@@ -196,7 +196,7 @@ static func people(isl: StarterIsland) -> Array:
 			"belt": "belt", "belt_color": L.LEATHER[1], "gloves": true, "gloves_color": L.LEATHER[2]},
 	}}.merged(KitLife.at_marker(kit, isl._smithy, "Smith")))
 
-	# Lighthouse keeper on the hill
+	# Lighthouse keeper up on the tower's gallery, at his telescope (1.30)
 	cast.append({"cfg": {
 		"name": "Keeper Ambrose", "dialogue": "ambrose", "voice": 0.8,
 		"look": {"body": "masc", "build": "average", "skin": L.SKIN_TONES[1],
@@ -206,7 +206,7 @@ static func people(isl: StarterIsland) -> Array:
 			"coat": "longcoat", "coat_color": L.CLOTH[3], "legs": "trousers", "legs_color": L.CLOTH[4],
 			"feet": "boots", "feet_color": L.LEATHER[1], "belt": "belt", "belt_color": L.LEATHER[1],
 			"gloves": true, "gloves_color": L.LEATHER[2]},
-	}, "at": StarterIsland.HILL + Vector2(-5, 4.5), "face": Vector2(-1, 0.2)})
+	}}.merged(KitLife.at_marker(kit, isl.lighthouse, "Keeper")))
 
 	# Castaway at the cove campfire
 	cast.append({"cfg": {
@@ -267,7 +267,35 @@ static func people(isl: StarterIsland) -> Array:
 		"facial_hair": "long_beard", "hat": "none", "top": "kimono", "top_color": L.CLOTH[5], "sleeves": "long", "coat": "none",
 		"legs": "trousers", "legs_color": L.CLOTH[6], "feet": "sandals", "belt": "sash", "sash_color": L.CLOTH[13]}, true)
 	cast.append({"cfg": {"name": "Master Isao", "dialogue": "isao", "voice": 0.86, "look": isao}}.merged(KitLife.at_marker(kit, isl.reading_hall, "Master")))
+	# (1.30) the chapel close's keepers, in their walk-in houses: tips on fishing, gadgets, reading and getting in
+	for k: Array in close_keepers():
+		var look := KitLife.look_for(k[1])
+		look.merge(k[3], true)
+		cast.append({"cfg": {"name": k[1], "dialogue": k[2], "voice": k[4], "look": look, "barks": k[5]}}.merged(KitLife.at_marker(kit, isl.close_rooms[k[0]], "Keeper")))
 	return cast
+
+
+## The chapel close's keepers: [room kind, name, dialogue, look over their seeded one, voice, barks].
+static func close_keepers() -> Array:
+	return [
+		["loft", "Netmaker Hesk", "hesk", {"body": "fem", "build": "average", "marks": "age_lines", "hair": "bun", "hair_color": L.HAIR_COLORS[7],
+			"hat": "bandana", "hat_color": L.CLOTH[1], "top": "shirt", "top_color": L.CLOTH[6], "sleeves": "short", "apron": true,
+			"apron_color": L.LEATHER[1], "legs": "trousers", "legs_color": L.CLOTH[4], "feet": "boots", "feet_color": L.LEATHER[0]}, 0.92,
+			["Every hole in a net is a fish that got a second chance. I'm here to take it back.",
+			"Float dips, you strike. Not before. Not after. Simple, and nobody does it.",
+			"Worms for the shallows, shrimp for the clever ones."]],
+		["tinker", "Wick", "wick", {"body": "masc", "build": "slim", "hair": "messy", "hair_color": L.HAIR_COLORS[2], "hat": "none",
+			"top": "shirt", "top_color": L.CLOTH[2], "sleeves": "short", "apron": true, "apron_color": L.LEATHER[2],
+			"legs": "trousers", "legs_color": L.CLOTH[6], "feet": "boots", "feet_color": L.LEATHER[0], "gloves": true, "gloves_color": L.LEATHER[1]}, 1.12,
+			["If it doesn't explode the first time, I've built it wrong.",
+			"Bring me a blueprint and I'll show you the bench. Bring me two and I'll show you the good bench.",
+			"Brass is for the bits you want to keep. Everything else is for throwing."]],
+		["scribe", "Brother Aldous", "aldous", {"body": "masc", "build": "average", "marks": "age_lines", "hair": "short", "hair_color": L.HAIR_COLORS[8],
+			"facial_hair": "none", "hat": "hood", "hat_color": L.CLOTH[6], "top": "tunic", "top_color": L.CLOTH[6], "coat": "longcoat", "coat_color": L.CLOTH[6],
+			"legs": "trousers", "legs_color": L.CLOTH[6], "feet": "sandals", "belt": "sash", "sash_color": L.CLOTH[3]}, 0.88,
+			["A book read is a voyage you didn't have to row.",
+			"The bell's for the boats. The records are for everyone else.",
+			"Quiet, please. The books are thinking."]]]
 
 
 ## Corin, who sells instruments (Shops "corin").
@@ -429,7 +457,7 @@ static func outskirts() -> Array:
 			"I pray for my son's ship every morning. It's a good ship. It doesn't need it. I do."]},
 		"plan": [[7.0, "mark:shrine:Worshipper"], [8.4, "mark:teahouse:Seat2"], [11.5, "mark:teahouse:Seat3"], [15.0, "mark:shrine:Worshipper"],
 			[16.2, "home:UpperHouse5"]]})
-	out.append({"cfg": {"name": "Miller Brann", "voice": 0.75, "look": KitLife.look_for("Miller Brann"), "barks": [
+	out.append({"cfg": {"name": "Miller Brann", "voice": 0.75, "look": KitLife.look_for("Miller Brann"), "dialogue": "brann", "barks": [
 			"Every loaf in Brinehollow started on my stones. Ida's hardtack too. I'm not proud of that one.",
 			"The wind off the south lands is the best on the island. Steady. Like me. Mostly.",
 			"Mind the sails when they're turning. I've lost two hats and a nephew. The nephew came back."]},

@@ -7,6 +7,8 @@ extends Node
 ## JSON says where the talk starts while the step is current, under "story"), a
 ## fight won near you, or a bout (ArenaBout, asked for as you come near its
 ## place: the quay brawl, Tomo's spar) won.
+## 1.30 adds the farmlands errand (Brann's flour from the smugglers' camp), Wick's tinkering and Aldous's reading
+## (a step's "then": [flag, place, goal]: the NPC's gift sets the flag, then the marker and objective move on).
 ## Only a new game from the title screen plays it (begin()); every other
 ## session (tests, the editor's run) has it done with nothing locked.
 ## Per captain, saved in your slot; in co-op each captain follows their own,
@@ -18,14 +20,19 @@ const STEPS := [
 	{"id": "find_town", "goal": "Head into town: find someone who knows this place", "npc": "Old Pell", "who": "Pell"},
 	{"id": "see_gus", "goal": "Find Gus at the Salted Gull", "npc": "Gus Brannock", "who": "Gus"},
 	{"id": "see_nessa", "goal": "See Nessa at the market", "npc": "Nessa", "who": "Nessa"},
-	{"id": "lighthouse", "goal": "Take Nessa's parcel up to the lighthouse keeper", "npc": "Keeper Ambrose", "who": "Ambrose"},
+	{"id": "lighthouse", "goal": "Take Nessa's parcel to Keeper Ambrose, up the lighthouse on the hill", "npc": "Keeper Ambrose", "who": "Ambrose"},
 	{"id": "brawl", "goal": "Deal with the dock toughs on the quay: fists only", "place": "brawl", "bout": "brawl", "who": "The quay"},
 	{"id": "see_vey", "goal": "Find Sergeant Vey at the training yard", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "vey_rack", "goal": "Try the blades on Vey's rack and keep one", "place": "rack", "who": "Weapon rack"},
 	{"id": "vey_ready", "goal": "Show Sergeant Vey the weapon you kept", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "vey_drills", "goal": "Show Vey every move on the training dummies", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "smugglers", "goal": "Drive the smugglers out of the south cove", "place": "smugglers", "who": "Smugglers' camp"},
+	{"id": "farm", "goal": "Take Miller Brann's stolen flour back to his windmill in the southern farmlands", "npc": "Miller Brann", "who": "Brann"},
 	{"id": "vey_skills", "goal": "Report back to Sergeant Vey", "npc": "Sergeant Vey", "who": "Vey"},
+	{"id": "tinker", "goal": "See Wick the tinker in the chapel close and build a gadget at his bench", "npc": "Wick", "who": "Wick",
+		"then": ["wick_parts", "bench", "Build a Smoke Pellet at Wick's workbench"]},
+	{"id": "read", "goal": "Brother Aldous, beside the tinker's, has a book for you: read it", "npc": "Brother Aldous", "who": "Aldous",
+		"then": ["aldous_book", "", "Read Aldous's book: open your bag and click it"]},
 	{"id": "shrine", "goal": "Climb the long stair: Master Isao at the shrine reads your Edy", "npc": "Master Isao", "who": "Isao"},
 	{"id": "tomo", "goal": "Spar with Tomo on the shrine terrace", "place": "spar", "bout": "master:black_leg", "who": "Tomo"},
 	{"id": "ruins", "goal": "Examine the standing stone in the old ruins", "place": "ruins", "who": "The ruins"},
@@ -47,6 +54,13 @@ const NEAR := {"smugglers": 70.0, "den": 90.0, "cave": 60.0, "redtide": 140.0}
 ## A bout step asks for its bout this close to its place (m), again once you've been twice as far or it's lost.
 const BOUT_R := {"brawl": 13.0, "master:black_leg": 16.0}
 const REARM_SECS := 6.0
+## (1.30) The farmlands errand: the flour found in the smugglers' camp, Brann's thanks.
+const FLOUR := "flour"
+const FARM_GOLD := 30
+## The tinkering and reading steps: what Wick hands over (the Smoke Pellet's Mk I parts and fee: every captain knows its
+## blueprint), the book Aldous gives.
+const TINKER_GADGET := "smoke"
+const READ_BOOK := "manual_angler"
 
 var step: String = DONE
 ## Fights won so far (place -> true): a step whose fight you already won
@@ -77,7 +91,10 @@ func current() -> Dictionary:
 
 
 func goal() -> String:
-	return str(current().get("goal", ""))
+	var c := current()
+	if c.has("then") and Dialogue.has_flag(str(c["then"][0])):
+		return str(c["then"][2])
+	return str(c.get("goal", ""))
 
 
 ## Past step `id` (or no story at all).
@@ -165,6 +182,15 @@ func complete(id: String) -> void:
 		return
 	var p := _player()
 	match id:
+		"smugglers":
+			if p:
+				p.inventory_component.add_item(ItemDB.get_item(FLOUR), 1)
+				get_tree().call_group("hud", "show_banner", "A bag of flour", "Stamped with Brann's mill. The smugglers robbed the farmlands too.")
+		"farm":
+			if p:
+				if p.inventory_component.count(FLOUR) > 0:
+					p.inventory_component.remove_item(ItemDB.get_item(FLOUR), 1)
+				p.inventory_component.add_item(ItemDB.get_item("gold"), FARM_GOLD)
 		"vey_skills":
 			if p:
 				p.progression.drill()
@@ -211,7 +237,33 @@ func _ready() -> void:
 	changed.connect(_drills)
 	Dialogue.dialogue_event.connect(func(ev: String):
 		if ev.begins_with("story:"):
-			complete(ev.substr(6)))
+			complete(ev.substr(6))
+		elif ev.begins_with("gift:"):
+			gift(ev.substr(5)))
+
+
+## What a step's NPC hands over in their talk (once): Wick the Smoke Pellet's parts and fee, Aldous his book. The
+## marker and the objective move on to what to do with it.
+func gift(id: String) -> void:
+	var p := _player()
+	if step != id or p == null:
+		return
+	var flag := str(current()["then"][0])
+	if Dialogue.has_flag(flag):
+		return
+	Dialogue.set_flag(flag)
+	var inv := p.inventory_component
+	match id:
+		"tinker":
+			for e in Gadgets.cost(TINKER_GADGET, 0):
+				inv.add_item(ItemDB.get_item(str(e[0])), int(e[1]))
+			get_tree().call_group("hud", "show_banner", "Tinkering", "%s at the workbench: build the Smoke Pellet. %s throws it." % [Drills.key_of("interact"), Drills.key_of("gadget_fire")], true)
+		"read":
+			inv.add_item(ItemDB.get_item(READ_BOOK), 1)
+			get_tree().call_group("hud", "show_banner", "Reading", "Open your bag (%s) and click the book to read it." % Drills.key_of("inventory"), true)
+	changed.emit()
+	get_tree().call_group("hud", "show_objective_banner", goal(), false)
+	_check_done(p)
 
 
 ## The talk's first node for dialogue `id` while the current step has one there
@@ -246,7 +298,22 @@ func _process(delta: float) -> void:
 		if not won.has(place) and _beaten(place) and p.global_position.distance_to(place_pos(place)) < float(NEAR[place]):
 			won[place] = true
 	_check_won()
+	_check_done(p)
 	_bout_near(p)
+
+
+## The tinkering and reading steps finish on what the captain did with the gift: the gadget built, the book read.
+func _check_done(p: Player) -> void:
+	var c := current()
+	if not c.has("then") or not Dialogue.has_flag(str(c["then"][0])):
+		return
+	match step:
+		"tinker":
+			if p.gadgets.owned.has(TINKER_GADGET):
+				complete(step)
+		"read":
+			if Books.has_read(p.progression, READ_BOOK):
+				complete(step)
 
 
 ## A bout step: ask for the bout as the captain comes near its place (the host runs it: Net.request_arena).
@@ -304,6 +371,10 @@ func _beaten(place: String) -> bool:
 ## Where the objective is: the NPC to talk to, or the place.
 func target_pos() -> Vector3:
 	var c := current()
+	if c.has("then") and Dialogue.has_flag(str(c["then"][0])):
+		var then_place := str(c["then"][1])
+		var isl := island()
+		return isl.place_of(then_place) if then_place != "" and isl else Vector3.INF
 	if c.has("npc"):
 		for n in get_tree().get_nodes_in_group("npcs"):
 			if (n as NPC).npc_name == str(c["npc"]):

@@ -1,0 +1,52 @@
+{
+	"speaker": "Miller Brann",
+	"voice": 0.75,
+	"start": "intro",
+	"return": "menu",
+	"story": { "farm": "story_farm" },
+	"nodes": {
+		"story_farm": {
+			"text": [
+				"Is that... that's my flour! My stamp on the sack and everything. The smugglers had it? Course they did. Took six bags off my cart on the cove road a fortnight back.",
+				"You came all the way round the island with it. Nobody comes round this side. Here, for your trouble, and take a loaf or two off Ida on me.",
+				"The rest? Eaten, I expect. Smugglers bake terrible bread. You can tell by looking at them.",
+				"Go on, Vey'll want to hear it went well. And come back at harvest. The fields are a sight."
+			],
+			"event": "story:farm",
+			"next": "menu"
+		},
+		"intro": {
+			"text": [
+				"Mind the sails when they're turning. I've lost two hats that way.",
+				"Brann. I keep the mill and the mill keeps me. Most of the bread in Brinehollow started on my stones."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What can I do for you?",
+			"choices": [
+				{ "text": "What grows out here?", "next": "fields" },
+				{ "text": "What's further south?", "next": "south" },
+				{ "text": "I'll leave you to it.", "next": "bye" }
+			]
+		},
+		"fields": {
+			"text": [
+				"Wheat, greens, the vines and the orchard by the south road. Joss and Wynn work the rows. I grind what they grow.",
+				"Flour goes to Ida, bread goes to Gus, and Gus soaks it in stew. Somebody has to start it."
+			],
+			"next": "menu"
+		},
+		"south": {
+			"text": [
+				"The highland, and the falls off it into a pool you can swim in. Down the road past the farmhouses there's a cove with old Gannet's hut.",
+				"East along the coast there's a wreck on the rocks. Gannet says she's still got her crew. Gannet says a lot of things."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Mind the sails.",
+			"next": "end"
+		}
+	}
+}

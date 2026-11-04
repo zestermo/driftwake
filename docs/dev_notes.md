@@ -10510,3 +10510,63 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   to the river. The plants keep off the wider ice.
 - Tests: t/island/snow_ice (new), t/island/snow_land. Renders: `tools/dev/iceshot.gd` (before/after in
   tools/dev/out/review/collision_ice_*: before, the captain stood in the river to the chest).
+
+## 2026-11-04: Brinehollow polish, piece 2 - the chapel close and its walk-in houses (1.30)
+- **What:** the ground behind the quay's east end, left of Old Pell (dirt, four stray waterfront houses, the chapel side-on
+  with its door onto a wooded bank), is now a square: StarterIsland.CLOSE_RECT levelled to CLOSE_Y 1.5 (`_close`, in
+  the built grid only, not `_height_fn`: the harbour's shore scan reads that and moved the quay's east end; no sand
+  splat on it, `_close_mask`), cobbled round the drowned sailors' cross (BrinehollowRooms.sea_cross) with benches and
+  two lamp posts; the chapel moved to CHAPEL facing north across it, its churchyard beside it (wall, headstones). The
+  waterfront plan's houses on that ground are filtered out (their reserves stay); the chapel's old spot keeps its
+  reserve (OLD_CHAPEL) so the old plants draw as before.
+- **Walk-in houses** (`scripts/island/brinehollow_rooms.gd`, BrinehollowRooms.room: footing, floor, wainscot and walls
+  with an open doorway and the leaf swung in, steps, timber framing, windows both faces, ceiling, optional jettied upper
+  storey, gable roof with a sloped convex shape, chimney; markers Door / Keeper / Inside; one OmniLight per room, no
+  shadows, faded past 25 m): the net loft (Netmaker Hesk: fishing), the tinker's shop (Wick: gadgets; a real
+  Workbench), the scribe's house (Brother Aldous: reading, books, charts, lore, and who opens what on the island).
+  Dialogue data/dialogue/hesk.json, wick.json, aldous.json; keys through tokens key_interact, key_gadget,
+  key_gadget_cycle, key_wheel (registered by `_build_close`). Keepers in BrinehollowCast.close_keepers (cast last).
+- **Draws:** the shells, chapel, cross and churchyard fold into one mesh (CloseMeshes, one surface a material); the
+  four waterfront houses it replaces were ~32 surfaces. Lights: 3 room omnis (not from the night budget) and 2 posts
+  from it. Nothing per frame.
+- **Brinehollow's dump:** the close's nodes, the chapel moved, the vegetation and trunk colliders on the levelled ground,
+  the village house at (23, -65) its footing a little deeper (the ease reaches its corner). Harbour, quay and boats
+  unchanged.
+- **Tests:** t/island/brinehollow_rooms (new). Renders: `tools/dev/roomshot.gd` (inside and at the door of each),
+  islandshot of the close.
+
+## 2026-11-04: Brinehollow polish, piece 3 - the lighthouse and its hill (1.30)
+- **Tower** (`scripts/island/brinehollow_lighthouse.gd`, BrinehollowLighthouse.tower, node still "Lighthouse" for
+  fidelity): an octagonal stone plinth with steps up to a door facing the town, a 20 m tapered shaft in red and white
+  bands with slit windows, a corbelled gallery (iron deck, a railing of 24 posts and two rails; deck and rail shapes),
+  the watch room with its door, the glazed lamp room (8 mullions), the copper dome, ball and vane, Ambrose's telescope
+  on the rail; the turning lens with its beam and glow as before. Props.lighthouse (generated islands) is untouched.
+- **Climbing:** F at the door ("Climb the lighthouse") puts the captain on the gallery, F at the watch room's door
+  ("Climb down") at the foot of the steps, with a toast (no stairs modelled inside: a 2.5 m shaft). Each captain moves
+  their own body. Ambrose stands on the gallery at the "Keeper" marker facing out to sea (the lighthouse step's
+  marker leads there); his lines mention the stair and the glass; the step's goal says "up the lighthouse".
+- **Hill:** a switchback road (StarterIsland.HILL_ROAD) graded into the west slope in the built grid only
+  (`_hill_road`, like `_close`), the lighthouse path (paths[2]) redefined over it after the old paths are frozen (the
+  old plants still decide on the old line); glowing lantern posts on its legs (no NightLights: the night budget
+  belongs to the town, brinehollow_town checks it); a flagged yard round the plinth; the keeper's walk-in cottage
+  (BrinehollowRooms kind "keeper": box bed, stove, log book, oil cans, the spare lens); his barrels and crates; the
+  signal mast with three flags; the fog bell; a bench looking out to sea; a low stone wall along the cliff side. The
+  old tower's and cottage's reserves stay (old plants' draws).
+- **Per frame:** the lens's spinner, as before. Draws: tower ~12 surfaces (one mesh) + lens; cottage ~14; mast, bell,
+  wall, yard a few each. Lights: the tower's spot and omni as before, the cottage's room omni.
+- **Tests:** t/island/brinehollow_lighthouse (new). Renders: islandshot (from the village, the road, the plateau, the
+  gallery), roomshot (the cottage).
+
+## 2026-11-04: Brinehollow polish, piece 4 - the farmlands errand, tinkering and reading in the opening (1.30)
+- **Steps** (`scripts/game/story.gd` STEPS, now 25): `farm` after `smugglers` (the camp gives up a bag of Brann's flour
+  with a banner; Miller Brann, now with data/dialogue/brann.json, takes it back in the farmlands for FARM_GOLD 30 and
+  sends you to Vey); `tinker` and `read` after `vey_skills` (Vey's lines send you to the chapel close first, then up
+  the long stair). A step's `"then": [flag, place, goal]`: the NPC's talk fires `gift:<step>` (Story.gift, once: the
+  flag), then the objective and marker move on (Wick: the Smoke Pellet's Mk I parts and fee, the marker on his
+  Workbench via StarterIsland.ground_of("bench"), a banner with the keys; Aldous: "Notes of an Old Angler", no marker,
+  a banner saying open the bag). Story's half-second poll finishes them (`_check_done`): the smoke pellet built, the
+  book read. Old saves past these steps skip them; one on an earlier step meets them.
+- **UI** judged at 1920x1080 (`tools/dev/closestepshot.gd`): the objective panel, the banners and the dialogue box read.
+  The marker's label stays the step's "who" (chain_goal.gd, the quests agent's file, untouched).
+- **Tests:** t/story/close_steps (new); opening_steps (the 25 in order), shrine_reading (walks the new list) updated.
+  Expected at prepush: storytest (it walks the opening; the new steps need its walk), savetest if it counts steps.
