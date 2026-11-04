@@ -102,8 +102,9 @@
 - ✅ **Unstuck** in the pause menu: back to the last safe ground you stood on, back on the deck if that was a ship, otherwise the bunk. 10 s cooldown. If you end up under the ground, you're put back on your own after about a second.
 - ✅ **Missing textures fixed** in the capital and the Admiralty muster.
 - ✅ **The atoll under the water:** the seabed's hard edges and the dark square round the island are gone, and the floor is dressed with seagrass, rubble, shells, starfish, urchins and sponges. Clear tropical water in the lagoon. A deep reef basin (about 30 m down) with towering coral pillars, table corals, giant fans, arches, overhangs and swim-through caves, breathing vents to refill your air, big shoals, rays, turtles, morays and prowling reef sharks. Clams, coral spar and new pen shells (Sea-silk) glow and sparkle when you're near, so the skimmer's parts are easy to gather, and the pearl trader points you to the deep reef.
-- 📋 **Redtide's mountain.** Morrow's arena sits inside a natural rock rising from the sea, open only by the stair.
-- 📋 **The brig, the galleon and new creatures** for the thinner island themes, after their own design pass.
+- ✅ **Redtide's mountain.** Morrow's arena sits in a bowl inside a horseshoe of red rock rising from the sea, with spires, a sea arch, sea stacks, pines on the tops and birds wheeling over the peaks. The stair from the jetty is the only way in (and no longer stops you dead at its bend).
+- 🔨 **The brig and the galleon**, ships you buy at the canal city's shipyard, and **new creatures** for the fog islands (eerie things, bigger graveyards with zombies rising from the graves) and the forest islands (fairy-tale beasts).
+- 🔨 **Islands read clearer:** fewer villagers, vendors always at their stalls, landing objectives (find the town, talk to the elder, check the board), and the board as an island tracker (explored, main and side quests, places found) with its bounties and who needs what.
 
 ## Behind the scenes
 - ✅ **The browser version is retired.** The website deploys on its own, and /play links go home.
