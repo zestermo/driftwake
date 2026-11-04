@@ -7,7 +7,7 @@ extends Control
 const BUBBLES := 10
 const R := 4.0
 const GAP := 11.0
-## The row's middle, up from the bottom of the 800x450 canvas (over the skill bar).
+## The row's middle, up from the bottom of the HUD canvas (over the skill bar).
 const LIFT := 86.0
 const FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const FULL := Color(0.72, 0.92, 1.0)

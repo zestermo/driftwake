@@ -501,13 +501,13 @@ func _open_appearance() -> void:
 # Options
 # ==========================================================================
 func _build_options() -> Control:
-	var p := _centered_panel(Vector2(420, 0))
+	var p := _centered_panel(Vector2(500, 0))
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 4)
 	p.add_child(outer)
 	outer.add_child(UIStyle.title("Options"))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(400, 210)
+	scroll.custom_minimum_size = Vector2(480, 360)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	outer.add_child(scroll)
 	var list := VBoxContainer.new()
@@ -519,7 +519,6 @@ func _build_options() -> Control:
 	_toggle_row(list, "Fullscreen", "video", "fullscreen")
 	_toggle_row(list, "Pixelation", "video", "pixelate")
 	_toggle_row(list, "Dithering", "video", "dither")
-	_toggle_row(list, "Finer menus", "video", "fine_ui")
 	_slider_row(list, "Vertex wobble", "video", "wobble", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Texture warp", "video", "warp", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Field of view", "video", "fov", 60.0, 100.0, 1.0, "%d", 1.0)
@@ -578,7 +577,7 @@ func _row(list: VBoxContainer, text: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var l := UIStyle.label(text)
-	l.custom_minimum_size = Vector2(140, 0)
+	l.custom_minimum_size = Vector2(180, 0)
 	row.add_child(l)
 	list.add_child(row)
 	return row
@@ -604,7 +603,7 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 	s.min_value = lo
 	s.max_value = hi
 	s.step = step
-	s.custom_minimum_size = Vector2(150, 14)
+	s.custom_minimum_size = Vector2(190, 14)
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	s.focus_mode = Control.FOCUS_ALL
 	row.add_child(s)

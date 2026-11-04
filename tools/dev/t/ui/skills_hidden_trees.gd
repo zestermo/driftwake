@@ -42,7 +42,7 @@ func _process(_d: float) -> bool:
 			pr = stage.player.progression
 			pr.discover("sword")
 			pr.add_mastery("katana", 200)
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			gm.open("skills")

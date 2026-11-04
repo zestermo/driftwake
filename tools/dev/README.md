@@ -518,3 +518,4 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `guestshot`: A rendered co-op guest: start `nethost.gd -- <port>` headless, then `guestshot.gd -- <port> <out_prefix>` joins it and shoots fixed views (dock, open sea) as a guest sees them; prints the guest's hour, sun and ocean state.
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>
 - `zigzag`: (no description)
+- `t/ui/canvas_960` (1.30 UI canvas): at 1920x1080 the root's stretch, the HUD's and the menus' PixelCanvas are 960x540 at 2x and the 3D's pixel grid 960x540; a 1280x720 window is 1280x720 at 1x; a window under 540 tall still lays out 540 tall.

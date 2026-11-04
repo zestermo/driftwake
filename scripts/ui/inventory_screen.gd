@@ -145,7 +145,7 @@ class Slot extends Button:
 var menu: Node  # GameMenu (close / blip)
 var _svc: PixelCanvas
 var _ui: Control
-var _canvas := Vector2(640, 360)
+var _canvas := Vector2(960, 540)
 var _cx := 160.0
 var _tab := "inventory"
 var _tab_buttons: Dictionary = {}

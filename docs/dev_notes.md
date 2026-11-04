@@ -10677,3 +10677,15 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - Tests: t/player/step_up (0.3 and 0.6 m up and over without falling, the climb at most the lift plus the edge's ride a
   tick, 0.9 m blocked, the flat walk exactly the move speed); t/ship/boarding_boat, enemy_boarding, hull_ladder,
   unstuck_deck; t/story/close_steps; the t/player and t/ship groups.
+## 2026-11-04: the UI canvas is 960x540 (piece 1: the canvas)
+
+- **What:** `PSX.UI_SIZE` 800x450 -> 960x540 (project.godot's viewport too). PixelCanvas (every HUD and menu canvas)
+  now picks k = floor(window height / 540), at least 1: 1920x1080 and 4K are 960x540 at 2x / 4x, 1440p 1280x720 at 2x,
+  a 1280x720 window 1280x720 at 1x; a window under 540 tall lays out 540 tall and is shrunk to fit (linear filter).
+  The 640x360 tier and the "Finer menus" option (video fine_ui) are gone: every screen lays out for 960x540 or more.
+  At 1080p the menus look as before (fine_ui was on by default); what changes is smaller windows (the editor's
+  embedded game, tool windows) no longer show the cramped 640x360 layout, and the root-canvas screens (title,
+  loading, walkthrough, drills, fish fight, cutscenes) draw at a whole 2x at 1080p instead of 2.4x.
+- **Options:** the panel 500 wide, its list 360 tall (was 210).
+- **Tests:** `t/ui/canvas_960` (new); every `t/ui/skills_*` and vendor_marks size the window 1920x1080; uitest's
+  checks now 960x540 at 2x in a 1920x1080 window (a world suite: runs at prepush).

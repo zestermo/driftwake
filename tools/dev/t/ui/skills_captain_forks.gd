@@ -60,7 +60,7 @@ func _process(_d: float) -> bool:
 				xp += pr.xp_to_next(lv)
 			pr.add_xp(xp)
 			pr.pick_talent(5, 0)
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			until = TK.wait_ticks(10)

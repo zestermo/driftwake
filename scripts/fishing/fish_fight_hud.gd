@@ -1,7 +1,7 @@
 class_name FishFightHud
 extends Control
 ## The legendary fight's bars (FishState, 1.28): the line's tension (green to red, the snap mark at the top) and how
-## far in the fish is, with what to do. Laid out on the UI canvas (800x450), low in the middle.
+## far in the fish is, with what to do. Laid out on the UI canvas (960x540), low in the middle.
 
 var fight: FishFight
 var fish_name := ""

@@ -269,10 +269,10 @@ GameMenu, Net, Music, Weather, DevCapture.
 - PSX vertex snap must skip the shadow pass (`if (!IN_SHADOW_PASS)`).
 - Physics interpolation is on. Teleports call `reset_physics_interpolation()`. CPUParticles3D
   bursts need `local_coords = true`.
-- **UI canvas is 800x450** (`PSX.UI_SIZE`, canvas_items stretch): laid out on 800x450 and drawn
-  at the window's resolution, so the pixel fonts stay hard-edged but fine. The 3D's pixel grid is
-  the PSX preset's (640x360 by default), laid on by the post pass. Size UI for 800x450
-  (Pixelify 12, Silkscreen 8).
+- **UI canvas is 960x540** (`PSX.UI_SIZE`, 1.30; was 800x450): the HUD and menus draw on a PixelCanvas at least
+  540 tall at a whole-number scale (2x at 1080p, 4x at 4K: the pixel fonts stay crisp); the root's canvas_items
+  stretch is 960x540 too. The 3D's pixel grid (PSX.GRID) is 960x540, laid on by the post pass. Lay screens out
+  for 960x540 (Pixelify 12, Silkscreen 8; step up by whole sizes, e.g. Pixelify 16, where text reads small).
   **The smallest supported display is 1080p** (Zach, 2026-11-04): render and judge every UI screen in a 1920x1080
   window (uishots / invshot_real / hudshot / skillmapshot take `1920x1080`; atomic UI tests set `root.size` to it), not a
   smaller one. What reads at 1080p is the bar; no layout is cramped or tiny for a smaller window's sake.

@@ -48,8 +48,8 @@ func _process(_d: float) -> bool:
 				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
 			own_parents("k_iai")
 			pr.buy("k_iai")
-			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
-			root.size = Vector2i(1280, 720)
+			# (the runner's window is tiny: the menu lays out for a 960x540 canvas)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			gm.open("skills")

@@ -48,7 +48,7 @@ func _process(_d: float) -> bool:
 			while pr.mastery_level("acrobatics") < 5:
 				pr.add_mastery("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics"), "acrobatics"))
 			pr.buy("m_geppo")
-			root.size = Vector2i(1280, 720)
+			root.size = Vector2i(1920, 1080)
 			root.get_node("Story").step = "done"
 			gm = root.get_node("GameMenu")
 			gm.open("skills")
