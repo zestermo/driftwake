@@ -1,0 +1,65 @@
+{
+	"speaker": "Wick",
+	"voice": 1.12,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Don't touch the brass one. Or the green jar. Or anything that's ticking.",
+				"Wick. Tinker. Brinehollow's only, which makes me the best and the worst at once."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What can I fix, build or set on fire for you?",
+			"choices": [
+				{ "text": "What are gadgets?", "next": "gadgets" },
+				{ "text": "How do I build one?", "next": "build" },
+				{ "text": "Where do blueprints and parts come from?", "next": "parts" },
+				{ "text": "How do I use them?", "next": "use" },
+				{ "text": "Can I make them better?", "next": "better" },
+				{ "text": "I'll leave you to it.", "next": "bye" }
+			]
+		},
+		"gadgets": {
+			"text": [
+				"Smoke pellets, tar bombs, grapples, spring boots, a glider if you've the nerve. Tricks on your belt for when a blade won't do.",
+				"A captain who fights fair loses to one who doesn't. That's not advice, that's arithmetic."
+			],
+			"next": "menu"
+		},
+		"build": {
+			"text": [
+				"At a workbench. Mine's right there. Carry a blueprint to one and you study it: learned for good, the scroll used up.",
+				"Then pick what to build and pay in parts. Once your ship's yours, there's a bench on her deck too."
+			],
+			"next": "menu"
+		},
+		"parts": {
+			"text": [
+				"Blueprints are scrolls. Chests, wrecks, merchants, and tinkers like me who owe you one.",
+				"Parts are salvage, ore and the bits of beasts nobody wants. Open every chest. Pick up everything. Tinkers are magpies with debts."
+			],
+			"next": "menu"
+		},
+		"use": {
+			"text": [
+				"What you build goes on your belt. {key_gadget} throws or fires the one in hand, {key_gadget_cycle} turns to the next.",
+				"Each has charges. Spent? Refill it at a bench with parts. Cheaper than building, dearer than not wasting them."
+			],
+			"next": "menu"
+		},
+		"better": {
+			"text": [
+				"Mark two, mark three. More charges, more bang, longer smoke. Each wants a steadier hand.",
+				"Your Tinkering grows every time you build or refill. Keep at it and the bench stops saying no."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Mind the door. It sticks. On purpose. Long story.",
+			"next": "end"
+		}
+	}
+}

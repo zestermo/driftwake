@@ -10510,3 +10510,27 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   to the river. The plants keep off the wider ice.
 - Tests: t/island/snow_ice (new), t/island/snow_land. Renders: `tools/dev/iceshot.gd` (before/after in
   tools/dev/out/review/collision_ice_*: before, the captain stood in the river to the chest).
+
+## 2026-11-04: Brinehollow polish, piece 2 - the chapel close and its walk-in houses (1.30)
+- **What:** the ground behind the quay's east end, left of Old Pell (dirt, four stray waterfront houses, the chapel side-on
+  with its door onto a wooded bank), is now a square: StarterIsland.CLOSE_RECT levelled to CLOSE_Y 1.5 (`_close`, in
+  the built grid only, not `_height_fn`: the harbour's shore scan reads that and moved the quay's east end; no sand
+  splat on it, `_close_mask`), cobbled round the drowned sailors' cross (BrinehollowRooms.sea_cross) with benches and
+  two lamp posts; the chapel moved to CHAPEL facing north across it, its churchyard beside it (wall, headstones). The
+  waterfront plan's houses on that ground are filtered out (their reserves stay); the chapel's old spot keeps its
+  reserve (OLD_CHAPEL) so the old plants draw as before.
+- **Walk-in houses** (`scripts/island/brinehollow_rooms.gd`, BrinehollowRooms.room: footing, floor, wainscot and walls
+  with an open doorway and the leaf swung in, steps, timber framing, windows both faces, ceiling, optional jettied upper
+  storey, gable roof with a sloped convex shape, chimney; markers Door / Keeper / Inside; one OmniLight per room, no
+  shadows, faded past 25 m): the net loft (Netmaker Hesk: fishing), the tinker's shop (Wick: gadgets; a real
+  Workbench), the scribe's house (Brother Aldous: reading, books, charts, lore, and who opens what on the island).
+  Dialogue data/dialogue/hesk.json, wick.json, aldous.json; keys through tokens key_interact, key_gadget,
+  key_gadget_cycle, key_wheel (registered by `_build_close`). Keepers in BrinehollowCast.close_keepers (cast last).
+- **Draws:** the shells, chapel, cross and churchyard fold into one mesh (CloseMeshes, one surface a material); the
+  four waterfront houses it replaces were ~32 surfaces. Lights: 3 room omnis (not from the night budget) and 2 posts
+  from it. Nothing per frame.
+- **Brinehollow's dump:** the close's nodes, the chapel moved, the vegetation and trunk colliders on the levelled ground,
+  the village house at (23, -65) its footing a little deeper (the ease reaches its corner). Harbour, quay and boats
+  unchanged.
+- **Tests:** t/island/brinehollow_rooms (new). Renders: `tools/dev/roomshot.gd` (inside and at the door of each),
+  islandshot of the close.

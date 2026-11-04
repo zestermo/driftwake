@@ -118,7 +118,7 @@ const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
 	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787,
-	"terrace_story": 8888, "grove": 8989}
+	"terrace_story": 8888, "grove": 8989, "close": 9191}
 ## Tackett's ironwood grove (StoryGrove, 1.30): a clearing off the forest path, its trail in from the path, the marked
 ## trees round it [offset, fall direction], his old stumps, the chopping block [offset, yaw].
 const GROVE := Vector2(-106, 80)
@@ -127,6 +127,23 @@ const GROVE_TRAIL := [Vector2(-98, 58.6), Vector2(-101, 66), Vector2(-104, 71.5)
 const GROVE_TREES := [[Vector2(-5.0, -1.5), Vector2(0.3, 1.0)], [Vector2(4.5, -3.5), Vector2(1.0, 0.15)], [Vector2(2.5, 5.0), Vector2(1.0, -0.2)]]
 const GROVE_STUMPS := [Vector2(6.0, -0.5), Vector2(-6.0, 4.5)]
 const GROVE_BLOCK := [Vector2(-1.0, -0.5), PI]
+## The chapel close (1.30): the ground behind the quay's east end levelled (CLOSE_RECT at CLOSE_Y, eased over
+## CLOSE_EASE), the chapel turned to face it across the drowned sailors' cross, three walk-in houses round it
+## (BrinehollowRooms: [kind, name, at, face, spec]) and the churchyard by the chapel. The chapel's old spot
+## (OLD_CHAPEL) keeps its reserve so the old island's plants draw as they did.
+const CLOSE := Vector2(44, -91)
+const CLOSE_RECT := Rect2(27, -100, 34, 28)
+const CLOSE_Y := 1.5
+const CLOSE_EASE := 6.0
+const OLD_CHAPEL := Vector2(42, -82)
+const CHAPEL := Vector2(44, -77.5)
+const CLOSE_ROOMS := [
+	["loft", "NetLoft", Vector2(31.5, -89.5), Vector2(1, 0), {"w": 6.5, "d": 5.0, "h": 2.8, "wall": "planks_weathered", "roof_tex": "thatch",
+		"pitch": 0.8, "door_x": -1.4, "chimney": true, "trim": Color(0.3, 0.45, 0.55)}],
+	["tinker", "TinkerShop", Vector2(56.5, -89.5), Vector2(-1, 0), {"w": 7.0, "d": 5.5, "h": 3.0, "wall": "plaster", "roof_tex": "roof_tiles",
+		"pitch": 0.6, "door_x": 1.7, "chimney": true, "trim": Color(0.55, 0.35, 0.2)}],
+	["scribe", "ScribeHouse", Vector2(32.5, -77.5), Vector2(0.6, -1), {"w": 6.0, "d": 5.0, "h": 2.9, "floors": 2, "wall": "stone_brick",
+		"wall2": "plaster", "roof_tex": "roof_tiles", "pitch": 0.75, "door_x": 0.6, "trim": Color(0.45, 0.2, 0.18)}]]
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -268,6 +285,8 @@ var reading_hall: Node3D
 ## Tackett's ironwood grove (StoryGrove).
 var grove: StoryGrove
 var _grove_trail := -1
+## The chapel close's walk-in houses by kind ("loft", "tinker", "scribe"; brinehollow_cast.gd puts their keepers in).
+var close_rooms := {}
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -330,6 +349,7 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("farmland", _build_farmland)
 	kit.timed("wild places", _build_wilds)
 	kit.timed("story", _build_grove)
+	kit.timed("chapel close", _build_close)
 	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
@@ -519,6 +539,27 @@ func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 	return _falls(p, _upper(p, _grown(p, shelf, _height_old(x, z, shelf))))
 
 
+## The chapel close's ground (1.30): CLOSE_RECT flat at CLOSE_Y, eased into the land round it over CLOSE_EASE. Only in
+## the built grid (not the old island's ground, nor the harbour's shore scan, which it would nudge), so the old plants
+## there are left out with their draws kept and the quay stays where it was.
+static func _close(p: Vector2, h: float) -> float:
+	var dx := maxf(maxf(CLOSE_RECT.position.x - p.x, p.x - CLOSE_RECT.end.x), 0.0)
+	var dz := maxf(maxf(CLOSE_RECT.position.y - p.y, p.y - CLOSE_RECT.end.y), 0.0)
+	var d := Vector2(dx, dz).length()
+	if d >= CLOSE_EASE:
+		return h
+	return lerpf(h, CLOSE_Y, 1.0 - _smooth(0.0, CLOSE_EASE, d))
+
+
+## 0..1: the chapel close's grass (no beach sand on its levelled ground), off the quay's edge.
+static func _close_mask(p: Vector2) -> float:
+	var r := CLOSE_RECT.grow(-2.0)
+	r.position.y += 3.0
+	var dx := maxf(maxf(r.position.x - p.x, p.x - r.end.x), 0.0)
+	var dz := maxf(maxf(r.position.y - p.y, p.y - r.end.y), 0.0)
+	return 1.0 - _smooth(0.0, 3.0, Vector2(dx, dz).length())
+
+
 ## The falls' pool: its ground levelled round it, its basin dug (KitLandmarks.POOL_DEPTH).
 func _falls(p: Vector2, h: float) -> float:
 	var d := p.distance_to(POOL)
@@ -704,7 +745,7 @@ func _generate_heights() -> void:
 			var z := -HALF + iz * CELL + GRID_C.y
 			var h := _height_old(x, z)
 			a[ix] = h
-			b[ix] = _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h)))
+			b[ix] = _close(Vector2(x, z), _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h))))
 		rows[iz] = [a, b], RES + 1)
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	var old := PackedFloat32Array()
@@ -994,6 +1035,63 @@ func _build_grove() -> void:
 	kit.place(Props.signpost([atan2(-into.y, into.x)]), sign_at, 0.0, 0.6)
 
 
+## The chapel close (1.30): the levelled ground behind the quay's east end, cobbled round the drowned sailors' cross
+## with benches and lamps; the chapel facing it from the south, its churchyard beside it; the net loft, the tinker's
+## shop and the scribe's house round it, each a walk-in room (BrinehollowRooms) with its keeper (brinehollow_cast.gd);
+## the loft's net racks and traps, the tinker's crates. The shells fold into one mesh (CloseMeshes).
+func _build_close() -> void:
+	var rng := kit.rng(0, SEEDS["close"])
+	reserve(CLOSE_RECT.get_center(), CLOSE_RECT.size.length() * 0.5)
+	var parts: Array = []
+	parts.append(KitLandmarks.chapel(kit, CHAPEL, Vector2(0, -1)))
+	for r: Array in CLOSE_ROOMS:
+		var spec: Dictionary = (r[4] as Dictionary).merged({"kind": r[0], "name": r[1], "seed": rng.randi()})
+		var room := BrinehollowRooms.room(spec)
+		kit.place(room, r[2], face_yaw(r[3]), maxf(spec["w"], spec["d"]) * 0.5)
+		close_rooms[r[0]] = room
+		parts.append(room)
+	var quads: Array = []
+	KitPaving.plan_disk(kit, quads, CLOSE, 9.5, rng)
+	KitPaving.plan_path(kit, quads, PackedVector2Array([CLOSE, CHAPEL + Vector2(0, -6.5)]), 1.6)
+	KitPaving.plan_path(kit, quads, PackedVector2Array([CLOSE, Vector2(CLOSE.x, CLOSE_RECT.position.y - 1.0)]), 2.0)
+	for r: Array in CLOSE_ROOMS:
+		KitPaving.plan_path(kit, quads, PackedVector2Array([CLOSE, kit.marker_point(close_rooms[r[0]], "Door")]), 1.0)
+	KitPaving.build(kit, quads, "CloseCobbles")
+	var cross := BrinehollowRooms.sea_cross(rng.randi())
+	kit.place(cross, CLOSE + Vector2(0, -1.0), 0.0, 1.4)
+	parts.append(cross)
+	var yard_c := Vector2(53.5, -76.5)
+	var yard := BrinehollowRooms.churchyard(Vector2(7.0, 6.0), func(x: float, z: float) -> float: return hv(yard_c + Vector2(x, z)) - hv(yard_c), rng.randi())
+	kit.place(yard, yard_c, 0.0, 0.0)
+	reserve(yard_c, 4.5)
+	parts.append(yard)
+	for s: float in [-1.0, 1.0]:
+		kit.place(Props.bench(), CLOSE + Vector2(s * 4.2, -3.0), face_yaw(Vector2(-s, 0.6)), 0.8)
+		KitLights.post(kit, CLOSE + Vector2(s * 7.5, -5.0), face_yaw(Vector2(-s, 0)) - PI * 0.5, 0.4, 1.4)
+	# the loft's nets drying, its traps; the tinker's salvage at his door
+	var loft: Node3D = close_rooms["loft"]
+	kit.place(HarbourModels.net_rack(rng.randi(), "planks_dark", [Color(0.92, 0.55, 0.18), Color(0.88, 0.86, 0.8)]), kit.local_point(loft, Vector3(-4.7, 0, 0.6)), 0.0, 1.2)
+	kit.place(_wrap(HarbourModels.fish_traps(rng.randi()), Vector3(1.5, 0.95, 1.0)), kit.local_point(loft, Vector3(2.3, 0, 3.6)), rng.randf() * TAU)
+	var shop: Node3D = close_rooms["tinker"]
+	for k in range(3):
+		kit.place(Props.crate(0.6 + 0.12 * k), kit.local_point(shop, Vector3(-1.4 - (k % 2) * 0.7, 0, 3.4 + (k / 2) * 0.7)), rng.randf() * TAU, 0.0)
+	kit.place(Props.barrel(), kit.local_point(shop, Vector3(3.0, 0, 3.4)), 0.0, 0.5)
+	KitStreet.merge_meshes(kit, parts, "CloseMeshes")
+	for k: String in ["interact", "gadget_fire", "gadget_cycle", "action_wheel"]:
+		Dialogue.register_token("key_" + {"gadget_fire": "gadget", "action_wheel": "wheel"}.get(k, k), func() -> String: return Glyphs.of(k))
+
+
+## A loose mesh as a solid the kit can place (a box `size` round it, on the ground).
+static func _wrap(mi: MeshInstance3D, size: Vector3) -> StaticBody3D:
+	var n := StaticBody3D.new()
+	n.name = mi.name
+	mi.visibility_range_end = 120.0
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(mi)
+	KitLandmarks.box_col(n, size, Vector3(0, size.y * 0.5, 0))
+	return n
+
+
 ## Where a new captain wakes: on the sand just past the quay's west end, a
 ## couple of metres up from the waterline, head to the sea, facing the town.
 ## [world position, model yaw].
@@ -1242,7 +1340,7 @@ func _build_terrain() -> void:
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
 				# the fields' tilled ground, the hamlet's yard
 				dirt = maxf(dirt, maxf(KitFarm.tilled(FIELDS, p) * 0.9, _disk(p, FARM, 8.0, 12.0) * 0.75))
-				sand = 1.0 - _smooth(1.7, 2.8, h)
+				sand = (1.0 - _smooth(1.7, 2.8, h)) * (1.0 - _close_mask(p))
 				sand = maxf(sand, _disk(p, CAMP, 4.0, 9.0))
 				dirt *= (1.0 - _disk(p, CAMP, 0.0, 9.0)) * (1.0 - rock)
 				sand *= (1.0 - dirt) * (1.0 - rock)
@@ -1356,7 +1454,8 @@ func _build_market() -> void:
 func _build_village_rest() -> void:
 	kit.place(Props.signpost([PI, 0.0, PI * 0.75, PI * 0.25]), VILLAGE + Vector2(2.5, 17), 0.0, 0.6)
 	_smithy = kit.place(Buildings.smithy(), Vector2(-38, -78), face_yaw(Vector2(1, 0.25)), 4.6)
-	KitLandmarks.chapel(kit, Vector2(42, -82), Vector2(-1, 0.35))
+	# (the chapel moved to the close in 1.30, _build_close: its old footprint's reserve stays for the old plants' draws)
+	kit.reserve(OLD_CHAPEL, 6.2 + 1.5)
 	var wh := kit.house({"w": 9.0, "d": 6.0, "h": 3.6, "roof": "gable", "wall": "planks_weathered", "roof_tex": "roof_tiles", "door_x": -2.2,
 		"name": "Warehouse", "flowers": false, "trim": Color(0.55, 0.5, 0.45), "lamp_light": true, "pitch": 0.38}, Vector2(20, -106), Vector2(-1, 0))
 	for k in range(4):
@@ -1418,7 +1517,9 @@ func _build_port() -> void:
 		KitLandmarks.harbour_tower(kit, harbour.quay_pt(port_x1 - 4.0, 8.0), Vector2(-0.6, 1))
 		if port_x1 > 34.0:
 			KitLandmarks.crane(kit, harbour.quay_pt(25.5, 3.0), Vector2(0, -1)))
-	kit.timed("waterfront", func(): harbour.build_waterfront(kit, harbour.plan_waterfront(kit, rng)))
+	# (1.30: the rows' houses on the chapel close's ground make way for it; their reserves stay)
+	kit.timed("waterfront", func(): harbour.build_waterfront(kit, harbour.plan_waterfront(kit, rng).filter(func(e: Array) -> bool:
+		return not CLOSE_RECT.grow(1.0).has_point(e[1]))))
 	kit.timed("quay dressing", func():
 		kit.build_list(harbour.plan_dressing(kit, rng, [-40.0, -26.0, -8.0, 14.0, 22.0, 37.0, 52.0], [-24.0, 18.0, 40.0], [["fish", -9.5], ["fruit", 24.5]])))
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.dockhands(self)))
