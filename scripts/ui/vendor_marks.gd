@@ -9,7 +9,8 @@ const Shops := preload("res://scripts/game/shops.gd")
 const SIGNS := {"cook": "stew", "smith": "cutlass", "armourer": "iron", "tailor": "canvas", "luthier": "@fiddle",
 	"treasure": "pearl", "grocer": "flour", "artisan": "copper", "desert_trade": "pepper", "": "biscuit",
 	# (1.26) services that aren't shops: a shipwright's yard, a master's teaching (shop ids "@shipwright", "@master")
-	"shipwright": "timber", "master": "katana"}
+	"shipwright": "timber", "master": "katana",
+	"books": "#lore", "merchant": "gold"}
 ## Services by their talk's event: (event prefix, pseudo shop id, the map's name).
 const SERVICES := [["shipwright", "@shipwright", "Shipwright"], ["master:", "@master", "Master"], ["learn_black_leg", "@master", "Master"]]
 ## The badge's size on screen (metres over the head) and how far off it shows.
@@ -62,6 +63,8 @@ static func sign_for(trade: String) -> Texture2D:
 	var tex: Texture2D = null
 	if key.begins_with("@"):
 		tex = Instruments.icon(key.substr(1))
+	elif key.begins_with("#"):
+		tex = BookData.icon(key.substr(1))
 	else:
 		var path := "res://assets/textures/icons/%s.png" % key
 		if ResourceLoader.exists(path):

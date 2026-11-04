@@ -846,6 +846,7 @@ func set_menu_open(open: bool) -> void:
 		_enemy_bars.visible = not open
 	if _feed:
 		_feed.visible = not open
+	inventory_label.visible = not open
 	if _news_stack:
 		_news_stack.visible = not open
 

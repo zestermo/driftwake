@@ -66,7 +66,9 @@ func _process(_d: float) -> bool:
 			check("aggro'd (in a fight): the bar again", bars.shown.has(g.get_instance_id()))
 			stage.hud.set_menu_open(true)
 			check("a menu open: none show", not bars.visible)
+			check("a menu open: the loot count is hidden too", not stage.hud.inventory_label.visible)
 			stage.hud.set_menu_open(false)
+			check("closed: the loot count is back", stage.hud.inventory_label.visible)
 			return TK.done(fails)
 	step += 1
 	return false
