@@ -314,6 +314,10 @@ func _piece(i: int) -> void:
 			var cs := CollisionShape3D.new()
 			if c.has("shape"):
 				cs.shape = c["shape"]
+			elif c.has("hull"):
+				var hs := ConvexPolygonShape3D.new()
+				hs.points = c["hull"]
+				cs.shape = hs
 			elif c.has("box"):
 				var b := BoxShape3D.new()
 				b.size = c["box"]

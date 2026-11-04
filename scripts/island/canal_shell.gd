@@ -192,7 +192,7 @@ static func _landmarks(out: Array) -> void:
 	mb.add_cone(PSXMat.lit("metal", Color(0.45, 0.62, 0.52)), M.xf(M.v3(cc, spire_y), PI * 0.25), w * 0.72, 9.0, 4, 1.0)
 	M.flag(mb, M.v3(cc, spire_y + 9.05), M.GOLD)
 	var ch: Rect2 = P.SPECIAL["church"][0]
-	M.dome(mb, M.v3(ch.get_center() - Vector2(0, 2.0), P.QUAY_Y + 15.0), 6.5, 3.0, Color(0.5, 0.62, 0.56))
+	M.dome(mb, M.v3(ch.get_center() - Vector2(0, 2.0), P.QUAY_Y + 15.0), 6.5, 3.0, Color(0.5, 0.62, 0.56), cols)
 	_piece(out, "Landmarks", mb, cols, FAR, true)
 
 
@@ -223,15 +223,15 @@ static func _massing(out: Array) -> void:
 		var mb := MeshBuilder.new()
 		var cols: Array = []
 		for l in chunks[key]:
-			house(mb, cols, l, false)
-		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols.filter(func(c): return c.has("occ")), MASS, false)
+			house(mb, cols, l)
+		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols, MASS, false)
 	var fkeys := far.keys()
 	fkeys.sort()
 	for key in fkeys:
 		var fmb := MeshBuilder.new()
 		var fcols: Array = []
 		for l in far[key]:
-			house(fmb, fcols, l, false)
+			house(fmb, fcols, l)
 		_piece(out, "FarFronts_%d_%d" % [key.x, key.y], fmb, [], MASS, false)
 		(out[out.size() - 1] as Dictionary)["begin"] = CanalDistrict.RANGE - 10.0
 	var mb := MeshBuilder.new()
@@ -242,8 +242,9 @@ static func _massing(out: Array) -> void:
 
 
 ## A lagoon house on lot `l`: a stone plinth, coloured facade storeys, a cornice, a tiled roof and a funnel chimney or
-## two. `solid` gives it a collider (the walkways' houses; the massing has none). Returns its frame transform and size.
-static func house(mb: MeshBuilder, cols: Array, l: Dictionary, solid: bool, hollow := false) -> Array:
+## two, solid (a box to the roof, the roof a hull or a flat roof's parapets; a walk-in one `hollow`, its own). Returns its frame
+## transform and size.
+static func house(mb: MeshBuilder, cols: Array, l: Dictionary, hollow := false) -> Array:
 	var r: Rect2 = l["r"]
 	var face: Vector2 = l["face"]
 	var w := r.size.x if absf(face.y) > 0.5 else r.size.y
@@ -257,16 +258,25 @@ static func house(mb: MeshBuilder, cols: Array, l: Dictionary, solid: bool, holl
 	mb.add_box(M.mat("lime"), t * Transform3D(Basis(), Vector3(0, y0 * 0.5 - 0.8, 0)), Vector3(w + 0.08, y0 + 1.6, d + 0.08), 0.5, Color(0.86, 0.84, 0.8), true, false)
 	M.facade_box(mb, M.mat("facade_a") if rng.randf() < 0.5 else M.mat("facade_b"), t, w, d, y0 + 0.2, h, col)
 	mb.add_box(M.mat("lime"), t * Transform3D(Basis(), Vector3(0, y0 + 0.2 + h + 0.1, 0)), Vector3(w + 0.24, 0.22, d + 0.24), 0.6, Color(0.94, 0.92, 0.88), false)
-	M.roof(mb, str(l["roof"]), t, w, d, y0 + 0.4 + h, ROOFS[rng.randi() % ROOFS.size()], rng)
+	var roof_at := mb.mark()
+	M.roof(mb, str(l["roof"]), t, w, d, y0 + 0.4 + h, ROOFS[rng.randi() % ROOFS.size()], rng, cols)
+	var roof_end := mb.mark()
 	for k in range(rng.randi_range(1, 2)):
 		var cp := t * Vector3(rng.randf_range(-w * 0.3, w * 0.3), 0, rng.randf_range(-d * 0.3, d * 0.3))
 		chimney(mb, Vector3(cp.x, y0 + h + 1.2, cp.z), rng)
+		M.cyl(cols, Vector3(cp.x, y0 + h + 0.4, cp.z), 0.3, 3.6)
 	var cell: Rect2 = l["cell"]
 	# (1.27: a walk-in house is hollowed by CapitalInteriors instead; the solid one's top meets its roof, walked on)
 	if hollow:
 		return [t, w, d, h]
-	if solid:
-		M.box(cols, M.xf(M.v3(cell.get_center(), (y0 + h + 0.4 - 1.0) * 0.5)), Vector3(cell.size.x, y0 + h + 0.4 + 1.0, cell.size.y))
+	# (1.30: the massing too, and every roof: from the lagoon and the walkways' roofs captains reached them, and fell in)
+	M.box(cols, M.xf(M.v3(cell.get_center(), (y0 + h + 0.4 - 1.0) * 0.5)), Vector3(cell.size.x, y0 + h + 0.4 + 1.0, cell.size.y))
+	if str(l["roof"]) == "flat":
+		for s in [-1.0, 1.0]:
+			M.box(cols, t * Transform3D(Basis(), Vector3(s * (w * 0.5 - 0.15), y0 + 0.4 + h + 0.4, 0)), Vector3(0.3, 0.8, d))
+			M.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + 0.4 + h + 0.4, s * (d * 0.5 - 0.15))), Vector3(w - 0.6, 0.8, 0.3))
+	else:
+		cols.append({"hull": mb.points_since(roof_at, roof_end), "xf": Transform3D()})
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + h * 0.5, 0)), Vector3(w - 0.3, h, d - 0.3))
 	return [t, w, d, h]
 

@@ -24,7 +24,7 @@ static var smoke_tops: Array = []
 
 ## A brick chimney stack on a house's roof (1.21's detail pass), from its own rng stream so nothing else about the
 ## house changes: on about two houses in three, through the roof from `base_y` (the roof's foot) to over its ridge.
-static func stack(mb: MeshBuilder, t: Transform3D, w: float, d: float, base_y: float, roof_kind: String, seed_value: int) -> void:
+static func stack(mb: MeshBuilder, t: Transform3D, w: float, d: float, base_y: float, roof_kind: String, seed_value: int, cols: Array = []) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 9133
 	if rng.randf() > 0.65 or w < 3.0 or d < 3.0:
@@ -35,6 +35,7 @@ static func stack(mb: MeshBuilder, t: Transform3D, w: float, d: float, base_y: f
 	var h := rise + rng.randf_range(0.9, 1.5)
 	var brick := Color(0.66, 0.4, 0.32) * rng.randf_range(0.9, 1.05)
 	mb.add_box(mat("wash"), t * Transform3D(Basis(), Vector3(x, base_y + h * 0.5, z)), Vector3(0.7, h, 0.55), 0.8, brick)
+	box(cols, t * Transform3D(Basis(), Vector3(x, base_y + (h + 0.16) * 0.5, z)), Vector3(0.86, h + 0.16, 0.7))
 	mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(x, base_y + h + 0.08, z)), Vector3(0.86, 0.16, 0.7), 0.8, Color(0.86, 0.84, 0.8), false)
 	for k in range(rng.randi_range(1, 2)):
 		mb.add_cylinder(mat("wash"), t * Transform3D(Basis(), Vector3(x + (k - 0.5) * 0.26, base_y + h + 0.16, z)), 0.1, 0.09, 0.32, 5, 1.0, Color(0.6, 0.36, 0.28))
@@ -91,6 +92,12 @@ static func box(cols: Array, t: Transform3D, size: Vector3) -> void:
 	cols.append({"box": size, "xf": t})
 
 
+## (1.30) A convex collider round what `mb` built since `m` (a roof): its points now, the shape made with the piece's
+## body on the main thread (this runs on a worker).
+static func hull(cols: Array, mb: MeshBuilder, m: Dictionary) -> void:
+	cols.append({"hull": mb.points_since(m), "xf": Transform3D()})
+
+
 static func cyl(cols: Array, base: Vector3, r: float, h: float) -> void:
 	cols.append({"cyl": [r, h], "xf": Transform3D(Basis(), base + Vector3(0, h * 0.5, 0))})
 
@@ -129,7 +136,7 @@ static func house(mb: MeshBuilder, cols: Array, lot: Dictionary, low: float, top
 	Occluders.box(cols, xf(v3(c, (low + eaves) * 0.5)), Vector3(w, eaves - low, d))
 	mb.add_box(mat("lime"), xf(v3(c, eaves + 0.12)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
 	roof(mb, str(lot["roof"]), t, w, d, eaves + 0.24, rcol, rng, cols)
-	stack(mb, t, w, d, eaves + 0.24, str(lot["roof"]), int(lot["seed"]))
+	stack(mb, t, w, d, eaves + 0.24, str(lot["roof"]), int(lot["seed"]), cols)
 	return eaves
 
 
@@ -221,6 +228,9 @@ static func wall_run(mb: MeshBuilder, cols: Array, pts: Array, h: float, t: floa
 			mb.add_box(m, xf(v3(c, top - 0.6), yaw), Vector3(t + 0.24, 0.2, L), 0.6, Color(0.86, 0.84, 0.8), false)
 			if not merlons:
 				continue
+			# (1.30) the merlons as a strip each side: their crenels are no way through, and the walk between is walked
+			for s in [-1.0, 1.0]:
+				box(cols, xf(v3(c, 0.0), yaw) * Transform3D(Basis(), Vector3(s * (t * 0.5 - 0.22), top + 0.55, 0)), Vector3(0.44, 1.1, L))
 			var mn := maxi(int(L / 1.9), 1)
 			for j in range(mn):
 				var z := -L * 0.5 + (j + 0.5) * L / mn
@@ -237,12 +247,15 @@ static func round_tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, r: 
 	Occluders.box(cols, xf(v3(c, base + (h + deep) * 0.5)), Vector3(r * 1.36, h + deep, r * 1.36))
 	mb.add_cylinder(mat("lime"), xf(v3(c, y0 + h - 0.2)), r * 1.0, r * 1.16, 0.7, 12, 0.6, Color(0.82, 0.8, 0.76), false, false, false)
 	mb.add_cylinder(mat("lime"), xf(v3(c, y0 + h + 0.5)), r * 1.16, r * 1.16, 1.1, 12, 0.6, Color(0.95, 0.93, 0.9), true, false, false)
+	cyl(cols, v3(c, y0 + h - 0.2), r * 1.16, 1.8)
 	for k in range(4):
 		var a := TAU * (k + 0.5) / 4.0
 		var sl := v3(c + Vector2(cos(a), sin(a)) * (r + 0.02), y0 + h * (0.35 + 0.15 * k))
 		mb.add_box(mat("dark"), xf(sl, -a + PI * 0.5), Vector3(0.35, 0.9, 0.08), 1.0, Color(0.25, 0.22, 0.2), false)
 	if roofed:
+		var cone := mb.mark()
 		mb.add_cone(mat("roof"), xf(v3(c, y0 + h + 1.6)), r * 1.3, r * 2.3, 12, 0.5)
+		hull(cols, mb, cone)
 		mb.add_cylinder(mat("gold"), xf(v3(c, y0 + h + 1.6 + r * 2.3 - 0.2)), 0.08, 0.04, 1.6, 4)
 		if banner:
 			flag(mb, v3(c, y0 + h + 1.6 + r * 2.3 + 1.0), BLUE)
@@ -250,6 +263,7 @@ static func round_tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, r: 
 		for k in range(10):
 			var a := TAU * k / 10.0
 			mb.add_box(mat("lime"), xf(v3(c + Vector2(cos(a), sin(a)) * (r * 1.16 - 0.25), y0 + h + 2.05), -a + PI * 0.5), Vector3(1.0, 1.0, 0.45), 0.6, Color(0.93, 0.91, 0.87))
+			box(cols, xf(v3(c + Vector2(cos(a), sin(a)) * (r * 1.16 - 0.25), y0 + h + 2.05), -a + PI * 0.5), Vector3(1.0, 1.0, 0.45))
 
 
 ## A square tower: footing, shaft, a crown band, a pyramid roof (or merlons).
@@ -259,12 +273,15 @@ static func square_tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, w:
 	box(cols, t * Transform3D(Basis(), Vector3(0, y0 + (h - deep) * 0.5, 0)), Vector3(w, h + deep, w))
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + (h - deep) * 0.5, 0)), Vector3(w, h + deep, w))
 	mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(0, y0 + h + 0.4, 0)), Vector3(w + 0.6, 0.8, w + 0.6), 0.6, Color(0.85, 0.83, 0.79), false)
+	box(cols, t * Transform3D(Basis(), Vector3(0, y0 + h + 0.4, 0)), Vector3(w + 0.6, 0.8, w + 0.6))
 	for s in [-1.0, 1.0]:
 		for f in [0, 1]:
 			var o := Vector3(s * (w * 0.5 + 0.02), y0 + h * 0.62, 0) if f == 0 else Vector3(0, y0 + h * 0.62, s * (w * 0.5 + 0.02))
 			mb.add_box(mat("dark"), t * Transform3D(Basis(Vector3.UP, PI * 0.5 if f == 0 else 0.0), o), Vector3(0.6, 1.4, 0.06), 1.0, Color(0.24, 0.22, 0.2), false)
 	if roofed:
+		var rm := mb.mark()
 		_hip(mb, t * Transform3D(Basis(), Vector3(0, y0 + h + 0.8, 0)), w + 0.4, w + 0.4, w * 0.75, 0.3, Color.WHITE)
+		hull(cols, mb, rm)
 		mb.add_cylinder(mat("gold"), t * Transform3D(Basis(), Vector3(0, y0 + h + 0.8 + w * 0.75 - 0.1, 0)), 0.07, 0.03, 1.3, 4)
 	else:
 		for s in [-1.0, 1.0]:
@@ -272,6 +289,8 @@ static func square_tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, w:
 				var z := -w * 0.5 + (k + 0.5) * w / 3.0
 				mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(s * (w * 0.5 + 0.05), y0 + h + 1.3, z)), Vector3(0.5, 1.0, 0.9), 0.6, Color(0.93, 0.91, 0.87))
 				mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(z, y0 + h + 1.3, s * (w * 0.5 + 0.05))), Vector3(0.9, 1.0, 0.5), 0.6, Color(0.93, 0.91, 0.87))
+			box(cols, t * Transform3D(Basis(), Vector3(s * (w * 0.5 + 0.05), y0 + h + 1.3, 0)), Vector3(0.5, 1.0, w))
+			box(cols, t * Transform3D(Basis(), Vector3(0, y0 + h + 1.3, s * (w * 0.5 + 0.05))), Vector3(w, 1.0, 0.5))
 
 
 ## A pennant on a short staff (a card each side so it reads from both).
@@ -380,7 +399,8 @@ static func _ring(c: Vector3, r: float, n: int) -> PackedVector3Array:
 
 
 ## A dome (a lathe) on a drum, a lantern and a gilded finial on top: the temple's, the palace's.
-static func dome(mb: MeshBuilder, c: Vector3, r: float, drum_h: float, tint: Color) -> void:
+static func dome(mb: MeshBuilder, c: Vector3, r: float, drum_h: float, tint: Color, cols: Array = []) -> void:
+	var m := mb.mark()
 	mb.add_cylinder(mat("lime"), xf(c), r * 1.02, r * 1.02, drum_h, 16, 0.5, Color(0.95, 0.93, 0.9), false, false, false)
 	for k in range(8):
 		var a := TAU * (k + 0.5) / 8.0
@@ -391,6 +411,7 @@ static func dome(mb: MeshBuilder, c: Vector3, r: float, drum_h: float, tint: Col
 		var a := PI * 0.5 * k / 6.0
 		rings.append([sin(a) * r, cos(a) * r + 0.02, cos(a) * r + 0.02])
 	mb.add_loft(mat("roof"), xf(c + Vector3(0, drum_h + 0.3, 0)), rings, MeshBuilder.profile_circle(16), 0.5, tint)
+	hull(cols, mb, m)
 	var top := c + Vector3(0, drum_h + 0.3 + r, 0)
 	mb.add_cylinder(mat("lime"), xf(top - Vector3(0, 0.3, 0)), r * 0.18, r * 0.16, r * 0.35, 8, 0.6, Color(0.95, 0.93, 0.9))
 	mb.add_cylinder(mat("gold"), xf(top + Vector3(0, r * 0.05, 0)), r * 0.05, 0.02, r * 0.6, 4)
@@ -580,7 +601,7 @@ static func _throne_hall(mb: MeshBuilder, cols: Array, y0: float) -> void:
 	arch_wall(mb, lime, t * Transform3D(Basis(), Vector3(0, fy, hd - wt + 0.05)), dw + 2.0, 8.0, wt + 0.1, dw, 5.4, Color(0.96, 0.94, 0.9))
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, fy + h + 1.0, 0)), Vector3(w + 1.0, 0.5, d + 1.0), 0.6, Color(0.92, 0.9, 0.86), false)
 	_hip(mb, t * Transform3D(Basis(), Vector3(0, fy + h + 1.2, 0)), w, d, 6.5, 0.4, Color(0.95, 0.88, 0.84))
-	dome(mb, v3(hc, fy + h + 3.4), 7.5, 4.0, Color(0.55, 0.62, 0.78))
+	dome(mb, v3(hc, fy + h + 3.4), 7.5, 4.0, Color(0.55, 0.62, 0.78), cols)
 	# inside: plaster walls, the floor, a dark coffered ceiling
 	var iw := hw - wt
 	var idd := hd - wt

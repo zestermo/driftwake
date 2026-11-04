@@ -84,7 +84,7 @@ static func _houses(out: Dictionary) -> void:
 			# third of its shops and one house in twelve (about 50 rooms)
 			var sd := int(l["seed"])
 			var enter: bool = (kind != "" and (sd >> 9) % 3 == 0) or (kind == "" and (sd >> 7) % 12 == 0)
-			var h: Array = S.house(mb, cols, l, true, enter)
+			var h: Array = S.house(mb, cols, l, enter)
 			var d := _front(mb, cols, l, h[0], h[1], h[2], h[3], kind, enter)
 			var ht: Transform3D = h[0]
 			l["frame"] = ht
@@ -462,7 +462,7 @@ static func _inn(out: Dictionary) -> void:
 	var sp: Array = P.SPECIAL["inn"]
 	var r: Rect2 = sp[0]
 	var l := {"r": r, "cell": r, "c": r.get_center(), "face": sp[1], "seed": 99121, "floors": 4, "roof": "hip"}
-	var h: Array = S.house(mb, cols, l, true)
+	var h: Array = S.house(mb, cols, l)
 	var t: Transform3D = h[0]
 	var d := _front(mb, cols, l, t, h[1], h[2], h[3], "wine")
 	var y := P.QUAY_Y
@@ -527,7 +527,7 @@ static func _arsenal(out: Dictionary) -> void:
 	var ms: Array = P.SPECIAL["masters"]
 	var mr: Rect2 = ms[0]
 	var ml := {"r": mr, "cell": mr, "c": mr.get_center(), "face": ms[1], "seed": 55121, "floors": 3, "roof": "gable"}
-	var mh: Array = S.house(mb, cols, ml, true)
+	var mh: Array = S.house(mb, cols, ml)
 	var mt: Transform3D = mh[0]
 	var md := _front(mb, cols, ml, mt, mh[1], mh[2], mh[3], "chart")
 	for s in [-1.0, 1.0]:

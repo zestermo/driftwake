@@ -64,13 +64,13 @@ func mark() -> Dictionary:
 	return m
 
 
-## The vertices added since `m`, each once (to 2 cm).
-func points_since(m: Dictionary) -> PackedVector3Array:
+## The vertices added since `m` (and before mark `to`, if given), each once (to 2 cm).
+func points_since(m: Dictionary, to := {}) -> PackedVector3Array:
 	var seen := {}
 	var out := PackedVector3Array()
 	for mat in _order:
 		var v: PackedVector3Array = _surfaces[mat]["v"]
-		for i in range(int(m.get(mat, 0)), v.size()):
+		for i in range(int(m.get(mat, 0)), int(to.get(mat, v.size())) if not to.is_empty() else v.size()):
 			var k := Vector3i((v[i] * 50.0).round())
 			if not seen.has(k):
 				seen[k] = true

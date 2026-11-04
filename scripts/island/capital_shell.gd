@@ -287,8 +287,10 @@ static func _landmarks(out: Array) -> void:
 	# (1.27) the cathedral walked into: the nave, its doors on the forecourt, pews, altar, candles
 	CapitalCathedral.build(mb, cols, ty)
 	mb.add_box(M.mat("lime"), M.xf(M.v3(tc, ty + 13.0)), Vector3(26.8, 0.5, 32.8), 0.6, Color(0.92, 0.9, 0.86), false)
+	var roof_at := mb.mark()
 	M._hip(mb, M.xf(M.v3(tc, ty + 13.2)), 26.0, 32.0, 4.0, 0.3, Color.WHITE)
-	M.dome(mb, M.v3(tc, ty + 15.0), 8.5, 4.0, Color(0.62, 0.75, 0.68))
+	M.hull(cols, mb, roof_at)
+	M.dome(mb, M.v3(tc, ty + 15.0), 8.5, 4.0, Color(0.62, 0.75, 0.68), cols)
 	# (the roof's slab: solid over the hollow nave)
 	M.box(cols, M.xf(M.v3(tc, ty + 13.0)), Vector3(26.0, 0.6, 32.0))
 	for s in [-1.0, 1.0]:
