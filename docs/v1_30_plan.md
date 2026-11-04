@@ -94,6 +94,7 @@ Zach, after the stronghold renders (blockout-like up close: a plain foundry, an 
 | Scale | Monumental: walls and gates many captains tall, plazas big enough for the 20-30 crowd; side areas and wall walks for stealth routes | Round 3 crowds + stealth | Play |
 | Districts keep their role | Foundry (Kesh), prison (Marrow), keep (Vane), batteries, barracks, docks each dressed for what it is, in the same white-blue palette | Each act reads at a glance | Renders |
 | Budget | A set piece may spend, but inside the perf gate: MultiMesh repeats, shared PSXMat, visibility ranges | CLAUDE.md | Bench at prepush |
+| Scope (Zach, later the same day) | **Keep the current design** (layout, massing, silhouettes): "the design looked cool, it just needs much much more detail and more models and more lived in, alive, rather than all just box shapes". The work is architectural detail on the existing shapes, many more props, and lived-in dressing, in the Marineford / Enies Lobby palette | Zach | Renders |
 
 ## Build order (lead, 2026-11-03; two agents at a time)
 Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Driftwake 1.30 UI mocks" canvas).
