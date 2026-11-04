@@ -76,6 +76,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `t/fauna/zombie_rise` (1.30): a zombie lies buried (hidden, nothing to hit or bump) till a captain comes near, claws up and stands; its grab holds the captain, who mashes free and leaves it reeling.
 - `t/player/step_up` (1.30): the ground step-up: 0.3 and 0.6 m ledges walked up and over smoothly with no Fall, 0.9 m blocked, the flat walk speed exactly the stick's.
 - `t/island/roofs_solid` (1.30): 36 buildings (the kit's, Buildings', the snow's and desert's houses, harbour, stalls, towers) placed in the air; rays down every 0.5 m find the drawn top and the collider top: gaps and false ceilings each under 4%.
+- `t/island/pier_rails` (1.30): a pier's rope rail stops a captain between posts (not across a break); a pile is solid from a wader's depth up, passable deeper.
 - `t/island/trunk_cols` (1.30): every theme's trees get trunk columns (IslandTheme.trunk), most of their low wood inside them, two at most.
 - `t/island/snow_ice` (1.30): on three snow islands the ice's collider faces up (a ray down stops on the ice, not the bed), and walking across the river at every station, along it and off each lake on eight bearings, the ground underfoot never jumps (the banks rise through the ice: no lip, no sheet over a drop).
 - `t/island/crowd_size` (1.30): a generated village's crowd is 9-11 on routines (a quarter fewer), the named, traders, elder and every quest giver kept.
