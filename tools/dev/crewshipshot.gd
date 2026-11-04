@@ -53,7 +53,7 @@ func _next_class() -> bool:
 		["%s_aloft" % cls, Vector3(hb * 2.5, H.mast_top + 10.0, lw * 0.5), Vector3(0, 0.0, -2.0), Vector3(0, H.deck_y + 0.1, H.mast_z - 3.0)],
 		["%s_deck" % cls, Vector3(1.0, H.deck_y + 2.2, bow + 6.0), Vector3(0, H.deck_y + 1.8, H.qd_front + 2.0), Vector3(-1.2, H.deck_y + 0.1, H.mast_z - 3.0)],
 		["%s_waist" % cls, Vector3(-hb + 1.6, H.deck_y + 2.0, H.qd_front - 1.0), Vector3(hb - 1.0, H.deck_y + 0.6, H.mast_z - 6.0), Vector3(0, H.deck_y + 0.1, H.mast_z - 3.0)],
-		["%s_helm" % cls, Vector3(1.6, H.qd_y + 1.9, H.helm_z + 2.2), Vector3(0, H.qd_y + 1.0, H.qd_front - 4.0), Vector3(0, H.qd_y + 0.05, H.helm_z)],
+		["%s_helm" % cls, Vector3(1.6, H.qd_y + 1.9, minf(H.helm_z + 2.2, H.poop_front - 0.5)), Vector3(0, H.qd_y + 1.0, H.qd_front - 4.0), Vector3(0, H.qd_y + 0.05, H.helm_z)],
 		["%s_lounge" % cls, Vector3(H.cabin_hw - 1.0, cy + 1.75, H.qd_front + 0.6), Vector3(-H.cabin_hw + 1.0, cy + 0.6, pz - 0.5), Vector3(0, H.deck_y + 0.1, H.mast_z - 3.0)],
 		["%s_galley" % cls, Vector3(-H.cabin_hw + 1.6, cy + 1.7, H.qd_front + 0.6), Vector3(H.cabin_hw - 0.8, cy + 0.8, pz - 1.0), Vector3(0, H.deck_y + 0.1, H.mast_z - 3.0)],
 		["%s_aft_room" % cls, Vector3(0.6, cy + 1.7, pz + 0.4), Vector3(-0.6, cy + 0.6, H.qd_back - 0.2), Vector3(0, H.deck_y + 0.1, H.mast_z - 3.0)],

@@ -10268,3 +10268,67 @@ The playtest's meetings happened on land unnoticed and the warning promised a sh
   the meeting only after, she sails off), t/ship/rival_ship_nogo (no crew at the three, a coming ship turns back).
   Render: rivalshipshot (light stage: horizon, sailing in, anchored with the banner, close, ashore).
 - Not done: a guest joining mid-arrival doesn't get the ship (world sync); meeting them at sea / boarding is after 1.30.
+
+## 2026-11-04: 1.30 the brig and the galleon (docs/v1_30_plan.md round 8)
+The crew's gun ships on the 1.29 layout system: bought at the canal city's arsenal, kept, swapped at a yard.
+- **Layouts** (`scripts/ship/hull_layout.gd`): `of("brig"|"galleon", _)` (no tiers: `ROOMED`, the Quarters line hidden on
+  them). `_scale(kx, kz, depth, freeboard, bow_up)` stretches the sloop's crew layout (rings, decks, cabin, stairs, helm,
+  mast, ladders, fittings) and sets the 1.30 fields every sloop number used to be: `map(p)` (x by kx, z by kz, heights
+  kept), sprit, stanchions, quarterdeck posts, yard width and sail scale, extra `masts`, anchor/capstan/pump/figurehead,
+  deck seats, mend spots, damage ranges, waterline, camera arm, `base_guns`. The sloop and base() keep every old value
+  (`t/ship/sloop_parity` and `layout_parity` fingerprint the hulls). Brig: 1.5x long, 1.25x beam, freeboard 1.8, two masts
+  (fore -12), five gun pairs down the waist + the Gun deck line's quarterdeck pair. Galleon: 2.2x, 1.5x, freeboard 3.0,
+  fore/main/mizzen (mizzen on the poop), a gun deck at y -2.0 (`lower_*`, `hatch`) with five pairs + five on the main deck
+  + the quarterdeck pair, the cabin at main-deck level (no step down), a poop at qd_y + 2.6 over a stateroom (`poop_*`).
+- **Hull** (`hull_builder.gd`, new `hull_decks.gd`): HullBuilder reads the new fields (bowsprit, stanchions, stays, the
+  quarterdeck's rails stopping at a poop) and draws/collides the poop as a second quarterdeck through `castle_view()` (the
+  same `_quarterdeck`/`_stairs`/`_castle` code one storey up). HullDecks: the extra masts (shrouds, ratlines, a top, stays;
+  a collision cylinder each, no climbing), the gun deck (floor, the hull's inside, the deckhead with the hatch open,
+  beams and knees, bulkheads, the mast through it, lanterns, the hatch's coaming/rails/stair, ports with open lids), its
+  collision in place of the solid hull (keel volume, bow and stern blocks, deck slabs round the hatch, side walls, the
+  stair ramp), and the dress: two wales, the galleon's gun-port strake in the trim colour, lit stern windows per storey with
+  mouldings, quarter galleries. A main-deck segment over the hatch is planked round it.
+- **Rooms** (new `ship_rooms.gd`; ShipCabin's build/seats/solids/table_at/lamp_at hand over when `L.rooms`): a partition
+  with a doorway; forward the lounge (ShipCabin's stove, counter, pantry, chest, mess table and candle ring, panelling, a
+  velvet sofa, armchair, tea table, rug); aft the brig's captain's cabin (curtained bed, bunk beds with a ladder, chart
+  desk, stern windows, wardrobe, coat rack) or the galleon's bunk room (four bunk sets, sea chests); the galleon's
+  stateroom (bookcases, compass rose, chart table and globe, wardrobe, coats, seven stern windows over a window seat,
+  chandelier). Extra lamps (`lamps`) hang under the cabin mesh (hidden with it); the gun deck's dressing (`hold`: shot
+  racks, rammers, buckets, hammocks, barrels) is its own mesh and light, shown only with a camera near it.
+- **Ship** (`ship.gd`): everything that used a sloop const reads `layout` (swell sampling points, freeboard, heave a bit
+  steadier on longer hulls, wake, damage spots, pump/capstan/anchor, mend spots, seats, windows, stripe, figurehead). A
+  class change (`apply_kit` with different rings) runs `_refit_class`: the rig (+ `_rigs` for the other masts, braced,
+  set and furled with the main, painted with it), climbing, anchor and capstan, pump, puddles, guns, spray (`ShipSpray.fit`)
+  and the camera arm are rebuilt, then `_relayout`; ShipParts `strip()`s and rebuilds on the next apply. Guns: `base_guns`
+  pairs, the aft (refit) pair is index base_guns. `Ship.moor_out(tree)`: every island's `mooring()` lays the wider hulls
+  that much further off the quay/pier. ShipParts maps its sloop-placed pieces (`mz`, `layout.map`), skips Quarters on the
+  roomed classes and the galley line's upper bunk and hammocks there (their bunks are two-high already).
+- **Buying and owning** (`ship_classes.gd`): `CLASSES` brig/galleon, `FOR_SALE`, `owned(kit)`, `chain_layer(gm)`,
+  `locked_why(cls, layer, settled)` (galleon: past the canal city's layer, or there with the log pose set). Paint, colours,
+  flag and figurehead are the crew's (`ShipKit.LOOKS`: `switch_to` carries them over; `ShipKit.merged` drops a laid-up
+  ship's own looks, which migrates 1.29 saves). Grane (`CanalLife._ship_choices`) sells all three, says why about the
+  galleon until then; `GameMenu._ship_event` refuses a locked buy. The kit's "class"/"fleet" were already saved and synced
+  (Net.set_ship_kit / request_ship), so co-op guests see the class change and refit the same way.
+- **Numbers** (Zach tunes in play; ShipClasses.CLASSES, HullLayout._brig/_galleon):
+
+  | | Sloop | Caravel | Brig | Galleon |
+  |---|---|---|---|---|
+  | Price | (start) | 1,400 g + 6 timber, 4 canvas, 2 iron | 3,200 g + 10 timber, 6 canvas, 6 iron | 7,500 g + 18 timber, 10 canvas, 12 iron, 4 copper |
+  | Sold | - | canal city | canal city | canal city, once its log pose is set (or past it) |
+  | Length x beam | 22.5 x 8.8 m | same | 34 x 11 m | 50 x 13.2 m |
+  | Hull | 400 | 340 | 800 | 1,200 |
+  | Top speed | 11 m/s | 13 | 10 | 9 |
+  | Turn (full rudder) | 0.55 rad/s | 0.68 | 0.385 | 0.275 |
+  | Accel | 2.6 | 3.1 | 2.2 | 1.8 |
+  | Guns a side (+ Gun deck line) | 2 (+1) | 2 | 5 (+1) | 10 (+1), and a bow chaser |
+  | Bag slots | +0 | +4 | +6 | +12 |
+  | Masts | 1 | 1 + lateen | 2 | 3 |
+- **Debug:** Ctrl+Shift+F10 sails the next class (sloop, caravel, brig, galleon), owned for free.
+- **Per frame/tick** (no bench): the sim is unchanged (5 wave samples, one test_move); `_show_sail` sets the extra rigs'
+  transforms (+1 brig, +2 galleon); every crew gun at rest now returns after a seat lookup (before, each set its aim every
+  frame), so 22 galleon guns cost less than the sloop's 6 did; the cabin check (4/s) also toggles the gun deck. Rooms and
+  gun deck meshes and lights hide unless a camera is near (visibility ranges 40/14/60).
+- Tests (t/ship): sloop_parity, brig_layout, galleon_layout, big_broadside, yard_classes, fleet_save; caravel's paint check
+  updated for the carried colours. Render: `crewshipshot` (tools/dev/out/review/ships_*.png).
+- Not done / open: enemy brigs and galleons, boarding the new hulls, NPC deckhands (out of scope). Captains aboard when the
+  class changes stay where they stood (at a yard, normally ashore). The galleon's bow chaser sits low under her sheer.
