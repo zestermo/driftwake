@@ -115,8 +115,8 @@ func _process(_d: float) -> bool:
 			check("click the cosmetic slot: back to the bag", idx_of(straw) != -1 and p.body_model.look.get("hat") == "kettle")
 			ui._right_click_bag(idx_of(straw))
 			ui._mog_box["head"].button_pressed = false
-			check("untick MOG: the slot hides, the helm shows, the straw hat waits there", not ui._mog["head"].visible
-				and p.body_model.look.get("hat") == "kettle" and p.equipment.get_cosmetic("head") == straw)
+			check("untick MOG: the slot hides, the helm shows, the straw hat goes back to the bag", not ui._mog["head"].visible
+				and p.body_model.look.get("hat") == "kettle" and p.equipment.get_cosmetic("head") == null and idx_of(straw) != -1)
 			gm.close()
 			return TK.done(fails)
 	step += 1

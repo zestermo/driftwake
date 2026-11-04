@@ -364,12 +364,15 @@ func _drape_toggle() -> Button:
 
 
 ## (1.30) Under a clothing slot's cosmetic place: MOG shows the cosmetic slot, and the body wears what's in it.
+## Unticked, its piece goes back to the bag (Zach: not left hidden in the slot to be forgotten); a full bag keeps it there.
 func _mog_toggle(slot: String) -> Button:
 	var b := _tick_box("Mog_" + slot, "MOG", "Wear another piece for looks: this slot still gives the stats")
 	b.toggled.connect(func(on: bool):
 		var pl := _player()
 		if pl and pl.equipment.is_mogged(slot) != on:
 			pl.equipment.set_mog(slot, on)
+			if not on:
+				pl.equipment.unmog_to_bag(pl.inventory_component, slot)
 			pl.refresh_look()
 			menu._play("equip")
 			refresh()
