@@ -26,10 +26,23 @@ static func meshes(theme: String) -> Dictionary:
 					if m is ArrayMesh and not (m as ArrayMesh).has_meta("trunk"):
 						(m as ArrayMesh).set_meta("trunk", trunk(m))
 						(m as ArrayMesh).set_meta("log", lying(m) if key == "broadleaf" else [])
-						if key in ["giant", "fig", "kapok", "emergent"]:
-							(m as ArrayMesh).set_meta("hull", hull_points(m))
+				# (a giant's buttresses and roots are in its detail mesh: the body's shape takes both)
+				if key in ["giant", "fig", "kapok", "emergent"] and e is Array and not (e[0] as ArrayMesh).has_meta("hull"):
+					var hp := hull_points(e[0])
+					hp.append_array(hull_points(e[1]))
+					(e[0] as ArrayMesh).set_meta("hull", hp)
 		for e in _meshes[theme].get("rock", []):
 			(e as ArrayMesh).set_meta("hull", hull_points(e))
+		# (the bamboo slot: the snow's crystals, stumps, fumaroles, pandanus; the jungle's bamboo is pushed through, and
+		# anything knee-low - a ring of toadstools - is stepped over)
+		for e in _meshes[theme].get("bamboo", []):
+			var hp := hull_points(e)
+			var lo := INF
+			var hi := -INF
+			for v in hp:
+				lo = minf(lo, v.y)
+				hi = maxf(hi, v.y)
+			(e as ArrayMesh).set_meta("hull", hp if hi - lo >= 0.5 else PackedVector3Array())
 	return _meshes[theme]
 
 
@@ -39,10 +52,11 @@ static func meshes(theme: String) -> Dictionary:
 ## the mesh's arrays); [] for a mesh with no wood low down.
 const TRUNK_TOP := 5.0
 const TRUNK_SLICE := 2.5
-const FOLIAGE := ["pine_snow", "fir_needles", "palm_frond", "fern", "bush", "grass_tuft", "thornbrush", "moss", "snow", "volcanic_ash"]
+const FOLIAGE := ["pine_snow", "fir_needles", "palm_frond", "fern", "bush", "grass_tuft", "thornbrush", "moss", "snow", "volcanic_ash", "bamboo"]
 
 
-## Whether a texture is leaves, needles, fronds, hanging moss or snow lying on a plant (walked through, never collided).
+## Whether a texture is leaves, needles, fronds, hanging moss, snow lying on a plant or a bamboo thicket (Zach: pushed
+## through) - walked through, never collided.
 static func foliage(tex: String) -> bool:
 	return tex.begins_with("leaves") or tex in FOLIAGE
 

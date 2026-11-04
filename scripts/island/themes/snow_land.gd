@@ -430,7 +430,7 @@ static func _crystals(isl) -> void:
 			var s := rng.randf_range(0.8, 2.2)
 			var b := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.25, 0.25))
 			(xfs[rng.randi() % kinds.size()] as Array).append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, y - 0.3, p.y)))
-	# (1.30) a column each, about the cluster's core: they stand on the slopes captains climb
+	# (1.30) each cluster its own shape: they stand on the slopes captains climb
 	var node := StaticBody3D.new()
 	node.name = "SnowCrystals"
 	node.collision_layer = 1
@@ -439,10 +439,15 @@ static func _crystals(isl) -> void:
 		var list: Array = xfs[i]
 		if list.is_empty():
 			continue
-		var box: AABB = (kinds[i] as Mesh).get_aabb()
+		if not (kinds[i] as Mesh).has_meta("hull"):
+			(kinds[i] as Mesh).set_meta("hull", IslandTheme.hull_points(kinds[i]))
+		var hp: PackedVector3Array = (kinds[i] as Mesh).get_meta("hull")
 		for xf in list:
-			var s: float = (xf as Transform3D).basis.get_scale().x
-			KitLandmarks.cyl_col(node, minf(box.size.x, box.size.z) * 0.3 * s, box.end.y * s * 0.85, (xf as Transform3D).origin + Vector3.UP * box.end.y * s * 0.425)
+			var cs := CollisionShape3D.new()
+			var hs := ConvexPolygonShape3D.new()
+			hs.points = (xf as Transform3D) * hp
+			cs.shape = hs
+			node.add_child(cs)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = kinds[i]

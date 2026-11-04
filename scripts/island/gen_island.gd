@@ -1088,7 +1088,13 @@ func _scatter_vegetation() -> void:
 					forest_crowns.append(crown)
 			elif roll < p_beach + p_tree + p_bamboo:
 				var list: Array = m["bamboo"]
-				_bucket(buckets, list[_rng.randi() % list.size()], "bamboo", Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3(p.x, h - 0.1, p.y)))
+				var bm: Mesh = list[_rng.randi() % list.size()]
+				var bxf := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3(p.x, h - 0.1, p.y))
+				_bucket(buckets, bm, "bamboo", bxf)
+				# (1.30) the slot's solid ones (IslandTheme.meshes: crystals, stumps, fumaroles; not the jungle's bamboo)
+				var bh: PackedVector3Array = bm.get_meta("hull", PackedVector3Array())
+				if not bh.is_empty():
+					_shapes.append([bxf * bh])
 				reserve(p, 1.5)
 			elif roll < p_beach + p_tree + p_bamboo + p_rock:
 				_add_rock(buckets, m["rock"], p, _rng.randf_range(0.5, 1.8))
