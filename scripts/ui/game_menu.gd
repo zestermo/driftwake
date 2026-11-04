@@ -37,6 +37,7 @@ var _galley: Control
 var _bench: Control
 const BOOKSHELF := preload("res://scripts/ui/bookshelf_screen.gd")
 const FISH_JOURNAL := preload("res://scripts/ui/fish_journal_screen.gd")
+const BOARD := preload("res://scripts/ui/notice_board_screen.gd")
 # suggest an idea (a QR for the companion app)
 const IDEA := preload("res://scripts/ui/idea_screen.gd")
 var _idea: Control
@@ -92,6 +93,7 @@ func _ready() -> void:
 	_screens["books"] = BOOKSHELF.new(self)
 	_screens["fish_journal"] = FISH_JOURNAL.new(self)
 	_screens["fish_journal"].register_wheel()
+	_screens["notice_board"] = BOARD.new(self)
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -232,6 +234,12 @@ func _on_dialogue_event(ev: String) -> void:
 func open_workbench(at: Node3D) -> void:
 	_bench.bench = at
 	open("workbench")
+
+
+## (1.30) A generated village's notice board: its page (NoticeBoardScreen).
+func open_board(isl: Node) -> void:
+	_screens["notice_board"].isl = isl
+	open("notice_board")
 
 
 ## A trader's stall, now or (talking) when the talk ends.

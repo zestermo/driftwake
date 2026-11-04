@@ -1,7 +1,7 @@
 class_name IslandArcs
 extends Node3D
 ## A chain island's story arc (1.23, docs/v1_23_previews.md section 5): a local problem with a villain, in three beats.
-## Beat 1: the elder, the folk's rumours and a poster on the board tell of it (taking it puts the arc in the crew's
+## Beat 1: the elder, the folk's rumours and its poster on the board's page (1.30: read, not taken) tell of it (taking it puts the arc in the crew's
 ## Journal). Beat 2: 2-3 story steps on the island's own places (a squad to break, a thing to take back, someone to
 ## talk to, a night to hold). Beat 3: the showdown with the villain (the island's camp captain, its beast, or a villain
 ## the arc brings). Its fall drops the arc's chest, raises the bounty and the Admiralty answers (Admiralty.deed "arc");
@@ -645,7 +645,6 @@ func _setup(looks: Array) -> void:
 	Journal.register(def, self)
 	Dialogue.register_token("%s_leads" % key, lead_summary)
 	village.elder_hooks.append(_elder_talk)
-	village.board_hooks.append(_poster)
 	if flag("fell"):
 		_chests(flag("hidden"))
 
@@ -796,11 +795,6 @@ func _elder_talk(choices: Array, nodes: Dictionary) -> void:
 	nodes["arc_now"] = {"text": [fill("Now? Then go with every lead you have, Captain. {villain} is at {place}.")], "event": "arc:%s:now" % key, "next": "menu"}
 	choices.append({"text": "It's over. %s won't trouble you again." % villain_name, "next": "arc_pay", "if": func(): return Journal.at_turnin(key)})
 	nodes["arc_pay"] = {"text": fill_all(T["thanks"]) + ["(%s)" % QuestRewards.text(def["reward"])], "event": "arc:%s:pay" % key, "next": "menu"}
-
-
-func _poster(choices: Array, nodes: Dictionary) -> void:
-	choices.append({"text": "WANTED: %s" % villain_name, "next": "arc_poster", "if": func(): return not Journal.has(key)})
-	nodes["arc_poster"] = {"text": [fill(T["poster"]), "You tear the poster down and pocket it."], "event": "arc:%s:take" % key, "next": "end"}
 
 
 ## What the island's folk say of it (IslandLife deals them out).

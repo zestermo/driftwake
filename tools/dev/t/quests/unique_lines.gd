@@ -1,8 +1,8 @@
 extends SceneTree
 ## No two people on one island say the same line: a generated island of each theme built whole, every line its
 ## people can say gathered (barks, lines over their heads, their dialogue trees) and none said by two of them.
-## Each named character has small talk of their own, each villager lines of their own, and the notice board
-## posts the village's jobs, each turned in to whoever posted it.
+## Each named character has small talk of their own, each villager lines of their own, and the village's jobs are
+## bounties (1.30: no taking at the board), each turned in to whoever posted it.
 const TK := preload("res://tools/dev/test_kit.gd")
 const THEMES := ["jungle", "desert", "snow", "forest"]
 const WORLD := "extends Node\nvar c\nvar chain_islands := {}\nvar starter_island = null\nfunc _ready():\n\tadd_to_group(\"world_gen\")\nfunc chain():\n\treturn c\nfunc chain_ready():\n\treturn true\nfunc standing(_i):\n\treturn true\n"
@@ -94,11 +94,10 @@ func _island(theme: String, k: int) -> void:
 	check("[%s] the named characters' small talk is their own (%s)" % [theme, named.map(func(f): return f["own"]["talk"].size())],
 		named.all(func(f): return f["own"]["talk"].size() >= 2 and dlg._load(f["talk"])["nodes"].has("work")))
 	var posters: Array = life.notices.map(func(q): return q["giver"])
-	var board: Dictionary = dlg._load(isl.save_key("board"))["nodes"]
 	var posted := true
 	for q in life.notices:
-		posted = posted and board.has("q_%s_notice" % q["id"]) and not str(q["notice"]).contains("{") and npcs.any(func(x): return x.npc_name == q["giver"])
-	check("[%s] the board posts the village's jobs (%s), each by someone on the island" % [theme, life.notices.map(func(q): return q["title"])],
+		posted = posted and q.get("walk_in", false) and not str(q["notice"]).contains("{") and npcs.any(func(x): return x.npc_name == q["giver"])
+	check("[%s] the village's jobs are bounties needing no taking (%s), each by someone on the island" % [theme, life.notices.map(func(q): return q["title"])],
 		life.notices.size() == 3 and posted)
 	var reports := 0
 	for npc in npcs:

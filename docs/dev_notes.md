@@ -10371,3 +10371,31 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   No harbour gulls (no DockingArea).
 - **Per frame:** nothing new of Redtide's own; SkyBirds' flock birds (inside its MAX 72, the GPU flock path).
 - Tests: t/world/redtide_way_in green with the arch; t/world/sky_long_tail, sky_flock_gpu green.
+
+## 2026-11-04: how an island's quests read (1.30, docs/v1_30_plan.md round 9)
+- **Crowds** (IslandLife.AMBIENT 12-15 -> 9-11): a quarter fewer villagers on routines on generated islands; the three
+  named, the traders, the elder, keepers and plaza faces as they were. Shifts each seed's quest picks (same stream).
+- **Vendors keep their counter** (IslandLife._routine): KitMarket stalls' Vendor spots are kind "stall" now (was
+  "market", which the lunch walk sent everyone to). Traders route first: their shop, else the first free stall, else a
+  plaza pitch (`_pitch`, a "stall" spot inside the hub ring). Whoever works a stall keeps it (one stay, one-point walk,
+  every hour); a kept stall is left out of everyone else's picks (`kept`). JOBS' "market" is "stall".
+- **Landing objectives** (ChainGoal._on_island, world flags `IslandLife.town_flag()` / `board_flag()`, the crew's):
+  1. "Find the town on <island>" (marker on the village) until a captain comes within KitQuests.TOWN 30 m of it
+  (KitQuests' 0.5 s tick sets the flag); 2. "Ask <elder> what troubles <island>" (as before); 3. "Check the notice
+  board" (marker on the board) until a captain reads it, shown even while the just-taken trouble is tracked
+  (`followed` defers to it); then the trouble's own step.
+- **The board** (IslandVillage.read_board -> GameMenu.open_board -> `scripts/ui/notice_board_screen.gd`, from
+  `IslandRecord.of(isl)` in `scripts/quests/island_record.gd`): no dialogue and nothing to take. Island record (explored
+  % = land fog cells seen, MapFog; the main mission with its poster while untaken; side missions done / all the island's
+  KitQuests; places found / MapIsles spots), the bounties newest first (title, place, poster, reward, state chip), who
+  needs a hand (quest givers, "Wants 3 x" for fetches, where they work, state). All shared state: a guest reads the same.
+  The theme's board line is its subtitle. The arc's WANTED poster choice on the board is gone (IslandArcs._poster).
+- **Bounties without taking** (IslandLife._post marks them `walk_in`; KitQuests._walk_in): an X on the held map
+  (MapMarks "notice:<id>") from the start until paid; the crew's journal takes it when a captain comes within WALK_IN
+  45 m or its target is seen cleared; then "Report to <poster>" as before. The capital's board is unchanged (no walk_in).
+- Per tick: KitQuests' existing 0.5 s tick adds a distance check to the town (until found) and one per bounty plus a
+  MapMarks dict write; the board computes its record only when opened (land cells cached per island).
+- Tests: t/island/crowd_size, t/island/vendors_stay, t/quests/landing_goals, island_tracker, bounty_no_take (new; helper
+  t/quests/_isle.gd); unique_lines and arc_roll updated (no board talk); isletest's board check moved to the notices
+  (not run in this tier). Render: `boardshot.gd` (board_goal_1..4, board_page). Expected to touch isletest, lifetest,
+  villagetest, storytest (the box), netchain (the walk-in take and the world flags go through Journal/Net as before).

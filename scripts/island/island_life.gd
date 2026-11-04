@@ -10,16 +10,17 @@ extends RefCounted
 ## IslandVillage and sites give). Each hamlet (a spot's "hub") gets its share of
 ## the people; no village spots, no people and no quests.
 
-const AMBIENT := [12, 15]
+## (1.30: a quarter fewer, Zach's playtest) the crowd beyond the named and the traders.
+const AMBIENT := [9, 11]
 const NAMED := 3
 const PER_STEP := 4
-const JOBS := ["nets", "forage", "market", "home", "plaza"]
+const JOBS := ["nets", "forage", "stall", "home", "plaza"]
 const ACT := {"nets": "kneel", "forage": "kneel", "home": "kneel", "field": "kneel", "market": "talk", "plaza": "talk", "inn": "talk", "well": "talk", "bench": "talk"}
 ## People at these stand round the spot this far out, facing in.
 const GROUP := {"plaza": 3.8, "inn": 1.9, "well": 2.2}
 const HARBOUR_KIND := {"net mender": "nets", "fisher": "nets", "boatwright": "boats", "fishmonger": "stall", "trader": "stall"}
 ## IslandVillage.work_spots' kinds as the routines' (the shopkeepers' own and the rest left out).
-const VILLAGE_KIND := {"market": "market", "customer": "market", "workshop": "workshop", "woodpile": "workshop", "shrine": "shrine", "pray": "shrine",
+const VILLAGE_KIND := {"stall": "stall", "customer": "market", "workshop": "workshop", "woodpile": "workshop", "shrine": "shrine", "pray": "shrine",
 	"home": "home", "well": "well", "garden": "field", "laundry": "field", "fishrack": "nets"}
 const SITE_KIND :={"camp": "camp", "lair": "lair", "ruins": "ruins", "summit": "lookout", "boss": "beast"}
 ## POI kind -> [a lost thing: m out toward the village, a scout's point: m out, its radius] (others go by the spot's "r")
@@ -146,6 +147,15 @@ func key(what: String) -> String:
 	return "isle%d_%d_%s" % [int(isl.node["id"]), int(isl.node["seed"]), what]
 
 
+## (1.30) World flags of the landing's steps (ChainGoal): a captain reached the town, a captain read its board.
+func town_flag() -> String:
+	return key("town_found")
+
+
+func board_flag() -> String:
+	return key("board_read")
+
+
 func _notification(what: int) -> void:
 	# (let go before its people were made: the bodies plan built for them would wait forever)
 	if what == NOTIFICATION_PREDELETE:
@@ -202,6 +212,7 @@ func _setup() -> void:
 		return
 	quest_node = KitQuests.new()
 	quest_node.name = "Quests"
+	quest_node.life = self
 	isl.add_child(quest_node)
 	for q in given:
 		quest_node.add(q, isl)
@@ -240,7 +251,7 @@ func _post(v: IslandVillage) -> void:
 		var q := {"id": key("notice_" + kind), "kind": kind, "giver": by, "isle": isl.island_name, "pos": isl.position, "src": "board",
 			"title": _cap(LifePools.fill(KitQuests.NOTICE_TITLE[kind], tok)), "clear": j["check"], "poi_at": j["at"],
 			"notice": LifePools.fill(deck.one("notice_" + kind, N.get(kind, KitQuests.NOTICE_TEXT.get(kind, []))), tok), "posted": deck.one("posted", N["posted"]), "steps": [],
-			"favour_ask": FAVOUR_ASK}
+			"favour_ask": FAVOUR_ASK, "walk_in": true}
 		q["reward"] = _reward(q, 100 + k)
 		q["favour_thanks"] = deck.deal("favour", FAVOUR_THANKS, 1) if q["reward"].has("favour") else []
 		for s in KitQuests.STEPS[kind]:
@@ -291,8 +302,15 @@ func arrange() -> void:
 	given = []
 	if hubs.is_empty():
 		return
-	for i in range(folk.size()):
+	spots = spots.filter(func(s): return not s.get("pitch", false))
+	for s in spots:
+		s.erase("kept")
+	# (1.30) the traders first: one without a shop of their own takes a stall before the crowd does
+	var order := range(folk.size())
+	order.sort_custom(func(a, b): return (_trader(folk[a]) and not _trader(folk[b])) or (_trader(folk[a]) == _trader(folk[b]) and a < b))
+	for i in order:
 		_routine(i)
+	for i in range(folk.size()):
 		placed.append(i)
 		if folk[i]["named"]:
 			folk[i]["talk"] = key("talk%d" % i)
@@ -409,7 +427,7 @@ func _path_to(to: Vector2) -> PackedVector2Array:
 
 ## The first of `kinds` hamlet `hub` has (the i-th of them), else any of its spots.
 func _spot(hub: Vector2, kinds: Array, i: int) -> Dictionary:
-	var mine := spots.filter(func(s): return not s.get("poi", false) and s["hub"] == hub)
+	var mine := spots.filter(func(s): return not s.get("poi", false) and s["hub"] == hub and not s.get("kept", false))
 	for k in kinds:
 		var list := mine.filter(func(s): return s["kind"] == k)
 		if not list.is_empty():
@@ -418,7 +436,7 @@ func _spot(hub: Vector2, kinds: Array, i: int) -> Dictionary:
 
 
 func _has(hub: Vector2, kind: String) -> bool:
-	return spots.any(func(s): return not s.get("poi", false) and s["hub"] == hub and s["kind"] == kind)
+	return spots.any(func(s): return not s.get("poi", false) and s["hub"] == hub and s["kind"] == kind and not s.get("kept", false))
 
 
 ## Their own work if the hamlet has it, else one of the work it has (seeded).
@@ -427,7 +445,7 @@ func _work_kind(f: Dictionary, hub: Vector2) -> String:
 		return f["pref"]
 	var work: Array = []
 	for s in spots:
-		if not s.get("poi", false) and s["hub"] == hub and not s["kind"] in ["plaza", "inn", "home", "bench"] and not str(s["kind"]).begins_with("vshop_") and not work.has(s["kind"]):
+		if not s.get("poi", false) and s["hub"] == hub and not s["kind"] in ["plaza", "inn", "home", "bench"] and not str(s["kind"]).begins_with("vshop_") and not s.get("kept", false) and not work.has(s["kind"]):
 			work.append(s["kind"])
 	return work[int(f["wpick"] * work.size())] if not work.is_empty() else "plaza"
 
@@ -450,9 +468,18 @@ func _routine(i: int) -> void:
 	var work := _spot(hub, [_work_kind(f, hub), "plaza"], i)
 	# (1.25.5) a trader with a shop of their own keeps it, whichever hamlet it's in
 	var own := spots.filter(func(s): return s["kind"] == "vshop_" + str(f["role"]).trim_prefix("vendor:"))
-	if str(f["role"]).begins_with("vendor:") and not own.is_empty():
+	if _trader(f) and own.is_empty():
+		# (1.30) no shop of their own: the first free stall on the island
+		own = spots.filter(func(s): return s["kind"] == "stall" and not s.get("kept", false))
+	if _trader(f) and own.is_empty():
+		own = [_pitch(hub)]
+	if _trader(f):
 		work = own[0]
 		hub = work["hub"]
+	# (1.30, Zach: "vendors should always be in their shop or at their stall") whoever works a stall keeps it
+	var keeps: bool = _trader(f) or work["kind"] == "stall"
+	if work["kind"] == "stall":
+		work["kept"] = true
 	var plan := [[5.9 + j[0], work, ACT.get(work["kind"], "stand")],
 		[12.0 + j[1] * 0.6, _spot(hub, ["bench", "plaza", "market"] if i % 2 == 0 else ["market", "plaza"], i), "talk"],
 		[13.4 + j[2] * 0.6, work, ACT.get(work["kind"], "stand")], [18.0 + j[3], _spot(hub, [f["eve"], "inn", "plaza"], i), "talk"]]
@@ -460,7 +487,7 @@ func _routine(i: int) -> void:
 		plan.append([22.2 + j[4] * 1.5, _spot(hub, ["home"], i), "home"])
 	# (1.26, docs/v1_26_plan.md "Shops and vendors": the playtest never found a trader where they should be) a trader
 	# keeps their stall day and night: one stay, no walks
-	if str(f["role"]).begins_with("vendor:"):
+	if keeps:
 		plan = [[0.0, work, ACT.get(work["kind"], "stand")]]
 	var slots := {}
 	var stays: Array = []
@@ -478,12 +505,30 @@ func _routine(i: int) -> void:
 	var walks: Array = []
 	for k in range(stays.size()):
 		walks.append(KitLife.walk(hub, lanes[k - 1], lanes[k]))
-	if str(f["role"]).begins_with("vendor:"):
+	if keeps:
 		walks = [PackedVector2Array([stays[0]["at"]])]
 	f["hub"] = hub
 	f["work"] = work["kind"]
 	f["stays"] = stays
 	f["walks"] = walks
+
+
+## (1.30) A trader with no shop and no free stall: a pitch of their own on the plaza's edge (inside the ring the lanes
+## meet), a new stall spot.
+func _pitch(hub: Vector2) -> Dictionary:
+	var plaza: Dictionary = spots.filter(func(s): return s["kind"] == "plaza" and s["hub"] == hub)[0]
+	var n := spots.filter(func(s): return s.get("pitch", false) and s["hub"] == hub).size()
+	var p: Vector2 = hub + Vector2.from_angle((plaza["face"] as Vector2).angle() + 1.2 + n * 1.3) * (KitLife.HUB_R - 1.2)
+	var s := {"kind": "stall", "at": p, "face": (hub - p).normalized(), "hub": hub, "pitch": true, "idx": spots.size(),
+		"lane": KitLife.lane_in(hub, p, _blockers)}
+	if plaza.has("y"):
+		s["y"] = plaza["y"]
+	spots.append(s)
+	return s
+
+
+static func _trader(f: Dictionary) -> bool:
+	return str(f["role"]).begins_with("vendor:")
 
 
 ## A named person's role table: the theme's (pools.roles), or a trader's (VillageVendors).
