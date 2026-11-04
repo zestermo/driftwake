@@ -106,6 +106,8 @@
 - ✅ **The brig and the galleon**, ships you buy at the canal city's shipyard: the brig with two masts, a gun deck down the waist and a two-room cabin; the galleon with three masts, a walkable gun deck below, a high stern castle and a library stateroom. Keep every ship you own and swap at a yard; paint and figurehead go with you.
 - ✅ **New creatures** for the fog islands (eerie things, bigger graveyards with zombies rising from the graves) and the forest islands (fairy-tale beasts).
 - ✅ **Islands read clearer:** fewer villagers, vendors always at their stalls, landing objectives (find the town, talk to the elder, check the board), and the board as an island tracker (explored, main and side quests, places found) with its bounties and who needs what.
+- ✅ **Brinehollow polished:** Tackett's ironwood grove off the path (trees you fell), a chapel square left of Old Pell with three walk-in houses whose keepers teach fishing, gadgets and reading, a new lighthouse on a graded hill road with the keeper's cottage, and the opening now takes you to the farmlands mill, Wick's bench and Aldous's book.
+- ✅ **Frozen rivers and lakes walk clean** on the snow islands (no falling through the ice, no lips at the banks).
 
 ## Behind the scenes
 - ✅ **The browser version is retired.** The website deploys on its own, and /play links go home.
