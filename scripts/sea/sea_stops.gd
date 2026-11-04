@@ -7,6 +7,10 @@ extends RefCounted
 ## Clearance a stop wants round it (m) and how far off the route it may lie.
 const ROOM := 70.0
 const LANE := 160.0
+## The floating restaurant's clearance (its 84 m barge and the fish's head reach ~68 m from its spot) and every
+## stop's no-go radius for passing ships.
+const ROOMS := {"restaurant": 110.0}
+const NO_GO := {"restaurant": 75.0}
 ## Debug and tests: every leg gets this stop ("" rolls as usual).
 static var force := ""
 
@@ -17,6 +21,14 @@ static func crew_tier(tree: SceneTree) -> int:
 	for c in tree.get_nodes_in_group("players"):
 		t = maxi(t, Bounty.tier_of(int(c.get("bounty")) if c.get("bounty") != null else 0))
 	return t
+
+
+static func room(kind: String) -> float:
+	return float(ROOMS.get(kind, ROOM))
+
+
+static func no_go(kind: String) -> float:
+	return float(NO_GO.get(kind, 30.0))
 
 
 static func kind_for(c: Chain, from: int, to: int, tree: SceneTree) -> String:

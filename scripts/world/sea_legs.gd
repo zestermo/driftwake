@@ -157,7 +157,7 @@ func plan(from: int, to: int) -> Dictionary:
 	if sk != "":
 		var srng := RandomNumberGenerator.new()
 		srng.seed = hash([lay["seed"], "stop"])
-		var sp := _spot(srng, c, a, b, used, SeaStops.ROOM, SeaStops.LANE, 0.3, 0.75)
+		var sp := _spot(srng, c, a, b, used, SeaStops.room(sk), SeaStops.LANE, 0.3, 0.75)
 		if sp != Vector2.INF:
 			lay["stop"] = sk
 			lay["stop_at"] = sp
@@ -279,7 +279,7 @@ func _build_leg(key: Vector2i) -> void:
 		leg.add_child(Leviathan.make(lay["leviathan"], lay["leviathan_at"], lvl))
 	if lay["stop"] != "":
 		SeaStops.build(leg, lay["stop"], lay["stop_at"], lvl, int(lay["seed"]) + 77)
-		nogo.append([lay["stop_at"], 30.0])
+		nogo.append([lay["stop_at"], SeaStops.no_go(lay["stop"])])
 	var bottles: Array = []
 	var gm := get_node("/root/GameManager")
 	for i in range(lay["bottles"].size()):

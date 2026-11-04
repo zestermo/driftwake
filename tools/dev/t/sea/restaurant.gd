@@ -56,12 +56,12 @@ func _process(_d: float) -> bool:
 			r.set_meta("no_sleep", true)
 			until = TK.wait_ticks(10)
 		1:
-			var spots := {"the pontoon": Vector3(12.6, -1.5, 8.0), "the ramp": Vector3(11.9, -0.8, -2.5), "the deck": Vector3(-6.0, 0.0, 12.0),
+			var spots := {"the pontoon": Vector3(24.4, -1.5, 12.0), "the ramp": Vector3(22.6, -0.75, -2.0), "the deck": Vector3(-16.0, 0.0, 30.0),
 				"the hall": Vector3(0.0, 0.0, 0.0)}
 			for k in spots:
 				var y := _floor_y(spots[k])
 				check("there's floor on %s (%.2f, want %.2f)" % [k, y, spots[k].y], absf(y - float(spots[k].y)) < 0.35)
-			check("the pontoon sits just above the water (%.2f m)" % (r.to_global(Vector3(12.6, -1.5, 8.0)).y), r.to_global(Vector3(12.6, -1.5, 8.0)).y > 0.3 and r.to_global(Vector3(12.6, -1.5, 8.0)).y < 1.2)
+			check("the pontoon sits just above the water (%.2f m)" % (r.to_global(Vector3(24.4, -1.5, 12.0)).y), r.to_global(Vector3(24.4, -1.5, 12.0)).y > 0.3 and r.to_global(Vector3(24.4, -1.5, 12.0)).y < 1.2)
 			p.global_position = r.to_global(Vector3(0.0, 0.5, 4.5))
 			p.reset_physics_interpolation()
 			until = TK.wait_secs(2.0)

@@ -67,7 +67,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(10)
 			step = 1
 		1:
-			p.global_position = r.to_global(Vector3(-4.5, 0.5, -4.0))
+			p.global_position = r.to_global(Vector3(-6.2, 0.5, -7.2))
 			p.reset_physics_interpolation()
 			until = TK.wait_secs(1.0)
 			step = 2
