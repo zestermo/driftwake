@@ -264,6 +264,7 @@ scripts/interaction/ladder.gd           swimtest riggingtest
 scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
 scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest isletest netchain
 scripts/island/redtide_fort.gd          r8test perftest
+scripts/island/redtide_fort.gd          t/world/redtide_way_in
 scripts/world/chain.gd                  chaintest isletest legtest landmarktest
 scripts/island/gen_island.gd            isletest apetest chaintest netchain
 scripts/island/coast.gd                 isletest swimtest shiptest storytest harbourtest harbourkindstest
