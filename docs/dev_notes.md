@@ -10719,3 +10719,17 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Tests:** t/ui, t/food, t/gadgets, t/jam, t/player, t/books/shelf, t/fishing/journal_screen,
   t/quests/island_tracker + landing_goals pass (133). t/gadgets/decoy failed once under load ("a Mk III goes off when
   it falls apart") and passed alone: not UI.
+
+## 2026-11-04: 1.30 transmog, piece 1: cosmetic slots (data, look, save)
+
+- **What:** each clothing slot (EquipmentComponent.MOG_SLOTS: head, face, torso, vest, coat, belt, back, hands, legs,
+  feet; all draw on the body via Gear.SLOT_KEYS) can show a cosmetic piece instead of the worn one. `cosmetic` (slot ->
+  piece, out of the bag while it sits there: `mog_from_bag` / `unmog_to_bag`, any piece of that slot's kind) and `mog`
+  (the ticked slots). `look_slots()` is the worn slots with the mogged, filled ones swapped: Player.refresh_look and
+  set_hybrid compose from it, so stats (`_recalc_stats`, defense, load) still read `slots`. An empty cosmetic slot
+  shows the worn piece (no "show nothing" yet); an unticked slot keeps its cosmetic piece for the next tick.
+  DRAPE drapes the coat that's shown (`look_item("coat")`). `clear()` (a new outfit) drops both.
+- **Save:** "worn_mog" (slot -> item ref) and "mog" (slots); saves without them load unmogged.
+- **Co-op:** nothing new on the wire: the composed look carries it (`_net_look`), the host's stats never see it.
+- Per frame: nothing (only on a gear change).
+- **Tests:** t/gear/mog_look, mog_bag, mog_save (new); coat_drape, stats, t/items/equipment_slot pass.
