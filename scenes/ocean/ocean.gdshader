@@ -258,6 +258,9 @@ void fragment() {
 	// (clearer over the shoals: the sand shows through)
 	// (foam is opaque white water)
 	ALPHA = mix(mix(near_alpha - shoal * 0.22 - clear * (1.0 - shoal) * 0.16, 1.0, fresnel), 1.0, max(hz, max(surf, caps) * 0.7));
+	// (round an atoll, outside its lagoon, deep water is opaque: the island's square of seabed down there and the open
+	// sea past its edge read the same deep blue, no edge)
+	ALPHA = mix(ALPHA, 1.0, lagoon_disc.w * (1.0 - clear) * smoothstep(0.45, 0.95, sdc));
 	// (rough 0.5 spread the sun's reflection into pale sand-coloured sheets over
 	// whole stretches of sea at some sun angles: a tighter glitter path instead)
 	ROUGHNESS = 0.2;

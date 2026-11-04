@@ -9677,6 +9677,12 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   instead of the open sea's deep colour. A diver's fog is the style's new `under` key ([shallow, deep, dark depth, see
   near/far]; BRINEHOLLOW has Weather's old constants, the atoll [turquoise, clear blue, 48 m, 70/38 m]), faded in by
   the zone weight like its weather.
+- **The square's edge** (Zach, from the aerial: the island's 3 m terrain grid ends in a square at -30 m, and past it the
+  sea is drawn over nothing): round an atoll, outside its lagoon, water deeper than ~6-13 m goes opaque
+  (`ocean.gdshader`: alpha to 1 by `lagoon_disc.w * (1 - clear) * smoothstep(0.45, 0.95, depth/14)`), so the seabed
+  square and the open sea past it read the same deep blue from any angle; the shallow reef flat and its drop-off still
+  show through, fading. AtollWater holds the disc from 1300 m past the lagoon's edge (full at 900 m: past the fog's
+  end). Renders: atollshot `aerial`, `edge_high`, `approach`, `approach_near`.
 - Per frame: one AtollWater check every 0.5 s (a distance, a shader parameter); the ocean fragment does the disc's
   distance, and 4 more shore-map fetches only inside the disc where the map says NONE. ~650 more ranged MultiMesh
   instances on an atoll (culled by range). Build: +~170 ms over 11 steps.

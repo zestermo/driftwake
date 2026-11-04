@@ -35,6 +35,11 @@ func _setup(island) -> void:
 	shots.append(["floor", "a diver over a seagrass meadow", Vector3(fq.x, isl.hv(fq) + 1.4, fq.y), Vector3(sp.x, isl.hv(sp) + 0.3, sp.y), false, 0.0])
 	var cq: Vector2 = (cw[0] as Vector2).lerp(cw[1], 0.45) + side * 9.0
 	shots.append(["flank", "under the water by the causeway's flank", Vector3(cq.x, -1.6, cq.y), Vector3(mid.x, -1.0, mid.y), false, 0.0])
+	# (1.30) sailing up: low over the sea far out and nearer in, across the island's square of seabed's edge
+	var ad := Vector2.from_angle((isl.sites["dock"] as Vector2).angle() + 0.5)
+	shots.append(["approach", "sailing up from far out", Vector3(ad.x * 700.0, 6.0, ad.y * 700.0), Vector3(0, 0, 0), false, 0.0])
+	shots.append(["approach_near", "sailing in over the deep off the reef", Vector3(ad.x * 380.0 + ad.y * 120.0, 9.0, ad.y * 380.0 - ad.x * 120.0), Vector3(0, -4.0, 0), false, 0.0])
+	shots.append(["edge_high", "high over the edge of the island's seabed", Vector3(ad.x * (float(isl.half) + 60.0), 160.0, ad.y * (float(isl.half) + 60.0)), Vector3(ad.x * float(isl.half), -30.0, ad.y * float(isl.half)), true, 0.0])
 	var dd := Vector2.from_angle((isl.sites["dock"] as Vector2).angle() + 1.3)
 	var rr := float(isl.radius) + 120.0
 	while rr > 50.0 and isl.hv(dd * rr) < -8.0:

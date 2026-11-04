@@ -4,8 +4,9 @@ extends Node3D
 ## FADE m and gone when you sail off. Each screen sets its own; nothing is sent. A diver's fog is KitStyle "under"
 ## (Weather). Checks twice a second; the nearest atoll holds the disc.
 
-## Faded in from this far past the lagoon's edge (m) to full at the first number.
-const FADE := Vector2(200.0, 420.0)
+## Faded in from this far past the lagoon's edge (m) to full at the first number. (Its strength also makes the deep
+## water round the atoll opaque, hiding the edge of the island's square of seabed: out to past the fog's end.)
+const FADE := Vector2(900.0, 1300.0)
 const EVERY := 0.5
 
 static var _holder: Node
