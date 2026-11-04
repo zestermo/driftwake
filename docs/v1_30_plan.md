@@ -148,6 +148,8 @@ Queued, in order, each briefed already (resume the stopped agent with its contex
    stretch, no snaps.
 4. **Vendor icons + crowd voices** (fixer): every vendor an icon; the market murmur without layered voices; a cap on
    voice barks at once; a softer voice timbre.
+   Collision calls (Zach, 2026-11-04): jungle bamboo stays push-through (the undergrowth slow); fallen logs solid, with a
+   new ground step-up of ~0.6 m (walk over low ledges, jump taller ones), built by the collision agent.
 5. **Transmog** (Zach, 2026-11-04): each clothing slot gets a MOG tick box (like SHOW / DRAPE); ticking it opens a
    cosmetic slot beside it. A piece put there is worn for looks, the real slot keeps the stats. Assumed: the mog piece
    leaves the bag while it sits there (no copies), any owned piece of that slot fits, saved with the gear, seen by

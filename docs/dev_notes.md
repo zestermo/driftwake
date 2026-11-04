@@ -10608,3 +10608,41 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - Tests: t/island/roofs_solid (rays down over 36 builders: drawn top vs collider top), t/island/trunk_cols, plus the
   covering t/capital/solid_ground, t/stronghold/solid_ground, t/canal/*, t/island/brinehollow_*. islanddump on
   Brinehollow differs only by colliders (and the training dummies' known unseeded heads).
+## 2026-11-04: the chain sickle's heavy reworked (animation audit, piece 1)
+- **Why:** Zach: the chain scythe's right click looked stiff and janky. Causes found: the body held one pose (left arm
+  straight up) while the pivot spun at full speed from a standstill and stopped dead (hips/torso range 0.16/0.10 rad);
+  the weight jumped out of the hand to a point in front when the whirl began, and back at its end; the whirl's angle ran
+  on its own clock, not the body's, so the weight and the turn drifted apart.
+- **The move** (SickleMoves `_reap`, `reap_yaw`, `_trap`): sunk low and wound right (pivot -0.75) with the weight twirled
+  over the head on a short chain, a smoothstep-in burst into two turns on a trapezoid speed profile (no dead start or
+  stop), the chain arm thrown out flat, two steps a turn with a dip and side lean, then the last half-turn a low reap
+  into a lunge, the sickle drawn back up on the landing so the return is short. Squash on the coil, stretch on the burst
+  and the reap (smear), squash on the landing. Spec: len 1.2 -> 1.3, hit [0.18, 0.86] -> [0.24, 0.8] (opens 0.31 s,
+  was 0.22: a real wind-up; closes 1.04 s, was 1.03), "retime" gives the recovery 0.29 s, "swoosh" [0.66, 0.82] draws
+  the sickle's trail on the reap, "sharp" 50, "lead" hips/torso. Trace: hand ~21 m/s through the turns, 33 at the reap,
+  recovery peak 14 (was 28, a whip back faster than the strike).
+- **The chain** (`weight_at`, `_give`, `chain`): whirl paths are now ["whirl", u_out, u_full, u_reel, u_in, radius,
+  height, twirls]: let out of the left hand, twirled overhead, paid out to full length trailing the pivot's actual turn
+  (TRAIL 0.45 rad) on a disc tilted low in front (TILT), reeled back into the hand; it reads the action's retimed u
+  (`_sample_u`). A jump in the weight's path (an action begun or cut short) springs out instead of popping (GIVE_K/C,
+  a little under-damped). Out on the line the chain runs pommel -> left hand (slack) -> weight, bowed back against the
+  weight's swing. Per frame per sickle body: the same one ImmediateMesh rebuild (19 points, was 15), a few vector ops.
+- **Tests:** t/weapons/sickle_heavy (new: the hit window in ticks, lands, full length, no reach pop, ends facing ahead);
+  sickle_combo, sickle_moves, plus_sickle pass. Renders: tools/dev/out/review/scythe_heavy_{before,after}_*.png.
+  Expected at prepush: techtest/abilityshot moves that pose "sk_heavy" (Harvest of Souls, Soul Chain) look different.
+
+## 2026-11-04: the helm camera and the stance's zoom (1.30)
+- **Under the sea at the helm:** the ShipCamera's arm was pitched +20° (ship.tscn, and helm exit reset it to that), and on
+  these rigs a positive pitch tips the arm *under* its pivot: 21 m x sin 20° = 7 m below a pivot 4.5 m up. Now
+  Ship.CAM_PITCH = -0.3 (up behind, looking down), the pitch is clamped to CAM_PITCH_MAX 0.15, and Ship._place_cam lifts
+  the pivot so the camera stays 0.8 m over Ocean.surface_at (the arm only collides with the world, not the water).
+- **No cut taking the wheel:** HelmState.enter calls Ship.begin_cam_handover(rig): the helm camera starts at the rig's
+  pivot (kept as an offset from the ship's pivot so a moving ship doesn't outrun it), yaw, pitch, hit length and FOV,
+  and eases to the ship's view over 0.9 s. cam_yaw is no longer zeroed on entering (that was the snap to the stern).
+  Leaving: CameraRig.take_view(ship camera's position) points the rig's arm at it and eases back to the captain's
+  distance (the arm's follow slows from 11 to 2 for 0.8 s).
+- **Scroll at the helm:** Ship.zoom_cam (35%..150% of layout.cam_arm, 10% a notch), from HelmState.handle_input.
+- **Stance zoom:** the stance used min(current_zoom, 3.8), so scrolling with a weapon out moved a distance you couldn't
+  see and it jumped when you sheathed. CameraRig.combat_zoom is the stance's own distance (2..8, half-steps), the
+  wheel moves whichever is showing.
+- Test: t/ship/helm_camera.

@@ -159,7 +159,7 @@ scripts/ui/duel_hud.gd                  t/coop
 
 # --- player ---
 scenes/player/*                         t/player t/combat t/items swimtest
-scenes/player/camera_rig.gd             t/player t/combat
+scenes/player/camera_rig.gd             t/player t/combat t/ship/helm_camera
 scripts/player_states/*                 t/player t/combat
 scripts/player_states/player_state.gd   t/player t/items balancetest airtest
 scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
@@ -598,7 +598,7 @@ assets/clips/*                          t/downtime
 art/clips/*                             t/downtime
 tools/blender/*                         t/downtime
 scripts/ship/lashed_helm.gd             t/downtime t/ship
-scripts/player_states/helm_state.gd     t/downtime
+scripts/player_states/helm_state.gd     t/downtime t/ship/helm_camera t/input/ship_look
 # --- the royal capital (2026-10-20) ---
 tools/dev/t/capital/*                   t/capital
 scripts/island/capital_*                t/capital
@@ -811,6 +811,7 @@ scripts/npc/staff_moves.gd              t/weapons/staff_tree t/weapons/staff_mov
 tools/texture_gen/gen_staff_icons.py    t/weapons/staff_tree
 scripts/npc/sickle_moves.gd             t/weapons/sickle_combo
 scripts/npc/sickle_moves.gd             t/weapons/sickle_tree t/weapons/sickle_moves t/weapons/plus_sickle
+scripts/npc/sickle_moves.gd             t/weapons/sickle_heavy
 tools/texture_gen/gen_sickle_icons.py   t/weapons/sickle_tree
 scripts/island/themes/atoll_reef.gd     t/island/atoll_reef
 scripts/island/themes/atoll_seabed.gd   t/island/atoll_seabed
