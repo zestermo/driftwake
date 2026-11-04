@@ -25,6 +25,11 @@ static func meshes(theme: String) -> Dictionary:
 				for m in (e if e is Array else [e]):
 					if m is ArrayMesh and not (m as ArrayMesh).has_meta("trunk"):
 						(m as ArrayMesh).set_meta("trunk", trunk(m))
+						(m as ArrayMesh).set_meta("log", lying(m) if key == "broadleaf" else [])
+						if key in ["giant", "fig", "kapok", "emergent"]:
+							(m as ArrayMesh).set_meta("hull", hull_points(m))
+		for e in _meshes[theme].get("rock", []):
+			(e as ArrayMesh).set_meta("hull", hull_points(e))
 	return _meshes[theme]
 
 
@@ -109,6 +114,45 @@ static func trunk(mesh: ArrayMesh) -> Array:
 		else:
 			out.append([c, y0, y1, r])
 	return out
+
+
+## (1.30) A big tree's or a rock's own convex shape: its wood's (or stone's) vertices up to TRUNK_TOP, each once. A giant's
+## buttresses and a rock's long side stood out of the one upright cylinder or sphere they had.
+static func hull_points(mesh: ArrayMesh) -> PackedVector3Array:
+	var seen := {}
+	var out := PackedVector3Array()
+	for si in range(mesh.get_surface_count()):
+		var mat := mesh.surface_get_material(si) as ShaderMaterial
+		if mat == null or mat.shader != PSXMat.LIT_SHADER or (mat.has_meta("psx") and foliage(str(mat.get_meta("psx")[0]))):
+			continue
+		# (a quarter-metre grid: enough to keep the shape, few enough points to build it quick)
+		for v in wood_points(mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]):
+			var k := Vector3i((v * 4.0).round())
+			if v.y < TRUNK_TOP and not seen.has(k):
+				seen[k] = true
+				out.append(v)
+	return out
+
+
+## (1.30) A fallen log's capsule: its wood's box lies long and low (twice as long as it's tall) -> [end, end, radius] in
+## the mesh's space along its long axis, or [] for anything else (Zach: logs are solid; the step-up takes captains over).
+static func lying(mesh: ArrayMesh) -> Array:
+	var box := AABB()
+	var any := false
+	for si in range(mesh.get_surface_count()):
+		var mat := mesh.surface_get_material(si) as ShaderMaterial
+		if mat == null or mat.shader != PSXMat.LIT_SHADER or (mat.has_meta("psx") and foliage(str(mat.get_meta("psx")[0]))):
+			continue
+		for v in (mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
+			box = box.expand(v) if any else AABB(v, Vector3.ZERO)
+			any = true
+	# (long one way only: a ring of toadstools is wide both ways)
+	if not any or maxf(box.size.x, box.size.z) < box.size.y * 2.0 or minf(box.size.x, box.size.z) > box.size.y * 1.6 or box.size.y < 0.35 or box.size.y > 1.5:
+		return []
+	var r := box.size.y * 0.5
+	var c := box.get_center()
+	var along := Vector3(box.size.x * 0.5 - r, 0, 0) if box.size.x >= box.size.z else Vector3(0, 0, box.size.z * 0.5 - r)
+	return [c - along, c + along, r]
 
 
 ## Whether a profile stands up (a trunk, a cactus, a stump): a fallen log's would be a squat disc over the air beside it.

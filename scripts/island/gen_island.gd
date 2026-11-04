@@ -1147,6 +1147,12 @@ func _scatter_vegetation() -> void:
 				# (1.30) what stands up out of the undergrowth solid (the desert's tall cacti, a fog stump): leaves stay passable
 				if kind == "broadleaf" and IslandTheme.upright(um.get_meta("trunk", [])):
 					_trunk_shapes(um, uxf, s)
+				elif kind == "broadleaf" and not (um.get_meta("log", []) as Array).is_empty():
+					var lg: Array = um.get_meta("log")
+					var a: Vector3 = uxf * (lg[0] as Vector3)
+					var e: Vector3 = uxf * (lg[1] as Vector3)
+					# (a capsule along the log: [radius, height, centre, its axis])
+					_shapes.append([float(lg[2]) * s, a.distance_to(e) + float(lg[2]) * s * 2.0, (a + e) * 0.5, (e - a).normalized()])
 			# under thick cover a second layer of ground cover between the rest
 			var floor_k := 1.0 if pd >= 2.0 else (0.0 if road else float(_def["overgrown"]))
 			var q := p + Vector2(1.25, 1.25)
@@ -1235,6 +1241,18 @@ func _vegetation_collider_steps() -> Array:
 
 func _tree_shape(s: Array) -> CollisionShape3D:
 	var cs := CollisionShape3D.new()
+	if s.size() == 1:
+		var hull := ConvexPolygonShape3D.new()
+		hull.points = s[0]
+		cs.shape = hull
+		return cs
+	if s.size() > 3:
+		var cap := CapsuleShape3D.new()
+		cap.radius = s[0]
+		cap.height = s[1]
+		cs.shape = cap
+		cs.transform = Transform3D(Basis(Quaternion(Vector3.UP, s[3])), s[2])
+		return cs
 	if float(s[1]) > 0.0:
 		var cyl := CylinderShape3D.new()
 		cyl.radius = s[0]
@@ -1301,7 +1319,10 @@ func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: floa
 	_crowns.append(xf * GrapplePoints.crown_of(pick[0]))
 	# a tree that gives its trunk radius (the fog isle's giants: [body, detail, lean, r]) gets a trunk that thick
 	var tr: float = float(pick[3]) if pick.size() > 3 else 1.1
-	if not _trunk_shapes(pick[0], xf, s):
+	var hp: PackedVector3Array = (pick[0] as Mesh).get_meta("hull", PackedVector3Array())
+	if not hp.is_empty():
+		_shapes.append([xf * hp])
+	elif not _trunk_shapes(pick[0], xf, s):
 		_shapes.append([tr * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
 	reserve(p, maxf(3.5, tr * s + 1.5))
 	return {"xf": xf, "body": pick[0]}
@@ -1310,8 +1331,14 @@ func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: floa
 func _add_rock(buckets: Dictionary, meshes: Array, p: Vector2, s: float) -> void:
 	var h := _ground_min(p, s * 0.8)
 	var b := Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3(s, s * _rng.randf_range(0.8, 1.2), s))
-	_bucket(buckets, meshes[_rng.randi() % meshes.size()], "rock", Transform3D(b, Vector3(p.x, h - 0.1 * s, p.y)))
-	if s > 0.7:
+	var rm: Mesh = meshes[_rng.randi() % meshes.size()]
+	var rxf := Transform3D(b, Vector3(p.x, h - 0.1 * s, p.y))
+	_bucket(buckets, rm, "rock", rxf)
+	# (1.30) the rock's own shape (a sphere missed a long one's ends), down to a knee-high one
+	var hp: PackedVector3Array = rm.get_meta("hull", PackedVector3Array())
+	if s > 0.45 and not hp.is_empty():
+		_shapes.append([rxf * hp])
+	elif s > 0.7:
 		_shapes.append([s * 0.85, 0.0, Vector3(p.x, h + s * 0.1, p.y)])
 	reserve(p, s)
 

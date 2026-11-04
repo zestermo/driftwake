@@ -2,7 +2,7 @@ extends SceneTree
 ## (1.30) The collision audit: builds islands (every theme on two seeds, Brinehollow, the capital, the canal city, the
 ## stronghold) and lists every solid-looking surface a captain could touch with no collider on it. Every lit, opaque
 ## surface of a mesh or MultiMesh instance bigger than MIN_SIZE on two axes is sampled every ~SPACING m; a sample in
-## reach (0.3-4 m over the floor below it, or an up-facing roof to 12 m) with no collider within PROBE m (the terrain
+## reach (0.3-4 m over the floor below it, or an up-facing roof to 12 m; not a tree's limbs up there) with no collider within PROBE m (the terrain
 ## left out) is open. Open samples of one instance that join into a patch MIN_SIZE across on two axes are a hole.
 ## Holes are grouped by kind: the builder that made the mesh (MeshBuilder.trace's "made_by": file.function < caller),
 ## else the node path without numbers. Passable things (foliage cards, water, decals, cloth, flags, rope) are skipped
@@ -30,6 +30,8 @@ const ALLOW := {
 	"Ocean": "water", "Water": "water", "Pool": "water", "Foam": "water", "Wake": "water", "Cloud": "sky", "Sky": "sky",
 	"Paving": "lies on the ground", "Path": "lies on the ground", "Decal": "decal", "Cobwebs": "cloth",
 }
+## Builders whose meshes are meant to be passable, and why.
+const ALLOW_KINDS := {"bamboo_clump": "a thicket pushed through, the undergrowth slows you (Zach, 1.30)"}
 ## Textures that are never solid (foliage the cutout shader doesn't already cover, water, cloth).
 const PASS_TEX := ["leaves", "pine_snow", "fir_needles", "palm_frond", "fern", "bush", "grass_tuft", "thornbrush", "moss", "water", "fabric"]
 ## Textures passable only on the plants (snow banked round a tree's foot; a snow-capped roof still counts).
@@ -218,7 +220,7 @@ func audit(root_isl: Node3D, label: String) -> Dictionary:
 	for g in geo:
 		var kind := _kind(g, root_isl)
 		var path := str(root_isl.get_path_to(g))
-		if _allowed(path) != "":
+		if _allowed(path) != "" or ALLOW_KINDS.keys().any(func(a): return kind.contains(a)):
 			continue
 		var mesh: Mesh = g.mesh if g is MeshInstance3D else g.multimesh.mesh
 		var pts: Array = _sampled(g, mesh, kind.contains("_plants."))
@@ -253,7 +255,7 @@ func audit(root_isl: Node3D, label: String) -> Dictionary:
 				if floor_rel < 0.3:
 					continue
 				var roof := floor_rel > BAND
-				if roof and (wn.y < 0.5 or floor_rel > ROOF):
+				if roof and (wn.y < 0.5 or floor_rel > ROOF or g is MultiMeshInstance3D):
 					continue
 				open.append([wp, float(s[2]), roof])
 			for cl in _clusters(open):
