@@ -122,6 +122,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `t/player/unstuck_auto` (1.30): fallen under an island's ground with nothing underfoot, the captain is put back on the last safe ground after about a second, not at once.
 - `t/ship/unstuck_deck` (1.30): a captain who last stood on the ship's deck is put back on her deck where she lies now (the spot kept relative to the hull).
 - `t/ship/rival_ship_arrival` (1.30): a rival crew's ship (RivalArrival, RivalShip) sails in from out at sea, brakes and anchors broadside off the dock; the meeting waits until she's anchored and the crew has rowed ashore, then starts from the dock's side; after it she weighs and sails back out.
+- `rivalshipshot.gd` (1.30, render): a rival crew's ship arriving on the light stage's sea: from the shore at the horizon, sailing in, anchored with the crew's banner on the HUD, close, and the crew ashore.
 - `t/ship/rival_ship_nogo` (1.30): no crew planned at the capital, the canal city or the stronghold, and a rival ship on her way in turns back (no meeting) when the captains sail on to one.
 - `t/stronghold/dressing` (1.30 round 7, the art pass): StrongholdDress's props built as MultiMeshes (guns, cargo, lamps, flags, boards), none on a run anchor; the warships moored round the harbour have solid hulls; the cell block's upper catwalks hold a captain.
 - `t/stronghold/solid_ground` (1.30): rays down every 1.5 m over every district's cobbles to their edges and along and across the stair, ramps and bridge hit something solid at the designed ground.

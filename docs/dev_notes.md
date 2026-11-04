@@ -10238,3 +10238,33 @@ bells, posts, patrols, doors, arenas) where it was.
 - **Cell block** (StrongholdActs._cells): the Admiralty palette (white stone walls, navy roof and lintels, a gold line on the roof).
 - **Boss bar level badge** (PlayerHUD.show_boss gets the boss as a 4th arg): the same badge as EnemyBars (Levels.badge by gap). Passed by beast_arena, brood_cave, dungeon, leviathan, sea_king; Redtide's call (redtide_fort.gd) and the duel's still show none. t/ui/boss_badge.
 - **Level-0 foes** (Levels.foe_level): the level of the island they stand under (REF with none), no longer their _lv_ref (the apes' 6 gave a red badge to a level-3 captain on Brinehollow). _lv_ref still only scales their numbers.
+## 2026-11-04: 1.30 rival crews arrive in a ship you can see (docs/v1_30_plan.md, "Rival crews")
+The playtest's meetings happened on land unnoticed and the warning promised a ship that never came.
+- **The ship** (`scripts/ai/rival_ship.gd`, RivalShip): the pirates' hull (HullBuilder.build, base layout) in the crew's
+  colours (sail from the palette, trim and flag the crew's flag colour, the jolly), with collision. No AI: her place is a
+  function of `Ocean.clock()` from the leg's start (cruise 12 m/s, an even brake over the last 60 m, swinging broadside to
+  the shore over the last 30%), so one `Net.everyone("_all_rival_ship", [crew, from, anchor, heading, t0])` sails the
+  same ship on every screen with no snapshots; `_all_rival_ship_leave(t0)` sails her back out the lane, freed at its end.
+  Lane: anchored 36 m out past the dock's end and 18 m to the side away from the crew's mooring, from 300 m out, 0.3 rad
+  off straight (`RivalShip.lane`; `lane_m` is the tests' short lane). Swell like EnemyShip's (5 wave samples near the
+  camera, height only past 260 m); a wake and bow splashes while moving and near; anchor splash and rope sound.
+- **The arrival** (`scripts/ai/rival_arrival.gd`, RivalArrival, host): RivalWatch's crew trigger (ashore 20 s, 45 m
+  inland, quiet) now starts it instead of the old 35 s warning: the "A sail on the horizon" banner as she appears; once
+  anchored and a captain's ashore, the announcement (below); ROW_S 4 s later RivalEncounter.start from the dock as before
+  (walk in, meeting, duels). The visit ending (`ended`) sails her off; RivalWatch.decide (the crew sailed on) cancels a
+  ship still coming. The plan's "met" bookkeeping moved to the meeting's start (`met` signal).
+- **The announcement** (`Net._all_rival_arrive`): `RivalBanner` (`scripts/ui/rival_banner.gd`, a slate card slammed in on
+  the HUD: their flag drawn, the crew's name, captain and epithet, the call-out; 4.5 s), `Music.rival()` (the new
+  `music_rival` sting, ducking the music like victory), and `Journal.announce("rival", ...)` pinned in the log. The
+  call-out is a per-crew `"callout"` line in RivalCrews with `{name}` = the captain they came for; their captain says it
+  again (speech) when they turn up on the pier.
+- **Sting:** `track_rival` in gen_psx_music.py (`py tools/texture_gen/gen_psx_music.py rival`): 6.0 s, D phrygian brass
+  call over low strings, timpani roll into the last note; -16.9 LU, peak -2.9 dBFS.
+- **Never** in the capital, the canal city or the stronghold: RivalWatch.decide plans no crew there (unchanged check).
+- Debug: Ctrl+Alt+F5 on a chain island brings the next crew's ship in (RivalWatch.bring); off one, the old direct meeting.
+- Per tick: one RivalShip at most, 5 wave samples a tick near (1 far), asleep past 700 m (ActorSleep, by her clock's
+  position); RivalArrival a check every 0.25 s.
+- Tests: t/ship/rival_ship_arrival (spawned out at sea, sails in, anchors broadside, banner/flag/call-out by name/sting/log,
+  the meeting only after, she sails off), t/ship/rival_ship_nogo (no crew at the three, a coming ship turns back).
+  Render: rivalshipshot (light stage: horizon, sailing in, anchored with the banner, close, ashore).
+- Not done: a guest joining mid-arrival doesn't get the ship (world sync); meeting them at sea / boarding is after 1.30.

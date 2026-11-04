@@ -63,6 +63,16 @@ func _process(_d: float) -> bool:
 			var fwd: Vector3 = -ship.global_basis.z
 			check("...lying broadside to the shore (bow %.2f along the sea)" % absf(fwd.x), absf(fwd.x) < 0.2)
 			check("...and the crew's rowing ashore: the meeting waits (%s)" % a.phase, a.phase == "row" and get_first_node_in_group("rival_encounter") == null)
+			var b = get_first_node_in_group("rival_banner")
+			check("their named banner is up: crew, flag, captain", b != null and b.find_child("Name", true, false).text == "THE GILDED GULLS"
+				and b.find_child("Flag", true, false).colour == load("res://scripts/ai/rival_crews.gd").CREWS["gilded_gulls"]["flag"]
+				and "Marisol Vane" in b.find_child("Captain", true, false).text)
+			var me: String = p.display_name()
+			check("...their captain calls you out by name (%s)" % a.callout, me != "" and me in a.callout and b != null and me in b.find_child("Callout", true, false).text)
+			var mus = root.get_node("Music")
+			check("...a music sting with it", mus._sting.stream != null and mus._sting.stream.resource_path == mus.RIVAL)
+			var news: Array =root.get_node("Journal").news.filter(func(n): return n["kind"] == "rival")
+			check("...and the log has their arrival (%s)" % (news[-1]["title"] if not news.is_empty() else ""), not news.is_empty() and "Gilded Gulls" in str(news[-1]["title"]))
 			until = TK.wait_secs(RA.ROW_S + 1.0)
 		4:
 			var e = get_first_node_in_group("rival_encounter")

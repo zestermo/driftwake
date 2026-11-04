@@ -1146,6 +1146,12 @@ func _all_rival_ship_leave(t0: float) -> void:
 	RivalShip.leave_all(get_tree(), t0)
 
 
+## (1.30) Their ship's anchored: the crew's named banner, their captain's call-out and their brass call on every screen.
+func _all_rival_arrive(crew: String, callout: String) -> void:
+	RivalBanner.show_on(get_tree(), crew, callout)
+	Music.rival()
+
+
 
 # --------------------------------------------------------------------------
 # The crew (1.22): its name and everyone who's sailed in this world, the host's; the host decides, everyone applies

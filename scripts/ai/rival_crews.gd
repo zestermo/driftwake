@@ -38,6 +38,7 @@ const CREWS := {
 			"gloat": ["Thank you, thank you. The gold is my fee for the lesson.",
 				"Don't sulk. You were nearly interesting."],
 			"bounty": ["{b} gold on your head? Darling, my hat cost more.", "I saw your poster. They didn't get your good side."],
+			"callout": ["{name}! Yes, you. I sailed all this way to watch you lose.", "{name}! Come down to the pier, darling. Your audience is waiting."],
 		},
 	},
 	"brine_wolves": {
@@ -67,6 +68,7 @@ const CREWS := {
 			"gloat": ["The sea takes a toll. Today the toll is your purse.",
 				"Rest there. You'll feel it tomorrow."],
 			"bounty": ["{b} on your head. Somebody's scared of you. I'm not.", "Your poster's on every board. Let's see if you're worth the paper."],
+			"callout": ["{name}! Come down to the water. Let's weigh you.", "{name}! The Wolves are on your beach. Come and meet them."],
 		},
 	},
 	"lantern_saints": {
@@ -95,6 +97,7 @@ const CREWS := {
 				"Enough. Your light holds. For now."],
 			"gloat": ["A toll for the lesson. Light costs oil.", "Rest. The dark will wait for you."],
 			"bounty": ["The Admiralty values you at {b}. I wonder what you value yourself at.", "Your name travels faster than your ship now."],
+			"callout": ["{name}. We followed your light here. Come and be measured.", "{name}. The Saints have come for you. Bring your blade."],
 		},
 	},
 	"mudlark_brigade": {
@@ -122,6 +125,7 @@ const CREWS := {
 				"We'll be back! Bigger! Taller, probably!"],
 			"gloat": ["We did it! We actually did it! Grab the gold!", "Mudlarks one, big captain nothing!"],
 			"bounty": ["{b} gold! You're famous! Can I have your autograph? After we beat you!", "I've got your poster on my wall! Is that weird? That's weird."],
+			"callout": ["Oi! {name}! It's us! Get out here and fight us proper!", "{name}! The Mudlark Brigade's here! You'd better be ready!"],
 		},
 	},
 }

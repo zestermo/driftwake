@@ -193,6 +193,7 @@ In-game loudness = file LU + typical call volume. Before -> now.
 | thunder, thunder_far | gen | Weather lightning (2D, delayed by distance) | 97% sub-200 | close strikes could use more crack | unchanged |
 | discover_chime | gen | HUD discoveries (UI) | ok | | unchanged |
 | music_victory | music gen | boss beaten | ok | | unchanged |
+| music_rival | music gen | a rival crew's ship anchors (Music.rival, every screen) | ok | | new 1.30 |
 
 ## Weapon impacts (v1.13)
 
@@ -271,6 +272,7 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | music_combat | 54.9 s (32 bars, 140 bpm, E minor) | | -18.3 | unchanged |
 | music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | | -18.2 | unchanged; 10% at 2-5k (hats, brass): brightest track, fine |
 | music_victory | 5.4 s sting | | -13.9 | unchanged |
+| music_rival | 6.0 s sting (2 bars, 96 bpm, D phrygian brass call, low strings, timpani roll) | | -16.9 | new 1.30 (peak -2.9) |
 
 All loops seamless (circular render; seams 0.4-3x a typical sample step on the decoded
 .ogg, no clicks). Highs capped by the 8 kHz master low-pass and the 22.05 kHz rate.

@@ -19,6 +19,8 @@ var phase := "sail"
 ## The captain they come for (a Callable -> Player or null: on foot, ashore, not in a fight), asked each check.
 var pick: Callable
 var encounter: RivalEncounter
+## What their captain called out on anchoring.
+var callout := ""
 var _t := 0.0
 var _row := 0.0
 
@@ -69,7 +71,11 @@ func _physics_process(delta: float) -> void:
 			var s := RivalShip.of(get_tree())
 			if s == null:
 				_sail_off()
-			elif s.anchored():
+			elif s.anchored() and not Cutscene.active:
+				var p = pick.call()
+				if p == null:
+					return
+				_announce(p)
 				phase = "row"
 				_row = 0.0
 		"row":
@@ -85,7 +91,21 @@ func _physics_process(delta: float) -> void:
 			phase = "meet"
 			encounter = e
 			e.ended.connect(func(_r): _sail_off())
+			# (their captain, up on the pier, calls again: the one they came for, by name)
+			e._say(e.rivals[-1], RivalCrews.line(crew_id, "callout", e.rng).replace("{name}", (p as Player).display_name()))
 			met.emit(e)
+
+
+## Their ship's anchored: the named banner, the music's call and their captain calling `p` out by name, everywhere; the
+## crew's arrival in the log.
+func _announce(p: Player) -> void:
+	var c: Dictionary = RivalCrews.crew(crew_id)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([crew_id, int(GameManager.chain_seed), int(GameManager.rivals.get(crew_id, {}).get("met", 0))])
+	callout = RivalCrews.line(crew_id, "callout", rng).replace("{name}", p.display_name())
+	Net.everyone("_all_rival_arrive", [crew_id, callout])
+	Journal.announce("rival", "%s dropped anchor" % str(c["name"]).capitalize(),
+		"Captain %s, %s, called %s out." % [c["captain"], c["title"], p.display_name()], true)
 
 
 func _sail_off() -> void:
