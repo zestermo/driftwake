@@ -720,6 +720,7 @@ scripts/island/island_life.gd           lifetest
 scripts/island/stronghold_plan.gd       t/stronghold
 scripts/island/stronghold_shell.gd      t/stronghold
 scripts/island/stronghold_island.gd     t/stronghold
+scripts/island/stronghold_dress.gd      t/stronghold
 scripts/island/stronghold_boss.gd       t/stronghold
 scripts/island/stronghold_scouring.gd   t/stronghold/scouring t/stronghold/scouring_sky t/stronghold/scouring_ring
 scripts/island/scouring_fx.gd           t/stronghold/scouring t/stronghold/scouring_sky t/stronghold/scouring_ring

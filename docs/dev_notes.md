@@ -10080,3 +10080,51 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
     rifle's muzzle), the state ints (no new states).
   - Cost: think-tick only (the evade check reads the captain's state and the projectiles group, as the elites' dash does).
   - Tests: t/combat/rifle_moves. Renders: enemyshot "kneel" and "bayonet" strips, posebench tools/dev/out/fo/rf_*.
+
+## 2026-11-03: the fortress art pass (1.30, docs/v1_30_plan.md round 7: Marineford / Enies Lobby)
+Zach's correction mid-pass: keep the layout, massing and silhouettes; the job is detail, models and life on the existing
+shapes, in the white-blue-gold palette. Nothing moved; every anchor (gates, winch, lever, ledges, perch, locks, hoists,
+bells, posts, patrols, doors, arenas) where it was.
+- **Palette** (`StrongholdShell._wall_m/_dark_m/_trim_m/_soot_m/_foot_m/_flag_m/_gold_m`): `admiralty_stone` (pale ashlar)
+  in four tints that fold to one surface (white walls, shaded structure, navy trim, soot), `admiralty_paving` slabs for
+  floors and steps, metal in iron and gold (one surface), `admiralty_banner` (navy, gold border, the white gull) for banners
+  and flags, `admiralty_wanted` posters. Textures: `tools/texture_gen/gen_admiralty_textures.py`.
+- **Architecture on the shapes** (shell): walls get a navy band with a gold line under the walk, a navy plinth, capped
+  merlons, and by position buttresses (outer), pilasters (inner; never over the strips behind the halls: the stealth ways)
+  and framed slits; tower crowns (`_cap`) corbels, navy cornice, capped piers and merlons, a flag on the tall ones; the
+  gatehouses rusticated jambs, a voussoir course, the gold-ringed gull crest (`_crest`, an extruded `gull()`) on both
+  faces, merlons, banners down the towers; the halls pilasters, shuttered framed windows, a door frame with the crest, a
+  crenellated parapet and capped stacks; the Verdict navy-gold cornices, pale pilasters for its iron ribs, crests on its
+  base and second stage, merlons and flags on its crowns, the ring's rim in gold; the prison drum navy bands.
+- **Dressing** (`scripts/island/stronghold_dress.gd`, StrongholdDress.build in StrongholdIsland.prepare after the shell):
+  one merged piece per area (DressLanding, DressFoundry, DressPrison, DressKeep, DressHalls, DressBatteries, DressWard,
+  DressGalleries) plus the repeated props as data (`_put`), turned into one MultiMesh per district and kind in the finish
+  step "props" (no shadows, 170 m; flags 600 m). `clear_at(q, pad)` keeps everything off the run's anchors (garrison
+  posts and patrol lines, sources, bells, musters, the acts' winch/lever/rack/supply/hoists/locks/ledges, checkpoints,
+  Marrow's arena, the berth, the vault's spot, the perch and its stair, the stealth test's sneak, the rooms' door aprons).
+  - Landing: bollards and rope coils at the edge, lamp posts, flags and wanted boards at the stair's foot, cargo by the
+    cranes, carts, fenders and gangplanks on the docks, the harbourmaster's lean-to, a marines' tent.
+  - Foundry: soot streaks up the Casting Hall and round its door, glowing vents, slag heaps with glowing cracks, coal and
+    ore piles with barrows, a tramway and ore cart, a cooling crucible, chains and hooks from the gantry, a quench trough,
+    anvils, moulds; inside along the walls (clear of the channels and pours) moulds, tool racks, ingot stacks, a bench.
+  - Prison: two more tiers of barred cells on the yard's cell block (bunks, straw, buckets), each with a catwalk on
+    brackets (tier 2's meets Marrow's catwalk at 19.6), a stair between them; the drum's iron gate where its garrison
+    comes out, shackles on the north wall, a searchlight post.
+  - Keep: the Command Hall's navy runner, pillar plinths and capitals, chandeliers, flags behind the dais, shelves and
+    clerks' desks, the war table's map and markers; the plateau's flags and lamps; the roof terrace's corner braziers
+    and flagstaffs (pylon colliders).
+  - Halls: plates, mugs, pots, a kitchen range and counter with hanging pans in the Mess; blankets, pillows, footlockers,
+    coats, a card table, a musket rack and a board in the Barracks.
+  - Batteries: guns along the quay front (clear of the berth, docks and boat lanes), on the sea walls' tops and the keep's
+    front wall; shot stacks, powder kegs, sandbags.
+  - Ward: porticoes along both halls' fronts (columns with colliders, a navy tiled lean-to), lamps and flags round the
+    plaza, a drill corner (dummies, rack, board), laundry over the strips behind the halls.
+  - Galleries (new ways): timber galleries on brackets 1.4 m under the walk along the inside of the Arsenal's and the
+    Prison's outer walls (a captain grappled onto the wall steps down onto one), railed, each with a stair to the yard.
+- **Warships moored** (`StrongholdIsland.MOORED`, finish step "warships"): one Admiralty warship hull built
+  (HullBuilder, the warship look), absorbed four times into one mesh outside the sea walls (clear of the boat lanes and the
+  channel), a box collider over each hull.
+- **Cost:** no per-frame or per-tick work (static meshes and MultiMeshes only, no new lights). See the report's numbers.
+- Tests: t/stronghold (all), new t/stronghold/dressing (props built and off the anchors, the warships solid, the cell
+  tiers' catwalks hold a captain). Renders: strongholdshot (new shots foundry_yard, cellblock, battery, warships,
+  hall_side).

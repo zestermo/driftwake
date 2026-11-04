@@ -859,7 +859,17 @@ static func _room(mb: MeshBuilder, cols: Array, rm: Array, top := -1.0) -> void:
 		return
 	mb.add_box(_trim_m(), M.xf(M.v3(c, roof + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8), 0.5)
 	mb.add_box(_gold_m(), M.xf(M.v3(c, roof + 0.02)), Vector3(r.size.x + 0.86, 0.14, r.size.y + 0.86), 1.0)
-	mb.add_box(_trim_m(), M.xf(M.v3(c, y + 0.4)), Vector3(r.size.x + 0.3, 0.8, r.size.y + 0.3), 0.5)
+	# a navy plinth course round the outside (four strips: the hall's floor inside stays clear)
+	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
+		var al := Vector2(-f.y, f.x)
+		var L := absf(al.x) * r.size.x + absf(al.y) * r.size.y
+		var e := c + Vector2(f.x * r.size.x * 0.5, f.y * r.size.y * 0.5)
+		if f.is_equal_approx(door):
+			for s: float in [-1.0, 1.0]:
+				var pl := L * 0.5 - dw * 0.5 - 0.6
+				mb.add_box(_trim_m(), M.xf(M.v3(e + f * 0.08 + al * s * (L * 0.5 - pl * 0.5), y + 0.4), M.yaw_of(al)), Vector3(0.16, 0.8, pl), 0.5)
+		else:
+			mb.add_box(_trim_m(), M.xf(M.v3(e + f * 0.08, y + 0.4), M.yaw_of(al)), Vector3(0.16, 0.8, L + 0.3), 0.5)
 	# (1.30 round 7) a crenellated parapet round the flat roof, the stacks dressed stone with navy caps, a skylight
 	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
 		var al := Vector2(-f.y, f.x)
