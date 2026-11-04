@@ -93,7 +93,7 @@
     - Each has an intro name card and a telegraphed leap attack.
   - Downed in a boss fight: a crewmate revives you. If you bleed out, you're back up at the arena's checkpoint after 8 s and go back in through a side door. Only a full wipe resets the boss.
   - Crew-split objectives: one captain winds the gate while the others hold off the boats, a sniper perch with long guns, and the vault's two locks pulled together. Each still has a solo window.
-- 🔨 **The fortress made fuller and more detailed:** side areas, wall walks, and a dressing and model pass. Posts now have braziers, racks and crates, and the prison yard has a cell block.
+- ✅ **The fortress dressed, Marineford style:** white stone with navy and gold trim, gull-crest banners and flags, battlements and carved tower tops, a cannon battery on the quay, warships moored round the harbour. Every district dressed for what it is (the foundry's slag, coal, tramway and crucible; the prison's barred tiers and catwalks; the Lower Ward's covered walkways, drill corner and laundry). The halls inside have vaulted ceilings, arches, tall windows, fireplaces and a lived-in clutter of food, racks, charts and bunks. New walkways along the Arsenal's and the Prison's outer walls for sneaking in.
 - ✅ **Gadget packs:** buy smoke, flash, powder charges and the grappling hook at Nessa's and the chandlers (U uses, O cycles). Smoke now hides you behind the cloud too and lasts longer; flash stuns longer and dazzles a captain looking at it; the new powder charge blows gates, crates and crowds.
 
 ## The world
