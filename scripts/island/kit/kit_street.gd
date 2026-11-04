@@ -285,7 +285,8 @@ static func ground_stairs(ctx: KitContext, mb: MeshBuilder, body: StaticBody3D, 
 static func merge_meshes(ctx: KitContext, roots: Array, node_name: String) -> MeshInstance3D:
 	var to_isl := ctx.isl.global_transform.affine_inverse()
 	var tools := {}
-	for r in roots:
+	# (the collision audit keeps each piece's own mesh, to say which builder made a hole)
+	for r in ([] if MeshBuilder.trace else roots):
 		for g in (r as Node).find_children("*", "MeshInstance3D", true, false):
 			var mi := g as MeshInstance3D
 			if mi.mesh == null or mi.material_override != null or not mi.visible:

@@ -823,8 +823,10 @@ static func tavern_hall() -> Node3D:
 	for x in [-uw * 0.375, -uw * 0.125, uw * 0.125, uw * 0.375]:
 		mb.add_box_unit_uv(window, _xf(Vector3(x, y2 + 1.35, ud * 0.5 + 0.04)), Vector3(0.8, 0.8, 0.06))
 		mb.add_box_unit_uv(window, _xf(Vector3(x, y2 + 1.35, -ud * 0.5 - 0.04)), Vector3(0.8, 0.8, 0.06))
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, y2 + h2 + 0.09, 0), PI * 0.5), ud, uw, 3.2, 0.6, 0.5, Color.WHITE, plaster)
-	_box_col(body, Vector3(uw, h2 + 3.3, ud), Vector3(0, y2 + (h2 + 3.3) * 0.5, 0))
+	mb.hull_since(rm, body, "RoofCol")
+	_box_col(body, Vector3(uw, h2 + 0.1, ud), Vector3(0, y2 + (h2 + 0.1) * 0.5, 0))
 	# roof trim: ridge tiles, barge boards, fascias
 	var ry := y2 + h2 + 0.09 + 3.2
 	var drop := 0.6 * 3.2 / (ud * 0.5)
@@ -1098,7 +1100,9 @@ static func smithy() -> Node3D:
 		mb.add_box(beam, _xf(Vector3(x, 1.4, d * 0.5 - 0.15)), Vector3(0.22, 2.6, 0.22), 0.6)
 		_box_col(body, Vector3(0.22, 2.6, 0.22), Vector3(x, 1.4, d * 0.5 - 0.15))
 	mb.add_box(beam, _xf(Vector3(0, 2.75, d * 0.5 - 0.15)), Vector3(w + 0.2, 0.2, 0.24), 0.6)
+	var rm := mb.mark()
 	add_shed_roof(mb, roof, planks, _xf(Vector3(0, 2.85, 0)), w, d, 1.0, 0.45)
+	mb.hull_since(rm, body, "RoofCol")
 	# the forge: a stone hearth, glowing coals, a hood and its chimney
 	var fp := Vector3(w * 0.5 - 1.3, 0.1, -d * 0.5 + 1.05)
 	mb.add_box(stone, _xf(fp + Vector3(0, 0.45, 0)), Vector3(1.8, 0.9, 1.3), 0.5)
@@ -1187,14 +1191,16 @@ static func chapel(found: float = 1.4) -> Node3D:
 	mb.add_box(dark, _xf(Vector3(0, (0.2 - found) * 0.5, 0)), Vector3(w + 0.5, found + 0.2, d + 0.5), 0.5, Color.WHITE, true, false)
 	tiled_box(mb, stone, Vector3(0, 0.2 + h * 0.5, 0), Vector3(w, h, d), 2.4, 0.5)
 	_box_col(body, Vector3(w + 0.5, h + 0.2 + found, d + 0.5), Vector3(0, (h + 0.2 - found) * 0.5, 0))
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, h + 0.29, 0)), w, d, 2.6, 0.5, 0.5, Color.WHITE, stone)
 	mb.add_box(PSXMat.lit("roof_tiles", Color(0.6, 0.65, 0.72), {"affine": 0.8}), _xf(Vector3(0, h + 0.29 + 2.62, 0)), Vector3(0.28, 0.18, d + 1.1), 0.8)
-	_box_col(body, Vector3(w, 2.6, d), Vector3(0, h + 1.5, 0))
+	mb.hull_since(rm, body, "RoofCol")
 	# buttresses and tall windows down both sides
 	for s in [-1.0, 1.0]:
 		for k in range(4):
 			var z := -d * 0.5 + 1.2 + k * 2.55
 			mb.add_box(dark, Transform3D(Basis(), Vector3(s * (w * 0.5 + 0.3), 1.4, z)), Vector3(0.6, 2.8, 0.55), 0.5)
+			_box_col(body, Vector3(0.6, 2.8, 0.55), Vector3(s * (w * 0.5 + 0.3), 1.4, z))
 			mb.add_box(dark, Transform3D(Basis(Vector3.BACK, -s * 0.5), Vector3(s * (w * 0.5 + 0.15), 3.0, z)), Vector3(0.4, 0.9, 0.5), 0.5)
 			if k < 3:
 				var wz := z + 1.27
@@ -1210,8 +1216,11 @@ static func chapel(found: float = 1.4) -> Node3D:
 	for x in [-tw * 0.5 + 0.2, tw * 0.5 - 0.2]:
 		for z in [tz - tw * 0.5 + 0.2, tz + tw * 0.5 - 0.2]:
 			mb.add_box(stone, _xf(Vector3(x, th + 1.25, z)), Vector3(0.4, 1.8, 0.4), 0.5)
+			_box_col(body, Vector3(0.4, 1.8, 0.4), Vector3(x, th + 1.25, z))
+	var tower_roof := mb.mark()
 	mb.add_box(dark, _xf(Vector3(0, th + 2.2, tz)), Vector3(tw + 0.3, 0.2, tw + 0.3), 0.5)
 	add_hip_roof(mb, roof, _xf(Vector3(0, th + 2.3, tz)), tw, tw, 2.2, 0.25)
+	mb.hull_since(tower_roof, body, "TowerRoof")
 	# the bell, its yoke, and the weathervane
 	mb.add_box(beam, _xf(Vector3(0, th + 2.0, tz)), Vector3(tw - 0.4, 0.14, 0.14), 1.0)
 	mb.add_cylinder(bronze, _xf(Vector3(0, th + 1.05, tz)), 0.45, 0.22, 0.75, 8, 1.0, Color.WHITE, true, true)
@@ -1301,8 +1310,29 @@ static func harbor_tower() -> Node3D:
 	for k in range(4):
 		var a := TAU * k / 4.0 + PI / 4.0
 		mb.add_box_unit_uv(window, Transform3D(Basis(Vector3.UP, a), Vector3(sin(a), 0, cos(a)) * ((r - 0.4) * cos(PI / n) + 0.03) + Vector3(0, gy + 1.3, 0)), Vector3(0.55, 0.9, 0.06))
+	var cap := mb.mark()
 	mb.add_cone(roof, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy + 2.6, 0)), r + 0.3, 4.2, n)
 	mb.add_cylinder(roof, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy + 2.45, 0)), r + 0.32, r + 0.32, 0.15, n, 0.6, Color(0.6, 0.6, 0.6), false, true)
+	mb.hull_since(cap, body, "Cap")
+	# (1.30) the gallery's floor, the lantern room and the rail round them, side by side of the octagon
+	var gc := CollisionShape3D.new()
+	var gs := CylinderShape3D.new()
+	gs.radius = r + 0.75
+	gs.height = 0.5
+	gc.shape = gs
+	gc.position = Vector3(0, gy - 0.12, 0)
+	body.add_child(gc)
+	var rc := CollisionShape3D.new()
+	var rs := CylinderShape3D.new()
+	rs.radius = r - 0.4
+	rs.height = 2.6
+	rc.shape = rs
+	rc.position = Vector3(0, gy + 1.3, 0)
+	body.add_child(rc)
+	for k in range(n):
+		var a := TAU * (k + 0.5) / n
+		var side := 2.0 * (r + 0.62) * sin(PI / n)
+		_box_col(body, Vector3(side, 1.0, 0.1), Vector3(sin(a), 0, cos(a)) * (r + 0.62) * cos(PI / n) + Vector3(0, gy + 0.6, 0), a)
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, gy + 6.6, 0)), 0.05, 0.04, 2.2, 5, 1.0)
 	var flag := PSXMat.lit("cloth_blue")
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, gy + 8.1, 0.06)), 1.2, 0.7, Rect2(0, 0, 0.5, 0.5))
