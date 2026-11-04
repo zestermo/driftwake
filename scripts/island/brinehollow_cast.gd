@@ -457,7 +457,7 @@ static func outskirts() -> Array:
 			"I pray for my son's ship every morning. It's a good ship. It doesn't need it. I do."]},
 		"plan": [[7.0, "mark:shrine:Worshipper"], [8.4, "mark:teahouse:Seat2"], [11.5, "mark:teahouse:Seat3"], [15.0, "mark:shrine:Worshipper"],
 			[16.2, "home:UpperHouse5"]]})
-	out.append({"cfg": {"name": "Miller Brann", "voice": 0.75, "look": KitLife.look_for("Miller Brann"), "barks": [
+	out.append({"cfg": {"name": "Miller Brann", "voice": 0.75, "look": KitLife.look_for("Miller Brann"), "dialogue": "brann", "barks": [
 			"Every loaf in Brinehollow started on my stones. Ida's hardtack too. I'm not proud of that one.",
 			"The wind off the south lands is the best on the island. Steady. Like me. Mostly.",
 			"Mind the sails when they're turning. I've lost two hats and a nephew. The nephew came back."]},

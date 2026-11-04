@@ -3,7 +3,17 @@
 	"voice": 0.88,
 	"start": "intro",
 	"return": "menu",
+	"story": { "read": "story_read" },
 	"nodes": {
+		"story_read": {
+			"text": [
+				"The sergeant's sent me a pupil? He must think highly of you. Or very poorly of me.",
+				"Here. Notes of an Old Angler: Hesk's late husband wrote it, next door. Read it and you'll fish as he did, for the rest of your days.",
+				"Open your bag ({key_bag}) and click the book. Or rest and take Read from the wheel ({key_wheel}). Then up the long stair to Master Isao, with my blessing."
+			],
+			"event": "gift:read",
+			"next": "end"
+		},
 		"intro": {
 			"text": [
 				"Ah. A reader? No. You have the look of someone who reads only what's carved on a cannon.",

@@ -10556,3 +10556,17 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   wall, yard a few each. Lights: the tower's spot and omni as before, the cottage's room omni.
 - **Tests:** t/island/brinehollow_lighthouse (new). Renders: islandshot (from the village, the road, the plateau, the
   gallery), roomshot (the cottage).
+
+## 2026-11-04: Brinehollow polish, piece 4 - the farmlands errand, tinkering and reading in the opening (1.30)
+- **Steps** (`scripts/game/story.gd` STEPS, now 25): `farm` after `smugglers` (the camp gives up a bag of Brann's flour
+  with a banner; Miller Brann, now with data/dialogue/brann.json, takes it back in the farmlands for FARM_GOLD 30 and
+  sends you to Vey); `tinker` and `read` after `vey_skills` (Vey's lines send you to the chapel close first, then up
+  the long stair). A step's `"then": [flag, place, goal]`: the NPC's talk fires `gift:<step>` (Story.gift, once: the
+  flag), then the objective and marker move on (Wick: the Smoke Pellet's Mk I parts and fee, the marker on his
+  Workbench via StarterIsland.ground_of("bench"), a banner with the keys; Aldous: "Notes of an Old Angler", no marker,
+  a banner saying open the bag). Story's half-second poll finishes them (`_check_done`): the smoke pellet built, the
+  book read. Old saves past these steps skip them; one on an earlier step meets them.
+- **UI** judged at 1920x1080 (`tools/dev/closestepshot.gd`): the objective panel, the banners and the dialogue box read.
+  The marker's label stays the step's "who" (chain_goal.gd, the quests agent's file, untouched).
+- **Tests:** t/story/close_steps (new); opening_steps (the 25 in order), shrine_reading (walks the new list) updated.
+  Expected at prepush: storytest (it walks the opening; the new steps need its walk), savetest if it counts steps.

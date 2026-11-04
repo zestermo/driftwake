@@ -3,7 +3,17 @@
 	"voice": 1.12,
 	"start": "intro",
 	"return": "menu",
+	"story": { "tinker": "story_tinker" },
 	"nodes": {
+		"story_tinker": {
+			"text": [
+				"Vey sent you? He thinks gadgets are cheating. He's right. That's what they're for.",
+				"Every captain knows the smoke pellet. Knowing it isn't having it. Here: two measures of black powder, a scrap of canvas, and the bench fee, on the house this once.",
+				"Now the bench, right there. {key_interact} at it, pick the Smoke Pellet, build it. It goes on your belt, {key_gadget} throws it. Go on. I'll pretend not to watch."
+			],
+			"event": "gift:tinker",
+			"next": "end"
+		},
 		"intro": {
 			"text": [
 				"Don't touch the brass one. Or the green jar. Or anything that's ticking.",

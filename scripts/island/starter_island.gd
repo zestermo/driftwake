@@ -999,6 +999,8 @@ func place_of(place: String) -> Vector3:
 
 ## The ground at a story place (place_of), world space.
 func ground_of(place: String) -> Vector3:
+	if place == "bench":
+		return (close_rooms["tinker"].find_child("Workbench", false, false) as Node3D).global_position
 	var p: Vector2 = harbour.quay_pt(BRAWL_S, BRAWL_IN) if place == "brawl" else \
 		{"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE, "rack": RACK, "spar": SPAR, "ruins": RUINS, "forest": GROVE}[place]
 	return to_global(Vector3(p.x, hv(p), p.y))
@@ -1109,8 +1111,8 @@ func _build_close() -> void:
 		kit.place(Props.crate(0.6 + 0.12 * k), kit.local_point(shop, Vector3(-1.4 - (k % 2) * 0.7, 0, 3.4 + (k / 2) * 0.7)), rng.randf() * TAU, 0.0)
 	kit.place(Props.barrel(), kit.local_point(shop, Vector3(3.0, 0, 3.4)), 0.0, 0.5)
 	KitStreet.merge_meshes(kit, parts, "CloseMeshes")
-	for k: String in ["interact", "gadget_fire", "gadget_cycle", "action_wheel"]:
-		Dialogue.register_token("key_" + {"gadget_fire": "gadget", "action_wheel": "wheel"}.get(k, k), func() -> String: return Glyphs.of(k))
+	for k: String in ["interact", "gadget_fire", "gadget_cycle", "action_wheel", "inventory"]:
+		Dialogue.register_token("key_" + {"gadget_fire": "gadget", "action_wheel": "wheel", "inventory": "bag"}.get(k, k), func() -> String: return Glyphs.of(k))
 
 
 ## A loose mesh as a solid the kit can place (a box `size` round it, on the ground).
