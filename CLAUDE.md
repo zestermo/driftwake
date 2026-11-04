@@ -273,6 +273,9 @@ GameMenu, Net, Music, Weather, DevCapture.
   at the window's resolution, so the pixel fonts stay hard-edged but fine. The 3D's pixel grid is
   the PSX preset's (640x360 by default), laid on by the post pass. Size UI for 800x450
   (Pixelify 12, Silkscreen 8).
+  **The smallest supported display is 1080p** (Zach, 2026-11-04): render and judge every UI screen in a 1920x1080
+  window (uishots / invshot_real / hudshot / skillmapshot take `1920x1080`; atomic UI tests set `root.size` to it), not a
+  smaller one. What reads at 1080p is the bar; no layout is cramped or tiny for a smaller window's sake.
 - Humanoid joint conventions: arm/leg x+ = forward/up, shin x- = knee bend, `*_l` z- = out
   left, `*_r` z+ = out right, pivot x- = lean forward. The animator sets only rotations
   each frame, so anything that writes joint *global* transforms (ragdolls, IK) must restore

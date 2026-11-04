@@ -137,7 +137,7 @@ Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Dri
    piece, the rival ship arrival, the Redtide mountain; the brig, galleon and creatures after their own grill.
 
 ## Queue (2026-11-04; Zach: at most 3 at a time counting the lead, so 2 agents)
-Done: the brig and galleon, the island quests and board, the fog and forest creatures. Running (2026-11-04): the collision audit, Brinehollow polish. Zach raised the 1.30 usage stop to ~60% so the whole queue and the prepush fit. Next: the chain scythe, then the vendor icons + crowd voices fixer, then prepush.
+Done: the brig and galleon, the island quests and board, the fog and forest creatures. Running (2026-11-04): the collision audit, Brinehollow polish. Zach raised the 1.30 usage stop to ~60% so the whole queue and the prepush fit. Next: the chain scythe, then transmog, with the vendor icons + crowd voices fixer beside it, then prepush.
 Queued, in order, each briefed already (resume the stopped agent with its context, or re-brief):
 1. (after the creatures resume) **Collision audit**: a tool that lists visible meshes with no collider per island, fixes by category at the source
    (props, kit, themes, ruins, trees, roofs, walls), and the snow islands' frozen rivers and lakes. Zach: "one of the
@@ -148,3 +148,8 @@ Queued, in order, each briefed already (resume the stopped agent with its contex
    stretch, no snaps.
 4. **Vendor icons + crowd voices** (fixer): every vendor an icon; the market murmur without layered voices; a cap on
    voice barks at once; a softer voice timbre.
+5. **Transmog** (Zach, 2026-11-04): each clothing slot gets a MOG tick box (like SHOW / DRAPE); ticking it opens a
+   cosmetic slot beside it. A piece put there is worn for looks, the real slot keeps the stats. Assumed: the mog piece
+   leaves the bag while it sits there (no copies), any owned piece of that slot fits, saved with the gear, seen by
+   co-op guests through the look sync. Renders at 1920x1080. After the scythe (inventory_screen, equipment_component,
+   character_look; the icons fixer stays out of those).
