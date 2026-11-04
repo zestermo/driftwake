@@ -2333,6 +2333,29 @@ def track_victory():
     return s, dict(verb_t60=1.8, target_rms=0.16, tail_sec=5.4)
 
 
+def track_rival():
+    # (1.30) A rival crew's ship has anchored: a short, ominous brass call in D phrygian (the flat second), not looped.
+    s = Song("music_rival", 60 / 96 / 4, 16, 2, "4/4, 96 bpm, D phrygian rival crew's call", loop=False)
+    s.bus("brass", 0.55, verb=0.35)
+    s.bus("brass2", 0.4, verb=0.35)
+    s.bus("pad", 0.32, verb=0.4)
+    s.bus("timp", 0.65, verb=0.3)
+    s.bus("crash", 0.16, verb=0.35)
+    mel = "D4/3 D4/1 A4/4 Bb4/2 A4/6 | G4/2 F4/2 Eb4/4 D4/8"
+    s.line("brass", "brass", mel, 0, vel=0.95, gate=0.9)
+    s.line("brass2", "brass", mel, 0, vel=0.7, gate=0.9, transpose=-12)
+    for b, tk, dur, sym in ((0, 0, 16, "Dm"), (1, 0, 8, "Eb"), (1, 8, 12, "Dm")):
+        for m in voice(chord_pcs(sym)[1], 45):
+            s.note("pad", "lowstr", m, b * 16 + tk, dur, 0.6, 0.95)
+    for tk, m, v in ((0, "D2", 1.0), (8, "A1", 0.75), (16, "D2", 0.85)):
+        s.note("timp", "timpani", nn(m), tk, 4, v, 1.0)
+    for i in range(6):  # roll into the last note
+        s.note("timp", "timpani", nn("A1"), 18 + i, 1, 0.35 + i * 0.09, 0.9)
+    s.note("timp", "timpani", nn("D2"), 24, 8, 1.0, 1.0)
+    s.note("crash", "crash", 0, 24, 8, 0.8, 1.0)
+    return s, dict(verb_t60=2.0, target_rms=0.15, tail_sec=6.0)
+
+
 TRACKS = {"title": track_title, "sea": track_sea, "sea_night": lambda: track_sea(True),
           "island": track_island, "island_night": lambda: track_island(True),
           "village": track_village, "village_night": lambda: track_village(True),
@@ -2341,7 +2364,7 @@ TRACKS = {"title": track_title, "sea": track_sea, "sea_night": lambda: track_sea
           "snow": track_snow, "snow_night": lambda: track_snow(True),
           "snow_town": track_snow_town, "snow_town_night": lambda: track_snow_town(True),
           "forest": track_forest, "forest_night": lambda: track_forest(True),
-          "combat": track_combat, "boss": track_boss, "victory": track_victory}
+          "combat": track_combat, "boss": track_boss, "victory": track_victory, "rival": track_rival}
 
 
 # --------------------------------------------------------------------------

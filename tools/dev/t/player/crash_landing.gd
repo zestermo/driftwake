@@ -65,7 +65,7 @@ func _process(_d: float) -> bool:
 		4:
 			var lost: float = hp0 - p.health_component.current_health
 			print("   featherfall: lost %.1f" % lost)
-			check("Featherfall: a quarter of the hurt (%.1f)" % lost, lost > 3.0 and lost < 8.0)
+			check("Feather Fall: a drop under 12 m doesn't hurt (%.1f)" % lost, lost < 0.5)
 			check("no crash", p.body_model.current_action() != "crash_land")
 			return TK.done(fails)
 	step += 1

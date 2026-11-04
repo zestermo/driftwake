@@ -55,7 +55,7 @@ func _process(_d: float) -> bool:
 			for tree in SkillTree.STYLE_TREE.values():
 				for i in 45:
 					var m: Dictionary = pr.mastery_of(tree)
-					pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+					pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"]), tree) - int(m["xp"]))
 				ok += 1
 			check("every weapon tree levels to its top with the toasts (%d)" % ok, ok == SkillTree.STYLE_TREE.size())
 			until = TK.wait_ticks(2)

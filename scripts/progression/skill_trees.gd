@@ -257,6 +257,14 @@ static func _build() -> void:
 	for t in WeaponPlus.TREES.keys():
 		_t = t
 		_plus()
+	for t in QUICK_HANDS.keys():
+		_t = t
+		_quick_hands()
+	_t = "katana"
+	_flowing_edge()
+	for t in _trees.keys():
+		if t != "captain" and converted(t):
+			_map_layout(t)
 
 
 static func _tree(id: String, branch_names: Array) -> void:
@@ -294,6 +302,87 @@ static func _big(id: String, name_: String, kind: String, branch: int, level: in
 	var prev: String = bigs[-1] if not bigs.is_empty() else str(_trees[_t]["root"])
 	var n := _node(id, name_, kind, branch, level, effects, desc, skill, [prev], _big_pos(branch, bigs.size()))
 	list.append(id)
+	return n
+
+
+## (1.30, docs/v1_30_previews.md section 4) Every tree is one map: the root in the middle, its branches round it
+## clockwise from the upper left (each a slice as wide as its nodes need), each node one ring further out than its
+## parent (a step a little less; every other sibling of three or more half a ring more), its children sharing its slice. A node's parent on the map is its first link (or need).
+const MAP_R := 76.0
+const MAP_STEP_R := 62.0
+const MAP_STAGGER := 0.45
+const MAP_START := -2.36
+
+
+static func _map_parent(n: Dictionary) -> String:
+	for key in ["links", "needs_all", "needs"]:
+		if not (n.get(key, []) as Array).is_empty():
+			return str(n[key][0])
+	return str(_trees[n["tree"]]["root"])
+
+
+static func _map_layout(t: String) -> void:
+	var root := str(_trees[t]["root"])
+	var kids := {}
+	for k in nodes_of(t):
+		if k == root or _nodes[k]["kind"] == "version":
+			continue
+		var par := _map_parent(_nodes[k])
+		if not kids.has(par):
+			kids[par] = []
+		kids[par].append(k)
+	for par in kids.keys():
+		(kids[par] as Array).sort_custom(func(a, b): return _map_order(a) < _map_order(b))
+	var w := {}
+	_map_weigh(root, kids, w)
+	_nodes[root]["pos"] = Vector2.ZERO
+	var a0 := MAP_START - PI * float(w[kids[root][0]]) / float(w[root])
+	_map_place(root, kids, w, a0, a0 + TAU, 0.0)
+
+
+static func _map_order(k: String) -> Array:
+	var n: Dictionary = _nodes[k]
+	return [int(n["branch"]), 1 if n["kind"] == "step" else 0, int(n["level"]), k]
+
+
+static func _map_weigh(k: String, kids: Dictionary, w: Dictionary) -> float:
+	var s := 0.0
+	for c in kids.get(k, []):
+		s += _map_weigh(c, kids, w)
+	w[k] = maxf(s, 0.7 if _nodes[k]["kind"] == "step" else 1.0)
+	return w[k]
+
+
+static func _map_place(k: String, kids: Dictionary, w: Dictionary, a0: float, a1: float, r: float) -> void:
+	var a := a0
+	var ks: Array = kids.get(k, [])
+	for i in ks.size():
+		var c: String = ks[i]
+		var da := (a1 - a0) * float(w[c]) / float(w[k])
+		var cr := r + (MAP_STEP_R if _nodes[c]["kind"] == "step" else MAP_R)
+		# (three or more side by side: every other one half a ring further out, so their names don't collide)
+		if ks.size() >= 3 and i % 2 == 1:
+			cr += MAP_R * MAP_STAGGER
+		var mid := a + da * 0.5
+		_park(c, Vector2.from_angle(mid) * cr)
+		_map_place(c, kids, w, a, a + da, cr)
+		a += da
+
+
+## (1.30, a map's node) A node on `branch` whose parents are `links` (bought once one of them is yours), at its own
+## price `cost` (-1: by kind).
+static func _at(id: String, name_: String, kind: String, branch: int, level: int, cost: int, effects: Dictionary, desc: String, links: Array, skill: String = "") -> Dictionary:
+	var n := _node(id, name_, kind, branch, level, effects, desc, skill, links, Vector2.ZERO)
+	if cost >= 0:
+		n["cost"] = cost
+	_trees[_t]["branches"][branch]["nodes"].append(id)
+	return n
+
+
+## (1.30) A stat step chain: one step a point, step i opening at `levels[i]`; `stat` is its pip label.
+static func _steps(id: String, name_: String, branch: int, levels: Array, effects: Dictionary, desc: String, links: Array, stat: String) -> Dictionary:
+	var n := _at(id, name_, "step", branch, int(levels[0]), -1, effects, desc, links)
+	n.merge({"max_steps": levels.size(), "step_levels": levels, "stat": stat}, true)
 	return n
 
 
@@ -393,54 +482,72 @@ static func _build_will() -> void:
 # Adventure: learned by doing (levels 1-20)
 # --------------------------------------------------------------------------
 static func _build_acrobatics() -> void:
-	_tree("acrobatics", ["Air", "Dodge", "Stride"])
-	_root("ac_root", "Acrobatics", {}, "Jump, dodge and sprint to build it: air jumps and dodges count most.")
-	_big("m_geppo", "Geppo", "mech", 0, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.")
-	_big("m_skywalk", "Sky Walk", "mech", 0, 9, {"air_jumps": 1}, "One more jump in mid-air (three in all).")
-	_big("ac_breakfall", "Breakfall", "move", 0, 12, {"breakfall": 1},
-		"Knocked flying by a heavy blow, or tumbling from a long fall: press jump in the air to right yourself and come down on your feet.")
-	# (the landing variant keeps Featherfall's old id, so a save that bought it owns the variant)
-	_variant("ac_feather", "Landing", 0, [
-		["ac_featherfall", "Featherfall", 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing."],
-		["ac_crash", "Crash Landing", 15, {"crash_landing": 1},
+	# (1.30, docs/v1_30_previews.md section 4: one map, four branches, small nodes; the slope slide itself is free)
+	_tree("acrobatics", ["Air", "Walls", "Footwork", "Slides"])
+	_root("ac_root", "Acrobatics", {}, "Build it with what counts: air jumps, wall jumps, air dashes, a dodge through a blow, a fall you live through, a sky leap. Plain jumps teach nothing.")
+	# Air
+	_at("m_geppo", "Geppo", "move", 0, 2, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.", ["ac_root"])
+	_at("ac_airdash", "Air Dash", "move", 0, 4, 2, {"air_dash": 1}, "In mid-air, dodge to dash the way you hold (or the way you face), level through the air: once before you land.", ["m_geppo"])
+	_steps("ac_dashdist", "Dash Distance", 0, [5, 8, 11], {"air_dash_pct": 0.15}, "Your air dash carries you 15% further a step.", ["ac_airdash"], "+15% air dash distance")
+	_at("ac_dashstrike", "Dash Strike", "move", 0, 7, 1, {"dash_strike": 1}, "Attack out of an air dash (or just after it): a diving cut down through the foe ahead, a weapon or your fists.", ["ac_airdash"])
+	_at("ac_twindash", "Twin Dash", "move", 0, 10, 2, {"air_dashes": 1}, "A second air dash before you land.", ["ac_airdash"])
+	_at("ac_hangtime", "Hang Time", "mech", 0, 8, 1, {"hang_time": 1}, "You fall at half speed while you attack in the air.", ["m_geppo"])
+	_at("ac_aircombo", "Aerial Combo", "mech", 0, 12, 1, {"air_combo_extra": 1}, "Your air combo on a juggled foe is one hit longer.", ["ac_hangtime"])
+	_steps("ac_aircontrol", "Air Control", 0, [3, 6, 9], {"air_control_pct": 0.1}, "You steer 10% faster in mid-air a step.", ["m_geppo"], "+10% air steering")
+	_at("m_skywalk", "Sky Walk", "move", 0, 9, 2, {"air_jumps": 1}, "One more jump in mid-air (three in all).", ["m_geppo"])
+	# (the landing variant keeps its old ids: a save that bought it owns it; Crash Landing is its other version)
+	_variant("ac_feather", "Feather Fall", 0, [
+		["ac_featherfall", "Feather Fall", 6, {"featherfall": 1}, "Falls under 12 m don't hurt, and a longer one lands soft: half the hurt, no stumble."],
+		["ac_crash", "Crash Landing", 6, {"crash_landing": 1},
 			"Come down hard from a long drop and you land on one knee and a fist: the ground cracks and the foes round you are thrown off their feet. The fall hurts you half as much, with no stumble."]],
 		"Two ways to come down. Both are yours; pick the one you carry at the ship's bunk.")
-	_big("ac_skydash", "Skyward Dash", "move", 0, 18, {"skyward_dash": 1},
-		"Righted in mid-air (Breakfall, or an air step out of a tumble): dodge for an air dash, and two more air steps. Enough to get back aboard after a blow throws you off the ship.")
-	_big("ac_moonstep", "Moonstep", "move", 0, 20, {"moonstep": 1},
-		"In mid-air, dodge to stamp both feet down on the air itself and burst straight up, far higher than an air step (once a jump, 18 stamina).")
-	_icon("ac_featherfall", "move_featherfall")
+	_nodes["ac_feather"].merge({"links": ["ac_aircontrol"], "cost": 1, "shape": "passive"})
 	_icon("ac_crash", "move_crash")
-	_icon("ac_moonstep", "move_moonstep")
-	_big("ac_skyleap", "Sky Leap", "move", 0, 22, {"sky_leap": 1},
-		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.")
-	_big("ac_heavenward", "Heavenward", "move", 0, 28, {"heavenward": 1},
-		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Will Legs.")
-	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
-		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
-	_variant("ac_dodge", "Dodge Style", 1, [
-		["ac_roll", "Roll", 7, {"dodge_roll": 1}, "Your dodge is a tumbling roll: you turn into it and go under the blow, further and untouchable longer, a beat slower to come up."],
-		["ac_sidestep", "Sidestep", 7, {"dodge_sidestep": 1},
+	_at("ac_skydash", "Skyward Dash", "move", 0, 18, 2, {"skyward_dash": 1},
+		"Air dash with nothing held and you dash straight up. Righted in mid-air after a blow (Breakfall), you get an air dash and two air steps back: enough to get back aboard.", ["ac_twindash", "m_skywalk"])
+	_at("ac_moonstep", "Moonstep", "move", 0, 20, 2, {"moonstep": 1},
+		"Out of air steps, keep pressing jump: you stamp off the air again and again for 2 s (10 stamina a kick).", ["m_skywalk"])
+	_at("ac_skyleap", "Sky Leap", "move", 0, 22, 2, {"sky_leap": 1},
+		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.", ["ac_moonstep"])
+	_at("ac_heavenward", "Heavenward", "ult", 0, 28, 4, {"heavenward": 1},
+		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 45 m into the sky.", [])["needs_all"] = ["ac_skyleap", "ac_dashstrike"]
+	# Walls
+	_at("ac_walljump", "Wall Jump", "move", 1, 4, 2, {"wall_jumps": 1}, "In mid-air against a wall, jump to kick off it, up and away: once before you land.", ["ac_root"])
+	_at("ac_springheels", "Spring Heels", "mech", 1, 6, 1, {"spring_heels": 1}, "More bounce: your wall jumps, air steps and jumps off a slide or a wall carry you higher.", ["ac_walljump"])
+	_at("ac_wallkick", "Wall Kick", "move", 1, 10, 1, {"wall_jumps": 1}, "A second wall jump before you land: kick back and forth up a gap.", ["ac_walljump"])
+	_at("ac_wallrun", "Wall Run", "move", 1, 14, 2, {"wall_run": 1}, "Sprint into a wall at a slant and jump: three quick steps along it before you kick off.", ["ac_wallkick"])
+	_at("ac_wallcling", "Wall Cling", "mech", 1, 8, 1, {"wall_cling": 1}, "Push into a wall in mid-air and you hold on for a second before you slide down it.", ["ac_walljump"])
+	_at("ac_rebound", "Rebound", "mech", 1, 16, 1, {"rebound": 1}, "A wall jump gives you back an air step and an air dash. A bridge: it needs Wall Kick and Air Dash.", [])["needs_all"] = ["ac_wallkick", "ac_airdash"]
+	_nodes["ac_rebound"]["bridge"] = true
+	# Slides
+	_steps("ac_slick", "Slick Slide", 3, [3, 7, 11], {"slide_pct": 0.08}, "You slide 8% faster a step.", ["ac_root"], "+8% slide speed")
+	_at("ac_slidejump", "Slide Jump", "mech", 3, 6, 1, {"slide_jump": 1}, "A jump out of a slide keeps all its speed: jump off a mast, slide down the hill, launch off the bottom.", ["ac_slick"])
+	_at("ac_slidekick", "Slide Kick", "move", 3, 9, 1, {"slide_kick": 1}, "Slide into a foe and kick their legs out: they go down.", ["ac_slick"])
+	_at("ac_longslide", "Long Slide", "mech", 3, 12, 1, {"long_slide": 1}, "Slides keep going on gentle slopes and flat decks, and crouch at a sprint to start one on the flat.", ["ac_slidejump"])
+	# Footwork
+	_steps("m_swift", "Swift Step", 2, [2, 5, 8], {"dodge_cost_pct": 0.13, "dodge_dist_pct": 0.1, "dodge_iframe_pct": 0.17},
+		"Your dodge costs 13% less stamina, carries you 10% further and leaves you untouchable 17% longer, a step.", ["ac_root"], "cheaper, longer dodges")
+	_variant("ac_dodge", "Dodge Style", 2, [
+		["ac_roll", "Roll", 8, {"dodge_roll": 1}, "Your dodge is a tumbling roll: you turn into it and go under the blow, further and untouchable longer, a beat slower to come up."],
+		["ac_sidestep", "Sidestep", 8, {"dodge_sidestep": 1},
 			"Your dodge is a short, sharp slip aside: cheaper and quicker to strike out of, and slipping a blow as it lands makes your next hit land 50% harder."]],
 		"Two ways to get out of the way. Both are yours; pick the one you carry at the ship's bunk.")
-	_big("m_soru", "Squall Step", "tech", 1, 8, {}, "", "soru")
-	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
-	_big("ac_afterimage", "Afterimage", "move", 1, 18, {"afterimage": 1},
-		"Your dodge leaves a copy of you standing where you were, and the foes coming for you swing at it instead (once every 6 s).")
-	_icon("ac_roll", "move_roll")
-	_icon("ac_sidestep", "move_sidestep")
-	_icon("ac_afterimage", "move_afterimage")
-	_big("m_sprinter", "Long Stride", "mech", 2, 3, {"sprint_cost_pct": 0.35, "sprint_pct": 0.1}, "Sprinting burns 35% less stamina and you sprint 10% faster.")
-	_big("ac_bound", "Sprint Jump", "mech", 2, 6, {"sprint_jump_pct": 0.5}, "A sprint's long bound costs half the stamina.")
-	_big("ac_sure", "Sure Footing", "mech", 2, 10, {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.")
-	_big("ac_monkey", "Rigging Monkey", "mech", 2, 16, {"climb_pct": 0.4}, "You climb ladders and the rigging 40% faster.")
-	_step("ac_light", "Light Step", "ac_root", 5, {"dodge_cost_pct": 0.04}, "Your dodge costs 4% less stamina a step.")
-	_step("ac_quick", "Quick Feet", "m_swift", 5, {"move_pct": 0.01, "sprint_pct": 0.015}, "+1% movement and +1.5% sprint speed a step.")
-	_step("ac_hang", "Hang Time", "m_skywalk", 3, {"dodge_iframe_pct": 0.08}, "Untouchable 8% longer in a dodge, a step.")
-	_step("ac_spring", "Spring", "m_sprinter", 3, {"sprint_cost_pct": 0.05}, "Sprinting burns 5% less stamina a step.")
-	_step("ac_wind", "Wind", "ac_bound", 3, {"max_stamina": 4.0}, "+4 max stamina a step.")
-	_step("ac_hakilegs", "Will Legs", "ac_skyleap", 3, {"sky_leap_steps": 1}, "Sky Leap goes 5 m higher and 2 m further a step.")
-	_nodes["ac_hakilegs"]["level"] = 23
+	_nodes["ac_dodge"].merge({"links": ["m_swift"], "cost": 2})
+	_at("m_soru", "Squall Step", "tech", 2, 8, 2, {}, "", ["m_swift"], "soru")
+	_at("ac_afterimage", "Afterimage", "move", 2, 18, 2, {"afterimage": 1},
+		"Your dodge leaves a copy of you standing where you were, and the foes coming for you swing at it instead (once every 6 s).", ["m_soru"])
+	_steps("m_sprinter", "Long Stride", 2, [3, 9], {"sprint_cost_pct": 0.175, "sprint_pct": 0.05}, "Sprinting burns 17.5% less stamina and you sprint 5% faster, a step.", ["m_swift"], "+5% sprint, cheaper")
+	var feet := ["m_swift", "m_sprinter"]
+	_steps("ac_bound", "Sprint Jump", 2, [6], {"sprint_jump_pct": 0.5}, "A sprint's long bound costs half the stamina.", feet, "half-price bound")
+	_steps("ac_fleet", "Fleetfoot", 2, [12, 15, 18], {"move_pct": 0.02, "sprint_pct": 0.027}, "+2% movement and +2.7% sprint speed a step.", feet, "+2% speed")
+	_at("ac_sure", "Sure Footing", "mech", 2, 10, 1, {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.", feet)
+	_steps("ac_monkey", "Rigging Monkey", 2, [16], {"climb_pct": 0.4}, "You climb ladders and the rigging 40% faster.", feet, "+40% climbing")
+	_at("ac_breakfall", "Breakfall", "mech", 2, 12, 1, {"breakfall": 1},
+		"Knocked flying by a heavy blow, or tumbling from a long fall: press jump in the air to right yourself and come down on your feet.", feet)
+	for k in ["ac_roll", "ac_sidestep", "ac_afterimage", "ac_moonstep", "ac_featherfall"]:
+		_icon(k, "move_" + k.trim_prefix("ac_"))
+	for k in ["m_geppo", "m_skywalk", "ac_airdash", "ac_twindash", "ac_dashstrike", "ac_skydash", "ac_walljump", "ac_wallkick", "ac_wallrun", "ac_slidekick", "ac_skyleap", "ac_heavenward"]:
+		_icon(k, "move_" + k.trim_prefix("ac_").trim_prefix("m_"))
 
 
 static func _build_defense() -> void:
@@ -660,6 +767,37 @@ static func _plus() -> void:
 				"", [a, c], (_nodes[a]["pos"] + _nodes[c]["pos"]) * 0.5 + Vector2(0, -24))
 			n.merge({"cost": int(WeaponPlus.BRIDGE[j][1]), "needs": [a, c], "bridge": true})
 			mid.append(bd[0])
+
+
+## (1.30, docs/v1_30_previews.md section 3) Quick Hands: a strike-speed step chain off each melee weapon's root,
+## "aspd_<tree>" a step (PlayerState.strike_speed), each step opening at its mastery: [steps, a step's share, levels].
+const QUICK_HANDS := {
+	"katana": [5, 0.04, [3, 7, 11, 15, 19]],
+	"sword": [4, 0.04, [4, 9, 14, 19]], "rapier": [4, 0.04, [4, 9, 14, 19]], "dagger": [4, 0.04, [4, 9, 14, 19]],
+	"sickle": [4, 0.04, [4, 9, 14, 19]], "unarmed": [4, 0.04, [4, 9, 14, 19]], "black_leg": [4, 0.04, [4, 9, 14, 19]],
+	"dual": [4, 0.04, [4, 9, 14, 19]], "dual_dagger": [4, 0.04, [4, 9, 14, 19]], "corsair": [4, 0.04, [4, 9, 14, 19]],
+	"staff": [3, 0.04, [5, 11, 17]], "polearm": [3, 0.04, [5, 11, 17]], "axe": [3, 0.04, [5, 11, 17]], "dual_axe": [3, 0.04, [5, 11, 17]],
+	"greatsword": [3, 0.03, [6, 12, 18]], "hammer": [3, 0.03, [6, 12, 18]],
+}
+
+
+static func _quick_hands() -> void:
+	var q: Array = QUICK_HANDS[_t]
+	var id: String = ELEMENTS[_t][0] + "_qhands"
+	var w := str(HEADERS[_t][0])
+	_step(id, "Quick Hands", str(_trees[_t]["root"]), int(q[0]), {"aspd_" + _t: float(q[1])},
+		"+%d%% strike speed with the %s a step (light and heavy attacks); the steps open at mastery %s." % [roundi(float(q[1]) * 100.0), w.to_lower(), ", ".join((q[2] as Array).map(func(l): return str(l)))])
+	_nodes[id]["step_levels"] = q[2]
+	_nodes[id]["level"] = int(q[2][0])
+	_nodes[id]["stat"] = "+%d%% strike speed" % roundi(float(q[1]) * 100.0)
+
+
+## Flowing Edge (1.30): the katana's strike-speed passive in its Blade branch.
+static func _flowing_edge() -> void:
+	var n := _big("k_flowing", "Flowing Edge", "passive", 2, 20, {"flowing_edge": 1},
+		"Passive (a slot). After a perfect dodge or an Iai Counter your strikes come 10% faster for 3 s (strike speed tops out at +35%).")
+	_icon("k_flowing", "move_sidestep")
+	n["links"] = ["k_clean"]
 
 
 ## Move a node (and a variant's versions) to `pos`.

@@ -67,6 +67,8 @@ static func ruler_line(city: String, life, q: Dictionary, menu: Array, nodes: Di
 	nodes["line_point"] = {"text": say["point"], "next": "menu"}
 	nodes["line_done"] = {"text": say["done"], "event": "ruler:" + city, "next": "menu"}
 	nodes["line_next"] = {"text": say["next"], "next": "menu"}
+	# (1.30) the line is a journal quest, the crew's, from the moment it opens (LineQuests)
+	j.offer(LineQuests.ruler(city, q, str(q.get("isle", ""))), func(): return (after != "" and j.is_done(after)) or j.has(id) or j.perks.has(flag))
 
 
 ## The ruler's thanks for the line's first step (the dialogue's "ruler:<city>" event): the reward, once per save.

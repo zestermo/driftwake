@@ -49,10 +49,37 @@ const CAUSEWAY_GAPS := [1, 2]
 const CAUSEWAY_GAP := 4.0
 ## The boss's tidal flat: this far from the lagoon's middle, away from the village (of the lagoon's radius).
 const BOSS_OUT := 0.22
-## The blue hole: a deep round sink in the lagoon floor (radius, depth), this far out (of the lagoon's radius).
-const HOLE_R := [14.0, 19.0]
-const HOLE_Y := [-13.0, -17.0]
+## The deep basin (1.30; the 1.28 blue hole grown, land "hole" = [middle, rim radius, floor y]): a great sink in the
+## lagoon beside its middle, off the causeway. Its rim's radius and floor (m); this far off the causeway's crest past its
+## rim at least, BASIN_KEEP from the village and the boss's flat past it.
+const HOLE_R := [56.0, 70.0]
+const HOLE_Y := [-27.0, -33.0]
 const HOLE_OUT := [0.35, 0.6]
+const BASIN_OFF := 22.0
+const BASIN_KEEP := 60.0
+## Its shape across (of the rim's radius, wobbling by bearing): a reef crest round the lip BASIN_RIM m wide up to
+## BASIN_CREST, the upper wall down to a ledge (LEDGE_K of the way to the floor) from LEDGE[1] to LEDGE[0], the lower
+## wall to the floor at FLOOR_U, the floor rolling BASIN_ROLL m.
+const BASIN_RIM := 9.0
+const BASIN_CREST := -1.5
+const BASIN_WOB := 0.1
+const LEDGE_K := 0.38
+const LEDGE := [0.74, 0.86]
+const FLOOR_U := 0.58
+const BASIN_ROLL := 1.4
+## The basin's own things (atoll_basin.gd): coral pillars from its floor, table corals, giant fans, arches, overhangs off
+## the upper wall, swim-through caves, breathing vents (a column of gas from the reef: a diver in it gets their breath
+## back at VENT_REFILL s a second), a diver's air in VENT_R m of its column.
+const PILLARS := [7, 10]
+const PILLAR_TOP := [-5.0, -11.0]
+const TABLES := [6, 10]
+const FANS := [8, 12]
+const BIG_ARCHES := [2, 3]
+const OVERHANGS := [4, 6]
+const CAVES := [1, 2]
+const VENTS := [3, 4]
+const VENT_R := 1.8
+const VENT_REFILL := 6.0
 ## Where the village sits across the ring (0 the sea's edge .. 1 the lagoon's) and how far round from the dock (rad).
 const VILLAGE_U := 0.62
 const VILLAGE_TURN := 0.16

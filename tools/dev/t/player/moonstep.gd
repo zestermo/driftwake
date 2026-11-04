@@ -1,6 +1,6 @@
 extends SceneTree
-## Moonstep (Acrobatics 20): dodge in mid-air bursts you ~4.5 m straight up with both feet stamped on the air, for
-## 18 stamina and no air step; once a jump (a second press does nothing), back once you've landed.
+## Moonstep (Acrobatics 20, 1.30): out of air steps, jump kicks you ~3 m up off the air with both feet stamped on it,
+## 10 stamina a kick and no air step; again and again for 2 s from the first kick, then no more till you've landed.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -46,29 +46,37 @@ func _process(_d: float) -> bool:
 			top = y0
 			jumps0 = p.jumps_remaining
 			stam0 = p.stamina
-			TK.act("dodge")
+			TK.act("jump")
 			until = TK.wait_ticks(4)
 		3:
-			check("Moonstep plays (%s)" % p.body_model.current_action(), p.body_model.current_action() == "moonstep")
-			check("18 stamina (%.1f)" % (stam0 - p.stamina), absf(stam0 - p.stamina - 18.0) < 0.6)
+			check("out of air steps, jump is a Moonstep (%s)" % p.body_model.current_action(), p.body_model.current_action() == "moonstep")
+			check("10 stamina (%.1f)" % (stam0 - p.stamina), absf(stam0 - p.stamina - 10.0) < 0.6)
 			check("no air step spent", p.jumps_remaining == jumps0)
-			until = TK.wait_secs(0.75)
+			until = TK.wait_secs(0.45)
 		4:
 			print("   rose %.2f m" % (top - y0))
-			check("bursts ~4.5 m up", top - y0 > 3.6 and top - y0 < 5.5)
-			TK.act("dodge")
-			until = TK.wait_ticks(6)
+			check("kicks ~3 m up", top - y0 > 2.2 and top - y0 < 4.0)
+			stam0 = p.stamina
+			TK.act("jump")
+			until = TK.wait_ticks(4)
 		5:
-			check("once a jump", p.body_model.current_action() != "moonstep")
-			until = TK.wait_secs(1.5)
+			check("...and again within 2 s", p.body_model.current_action() == "moonstep" and stam0 - p.stamina > 9.0)
+			until = TK.wait_secs(1.9)
 		6:
+			stam0 = p.stamina
+			TK.act("jump")
+			until = TK.wait_ticks(6)
+		7:
+			check("past 2 s from the first: no more (%.1f)" % (stam0 - p.stamina), stam0 - p.stamina < 1.0 or p.is_on_floor())
+			until = TK.wait_secs(2.5)
+		8:
 			check("landed", p.is_on_floor())
 			TK.act("jump")
 			until = TK.wait_secs(0.25)
-		7:
-			TK.act("dodge")
+		9:
+			TK.act("jump")
 			until = TK.wait_ticks(4)
-		8:
+		10:
 			check("back after landing", p.body_model.current_action() == "moonstep")
 			return TK.done(fails)
 	step += 1

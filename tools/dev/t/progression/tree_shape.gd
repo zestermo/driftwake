@@ -1,6 +1,6 @@
 extends SceneTree
 ## The redesigned trees' shape (SkillTrees): every section's trees have a header, a converted tree has a root and
-## three branches, big nodes at levels 1..its top (an ultimate at the top for a weapon), links real and on its own
+## three branches (1.30: Acrobatics four, one map each), big nodes at levels 1..its top (an ultimate at the top for a weapon), links real and on its own
 ## tree, every node past the root priced (but the Captain's), versions with a level each, no two nodes on one spot;
 ## and across both registries every active skill is still taught and the 19 older unlockable moves are still on a tree.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -37,7 +37,7 @@ func shape(t: String) -> void:
 				bad.append("%s>%s" % [k, l])
 		if n["kind"] == "step":
 			steps += int(n["max_steps"])
-			if int(n["max_steps"]) not in [3, 5]:
+			if int(n["max_steps"]) not in [3, 5] and (n.get("step_levels", []) as Array).size() != int(n["max_steps"]):
 				bad.append("%s steps %d" % [k, n["max_steps"]])
 		elif int(n["level"]) < 1 or int(n["level"]) > top:
 			bad.append("%s at %d" % [k, n["level"]])
@@ -52,8 +52,8 @@ func shape(t: String) -> void:
 			if spots.has(spot):
 				bad.append("%s on %s" % [k, spots[spot]])
 			spots[spot] = k
-	check("%s: a root and three branches" % t, STS.node_def(td["root"]).get("kind", "") == "root" and td["branches"].size() == 3)
-	check("%s: links real, levels in 1..%d, steps of 3 or 5, versions real, no stacked spots %s" % [t, top, str(bad)], bad.is_empty())
+	check("%s: a root and three branches (Acrobatics four)" % t, STS.node_def(td["root"]).get("kind", "") == "root" and td["branches"].size() == (4 if t == "acrobatics" else 3))
+	check("%s: links real, levels in 1..%d, steps of 3 or 5 (or a chain of their own levels), versions real, no stacked spots %s" % [t, top, str(bad)], bad.is_empty())
 	if STS.pool_of(t) != "":
 		var free: Array = STS.nodes_of(t).filter(func(k): return not (STS.node_def(k)["kind"] in ["root", "version"]) and STS.price(k) <= 0)
 		check("%s: every node past the root has a price %s (%d steps)" % [t, str(free), steps], free.is_empty())

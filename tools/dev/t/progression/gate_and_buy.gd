@@ -27,7 +27,21 @@ func check(what: String, cond: bool) -> void:
 func to_level(tree: String, lv: int) -> void:
 	while pr.mastery_level(tree) < lv:
 		var m: Dictionary = pr.mastery_of(tree)
-		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"]), tree) - int(m["xp"]))
+
+
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
 
 
 func _process(_d: float) -> bool:
@@ -58,8 +72,10 @@ func _process(_d: float) -> bool:
 			check("the ultimate needs mastery 30 (%s)" % pr.buy_why("k_petals"), pr.buy_why("k_petals") == "Needs Katana 30")
 			to_level("katana", 30)
 			check("mastery 30: 66 earned, nothing by itself, the ultimate costs 11", not pr.knows("petal_storm") and STS.price("k_petals") == 11 and pr.pool("katana") == 66 - 7)
+			check("...and waits for its parent on the map (%s)" % pr.buy_why("k_petals"), pr.parent_why("k_petals") != "")
+			own_parents("k_petals")
 			pr.gift("katana", 10 - pr.pool("katana"))
-			check("...with 10 left it waits (%s)" % pr.buy_why("k_petals"), pr.buy_why("k_petals") == "Needs 11 Katana points")
+			check("...its parents yours, with 10 left it waits (%s)" % pr.buy_why("k_petals"), pr.buy_why("k_petals") == "Needs 11 Katana points")
 			pr.gift("katana", 1)
 			check("...with 11 it's yours", pr.buy("k_petals") and pr.knows("petal_storm") and pr.pool("katana") == 0)
 			check("...the xp bar stops at the top", pr.tree_level("katana") == 30 and pr.tree_xp_next("katana") == 0)

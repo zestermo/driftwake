@@ -158,9 +158,31 @@ func nearest_player(pos: Vector3, ok: Callable = Callable(), keep: Node = null) 
 	return best
 
 
-## Enemies get tougher with more captains around: x1, x1.6, x2.2, x2.8.
+## Enemies get tougher with more captains around: x1, x1.85, x2.7, x3.55 (1.30; was +0.6 a captain).
 func hp_scale() -> float:
-	return 1.0 + 0.6 * float(crew_size() - 1)
+	return hp_scale_for(crew_size())
+
+
+static func hp_scale_for(n: int) -> float:
+	return 1.0 + 0.85 * float(n - 1)
+
+
+## (1.30) Every enemy's blows land harder with more captains: +10% a captain past the first (x1.3 at four).
+func dmg_scale() -> float:
+	return dmg_scale_for(crew_size())
+
+
+static func dmg_scale_for(n: int) -> float:
+	return 1.0 + 0.1 * float(n - 1)
+
+
+## (1.30) Enemies' poise grows with more captains (Poise.cap): x1, x1.5, x2, x2.5.
+func poise_scale() -> float:
+	return poise_scale_for(crew_size())
+
+
+static func poise_scale_for(n: int) -> float:
+	return 1.0 + 0.5 * float(n - 1)
 
 
 func crew_size() -> int:
@@ -1115,6 +1137,21 @@ func _all_rival_gone(key: String) -> void:
 		n.queue_free()
 
 
+## (1.30) A rival crew's ship sailing in to anchor (RivalShip: placed by the shared clock, so this one call is all).
+func _all_rival_ship(crew: String, from: Vector3, to: Vector3, moor: float, t0: float) -> void:
+	RivalShip.arrive(get_tree(), crew, from, to, moor, t0)
+
+
+func _all_rival_ship_leave(t0: float) -> void:
+	RivalShip.leave_all(get_tree(), t0)
+
+
+## (1.30) Their ship's anchored: the crew's named banner, their captain's call-out and their brass call on every screen.
+func _all_rival_arrive(crew: String, callout: String) -> void:
+	RivalBanner.show_on(get_tree(), crew, callout)
+	Music.rival()
+
+
 
 # --------------------------------------------------------------------------
 # The crew (1.22): its name and everyone who's sailed in this world, the host's; the host decides, everyone applies
@@ -1397,7 +1434,7 @@ func applying() -> bool:
 # ==========================================================================
 func hit_pack(h: HitData) -> Array:
 	return [h.damage, h.knockback_force, h.hitstop_duration, h.camera_shake_intensity, h.stagger_duration,
-		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege, h.crumple, h.breaker, h.sever, h.predictable, h.impact, h.poise, h.launch, h.grab]
+		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege, h.crumple, h.breaker, h.sever, h.predictable, h.impact, h.poise, h.launch, h.grab, h.sneak, h.gap]
 
 
 func hit_unpack(a: Array) -> HitData:
@@ -1423,6 +1460,8 @@ func hit_unpack(a: Array) -> HitData:
 	h.poise = float(a[16]) if a.size() > 16 else -1.0
 	h.launch = float(a[17]) if a.size() > 17 else 0.0
 	h.grab = a.size() > 18 and bool(a[18])
+	h.sneak = a.size() > 19 and bool(a[19])
+	h.gap = int(a[20]) if a.size() > 20 else 0
 	return h
 
 
@@ -2031,6 +2070,17 @@ func _all_world_flag(flag_name: String) -> void:
 	var gm := get_node_or_null("/root/GameManager")
 	if gm:
 		gm.world_flags[flag_name] = true
+
+
+## (1.30) A world flag cleared on every machine (a stronghold boss reset by a wipe starts its fight over).
+func clear_world_flag(flag_name: String) -> void:
+	everyone("_all_clear_world_flag", [flag_name])
+
+
+func _all_clear_world_flag(flag_name: String) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	if gm:
+		gm.world_flags.erase(flag_name)
 
 
 ## Burning thornbrush, burning for everyone.

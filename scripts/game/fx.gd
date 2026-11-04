@@ -21,6 +21,7 @@ const SOUNDS := [
 	"fin_sting", "jelly_zap",
 	"fish_cast", "fish_plop", "fish_bite", "fish_reel", "fish_catch",
 	"lava_bomb",
+	"shell_whistle", "shell_boom", "shell_far",
 ]
 
 var _dust_mat: StandardMaterial3D
@@ -542,6 +543,16 @@ func blood_pool(pos: Vector3, size: float, secs: float) -> void:
 	var full := mi.scale
 	mi.scale = full * 0.15
 	mi.create_tween().tween_property(mi, "scale", full, secs).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+
+
+## (1.30) A body slammed into a wall, a ceiling or the ground (Splat): the impact mark, dust, chips, blood. SplatFX.
+func splat(pos: Vector3, n: Vector3, size: float, bleeds: bool, seed_v: int) -> void:
+	SplatFX.land(self, pos, n, size, bleeds, seed_v)
+
+
+## (1.30) A body thrown by an overkill (Splat): the rush where it left.
+func splat_launch(pos: Vector3, dir: Vector3, k: float) -> void:
+	SplatFX.launch(self, pos, dir, k)
 
 
 ## How far behind a wound the spray can reach a wall.
@@ -3218,6 +3229,25 @@ func sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, pitch_jitter:
 	p.unit_size = 6.0
 	p.max_distance = 60.0
 	p.pitch_scale = pitch * randf_range(1.0 - pitch_jitter, 1.0 + pitch_jitter)
+	_scene_root().add_child(p)
+	p.global_position = pos
+	p.play()
+	p.finished.connect(p.queue_free)
+
+
+## (1.30) A big sound heard `reach` m off (a shell's blast, its whistle, a broadside), where sfx stops at 60 m.
+func far_sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, reach: float = 400.0, pitch_jitter: float = 0.06) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_squared_to(pos) > reach * reach:
+		return
+	var p := AudioStreamPlayer3D.new()
+	p.stream = _streams[sound_name]
+	p.bus = "SFX"
+	p.volume_db = volume_db
+	p.unit_size = reach * 0.08
+	p.max_distance = reach
+	p.attenuation_filter_cutoff_hz = 2500.0
+	p.pitch_scale = randf_range(1.0 - pitch_jitter, 1.0 + pitch_jitter)
 	_scene_root().add_child(p)
 	p.global_position = pos
 	p.play()

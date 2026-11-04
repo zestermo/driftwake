@@ -31,7 +31,7 @@ const GADGETS := {
 	"smoke": {"name": "Smoke Pellet", "kind": "combat", "throw": true, "from": "known from the start",
 		"desc": "A clay pellet of blackpowder and soot. It bursts into a thick cloud: foes inside stagger coughing, and nobody can notice or attack you while you're in it.",
 		"charges": [3, 4, 5], "cd": [6.0, 5.0, 4.0], "range": [14.0, 16.0, 18.0],
-		"radius": [3.5, 4.5, 5.5], "secs": [6.0, 8.0, 10.0], "blind": [1.6, 2.0, 2.6],
+		"radius": [3.5, 4.5, 5.5], "secs": [8.0, 10.0, 12.0], "blind": [1.6, 2.0, 2.6],
 		"cost": [[30, {"black_powder": 2, "canvas": 1}], [90, {"black_powder": 3, "springs": 1, "copper": 1}], [240, {"black_powder": 4, "brass": 2, "ember_ore": 1}]],
 		"refill": {"black_powder": 1}},
 	"tar": {"name": "Tar Bomb", "kind": "combat", "throw": true, "from": "chests (any); the forge town's tinkerer",
@@ -43,7 +43,7 @@ const GADGETS := {
 	"flash": {"name": "Flash Pellet", "kind": "combat", "throw": true, "from": "the forge town's tinkerer",
 		"desc": "Magnesium and a ground lens: a white burst that dazzles every foe facing it.",
 		"charges": [2, 3, 4], "cd": [10.0, 9.0, 8.0], "range": [14.0, 16.0, 18.0],
-		"radius": [4.0, 5.0, 6.0], "stun": [1.2, 1.6, 2.0],
+		"radius": [4.0, 5.0, 6.0], "stun": [2.0, 2.5, 3.0],
 		"cost": [[45, {"black_powder": 1, "lens": 1, "copper": 1}], [120, {"black_powder": 2, "lens": 1, "brass": 1}], [300, {"lens": 2, "brass": 2, "ember_ore": 1}]],
 		"refill": {"black_powder": 1, "copper": 1}},
 	"pepper": {"name": "Pepper Bomb", "kind": "combat", "throw": true, "from": "hidden chests; books",
@@ -70,6 +70,13 @@ const GADGETS := {
 		"radius": [2.2, 2.8, 3.4], "secs": [8.0, 10.0, 12.0], "dps": [3.0, 5.0, 7.0], "slow": [0.7, 0.6, 0.5], "bleed": [0.0, 0.0, 3.0],
 		"cost": [[30, {"iron": 2}], [90, {"iron": 3, "springs": 1}], [240, {"iron": 4, "chitin_shard": 2, "ember_ore": 1}]],
 		"refill": {"iron": 1}},
+	# (1.30) planted, not thrown: on a ChargeTarget within its reach (a gate, a barricade, a marked wall) or the ground
+	"charge": {"name": "Powder Charge", "kind": "combat", "plant": true, "from": "chandlers' and Nessa's packs; Admiralty supply crates",
+		"desc": "A satchel of blackpowder on a slow fuse. Plant it on a gate, a barricade or a wall marked for it (or on the ground) and get clear: it blows the way open and throws foes flat.",
+		"charges": [2, 3, 4], "cd": [3.0, 3.0, 3.0], "fuse": [3.0, 3.0, 2.5],
+		"radius": [4.5, 5.0, 5.5], "damage": [90.0, 130.0, 180.0],
+		"cost": [[50, {"black_powder": 3, "canvas": 1}], [130, {"black_powder": 4, "iron": 1, "springs": 1}], [320, {"black_powder": 5, "brass": 1, "ember_ore": 2}]],
+		"refill": {"black_powder": 2}},
 	# --- traversal (cooldown only) ---
 	"grapple": {"name": "Grappling Hook", "kind": "traversal", "from": "the forge town's tinkerer",
 		"desc": "A folding iron hook on a sprung reel: aim at a ledge, a branch or a mast and it hauls you up to it.",
@@ -94,7 +101,7 @@ const GADGETS := {
 	# (1.28.1) atoll-only: its parts and its blueprint come only from a coral atoll (the lead's atoll pass places them)
 	"skimmer": {"name": "Skimmer", "kind": "traversal", "region": "atoll", "from": "the atoll's pearl trader; a wreck in an atoll's lagoon",
 		"desc": "A coral-spar board under a sea-silk sail. Launch it on the water and ride it standing at the boom: fastest across the wind, slow into it. F stows it.",
-		"charges": [0, 0, 0], "cd": [3.0, 2.5, 2.0], "speed": [9.0, 11.0, 13.0], "hop": [0.0, 0.0, 7.0],
+		"charges": [0, 0, 0], "cd": [3.0, 2.5, 2.0], "speed": [11.0, 13.5, 16.0], "hop": [0.0, 0.0, 7.0],
 		"cost": [[80, {"coral_spar": 4, "sea_silk": 2, "lagoon_pearl": 1}], [200, {"coral_spar": 6, "sea_silk": 3, "lagoon_pearl": 3, "brass": 1}],
 			[450, {"coral_spar": 8, "sea_silk": 5, "lagoon_pearl": 5, "brass": 2}]],
 		"refill": {}},
@@ -158,7 +165,7 @@ const PARTS := {
 	"ember_ore": ["Ember Ore", 18, "A warm red ore from the fire islands' forges. Mk III work needs it."],
 	"leviathan_scale": ["Leviathan Scale", 60, "A scale the size of a shield, harder than iron. Only the great beasts of the deep shed them."],
 	"coral_spar": ["Coral Spar", 8, "A straight, light branch of white coral, broken off a coral head under an atoll's lagoon. A skimmer's board and mast."],
-	"sea_silk": ["Sea-silk", 12, "A bolt of shimmering cloth spun from the threads of lagoon clams. Sold by an atoll's pearl trader: a skimmer's sail."],
+	"sea_silk": ["Sea-silk", 12, "A skein of shimmering golden thread from a pen shell's foot, cut on an atoll's reef (or bought from its pearl trader): a skimmer's sail."],
 	"lagoon_pearl": ["Lagoon Pearl", 30, "A big rose-white pearl from a giant clam in an atoll's lagoon. Set in a skimmer's mast foot, it keeps her trim."],
 }
 ## The parts only an atoll gives (not in ALL_PARTS: loot tables and merchants roll from that).
@@ -177,6 +184,22 @@ const CHEST_POOLS := {"ordinary": ["tar", "caltrops", "lockpick"], "hidden": ["p
 	"hoard": ["spring_boots", "glider", "decoy", "diving_helmet"]}
 ## Stalls that sell parts (Shops ids -> [[item id, stock]]), added to their stock.
 const SHOP_PARTS := [["black_powder", 6], ["pitch", 4], ["springs", 3]]
+
+## (1.30) Ready-made packs ("kit_<gadget>", an item): carried, a pack of a gadget the captain hasn't built makes it Mk I
+## on the belt (its blueprint learned); one of a gadget they have refills it when it runs dry (GadgetBelt). Sold by
+## chandlers and Nessa's Notions, found in Admiralty supply crates (Gadgets.supply_crate). gadget id -> [pack name,
+## item value (a trader asks x3: Economy), what's in it].
+const KITS := {
+	"smoke": ["Smoke Pellets", 12, "A paper twist of three clay smoke pellets, fuses ready."],
+	"flash": ["Flash Pellets", 18, "Two magnesium flash pellets in a tin, packed in sawdust."],
+	"charge": ["Powder Charges", 30, "Two satchels of blackpowder on slow fuses: for gates, walls and anything else in the way."],
+	"grapple": ["Grappling Hook", 50, "A ready-made folding hook on a sprung reel."],
+}
+## The packs a stall sells (Shops stock entries).
+const SHOP_KITS := [["kit_smoke"], ["kit_flash"], ["kit_charge"], ["kit_grapple"]]
+## A supply crate's packs: how many (min, max) and the weights of each kind.
+const CRATE_N := [1, 2]
+const CRATE_KITS := {"smoke": 3.0, "flash": 2.0, "charge": 2.0}
 
 
 static func tier_val(gid: String, key: String, tier: int) -> Variant:

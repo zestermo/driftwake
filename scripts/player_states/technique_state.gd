@@ -100,6 +100,7 @@ func enter(data: Dictionary) -> void:
 		"riposte_counter":
 			var cp: Array = COUNTER_POSE[player.style()]
 			dur = float(cp[1])
+			flowing_edge()
 			if _target and is_instance_valid(_target):
 				_dir = _flat_to(_target)
 				face_direction(_dir, 1.0)

@@ -315,8 +315,27 @@ func _muscles(delta: float) -> void:
 		pb.apply_torque(-torque)
 
 
+## (1.30) Flown by a Splat: every part kinematic, posed from outside, nothing settles; let go, it starts fresh.
+var held := false
+
+
+func hold(on: bool) -> void:
+	held = on
+	for p in parts:
+		var b: RigidBody3D = p["body"]
+		b.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
+		b.freeze = on
+		b.sleeping = false
+		b.angular_damp = 0.8
+		b.linear_damp = 0.05
+	_t = 0.0
+	_calm = 0.0
+	_still_t = 0.0
+	_rested = false
+
+
 func _settle(delta: float) -> void:
-	if parts.is_empty() or _net_puppet:
+	if parts.is_empty() or _net_puppet or held:
 		return
 	# floating bodies bob on the waves and never rest
 	var wet := in_water or root_depth() > -0.4

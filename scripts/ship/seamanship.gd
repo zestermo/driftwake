@@ -24,7 +24,7 @@ static func me(tree: SceneTree) -> Player:
 static func xp(tree: SceneTree, n: int) -> void:
 	var p := me(tree)
 	if p:
-		p.progression.add_mastery("sea", n)
+		p.progression.add_life("sea", n)
 
 
 static func stat(tree: SceneTree, key: String) -> float:

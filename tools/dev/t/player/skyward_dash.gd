@@ -1,6 +1,6 @@
 extends SceneTree
-## Skyward Dash (Acrobatics): after a Breakfall the dodge is an air dash that carries you a set distance level
-## through the air, and you get extra air steps to climb back with.
+## Skyward Dash (Acrobatics): after a Breakfall the dodge is an air dash (one more than Air Dash gives), and you get
+## extra air steps to climb back with; with nothing held (1.30) the dash goes straight up.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -58,8 +58,7 @@ func _process(_d: float) -> bool:
 		3:
 			var d := Vector2(b.x - a.x, b.z - a.z).length()
 			check("an air dash (seen: %s)" % (a != Vector3.INF), a != Vector3.INF and b != Vector3.INF)
-			check("the dash carries you %.1f m (set: %.1f)" % [d, p.state_machine.states["dodge"].AIR_DASH_DIST], absf(d - p.state_machine.states["dodge"].AIR_DASH_DIST) < 0.8)
-			check("level through the air (%.2f m drop)" % (a.y - b.y), a.y - b.y < 0.5)
+			check("nothing held: straight up (%.1f m up, %.1f across)" % [b.y - a.y, d], b.y - a.y > 3.0 and d < 0.8)
 			check("only one dash a recovery", not p.skyward_dash)
 			return TK.done(fails)
 	step += 1

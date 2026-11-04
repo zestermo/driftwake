@@ -32,7 +32,7 @@ func give(id: String, n: int) -> void:
 func cook_xp() -> int:
 	var t := int(pr.mastery_of("cook")["xp"])
 	for lv in range(1, pr.mastery_level("cook")):
-		t += int(pr.mastery_to_next(lv))
+		t += int(pr.mastery_to_next(lv, "cook"))
 	return t
 
 
@@ -65,10 +65,10 @@ func _process(_d: float) -> bool:
 			check("raw rice went in, not the hardtack", inv.count("rice") == 0 and inv.count("biscuit") == 1)
 			var first: int = cook_xp() - xp0
 			print("   cooking: lv %d -> %d, +%d xp" % [lv0, pr.mastery_level("cook"), first])
-			check("Cooking mastery grows (+%d, the first time twice)" % first, first == 2 * (Food.COOK_XP + 2 * Food.COOK_XP_PER))
+			check("Cooking mastery grows (+%d, the first time twice, and twice for Cooking since 1.30)" % first, first == 4 * (Food.COOK_XP + 2 * Food.COOK_XP_PER))
 			xp0 = cook_xp()
 			scr.cook_selected()
-			check("again from hardtack, once more xp (+%d)" % (cook_xp() - xp0), inv.count("fish_stew") == 4 and inv.count("biscuit") == 0 and cook_xp() - xp0 == Food.COOK_XP + 2 * Food.COOK_XP_PER)
+			check("again from hardtack, once more xp (+%d)" % (cook_xp() - xp0), inv.count("fish_stew") == 4 and inv.count("biscuit") == 0 and cook_xp() - xp0 == 2 * (Food.COOK_XP + 2 * Food.COOK_XP_PER))
 			check("short of grain it refuses", Food.cook(p, "fish_stew", 1) != "" and inv.count("fish_stew") == 4)
 			check("Captain's Feast is locked until taught", not Food.known(pr, "captains_feast") and Food.cook(p, "captains_feast", 1).contains("recipe"))
 			check("taught once", Food.teach(pr, "captains_feast") and not Food.teach(pr, "captains_feast") and Food.known(pr, "captains_feast"))

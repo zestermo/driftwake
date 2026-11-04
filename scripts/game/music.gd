@@ -46,6 +46,7 @@ const TRACKS := {
 }
 const FIGHTS := ["combat", "boss"]
 const VICTORY := "res://assets/audio/music_victory.ogg"
+const RIVAL := "res://assets/audio/music_rival.ogg"
 const BASE_DB := -5.0
 const FADE := 1.8
 const FAST_FADE := 0.7
@@ -165,6 +166,13 @@ func punch_tick(delta: float) -> void:
 ## A short fanfare (a boss beaten); the music dips under it.
 func victory() -> void:
 	_sting.stream = load(VICTORY)
+	_sting.play()
+	_duck = 5.5
+
+
+## (1.30) A rival crew's ship has anchored: their brass call; the music dips under it.
+func rival() -> void:
+	_sting.stream = load(RIVAL)
 	_sting.play()
 	_duck = 5.5
 

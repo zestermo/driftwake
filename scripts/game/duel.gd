@@ -168,10 +168,12 @@ static func spare(p: Node) -> void:
 	hc.current_health = 0.0
 	hc.health_changed.emit(0.0, hc.max_health)
 	p.state_machine.force_state("Downed", {"dead": true, "velocity": p.get("_last_hit_velocity")})
+	p.call("spared_down")
 
 
 ## Back on your feet with `hp` and `energy` (a spared captain gets up from where they lie).
 static func stand_up(p: Node, hp: float, energy: float) -> void:
+	p.call("spared_up")
 	if p.current_state_name() == "Downed":
 		var ds = p.state_machine.current_state
 		ds.set("dead", false)

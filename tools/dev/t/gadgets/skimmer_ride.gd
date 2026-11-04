@@ -66,7 +66,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(3.0)
 		3:
 			check("held steering, it's up to its top speed (%.1f of %.1f m/s)" % [st.speed, st.top_speed()], st.speed > st.top_speed() * 0.9)
-			check("...the top speed is the tier's 9 m/s by the wind (%.1f)" % st.top_speed(), st.top_speed() <= 9.01 and st.top_speed() > 3.0)
+			check("...the top speed is the tier's 11 m/s by the wind (%.1f)" % st.top_speed(), st.top_speed() <= 11.01 and st.top_speed() > 3.0)
 			_steer(wind_yaw + PI)
 			until = TK.wait_secs(3.5)
 		4:
@@ -81,7 +81,7 @@ func _process(_d: float) -> bool:
 			beam = st.speed
 			print("   into the wind %.1f m/s, across it %.1f m/s" % [into, beam])
 			check("across the wind it's faster than into it (%.1f > %.1f)" % [beam, into], beam > into * 1.6)
-			check("...across it, the full 9 m/s", beam > 8.0)
+			check("...across it, the full 11 m/s", beam > 9.8)
 			TK.release("move_forward")
 			var hit := HitData.new()
 			hit.damage = 4.0

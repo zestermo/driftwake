@@ -47,6 +47,27 @@ static func read_chance() -> float:
 	return float(READ_CHANCE[_repeat])
 
 
+## (1.30) Strike speed from every source, at most STRIKE_CAP: gear, the weapon's Quick Hands steps (aspd_<tree>), Flowing
+## Edge's buff, Edy's flow and haste. Light and heavy attacks play this much faster.
+const STRIKE_CAP := 0.35
+const FLOWING_EDGE := 0.1
+const FLOWING_EDGE_SECS := 3.0
+
+
+func strike_speed() -> float:
+	var pr := player.progression
+	var s := pr.stat("attack_speed_pct") + pr.style_stat("aspd", player.style()) + player.power.will.flow_k() + EdyTypes.haste(player)
+	if player.power.buff("flowing_edge"):
+		s += FLOWING_EDGE
+	return minf(s, STRIKE_CAP)
+
+
+## Flowing Edge (the katana's passive): a perfect dodge or an Iai Counter with the katana in hand speeds the strikes.
+func flowing_edge() -> void:
+	if player.style() == "katana" and player.progression.has_flag("flowing_edge"):
+		player.power.add_buff("flowing_edge", FLOWING_EDGE_SECS)
+
+
 ## What a right-click costs now (more each time in a row).
 func heavy_cost() -> float:
 	var chain := _heavy_chain if now_s() - _heavy_at < FATIGUE_WINDOW else 0
@@ -90,6 +111,8 @@ func apply_gravity(delta: float) -> void:
 			player.variable_jump_active = false
 		elif player.variable_jump_active and not player.inp.pressed("jump"):
 			g *= player.short_hop_gravity_mult  # let go early = shorter hop
+		if player.velocity.y < 0.0 and _hang_time():
+			g *= 0.5
 		player.velocity.y -= g * delta
 		player.velocity.y = maxf(player.velocity.y, -Player.MAX_FALL_SPEED)
 
@@ -249,21 +272,94 @@ func air_move() -> String:
 const AIR_COMBO_MAX := 4
 
 
+## (Aerial Combo, Acrobatics: one hit longer.)
+func air_combo_max() -> int:
+	return AIR_COMBO_MAX + int(player.progression.stat("air_combo_extra"))
+
+
 ## A juggled foe close enough for an air combo (a blade, fists or kicks in hand; this jump's combo not spent), else null.
 func juggled_in_reach() -> Node3D:
-	if player.weapon_class() == "gun" or int(player.air_uses.get("air_combo", 0)) >= AIR_COMBO_MAX:
+	if player.weapon_class() == "gun" or int(player.air_uses.get("air_combo", 0)) >= air_combo_max():
 		return null
 	return Juggle.near(player.get_tree(), player.global_position, Juggle.COMBO_REACH)
 
 
-## Moonstep (Acrobatics): dodge in mid-air, once a jump, for MOON_COST stamina.
-const MOON_COST := 18.0
+## Moonstep (Acrobatics, 1.30): out of air steps, jump kicks off the air again and again for MOON_WINDOW s from the
+## first, MOON_COST stamina a kick.
+const MOON_COST := 10.0
+const MOON_WINDOW := 2.0
 
 
 func wants_moonstep() -> bool:
-	if not player.progression.has_flag("moonstep") or player.air_uses.has("moonstep") or not input_buffer.consume_action("dodge"):
+	if not player.progression.has_flag("moonstep") or player.jumps_remaining > 0 or not player.inp.just_pressed("jump"):
+		return false
+	if player.air_uses.has("moonstep") and now_s() - float(player.air_uses["moonstep"]) > MOON_WINDOW:
 		return false
 	return player.spend_stamina(MOON_COST)
+
+
+## (1.30) Acrobatics' air dashes: Air Dash one, Twin Dash two, before you land (a Rebound gives one back); Skyward Dash's
+## mid-air righting one more. Dodge in the air.
+func air_dashes_left() -> int:
+	var pr := player.progression
+	return int(pr.stat("air_dash")) + int(pr.stat("air_dashes")) - int(player.air_uses.get("air_dash", 0))
+
+
+func wants_air_dash() -> bool:
+	if not player.skyward_dash and air_dashes_left() <= 0:
+		return false
+	return wants_dodge()
+
+
+## Dash Strike (Acrobatics): attack during an air dash or just after it.
+const DASH_STRIKE_WINDOW := 0.55
+
+
+func wants_dash_strike() -> bool:
+	if not player.progression.has_flag("dash_strike") or now_s() - float(player.get_meta("air_dash_at", -9.0)) > DASH_STRIKE_WINDOW:
+		return false
+	if not player.can_attack() or not input_buffer.consume_action("light_attack"):
+		return false
+	return player.spend_stamina(player.PLUNGE_COST * player.attack_cost_k())
+
+
+## (1.30) Wall jumps (Acrobatics: Wall Jump one, Wall Kick two before you land): jump pressed in mid-air with a wall
+## within WALL_JUMP_REACH of the chest. Returns the wall's flat normal, or zero.
+const WALL_JUMP_REACH := 0.6
+
+
+func wants_wall_jump() -> Vector3:
+	if int(player.progression.stat("wall_jumps")) <= int(player.air_uses.get("wall_jump", 0)) or not player.inp.just_pressed("jump"):
+		return Vector3.ZERO
+	return wall_normal()
+
+
+## The wall beside you in mid-air (its flat normal), or zero: the one move_and_slide touched, else a short ray the way
+## you're going and the way you face.
+func wall_normal() -> Vector3:
+	if player.is_on_wall():
+		var wn := player.get_wall_normal()
+		wn.y = 0.0
+		if wn.length() > 0.5:
+			return wn.normalized()
+	var from := player.global_position + Vector3(0, 0.9, 0)
+	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	var dirs: Array = [-player.player_model.global_basis.z]
+	if hv.length() > 0.5:
+		dirs.push_front(hv.normalized())
+	for d in dirs:
+		var q := PhysicsRayQueryParameters3D.create(from, from + (d as Vector3) * WALL_JUMP_REACH, 1)
+		q.exclude = [player.get_rid()]
+		var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+		if not hit.is_empty() and absf((hit["normal"] as Vector3).y) < 0.35:
+			var n: Vector3 = hit["normal"]
+			return Vector3(n.x, 0.0, n.z).normalized()
+	return Vector3.ZERO
+
+
+## Hang Time (Acrobatics): attacking in the air, you fall at half speed.
+func _hang_time() -> bool:
+	return player.progression.has_flag("hang_time") and player.current_state_name() in ["Plunge", "Technique", "Shoot", "Skill"]
 
 
 ## Dodge pressed (or buffered) and there's stamina for it.
@@ -290,6 +386,6 @@ func wants_jump() -> bool:
 	return player.inp.just_pressed("jump") or player.consume_jump_buffer()
 
 
-## Horizontal air speed keeps your running momentum.
+## Horizontal air speed keeps your running momentum (Air Control: faster steering in the air).
 func air_speed() -> float:
-	return maxf(player.move_speed, player.air_speed)
+	return maxf(player.move_speed * (1.0 + player.progression.stat("air_control_pct")), player.air_speed)

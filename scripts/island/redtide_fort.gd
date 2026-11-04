@@ -819,6 +819,11 @@ func _build_camp() -> void:
 # ==========================================================================
 # The captain
 # ==========================================================================
+## The fight's middle (where a phase change's leap lands him: BossReset).
+func centre() -> Vector3:
+	return to_global(ARENA)
+
+
 func _spawn_boss() -> void:
 	if boss and is_instance_valid(boss) and boss.state != PirateGrunt.S.DEAD:
 		boss.queue_free()
@@ -967,6 +972,8 @@ func _victory() -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me and me.global_position.distance_to(to_global(ARENA)) < 70.0:
 		get_tree().call_group("hud", "show_banner", "Captain Morrow defeated!", "The Red Tide recedes", true)
+		# (the story villain's second Edy point, on top of his boss's: WillPaths.SOURCES)
+		me.progression.will_point(1, "Captain Morrow")
 		var music := get_node_or_null("/root/Music")
 		if music:
 			music.victory()

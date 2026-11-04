@@ -23,6 +23,19 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
+
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
@@ -34,6 +47,7 @@ func _process(_d: float) -> bool:
 			while pr.mastery_level("katana") < 22:
 				var m: Dictionary = pr.mastery_of("katana")
 				pr.add_mastery("katana", pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+			own_parents("k_clean")
 			check("katana 22: Clean Line and Empty Mind bought", pr.buy("k_clean") and pr.buy("k_calm"))
 			check("...both passives in the library %s" % str(pr.library()["passives"]), pr.library()["passives"].has("k_clean") and pr.library()["passives"].has("k_calm"))
 			check("...slotted by themselves %s" % str(pr.passives), pr.passives.has("k_clean") and pr.passives.has("k_calm"))

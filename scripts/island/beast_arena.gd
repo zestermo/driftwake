@@ -417,7 +417,7 @@ func _process(delta: float) -> void:
 func _boss_hud(me: Node3D, alive: bool) -> void:
 	var show: bool = me != null and alive and boss.in_combat() and me.global_position.distance_to(global_position) < RESET_R + 8.0
 	if show:
-		get_tree().call_group("hud", "show_boss", boss.boss_name, boss.health_frac(), boss.phase)
+		get_tree().call_group("hud", "show_boss", boss.boss_name, boss.health_frac(), boss.phase, boss)
 		_boss_ui = true
 	elif _boss_ui:
 		_boss_ui = false

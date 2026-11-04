@@ -1992,7 +1992,7 @@ func _build_cove() -> void:
 ## strongbox holds the crew's best hat (and, with fruits in the world, the Ember Fruit).
 func _build_smugglers_camp() -> void:
 	var items: Array = []
-	if DevilFruits.IN_WORLD:
+	if DevilFruits.WIDE_POOL:
 		items.append([load("res://resources/items/ember_fruit.tres"), 1])
 	items.append([load("res://resources/items/treasure.tres"), 2])
 	items.append([load("res://resources/items/gold.tres"), 6])
@@ -2683,9 +2683,9 @@ func _spawn_loot() -> void:
 		var extra := ""
 		if s[0] == CAMP + Vector2(-6.0, -4.0):
 			extra = "pistol"
-		elif s[0] == RUINS + Vector2(-1.5, 2.2) and DevilFruits.IN_WORLD:
+		elif s[0] == RUINS + Vector2(-1.5, 2.2) and DevilFruits.WIDE_POOL:
 			extra = "wolf_fruit"
-		elif s[0] == HILL + Vector2(4.0, 3.5) and DevilFruits.IN_WORLD:
+		elif s[0] == HILL + Vector2(4.0, 3.5) and DevilFruits.WIDE_POOL:
 			extra = "vine_fruit"
 		elif s[0] == COVE + Vector2(9, -21):
 			extra = "katana"

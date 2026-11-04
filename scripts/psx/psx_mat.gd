@@ -184,9 +184,11 @@ static func _white() -> Texture2D:
 
 
 const TERRAIN_SHADER := preload("res://scenes/island/terrain.gdshader")
+const SEA_MOTTLE := 0.32
 
 ## Terrain material shared by the procedural world and the hand-built island.
-## `ground` swaps the textures by layer (KitStyle "ground": grass, sand, wet_sand, dirt, rock, seafloor).
+## `ground` swaps the textures by layer (KitStyle "ground": grass, sand, wet_sand, dirt, rock, seafloor); a "deep" texture
+## (the atoll's) lays the seafloor by the vertex alpha: 1 `seafloor`, 0 `deep`, mottled by SEA_MOTTLE.
 ## `prints` (KitStyle "ground_prints"): footprints pressed into it ("sand", "snow"); "snow" also lays the soft
 ## snow layer over it as a next pass (snow_layer.gdshader).
 static func terrain(use_splat: bool, water_level: float = 0.0, ground: Dictionary = {}, prints := "") -> ShaderMaterial:
@@ -202,6 +204,10 @@ static func terrain(use_splat: bool, water_level: float = 0.0, ground: Dictionar
 	m.shader = TERRAIN_SHADER
 	for layer in ["grass", "sand", "wet_sand", "dirt", "rock", "seafloor"]:
 		m.set_shader_parameter("tex_" + layer, tex(str(ground.get(layer, layer))))
+	if ground.has("deep"):
+		m.set_shader_parameter("sea_mix", true)
+		m.set_shader_parameter("tex_sea_deep", tex(str(ground["deep"])))
+		m.set_shader_parameter("sea_mottle", SEA_MOTTLE)
 	m.set_shader_parameter("use_splat", use_splat)
 	m.set_shader_parameter("water_level", water_level)
 	m.set_shader_parameter("sand_height", water_level + 2.2)

@@ -69,12 +69,44 @@ const THINK_EVERY := 6
 var _last_move := Vector2.ZERO
 var _last_sprint := false
 
+## (1.30 round 6) How it fights (Personality.ALL), rolled from its captain's name (roll_for): K's numbers scale its
+## defence (dodge/parry/block shares, the block's hold), its patience (circling before it goes in), its combos, its
+## sprint and whether it steps back after one; a duelist ripostes on a parry, a bulwark walks in behind its block, an
+## opportunist goes in at once on an opening. Its tell: a line over its head the first time it squares up.
+var personality := ""
+const K := {
+	"berserker": {"dodge": 0.5, "parry": 0.4, "block": 0.4, "circle": 0.4, "combo": 2, "sprint": 0.6, "back": false},
+	"opportunist": {"dodge": 1.4, "parry": 0.8, "block": 0.8, "circle": 1.7, "combo": 0, "sprint": 1.0, "back": true},
+	"duelist": {"dodge": 0.5, "parry": 3.0, "block": 0.6, "circle": 1.0, "combo": 0, "sprint": 1.0, "back": true},
+	"bulwark": {"dodge": 0.4, "parry": 0.8, "block": 3.0, "circle": 1.2, "combo": 0, "sprint": 1.3, "back": true, "hold": 1.6},
+}
+## (1.30 verticality) A jumping attack now and then: from JUMP_RANGE m, on its feet, a jump at the foe and the plunge
+## (the air heavy) at the top; one every JUMP_CD s. The foe's spot flashes a telegraph as it leaves the ground.
+const JUMP_CD := Vector2(10.0, 15.0)
+const JUMP_RANGE := Vector2(3.5, 7.0)
+const JUMP_TELL := Color(1.0, 0.55, 0.2)
+var _jump_at := 0
+var _jumping := -1
+var _squared := false
+
 
 func _ready() -> void:
 	p = get_parent() as Player
 	process_physics_priority = -10
 	rng.seed = hash([name, p.name if p else "", randi()])
 	_strafe = 1.0 if rng.randf() < 0.5 else -1.0
+	if personality == "":
+		personality = CaptainBrain.roll_for(str(p.name) if p else str(name))
+	_jump_at = _now() + _ticks(rng.randf_range(3.0, 7.0))
+
+
+## The personality a captain of this name fights with (the same on every machine and every visit).
+static func roll_for(who: String) -> String:
+	return str(Personality.ALL[absi(hash([who, "personality"])) % Personality.ALL.size()])
+
+
+func _k(what: String, base):
+	return (K[personality] as Dictionary).get(what, base) if K.has(personality) else base
 
 
 func _now() -> int:
@@ -140,8 +172,15 @@ func _physics_process(_d: float) -> void:
 	if order == "watch":
 		_watch(bi)
 		return
+	if _jumping >= 0:
+		_jump_step(bi)
+		return
+	if not _squared and dist < 10.0:
+		_square_up()
 	_watch_foe(dist)
 	if _defend(bi, dist):
+		if personality == "bulwark" and _holding_block_until > _now() and dist > reach() * 0.7:
+			bi.move = Vector2(0, -0.35)
 		return
 	# (the plan, skills and footwork at ~10 Hz, staggered by instance, holding the last stick in between; seeing an
 	# attack and defending stay every tick: 1.23 perf track)
@@ -343,9 +382,15 @@ func _defend(bi: CaptainInput.BrainInput, dist: float) -> bool:
 		answers["none"] = int(answers.get("none", 0)) + 1
 		return false
 	var r := rng.randf()
-	var dodge := lerpf(0.12, 0.45, skill)
-	var parry := lerpf(0.04, 0.25, skill)
-	var block := lerpf(0.15, 0.2, skill)
+	var dodge := lerpf(0.12, 0.45, skill) * float(_k("dodge", 1.0))
+	var parry := lerpf(0.04, 0.25, skill) * float(_k("parry", 1.0))
+	var block := lerpf(0.15, 0.2, skill) * float(_k("block", 1.0))
+	# (never more than 90% answered)
+	var sum := dodge + parry + block
+	if sum > 0.9:
+		dodge *= 0.9 / sum
+		parry *= 0.9 / sum
+		block *= 0.9 / sum
 	if r < dodge:
 		# sideways and a little back, out of the swing's line
 		bi.move = Vector2(_strafe, 0.5).normalized()
@@ -357,9 +402,13 @@ func _defend(bi: CaptainInput.BrainInput, dist: float) -> bool:
 		p.input_buffer.buffer_action("parry")
 		_last_defence = "parry"
 		answers[_last_defence] = int(answers.get(_last_defence, 0)) + 1
+		if personality == "duelist":
+			# the riposte: straight back in with a short chain
+			_combo_left = 2
+			_next_swing = _now() + _ticks(0.3)
 	elif r < dodge + parry + block:
 		p.input_buffer.buffer_action("parry")
-		_holding_block_until = _now() + _ticks(rng.randf_range(0.5, 0.9))
+		_holding_block_until = _now() + _ticks(rng.randf_range(0.5, 0.9) * float(_k("hold", 1.0)))
 		_last_defence = "block"
 		answers[_last_defence] = int(answers.get(_last_defence, 0)) + 1
 	else:
@@ -402,25 +451,28 @@ func _move_and_swing(bi: CaptainInput.BrainInput, dist: float) -> void:
 			p.input_buffer.buffer_action("light_attack" if _combo_left > 0 or rng.randf() > lerpf(0.15, 0.35, skill) else "heavy_attack")
 			_next_swing = _now() + _ticks(rng.randf_range(0.26, 0.4))
 			if _combo_left == 0:
-				mode = "back"
+				mode = "back" if _k("back", true) else "circle"
 				_until = _now() + _ticks(rng.randf_range(0.5, 1.0))
 		bi.move = Vector2(0, -0.4 if dist > r * 0.7 else 0.0)
 		return
 	if mode == "back" and _now() < _until:
 		bi.move = Vector2(_strafe * 0.5, 1.0).normalized()
 		return
+	if _want_jump(dist):
+		_start_jump(bi)
+		return
 	if dist > r + 0.6:
 		mode = "approach"
 		bi.move = Vector2(0, -1)
-		bi.hold("sprint", dist > SPRINT_FROM * pace)
+		bi.hold("sprint", dist > SPRINT_FROM * pace * float(_k("sprint", 1.0)))
 		return
 	# at reach: circle a moment, then go in (sooner the sharper it is, and at once on an opening)
 	if mode != "circle":
 		mode = "circle"
-		_until = _now() + _ticks(rng.randf_range(lerpf(1.4, 0.6, skill), lerpf(2.6, 1.3, skill)) * pace)
-	var opening := _foe_recovering()
+		_until = _now() + _ticks(rng.randf_range(lerpf(1.4, 0.6, skill), lerpf(2.6, 1.3, skill)) * pace * float(_k("circle", 1.0)))
+	var opening := _foe_recovering() or (personality == "opportunist" and _foe_state_name() in OPENINGS)
 	if _now() >= _until or opening:
-		_combo_left = rng.randi_range(2, 3 + int(skill * 2.0))
+		_combo_left = rng.randi_range(2, 3 + int(skill * 2.0)) + int(_k("combo", 0))
 		_next_swing = _now()
 		return
 	bi.move = Vector2(_strafe, -0.15 if dist > r * 0.8 else 0.25).normalized() * 0.7
@@ -429,3 +481,40 @@ func _move_and_swing(bi: CaptainInput.BrainInput, dist: float) -> void:
 ## The foe just finished a swing (its state left an attack within the last moment): a window to punish.
 func _foe_recovering() -> bool:
 	return _seen_attack >= 0 and _now() - _seen_attack < _ticks(1.0) and not (_foe_state_name() in FOE_ATTACKS)
+
+
+## Its line on squaring up to a foe (the personality's tell), once.
+func _square_up() -> void:
+	_squared = true
+	if not Personality.BARK_SPOT.has(personality):
+		return
+	var lines: Array = Personality.BARK_SPOT[personality]
+	Net.fx("float_text", [p.global_position + Vector3.UP * 2.4, str(lines[rng.randi() % lines.size()]), Personality.COLOR[personality], 22])
+
+
+## A jumping attack's chance: off cooldown, on its feet and free, the foe JUMP_RANGE off and about level.
+func _want_jump(dist: float) -> bool:
+	if _now() < _jump_at or dist < JUMP_RANGE.x or dist > JUMP_RANGE.y or not p.is_free() or not p.is_on_floor():
+		return false
+	return absf(foe.global_position.y - p.global_position.y) < 1.5
+
+
+## Up: the jump tapped (held for the full height), running at the foe, the telegraph on them.
+func _start_jump(bi: CaptainInput.BrainInput) -> void:
+	_jump_at = _now() + _ticks(rng.randf_range(JUMP_CD.x, JUMP_CD.y))
+	_jumping = _now()
+	bi.tap("jump")
+	bi.hold("jump", true)
+	bi.move = Vector2(0, -1)
+	Net.fx("telegraph", [foe.global_position, 1.4, 0.9, JUMP_TELL])
+	Net.fx("sfx", ["clack", p.global_position, -4.0, 0.05, 0.7])
+
+
+## In the air: on at the foe, and the plunge (the air heavy) once high enough or the rise is spent.
+func _jump_step(bi: CaptainInput.BrainInput) -> void:
+	bi.move = Vector2(0, -1)
+	var t := _now() - _jumping
+	if t > 1 and (p.height_above_ground() > 1.1 or p.velocity.y < 0.5 or t > _ticks(0.5)):
+		bi.hold("jump", false)
+		p.input_buffer.buffer_action("heavy_attack")
+		_jumping = -1

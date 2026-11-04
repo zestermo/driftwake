@@ -11,6 +11,11 @@ const STRONGHOLD_RADIUS := 250.0
 var room_lights: Array = []
 ## (1.27) Its squads and sealed rooms (StrongholdGarrison): GruntCamps under the City node.
 var garrison: Array = []
+## (1.30 round 7) The dressing's repeated props (StrongholdDress: [{name, mesh, xforms, range}]), made in finish.
+var props: Array = []
+## The warships moored round the harbour outside its sea walls: [frame point, heading (bow), scale].
+const MOORED := [[Vector2(-52.0, 92.0), Vector2(-0.86, -0.51), 1.7], [Vector2(-92.0, 74.0), Vector2(1, 0), 1.6],
+	[Vector2(74.0, 90.0), Vector2(0.86, -0.51), 1.7], [Vector2(112.0, 72.0), Vector2(-1, 0), 1.6]]
 
 
 func prepare(n: Dictionary) -> void:
@@ -45,6 +50,11 @@ func prepare(n: Dictionary) -> void:
 	pieces = StrongholdShell.build(build_ms)
 	room_lights = StrongholdShell.lights.duplicate()
 	build_ms["shell"] = _lap(t0)
+	t0 = Time.get_ticks_usec()
+	var dress := StrongholdDress.build(build_ms)
+	pieces.append_array(dress["pieces"])
+	props = dress["props"]
+	build_ms["dress"] = _lap(t0)
 	places = []
 	var titles := {"landing": "The Landing", "ward": "The Lower Ward", "arsenal": "The Arsenal", "prison": "The Prison Tower", "keep": "The Keep"}
 	for d in StrongholdPlan.DISTRICTS:
@@ -62,6 +72,8 @@ func finish_steps() -> Array:
 	steps.append(["dock", _dock_here])
 	for i in range(pieces.size()):
 		steps.append(["fortress", _piece.bind(i)])
+	steps.append(["props", _props])
+	steps.append(["warships", _warships])
 	steps.append(["lights", _lights_on])
 	steps.append(["garrison", _garrison])
 	steps.append(["arrival", _arrival])
@@ -216,6 +228,56 @@ func _in_stone(at: Vector3, ship: bool) -> bool:
 func ground_set() -> Dictionary:
 	return {"grass": "fog_rock", "sand": "shingle_wet", "wet_sand": "shingle_wet", "dirt": "fog_rock", "rock": "fog_rock",
 		"seafloor": "seafloor", "cliff": "fog_rock"}
+
+
+## The dressing's props: a MultiMesh per district and kind, no shadows, seen to their range.
+func _props() -> void:
+	for p: Dictionary in props:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = p["mesh"]
+		var xs: Array = p["xforms"]
+		mm.instance_count = xs.size()
+		for i in range(xs.size()):
+			mm.set_instance_transform(i, xs[i])
+		var mi := MultiMeshInstance3D.new()
+		mi.name = str(p["name"])
+		mi.multimesh = mm
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = float(p["range"])
+		city.add_child(mi)
+	props = []
+
+
+## The Admiralty's warships moored round the harbour (MOORED): one warship hull built, its meshes merged at each berth into
+## one mesh (seen from far out at sea, no shadows), a box over each hull's waterline to the deck so nothing passes through.
+func _warships() -> void:
+	var proto := Node3D.new()
+	HullBuilder.build(proto, EnemyShip.KINDS["warship"]["look"])
+	var mb := MeshBuilder.new()
+	var body := StaticBody3D.new()
+	body.name = "MooredWarships"
+	body.collision_layer = 1
+	var box := AABB()
+	for mi in proto.find_children("*", "MeshInstance3D", true, false):
+		box = box.merge((mi as MeshInstance3D).get_aabb()) if box.size != Vector3.ZERO else (mi as MeshInstance3D).get_aabb()
+	for e: Array in MOORED:
+		var f: Vector2 = (e[1] as Vector2).normalized()
+		var s: float = e[2]
+		var t := Transform3D(Basis.looking_at(Vector3(f.x, 0, f.y), Vector3.UP).scaled(Vector3.ONE * s), CapitalModels.v3(e[0], 0.55 * s))
+		CapitalDistrict.absorb(mb, [], proto.duplicate(), t)
+		var cs := CollisionShape3D.new()
+		var sh := BoxShape3D.new()
+		sh.size = Vector3(box.size.x * 0.8, HullLayout.DECK_Y + 3.0, box.size.z * 0.9) * s
+		cs.shape = sh
+		cs.transform = Transform3D(t.basis.orthonormalized(), t.origin + Vector3(0, (HullLayout.DECK_Y - 3.0) * 0.5 * s, 0))
+		body.add_child(cs)
+	proto.free()
+	var mi := mb.to_instance("Mesh")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 1400.0
+	body.add_child(mi)
+	city.add_child(body)
 
 
 ## The rooms' lanterns: warm, no shadows, always lit (no daylight gets in there).

@@ -23,6 +23,19 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
+
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
@@ -33,6 +46,7 @@ func _process(_d: float) -> bool:
 			pr.add_mastery("katana", pr.mastery_to_next(11))
 			while pr.level < 4:
 				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
+			own_parents("k_iai")
 			pr.buy("k_iai")
 			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
 			root.size = Vector2i(1280, 720)
@@ -41,8 +55,12 @@ func _process(_d: float) -> bool:
 			gm.open("skills")
 			sm = gm._skills
 			sm.set_tab("combat", "katana")
-			until = TK.wait_ticks(4)
+			until = TK.wait_ticks(2)
 		1:
+			# (1.30: the map pans; bring the iai upgrade into view)
+			sm._map_pan = SkillTrees.node_def("k_iai")["pos"]
+			until = TK.wait_ticks(3)
+		2:
 			check("the variant is bought and owned", pr.owns("k_iai") and pr.version_of("k_iai") == 0)
 			check("drawn as two halves", sm._drawn.any(func(h): return h[1] == "v:k_iai:0") and sm._drawn.any(func(h): return h[1] == "v:k_iai:1"))
 			check("away from the bunk", not pr.can_respec())

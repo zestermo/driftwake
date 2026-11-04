@@ -80,6 +80,8 @@ var is_parrying: bool = false
 var is_blocking: bool = false
 var context: Context = Context.ON_FOOT
 var current_ship: Ship = null
+## (1.30) The safe spots behind us, the pause menu's Unstuck and the warp out from under the ground.
+var unstuck := Unstuck.new()
 var jumps_remaining: int = 1
 ## Gun Rains fired since leaving the ground (1 per jump + the "gun_rain_uses" stat).
 var gun_rains: int = 0
@@ -249,6 +251,7 @@ var net_profile: Dictionary = {}
 var input_locked: bool = false
 ## Knocked out in co-op: on the ground, waiting for a crewmate (see revive).
 var bleeding: bool = false
+var spared: bool = false
 var bleed_t: float = 0.0
 const BLEED_TIME := 20.0
 const REVIVE_TIME := 2.5
@@ -626,6 +629,12 @@ func attack_cost_k() -> float:
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished() or power.will.untouchable():
 		return
+	# (1.30) an AI boss's phase reset: nothing hurts it from the crouch to the roar's end
+	# (a stronghold boss's signature leap: untouchable only in the air, wide open in its wind-up and landing)
+	if current_state_name() == "BossLeap" and (state_machine.current_state.reset.guard or state_machine.current_state.reset.stage() == "air"):
+		if is_local:
+			state_machine.current_state.reset.deflect(global_position + Vector3.UP * 1.3)
+		return
 	# (1.27) Ember's Flame Body, by its form (FruitForms on Flicker's uses): the blow passes through the flames
 	if power.fruit == "ember" and _flame_body(hit):
 		Net.fx("flame", [global_position + Vector3.UP, 8, 0.6, 0.5, 0.4])
@@ -750,6 +759,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	# Captain's Presence: common foes' blows land softer
 	if attacker and not attacker.is_in_group("players") and not Progression.is_elite(attacker):
 		dmg *= 1.0 - progression.stat("presence")
+	# (1.30) foes hit harder with more captains about
+	if attacker and not attacker.is_in_group("players"):
+		dmg *= Net.dmg_scale()
 	dmg = power.will.incoming(hit, dmg)
 	# Last Stand: once a minute, a killing blow leaves you at 1
 	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:
@@ -793,6 +805,11 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if poise:
 		var took := poise.take(hit)
 		if took == Poise.BREAK:
+			# (1.30) a strong blow over the line throws you flat into the nearest wall (Splat), harder the further over
+			var pw := Splat.flat_power(hit, dmg, health_component.max_health, attacker)
+			if pw >= 0.0:
+				splat(dir, hit.launch > 0.0, pw)
+				return
 			# (1.26) a launcher sends a broken captain up (Juggle's throw), like a grunt
 			knock_down(Vector3.UP * hit.launch + dir * Juggle.CARRY if hit.launch > 0.0 else _last_hit_velocity)
 			return
@@ -804,6 +821,10 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		if _own_poise == null:
 			_own_poise = Poise.make("player")
 		if _own_poise.take(hit) == Poise.BREAK:
+			var pw := Splat.flat_power(hit, dmg, health_component.max_health, attacker)
+			if pw >= 0.0:
+				splat(dir, hit.launch > 0.0, pw)
+				return
 			knock_down(_last_hit_velocity)
 			return
 		state_machine.force_state("Stagger", {"stagger_duration": 0.35, "knockback_dir": dir,
@@ -905,11 +926,26 @@ func hit_freeze(duration: float) -> void:
 	body_model.freeze(duration)
 
 
+## (1.30) Thrown back on your feet by a boss's shockwave or clearing roar: a reel that slides out at `v` (along walls).
+func shoved(v: Vector3) -> void:
+	if context == Context.HELM or power.buff("tekkai") or power.buff("berserk") or current_state_name() in ["Downed", "Swim", "Grabbed"]:
+		return
+	state_machine.force_state("Stagger", {"stagger_duration": v.length() / 20.0, "knockback_dir": v.normalized(), "knockback_force": v.length(), "flinch": false})
+
+
 ## Thrown off your feet: physics ragdoll, then get back up.
 func knock_down(throw_velocity: Vector3) -> void:
 	if context == Context.HELM:
 		return
 	state_machine.force_state("Downed", {"velocity": throw_velocity})
+
+
+## (1.30) Thrown flat along `dir` (or up) into the nearest wall or ceiling (Splat) as hard as `power` (0-1), then dazed
+## and a slower get-up.
+func splat(dir: Vector3, up: bool, power: float = 1.0) -> void:
+	if context == Context.HELM:
+		return
+	state_machine.force_state("Downed", {"splat": dir, "up": up, "power": power})
 
 
 func _on_died() -> void:
@@ -948,14 +984,14 @@ func reset_lean() -> void:
 
 ## Stand up where the ragdoll came to rest: face the right way, then play the
 ## get-up from the fallen pose. Returns how long the get-up takes.
-func get_up_from_ragdoll() -> float:
+func get_up_from_ragdoll(slow: float = 1.0) -> float:
 	var info := body_model.ragdoll_rest_info()
 	var face_up: bool = info["face_up"]
 	var head_dir: Vector3 = info["head_dir"]
 	var f := -head_dir if face_up else head_dir
 	player_model.rotation.y = atan2(-f.x, -f.z)
 	reset_lean()
-	var dur := 1.05 if face_up else 0.95
+	var dur := (1.05 if face_up else 0.95) * slow
 	body_model.begin_getup(face_up, dur, info["hips_xform"])
 	return dur
 
@@ -1340,6 +1376,7 @@ func _physics_process(delta: float) -> void:
 	# slipped through the ground into the sea under an island: back on top (GroundNet)
 	if Engine.get_physics_frames() % GroundNet.EVERY == 0 and GroundNet.rescue(self):
 		state_machine.force_state("Idle", {})
+	unstuck.tick(self)
 	# swimming in a whirlpool: dragged round and in with the water
 	if current_state_name() == "Swim":
 		var sf := get_tree().get_first_node_in_group("sea_features")
@@ -1386,7 +1423,7 @@ const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch", "Slide"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1596,6 +1633,8 @@ func _update_lean_target(delta: float) -> void:
 const SAFE_FALL_SPEED := 18.0
 const MAX_FALL_SPEED := 34.0
 const FALL_DAMAGE_PER_MS := 5.3
+## Feather Fall (Acrobatics): a drop under 12 m lands this fast at most (falling at 1.6 g) and doesn't hurt.
+const FEATHER_SAFE_SPEED := 27.9
 
 
 func _on_landed(impact_vy: float) -> void:
@@ -1642,11 +1681,15 @@ func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
 	if power.buff("tekkai"):
 		dmg *= 0.3
 	if progression.has_flag("featherfall"):
-		dmg *= 0.25
-		speed = minf(speed, SAFE_FALL_SPEED + 4.0)
+		if speed <= FEATHER_SAFE_SPEED:
+			return
+		dmg *= 0.5
+		reel = false
 	_since_hit = 0.0
 	if not Duel.beaten(self, dmg):
 		health_component.take_damage(dmg)
+	if health_component.current_health > 0.0:
+		progression.add_life("acrobatics", Progression.ACRO_XP["fall"])
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	cam_shake(clampf(dmg / 60.0, 0.1, 0.4))
@@ -1827,12 +1870,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Alt+F9: a level of every life skill
 			for t in SkillTree.LIFE_SKILLS:
 				var lm := progression.mastery_of(t)
-				progression.add_life(t, Progression.mastery_to_next(int(lm["lv"])) - int(lm["xp"]))
+				progression.add_mastery(t, Progression.mastery_to_next(int(lm["lv"]), t) - int(lm["xp"]))
 		else:
 			var mt := SkillTree.style_tree(style())
 			if mt != "":
 				var m := progression.mastery_of(mt)
-				progression.add_mastery(mt, Progression.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+				progression.add_mastery(mt, Progression.mastery_to_next(int(m["lv"]), mt) - int(m["xp"]))
 			progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
 		get_viewport().set_input_as_handled()
 		return
@@ -1864,11 +1907,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				_debug_crew += 1
 				_toast("Debug: %s" % RivalCrews.ADMIRALTY[oid]["captain"] if RivalEncounter.start(self, oid) else "Debug: an encounter's already on")
 			elif k.ctrl_pressed:
-				# Ctrl+Alt+F5: the next rival crew turns up (RivalEncounter: the meeting, duels in turn)
+				# Ctrl+Alt+F5: the next rival crew turns up (RivalEncounter: the meeting, duels in turn); on a chain island
+				# their ship sails in first and anchors off the harbour (RivalArrival)
 				var ids := RivalCrews.ids()
 				var crew := str(ids[_debug_crew % ids.size()])
 				_debug_crew += 1
-				if RivalEncounter.start(self, crew) == null:
+				if GameManager.rival_watch.bring(crew):
+					_toast("Debug: %s's ship, sailing in" % RivalCrews.CREWS[crew]["name"])
+				elif RivalEncounter.start(self, crew) == null:
 					_toast("Debug: a crew's already here")
 				else:
 					_toast("Debug: %s" % RivalCrews.CREWS[crew]["name"])
@@ -1928,6 +1974,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var st := current_state_name()
 		if st == "Crouch":
 			state_machine.force_state("Idle", {})
+		elif st == "Slide":
+			state_machine.force_state("Move" if inp.stick().length() > 0.1 else "Idle", {})
+		elif st == "Move" and SlideState.can_start(self):
+			# (1.30) C while moving on a slope: the slope slide, armed or not
+			state_machine.force_state("Slide", {})
+		elif st in ["Jump", "Fall"]:
+			# (and on the way down: land into one, FallState)
+			set_meta("slide_land", PlayerState.now_s())
 		elif (armed or (power.fruit_stance and crew_tech.id() != "")) and context == Context.ON_FOOT:
 			crew_tech.trigger()
 		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():
@@ -2543,6 +2597,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 	h.poise = {"": Poise.LIGHT, "finisher": Poise.FINISHER, "heavy": Poise.HEAVY}.get(kind, clampf(base * 1.2, Poise.LIGHT, Poise.TECH_MAX))
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0) + (pr.stat("heavy_pct") if kind == "heavy" else 0.0)
 	h.damage = base * damage_multiplier() * k
+	h.sneak = pr.sneaking_recently()
 	# (Sidestep: a blow slipped makes the next one a sure crit)
 	var slipped := power.buff("slipped")
 	power.buffs.erase("slipped")
@@ -3262,13 +3317,42 @@ func _bleed_tick(delta: float) -> void:
 		# nobody came (or nobody's left standing): the usual death
 		bleeding = false
 		get_tree().call_group("hud", "show_prompt", "", -1.0)
+		if spared:
+			if Net.others_standing():
+				# (1.30) in a stronghold boss's arena: not up where you lie, but back at its checkpoint to walk in again
+				var cp := StrongholdBoss.rejoin_point(global_position)
+				if cp != Vector3.INF:
+					StrongholdBoss.rejoin(self, cp)
+				else:
+					Duel.stand_up(self, health_component.max_health * REVIVE_HEALTH, power.energy)
+			return
 		GameManager.bleed_out()
+
+
+## Beaten but spared (Duel.spare: downed, not dead): with a crewmate still standing they can get you up, and if nobody
+## does you get up on your own; with none, you lie for whatever takes the crew (the brig, a rival's plunder).
+func spared_down() -> void:
+	if bleeding or not is_local or is_ai or not Net.coop() or not Net.others_standing():
+		return
+	spared = true
+	bleeding = true
+	bleed_t = BLEED_TIME
+	_revive_t = 0.0
+	_toast("You're down! A crewmate can get you up (hold F next to you)")
+
+
+func spared_up() -> void:
+	spared = false
+	if bleeding:
+		bleeding = false
+		get_tree().call_group("hud", "show_prompt", "", -1.0)
 
 
 ## A crewmate got you back on your feet.
 func revive() -> void:
 	if not bleeding:
 		return
+	spared = false
 	bleeding = false
 	get_tree().call_group("hud", "show_prompt", "", -1.0)
 	var hc := health_component

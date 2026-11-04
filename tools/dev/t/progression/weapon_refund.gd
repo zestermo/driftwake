@@ -41,10 +41,10 @@ func _process(_d: float) -> bool:
 			var data: Dictionary = f.get_var()
 			f.close()
 			data["progression"] = {"format": 6, "level": 18, "xp": 50,
-				"owned": ["c_root", "k_root", "s_root", "m_soru"] + KATANA + CUTLASS + ["k_eye", "m_geppo", "m_swift"],
-				"bought": KATANA + CUTLASS + ["bl_gone_node", "m_geppo", "m_swift"],
+				"owned": ["c_root", "k_root", "s_root", "m_soru"] + KATANA + CUTLASS + ["k_eye", "m_geppo"],
+				"bought": KATANA + CUTLASS + ["bl_gone_node", "m_geppo"],
 				"mastery": {"katana": {"lv": 24, "xp": 30}, "sword": {"lv": 12, "xp": 0}, "acrobatics": {"lv": 6, "xp": 0}},
-				"steps": {"k_keen": 5, "s_edge": 3, "ac_light": 2}, "versions": {"k_iai": 1}, "found": ["katana", "acrobatics"],
+				"steps": {"k_keen": 5, "s_edge": 3, "m_swift": 2}, "versions": {"k_iai": 1}, "found": ["katana", "acrobatics"],
 				"tiers": {}, "uses": {"wind_sever": 7}, "passives": ["", "", ""]}
 			data["power"]["loadout"] = ["riposte", "wind_sever", "", "", "", ""]
 			f = FileAccess.open(SAVE, FileAccess.WRITE)
@@ -57,7 +57,7 @@ func _process(_d: float) -> bool:
 			check("every weapon node and step refunded, nothing bought again", (KATANA + CUTLASS).all(func(k): return not pr.owns(k)) and pr.steps_of("k_keen") == 0 and pr.steps_of("s_edge") == 0)
 			check("...the katana's own 52 points, the cutlass's 26", pr.pool("katana") == 52 and pr.pool("sword") == 26)
 			check("...the bar's refunded skills off it", not ("riposte" in p.power.loadout) and not ("wind_sever" in p.power.loadout))
-			check("Adventure's purchases bought back: Geppo, Swift Step, 2 Light Steps, 1 point left", pr.owns("m_geppo") and pr.owns("m_swift") and pr.steps_of("ac_light") == 2 and pr.pool("adventure") == 1)
+			check("Adventure's purchases bought back: Geppo, 2 Swift Steps, 1 point left", pr.owns("m_geppo") and pr.steps_of("m_swift") == 2 and pr.pool("adventure") == 1)
 			check("uses kept", pr.uses_of("wind_sever") == 7)
 			check("a node bought after the refund", pr.buy("k_draw") and pr.pool("katana") == 50)
 			SG.save(p)

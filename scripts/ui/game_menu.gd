@@ -409,6 +409,11 @@ func _build_pause() -> Control:
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
 		["Suggest an Idea", func(): open("idea")],
+		["Unstuck", func():
+			var pl := _player()
+			close()
+			if pl:
+				pl.call("_toast", pl.unstuck.request(pl))],
 		["Save Game", func():
 			var pl := _player()
 			if pl:

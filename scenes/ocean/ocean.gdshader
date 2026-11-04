@@ -101,6 +101,24 @@ float shoal_depth(vec2 p, vec4 sh) {
 	}
 	return 1.0;
 }
+// A coral atoll's lagoon (AtollWater sets it near one, 0 elsewhere): x, z, radius, strength. Inside it the water is
+// clear tropical blue however deep (its floor shows), and a texel of shore map with no shore in reach (its swell
+// distance at FAR, where shore_at gives the open sea's NONE: the waves are unchanged) still gives the colour its depth.
+uniform vec4 lagoon_disc = vec4(0.0);
+uniform vec4 lagoon_color : source_color = vec4(0.1, 0.6, 0.78, 1.0);
+
+float lagoon_depth(vec2 p, float sd) {
+	float best = 1e6;
+	for (int i = 0; i < 4; i++) {
+		vec4 r = shore_rect[i];
+		vec2 u = (p - r.xy) / max(r.z, 0.001);
+		if (r.w > 0.5 && u.x > 0.0 && u.y > 0.0 && u.x < 1.0 && u.y < 1.0) {
+			vec4 s = i == 0 ? textureLod(shore0, u, 0.0) : (i == 1 ? textureLod(shore1, u, 0.0) : (i == 2 ? textureLod(shore2, u, 0.0) : textureLod(shore3, u, 0.0)));
+			best = min(best, s.x);
+		}
+	}
+	return best < 1e5 ? clamp(best / SHOAL_DEPTH, 0.0, 1.0) : sd;
+}
 uniform float wave_total = 1.38;
 uniform float near_half = 120.0;
 uniform float growth = 0.08;
@@ -185,8 +203,17 @@ void fragment() {
 	// lacing of light on the sand and a line of surf at the very edge
 	vec4 sh = shore_at(wuv);
 	float sd = shoal_depth(wuv, sh);
-	float shoal = 1.0 - smoothstep(0.05, 0.85, sd);
+	float sdc = sd;
+	float clear = 0.0;
+	if (lagoon_disc.w > 0.0) {
+		clear = lagoon_disc.w * (1.0 - smoothstep(lagoon_disc.z * 0.9, lagoon_disc.z * 1.04, distance(wuv, lagoon_disc.xy)));
+		if (clear > 0.0 && sh.x >= shore_none.x - 1.0) {
+			sdc = lagoon_depth(wuv, sd);
+		}
+	}
+	float shoal = 1.0 - smoothstep(0.05, 0.85, sdc);
 	float lace = smoothstep(0.55, 0.95, sin(wuv.x * 0.9 + sin(wuv.y * 0.7 + time_val * 0.6) * 1.8 + time_val * 0.4) * 0.5 + 0.5);
+	base_color = mix(base_color, lagoon_color.rgb * (1.0 + lace * 0.15), clear * (1.0 - shoal) * 0.9);
 	base_color = mix(base_color, shoal_color.rgb * (1.0 + lace * 0.25 * shoal), shoal * 0.7);
 	// surf: bands of foam on the shore swell's crests as they break in over
 	// the shallows (a bright edge, a short tail; where it hasn't turned to the
@@ -230,7 +257,10 @@ void fragment() {
 	}
 	// (clearer over the shoals: the sand shows through)
 	// (foam is opaque white water)
-	ALPHA = mix(mix(near_alpha - shoal * 0.22, 1.0, fresnel), 1.0, max(hz, max(surf, caps) * 0.7));
+	ALPHA = mix(mix(near_alpha - shoal * 0.22 - clear * (1.0 - shoal) * 0.16, 1.0, fresnel), 1.0, max(hz, max(surf, caps) * 0.7));
+	// (round an atoll, outside its lagoon, deep water is opaque: the island's square of seabed down there and the open
+	// sea past its edge read the same deep blue, no edge)
+	ALPHA = mix(ALPHA, 1.0, lagoon_disc.w * (1.0 - clear) * smoothstep(0.45, 0.95, sdc));
 	// (rough 0.5 spread the sun's reflection into pale sand-coloured sheets over
 	// whole stretches of sea at some sun angles: a tighter glitter path instead)
 	ROUGHNESS = 0.2;

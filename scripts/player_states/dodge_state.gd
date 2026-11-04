@@ -55,7 +55,10 @@ var _vine_dist: float = 0.0
 ## (input's way, or the camera's forward) in AIR_DASH_DUR s.
 const AIR_DASH_DIST := 6.5
 const AIR_DASH_DUR := 0.32
+## Skyward Dash's straight-up dash: x the level one's speed (~5 m up).
+const UP_DASH_K := 0.8
 var _air: bool = false
+var _up: bool = false
 ## "dash", "roll", "sidestep" or "hop".
 var mode: String = "dash"
 ## The load's distance (GearStats.LOAD_DODGE_K).
@@ -75,6 +78,7 @@ func enter(data: Dictionary) -> void:
 	_perfect = false
 	var pr := player.progression
 	_air = bool(data.get("air", false))
+	_up = false
 	_logia = player.power.fruit_type() == "logia" and not player.power.suppressed()
 	mode = "dash"
 	if not _air and not _logia:
@@ -90,7 +94,6 @@ func enter(data: Dictionary) -> void:
 	_speed = dodge_speed * (1.0 + pr.stat("dodge_dist_pct"))
 	_dur = dodge_duration
 	_iframes = iframes_duration * (1.0 + pr.stat("dodge_iframe_pct"))
-	pr.add_life("acrobatics", 5)
 	if _logia:
 		_iframes = _dur + 0.05
 		player.set_collision_mask_value(12, false)  # through enemies
@@ -230,7 +233,12 @@ func physics_update(delta: float) -> void:
 			spd = _speed * maxf(1.3 - 1.2 * u, 0.1)
 	player.velocity.x = dodge_direction.x * spd
 	player.velocity.z = dodge_direction.z * spd
+	if _up:
+		player.velocity.y = spd
 	player.move_and_slide()
+	if _air and wants_dash_strike():
+		transitioned.emit(self, "Plunge", {"dash": player.get_meta("air_dash_dir")})
+		return
 	if player.armed and mode != "roll":
 		face_camera(delta)
 	if _logia:
@@ -300,13 +308,14 @@ func _perfect_dodge() -> void:
 		CombatManager.apply_slowmo(0.35, slow)
 	if pr.has_flag("crowd_read"):
 		player.power.add_buff("crowd_sight", CROWD_SECS)
+	flowing_edge()
+	pr.add_life("acrobatics", Progression.ACRO_XP["slip"])
 
 
 ## Slipped a blow: a glint off the shoulder, and the next hit is a sure crit.
 func _slip() -> void:
 	_slipped = true
 	player.power.add_buff("slipped", SLIP_SECS)
-	player.progression.add_life("acrobatics", 6)
 	var at := player.global_position + Vector3(0, 1.4, 0)
 	Net.fx("glint", [at, Color(1.0, 0.97, 0.85), 0.7])
 	Net.fx("float_text", [at + Vector3(0, 0.4, 0), "Slipped!", Color(1.0, 0.95, 0.75)])
@@ -314,13 +323,27 @@ func _slip() -> void:
 	CombatManager.apply_hitstop(0.05, [player])
 
 
-## Skyward Dash: one burst the way you're going, level, the body stretched along it, an afterimage left behind.
+## The air dash (Acrobatics' Air Dash and Twin Dash, or Skyward Dash's righting): one burst the way you hold, level (with
+## Skyward Dash and nothing held: straight up), the body stretched along it, an afterimage left behind. Dash Distance
+## carries it further; an attack out of it is the Dash Strike.
 func _air_dash() -> void:
-	player.skyward_dash = false
+	var pr := player.progression
+	if air_dashes_left() > 0:
+		player.air_uses["air_dash"] = int(player.air_uses.get("air_dash", 0)) + 1
+	else:
+		player.skyward_dash = false
 	_dur = AIR_DASH_DUR
-	_speed = AIR_DASH_DIST / (0.85 * AIR_DASH_DUR)
+	_speed = AIR_DASH_DIST * (1.0 + pr.stat("air_dash_pct")) / (0.85 * AIR_DASH_DUR)
+	_up = get_movement_input().length() <= 0.1 and pr.has_flag("skyward_dash")
+	if _up:
+		dodge_direction = Vector3.UP
+		_speed *= UP_DASH_K
+	else:
+		face_direction(dodge_direction, 1.0)
 	player.velocity.y = 0.0
-	face_direction(dodge_direction, 1.0)
+	player.set_meta("air_dash_at", now_s())
+	player.set_meta("air_dash_dir", get_camera_forward() if _up else dodge_direction)
+	pr.add_life("acrobatics", Progression.ACRO_XP["air_dash"])
 	var at := player.global_position + Vector3(0, 0.9, 0)
 	Net.fx("afterimage", [player.body_model, Color(0.8, 0.92, 1.0), 0.3])
 	Net.fx("ring", [at - dodge_direction * 0.4, dodge_direction, 0.9, Color(1.0, 0.98, 0.92, 0.8), 0.25, 0.08])

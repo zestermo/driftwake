@@ -170,16 +170,27 @@ func _physics_process(delta: float) -> void:
 	if phase == 1 and f < ACT2:
 		phase = 2
 		_say("act2")
+		_leap_home()
 		_raise_crew()
 	elif phase == 2 and f < ACT3:
 		phase = 3
 		_say("act3")
-		_blink_t = BLINK_EVERY * 0.5
+		_leap_home()
+		_blink_t = BLINK_EVERY * 0.5 + BossReset.WIND + BossReset.AIR + BossReset.ROAR_S
 	if phase == 3:
 		_blink_t -= delta
 		if _blink_t <= 0.0 and captain.current_state_name() != "Downed":
 			_blink_t = BLINK_EVERY
 			_blink()
+
+
+## (1.30) Each new act starts from the middle of his deck: a leap there, a shockwave, a roar he can't be hurt in
+## (BossReset through his BossLeap state; the shockwave's event goes out on this node).
+func _leap_home() -> void:
+	if captain.current_state_name() == "Downed":
+		return
+	var c: Vector3 = arena.centre() if arena != null and arena.has_method("centre") else post
+	captain.state_machine.force_state("BossLeap", {"reset": BossReset.new(captain, self).start(BossReset.floor_at(captain, c))})
 
 
 ## Far from every captain he doesn't think (his body stands where it is).
@@ -297,7 +308,9 @@ func _process(_d: float) -> void:
 	_hp = float(s[2])
 
 
-func net_event(what: String, _args: Array) -> void:
+func net_event(what: String, args: Array) -> void:
 	if what == "gone":
 		state = "dead"
 		_gone()
+	elif what == "reset_shock":
+		BossReset.shock_local(self, args[0], float(args[1]), float(args[2]), float(args[3]))

@@ -255,7 +255,7 @@ func _process(delta: float) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	var show := visible and is_up() and me != null and me.global_position.distance_to(core.global_position) < 160.0
 	if show:
-		get_tree().call_group("hud", "show_boss", title, hp / maxf(max_hp, 1.0), 1)
+		get_tree().call_group("hud", "show_boss", title, hp / maxf(max_hp, 1.0), 1, self)
 		_boss_shown = true
 	elif _boss_shown:
 		_boss_shown = false

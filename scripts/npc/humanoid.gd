@@ -27,7 +27,7 @@ const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
 const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "gun_kata", "axe_whirl", "axe_flip",
-	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "twin_cyclone", "vault_back"]
+	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "twin_cyclone", "vault_back", "fo_roll_l", "fo_roll_r"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
 var look: Dictionary = {}
@@ -588,6 +588,12 @@ func _lod_every() -> int:
 	if cam == null:
 		return 1
 	var d2 := cam.global_position.distance_squared_to(global_position)
+	if crowd:
+		if d2 < CROWD_FULL_R * CROWD_FULL_R:
+			return 1
+		if not cam.is_position_in_frustum(global_position + Vector3.UP):
+			return 8
+		return 3 if d2 < 12.0 * 12.0 else 4
 	if d2 < 12.0 * 12.0:
 		return 1
 	if not cam.is_position_in_frustum(global_position + Vector3.UP):
@@ -664,6 +670,13 @@ func _notification(what: int) -> void:
 ## A lod rig casts no shadow past this from the camera (m; back on inside SHADOW_R - 4): a body is ~19 parts, so
 ## ~19 shadow draws for a few pixels of shadow at the PS1 grid. Brinehollow's townsfolk were ~300 of the plaza's.
 const SHADOW_R := 28.0
+## (1.30) A crowd rig (the stronghold's fodder in a fight, FodderMarine): posed every frame only inside CROWD_FULL_R of
+## the camera (its owner turns this off while it swings), every 3rd-4th frame further out (the PS1's 15-20 fps
+## animation), every 8th off screen; a
+## shadow only inside CROWD_SHADOW_R; no foot IK and no hair or cloth swing.
+var crowd: bool = false
+const CROWD_FULL_R := 3.5
+const CROWD_SHADOW_R := 9.0
 var _shadow_t: float = 0.0
 var _shadows_on: bool = true
 ## [GeometryInstance3D, its own cast_shadow] for the parts that cast, taken when the shadows go off
@@ -679,7 +692,8 @@ func _shadow_lod(delta: float) -> void:
 	if cam == null:
 		return
 	var d2 := cam.global_position.distance_squared_to(global_position)
-	var r := SHADOW_R if _shadows_on else SHADOW_R - 4.0
+	var sr := CROWD_SHADOW_R if crowd else SHADOW_R
+	var r := sr if _shadows_on else sr - 4.0
 	var on := d2 < r * r
 	if on == _shadows_on:
 		return
@@ -732,7 +746,7 @@ func _update_physics(delta: float) -> void:
 	var cam := _camera()
 	var r := SIMS_R_LOD if lod else SIMS_R
 	var d2 := cam.global_position.distance_squared_to(global_position) if cam else 0.0
-	var near := cam == null or d2 < r * r
+	var near := (cam == null or d2 < r * r) and not crowd
 	if near and lod:
 		near = _sims_rank(d2)
 	if not near and not _sims_near:
@@ -2490,6 +2504,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return FistMoves.pose(self, n, u)
 	if n.begins_with("ct_"):
 		return CrewPoses.pose(self, n, u)
+	if n.begins_with("fo_"):
+		return FoePoses.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
@@ -2808,6 +2824,20 @@ func _locomotion(delta: float) -> Dictionary:
 				"arm_" + ts: Vector3(0.9, 0, (1.0 + flail) * to), "arm_" + ls: Vector3(0.2, 0, (1.2 + flail) * lo), "torso": Vector3(-0.22, 0.08 * _jside, 0)}, true)
 		for j in jump.keys():
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
+		# (1.30) a long fall comes alive: the arms windmill out wide against the wind, the legs pedal, the chest arches
+		# into it and rolls a little side to side
+		var long_k := smoothstep(0.5, 1.1, _air_time) * clampf(-vy / 9.0, 0.0, 1.0)
+		if long_k > 0.0:
+			var wm := _t * 8.0
+			var pd := _t * 6.5
+			var free := {
+				"arm_l": Vector3(1.1 + sin(wm) * 0.85, 0, -1.35 - cos(wm) * 0.3), "fore_l": Vector3(0.45 + 0.3 * sin(wm * 1.3), 0, 0),
+				"arm_r": Vector3(1.1 - sin(wm + 0.6) * 0.85, 0, 1.35 + cos(wm + 0.6) * 0.3), "fore_r": Vector3(0.45 + 0.3 * cos(wm * 1.3), 0, 0),
+				"leg_l": Vector3(0.85 + sin(pd) * 0.5, 0, -0.2), "shin_l": Vector3(-1.1 - maxf(cos(pd), 0.0) * 0.7, 0, 0),
+				"leg_r": Vector3(0.85 - sin(pd) * 0.5, 0, 0.2), "shin_r": Vector3(-1.1 - maxf(-cos(pd), 0.0) * 0.7, 0, 0),
+				"torso": Vector3(0.18, 0.05 * sin(_t * 2.1), 0.07 * sin(_t * 2.3)), "head": Vector3(-0.2, 0, -0.05 * sin(_t * 2.3))}
+			for j in free.keys():
+				p[j] = (p[j] as Vector3).lerp(free[j], long_k)
 		if _guns_out():
 			_gun_tuck(p, 1.0)
 		elif armed and stance == "katana":
@@ -3554,7 +3584,7 @@ func _foot_ik(delta: float) -> void:
 		return
 	var cam := _camera()
 	var ik_r := IK_R_LOD if lod else IK_R
-	if cam and cam.global_position.distance_squared_to(global_position) > ik_r * ik_r:
+	if crowd or (cam and cam.global_position.distance_squared_to(global_position) > ik_r * ik_r):
 		return
 	if not _ik_body_found:
 		_ik_body_found = true

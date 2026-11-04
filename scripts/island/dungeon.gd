@@ -248,7 +248,7 @@ func _queen_tick(delta: float, alive: bool) -> void:
 func _boss_hud(me: Node3D, alive: bool) -> void:
 	var show := me != null and alive and _boss_fighting() and inside(me.global_position)
 	if show:
-		get_tree().call_group("hud", "show_boss", boss_name(), _boss_frac(), queen.phase if queen else 1)
+		get_tree().call_group("hud", "show_boss", boss_name(), _boss_frac(), queen.phase if queen else 1, queen)
 		_boss_ui = true
 	elif _boss_ui:
 		_boss_ui = false

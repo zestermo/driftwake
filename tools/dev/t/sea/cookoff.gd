@@ -39,7 +39,7 @@ func cook_xp() -> int:
 	var pr = p.progression
 	var t := int(pr.mastery_of("cook")["xp"])
 	for lv in range(1, pr.mastery_level("cook")):
-		t += int(pr.mastery_to_next(lv))
+		t += int(pr.mastery_to_next(lv, "cook"))
 	return t
 
 

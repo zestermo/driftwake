@@ -30,6 +30,11 @@ var _wet: bool = false
 ## A long freefall gone limp (FallState): it falls at the captain's own gravity, an air step pulls you out, and it
 ## lands with fall damage.
 var tumble: bool = false
+## (1.30) Thrown flat into a wall (Splat): down until it lets go, then DAZE s dazed and a slower get-up.
+var splat: bool = false
+var _daze_t: float = -1.0
+const DAZE := 1.0
+const SPLAT_GETUP := 1.3
 
 ## A tumble's spin (rad/s): head over heels, a little twist.
 const TUMBLE_SPIN := Vector3(3.2, 1.1, 0.6)
@@ -54,8 +59,14 @@ func enter(data: Dictionary) -> void:
 	var spin := Vector3.UP.cross(Vector3(v.x, 0, v.z).normalized()) * 5.0 if v.length() > 0.1 else Vector3.ZERO
 	if tumble:
 		spin = player.player_model.global_basis * TUMBLE_SPIN
-	# on a ship under way the body keeps the deck's speed (or the deck sails out from under it)
-	player.body_model.start_ragdoll(v + _deck_velocity(), spin, not dead and not tumble)
+	splat = data.has("splat")
+	_daze_t = -1.0
+	if splat:
+		Splat.throw_body(player.body_model, data["splat"], bool(data.get("up", false)), not player.bloodless(), true,
+			float(data.get("power", 1.0)))
+	else:
+		# on a ship under way the body keeps the deck's speed (or the deck sails out from under it)
+		player.body_model.start_ragdoll(v + _deck_velocity(), spin, not dead and not tumble)
 	if tumble:
 		player.body_model.ragdoll.fall_like(player.gravity * player.fall_gravity_mult, Player.MAX_FALL_SPEED)
 	if player.power.has_fruit() and player.body_model.ragdoll:
@@ -133,14 +144,38 @@ func physics_update(delta: float) -> void:
 		if timer > MIN_DOWN and (hip_depth < FLOAT_DEPTH and vy > -0.6 or timer > MAX_UNDER):
 			player.recover_into_swim()
 		return
+	if splat and (rag.held or rag.has_node("Splat")):
+		timer = 0.0
+		_rest = 0.0
+		return
 	if rag.settled():
 		_rest += delta
 	else:
 		_rest = 0.0
 	if timer > MIN_DOWN and (_rest > 0.25 or timer > MAX_DOWN):
+		if splat and _daze_t < 0.0:
+			_daze_t = 0.0
+			Net.fx("sfx", ["edy_sense", hips, -10.0, 0.05, 0.7])
+		if _daze_t >= 0.0 and _daze_t < DAZE:
+			_daze_t += delta
+			_daze_fx(delta)
+			return
 		getting_up = true
 		timer = 0.0
-		getup_time = player.get_up_from_ragdoll()
+		getup_time = player.get_up_from_ragdoll(SPLAT_GETUP if splat else 1.0)
+
+
+## Dazed on the ground: a few stars wheel round the head.
+var _star_t := 0.0
+
+
+func _daze_fx(delta: float) -> void:
+	_star_t -= delta
+	if _star_t > 0.0:
+		return
+	_star_t = 0.3
+	var head := player.body_model.head.global_position + Vector3.UP * 0.25
+	Net.fx("sparkle", [head, 3, Color(1.0, 0.95, 0.55)])
 
 
 ## Jump pressed in mid-air: out of a tumble an air step (one of yours) rights you into the step; with Breakfall

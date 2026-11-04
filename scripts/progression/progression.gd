@@ -48,20 +48,26 @@ const FAMILY_SHARE := 0.0
 ## Metres swum for a point of Swimming xp, and how often (ticks) the swim is measured.
 const SWIM_M := 4.0
 const SWIM_TICKS := 15
+## (1.30, docs/v1_30_previews.md section 2) The Adventure trees that earn twice the xp for what you do.
+const LIFE_XP_K := {"defense": 2, "cook": 2, "sea": 2, "swim": 2, "tinker": 2, "fish": 2, "stealth": 2}
+## Acrobatics' xp, only for what counts (no plain jumps): an air jump, a wall jump, an air dash, a blow dodged, a fall
+## lived through, a sky leap.
+const ACRO_XP := {"air_jump": 6, "wall_jump": 6, "air_dash": 5, "slip": 6, "fall": 8, "sky_leap": 10, "moonstep": 8}
 ## Passive slots at the start; the Captain's milestones add one at 10, 20 and 30 (5 at most).
 const PASSIVE_SLOTS := 2
 ## How close to the ship's bunk (m) steps, versions and talents can be switched.
 const BUNK_REACH := 2.5
 ## How close to a rest spot (an inn's, the bunk's interactable) builds can be switched.
 const REST_REACH := 3.5
-## Trees a new captain sees.
-const FOUND_AT_START := ["captain", "sword"]
+## Trees a new captain sees (since 1.30 no weapon's: the one kept from Vey's rack is found then).
+const FOUND_AT_START := ["captain"]
 ## Save format: 2 = per-tree points, mastery, tiers; 3 = families and life skills; 4 = the trimmed trees (older
 ## saves are refunded once); 5 = the redesign (steps, versions, passive slots, found trees); 6 = the two pools
 ## (bought nodes; an older save's nodes and steps are bought back while the pools afford them, the rest refunded);
 ## 7 = points per weapon tree (an older save's weapon and fruit purchases refunded, Adventure's bought back); 8 = Will
-## paths (an older save's Wills come back as Will points; Squall Step and Ballast to buy in Acrobatics and Defense).
-const FORMAT := 8
+## paths (an older save's Wills come back as Will points; Squall Step and Ballast to buy in Acrobatics and Defense);
+## 9 = the Adventure trees' own curve (1.30: an older save's Adventure xp re-levelled on it, _recurve).
+const FORMAT := 9
 ## Respec at the bunk: RESPEC_GOLD + RESPEC_PER_LEVEL x the Captain's level, a tree.
 const RESPEC_GOLD := 100
 const RESPEC_PER_LEVEL := 40
@@ -105,6 +111,7 @@ var _gift: Dictionary = {}
 var _spend_rev := -1
 var _spend: Dictionary = {}
 var _wind_used := false
+var _loading := false
 var _sneak_frame := -AMBUSH_TICKS
 var _sneak_m := 0.0
 ## foe instance id -> hits that taught mastery
@@ -225,7 +232,11 @@ static func xp_to_next(lv: int) -> int:
 	return int(round(200.0 * pow(float(lv), 1.5)))
 
 
-static func mastery_to_next(lv: int) -> int:
+## A tree's xp from `lv` to the next: a weapon's or fruit's 60 x lv^1.3, an Adventure tree's 40 x lv^1.15 (1.30: 467
+## for level 5, 2,349 for 10).
+static func mastery_to_next(lv: int, tree: String = "") -> int:
+	if SkillTrees.section_of(tree) == "adventure":
+		return int(round(40.0 * pow(float(lv), 1.15)))
 	return int(round(60.0 * pow(float(lv), 1.3)))
 
 
@@ -400,8 +411,8 @@ func _gain(tree: String, amount: int) -> void:
 		return
 	m["xp"] = int(m["xp"]) + amount
 	var ups := 0
-	while int(m["lv"]) < max_of(tree) and int(m["xp"]) >= mastery_to_next(int(m["lv"])):
-		m["xp"] = int(m["xp"]) - mastery_to_next(int(m["lv"]))
+	while int(m["lv"]) < max_of(tree) and int(m["xp"]) >= mastery_to_next(int(m["lv"]), tree):
+		m["xp"] = int(m["xp"]) - mastery_to_next(int(m["lv"]), tree)
 		m["lv"] = int(m["lv"]) + 1
 		ups += 1
 	if int(m["lv"]) >= max_of(tree):
@@ -454,7 +465,15 @@ func on_hit(target: Node = null, hit: HitData = null) -> void:
 				if not is_instance_id_valid(k):
 					_foe_hits.erase(k)
 		_foe_hits[id] = n + 1
+	# (Vey's rack: trying the kinds teaches nothing; the one kept is found then)
+	if _mine() and Story.step == "vey_rack":
+		return
 	add_mastery(hand_tree(), MASTERY_PER_HIT)
+
+
+## (1.30) Still within AMBUSH_TICKS of sneaking: a blow now is struck out of a sneak (HitData.sneak).
+func sneaking_recently() -> bool:
+	return Engine.get_physics_frames() - _sneak_frame < AMBUSH_TICKS
 
 
 ## CrouchState's tick: sneaking, `metres` moved. Every SNEAK_M metres with a foe within SNEAK_NEAR teaches Stealth,
@@ -475,7 +494,7 @@ func sneak(metres: float) -> void:
 func drill() -> void:
 	var t := hand_tree()
 	if t != "":
-		add_mastery(t, mastery_to_next(mastery_level(t)) - int(mastery_of(t)["xp"]))
+		add_mastery(t, mastery_to_next(mastery_level(t), t) - int(mastery_of(t)["xp"]))
 
 
 ## The tree the weapon in hand learns in (the Wolf Fruit's claws in hybrid form; "" for none).
@@ -485,9 +504,9 @@ func hand_tree() -> String:
 
 
 ## Life skills learned by doing: Seamanship (Seamanship.xp), swimming (on_swim, measured
-## here), and cooking and fishing (their systems call add_life).
+## here), and cooking and fishing (their systems call add_life). LIFE_XP_K's trees earn twice (1.30).
 func add_life(skill: String, amount: int) -> void:
-	add_mastery(skill, amount)
+	add_mastery(skill, amount * int(LIFE_XP_K.get(skill, 1)))
 
 
 func on_swim(metres: float) -> void:
@@ -539,7 +558,7 @@ func tree_xp(tree: String) -> int:
 func tree_xp_next(tree: String) -> int:
 	if tree == "captain":
 		return xp_to_next(level) if level < MAX_LEVEL else 0
-	return mastery_to_next(tree_level(tree)) if tree_level(tree) < max_of(tree) else 0
+	return mastery_to_next(tree_level(tree), tree) if tree_level(tree) < max_of(tree) else 0
 
 
 ## A weapon's (or the fruit's) own points at mastery `lv` (1.23, docs/v1_23_previews.md option A): 2 a level, and a
@@ -683,11 +702,11 @@ func buy_why(id: String) -> String:
 		return "Needs %s %d" % [tree_name(tree), int(n["level"])]
 	if not _visible(tree):
 		return "Eat the fruit first" if SkillTrees.section_of(tree) == "fruit" else "Not found yet"
-	if n.has("needs") and not (n["needs"] as Array).any(func(k): return owns(k)):
-		return "Needs %s first" % " or ".join((n["needs"] as Array).map(func(k): return str(SkillTrees.node_def(k)["name"])))
-	var on :=str(n["links"][0]) if not n["links"].is_empty() else ""
-	if kind == "step" and SkillTrees.node_def(on)["kind"] != "root" and not owns(on):
-		return "Needs %s first" % SkillTrees.node_def(on)["name"]
+	var parent := "" if _loading else parent_why(id)
+	if parent != "":
+		return parent
+	if kind == "step" and n.has("step_levels") and tree_level(tree) < int(n["step_levels"][steps_of(id)]):
+		return "Next step at %s %d" % [tree_name(tree), int(n["step_levels"][steps_of(id)])]
 	if kind == "elem":
 		for k in SkillTrees.nodes_of(tree):
 			var e := SkillTrees.node_def(k)
@@ -697,6 +716,20 @@ func buy_why(id: String) -> String:
 	if SkillTrees.price(id) > pool(p):
 		return "Needs %d %s point%s" % [SkillTrees.price(id), pool_name(p), "" if SkillTrees.price(id) == 1 else "s"]
 	return ""
+
+
+## (1.30) A node is bought only once its parent on the map is yours ("" = it is): one of its links (or its "needs"),
+## or all of its "needs_all" (a bridge that joins two branches). A step counts as yours once a step of it is.
+func parent_why(id: String) -> String:
+	var n := SkillTrees.node_def(id)
+	var name_of := func(k): return str(SkillTrees.node_def(k)["name"])
+	if n.has("needs_all"):
+		var missing: Array = (n["needs_all"] as Array).filter(func(k): return not owns_node(k))
+		return "" if missing.is_empty() else "Needs %s first" % " and ".join(missing.map(name_of))
+	var parents: Array = n.get("needs", n["links"])
+	if parents.is_empty() or parents.any(func(k): return owns_node(k)):
+		return ""
+	return "Needs %s first" % " or ".join(parents.map(name_of))
 
 
 ## Buy a node with its pool's points (a step: one step).
@@ -1284,6 +1317,8 @@ func from_dict(d: Dictionary) -> void:
 				mastery[str(t)] = (ms[t] as Dictionary).duplicate()
 		tiers = (d.get("tiers", {}) as Dictionary).duplicate()
 		uses = (d.get("uses", {}) as Dictionary).duplicate()
+	if fmt < 9:
+		_recurve()
 	var want_steps := {}
 	var sd: Dictionary = d.get("steps", {})
 	for k in sd.keys():
@@ -1307,7 +1342,7 @@ func from_dict(d: Dictionary) -> void:
 		# (1.23: Will came free from set bosses; each one awakened comes back as a boss's Will points, to spend on a path)
 		wills = []
 		var old: Array = d.get("will", [])
-		will_earned = old.filter(func(k): return str(k) in WillPaths.OLD).size() * int(WillPaths.SOURCES["boss"])
+		will_earned = old.filter(func(k): return str(k) in WillPaths.OLD).size() * WillPaths.OLD_WILL_PTS
 		_will_back = will_earned
 	if fmt < 7:
 		# (1.23: the weapons' and fruit's nodes were bought from the one Combat pool; every point of it comes back once
@@ -1331,6 +1366,11 @@ func from_dict(d: Dictionary) -> void:
 	for t in mastery.keys():
 		if SkillTrees.has_tree(t) and (mastery_level(t) > 1 or int(mastery[t]["xp"]) > 0):
 			found[t] = true
+	# (before 1.30 the cutlass was found at start and so never saved: a save that spent in it still finds it)
+	for k in bought.keys() + steps.keys():
+		var nt := str(SkillTrees.node_def(k).get("tree", ""))
+		if SkillTrees.has_tree(nt):
+			found[nt] = true
 	passives.clear()
 	for p in d.get("passives", []):
 		passives.append(str(p))
@@ -1348,6 +1388,26 @@ func from_dict(d: Dictionary) -> void:
 	_migrated = fmt < FORMAT and (level > 1 or not ms.is_empty())
 	_rev += 1
 	changed.emit()
+
+
+## (format < 9) Each Adventure tree's xp under the old curve (a weapon's) re-levelled on its own, Acrobatics' halved
+## (it earned on every plain jump then), never below the level it had: the playtest's Acrobatics 12 stays 12,
+## Seamanship 4 becomes 6.
+func _recurve() -> void:
+	for t in mastery.keys():
+		if SkillTrees.section_of(t) != "adventure":
+			continue
+		var lv0 := int(mastery[t]["lv"])
+		var total := int(mastery[t]["xp"])
+		for l in range(1, lv0):
+			total += mastery_to_next(l)
+		if t == "acrobatics":
+			total /= 2
+		var lv := 1
+		while lv < max_of(t) and total >= mastery_to_next(lv, t):
+			total -= mastery_to_next(lv, t)
+			lv += 1
+		mastery[t] = {"lv": lv0, "xp": 0} if lv < lv0 else {"lv": lv, "xp": total if lv < max_of(t) else 0}
 
 
 ## A save's purchases bought again while the pools afford them, the rest left in the pools: first what's on the bar
@@ -1376,6 +1436,8 @@ func _buy_back(want: Array, want_steps: Dictionary) -> void:
 			return str(na["tree"]) < str(nb["tree"])
 		return int(na["level"]) < int(nb["level"])
 	rest.sort_custom(by_tree)
+	# (a save from before 1.30's parent check keeps what it bought past a parent)
+	_loading = true
 	for k in first + rest:
 		if buy_why(k) == "":
 			_take(k, true)
@@ -1386,6 +1448,7 @@ func _buy_back(want: Array, want_steps: Dictionary) -> void:
 			if buy_why(k) != "":
 				break
 			_take(k, true)
+	_loading = false
 
 
 ## After the power component has loaded too: the fruit's free nodes, and clear bar slots holding skills you no
@@ -1410,5 +1473,5 @@ func after_load() -> void:
 			subs.append("What you'd bought came back: " + ", ".join(trees.map(func(t): return points_line(t).trim_suffix(" (K)"))) + ".")
 		if _will_back > 0:
 			subs.append("Your Wills came back as %d Will points: pick a path (K, Captain: W)." % _will_back)
-		subs.append("Squall Step and Ballast are bought in Acrobatics and Defense.")
+		subs.append("The Adventure trees level faster now, and every tree is one map: Acrobatics' points came back to spend on its new moves (wall jumps, air dashes, slides).")
 		get_tree().call_group("hud", "show_banner", "Every weapon has its own points now" if _refunded else "The skill trees changed", " ".join(subs), true)

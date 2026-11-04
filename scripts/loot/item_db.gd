@@ -24,6 +24,8 @@ static func with_trait(base_id: String, trait_id: String) -> ItemData:
 	if _items.has(id):
 		return _items[id]
 	var base := get_item(base_id)
+	if base == null:
+		return null
 	var it := base.duplicate() as ItemData
 	it.id = id
 	it.weapon_trait = trait_id
@@ -37,6 +39,8 @@ static func with_trait(base_id: String, trait_id: String) -> ItemData:
 ## by that id like any other item). The base's own tier gives the base.
 static func tiered(base_id: String, tier: int) -> ItemData:
 	var base := get_item(base_id)
+	if base == null:
+		return null
 	if int(base.rarity) == tier:
 		return base
 	var id := "%s@%d" % [base_id, tier]

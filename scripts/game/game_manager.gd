@@ -401,6 +401,13 @@ func _respawn_player() -> void:
 	var fell_at: Vector3 = player.global_position if player else Vector3.ZERO
 	await get_tree().create_timer(3.0).timeout
 
+	# (1.30) fallen in a stronghold boss's arena (its fight on, or just started over by a wipe): its checkpoint
+	var cp: Vector3 = StrongholdBoss.rejoin_point(fell_at)
+	if player and cp != Vector3.INF:
+		await get_tree().create_timer(StrongholdBoss.REJOIN_SECS - 3.0).timeout
+		if player:
+			StrongholdBoss.rejoin(player, cp)
+		return
 	# (1.27) fallen on a stronghold with a muster flag raised: back up at the nearest one (StrongholdMuster)
 	var muster: Vector3 = StrongholdMuster.nearest_raised(fell_at)
 	if player and muster != Vector3.INF:

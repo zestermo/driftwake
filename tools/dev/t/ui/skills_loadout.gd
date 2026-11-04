@@ -31,6 +31,19 @@ func key(k: int) -> void:
 	sm._input(ev)
 
 
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
+
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
@@ -42,6 +55,8 @@ func _process(_d: float) -> bool:
 			pr.add_mastery("katana", pr.mastery_to_next(12))
 			while pr.level < 5:
 				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
+			own_parents("k_tiger")
+			own_parents("k_clean")
 			check("Tiger Rush and Clean Line bought", pr.buy("k_tiger") and pr.buy("k_clean"))
 			p.loadouts[0] = ["katana", ""]
 			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)

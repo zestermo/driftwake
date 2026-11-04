@@ -95,7 +95,7 @@ const STYLE := {
 	"music_town": "atoll_town",
 	"ambience": "atoll",
 	"ground": {"grass": "atoll_turf", "sand": "atoll_sand", "wet_sand": "atoll_sand", "dirt": "atoll_sand", "rock": "atoll_coral",
-		"seafloor": "atoll_seafloor", "cliff": "atoll_coral"},
+		"seafloor": "atoll_seafloor", "cliff": "atoll_coral", "deep": "seafloor"},
 	"ground_prints": "sand",
 	"arena": "open",
 	"cave_look": {"rock": ["atoll_coral", Color(1.0, 1.0, 1.0)], "moss": ["atoll_turf", Color(0.9, 0.95, 0.88)], "turf": ["atoll_turf", Color.WHITE],
@@ -105,6 +105,8 @@ const STYLE := {
 	"haze": 0.1,
 	"haze_color": Color(0.6, 0.82, 0.92, 0.35),
 	"storm_color": Color(0.32, 0.38, 0.44),
+	# clear tropical water: bright turquoise under the surface, a deep clear blue at the basin's floor, seen far
+	"under": [Color(0.2, 0.62, 0.66), Color(0.06, 0.34, 0.52), 48.0, Vector2(70.0, 38.0)],
 	"rock_tint": Color(0.82, 0.78, 0.68),
 	"moss_tint": Color(0.55, 0.68, 0.45),
 	"temple_stone": Color(0.82, 0.78, 0.68),

@@ -66,7 +66,7 @@ func _process(_d: float) -> bool:
 			check("...and loads", save.load_into(p) and inv.bait == "bait_worm")
 			var pr = p.progression
 			while pr.mastery_level("fish") < 8:
-				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish")))
+				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish"), "fish"))
 			pr.buy("fs_saver")
 			check("Bait Saver bought at Fishing 8 (%.2f, %s)" % [pr.stat("fish_bait_save"), pr.buy_why("fs_saver")], pr.owned.has("fs_saver") and pr.stat("fish_bait_save") > 0.0)
 			give("bait_worm", 30)
@@ -78,8 +78,9 @@ func _process(_d: float) -> bool:
 			check("...keeps the bait now and then (%d used for 30 catches)" % used, used < 30 and used > 10)
 			var w0: float = F.window(p, "driftwood")
 			while pr.mastery_level("fish") < 20:
-				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish")))
-			pr.buy("fs_master")
+				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish"), "fish"))
+			for k in ["fs_patient", "fs_hands", "fs_master"]:
+				pr.buy(k)
 			check("Master Angler at Fishing 20: twice the legendary odds and a longer window (%.2f -> %.2f s)" % [w0, F.window(p, "driftwood")],
 				pr.owned.has("fs_master") and is_equal_approx(pr.stat("fish_legend"), 1.0) and F.window(p, "driftwood") > w0)
 			var AW = load("res://scripts/game/action_wheel.gd")

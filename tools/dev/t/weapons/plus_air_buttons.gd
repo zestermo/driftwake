@@ -24,7 +24,7 @@ func check(what: String, cond: bool) -> void:
 func to_level(tree: String, lv: int) -> void:
 	while pr.mastery_level(tree) < lv:
 		var m: Dictionary = pr.mastery_of(tree)
-		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+		pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"]), tree) - int(m["xp"]))
 
 
 ## Up in the air, falling, free to attack; then `button` pressed.
@@ -43,6 +43,19 @@ func mode() -> String:
 	return str(st.id) if p.current_state_name() == "Technique" else (str(st._mode) if p.current_state_name() == "Plunge" else "")
 
 
+## (1.30) A node's parents on the map, owned for the test (a node is bought only once its parent is yours).
+func own_parents(id: String) -> void:
+	var n: Dictionary = load("res://scripts/progression/skill_trees.gd").node_def(id)
+	var ps: Array = n.get("needs_all", (n.get("needs", n["links"]) as Array).slice(0, 1))
+	for k in ps:
+		if not pr.owns_node(k):
+			own_parents(k)
+			if load("res://scripts/progression/skill_trees.gd").node_def(k)["kind"] == "step":
+				pr.steps[k] = 1
+			else:
+				pr.owned[k] = true
+	pr._dirty()
+
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
@@ -53,6 +66,7 @@ func _process(_d: float) -> bool:
 			pr.discover("sword")
 			to_level("sword", 9)
 			pr.gift("sword", 30)
+			own_parents("s_dive")
 			check("Boarding Dive bought", pr.buy("s_dive"))
 			check("mastery 9: the aerial heavy not yet (%s)" % pr.buy_why("s_airheavy"), pr.buy_why("s_airheavy") == "Needs Cutlass 10")
 			lift("heavy_attack")
@@ -72,6 +86,7 @@ func _process(_d: float) -> bool:
 			if not p.is_free() or not p.is_on_floor():
 				return false
 			to_level("sword", 10)
+			own_parents("s_airheavy")
 			check("mastery 10: the aerial heavy bought", pr.buy("s_airheavy"))
 			lift("heavy_attack")
 			until = TK.wait_ticks(4)

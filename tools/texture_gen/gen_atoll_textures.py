@@ -66,19 +66,20 @@ def gen_atoll_coral():
 
 
 def gen_atoll_seafloor():
-    """The lagoon's floor: pale sand in soft ripples, a patch of turtle grass, scattered coral rubble (reads turquoise
-    through the shallows)."""
+    """The lagoon's floor: the same coral sand as the beaches (atoll_sand's palette, so the waterline has no seam),
+    laid in soft wave ripples with their shaded troughs, shell grit in the hollows (reads turquoise through the
+    shallows; the grass, rubble and shells on it are meshes, AtollSeabed)."""
     rng = np.random.default_rng(9404)
     x = np.arange(64)[None, :] / 64.0
     y = np.arange(64)[:, None] / 64.0
-    rip = np.sin((x * 3 + y * 1 + periodic_noise(64, 4, rng) * 0.35) * math.tau) * 0.5 + 0.5
-    n = fbm(64, 4, 3, rng) * 0.6 + rip * 0.4
-    rgb = ramp(norm(n), pal("b8b294", "c4bea0", "d0caae", "dcd6bc", "e6e0c8"))
-    grass = norm(fbm(64, 4, 2, rng)) > 0.78
-    rgb[grass] = ramp(norm(fbm(64, 8, 2, rng))[grass], pal("6e7e52", "7e8e5e", "8e9a68"))
-    for _ in range(26):
+    rip = np.sin((x * 4 + y * 1 + periodic_noise(64, 4, rng) * 0.45) * math.tau) * 0.5 + 0.5
+    rip = rip ** 1.6
+    n = fbm(64, 4, 3, rng) * 0.35 + rng.random((64, 64)) * 0.25 + rip * 0.4
+    rgb = ramp(norm(n), pal("cdbf9e", "d8cbab", "e2d6b8", "eae0c6", "f2ead4", "f8f2e2"))
+    for _ in range(50):
         px, py = rng.integers(0, 64, 2)
-        rgb[py, px] = [hexc("e8c8b8"), hexc("a09a80"), hexc("f4f0e4")][rng.integers(0, 3)]
+        if rip[py, px] < 0.35:
+            rgb[py, px] = [hexc("e8b8a8"), hexc("b8a888"), hexc("ffffff"), hexc("f4d8c0")][rng.integers(0, 4)]
     save(to_img(rgb), "atoll_seafloor")
 
 

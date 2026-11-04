@@ -1,6 +1,6 @@
 extends SceneTree
-## Acrobatics is learned by doing: a jump teaches it (and finds the tree: it shows under Adventure), a dodge
-## teaches more; Acrobatics 2 lets Geppo be bought (a second jump in mid-air), 4 Swift Step.
+## Acrobatics is learned by what counts (1.30): a plain jump or a dodge through no blow teaches nothing, an air jump does;
+## Acrobatics 2 lets Geppo be bought (a second jump in mid-air). Its own curve: 40 x lv^1.15.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -37,17 +37,22 @@ func _process(_d: float) -> bool:
 			TK.act("jump")
 			until = TK.wait_ticks(60)
 		1:
-			check("a jump teaches Acrobatics (%d) and finds its tree" % xp(), xp() == 3 and "acrobatics" in pr.visible_trees("adventure"))
-			x0 = xp()
+			check("a plain jump teaches nothing (%d)" % xp(), xp() == 0)
 			TK.act("dodge")
 			until = TK.wait_ticks(40)
 		2:
-			check("a dodge teaches more (%d)" % (xp() - x0), xp() - x0 == 5)
-			pr.add_life("acrobatics", pr.mastery_to_next(1))
-			check("Acrobatics 2: Geppo bought with its Adventure point, a second jump in mid-air", pr.buy("m_geppo") and p.max_jumps == 2)
-			while pr.mastery_level("acrobatics") < 4:
-				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics")))
-			check("Acrobatics 4: Swift Step bought (a cheaper dodge)", pr.buy("m_swift") and p.dodge_cost() < p.DODGE_COST)
+			check("nor does a dodge through no blow (%d)" % xp(), xp() == 0)
+			pr.add_life("acrobatics", pr.mastery_to_next(1, "acrobatics") + pr.mastery_to_next(2, "acrobatics"))
+			check("Acrobatics 3 (467 xp by 5 on its own curve): Geppo bought with its 2 Adventure points, a second jump in mid-air",
+				pr.mastery_to_next(4, "acrobatics") == 197 and pr.buy("m_geppo") and p.max_jumps == 2)
+			x0 = xp()
+			TK.act("jump")
+			until = TK.wait_ticks(12)
+		3:
+			TK.act("jump")
+			until = TK.wait_ticks(60)
+		4:
+			check("an air jump teaches it (%d)" % (xp() - x0), xp() - x0 == pr.ACRO_XP["air_jump"])
 			return TK.done(fails)
 	step += 1
 	return false

@@ -26,7 +26,7 @@ extends CharacterBody3D
 
 signal died(grunt: PirateGrunt)
 
-enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR, GRAB }
+enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR, GRAB, POUNCE }
 
 const GRAVITY := 20.0
 const RUN_SPEED := 4.4
@@ -102,6 +102,7 @@ var captain: bool = false
 var title: String = ""
 var _overhead: OverheadBar
 const CAPTAIN_HP := 3.2
+const CREW_HP_K := 1.3
 const CAPTAIN_DMG := 1.35
 ## Came over the side from a pirate ship: no post to go back to, fights on
 ## wherever it lands.
@@ -153,6 +154,59 @@ var _punish_t := 0.0
 var _blocks_taken := 0
 var _grab_ready := false
 var _grab_target: Node3D
+## (1.30) How it fights (Personality; "" for riflemen, bosses): rolled from its seed, or the setup's "personality".
+var personality := ""
+var _parry_t := 0.0
+var _parry_cd := 0.0
+var _guard_load := 0.0
+var _wait_t := 0.0
+var _foe_st := ""
+var _riposte_at := 0.16
+## (1.30 verticality) Strong foes' jumping attacks (_can_jump): a leaping overhead from mid range, a jump-in slash from
+## further out, a dive off a ledge onto a captain below. One every JUMP_CD s (the first after JUMP_FIRST); the gather
+## (fo_leap_wind) with an orange glint and a telegraph where it'll land, then S.POUNCE: a ballistic flight onto the spot,
+## the blow (_hit_pounce: knockdown) live on the way down and a moment after landing.
+const JUMPS := ["leap", "jump_in", "dive"]
+const JUMP_CD := Vector2(10.0, 15.0)
+const JUMP_FIRST := Vector2(3.0, 7.0)
+const LEAP_RANGE := Vector2(3.6, 7.5)
+const JUMP_IN_RANGE := Vector2(7.5, 11.0)
+const DIVE_DROP := 1.6
+const DIVE_REACH := 9.0
+const JUMP_FLIGHT := {"leap": 0.75, "jump_in": 0.55, "dive": 0.6}
+const JUMP_WIND := {"leap": 0.55, "jump_in": 0.45, "dive": 0.4}
+const JUMP_POSE := {"leap": "fo_leap", "jump_in": "fo_jump_slash", "dive": "fo_dive"}
+const JUMP_TELL := Color(1.0, 0.55, 0.2)
+var _jump_cd := 0.0
+var _jump_at := Vector3.ZERO
+var _jump_land := -1.0
+var _hit_pounce: HitData
+## (1.30) Riflemen, less predictable: up close a hip shot (HIP_*, a short aim), rushed the bayonet thrust or the butt,
+## now and then a kneeling aimed shot from range (KNEEL_*: the kneel and a red glint the tell, a harder ball that knocks
+## down), a dodge roll out of a heavy, a shot or a charge (ROLL_*), a side-step hop as it changes its strafe, high ground
+## preferred when it moves after a shot, and never two riflemen's balls within VOLLEY_GAP s (the later one waits).
+const HIP_RANGE := 6.0
+const HIP_AIM := 0.5
+const HIP_LOCK := 0.18
+const HIP_CD := Vector2(4.0, 7.0)
+const KNEEL_FROM := 9.0
+const KNEEL_AIM := 2.0
+const KNEEL_LOCK := 0.55
+const KNEEL_TELL := Color(1.0, 0.35, 0.25)
+const BAYONET_RANGE := 3.4
+const ROLL_LEN := 0.5
+const ROLL_SPEED := 7.5
+const ROLL_CD := Vector2(5.0, 8.0)
+const HOP_ODDS := 0.35
+const VOLLEY_GAP := 0.35
+var _kneel_odds := 0.3
+var _roll_odds := 0.55
+var _hip_cd := 0.0
+var _roll_cd := 0.0
+var _jab := false
+var _dash_len := DASH_LEN
+var _dash_speed := DASH_SPEED
+static var _volley_tick := -100000
 
 var _col: CollisionShape3D
 var _bark: Label3D
@@ -185,6 +239,10 @@ const RUSH_MAX := 15.0
 const RUSH_LOCK := 0.35
 const RUSH_OVER := 2.5
 const RUSH_COLOR := Color(1.0, 0.72, 0.2)
+## The lane ends before water or a drop of more than RUSH_DROP m (stepped in 1 m); the run out of it is a hard skid at
+## RUSH_SKID m/s^2 (it used to coast ~20 m past the lane: Morrow went out his gate into the sea).
+const RUSH_DROP := 1.5
+const RUSH_SKID := 90.0
 var _rush_cd: float = 0.0
 var _rush_dir := Vector3.ZERO
 var _rush_len: float = 0.0
@@ -318,6 +376,7 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	elite_trait = str(cfg.get("trait", ""))
 	title = str(cfg.get("title", ""))
 	hold = cfg.get("hold", [])
+	personality = str(cfg.get("personality", ""))
 	look = PirateGrunt.look_for(cfg)
 	_body = cfg.get("body")
 	return self
@@ -452,7 +511,8 @@ func _ready() -> void:
 	# every pirate's blade is their own (and it's the one they drop)
 	_roll_role()
 	_roll_extras()
-	var d := WeaponDesigns.random_design("cutlass", _rng)
+	_roll_personality()
+	var d :=WeaponDesigns.random_design("cutlass", _rng)
 	_blade_model = "cutlass:%s:0" % d
 	_blade_id = str(WeaponDesigns.DESIGNS["cutlass"][d]["id"]) if d != "" else "cutlass"
 	if not _role().is_empty():
@@ -559,13 +619,23 @@ func _ready() -> void:
 	_hit_sweep.stagger_duration = 0.4
 	_hit_sweep.hitstop_duration = 0.07
 	_hit_sweep.camera_shake_intensity = 0.16
+	_hit_pounce = hd.duplicate() as HitData
+	_hit_pounce.damage = _dmg(20.0) * float(_role().get("dmg", 1.0))
+	_hit_pounce.knockback_force = 7.0
+	_hit_pounce.knockdown = true
+	_hit_pounce.stagger_duration = 0.4
+	_hit_pounce.hitstop_duration = 0.1
+	_hit_pounce.camera_shake_intensity = 0.26
 	if captain:
-		for h in [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]:
+		for h in _hit_set():
 			(h as HitData).damage *= CAPTAIN_DMG
 	_peril_cd = _rng.randf_range(4.0, 9.0)
+	_jump_cd = _rng.randf_range(JUMP_FIRST.x, JUMP_FIRST.y)
 	_rush_cd = _rng.randf_range(2.5, 4.5)
 	_pistol_cd = _rng.randf_range(2.0, 6.0)
 	_shot_cd = _rng.randf_range(1.0, 2.5)
+	_hip_cd = _rng.randf_range(1.0, 3.0)
+	_roll_cd = _rng.randf_range(1.0, 3.0)
 
 	# the aim line (thin, red while tracking, white-hot once locked)
 	_aim_mat = StandardMaterial3D.new()
@@ -594,6 +664,8 @@ func _ready() -> void:
 	_bark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_bark.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_bark.position = Vector3(0, 2.35 * float(look.get("height", 1.0)), 0)
+	if personality != "":
+		_bark.modulate = Personality.COLOR[personality]
 	_bark.visible = false
 	add_child(_bark)
 	if captain:
@@ -611,7 +683,7 @@ func _ready() -> void:
 # Helpers
 # ==========================================================================
 func _set_state(s: S) -> void:
-	if state in [S.SWING] and s != S.SWING:
+	if state in [S.SWING, S.POUNCE] and s != state:
 		hitbox.deactivate()
 	if _peril_on and not (s in [S.WIND, S.SWING] and _attack == "peril"):
 		_set_peril(false)
@@ -623,6 +695,8 @@ func _set_state(s: S) -> void:
 		set_collision_mask_value(2, true)   # (off while crumpled)
 	if state == S.AIR and s != S.AIR:
 		remove_from_group(Juggle.GROUP)
+	if s in [S.IDLE, S.RETURN, S.DEAD] and humanoid and humanoid.current_action().begins_with("fo_"):
+		humanoid.stop_action()
 	state = s
 	st_t = 0.0
 	if _aura:
@@ -649,8 +723,8 @@ func _target() -> Node3D:
 func _player_ok(p: Node3D) -> bool:
 	if p == null:
 		return false
-	# (1.28) hidden in a smoke pellet's cloud
-	if not GadgetVeil.clouds.is_empty() and GadgetVeil.veiled(p):
+	# (1.28) hidden in a smoke pellet's cloud, (1.30) or behind one
+	if not Stealth.sight_clear(global_position + Vector3.UP * 1.5, p):
 		return false
 	if p.has_method("current_state_name") and str(p.call("current_state_name")) in ["Downed", "Helm", "Swim", "Climb"]:
 		return false
@@ -718,7 +792,10 @@ func alert(delay: float = 0.0) -> void:
 		return
 	humanoid.seated = false
 	if state == S.IDLE:
-		bark(BARK_ALERT, 0.7)
+		if personality != "":
+			bark(Personality.BARK_SPOT[personality], 0.9)
+		else:
+			bark(BARK_ALERT, 0.7)
 	_set_state(S.ALERT)
 	if role != "rifle":
 		humanoid.play("draw", 0.45)
@@ -772,7 +849,13 @@ func _physics_process(delta: float) -> void:
 	_shield_down_t -= delta
 	_punish_t -= delta
 	_rally_t -= delta
-	_fight_t = _fight_t + delta if in_combat() else 0.0
+	_parry_t -= delta
+	_parry_cd -= delta
+	_jump_cd -= delta
+	_hip_cd -= delta
+	_roll_cd -= delta
+	_guard_load = maxf(_guard_load - Personality.GUARD_DRAIN * delta, 0.0)
+	_fight_t =_fight_t + delta if in_combat() else 0.0
 	_disarm_tick(delta)
 	if state == S.DEAD:
 		_dead_update(delta)
@@ -848,7 +931,10 @@ func _physics_process(delta: float) -> void:
 			else:
 				var nd := _nav_dir(_lure.spot if lured else p.global_position, delta)
 				_face(nd)
-				if _want_rush(p, dist):
+				var jk := "" if lured else _want_jump(p, dist)
+				if jk != "":
+					_start_jump(jk, p)
+				elif _want_rush(p, dist):
 					_start_rush()
 				elif not lured and _want_pistol(p, dist, delta):
 					_start_aim("pistol")
@@ -870,19 +956,30 @@ func _physics_process(delta: float) -> void:
 				if flank != 0.0:
 					_strafe_dir = flank
 					_strafe_t = maxf(_strafe_t, 0.4)
-				var radial := clampf((dist - CIRCLE_RANGE) * 1.6, -1.6, 3.0)
+				var ring := CIRCLE_RANGE + float(Personality.k(personality, "ring", 0.0))
+				var radial := clampf((dist - ring) * 1.6, -1.6, 3.0)
 				if _backoff_t > 0.0 and dist < 6.0:
 					radial = -2.4
 				var tangent := Vector3.UP.cross(dir_p) * _strafe_dir * STRAFE_SPEED * (1.35 if flank != 0.0 else 1.0)
 				want = dir_p * radial + tangent + _separation() * 1.5
+				var turn_ok := lured or _pressed(dist) or _my_turn(p, dir_p)
+				_wait_t = _wait_t + delta if not turn_ok else 0.0
 				if not lured and _want_pistol(p, dist, delta):
 					_start_aim("pistol")
-				elif dist > CIRCLE_RANGE + 3.0:
+				elif dist > ring + 3.0:
 					_set_state(S.CHASE)
-				elif _cooldown <= 0.0 and _player_ok(p) and (lured or _pressed(dist) or _get_token()):
-					_attack = _choose_attack(dist)
-					_swing_i = 0
-					_begin_attack(dist)
+				elif _cooldown <= 0.0 and _player_ok(p) and turn_ok and (lured or _pressed(dist) or _get_token()):
+					if personality == "opportunist":
+						bark(Personality.BARK_STRIKE, 0.5)
+					elif personality == "berserker":
+						bark(Personality.BARK_FRENZY, 0.25)
+					var jk := "" if lured else _want_jump(p, dist)
+					if jk != "":
+						_start_jump(jk, p)
+					else:
+						_attack = _choose_attack(dist)
+						_swing_i = 0
+						_begin_attack(dist)
 		S.CLOSE:
 			_face(dir_p)
 			want = dir_p * RUN_SPEED * 0.85 + _separation()
@@ -898,6 +995,9 @@ func _physics_process(delta: float) -> void:
 			if _attack == "rush":
 				_rush_aim(p, dir_p, dist, dur)
 				turn = 14.0
+			elif _attack in JUMPS:
+				_face(_flat(_jump_at - global_position))
+				turn = 14.0
 			elif st_t < dur * 0.65:
 				_face(dir_p)
 				turn = 10.0
@@ -908,11 +1008,13 @@ func _physics_process(delta: float) -> void:
 			if _attack == "peril" and dist > _reach() + 0.6 and st_t < dur * 0.7:
 				want = dir_p * 2.4
 			# (the feint's first wind-up never glints: only the real one does)
-			if not _glinted and st_t > dur * 0.55 and _attack not in ["peril", "rush"] and not (_attack == "feint" and _swing_i == 0):
+			if not _glinted and st_t > dur * 0.55 and _attack not in ["peril", "rush"] + JUMPS and not (_attack == "feint" and _swing_i == 0):
 				_glinted = true
 				_glint()
 			if st_t >= dur:
-				if _attack == "feint" and _swing_i == 0:
+				if _attack in JUMPS:
+					_launch_jump()
+				elif _attack == "feint" and _swing_i == 0:
 					_feint_switch(dir_p)
 				else:
 					_start_swing()
@@ -951,7 +1053,7 @@ func _physics_process(delta: float) -> void:
 						hitbox.deactivate()
 						Net.fx("dust", [global_position + _rush_dir * 0.6, 8, 0.8])
 				else:
-					accel = 14.0
+					accel = RUSH_SKID
 					if st_t > _rush_stop + 0.5:
 						_end_attack(0.8)
 			elif _attack == "lunge":
@@ -986,21 +1088,22 @@ func _physics_process(delta: float) -> void:
 			accel = 12.0
 			if st_t > float(get_meta("recover", 0.6)):
 				_release_token()
-				_cooldown = _rng.randf_range(1.3, 2.4)
+				var cool: Vector2 = Personality.k(personality, "cool", Vector2(1.3, 2.4))
+				_cooldown = _rng.randf_range(cool.x, cool.y)
 				_set_state(_fight_state())
-				# now and then step back out of reach before circling in again
-				if role == "sword" and p and dist < 3.5 and _rng.randf() < 0.35:
+				# now and then step back out of reach before circling in again (never a berserker)
+				if role == "sword" and personality != "berserker" and p and dist < 3.5 and _rng.randf() < 0.35:
 					if elite() and _dash_cd <= 0.0:
 						_start_dash(-dir_p)
 					else:
 						_backoff_t = _rng.randf_range(0.7, 1.2)
 		S.DASH:
-			var u := clampf(st_t / DASH_LEN, 0.0, 1.0)
-			want = _dash_dir * DASH_SPEED * (1.4 - 1.1 * u)
+			var u := clampf(st_t / _dash_len, 0.0, 1.0)
+			want = _dash_dir * _dash_speed * (1.4 - 1.1 * u)
 			accel = 400.0
 			turn = 12.0
 			_face(dir_p)
-			if st_t >= DASH_LEN:
+			if st_t >= _dash_len:
 				# slipped a heavy or a draw: straight back in while they recover
 				if _threat in ["heavy", "iai"]:
 					_cooldown = 0.0
@@ -1008,8 +1111,9 @@ func _physics_process(delta: float) -> void:
 		S.BLOCK:
 			_face(dir_p)
 			accel = 10.0
-			if _riposte and st_t > 0.16 and p and _player_ok(p) and dist < _reach() + 1.2:
+			if _riposte and st_t > _riposte_at and p and _player_ok(p) and dist < _reach() + 1.2:
 				_riposte = false
+				_riposte_at = 0.16
 				_has_token = true
 				_attack = "combo"
 				_swing_i = 1
@@ -1049,14 +1153,22 @@ func _physics_process(delta: float) -> void:
 			turn = 12.0 if st_t < _aim_len - _lock_len else 1.0
 			_aim_update(p, delta)
 			if st_t >= _aim_len and not _fired:
-				_fire(p)
-			if st_t >= _aim_len + (0.35 if _gun == "pistol" else 0.3):
+				# (another rifleman's ball just went: this one holds a beat longer, so a group never fires as one)
+				if _gun != "pistol" and Engine.get_physics_frames() - _volley_tick < int(VOLLEY_GAP * Engine.physics_ticks_per_second):
+					_aim_len += _rng.randf_range(0.15, 0.3)
+				else:
+					_fire(p)
+			if _fired and st_t >= _aim_len + (0.35 if _gun == "pistol" else 0.3):
 				if _gun == "pistol":
 					humanoid.set_weapon(Props.weapon_mesh(_blade_model))
 					_pistol_cd = PISTOL_COOLDOWN
 					_set_state(S.CHASE)
+				elif _gun == "hip":
+					_hip_cd = _rng.randf_range(HIP_CD.x, HIP_CD.y)
+					_shot_cd = maxf(_shot_cd, 2.0)
+					_set_state(S.KEEP)
 				else:
-					_shot_cd = RIFLE_EVERY + _rng.randf_range(-1.0, 1.0)
+					_shot_cd = RIFLE_EVERY + _rng.randf_range(-2.5, 2.5)
 					_start_reposition(p)
 		S.KEEP:
 			if _lost(p, dist):
@@ -1067,6 +1179,8 @@ func _physics_process(delta: float) -> void:
 				if _strafe_t <= 0.0:
 					_strafe_t = _rng.randf_range(1.5, 3.0)
 					_strafe_dir = -_strafe_dir if _rng.randf() < 0.5 else _strafe_dir
+					if _rng.randf() < HOP_ODDS:
+						_hop(Vector3.UP.cross(dir_p) * _strafe_dir)
 				var mid := (RIFLE_NEAR + RIFLE_FAR) * 0.5
 				var radial := 0.0
 				if dist < RIFLE_NEAR:
@@ -1079,10 +1193,14 @@ func _physics_process(delta: float) -> void:
 				want = dir_p * radial + Vector3.UP.cross(dir_p) * _strafe_dir * 1.0 + _separation()
 				var sees := _los(p)
 				_no_los_t = 0.0 if sees else _no_los_t + delta
-				if dist < SHOVE_RANGE and _shove_cd <= 0.0 and _player_ok(p):
-					_start_shove()
+				if _rifle_evade(p, dist, dir_p):
+					pass
+				elif dist < BAYONET_RANGE and _shove_cd <= 0.0 and _player_ok(p):
+					_start_shove(dist > SHOVE_RANGE or _rng.randf() < 0.5)
+				elif _hip_cd <= 0.0 and dist < HIP_RANGE and sees and _player_ok(p) and _guns_free():
+					_start_aim("hip")
 				elif _shot_cd <= 0.0 and sees and _player_ok(p) and dist < GUN_RANGE * 0.6 and _guns_free():
-					_start_aim("rifle")
+					_start_aim("kneel" if dist > KNEEL_FROM and _rng.randf() < _kneel_odds else "rifle")
 				elif _no_los_t > 1.5:
 					_start_reposition(p)
 		S.REPOSITION:
@@ -1097,36 +1215,39 @@ func _physics_process(delta: float) -> void:
 					running = true
 				else:
 					_set_state(S.KEEP)
-				if dist < SHOVE_RANGE and _shove_cd <= 0.0 and _player_ok(p):
-					_start_shove()
+				if _rifle_evade(p, dist, dir_p):
+					pass
+				elif dist < BAYONET_RANGE and _shove_cd <= 0.0 and _player_ok(p):
+					_start_shove(dist > SHOVE_RANGE or _rng.randf() < 0.5)
 		S.SHOVE:
 			_face(dir_p)
-			turn = 6.0 if st_t < 0.25 else 1.0
+			var hit_at := FoePoses.BAYONET_HIT if _jab else SHOVE_HIT
+			turn = 6.0 if st_t < hit_at - 0.3 else 1.0
 			accel = 12.0
-			if st_t > 0.28 and not _glinted:
+			if st_t > hit_at - 0.28 and not _glinted:
 				_glinted = true
 				var butt := global_position + Vector3(0, 1.1, 0) - _fwd() * 0.2
 				if humanoid.weapon and humanoid.weapon.is_inside_tree():
-					butt = humanoid.weapon.global_transform * Vector3(0, 0, 0.45)
+					butt = humanoid.weapon.global_transform * Vector3(0, 0, -1.4 if _jab else 0.45)
 				Net.fx("sparkle", [butt, 5, Color(1.0, 1.0, 0.95)])
 				Net.fx("sfx", ["blip_high", butt, -12.0, 0.05, 1.3])
-			if st_t > SHOVE_HIT and not _shoved:
+			if st_t > hit_at and not _shoved:
 				_shoved = true
-				velocity += _fwd() * 3.0
+				velocity += _fwd() * (5.0 if _jab else 3.0)
 				Net.fx("sfx", ["whoosh", global_position, -6.0, 0.08, 1.3])
-				if p and dist < SHOVE_RANGE and _fwd().dot(dir_p) > 0.2 and p.has_node("Hurtbox"):
+				if p and dist < (BAYONET_RANGE + 0.3 if _jab else SHOVE_RANGE) and _fwd().dot(dir_p) > 0.2 and p.has_node("Hurtbox"):
 					var hb := p.get_node("Hurtbox") as Hurtbox
 					if hb.monitorable:
 						var hd := HitData.new()
-						hd.damage = _dmg(6.0)
-						hd.knockback_force = 7.0
-						hd.knockdown = true  # the rifle butt puts you on the ground
-						hd.stagger_duration = 0.4
-						hd.hitstop_duration = 0.05
-						hd.camera_shake_intensity = 0.12
-						hd.impact = "punch"
+						hd.damage = _dmg(11.0 if _jab else 6.0)
+						hd.knockback_force = 5.0 if _jab else 7.0
+						hd.knockdown = not _jab  # the rifle butt puts you on the ground; the point just runs you through
+						hd.stagger_duration = 0.35 if _jab else 0.4
+						hd.hitstop_duration = 0.07 if _jab else 0.05
+						hd.camera_shake_intensity = 0.14 if _jab else 0.12
+						hd.impact = "slice" if _jab else "punch"
 						hb.take_hit(hd, self)
-			if st_t > SHOVE_LEN:
+			if st_t > (FoePoses.BAYONET_LEN if _jab else SHOVE_LEN):
 				_shove_cd = SHOVE_COOLDOWN
 				_set_state(S.KEEP)
 		S.RETURN:
@@ -1165,6 +1286,22 @@ func _physics_process(delta: float) -> void:
 			elif st_t > BRUTE_WIND + BRUTE_HOLD:
 				humanoid.stop_action()
 				_end_attack(0.6)
+		S.POUNCE:
+			turn = 4.0
+			if _jump_land < 0.0:
+				want = _leap_v
+				accel = 200.0
+				if not _swung and st_t > 0.12 and (velocity.y < 1.5 or _attack == "dive"):
+					_swung = true
+					hitbox.activate()
+				if st_t > 0.15 and is_on_floor():
+					_jump_landed()
+				elif st_t > 2.5:
+					_end_attack(0.5)
+			else:
+				accel = 30.0
+				if st_t > _jump_land + 0.18:
+					_end_attack(0.9)
 
 	# its blow came down on the decoy: that shatters it
 	if lured and state == S.SWING and st_t > 0.24 and dist < _reach() + 1.2:
@@ -1176,6 +1313,8 @@ func _physics_process(delta: float) -> void:
 
 	if elite_trait == "berserk" and state in [S.CHASE, S.CIRCLE, S.CLOSE]:
 		want *= EliteTraits.BERSERK_SPEED
+	if personality != "" and state in [S.CHASE, S.CLOSE]:
+		want *= float(Personality.k(personality, "chase", 1.0))
 	_last_want = want
 	_last_accel = accel
 	_last_turn = turn
@@ -1214,10 +1353,10 @@ func _move_tail(want: Vector3, accel: float, turn: float, running: bool, hv: Vec
 		if want.length() > 0.3:
 			want = (want.normalized() * 0.4 + _detour * 0.9).normalized() * want.length()
 	# stay out of the sea (a knockback can still put you in it)
-	if state not in [S.HITSTUN, S.STAGGER, S.LEAP]:
+	if state not in [S.HITSTUN, S.STAGGER, S.LEAP, S.POUNCE]:
 		want = _avoid_water(want)
 		want *= 1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(get_tree(), global_position)
-	if state == S.DASH or (state == S.SWING and ((_attack == "lunge" and st_t < 0.32) or (_attack == "rush" and _rush_stop < 0.0))):
+	if state == S.DASH or (state == S.POUNCE and _jump_land < 0.0) or (state == S.SWING and ((_attack == "lunge" and st_t < 0.32) or (_attack == "rush" and _rush_stop < 0.0))):
 		hv = want
 	else:
 		hv = hv.move_toward(want, accel * delta)
@@ -1266,7 +1405,8 @@ func _lost(p: Node3D, dist: float) -> bool:
 		return true
 	if boarder:
 		return dist > 60.0
-	if dist > GIVE_UP_RANGE or _flat(global_position - post).length() > _leash():
+	var k: float = Personality.k(personality, "give_up", 1.0)
+	if dist > GIVE_UP_RANGE * k or _flat(global_position - post).length() > _leash() * k:
 		return true
 	# the player swam off / is on the ship: give up after a while
 	if not _player_ok(p) and str(p.call("current_state_name")) != "Downed" and st_t > 4.0:
@@ -1479,12 +1619,13 @@ func _swing_len() -> float:
 
 
 func _wind_len() -> float:
-	return _wind_base() * float(_role().get("pace", 1.0)) * {"quick": EliteTraits.QUICK_TELL, "berserk": 0.85}.get(elite_trait, 1.0)
+	return _wind_base() * float(_role().get("pace", 1.0)) * {"quick": EliteTraits.QUICK_TELL, "berserk": 0.85}.get(elite_trait, 1.0) \
+		* float(Personality.k(personality, "wind", 1.0))
 
 
 ## The share of blows from the front a sword grunt blocks (bosses: more).
 func _block_chance() -> float:
-	return BLOCK_CHANCE
+	return Personality.k(personality, "block", BLOCK_CHANCE)
 
 
 func _wind_base() -> float:
@@ -1492,6 +1633,8 @@ func _wind_base() -> float:
 		return PERIL_WIND
 	if _attack == "rush":
 		return _rush_wind()
+	if _attack in JUMPS:
+		return float(JUMP_WIND[_attack])
 	if _attack == "lunge":
 		return 0.8
 	if _attack == "sweep":
@@ -1505,7 +1648,9 @@ func _wind_base() -> float:
 
 ## Swings in this attack.
 func _hits() -> int:
-	return 1 if _attack == "sweep" else _combo_hits()
+	if _attack == "sweep":
+		return 1
+	return _combo_hits() + (int(Personality.k(personality, "hits", 0)) if _attack in ["combo", "flurry"] else 0)
 
 
 func _start_wind() -> void:
@@ -1533,7 +1678,17 @@ func _start_wind() -> void:
 		Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.8])
 		_sense(_target())
 		return
-	var anim := "lunge_wind" if _attack == "lunge" else ("sweep_wind" if _attack == "sweep" else ("wind_r" if _swing_i == 0 else "wind_l"))
+	if _attack in JUMPS:
+		humanoid.play("fo_leap_wind", _wind_len() + 0.1)
+		hitbox.hit_data = _hit_pounce
+		Net.fx("telegraph", [_jump_at, 1.5, _wind_len() + float(JUMP_FLIGHT[_attack]), JUMP_TELL])
+		Net.fx("dust", [global_position, 6, 0.6])
+		Net.fx("sfx", ["clack", global_position, -4.0, 0.05, 0.7])
+		_glint_col(JUMP_TELL)
+		bark(["Hup!", "From above!", "Look up!", "Haaa!"], 0.5)
+		_sense(_target())
+		return
+	var anim := "lunge_wind" if _attack == "lunge" else ("sweep_wind" if _attack == "sweep" else ("wind_r" if _swing_i % 2 == 0 else "wind_l"))
 	if _role().is_empty():
 		humanoid.play(anim, _wind_len())
 	else:
@@ -1647,7 +1802,7 @@ func _start_swing() -> void:
 		Net.fx("dust", [global_position + _fwd() * 0.8, 6, 0.5])
 	else:
 		if _role().is_empty():
-			humanoid.play("swing_r" if _swing_i == 0 else "swing_l", 0.36 if _attack == "flurry" else 0.5)
+			humanoid.play("swing_r" if _swing_i % 2 == 0 else "swing_l", 0.36 if _attack == "flurry" else 0.5)
 		velocity += _fwd() * 3.0
 		Net.fx("sfx", ["whoosh", global_position, -5.0, 0.1, 1.15 if _attack == "flurry" else 1.0])
 
@@ -1707,6 +1862,84 @@ func _start_rush() -> void:
 	_start_wind()
 
 
+# --------------------------------------------------------------------------
+# (1.30) Jumping attacks: strong foes only (JUMPS)
+# --------------------------------------------------------------------------
+func _can_jump() -> bool:
+	return elite() and role != "rifle" and not boarder and not is_in_group("bosses")
+
+
+## Which jump suits the captain now ("" for none): a dive onto them from a ledge above them, else a leaping overhead
+## from mid range or a jump-in slash from further out, level with them; a clear line and dry ground where it lands.
+func _want_jump(p: Node3D, dist: float) -> String:
+	if _jump_cd > 0.0 or not _can_jump() or not _player_ok(p):
+		return ""
+	var dy := p.global_position.y - global_position.y
+	var kind := ""
+	if dy < -DIVE_DROP and dist < DIVE_REACH:
+		kind = "dive"
+	elif absf(dy) < 1.5 and dist >= LEAP_RANGE.x and dist <= LEAP_RANGE.y:
+		kind = "leap"
+	elif absf(dy) < 1.5 and dist > JUMP_IN_RANGE.x and dist <= JUMP_IN_RANGE.y:
+		kind = "jump_in"
+	if kind == "" or not _los(p):
+		return ""
+	var spot := _jump_spot(p)
+	if spot == Vector3.INF:
+		return ""
+	_jump_at = spot
+	return kind if _get_token() else ""
+
+
+## Where a jump at `p` comes down: just short of them (led a little by how they move), on dry ground; INF if not.
+func _jump_spot(p: Node3D) -> Vector3:
+	var lead := _flat(p.get("velocity") if p is CharacterBody3D else Vector3.ZERO) * 0.25
+	var to := _flat(p.global_position - global_position)
+	var at := p.global_position + lead - to.normalized() * 0.9
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 4.0, 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or _calm_depth(hit["position"]) > WADE_MAX or FireZone.any_contains(get_tree(), hit["position"], 0.5):
+		return Vector3.INF
+	return hit["position"]
+
+
+func _start_jump(kind: String, _p: Node3D) -> void:
+	_attack = kind
+	_swing_i = 0
+	_jump_cd = _rng.randf_range(JUMP_CD.x, JUMP_CD.y)
+	_start_wind()
+
+
+## Off the ground: a ballistic arc landing on _jump_at in its flight time, the blade up (the pose carries the blow).
+func _launch_jump() -> void:
+	var t := float(JUMP_FLIGHT[_attack])
+	var d := _jump_at - global_position
+	_leap_v = Vector3(d.x / t, 0.0, d.z / t)
+	velocity = _leap_v + Vector3.UP * (d.y / t + 0.5 * GRAVITY * t)
+	_face(_flat(d))
+	facing.rotation.y = _yaw
+	_jump_land = -1.0
+	_swung = false
+	_glinted = false
+	_set_state(S.POUNCE)
+	# (over bodies, not onto their heads: _set_state puts the mask back)
+	set_collision_mask_value(2, false)
+	humanoid.play(str(JUMP_POSE[_attack]), t + 0.05)
+	Net.fx("dust_ring", [global_position, 10, 0.7])
+	Net.fx("sfx", ["whoosh_big", global_position, -2.0, 0.05, 0.9 if _attack == "leap" else 1.1])
+
+
+## Down: the blow stays live a moment, a ring of dust and a thud, the landing crouch.
+func _jump_landed() -> void:
+	_jump_land = st_t
+	if not hitbox.active:
+		hitbox.activate()
+	humanoid.play("plunge_land", 0.6)
+	Net.fx("dust_ring", [global_position, 16, 1.0])
+	Net.fx("sfx", ["thud", global_position, -1.0, 0.05, 0.8])
+
+
 ## Tracks the captain early in the wind-up, then sets the lane (shown on the
 ## ground for the rest of it) and stops turning.
 func _rush_aim(p: Node3D, dir_p: Vector3, dist: float, dur: float) -> void:
@@ -1714,8 +1947,13 @@ func _rush_aim(p: Node3D, dir_p: Vector3, dist: float, dur: float) -> void:
 		_face(dir_p)
 		if st_t < RUSH_LOCK:
 			return
+		var want := clampf((dist if p else RUSH_MIN) + RUSH_OVER, 4.0, RUSH_MAX + RUSH_OVER)
+		var lane := _rush_lane(global_position, dir_p, want)
+		if lane < RUSH_MIN:
+			_end_attack(0.3)
+			return
 		_rush_dir = dir_p
-		_rush_len = clampf((dist if p else RUSH_MIN) + RUSH_OVER, 4.0, RUSH_MAX + RUSH_OVER)
+		_rush_len = lane
 		var from := global_position
 		Net.fx("lane", [from, from + _rush_dir * _rush_len, _rush_width(), dur - st_t, RUSH_COLOR])
 		_glint()
@@ -1724,6 +1962,27 @@ func _rush_aim(p: Node3D, dir_p: Vector3, dist: float, dur: float) -> void:
 
 func _rush_width() -> float:
 	return 2.0
+
+
+## How far a rush from `from` along `dir` may run (up to `want`): stepped in 1 m, the lane ends before water, a drop of
+## more than RUSH_DROP or a spot _rush_ok refuses, short enough that the skid stops on safe ground.
+func _rush_lane(from: Vector3, dir: Vector3, want: float) -> float:
+	var space := get_world_3d().direct_space_state
+	var d := 1.0
+	while d <= want:
+		var at := from + dir * d
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * RUSH_DROP, at + Vector3.DOWN * RUSH_DROP, 1)
+		q.exclude = [get_rid()]
+		var hit := space.intersect_ray(q)
+		if hit.is_empty() or _water_depth_at(hit["position"]) > 0.3 or not _rush_ok(at):
+			return maxf(d - 2.0 - _rush_speed() * _rush_speed() / (2.0 * RUSH_SKID), 0.0)
+		d += 1.0
+	return want
+
+
+## A spot a rush may cross (Morrow: inside his arena wall).
+func _rush_ok(_at: Vector3) -> bool:
+	return true
 
 
 ## Head-on into something solid (not a body: crewmates and captains don't stop it).
@@ -1811,6 +2070,127 @@ func _roll_extras() -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(["shield", _role_seed, level])
 		shield = rng.randf() < SHIELD_ODDS
+
+
+## (1.30) Its personality (Personality.roll, from the seed: every machine rolls the same), unless the setup gave one.
+## Riflemen and bosses fight their own way, and so do Brinehollow's unlevelled crews (the first fights stay plain).
+func _roll_personality() -> void:
+	if personality == "none":
+		personality = ""
+		return
+	if personality != "" or role == "rifle" or level <= 0 or is_in_group("bosses"):
+		return
+	var kind := "fodder" if self is FodderMarine else ("officer" if captain or elite_rank else "grunt")
+	personality = Personality.roll(_role_seed, kind, role == "sword")
+
+
+## The stance it holds while circling (sword grunts: the other weapons keep their own guard), "" for none.
+func _stance() -> String:
+	return str(Personality.STANCE.get(personality, "")) if role == "sword" and _disarm_t <= 0.0 else ""
+
+
+## (1.30) Its personality's tells and reads, as it thinks: the stance held while it circles, a duelist's read of a
+## captain's swing (the parry raised, a blue glint: the window PARRY_WINDOW s).
+func _personality_tick(p: Node3D, dist: float, dir_p: Vector3) -> void:
+	var cur := humanoid.current_action()
+	if cur == "fo_parry_ready" and _parry_t <= 0.0:
+		humanoid.stop_action()
+		cur = ""
+	var st := _stance()
+	if st != "" and cur == "" and state in [S.CIRCLE, S.CHASE]:
+		humanoid.hold(st, 0.3)
+	if personality != "duelist" or not p.has_method("current_state_name"):
+		return
+	var fs := str(p.call("current_state_name"))
+	if fs != _foe_st:
+		_foe_st = fs
+		if fs == "LightAttack" and _parry_cd <= 0.0 and dist < 3.6 and _captain_fwd(p).dot(-dir_p) > 0.5 \
+				and state in [S.CIRCLE, S.CHASE, S.CLOSE, S.BLOCK, S.RECOVER] and _rng.randf() < Personality.PARRY_ODDS:
+			_parry_cd = _rng.randf_range(Personality.PARRY_CD.x, Personality.PARRY_CD.y)
+			_parry_t = Personality.PARRY_WINDOW
+			if state in [S.CIRCLE, S.CHASE, S.BLOCK, S.RECOVER]:
+				humanoid.hold("fo_parry_ready", 0.08)
+			_glint_col(Personality.PARRY_TELL)
+
+
+## A mate already in it with the captain (swinging, guarding, taking blows).
+const ENGAGED := [S.CLOSE, S.WIND, S.SWING, S.RECOVER, S.GRAB, S.BLOCK, S.HITSTUN, S.STAGGER]
+
+
+## Opportunist: its turn to go in (the others are on the captain, the captain's busy or reeling, or it's waited long
+## enough). Everyone else: always.
+func _my_turn(p: Node3D, dir_p: Vector3) -> bool:
+	if personality != "opportunist" or _wait_t > Personality.OPP_WAIT:
+		return true
+	if p.has_method("current_state_name"):
+		var fs := str(p.call("current_state_name"))
+		if fs in ["Stagger", "Grabbed"] or (fs in ["LightAttack", "HeavyAttack", "Technique", "Skill"] and _captain_fwd(p).dot(-dir_p) < 0.2):
+			return true
+	var near := 0
+	var busy := 0
+	for g in _all_enemies():
+		if g == self or not (g is PirateGrunt) or not is_instance_valid(g) or (g as PirateGrunt)._player != p or (g as PirateGrunt).is_dead():
+			continue
+		if (g as Node3D).global_position.distance_to(p.global_position) > 9.0:
+			continue
+		near += 1
+		if (g as PirateGrunt)._has_token or (g as PirateGrunt).state in ENGAGED:
+			busy += 1
+	if near == 0:
+		return _wait_t > Personality.OPP_ALONE
+	# (with the crew's turns capped, it waits for all but its own slot)
+	var cap: int = camp.call("attackers_for") if camp and is_instance_valid(camp) and camp.has_method("attackers_for") else 99
+	return busy >= mini(mini(Personality.OPP_ENGAGED, near), maxi(cap - 1, 1))
+
+
+## A duelist's parry (inside its read's window): the blow turned aside on the blade, the captain reels, the riposte.
+func _parry(hit: HitData, dir: Vector3, attacker: Node) -> void:
+	_parry_t = 0.0
+	var at := global_position + Vector3(0, 1.3, 0) - dir * 0.55
+	Net.fx("parry_sparks", [at, -dir])
+	Net.fx("flash", [at, 1.1, Personality.PARRY_TELL, "glint", 0.16])
+	Net.fx("float_text", [at + Vector3.UP * 0.7, "Parried!", Personality.PARRY_TELL])
+	Net.fx("sfx", ["parry", at, -4.0, 0.05, 1.0])
+	CombatManager.guard(hit, true, at, -2.0, 0.05, 1.1)
+	CombatManager.apply_hitstop(0.1, [_hit_by, self])
+	bark(Personality.BARK_PARRY, 0.5)
+	_reel(attacker, -dir * Personality.PARRY_PUSH)
+	humanoid.play("fo_parry", 0.42)
+	velocity = dir * 1.5
+	_riposte = true
+	_riposte_at = 0.28
+	_set_state(S.BLOCK)
+
+
+## The captain it parried reels (on their own machine).
+func _reel(who: Node, v: Vector3) -> void:
+	if who == null or not who.has_method("shoved"):
+		return
+	if who.is_in_group("player"):
+		who.call("shoved", v)
+	elif Net.coop() and who.is_in_group("players"):
+		Net.event(self, "reel", [int(who.get("net_id")), v])
+
+
+## A bulwark's guard (or a duelist's raised parry) broken by a heavy, a kick or too many blows: it takes the blow
+## and reels GUARD_BROKEN s, wide open.
+func _guard_broken(hit: HitData, dir: Vector3) -> void:
+	_guard_load = 0.0
+	_parry_t = 0.0
+	_take_damage(hit, dir)
+	if state == S.DEAD:
+		return
+	bark(BARK_PARRIED, 0.8)
+	var at := global_position + Vector3(0, 1.4, 0) - dir * 0.5
+	Net.fx("sparkle", [at, 12, Color(1.0, 0.8, 0.4)])
+	Net.fx("float_text", [at + Vector3.UP * 0.8, "Guard broken!", Color(1.0, 0.8, 0.4), 22])
+	Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.7])
+	_release_token()
+	hitbox.deactivate()
+	velocity = dir * 3.5
+	_stagger_len = Personality.GUARD_BROKEN
+	humanoid.react("stagger", Personality.GUARD_BROKEN, dir)
+	_set_state(S.STAGGER)
 
 
 ## Its blow landed on `target`: a burning elite sets them alight (on the machine where it landed).
@@ -1901,6 +2281,8 @@ func _tactics(p: Node3D, dist: float, dir_p: Vector3) -> void:
 	if _rally_t <= 0.0:
 		_rally_t = 1.0
 		_set_rally(_rallied())
+	if personality != "":
+		_personality_tick(p, dist, dir_p)
 	_watch_whiff(p, dist, dir_p)
 	if _punish_t > 0.0 and state in [S.CIRCLE, S.CHASE, S.BLOCK, S.RECOVER, S.CLOSE] and dist < 5.0 and _player_ok(p) and role != "rifle":
 		_punish_t = 0.0
@@ -1918,7 +2300,9 @@ func _tactics(p: Node3D, dist: float, dir_p: Vector3) -> void:
 func _watch_whiff(p: Node3D, dist: float, dir_p: Vector3) -> void:
 	if not p.has_method("current_state_name"):
 		return
-	var heavy := str(p.call("current_state_name")) == "HeavyAttack"
+	var fs := str(p.call("current_state_name"))
+	# (a bulwark punishes a missed light swing too)
+	var heavy := fs == "HeavyAttack" or (personality == "bulwark" and fs == "LightAttack")
 	if heavy and not _whiff_seen and dist < 4.5 and _captain_fwd(p).dot(-dir_p) > 0.5:
 		_whiff_seen = true
 		_whiff_hit = false
@@ -1967,7 +2351,7 @@ func _set_rally(on: bool) -> void:
 		return
 	_rally = on
 	var k := RALLY_K if on else 1.0 / RALLY_K
-	for h in [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]:
+	for h in _hit_set():
 		(h as HitData).damage *= k
 	if not net_puppet:
 		Net.event(self, "rally", [on])
@@ -2050,6 +2434,8 @@ func _start_dash(dir: Vector3) -> void:
 	_release_token()
 	hitbox.deactivate()
 	_dash_dir = picked
+	_dash_len = DASH_LEN
+	_dash_speed = DASH_SPEED
 	_dash_cd = _rng.randf_range(4.0, 6.0)
 	_set_state(S.DASH)
 	var local := facing.global_basis.orthonormalized().inverse() * picked
@@ -2086,10 +2472,14 @@ func _rush_bonk() -> void:
 
 ## The tell: a flash on the blade just before it swings.
 func _glint() -> void:
+	_glint_col(Color(1.0, 1.0, 0.95))
+
+
+func _glint_col(col: Color) -> void:
 	var tip := global_position + Vector3(0, 1.6, 0)
 	if humanoid.weapon and humanoid.weapon.is_inside_tree():
 		tip = humanoid.weapon.global_transform * Vector3(0, 0, -0.75)
-	Net.fx("sparkle", [tip, 4, Color(1.0, 1.0, 0.95)])
+	Net.fx("sparkle", [tip, 4, col])
 	Net.fx("sfx", ["blip_high", tip, -14.0, 0.05, 1.6])
 
 
@@ -2218,6 +2608,24 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		else:
 			_guard(hit, dir, state not in [S.WIND, S.SWING, S.GRAB], _rng.randf() < 0.3)
 		return
+	# (1.30) a duelist's raised parry turns a blow aside (a heavy, a kick or a breaker breaks it); a bulwark's guard
+	# stops most blows from the front until a heavy, a kick or enough blows break it
+	var parrying := personality == "duelist" and _parry_t > 0.0 and role == "sword" and _disarm_t <= 0.0 \
+		and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE, S.RECOVER]
+	if (parrying or (guarding and personality == "bulwark")) and from_front and not hit.unblockable and not hit.ranged:
+		var pz := Poise.of(hit)
+		if pz >= Poise.HEAVY or hit.breaker or (not parrying and _guard_load + pz >= Personality.GUARD_BREAK):
+			_guard_broken(hit, dir)
+			return
+		if parrying:
+			_parry(hit, dir, attacker)
+			return
+		if _rng.randf() < _block_chance():
+			_guard_load += pz
+			_guard(hit, dir, true, _rng.randf() < 0.45)
+			bark(Personality.BARK_BLOCK, 0.15)
+			return
+		guarding = false
 	# a sword grunt blocks some of the blows from the front (never twice running without a counter between: the
 	# riposte always follows) and sidesteps some; a cutlass can't stop a bullet
 	if guarding and from_front and Poise.of(hit) < Poise.KICK and not hit.unblockable and not hit.ranged and not hit.breaker:
@@ -2271,8 +2679,14 @@ func _take_damage(hit: HitData, dir: Vector3) -> void:
 	CombatManager.impact(hit, global_position, -2.0, 0.1, 1.05 if hit.damage < 20.0 else 0.85)
 	_hit_feedback(hit)
 	set_meta("last_dir", dir)
+	set_meta("hp_before", health.current_health)
 	_last_hit = hit
 	health.take_damage(hit.damage)
+
+
+## (1.30) Blood on a splat's wall (the drowned don't bleed).
+func bleeds() -> bool:
+	return true
 
 
 ## Its swing was parried: staggered, wide open.
@@ -2560,7 +2974,9 @@ func _on_died() -> void:
 	bark(BARK_DIE, 0.6)
 	var dir: Vector3 = get_meta("last_dir", -_fwd())
 	if humanoid.ragdoll == null:
-		humanoid.start_ragdoll(dir * 5.0 + Vector3.UP * 3.0, Vector3.UP.cross(dir) * 5.0, false)
+		# (1.30) an overkill throws the body flat into the nearest wall (Splat)
+		if not Splat.kill(humanoid, _last_hit, float(get_meta("hp_before", 0.0)), health.max_health, dir, bleeds()):
+			humanoid.start_ragdoll(dir * 5.0 + Vector3.UP * 3.0, Vector3.UP.cross(dir) * 5.0, false)
 	else:
 		humanoid.relax_ragdoll()
 		humanoid.ragdoll.push(dir * 3.0)
@@ -2667,12 +3083,19 @@ func slowed(secs: float, k: float) -> void:
 
 ## (1.28) caught in a smoke pellet's cloud (GadgetZone, the host's): it drops its swing and staggers, coughing.
 var blinded_at := -1.0
+## (1.30) dazed (a flash, a cloud) until this game time: Stealth.stunned, takedowns land from any side.
+var stunned_until := -1.0
+
+
+func is_stunned() -> bool:
+	return state == S.STAGGER and PlayerState.now_s() < stunned_until
 
 
 func blinded(secs: float) -> void:
 	if state in [S.DEAD, S.DOWN, S.GETUP, S.SWIM]:
 		return
 	blinded_at = PlayerState.now_s()
+	stunned_until = blinded_at + secs
 	hitbox.deactivate()
 	_drop_aim()
 	_release_token()
@@ -2982,8 +3405,9 @@ func _start_aim(gun: String) -> void:
 	_release_token()
 	_gun = gun
 	_fired = false
-	_aim_len = PISTOL_AIM if gun == "pistol" else RIFLE_AIM
-	_lock_len = PISTOL_LOCK if gun == "pistol" else RIFLE_LOCK
+	# (a rifle's aim jittered, so a group doesn't fire in rhythm)
+	_aim_len = {"pistol": PISTOL_AIM, "hip": HIP_AIM, "kneel": KNEEL_AIM}.get(gun, RIFLE_AIM + _rng.randf_range(-0.2, 0.35))
+	_lock_len = {"pistol": PISTOL_LOCK, "hip": HIP_LOCK, "kneel": KNEEL_LOCK}.get(gun, RIFLE_LOCK)
 	if gun == "pistol":
 		humanoid.set_weapon(Props.weapon_mesh("pistol"))
 		humanoid._attach_weapon(true)
@@ -2991,12 +3415,20 @@ func _start_aim(gun: String) -> void:
 	_aim_point = _chest(p) if p else global_position + _fwd() * 10.0
 	_set_state(S.AIM)
 	_sense(p, "shot")
-	humanoid.play("aim_pistol" if gun == "pistol" else "aim_rifle", _aim_len + 0.3)
+	humanoid.play({"pistol": "aim_pistol", "hip": "fo_hip_shot", "kneel": "fo_kneel_aim"}.get(gun, "aim_rifle"), _aim_len + 0.3)
 	_aim_mat.albedo_color = AIM_TRACK
 	_locked = false
 	_aim_line.visible = true
 	Net.fx("sfx", ["blip_low", global_position, -10.0, 0.05, 0.7])
-	bark(["Hold still...", "Got you now.", "Steady..."], 0.3)
+	if gun == "kneel":
+		# the tell: down on one knee, a red glint at the muzzle
+		Net.fx("sparkle", [_muzzle(), 6, KNEEL_TELL])
+		Net.fx("dust", [global_position, 4, 0.4])
+		bark(["Steady... steady...", "Got you in my sights.", "One shot."], 0.6)
+	elif gun == "hip":
+		bark(["Eat lead!", "Close enough!"], 0.3)
+	else:
+		bark(["Hold still...", "Got you now.", "Steady..."], 0.3)
 
 
 ## Track the target (lagging a little, so moving makes it miss), then lock.
@@ -3018,7 +3450,7 @@ func _aim_update(p: Node3D, delta: float) -> void:
 func _muzzle() -> Vector3:
 	var w := humanoid.weapon
 	if w and w.is_inside_tree():
-		return w.global_transform * Vector3(0, 0.06, -(1.35 if _gun == "rifle" else 0.4))
+		return w.global_transform * Vector3(0, 0.06, -(0.4 if _gun == "pistol" else 1.35))
 	return global_position + Vector3(0, 1.4, 0) + _fwd() * 0.6
 
 
@@ -3036,7 +3468,9 @@ func _fire(p: Node3D) -> void:
 	_fired = true
 	var from := _muzzle()
 	var end := _shot_end(from)
-	var big := _gun == "rifle"
+	var big := _gun != "pistol"
+	if big:
+		_volley_tick = Engine.get_physics_frames()
 	var shot_dir := (end - from).normalized()
 	# muzzle flash, a spray of sparks and a cloud of powder smoke (readable
 	# from across the beach), plus a thin smoke trail along the shot
@@ -3059,8 +3493,9 @@ func _fire(p: Node3D) -> void:
 	var hd := HitData.new()
 	hd.ranged = true
 	hd.impact = "shot"
-	hd.damage = _dmg(10.0 if _gun == "pistol" else 15.0)
-	hd.knockback_force = 3.0 if _gun == "pistol" else 4.0
+	hd.damage = _dmg({"pistol": 10.0, "hip": 9.0, "kneel": 22.0}.get(_gun, 15.0))
+	hd.knockback_force = {"pistol": 3.0, "kneel": 6.0}.get(_gun, 4.0)
+	hd.knockdown = _gun == "kneel"
 	hd.stagger_duration = 0.3
 	hd.hitstop_duration = 0.05
 	hd.camera_shake_intensity = 0.16
@@ -3116,6 +3551,8 @@ func _start_reposition(p: Node3D) -> void:
 		var cost := c.distance_to(global_position)
 		if cost < 3.0:
 			cost += 6.0  # actually move somewhere
+		# (1.30) high ground over the captain is worth a longer run
+		cost -= clampf((c.y - p.global_position.y) * 2.0, 0.0, 6.0)
 		if cost < best:
 			best = cost
 			_repos_target = c
@@ -3124,17 +3561,65 @@ func _start_reposition(p: Node3D) -> void:
 		_repos_target = global_position + _flat(p.global_position - global_position) * 0.4
 
 
-func _start_shove() -> void:
+## A rifleman's dodge roll (on ROLL_CD, _roll_odds of the time) out of a heavy or a draw coming its way, a shot on its
+## line, or a captain charging it from close: sideways, untouchable for its first DASH_IFRAMES. True if it rolled.
+func _rifle_evade(p: Node3D, dist: float, dir_p: Vector3) -> bool:
+	if _roll_cd > 0.0 or p == null:
+		return false
+	var th: String = _threat_of(p, dist, dir_p)[0]
+	var pv: Vector3 = p.get("velocity") if p is CharacterBody3D else Vector3.ZERO
+	if th == "" and not (dist < 6.0 and _flat(pv).dot(-dir_p) > 5.0):
+		return false
+	_roll_cd = _rng.randf_range(ROLL_CD.x, ROLL_CD.y)
+	if _rng.randf() > _roll_odds:
+		return false
+	var side := Vector3.UP.cross(dir_p) * (1.0 if _rng.randf() < 0.5 else -1.0)
+	for c in [side, -side, -dir_p]:
+		if _dash_ok(c):
+			_start_roll(c)
+			return true
+	return false
+
+
+func _start_roll(dir: Vector3) -> void:
+	_release_token()
+	_dash_dir = dir
+	_dash_len = ROLL_LEN
+	_dash_speed = ROLL_SPEED
+	_set_state(S.DASH)
+	var local := facing.global_basis.orthonormalized().inverse() * dir
+	humanoid.play("fo_roll_r" if local.x > 0.0 else "fo_roll_l", ROLL_LEN + 0.1)
+	Net.fx("dust", [global_position + Vector3(0, 0.05, 0), 8, 0.6])
+	Net.fx("sfx", ["whoosh", global_position, -8.0, 0.1, 0.9])
+
+
+## A quick side-step hop as it changes its strafe (riflemen between shots).
+func _hop(dir: Vector3) -> void:
+	if not _dash_ok(dir):
+		return
+	velocity += dir * 4.5
+	var local := facing.global_basis.orthonormalized().inverse() * dir
+	humanoid.dash_dir = Vector2(local.x, -local.z)
+	humanoid.play("dash", DASH_LEN)
+	Net.fx("dust", [global_position + Vector3(0, 0.05, 0), 4, 0.4])
+
+
+## Rushed: the butt stroke (a knockdown), or with `jab` the bayonet thrust (quicker, longer, a narrower tell).
+func _start_shove(jab := false) -> void:
 	_shoved = false
 	_glinted = false
+	_jab = jab
 	_set_state(S.SHOVE)
-	humanoid.play("shove", SHOVE_LEN)
-	bark(["Back off!", "Get away!", "Too close!"], 0.5)
+	humanoid.play("fo_bayonet" if jab else "shove", FoePoses.BAYONET_LEN if jab else SHOVE_LEN)
+	bark(["Have some steel!", "Stick 'em!", "Come on, then!"] if jab else ["Back off!", "Get away!", "Too close!"], 0.5)
 	var p := _target()
 	if p:
 		_face(_flat(p.global_position - global_position))
 	var d := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
-	Net.fx("arc_warn", [global_position, d, SHOVE_RANGE, 1.7, SHOVE_HIT, SHOVE_TELL])
+	if jab:
+		Net.fx("arc_warn", [global_position, d, BAYONET_RANGE + 0.3, 0.7, FoePoses.BAYONET_HIT, SHOVE_TELL])
+	else:
+		Net.fx("arc_warn", [global_position, d, SHOVE_RANGE, 1.7, SHOVE_HIT, SHOVE_TELL])
 	Net.fx("sfx", ["clack", global_position, -6.0, 0.05, 1.2])
 
 
@@ -3172,7 +3657,12 @@ func _set_glow(on: bool) -> void:
 
 
 func _max_hp() -> float:
-	return MAX_HP * (CAPTAIN_HP if captain else 1.0) * Levels.hp_k(level, _lv_ref())
+	return MAX_HP * (CAPTAIN_HP if captain else 1.0) * _crew_k() * Levels.hp_k(level, _lv_ref())
+
+
+## (1.30) Pirate crews and marines are tougher, solo too (the playtest: not enough of a fight). Not the drowned or apes.
+func _crew_k() -> float:
+	return CREW_HP_K
 
 
 ## The level its own numbers were tuned for (the JungleApe's: the first chain island).
@@ -3221,10 +3711,13 @@ func _process(delta: float) -> void:
 			var d := _aim_point - grip
 			if d.length() > 0.2:
 				w.global_basis = Basis.looking_at(d.normalized(), Vector3.UP)
-		elif role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming and humanoid.current_action() != "shove":
+		elif role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming and humanoid.current_action() not in ["shove", "fo_bayonet", "fo_roll_l", "fo_roll_r"]:
 			w.global_basis = facing.global_basis * Basis.from_euler(Vector3(0.75, 0.25, 0.85))
-		# riflemen keep the off hand on the stock, whatever the pose
-		if role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming:
+		elif humanoid.current_action() == "fo_bayonet":
+			# (the point out ahead, level, both hands on it)
+			w.global_basis = facing.global_basis * Basis.from_euler(Vector3(0.05, 0.0, 0.0))
+		# riflemen keep the off hand on the stock, whatever the pose (not tumbling through a roll)
+		if role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming and not humanoid.current_action().begins_with("fo_roll"):
 			# grab the forestock as far forward as the arm reaches
 			var sh := humanoid.arm_l.global_position
 			var reach := (humanoid.fore_l.position.length() + humanoid.hand_l.position.length()) * humanoid.global_basis.get_scale().x * 0.95
@@ -3275,7 +3768,7 @@ func net_rescale(k: float) -> void:
 
 ## Every blow its swing hitbox can carry (co-op: a puppet arms the same one by index).
 func _hit_set() -> Array:
-	return [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]
+	return [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep, _hit_pounce]
 
 
 func _hit_kind() -> int:
@@ -3442,6 +3935,10 @@ func net_event(what: String, args: Array) -> void:
 			var me := get_tree().get_first_node_in_group("player")
 			if me and int(me.get("net_id")) == int(args[0]):
 				_sense_fx(str(args[1]), bool(args[2]))
+		"reel":
+			var me := get_tree().get_first_node_in_group("player")
+			if me and int(me.get("net_id")) == int(args[0]):
+				me.call("shoved", args[1])
 		"burn_fx":
 			BurnStatus.apply(self, float(args[0]), 0.0, null)
 		"poison_fx":
