@@ -4,7 +4,7 @@ extends SceneTree
 ## Morrow's Tide Rush, the Brood Queen's burrow and a poison puddle. Saves <out>/<scene>_<n>.png.
 ## Args: [out_dir] [scenes, comma-separated] (default res://tools/dev/out/enemies, all)
 const TK = preload("res://tools/dev/test_kit.gd")
-const ALL := ["shove", "sweep", "feint", "dash", "grell", "morrow", "queen", "puddle"]
+const ALL := ["shove", "sweep", "feint", "dash", "leap", "grell", "morrow", "queen", "puddle"]
 var t := 0.0
 var out := "res://tools/dev/out/enemies"
 var todo: Array = ALL.duplicate()
@@ -94,6 +94,24 @@ func _begin(n: String) -> void:
 					p.state_machine.force_state("HeavyAttack", {})
 					p.player_model.rotation.y = s.post_yaw
 					times = [0.04, 0.12, 0.2, 0.28, 0.4, 0.6]
+		"leap":
+			# (1.30) an elite's leaping overhead from 5.5 m: the gather, the arc, the chop onto the captain
+			var s2 = camp.grunts[2]
+			var f2 := Vector3(-sin(s2.post_yaw), 0.0, -cos(s2.post_yaw))
+			foe = camp.grunts[3]
+			_quiet(camp)
+			foe.process_mode = Node.PROCESS_MODE_INHERIT
+			_put(s2.post + f2 * 0.6 + Vector3.UP * 0.3, f2)
+			foe.global_position = s2.post + f2 * 6.1 + Vector3.UP * 0.3
+			foe.reset_physics_interpolation()
+			foe.health.heal(999.0)
+			foe.elite_rank = true
+			foe.alert()
+			foe._set_state(3)
+			foe._cooldown = 9.0
+			foe._jump_at = foe._jump_spot(p)
+			foe._start_jump("leap", p)
+			times = [0.1, 0.4, 0.62, 0.8, 0.95, 1.1, 1.25, 1.5]
 		"grell":
 			var den = isl.get_node("PirateDen")
 			for g in den.grunts:

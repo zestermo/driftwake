@@ -12,6 +12,7 @@ var hp0 := 0.0
 var defences := 0
 var swings := 0
 var got_defeated := false
+var closest := INF
 var step := 0
 var until := 0
 var fails := 0
@@ -39,6 +40,9 @@ func face(a: Node3D, b: Node3D) -> void:
 
 
 func _process(_d: float) -> bool:
+	# (1.30: it may jump in or circle out between swings: its closest in the first seconds)
+	if step == 2 and r and is_instance_valid(r):
+		closest = minf(closest, r.global_position.distance_to(p.global_position))
 	if not stage.up or TK.ticking(until):
 		return false
 	match step:
@@ -53,8 +57,7 @@ func _process(_d: float) -> bool:
 			check("...out of the captains' groups (the local captain is still the player)", not r.is_in_group("players") and not r.is_in_group("player") and get_first_node_in_group("player") == p)
 			until = TK.wait_secs(5.0)
 		2:
-			var d: float = r.global_position.distance_to(p.global_position)
-			check("it drew its cutlass and closed to its reach (%.1f m)" % d, r.armed and d < 3.2)
+			check("it drew its cutlass and closed to its reach (%.1f m)" % closest, r.armed and closest < 3.2)
 			until = TK.wait_secs(6.0)
 		3:
 			var lost: float = hp0 - p.health_component.current_health

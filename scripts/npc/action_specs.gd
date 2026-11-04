@@ -635,6 +635,10 @@ const SPECS := {
 	"fo_guard_walk": {"len": 0.3, "stance": "sword", "weapon": "cutlass"},
 	"fo_parry_ready": {"len": 0.08, "stance": "sword", "weapon": "cutlass"},
 	"fo_parry": {"len": 0.42, "stance": "sword", "weapon": "cutlass"},
+	"fo_leap_wind": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
+	"fo_leap": {"len": 0.8, "stance": "sword", "weapon": "cutlass"},
+	"fo_jump_slash": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
+	"fo_dive": {"len": 0.65, "stance": "sword", "weapon": "cutlass"},
 }
 
 

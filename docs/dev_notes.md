@@ -10040,3 +10040,25 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
   - Cost: decisions on the think tick only (fodder every 10 ticks): a few compares; the opportunist's count is one pass
     over the cached enemy list per think while it circles. No per-frame work; the held stance is a constant pose.
   - Tests: t/combat/personality_roll, duelist_parry, bulwark_guard, opportunist_waits, berserker_combo.
+- **Piece 2, AI captains and jumping attacks.**
+  - CaptainBrain `personality` (`roll_for(name)`: hash of the captain's name, the same every visit; the brain runs on
+    the host) scales its defence shares (`K`: a duelist's parries x3, a bulwark's blocks x3 held x1.6 and it walks in
+    behind the block, a berserker's answers x0.4-0.5; never over 90% answered), its circling (berserker x0.4,
+    opportunist x1.7), combos (berserker +2), sprint distance and the step back after a combo (never for a berserker);
+    a duelist's parry chains a 2-hit riposte, an opportunist also goes in on a staggered foe. Tell: its personality's
+    line in its colour over its head the first time it squares up (Net.fx float_text).
+  - AI captains jump in: 3.5-7 m from a level foe, on its feet and free, every 10-15 s (first after 3-7 s): the jump
+    tapped and held, the stick at the foe, an orange telegraph on the foe, and the air heavy (the plain plunge or the
+    tree's aerial heavy) at 1.1 m up or the top of the rise. Stronghold officers and rivals are these brains.
+  - Grunts: `_can_jump` = elite() (camp captains, elites, level 12+), not riflemen, boarders, fodder or bosses. In
+    CHASE or at its turn in CIRCLE, `_want_jump` picks a dive (the captain 1.6+ m below within 9 m), a leap (3.6-7.5 m,
+    level) or a jump-in slash (7.5-11 m), with a line of sight and dry ground at the spot (0.9 m short of the captain,
+    led by their velocity); it needs a turn (token). WIND (JUMP_WIND 0.4-0.55 s, `fo_leap_wind`, an orange glint, an
+    orange telegraph on the spot for wind + flight, a bark) then `S.POUNCE` (appended to the enum): a ballistic arc
+    landing on the spot in JUMP_FLIGHT s, the mask to captains off in flight, `_hit_pounce` (20 x level, knockdown,
+    appended to `_hit_set` so puppets arm it by index) live from the top of the arc to 0.18 s after landing
+    (`plunge_land`, a dust ring and a thud). Cooldown JUMP_CD 10-15 s, the first 3-7 s into a fight.
+  - Poses (FoePoses): fo_leap_wind, fo_leap, fo_jump_slash, fo_dive. Renders: tools/dev/out/fo/ (posebench stances,
+    animsheet jump moves), enemyshot's new "leap" strip.
+  - Tests: t/combat/jump_attack, ledge_dive, rival_personality; rival_duel now reads its closest approach in the first
+    5 s (it may jump in or circle out at the moment it used to sample).

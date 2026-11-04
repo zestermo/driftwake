@@ -26,7 +26,7 @@ extends CharacterBody3D
 
 signal died(grunt: PirateGrunt)
 
-enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR, GRAB }
+enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP, DASH, AIR, GRAB, POUNCE }
 
 const GRAVITY := 20.0
 const RUN_SPEED := 4.4
@@ -162,6 +162,25 @@ var _guard_load := 0.0
 var _wait_t := 0.0
 var _foe_st := ""
 var _riposte_at := 0.16
+## (1.30 verticality) Strong foes' jumping attacks (_can_jump): a leaping overhead from mid range, a jump-in slash from
+## further out, a dive off a ledge onto a captain below. One every JUMP_CD s (the first after JUMP_FIRST); the gather
+## (fo_leap_wind) with an orange glint and a telegraph where it'll land, then S.POUNCE: a ballistic flight onto the spot,
+## the blow (_hit_pounce: knockdown) live on the way down and a moment after landing.
+const JUMPS := ["leap", "jump_in", "dive"]
+const JUMP_CD := Vector2(10.0, 15.0)
+const JUMP_FIRST := Vector2(3.0, 7.0)
+const LEAP_RANGE := Vector2(3.6, 7.5)
+const JUMP_IN_RANGE := Vector2(7.5, 11.0)
+const DIVE_DROP := 1.6
+const DIVE_REACH := 9.0
+const JUMP_FLIGHT := {"leap": 0.75, "jump_in": 0.55, "dive": 0.6}
+const JUMP_WIND := {"leap": 0.55, "jump_in": 0.45, "dive": 0.4}
+const JUMP_POSE := {"leap": "fo_leap", "jump_in": "fo_jump_slash", "dive": "fo_dive"}
+const JUMP_TELL := Color(1.0, 0.55, 0.2)
+var _jump_cd := 0.0
+var _jump_at := Vector3.ZERO
+var _jump_land := -1.0
+var _hit_pounce: HitData
 
 var _col: CollisionShape3D
 var _bark: Label3D
@@ -574,10 +593,18 @@ func _ready() -> void:
 	_hit_sweep.stagger_duration = 0.4
 	_hit_sweep.hitstop_duration = 0.07
 	_hit_sweep.camera_shake_intensity = 0.16
+	_hit_pounce = hd.duplicate() as HitData
+	_hit_pounce.damage = _dmg(20.0) * float(_role().get("dmg", 1.0))
+	_hit_pounce.knockback_force = 7.0
+	_hit_pounce.knockdown = true
+	_hit_pounce.stagger_duration = 0.4
+	_hit_pounce.hitstop_duration = 0.1
+	_hit_pounce.camera_shake_intensity = 0.26
 	if captain:
-		for h in [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]:
+		for h in _hit_set():
 			(h as HitData).damage *= CAPTAIN_DMG
 	_peril_cd = _rng.randf_range(4.0, 9.0)
+	_jump_cd = _rng.randf_range(JUMP_FIRST.x, JUMP_FIRST.y)
 	_rush_cd = _rng.randf_range(2.5, 4.5)
 	_pistol_cd = _rng.randf_range(2.0, 6.0)
 	_shot_cd = _rng.randf_range(1.0, 2.5)
@@ -628,7 +655,7 @@ func _ready() -> void:
 # Helpers
 # ==========================================================================
 func _set_state(s: S) -> void:
-	if state in [S.SWING] and s != S.SWING:
+	if state in [S.SWING, S.POUNCE] and s != state:
 		hitbox.deactivate()
 	if _peril_on and not (s in [S.WIND, S.SWING] and _attack == "peril"):
 		_set_peril(false)
@@ -796,6 +823,7 @@ func _physics_process(delta: float) -> void:
 	_rally_t -= delta
 	_parry_t -= delta
 	_parry_cd -= delta
+	_jump_cd -= delta
 	_guard_load = maxf(_guard_load - Personality.GUARD_DRAIN * delta, 0.0)
 	_fight_t =_fight_t + delta if in_combat() else 0.0
 	_disarm_tick(delta)
@@ -873,7 +901,10 @@ func _physics_process(delta: float) -> void:
 			else:
 				var nd := _nav_dir(_lure.spot if lured else p.global_position, delta)
 				_face(nd)
-				if _want_rush(p, dist):
+				var jk := "" if lured else _want_jump(p, dist)
+				if jk != "":
+					_start_jump(jk, p)
+				elif _want_rush(p, dist):
 					_start_rush()
 				elif not lured and _want_pistol(p, dist, delta):
 					_start_aim("pistol")
@@ -912,9 +943,13 @@ func _physics_process(delta: float) -> void:
 						bark(Personality.BARK_STRIKE, 0.5)
 					elif personality == "berserker":
 						bark(Personality.BARK_FRENZY, 0.25)
-					_attack = _choose_attack(dist)
-					_swing_i = 0
-					_begin_attack(dist)
+					var jk := "" if lured else _want_jump(p, dist)
+					if jk != "":
+						_start_jump(jk, p)
+					else:
+						_attack = _choose_attack(dist)
+						_swing_i = 0
+						_begin_attack(dist)
 		S.CLOSE:
 			_face(dir_p)
 			want = dir_p * RUN_SPEED * 0.85 + _separation()
@@ -930,6 +965,9 @@ func _physics_process(delta: float) -> void:
 			if _attack == "rush":
 				_rush_aim(p, dir_p, dist, dur)
 				turn = 14.0
+			elif _attack in JUMPS:
+				_face(_flat(_jump_at - global_position))
+				turn = 14.0
 			elif st_t < dur * 0.65:
 				_face(dir_p)
 				turn = 10.0
@@ -940,11 +978,13 @@ func _physics_process(delta: float) -> void:
 			if _attack == "peril" and dist > _reach() + 0.6 and st_t < dur * 0.7:
 				want = dir_p * 2.4
 			# (the feint's first wind-up never glints: only the real one does)
-			if not _glinted and st_t > dur * 0.55 and _attack not in ["peril", "rush"] and not (_attack == "feint" and _swing_i == 0):
+			if not _glinted and st_t > dur * 0.55 and _attack not in ["peril", "rush"] + JUMPS and not (_attack == "feint" and _swing_i == 0):
 				_glinted = true
 				_glint()
 			if st_t >= dur:
-				if _attack == "feint" and _swing_i == 0:
+				if _attack in JUMPS:
+					_launch_jump()
+				elif _attack == "feint" and _swing_i == 0:
 					_feint_switch(dir_p)
 				else:
 					_start_swing()
@@ -1199,6 +1239,22 @@ func _physics_process(delta: float) -> void:
 			elif st_t > BRUTE_WIND + BRUTE_HOLD:
 				humanoid.stop_action()
 				_end_attack(0.6)
+		S.POUNCE:
+			turn = 4.0
+			if _jump_land < 0.0:
+				want = _leap_v
+				accel = 200.0
+				if not _swung and st_t > 0.12 and (velocity.y < 1.5 or _attack == "dive"):
+					_swung = true
+					hitbox.activate()
+				if st_t > 0.15 and is_on_floor():
+					_jump_landed()
+				elif st_t > 2.5:
+					_end_attack(0.5)
+			else:
+				accel = 30.0
+				if st_t > _jump_land + 0.18:
+					_end_attack(0.9)
 
 	# its blow came down on the decoy: that shatters it
 	if lured and state == S.SWING and st_t > 0.24 and dist < _reach() + 1.2:
@@ -1250,10 +1306,10 @@ func _move_tail(want: Vector3, accel: float, turn: float, running: bool, hv: Vec
 		if want.length() > 0.3:
 			want = (want.normalized() * 0.4 + _detour * 0.9).normalized() * want.length()
 	# stay out of the sea (a knockback can still put you in it)
-	if state not in [S.HITSTUN, S.STAGGER, S.LEAP]:
+	if state not in [S.HITSTUN, S.STAGGER, S.LEAP, S.POUNCE]:
 		want = _avoid_water(want)
 		want *= 1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(get_tree(), global_position)
-	if state == S.DASH or (state == S.SWING and ((_attack == "lunge" and st_t < 0.32) or (_attack == "rush" and _rush_stop < 0.0))):
+	if state == S.DASH or (state == S.POUNCE and _jump_land < 0.0) or (state == S.SWING and ((_attack == "lunge" and st_t < 0.32) or (_attack == "rush" and _rush_stop < 0.0))):
 		hv = want
 	else:
 		hv = hv.move_toward(want, accel * delta)
@@ -1530,6 +1586,8 @@ func _wind_base() -> float:
 		return PERIL_WIND
 	if _attack == "rush":
 		return _rush_wind()
+	if _attack in JUMPS:
+		return float(JUMP_WIND[_attack])
 	if _attack == "lunge":
 		return 0.8
 	if _attack == "sweep":
@@ -1571,6 +1629,16 @@ func _start_wind() -> void:
 		bark(_rush_barks(), 0.6)
 		Net.fx("dust", [global_position, 6, 0.6])
 		Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.8])
+		_sense(_target())
+		return
+	if _attack in JUMPS:
+		humanoid.play("fo_leap_wind", _wind_len() + 0.1)
+		hitbox.hit_data = _hit_pounce
+		Net.fx("telegraph", [_jump_at, 1.5, _wind_len() + float(JUMP_FLIGHT[_attack]), JUMP_TELL])
+		Net.fx("dust", [global_position, 6, 0.6])
+		Net.fx("sfx", ["clack", global_position, -4.0, 0.05, 0.7])
+		_glint_col(JUMP_TELL)
+		bark(["Hup!", "From above!", "Look up!", "Haaa!"], 0.5)
 		_sense(_target())
 		return
 	var anim := "lunge_wind" if _attack == "lunge" else ("sweep_wind" if _attack == "sweep" else ("wind_r" if _swing_i % 2 == 0 else "wind_l"))
@@ -1745,6 +1813,84 @@ func _start_rush() -> void:
 	_swing_i = 0
 	_rush_cd = _rush_cooldown()
 	_start_wind()
+
+
+# --------------------------------------------------------------------------
+# (1.30) Jumping attacks: strong foes only (JUMPS)
+# --------------------------------------------------------------------------
+func _can_jump() -> bool:
+	return elite() and role != "rifle" and not boarder and not is_in_group("bosses")
+
+
+## Which jump suits the captain now ("" for none): a dive onto them from a ledge above them, else a leaping overhead
+## from mid range or a jump-in slash from further out, level with them; a clear line and dry ground where it lands.
+func _want_jump(p: Node3D, dist: float) -> String:
+	if _jump_cd > 0.0 or not _can_jump() or not _player_ok(p):
+		return ""
+	var dy := p.global_position.y - global_position.y
+	var kind := ""
+	if dy < -DIVE_DROP and dist < DIVE_REACH:
+		kind = "dive"
+	elif absf(dy) < 1.5 and dist >= LEAP_RANGE.x and dist <= LEAP_RANGE.y:
+		kind = "leap"
+	elif absf(dy) < 1.5 and dist > JUMP_IN_RANGE.x and dist <= JUMP_IN_RANGE.y:
+		kind = "jump_in"
+	if kind == "" or not _los(p):
+		return ""
+	var spot := _jump_spot(p)
+	if spot == Vector3.INF:
+		return ""
+	_jump_at = spot
+	return kind if _get_token() else ""
+
+
+## Where a jump at `p` comes down: just short of them (led a little by how they move), on dry ground; INF if not.
+func _jump_spot(p: Node3D) -> Vector3:
+	var lead := _flat(p.get("velocity") if p is CharacterBody3D else Vector3.ZERO) * 0.25
+	var to := _flat(p.global_position - global_position)
+	var at := p.global_position + lead - to.normalized() * 0.9
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 4.0, 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or _calm_depth(hit["position"]) > WADE_MAX or FireZone.any_contains(get_tree(), hit["position"], 0.5):
+		return Vector3.INF
+	return hit["position"]
+
+
+func _start_jump(kind: String, _p: Node3D) -> void:
+	_attack = kind
+	_swing_i = 0
+	_jump_cd = _rng.randf_range(JUMP_CD.x, JUMP_CD.y)
+	_start_wind()
+
+
+## Off the ground: a ballistic arc landing on _jump_at in its flight time, the blade up (the pose carries the blow).
+func _launch_jump() -> void:
+	var t := float(JUMP_FLIGHT[_attack])
+	var d := _jump_at - global_position
+	_leap_v = Vector3(d.x / t, 0.0, d.z / t)
+	velocity = _leap_v + Vector3.UP * (d.y / t + 0.5 * GRAVITY * t)
+	_face(_flat(d))
+	facing.rotation.y = _yaw
+	_jump_land = -1.0
+	_swung = false
+	_glinted = false
+	_set_state(S.POUNCE)
+	# (over bodies, not onto their heads: _set_state puts the mask back)
+	set_collision_mask_value(2, false)
+	humanoid.play(str(JUMP_POSE[_attack]), t + 0.05)
+	Net.fx("dust_ring", [global_position, 10, 0.7])
+	Net.fx("sfx", ["whoosh_big", global_position, -2.0, 0.05, 0.9 if _attack == "leap" else 1.1])
+
+
+## Down: the blow stays live a moment, a ring of dust and a thud, the landing crouch.
+func _jump_landed() -> void:
+	_jump_land = st_t
+	if not hitbox.active:
+		hitbox.activate()
+	humanoid.play("plunge_land", 0.6)
+	Net.fx("dust_ring", [global_position, 16, 1.0])
+	Net.fx("sfx", ["thud", global_position, -1.0, 0.05, 0.8])
 
 
 ## Tracks the captain early in the wind-up, then sets the lane (shown on the
@@ -2158,7 +2304,7 @@ func _set_rally(on: bool) -> void:
 		return
 	_rally = on
 	var k := RALLY_K if on else 1.0 / RALLY_K
-	for h in [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]:
+	for h in _hit_set():
 		(h as HitData).damage *= k
 	if not net_puppet:
 		Net.event(self, "rally", [on])
@@ -3508,7 +3654,7 @@ func net_rescale(k: float) -> void:
 
 ## Every blow its swing hitbox can carry (co-op: a puppet arms the same one by index).
 func _hit_set() -> Array:
-	return [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep]
+	return [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep, _hit_pounce]
 
 
 func _hit_kind() -> int:
