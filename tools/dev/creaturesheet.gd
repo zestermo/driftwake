@@ -125,11 +125,11 @@ func _next() -> void:
 
 func _frame_it() -> void:
 	var p = stage.player
-	var mid: Vector3 = c.global_position.lerp(p.global_position, 0.3) + Vector3.UP * 0.8
+	var mid: Vector3 = c.global_position.lerp(p.global_position, 0.3) + Vector3.UP * 1.0
 	var along: Vector3 = c.global_position - p.global_position
 	along.y = 0.0
 	var side := along.cross(Vector3.UP).normalized()
-	cam.global_position = mid + side * 3.6 + Vector3.UP * 0.9 - along.normalized() * 1.2
+	cam.global_position = mid + side * 4.6 + Vector3.UP * 0.8 - along.normalized() * 1.2
 	cam.look_at(mid, Vector3.UP)
 	caption.text = "%s  -  %s  (%s tris)" % [jobs[job], S.keys()[c.state], _tris()]
 

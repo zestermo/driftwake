@@ -65,7 +65,8 @@ func _process(_d: float) -> bool:
 					n += 1 if FS.roll(cfg["theme"], s * 101).has(kind) else 0
 				check("%s live on some %s islands, not all (%d of 30)" % [kind, cfg["theme"], n], n > 3 and n < 30)
 			if cfg.get("night", false):
-				root.get_node("Weather").set("night", 1.0)
+				var wx = root.get_node("Weather")
+				wx.set_world_time(wx.time_at(23.0))
 			var lv = FS.make(cfg["theme"], kind)
 			lv.setup(ground + Vector3(40, 0, 40), cfg.get("args", {}))
 			lv.level = 12

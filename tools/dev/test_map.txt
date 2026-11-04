@@ -646,6 +646,12 @@ scripts/island/themes/fog_places.gd     t/island/fog_graveyard t/island/fog_isle
 scripts/enemies/fauna/zombie.gd         t/fauna/zombie t/fauna/zombie_rise t/island/fog_graveyard
 scripts/island/fauna_spawner.gd         t/island/fog_graveyard faunatest
 scripts/player_states/grabbed_state.gd  t/fauna/zombie_rise
+scripts/enemies/fauna/pale_stalker.gd   t/fauna/pale_stalker
+scripts/enemies/fauna/bog_hound.gd      t/fauna/bog_hound
+scripts/enemies/fauna/grave_moth.gd     t/fauna/grave_moth
+scripts/enemies/fauna/wolf.gd           t/fauna/bog_hound
+scripts/enemies/fauna/flyer.gd          t/fauna/grave_moth
+scripts/island/themes/fog_theme.gd      t/fauna
 scripts/enemies/fauna/creature.gd       t/fauna t/combat/creature_tell
 scripts/world/weather.gd                t/swim/dive_shafts
 shaders/world/dive_shafts.gdshader      t/swim/dive_shafts

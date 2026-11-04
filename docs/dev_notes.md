@@ -10422,3 +10422,22 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   t/island/fog_graveyard. Renders: `graveshot.gd` (day/night, rising), `creaturesheet.gd`.
 - **Per tick:** a buried zombie's 0.2 s distance check while the LOD has it awake (<70 m); risen, a creature's usual.
   The graveyard is static.
+
+## 2026-11-04: 1.30 creatures, piece 2: the fog's eerie creatures
+- **Roster** (FogTheme.FAUNA): pale_stalker p 0.6, bog_hound 0.55 (packs of 2-4), grave_moth 0.65 (2-3); the shared wolf
+  0.45 -> 0.25, boar 0.3 -> 0.2, fox 0.25 -> 0.2. Every fog island's roll changes (kinds sorted, one stream).
+- **Pale stalker** (`fauna/pale_stalker.gd`): 2.5 m, bone-white, faceless, arms to its knees, legs bent back. Faded
+  (anim_a ~0.12, synced) it's drawn on a broken duty in _pose (model.visible flickers: the PS1 way to fade, no alpha in
+  psx_lit). Stalks on a ring 8.5 m round a captain (18 m notice, stealth-scaled), then solid with `stalker_shriek` (the
+  tell: rears up, arms spread, 0.8 s) and lunges across the whole gap (speed from the distance, up to 26 m/s) to rake:
+  20, a knock-down. Fades and swaps its circling side; hit, it comes solid a moment. Drops ivory.
+- **Bog hound** (`fauna/bog_hound.gd`, on Wolf: the pack brain): hunched, weed strings, rotted ribs, cold eyes; the
+  wolf's own part meshes recoloured grey-green once per kind (`_recolour`, cached in Creature._meshes); `bog_bark` on the
+  lead's notice and each tell; drips while running; a landed bite splashes. Drops bear_hide, fish.
+- **Grave moth** (`fauna/grave_moth.gd`, on Flyer): ~2 m wings, eye-spots that glow; rests flat in the grass (its anchor
+  0.15 m up). Lured (0.5 s look) at night or by a captain's lit belt lantern (`body_model.lantern.lit`) within 22 m: up
+  and orbiting, the tell is a 0.6 s hang with its wings flared, then the dive; a landed hit poisons 4 s x 3 (Creature
+  venom) in a puff of scales. Light gone (day, lantern out), it goes home. Drops plume, canvas. `moth_flutter`.
+- **Tests:** t/fauna/pale_stalker, bog_hound, grave_moth (the shared case). Render: `creaturesheet.gd`.
+- **Per tick:** each sleeps on the spawner's LOD like every creature; the moth's lure look and the stalker's flicker
+  (a fposmod in _pose) are the only additions.
