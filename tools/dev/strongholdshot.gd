@@ -153,6 +153,12 @@ func _setup(island) -> void:
 		["under_bridge", "under the bridge from the chasm", Vector2(10.0, -31.0), 1.5, Vector2(0, -31.0), 18.0],
 		["up_gate", "up under the keep gate", Vector2(0, -46.0), 1.7, Vector2(0, -52.0), 14.0],
 		["up_verdict", "up the Verdict from its foot", Vector2(6.0, -58.0), 1.7, Vector2(0, -86.0), 160.0],
+		# (1.30 round 7, the art pass) the districts dressed, at ground level
+		["foundry_yard", "the foundry's yard: slag, coal, the tramway, the crucible", Vector2(60, 10), 1.7, Vector2(96, -20), 2.0],
+		["cellblock", "the cell block's tiers and catwalks over Marrow's yard", Vector2(-66, 10), 1.7, Vector2(-92, 5), 6.0],
+		["battery", "the quay's battery and the moored warships", Vector2(-20, 48), 1.7, Vector2(-60, 90), 3.0],
+		["warships", "the warships moored round the harbour", Vector2(10, 150), 12.0, Vector2(0, 70), 4.0],
+		["hall_side", "the Command Hall's desks and shelves", Vector2(14, -66), 1.7, Vector2(20, -100), 2.0],
 		# (1.30, the Scouring's ring: with CSHOT_SCOURING)
 		["ring", "the warships' ring from over the keep", Vector2(0, -70), 60.0, Vector2(-170, 150), 0.0],
 	]
