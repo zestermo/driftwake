@@ -1,6 +1,6 @@
 extends SceneTree
 ## Inventory screenshots: at rest, hovering a bag weapon (tooltip), dragging it, the
-## character tab and a chest's loot window. Args: <out_prefix> [window WxH, e.g. 1920x1080]
+## character tab, a chest's loot window and (1.30) four slots mogged plus an empty ticked one. Args: <out_prefix> [window WxH, e.g. 1920x1080]
 var t := 0.0
 var stage := 0
 var out := ""
@@ -133,5 +133,23 @@ func _process(d: float) -> bool:
 			if t < 0.5:
 				return false
 			snap("loot")
+			gm.close()
+			stage = 10; t = 0
+		10:
+			if t < 0.4:
+				return false
+			var eq = p.equipment
+			for e in [["head", "straw", {"hat": "straw"}], ["coat", "haori", {"coat": "haori", "coat_color": Color(0.16, 0.22, 0.42), "trim_color": Color(0.9, 0.88, 0.8)}],
+					["legs", "hakama", {"legs": "hakama", "legs_color": CharacterLook.CLOTH[4]}], ["feet", "sandals", {"feet": "sandals"}]]:
+				eq.wear_cosmetic(Gear.make(e[0], e[1], e[2]), e[0])
+				eq.set_mog(e[0], true)
+			eq.set_mog("hands", true)
+			p.refresh_look()
+			gm.open("inventory")
+			stage = 11; t = 0
+		11:
+			if t < 1.4:
+				return false
+			snap("mog")
 			quit()
 	return false

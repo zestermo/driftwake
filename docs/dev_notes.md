@@ -10758,3 +10758,18 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Co-op:** nothing new on the wire: the composed look carries it (`_net_look`), the host's stats never see it.
 - Per frame: nothing (only on a gear change).
 - **Tests:** t/gear/mog_look, mog_bag, mog_save (new); coat_drape, stats, t/items/equipment_slot pass.
+
+## 2026-11-04: 1.30 transmog, piece 2: the wardrobe's MOG boxes
+
+- **What** (`inventory_screen.gd`): each clothing slot gets a MOG tick box (`_mog_box`) under the place beside it on
+  the column's outer side (the room the canvas pass left); ticked, a cosmetic slot (`_mog`, src "mog", tag LOOK)
+  shows there. Drag a bag piece of that slot's kind onto it, or right-click it in the bag (hint "RMB FOR LOOKS" while
+  its slot is mogged); click it or drag it to the bag to take it back. Tooltip line "FOR LOOKS"; the details compare
+  and the bag's better-than-worn arrow still use the worn piece. DRAPE now follows the shown coat. All hidden with a
+  chest open, like the rest of the doll.
+- Per frame: nothing new (the boxes and slots park with the doll's parallax like the others).
+- **Tests:** t/ui/mog_slots (new: 1920x1080 layout clear of everything, drag/right-click/click, tooltip, compare, untick).
+  Renders: tools/dev/out/review/transmog_before_*.png / transmog_after_*.png (invshot_real, 1920x1080; `_mog` is four
+  slots mogged plus an empty ticked hands slot).
+- **Open:** no "show nothing" (an empty cosmetic slot shows the worn piece). The HUD's "Loot: N" line sits under the
+  head slots (as before; the cosmetic head slot now covers more of it).
