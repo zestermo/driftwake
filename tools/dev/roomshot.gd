@@ -35,8 +35,10 @@ func _process(d: float) -> bool:
 		cam.far = 2000
 		root.add_child(cam)
 		cam.current = true
-		for k in isl.close_rooms.keys():
-			var r: Node3D = isl.close_rooms[k]
+		var rooms: Dictionary = isl.close_rooms.duplicate()
+		rooms["cottage"] = isl._keeper_hut
+		for k in rooms.keys():
+			var r: Node3D = rooms[k]
 			var door: Vector3 = (r.get_node("Door") as Node3D).position
 			var w: float = absf(door.x) + 2.0
 			var dz: float = door.z - 1.4

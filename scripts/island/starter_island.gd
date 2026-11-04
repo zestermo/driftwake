@@ -118,7 +118,7 @@ const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
 	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787,
-	"terrace_story": 8888, "grove": 8989, "close": 9191}
+	"terrace_story": 8888, "grove": 8989, "close": 9191, "hilltop": 9292}
 ## Tackett's ironwood grove (StoryGrove, 1.30): a clearing off the forest path, its trail in from the path, the marked
 ## trees round it [offset, fall direction], his old stumps, the chopping block [offset, yaw].
 const GROVE := Vector2(-106, 80)
@@ -136,6 +136,13 @@ const CLOSE_RECT := Rect2(27, -100, 34, 28)
 const CLOSE_Y := 1.5
 const CLOSE_EASE := 6.0
 const OLD_CHAPEL := Vector2(42, -82)
+## The lighthouse hill's road (1.30): a switchback graded into the west slope from the town path to the hilltop
+## ([x, road height, z]; the first key's height is the ground's), HILL_ROAD_HW wide each side, eased into the slope over
+## HILL_ROAD_EASE. The tower's door faces the town; the keeper's cottage on the plateau's south-west edge.
+const HILL_ROAD := [Vector3(50, 0, -43), Vector3(61, 17.0, -24), Vector3(64.5, 17.6, -22.5), Vector3(68.5, 21.4, -37), Vector3(72.5, 22.6, -36)]
+const HILL_ROAD_HW := 2.2
+const HILL_ROAD_EASE := 2.5
+const COTTAGE := Vector2(71.5, -22.0)
 const CHAPEL := Vector2(44, -77.5)
 const CLOSE_ROOMS := [
 	["loft", "NetLoft", Vector2(31.5, -89.5), Vector2(1, 0), {"w": 6.5, "d": 5.0, "h": 2.8, "wall": "planks_weathered", "roof_tex": "thatch",
@@ -287,6 +294,8 @@ var grove: StoryGrove
 var _grove_trail := -1
 ## The chapel close's walk-in houses by kind ("loft", "tinker", "scribe"; brinehollow_cast.gd puts their keepers in).
 var close_rooms := {}
+## The lighthouse tower (BrinehollowLighthouse; Ambrose stands at its "Keeper" marker on the gallery).
+var lighthouse: Node3D
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -350,6 +359,7 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("wild places", _build_wilds)
 	kit.timed("story", _build_grove)
 	kit.timed("chapel close", _build_close)
+	kit.timed("lighthouse", _build_hilltop)
 	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
@@ -551,6 +561,28 @@ static func _close(p: Vector2, h: float) -> float:
 	return lerpf(h, CLOSE_Y, 1.0 - _smooth(0.0, CLOSE_EASE, d))
 
 
+## The lighthouse hill's road graded into the slope (1.30, the built grid only like `_close`): the nearest leg's
+## height along it (the first leg from the ground's own), full within HILL_ROAD_HW, eased out over HILL_ROAD_EASE.
+static func _hill_road(p: Vector2, h: float) -> float:
+	if p.distance_to(HILL) > 40.0:
+		return h
+	var best := INF
+	var y := h
+	for i in range(HILL_ROAD.size() - 1):
+		var a: Vector3 = HILL_ROAD[i]
+		var b: Vector3 = HILL_ROAD[i + 1]
+		var a2 := Vector2(a.x, a.z)
+		var ab := Vector2(b.x, b.z) - a2
+		var t := clampf((p - a2).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		var d := p.distance_to(a2 + ab * t)
+		if d < best:
+			best = d
+			y = lerpf(h if i == 0 else a.y, b.y, t)
+	if best >= HILL_ROAD_HW + HILL_ROAD_EASE:
+		return h
+	return lerpf(h, y, 1.0 - _smooth(HILL_ROAD_HW, HILL_ROAD_HW + HILL_ROAD_EASE, best))
+
+
 ## 0..1: the chapel close's grass (no beach sand on its levelled ground), off the quay's edge.
 static func _close_mask(p: Vector2) -> float:
 	var r := CLOSE_RECT.grow(-2.0)
@@ -745,7 +777,7 @@ func _generate_heights() -> void:
 			var z := -HALF + iz * CELL + GRID_C.y
 			var h := _height_old(x, z)
 			a[ix] = h
-			b[ix] = _close(Vector2(x, z), _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h))))
+			b[ix] = _close(Vector2(x, z), _hill_road(Vector2(x, z), _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h)))))
 		rows[iz] = [a, b], RES + 1)
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	var old := PackedFloat32Array()
@@ -1193,6 +1225,12 @@ func _define_paths() -> void:
 	_add_path([Vector2(-44, -41), Vector2(-60, -62), Vector2(-90, -80), Vector2(-112, -100), Vector2(-128, -120), climb_start()[0]], 1.3)
 	# (the old pieces and plants keep to the paths as they ran before the upper town)
 	_frozen = [paths.duplicate(), path_widths.duplicate(), path_bounds.duplicate()]
+	# (1.30) the lighthouse path climbs its hill by the switchback road (HILL_ROAD) to the tower's steps
+	var road: Array = [VILLAGE + Vector2(11, 3), Vector2(32, -52), Vector2(46, -46)]
+	for k: Vector3 in HILL_ROAD:
+		road.append(Vector2(k.x, k.z))
+	road.append(HILL + Vector2(-4.6, -1.5))
+	_add_path(road, 1.4, 2)
 	# the ruins and cove paths now skirt the upper town's hill
 	_add_path([VILLAGE + Vector2(-3, 14), Vector2(-14, -36), Vector2(-26, -14), Vector2(-33, 8), Vector2(-34, 28), Vector2(-48, 46), RUINS + Vector2(6, -5)], 1.3, 3)
 	_add_path([VILLAGE + Vector2(4, 14), Vector2(20, -38), Vector2(32, -14), Vector2(40, 12), Vector2(46, 44), CAMP + Vector2(-2, -4)], 1.3, 4)
@@ -2090,9 +2128,49 @@ func _build_wilds() -> void:
 
 
 func _build_lighthouse() -> void:
-	# (the keeper's cottage on the levelled hilltop)
-	_keeper_hut = KitLandmarks.lighthouse(kit, HILL, Vector2(-1, 0.3), {"w": 4.5, "d": 4.0, "h": 2.3, "wall": "stone_brick", "roof": "gable",
-		"roof_tex": "roof_tiles", "chimney": true}, Vector2(-7.5, 5.5), Vector2(-0.6, -1), [Vector2(-4.0, 8.5), Vector2(-3.4, 9.6)])
+	# (1.30: the tower, the cottage and the hilltop are built in the grown layer, _build_hilltop; the old ones'
+	# reserves stay so the old island's plants draw as they did)
+	kit.reserve(HILL, 3.5 + 1.5)
+	kit.reserve(HILL + Vector2(-7.5, 5.5), maxf(4.5, 4.0) * 0.6 + 1.5)
+
+
+## The lighthouse hill's top (1.30): BrinehollowLighthouse's tower facing the town (its gallery Ambrose keeps), a
+## flagged yard round its plinth, the keeper's walk-in cottage, his oil and stores, the signal mast, the fog bell, a
+## bench looking out to sea, a low wall along the cliff side, lamps up the switchback road.
+func _build_hilltop() -> void:
+	var rng := kit.rng(0, SEEDS["hilltop"])
+	reserve(HILL, 11.5)
+	lighthouse = BrinehollowLighthouse.tower()
+	kit.place(lighthouse, HILL, face_yaw(Vector2(-1, 0)), 0.0)
+	var quads: Array = []
+	KitPaving.plan_disk(kit, quads, HILL + Vector2(-0.5, 0), 5.5, rng)
+	KitPaving.build(kit, quads, "HillFlags", "flagstones", Color(0.92, 0.9, 0.86))
+	_keeper_hut = BrinehollowRooms.room({"kind": "keeper", "name": "KeeperCottage", "w": 5.5, "d": 4.5, "h": 2.6, "wall": "stone_brick",
+		"roof_tex": "roof_tiles", "pitch": 0.75, "door_x": -1.1, "chimney": true, "trim": Color(0.2, 0.32, 0.3), "seed": rng.randi()})
+	kit.place(_keeper_hut, COTTAGE, face_yaw(HILL - COTTAGE), 3.0)
+	for i in range(4):
+		var q := kit.local_point(_keeper_hut, Vector3(3.7, 0, -1.2 + i * 0.75))
+		kit.place(Props.barrel() if i % 2 == 0 else Props.crate(0.7), q, rng.randf() * TAU, 0.5)
+	kit.place(BrinehollowLighthouse.signal_mast(rng.randi()), HILL + Vector2(5.5, -7.0), 0.0, 0.6)
+	kit.place(BrinehollowLighthouse.fog_bell(), HILL + Vector2(7.5, 4.0), face_yaw(Vector2(-1, 0)), 1.0)
+	kit.place(Props.bench(), HILL + Vector2(9.0, -1.5), face_yaw(Vector2(1, 0)), 0.8)
+	var wb := MeshBuilder.new()
+	var wbody := StaticBody3D.new()
+	wbody.name = "HillWall"
+	var pts := PackedVector3Array()
+	for k in range(13):
+		var a := deg_to_rad(-75.0 + k * 15.0)
+		var q := HILL + Vector2(cos(a), sin(a)) * 10.6
+		pts.append(Vector3(q.x, hv(q) + 0.6, q.y))
+	KitStreet.wall(kit, wb, wbody, pts, 0.45, 0.0)
+	KitStreet.finish(kit, wb, wbody)
+	for k in range(HILL_ROAD.size() - 1):
+		var a: Vector3 = HILL_ROAD[k]
+		var b: Vector3 = HILL_ROAD[k + 1]
+		var mid := Vector2(a.x + b.x, a.z + b.z) * 0.5
+		var side := Vector2(-(b.z - a.z), b.x - a.x).normalized() * (HILL_ROAD_HW + 0.6)
+		# (glowing lanterns, no lights of their own: the night budget is the town's)
+		kit.place(Props.lantern_post(), mid + side, face_yaw(-side) - PI * 0.5, 0.4)
 
 
 ## A rowboat pulled up on the cove beach, a crate and a barrel by the castaway's camp.

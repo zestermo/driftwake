@@ -182,6 +182,8 @@ static func room(spec: Dictionary) -> StaticBody3D:
 			keeper = _tinker(body, fm, w, d, h, dx, rng)
 		"scribe":
 			keeper = _scribe(body, fm, w, d, h, dx, rng)
+		"keeper":
+			keeper = _keeper(body, fm, w, d, h, dx, rng)
 	var glow := PSXMat.glow(Color(1.0, 0.76, 0.4), 2.0)
 	fm.add_box(beam, _xf(Vector3(0.0, cy - 0.35, 0.3)), Vector3(0.03, 0.45, 0.03), 1.0)
 	fm.add_box(glow, _xf(Vector3(0.0, cy - 0.7, 0.3)), Vector3(0.2, 0.26, 0.2), 1.0)
@@ -407,6 +409,52 @@ static func _tinker(body: StaticBody3D, fm: MeshBuilder, w: float, d: float, h: 
 	fm.add_quad(PSXMat.flat(Color(0.12, 0.1, 0.09)), Vector3(bench_x - 0.5, FL + 0.012, -zi + 0.9), Vector3(bench_x - 0.5, FL + 0.012, -zi + 1.5),
 		Vector3(bench_x + 0.4, FL + 0.012, -zi + 1.5), Vector3(bench_x + 0.4, FL + 0.012, -zi + 0.9), Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Color.WHITE, Vector3.UP)
 	return Vector3(bench_x + 1.4, FL, -zi + 1.0)
+
+
+## The lighthouse keeper's cottage: a box bed under a patchwork blanket, an iron stove with its pipe, a table with the
+## log book and a lantern, a shelf of oil cans, the spare lens on a crate, a ship in a bottle on the sill.
+static func _keeper(body: StaticBody3D, fm: MeshBuilder, w: float, d: float, h: float, dx: float, rng: RandomNumberGenerator) -> Vector3:
+	var xi := w * 0.5 - T
+	var zi := d * 0.5 - T
+	var wood := PSXMat.lit("planks")
+	var dark := PSXMat.lit("planks_dark")
+	var iron := PSXMat.lit("metal", Color(0.22, 0.22, 0.24))
+	# the bed along the back wall's left
+	var bc := Vector3(-xi + 1.05, FL, -zi + 0.5)
+	fm.add_box(dark, _xf(bc + Vector3(0, 0.25, 0)), Vector3(2.0, 0.5, 0.9), 0.8)
+	fm.add_box(PSXMat.lit("fabric_patched", Color(0.95, 0.9, 0.85), {"affine": 0.6}), _xf(bc + Vector3(0.15, 0.55, 0.02)), Vector3(1.65, 0.12, 0.88), 1.0)
+	fm.add_box(PSXMat.flat(Color(0.9, 0.88, 0.8)), _xf(bc + Vector3(-0.75, 0.6, 0)), Vector3(0.35, 0.12, 0.6), 1.0)
+	_col(body, Vector3(2.0, 0.62, 0.9), bc + Vector3(0, 0.31, 0))
+	# the stove on the right, its pipe up through the ceiling
+	var sc := Vector3(xi - 0.45, FL, -zi + 0.5)
+	fm.add_box(iron, _xf(sc + Vector3(0, 0.4, 0)), Vector3(0.6, 0.8, 0.6), 1.0)
+	fm.add_box(PSXMat.glow(Color(1.0, 0.45, 0.15), 1.6), _xf(sc + Vector3(0, 0.3, 0.31)), Vector3(0.3, 0.16, 0.02), 1.0)
+	fm.add_cylinder(iron, _xf(sc + Vector3(0, 0.8, 0)), 0.08, 0.08, h - 0.8, 6, 1.0)
+	_col(body, Vector3(0.6, 0.85, 0.6), sc + Vector3(0, 0.42, 0))
+	# the table, the log book open, a lantern, a stool
+	var tc := Vector3(0.6, FL, 0.1)
+	fm.add_box(wood, _xf(tc + Vector3(0, 0.76, 0)), Vector3(1.2, 0.06, 0.8), 1.0)
+	for sx: float in [-0.52, 0.52]:
+		for sz: float in [-0.32, 0.32]:
+			fm.add_box(dark, _xf(tc + Vector3(sx, 0.37, sz)), Vector3(0.07, 0.74, 0.07), 1.0)
+	_col(body, Vector3(1.2, 0.8, 0.8), tc + Vector3(0, 0.4, 0))
+	fm.add_box(PSXMat.flat(Color(0.35, 0.22, 0.14)), _xf(tc + Vector3(-0.15, 0.8, 0), 0.2), Vector3(0.5, 0.03, 0.36), 1.0)
+	fm.add_box(PSXMat.flat(Color(0.9, 0.85, 0.7)), _xf(tc + Vector3(-0.15, 0.82, 0), 0.2), Vector3(0.46, 0.012, 0.33), 1.0)
+	fm.add_cylinder(iron, _xf(tc + Vector3(0.35, 0.79, -0.15)), 0.08, 0.08, 0.04, 6, 1.0)
+	fm.add_box(PSXMat.glow(Color(1.0, 0.78, 0.4), 2.0), _xf(tc + Vector3(0.35, 0.92, -0.15)), Vector3(0.12, 0.18, 0.12), 1.0)
+	fm.add_cylinder(wood, _xf(tc + Vector3(0, 0, 0.7)), 0.18, 0.16, 0.45, 7, 1.0)
+	# oil cans on a shelf over the door side, the spare lens on a crate
+	fm.add_box(wood, _xf(Vector3(-xi + 0.2, FL + 1.5, 0.6)), Vector3(0.36, 0.04, 1.4), 1.0)
+	for k in range(4):
+		fm.add_cylinder(PSXMat.lit("metal", Color(0.55, 0.45, 0.25)), _xf(Vector3(-xi + 0.2, FL + 1.52, 0.1 + k * 0.32)), 0.1, 0.1, 0.3, 7, 1.0)
+	var cc := Vector3(xi - 0.45, FL, zi - 0.7)
+	fm.add_box(wood, _xf(cc + Vector3(0, 0.3, 0), 0.3), Vector3(0.6, 0.6, 0.6), 0.8)
+	_col(body, Vector3(0.6, 0.6, 0.6), cc + Vector3(0, 0.3, 0), 0.3)
+	var lens := PSXMat.lit("metal", Color(0.85, 0.95, 0.95))
+	for k in range(4):
+		fm.add_cylinder(lens, _xf(cc + Vector3(0, 0.6 + k * 0.1, 0)), 0.3 - k * 0.05, 0.28 - k * 0.05, 0.1, 10, 1.0)
+	fm.add_box(PSXMat.flat(Color(0.5, 0.65, 0.55, 1.0)), _xf(Vector3(xi - 0.05, FL + 1.6, -0.2), PI * 0.5), Vector3(0.3, 0.12, 0.12), 1.0)
+	return tc + Vector3(-0.9, 0, 0)
 
 
 ## Brother Aldous's house: shelves of books floor to ceiling on the back wall, a writing desk with a candle, ink and an

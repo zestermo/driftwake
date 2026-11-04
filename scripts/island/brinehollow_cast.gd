@@ -196,7 +196,7 @@ static func people(isl: StarterIsland) -> Array:
 			"belt": "belt", "belt_color": L.LEATHER[1], "gloves": true, "gloves_color": L.LEATHER[2]},
 	}}.merged(KitLife.at_marker(kit, isl._smithy, "Smith")))
 
-	# Lighthouse keeper on the hill
+	# Lighthouse keeper up on the tower's gallery, at his telescope (1.30)
 	cast.append({"cfg": {
 		"name": "Keeper Ambrose", "dialogue": "ambrose", "voice": 0.8,
 		"look": {"body": "masc", "build": "average", "skin": L.SKIN_TONES[1],
@@ -206,7 +206,7 @@ static func people(isl: StarterIsland) -> Array:
 			"coat": "longcoat", "coat_color": L.CLOTH[3], "legs": "trousers", "legs_color": L.CLOTH[4],
 			"feet": "boots", "feet_color": L.LEATHER[1], "belt": "belt", "belt_color": L.LEATHER[1],
 			"gloves": true, "gloves_color": L.LEATHER[2]},
-	}, "at": StarterIsland.HILL + Vector2(-5, 4.5), "face": Vector2(-1, 0.2)})
+	}}.merged(KitLife.at_marker(kit, isl.lighthouse, "Keeper")))
 
 	# Castaway at the cove campfire
 	cast.append({"cfg": {

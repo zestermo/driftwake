@@ -10534,3 +10534,25 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   unchanged.
 - **Tests:** t/island/brinehollow_rooms (new). Renders: `tools/dev/roomshot.gd` (inside and at the door of each),
   islandshot of the close.
+
+## 2026-11-04: Brinehollow polish, piece 3 - the lighthouse and its hill (1.30)
+- **Tower** (`scripts/island/brinehollow_lighthouse.gd`, BrinehollowLighthouse.tower, node still "Lighthouse" for
+  fidelity): an octagonal stone plinth with steps up to a door facing the town, a 20 m tapered shaft in red and white
+  bands with slit windows, a corbelled gallery (iron deck, a railing of 24 posts and two rails; deck and rail shapes),
+  the watch room with its door, the glazed lamp room (8 mullions), the copper dome, ball and vane, Ambrose's telescope
+  on the rail; the turning lens with its beam and glow as before. Props.lighthouse (generated islands) is untouched.
+- **Climbing:** F at the door ("Climb the lighthouse") puts the captain on the gallery, F at the watch room's door
+  ("Climb down") at the foot of the steps, with a toast (no stairs modelled inside: a 2.5 m shaft). Each captain moves
+  their own body. Ambrose stands on the gallery at the "Keeper" marker facing out to sea (the lighthouse step's
+  marker leads there); his lines mention the stair and the glass; the step's goal says "up the lighthouse".
+- **Hill:** a switchback road (StarterIsland.HILL_ROAD) graded into the west slope in the built grid only
+  (`_hill_road`, like `_close`), the lighthouse path (paths[2]) redefined over it after the old paths are frozen (the
+  old plants still decide on the old line); glowing lantern posts on its legs (no NightLights: the night budget
+  belongs to the town, brinehollow_town checks it); a flagged yard round the plinth; the keeper's walk-in cottage
+  (BrinehollowRooms kind "keeper": box bed, stove, log book, oil cans, the spare lens); his barrels and crates; the
+  signal mast with three flags; the fog bell; a bench looking out to sea; a low stone wall along the cliff side. The
+  old tower's and cottage's reserves stay (old plants' draws).
+- **Per frame:** the lens's spinner, as before. Draws: tower ~12 surfaces (one mesh) + lens; cottage ~14; mast, bell,
+  wall, yard a few each. Lights: the tower's spot and omni as before, the cottage's room omni.
+- **Tests:** t/island/brinehollow_lighthouse (new). Renders: islandshot (from the village, the road, the plateau, the
+  gallery), roomshot (the cottage).

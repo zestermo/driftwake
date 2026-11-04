@@ -18,7 +18,7 @@ const STEPS := [
 	{"id": "find_town", "goal": "Head into town: find someone who knows this place", "npc": "Old Pell", "who": "Pell"},
 	{"id": "see_gus", "goal": "Find Gus at the Salted Gull", "npc": "Gus Brannock", "who": "Gus"},
 	{"id": "see_nessa", "goal": "See Nessa at the market", "npc": "Nessa", "who": "Nessa"},
-	{"id": "lighthouse", "goal": "Take Nessa's parcel up to the lighthouse keeper", "npc": "Keeper Ambrose", "who": "Ambrose"},
+	{"id": "lighthouse", "goal": "Take Nessa's parcel to Keeper Ambrose, up the lighthouse on the hill", "npc": "Keeper Ambrose", "who": "Ambrose"},
 	{"id": "brawl", "goal": "Deal with the dock toughs on the quay: fists only", "place": "brawl", "bout": "brawl", "who": "The quay"},
 	{"id": "see_vey", "goal": "Find Sergeant Vey at the training yard", "npc": "Sergeant Vey", "who": "Vey"},
 	{"id": "vey_rack", "goal": "Try the blades on Vey's rack and keep one", "place": "rack", "who": "Weapon rack"},
