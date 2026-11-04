@@ -84,6 +84,17 @@ Gap = the foe's level minus the captain's (per captain). Multipliers on top of L
 - Rivals at sea and boarding: after 1.30.
 - The fruit pool's other sources: after the fruit tree pass.
 
+## Decided (2026-11-03, round 7): the fortress's look
+Zach, after the stronghold renders (blockout-like up close: a plain foundry, an empty cell block, sparse props):
+"I like it as a marineford/enies lobby type of thing".
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Reference | **Marineford + Enies Lobby**: a white-and-blue naval citadel. Huge pale stone walls with dark-blue trim and gold accents, the Admiralty's gull crest, a towering keep that reads from the sea like the Tower of Justice, a giant main gate, wide plazas and long stairs, colonnades and arches, bridges between districts, rows of cannon batteries on the walls, flags and banners everywhere, the bay ringed by docked warships | Zach | Renders |
+| Scale | Monumental: walls and gates many captains tall, plazas big enough for the 20-30 crowd; side areas and wall walks for stealth routes | Round 3 crowds + stealth | Play |
+| Districts keep their role | Foundry (Kesh), prison (Marrow), keep (Vane), batteries, barracks, docks each dressed for what it is, in the same white-blue palette | Each act reads at a glance | Renders |
+| Budget | A set piece may spend, but inside the perf gate: MultiMesh repeats, shared PSXMat, visibility ranges | CLAUDE.md | Bench at prepush |
+
 ## Build order (lead, 2026-11-03; two agents at a time)
 Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Driftwake 1.30 UI mocks" canvas).
 1. Running: **sea fixes** (enemy_ship, admiralty, rival_watch) and **land fixes** (vault + fruit, rack and drills,
