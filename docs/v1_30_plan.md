@@ -137,7 +137,7 @@ Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Dri
    piece, the rival ship arrival, the Redtide mountain; the brig, galleon and creatures after their own grill.
 
 ## Queue (2026-11-04; Zach: at most 3 at a time counting the lead, so 2 agents)
-Done: the brig and galleon, the island quests and board, the fog and forest creatures. Running (2026-11-04): the collision audit, Brinehollow polish. Zach raised the 1.30 usage stop to ~60% so the whole queue and the prepush fit. Next: the chain scythe, then transmog, with the vendor icons + crowd voices fixer beside it, then prepush.
+Done: the brig and galleon, the island quests and board, the fog and forest creatures. Running (2026-11-04): the collision audit, Brinehollow polish. Zach raised the 1.30 usage stop to ~60% so the whole queue and the prepush fit. Next: the chain scythe, then the 960x540 UI canvas, then transmog, with the vendor icons + crowd voices fixer beside it, then prepush.
 Queued, in order, each briefed already (resume the stopped agent with its context, or re-brief):
 1. (after the creatures resume) **Collision audit**: a tool that lists visible meshes with no collider per island, fixes by category at the source
    (props, kit, themes, ruins, trees, roofs, walls), and the snow islands' frozen rivers and lakes. Zach: "one of the
@@ -153,3 +153,7 @@ Queued, in order, each briefed already (resume the stopped agent with its contex
    leaves the bag while it sits there (no copies), any owned piece of that slot fits, saved with the gear, seen by
    co-op guests through the look sync. Renders at 1920x1080. After the scythe (inventory_screen, equipment_component,
    character_look; the icons fixer stays out of those).
+6. **UI canvas 800x450 -> 960x540** (Zach, 2026-11-04: "Raise the canvas"; 960x540 is the lead's pick: exactly 2x at 1080p,
+   so the pixel fonts scale whole, 4x at 4K, and 44% more room). PSX.UI_SIZE plus the 14 files with hard 800/450, then
+   every screen re-laid out to use the room (not just centred), renders of each at 1920x1080. Before transmog, so
+   transmog is laid out once on the new canvas. If the usage stop arrives first, it opens 1.31.
