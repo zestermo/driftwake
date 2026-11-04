@@ -10570,3 +10570,41 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   The marker's label stays the step's "who" (chain_goal.gd, the quests agent's file, untouched).
 - **Tests:** t/story/close_steps (new); opening_steps (the 25 in order), shrine_reading (walks the new list) updated.
   Expected at prepush: storytest (it walks the opening; the new steps need its walk), savetest if it counts steps.
+
+## 2026-11-04: 1.30 collision audit, piece 2: the fixes by category
+- **The audit needs a window** (headless, the dummy renderer keeps no MultiMesh transforms: every tree, rock and coral
+  read as at the island's origin). It now refuses headless, accepts the character creator, leaves far LOD stand-ins
+  (visibility_range_begin) out, counts tree limbs only in reach (no "roofs" on MultiMesh plants), passes bamboo clumps
+  (Zach: a thicket you push through) and coral and rock deeper than a wader (1.2 m). KitStreet.merge_meshes keeps the
+  pieces apart while MeshBuilder.trace is on, so TownMeshes' holes name their builders.
+- **Roofs as hulls:** `MeshBuilder.mark()` / `points_since(m, to)` / `hull_since(m, body)`: a ConvexPolygonShape3D round
+  what was built since the mark. Used for every pitched roof in the kit (KitHouses room/workshop/shrine/storehouse/well/
+  gate), Buildings (house lean-to, tavern, smithy, chapel and its belfry, stalls' canopies and the pot cart's umbrella),
+  the snow's houses (round house a hull per tier: one over the cone stood 0.5 m proud of the steps), the harbour's
+  warehouse and boathouse, lookout towers, the desert's domes, the capital's towers, cathedral and domes. Thin sloped
+  roofs (porch roofs, awnings, lean-tos) are a `Buildings.slab_col`. City pieces (built on a worker) take a "hull" col
+  entry, made into a shape with the piece's body on the main thread (CapitalModels.hull, CapitalIsland._piece).
+- **Buildings:** chimneys, porch posts, benches, crates (Buildings.house); the desert's flat roofs (they had none: the
+  test found 60% of a home's top open), parapets, arcade, gallery rail, beehive granaries (hulls), ruin walls per
+  standing stretch and the sand drifts, minaret balcony, hall turrets, watchtower kiosk, hideout parapet; the kit ruin's
+  walls in runs (one box at the walls' average hid the doorway: the cache inside couldn't be reached) and its fallen roof;
+  the temple's footing and crowns; the snow castle's merlons, gate lintel and tower roofs; the harbour tower's gallery,
+  rail, lantern room and cap. The canal city's massing houses had no colliders at all: a box to the roof, roofs as hulls,
+  flat roofs' parapets, chimneys (CanalShell.house lost its `solid` flag: every lagoon house is solid). The capital's
+  wall-walk merlons, tower crowns, chimney stacks (CapitalModels.stack takes cols).
+- **Vegetation:** IslandTheme.trunk (on the theme's meshes once, main thread): the wood (not leaves, needles, fronds,
+  moss, snow on a plant: IslandTheme.foliage) sampled over its triangles in 2.5 m slices to TRUNK_TOP 5 m, a column per
+  bend (merged when straight; at most two), ending where the wood does. GenIsland._add_tree, overgrowth, the colossus's
+  sapling and Brinehollow's trees use it (an upright cylinder at the foot missed a palm's lean). Giants and rocks get
+  their own convex shape (IslandTheme.hull_points, a quarter-metre grid; rocks now down to scale 0.45); the undergrowth
+  that stands up (desert column cacti, stumps) its columns; fallen logs a capsule (IslandTheme.lying; GenIsland's veg
+  shapes: [r, h, pos] cylinder/sphere, [r, h, pos, axis] capsule, [points] hull). The snow's crystal clusters a column each.
+- **Water's edge:** coast rocks at the waterline solid (Coast.rocks), cove rocks hulls, pier and boardwalk rope rails a
+  thin wall post to post (none across a break; HarbourModels.rail_cols), piles from a wader's depth up (pile_cols),
+  bollards. trader_ships' merchantman: its masts' feet.
+- **Set pieces:** the colossus's feet, torso and arm (hulls), the sky wreck's draped envelope (a two-sided mesh shape),
+  the beast arena's fallen giant (hull).
+- **Physics cost (shapes per island, before -> after):** in the report.
+- Tests: t/island/roofs_solid (rays down over 36 builders: drawn top vs collider top), t/island/trunk_cols, plus the
+  covering t/capital/solid_ground, t/stronghold/solid_ground, t/canal/*, t/island/brinehollow_*. islanddump on
+  Brinehollow differs only by colliders (and the training dummies' known unseeded heads).
