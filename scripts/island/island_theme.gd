@@ -20,7 +20,7 @@ static var _meshes := {}
 static func meshes(theme: String) -> Dictionary:
 	if not _meshes.has(theme):
 		_meshes[theme] = IslandThemes.of(theme).meshes()
-		for key in ["tree", "beach_tree", "mangrove", "giant", "fig", "kapok", "emergent"]:
+		for key in ["tree", "beach_tree", "mangrove", "giant", "fig", "kapok", "emergent", "broadleaf"]:
 			for e in _meshes[theme].get(key, []):
 				for m in (e if e is Array else [e]):
 					if m is ArrayMesh and not (m as ArrayMesh).has_meta("trunk"):
@@ -99,9 +99,18 @@ static func trunk(mesh: ArrayMesh) -> Array:
 		d.sort()
 		var r: float = d[d.size() / 2]
 		var y0 := k * TRUNK_SLICE
+		# (no higher than the wood goes: a stump or a cactus ends under the slice's top)
+		var y1 := y0
+		for v in list:
+			y1 = maxf(y1, v.y)
 		if not out.is_empty() and (out[-1][0] as Vector2).distance_to(c) < 0.35 and absf(float(out[-1][3]) - r) < 0.25:
-			out[-1][2] = y0 + TRUNK_SLICE
+			out[-1][2] = y1
 			out[-1][3] = maxf(float(out[-1][3]), r)
 		else:
-			out.append([c, y0, y0 + TRUNK_SLICE, r])
+			out.append([c, y0, y1, r])
 	return out
+
+
+## Whether a profile stands up (a trunk, a cactus, a stump): a fallen log's would be a squat disc over the air beside it.
+static func upright(tk: Array) -> bool:
+	return not tk.is_empty() and float(tk[0][2]) - float(tk[0][1]) >= float(tk[0][3]) * 1.5

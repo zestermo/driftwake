@@ -430,12 +430,19 @@ static func _crystals(isl) -> void:
 			var s := rng.randf_range(0.8, 2.2)
 			var b := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.25, 0.25))
 			(xfs[rng.randi() % kinds.size()] as Array).append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, y - 0.3, p.y)))
-	var node := Node3D.new()
+	# (1.30) a column each, about the cluster's core: they stand on the slopes captains climb
+	var node := StaticBody3D.new()
 	node.name = "SnowCrystals"
+	node.collision_layer = 1
+	node.collision_mask = 0
 	for i in range(kinds.size()):
 		var list: Array = xfs[i]
 		if list.is_empty():
 			continue
+		var box: AABB = (kinds[i] as Mesh).get_aabb()
+		for xf in list:
+			var s: float = (xf as Transform3D).basis.get_scale().x
+			KitLandmarks.cyl_col(node, minf(box.size.x, box.size.z) * 0.3 * s, box.end.y * s * 0.85, (xf as Transform3D).origin + Vector3.UP * box.end.y * s * 0.425)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = kinds[i]

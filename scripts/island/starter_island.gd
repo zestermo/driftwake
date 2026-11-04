@@ -2797,6 +2797,11 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	if _veg_skip:
 		return crown
 	GrapplePoints.add(self, crown)
+	# (1.30) the trunk's columns where its wood stands (a palm leans out of an upright cylinder at its foot)
+	if not tree_mesh.has_meta("trunk"):
+		tree_mesh.set_meta("trunk", IslandTheme.trunk(tree_mesh))
+	if IslandTheme.trunk_cols(_tree_colliders, tree_mesh, xf):
+		return crown
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = col_r * s

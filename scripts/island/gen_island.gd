@@ -1141,7 +1141,12 @@ func _scatter_vegetation() -> void:
 			if kind != "":
 				var list: Array = m[kind]
 				var s := _rng.randf_range(0.8, 1.4)
-				_bucket(buckets, list[_rng.randi() % list.size()], kind, Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, h - (0.1 if kind == "bush" else 0.05), p.y)))
+				var um: Mesh = list[_rng.randi() % list.size()]
+				var uxf := Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, h - (0.1 if kind == "bush" else 0.05), p.y))
+				_bucket(buckets, um, kind, uxf)
+				# (1.30) what stands up out of the undergrowth solid (the desert's tall cacti, a fog stump): leaves stay passable
+				if kind == "broadleaf" and IslandTheme.upright(um.get_meta("trunk", [])):
+					_trunk_shapes(um, uxf, s)
 			# under thick cover a second layer of ground cover between the rest
 			var floor_k := 1.0 if pd >= 2.0 else (0.0 if road else float(_def["overgrown"]))
 			var q := p + Vector2(1.25, 1.25)
