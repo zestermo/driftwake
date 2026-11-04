@@ -26,7 +26,7 @@ func enter(data: Dictionary) -> void:
 
 func physics_update(delta: float) -> void:
 	_t += delta
-	var held := _by != null and is_instance_valid(_by)
+	var held: bool = _by != null and is_instance_valid(_by) and (not _by.has_method("holding") or _by.holding())
 	if held:
 		# up against his chest, facing him
 		var f: Vector3 = -_by.get_node("Facing").global_basis.z

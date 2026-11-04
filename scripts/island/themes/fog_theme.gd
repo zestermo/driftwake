@@ -152,6 +152,8 @@ const CREATURES := {
 	"bat": "res://scripts/enemies/fauna/bat.gd",
 	"crab": "res://scripts/enemies/fauna/crab.gd",
 	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
+	# (the graveyard's own: FogPlaces.graveyard puts them under its fresh graves)
+	"zombie": "res://scripts/enemies/fauna/zombie.gd",
 }
 
 func _init() -> void:

@@ -676,6 +676,90 @@ def squawk_sound():
     finish("squawk", out, 0.75, fade=0.03)
 
 
+def zombie_moan_takes():
+    """Zombie (1.30): a long wet groan out of a dead throat, low and wavering, the breath rattling in it."""
+    for k in range(3):
+        rng = np.random.default_rng(1301 + k)
+        dur = 1.1 + 0.25 * k
+        f0 = [70 + 6 * k, 92 + 4 * k, 84, 66 - 3 * k, 58]
+        out = _voice(rng, dur, f0, ((420, 3, 1.0), (760 + 60 * k, 5, 0.5), (1500, 7, 0.15)), harm=14, rasp=1.1, gain=2.6)
+        t = np.arange(len(out)) / SR
+        out *= 0.75 + 0.25 * np.sin(2 * np.pi * (5.5 + k) * t)
+        _write_shot(f"zombie_moan_{k + 1}", lpf(out, 0.35), -19.0, fade=0.25)
+
+
+def grave_burst_sound():
+    """A grave bursting open (1.30): a muffled thump under the ground, then clods of earth pattering down."""
+    rng = np.random.default_rng(1311)
+    n = int(SR * 1.2)
+    t = np.arange(n) / SR
+    out = _thump(t, 140, 45, 0.004, 9.0) * 1.2
+    out += _noise(n, rng, 80, 900) * np.exp(-t * 7) * 0.7
+    for _ in range(26):
+        at = rng.uniform(0.08, 0.9)
+        g = _noise(int(SR * 0.04), rng, 300, 2500) * np.exp(-np.arange(int(SR * 0.04)) / SR * 90)
+        i = int(SR * at)
+        out[i:i + len(g)] += g * rng.uniform(0.1, 0.35) * np.exp(-at * 2.0)
+    _write_shot("grave_burst", out, -15.0, fade=0.2)
+
+
+def bog_bark_sound():
+    """Bog hound (1.30): a drowned dog's bark, half water - a gargled cough that bubbles at its end."""
+    rng = np.random.default_rng(1321)
+    out = np.zeros(int(SR * 0.75))
+    for t0, d in ((0.0, 0.2), (0.3, 0.26)):
+        g = _voice(rng, d, [260, 340, 180], ((600, 4, 1.0), (1300, 6, 0.5)), rasp=1.2, gain=3.0)
+        i = int(SR * t0)
+        out[i:i + len(g)] += g
+    t = np.arange(len(out)) / SR
+    out *= 0.7 + 0.3 * np.sign(np.sin(2 * np.pi * 32 * t))
+    _write_shot("bog_bark", lpf(out, 0.45), -17.0, fade=0.08)
+
+
+def stalker_shriek_sound():
+    """Pale stalker (1.30): a thin rising shriek with a second voice beating against it, gone into breath."""
+    rng = np.random.default_rng(1331)
+    a = _voice(rng, 0.9, [600, 1400, 2100, 1700], ((2200, 4, 1.0), (3600, 6, 0.4)), harm=8, rasp=0.3)
+    b = _voice(rng, 0.9, [630, 1460, 2190, 1760], ((2200, 4, 1.0), (3600, 6, 0.4)), harm=8, rasp=0.3)
+    n = len(a)
+    t = np.arange(n) / SR
+    out = (a + b) * 0.6 + hpf(rng.standard_normal(n), 0.3) * np.exp(-((t - 0.75) / 0.12) ** 2) * 0.3
+    _write_shot("stalker_shriek", out, -18.0, fade=0.15)
+
+
+def moth_flutter_sound():
+    """Grave moth (1.30): big soft wings, a dry papery flutter faster than a bird's."""
+    rng = np.random.default_rng(1341)
+    n = int(SR * 0.6)
+    t = np.arange(n) / SR
+    w = lpf(rng.standard_normal(n), 0.25) + hpf(rng.standard_normal(n), 0.6) * 0.25
+    env = np.maximum(0, np.sin(2 * np.pi * 16 * t)) ** 2 * np.minimum(1, t / 0.05) * np.clip((0.6 - t) / 0.2, 0, 1)
+    _write_shot("moth_flutter", w * env, -22.0, fade=0.05)
+
+
+def spore_puff_sound():
+    """Mushroom crawler (1.30): a cap squeezed - a soft hollow pop, then spores hissing out."""
+    rng = np.random.default_rng(1351)
+    n = int(SR * 0.9)
+    t = np.arange(n) / SR
+    out = _thump(t, 220, 90, 0.003, 18.0) * 0.8
+    out += _noise(n, rng, 1500, 7000) * np.minimum(1, t / 0.05) * np.exp(-t * 3.5) * 0.6
+    _write_shot("spore_puff", out, -18.0, fade=0.2)
+
+
+def owl_screech_sound():
+    """Owl-beast (1.30): a barn owl's scream grown huge - a long ragged hiss-shriek over a low hoot."""
+    rng = np.random.default_rng(1361)
+    n = int(SR * 1.1)
+    t = np.arange(n) / SR
+    hoot = np.sin(2 * np.pi * 300 * t) * np.exp(-((t - 0.12) / 0.07) ** 2) * 0.8
+    s = _voice(rng, 0.85, [900, 1300, 1150, 800], ((1800, 3, 1.0), (3200, 4, 0.7)), harm=6, rasp=1.6, gain=2.0)
+    i = int(SR * 0.22)
+    out = hoot
+    out[i:i + len(s)] += s * 0.9
+    _write_shot("owl_screech", out, -16.0, fade=0.12)
+
+
 def flap_sound():
     """Wings beating: soft whumps of air."""
     rng = np.random.default_rng(317)
@@ -2679,6 +2763,13 @@ SOUNDS = [
     ("screech", screech_sound),
     ("squawk", squawk_sound),
     ("flap", flap_sound),
+    ("zombie_moan", zombie_moan_takes),
+    ("grave_burst", grave_burst_sound),
+    ("bog_bark", bog_bark_sound),
+    ("stalker_shriek", stalker_shriek_sound),
+    ("moth_flutter", moth_flutter_sound),
+    ("spore_puff", spore_puff_sound),
+    ("owl_screech", owl_screech_sound),
     ("hiss", hiss_sound),
     ("monkey", monkey_sound),
     ("clack", clack_sound),

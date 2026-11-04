@@ -14,6 +14,7 @@ const SOUNDS := [
 	"gull_cry", "jungle_bird",
 	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water", "step_snow", "step_ice",
 	"grunt", "squeal", "screech", "squawk", "flap", "hiss", "monkey", "clack",
+	"zombie_moan", "grave_burst", "bog_bark", "stalker_shriek", "moth_flutter", "spore_puff", "owl_screech",
 	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
 	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
 	"laugh", "cheer", "hup", "heel_click", "slap",

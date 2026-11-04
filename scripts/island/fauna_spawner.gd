@@ -316,6 +316,17 @@ func fill_slots(parent: Node3D, slots: Array, salt: int = 0) -> void:
 			_spawn(spots[si])
 
 
+## A place's own creatures (the fog graveyard's zombies): the theme's kind `k` at each world point, one group, spawned
+## now and kept like the rest (LOD, respawns, co-op).
+func add_spots(k: String, pts: Array) -> void:
+	var gi := groups.size()
+	groups.append({"kind": k, "zone": "place", "role": "pack", "at": to_local(pts[0]), "spots": []})
+	for i in range(pts.size()):
+		_add_spot(gi, k, to_local(pts[i]), {"morph": i % 3, "pack": gi, "lead": i == 0})
+	for si in groups[gi]["spots"]:
+		_spawn(spots[si])
+
+
 func roosts() -> Array:
 	return groups.filter(func(g): return g["role"] == "roost")
 
