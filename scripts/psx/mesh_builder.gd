@@ -1049,7 +1049,26 @@ func commit() -> ArrayMesh:
 				snap._order.append(mat)
 				snap._surfaces[mat] = (_surfaces[mat] as Dictionary).duplicate()
 		_kept[mesh] = snap
+	if trace:
+		mesh.set_meta("made_by", made_by())
 	return mesh
+
+
+## While on (tools/dev/collision_audit.gd), each committed mesh keeps the two builder functions that made it as its
+## "made_by" meta.
+static var trace := false
+
+
+static func made_by() -> String:
+	var out := PackedStringArray()
+	for f in get_stack():
+		var src: String = str(f["source"]).get_file().get_basename()
+		if src in ["mesh_builder", "draw_lod"]:
+			continue
+		out.append("%s.%s" % [src, f["function"]])
+		if out.size() == 2:
+			break
+	return " < ".join(out)
 
 
 ## While on (a chain island's build steps, GenIsland.run_step), what each mesh committed on the main thread was built
