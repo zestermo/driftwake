@@ -135,3 +135,16 @@ Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Dri
    slope slide (free), wall jump family, air dash family and the livelier fall pose.
 4. Then: collision holes + Unstuck, boss phase resets + clearing moves, the stronghold polish and the Scouring set
    piece, the rival ship arrival, the Redtide mountain; the brig, galleon and creatures after their own grill.
+
+## Queue (2026-11-04; Zach: at most 3 at a time counting the lead, so 2 agents)
+Running: the brig and galleon; the island quests and board. Paused: the fog and forest creatures (resume first).
+Queued, in order, each briefed already (resume the stopped agent with its context, or re-brief):
+1. **Collision audit**: a tool that lists visible meshes with no collider per island, fixes by category at the source
+   (props, kit, themes, ruins, trees, roofs, walls), and the snow islands' frozen rivers and lakes. Zach: "one of the
+   biggest issues".
+2. **Brinehollow polish**: Tackett's grove off the path, the church quarter left of Old Man Pell (layout, interiors, tip
+   NPCs), the lighthouse and its hill, the intro's farmlands errand and tinkering/reading steps.
+3. **Chain scythe animations**: the heavy (right click) first, then the rest: anticipation, whole body, arcs, squash and
+   stretch, no snaps.
+4. **Vendor icons + crowd voices** (fixer): every vendor an icon; the market murmur without layered voices; a cap on
+   voice barks at once; a softer voice timbre.
