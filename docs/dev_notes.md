@@ -10689,3 +10689,29 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Options:** the panel 500 wide, its list 360 tall (was 210).
 - **Tests:** `t/ui/canvas_960` (new); every `t/ui/skills_*` and vendor_marks size the window 1920x1080; uitest's
   checks now 960x540 at 2x in a 1920x1080 window (a world suite: runs at prepush).
+
+## 2026-11-04: 1.30 collision audit, pieces 3-4: the rest, and the numbers
+- Brinehollow (free once its polish landed): the flared roofs (BrinehollowModels.flared_roof takes the body:
+  `MeshBuilder.faces_since`, a two-sided mesh shape of the roof's own triangles, as a hull bridged the eaves), the
+  teahouse's parasol, its trees' trunk columns, the wreck's rocks (KitLandmarks.boulders takes a body: a hull each), the
+  harbour tower's gallery. islanddump: only colliders differ.
+- City roofs nothing else covered: CapitalModels._hip(…, cols) and roof(…, cols, solid) add the roof's hull (the
+  district's halls, docks and terrace, the canal's palace, church and tower, the capital's halls); the stronghold's
+  merlons, roof bands, parapets, stacks and skylights. The volcanic isle's cooled lava crust is walked on (faces).
+- Vegetation: giants' hulls take their detail mesh (buttresses, roots) and reach GIANT_TOP 10 m; the bamboo slot's
+  solid kinds (snow crystals, stumps, fumaroles, pandanus) get hulls, the jungle's bamboo none (Zach); coral heads
+  that reach a wader's depth a column each (AtollReef "ReefHeads").
+- **Before -> after** (windowed audit; holes / m2 open / collision shapes): brinehollow 1961/11698/4200 -> 1258/3563/4573;
+  capital 1156/26213/4882 -> 635/11303/6296; canal 1090/84893/4095 -> 921/6599/7245; stronghold 268/13662/1383 ->
+  233/7901/1858; jungle 3806/30422/4050 + 2722/17546/3105 -> 1235/9696/4627 + 875/6562/3733; snow 1711/13791/4840 +
+  1018/6557/3281 -> 588/3427/6372 + 412/2236/4113 (the ice's 4024 m2 went before this run); desert 1037/5879/2114 +
+  1153/5893/2702 -> 716/1485/2733 + 736/1441/3565; forest 3270/12315/4924 + 3311/10959/4377 -> 742/4175/8231 +
+  614/2239/7845; fog 5987/23028/3317 + 6239/29796/3334 -> 2988/22422/5610 + 3551/20386/5560; volcanic 2529/8502/3136 +
+  1688/6309/2779 -> 1885/3532/3717 + 1076/1698/3377; atoll 2141/3869/1732 + 2091/3824/1636 -> 1486/1741/4234 +
+  1517/1667/3678. All static shapes (most in the one VegetationColliders body, built a slice a step).
+- What's left, by design or for later: the fog's spiral giants above 10 m (the audit stands on the shape's top: only a
+  grapple gets there); trees' low limbs and the forest's oaks' spread; thin whips and snags; bamboo (Zach); the canal's
+  boats and the stronghold's moored warships (dressing on the water, out of reach); interior furnishing and dungeon wall
+  dressing; the harbour tower's rail ring is drawn as a solid disc (a model bug, the mesh unchanged here).
+- Tests: t/island/pier_rails (new), roofs_solid (plus Brinehollow's pagoda, shrine and teahouse), trunk_cols, the
+  t/capital, t/canal and t/stronghold/solid_ground groups.
