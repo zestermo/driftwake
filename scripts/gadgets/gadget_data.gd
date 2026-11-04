@@ -101,7 +101,7 @@ const GADGETS := {
 	# (1.28.1) atoll-only: its parts and its blueprint come only from a coral atoll (the lead's atoll pass places them)
 	"skimmer": {"name": "Skimmer", "kind": "traversal", "region": "atoll", "from": "the atoll's pearl trader; a wreck in an atoll's lagoon",
 		"desc": "A coral-spar board under a sea-silk sail. Launch it on the water and ride it standing at the boom: fastest across the wind, slow into it. F stows it.",
-		"charges": [0, 0, 0], "cd": [3.0, 2.5, 2.0], "speed": [9.0, 11.0, 13.0], "hop": [0.0, 0.0, 7.0],
+		"charges": [0, 0, 0], "cd": [3.0, 2.5, 2.0], "speed": [11.0, 13.5, 16.0], "hop": [0.0, 0.0, 7.0],
 		"cost": [[80, {"coral_spar": 4, "sea_silk": 2, "lagoon_pearl": 1}], [200, {"coral_spar": 6, "sea_silk": 3, "lagoon_pearl": 3, "brass": 1}],
 			[450, {"coral_spar": 8, "sea_silk": 5, "lagoon_pearl": 5, "brass": 2}]],
 		"refill": {}},

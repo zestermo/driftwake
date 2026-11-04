@@ -66,6 +66,7 @@
 - ✅ **Pirates sail alongside** and trade broadsides on the run.
 - ✅ **No false "Escaped"** mid-fight near islands, in storms, in smoke or at low hull.
 - ✅ **The Admiralty arrives without the 2-3 s freezes.** Ships and crews are built in the background, one ship a frame, on guests too.
+- ✅ **The skimmer is faster:** 11 / 13.5 / 16 m/s by tier (was 9 / 11 / 13), and it keeps 55% of its speed straight into the wind (was 45%).
 - ✅ **Rival crews never come to the capital, the canal city or the stronghold.** The check that kept them out was broken.
 - 📋 **Rival crews arrive in a ship you can see.** It sails in and anchors off the harbour, with a named banner, a music sting, and their captain calling you out by name.
 
@@ -99,6 +100,7 @@
 - ✅ **Fixed: falling through the capital's roofs.** About 330 houses behind the front rows are now solid.
 - ✅ **Unstuck** in the pause menu: back to the last safe ground you stood on, back on the deck if that was a ship, otherwise the bunk. 10 s cooldown. If you end up under the ground, you're put back on your own after about a second.
 - ✅ **Missing textures fixed** in the capital and the Admiralty muster.
+- 🔨 **The atoll under the water:** the seabed's hard texture edge fixed and the floor dressed; a huge deep reef basin in the lagoon's middle with towering coral, clear blue water, more to hunt and harvest, and skimmer parts you can actually find.
 - 📋 **Redtide's mountain.** Morrow's arena sits inside a natural rock rising from the sea, open only by the stair.
 - 📋 **The brig, the galleon and new creatures** for the thinner island themes, after their own design pass.
 
