@@ -10570,3 +10570,26 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   The marker's label stays the step's "who" (chain_goal.gd, the quests agent's file, untouched).
 - **Tests:** t/story/close_steps (new); opening_steps (the 25 in order), shrine_reading (walks the new list) updated.
   Expected at prepush: storytest (it walks the opening; the new steps need its walk), savetest if it counts steps.
+
+## 2026-11-04: the chain sickle's heavy reworked (animation audit, piece 1)
+- **Why:** Zach: the chain scythe's right click looked stiff and janky. Causes found: the body held one pose (left arm
+  straight up) while the pivot spun at full speed from a standstill and stopped dead (hips/torso range 0.16/0.10 rad);
+  the weight jumped out of the hand to a point in front when the whirl began, and back at its end; the whirl's angle ran
+  on its own clock, not the body's, so the weight and the turn drifted apart.
+- **The move** (SickleMoves `_reap`, `reap_yaw`, `_trap`): sunk low and wound right (pivot -0.75) with the weight twirled
+  over the head on a short chain, a smoothstep-in burst into two turns on a trapezoid speed profile (no dead start or
+  stop), the chain arm thrown out flat, two steps a turn with a dip and side lean, then the last half-turn a low reap
+  into a lunge, the sickle drawn back up on the landing so the return is short. Squash on the coil, stretch on the burst
+  and the reap (smear), squash on the landing. Spec: len 1.2 -> 1.3, hit [0.18, 0.86] -> [0.24, 0.8] (opens 0.31 s,
+  was 0.22: a real wind-up; closes 1.04 s, was 1.03), "retime" gives the recovery 0.29 s, "swoosh" [0.66, 0.82] draws
+  the sickle's trail on the reap, "sharp" 50, "lead" hips/torso. Trace: hand ~21 m/s through the turns, 33 at the reap,
+  recovery peak 14 (was 28, a whip back faster than the strike).
+- **The chain** (`weight_at`, `_give`, `chain`): whirl paths are now ["whirl", u_out, u_full, u_reel, u_in, radius,
+  height, twirls]: let out of the left hand, twirled overhead, paid out to full length trailing the pivot's actual turn
+  (TRAIL 0.45 rad) on a disc tilted low in front (TILT), reeled back into the hand; it reads the action's retimed u
+  (`_sample_u`). A jump in the weight's path (an action begun or cut short) springs out instead of popping (GIVE_K/C,
+  a little under-damped). Out on the line the chain runs pommel -> left hand (slack) -> weight, bowed back against the
+  weight's swing. Per frame per sickle body: the same one ImmediateMesh rebuild (19 points, was 15), a few vector ops.
+- **Tests:** t/weapons/sickle_heavy (new: the hit window in ticks, lands, full length, no reach pop, ends facing ahead);
+  sickle_combo, sickle_moves, plus_sickle pass. Renders: tools/dev/out/review/scythe_heavy_{before,after}_*.png.
+  Expected at prepush: techtest/abilityshot moves that pose "sk_heavy" (Harvest of Souls, Soul Chain) look different.
