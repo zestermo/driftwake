@@ -112,6 +112,7 @@
 - ✅ **Step-up:** walking into a ledge up to about 0.6 m (a log, a low wall, a step) carries you up onto it; taller ones still need a jump.
 - ✅ **The helm camera:** taking the wheel eases in from your view instead of cutting to a view from under the sea, the scroll wheel zooms at the helm, and with a weapon out the scroll wheel works at once.
 - ✅ **Transmog:** every clothing slot has a MOG box; tick it and a LOOK slot opens beside it. Wear any piece there for looks while the real slot keeps its stats (co-op crews see your look).
+- ✅ **Calmer crowds:** the market murmur has no voices layered in it any more, laughs, cheers and shouts are softer and capped at two at a time nearby; every vendor has its own sign icon.
 - ✅ **Menus laid out for 1080p:** the UI canvas is 960x540 (an exact 2x at 1080p, 4x at 4K), with bigger inventory slots, a roomier Captain's Log, notice board, dialogue, galley, workbench, bookshelf, creator and wheels; small windows no longer fall back to a cramped layout.
 - ✅ **The chain sickle moves like a reaper:** the heavy coils low and bursts into a two-turn whirl with the weight thrown out wide and a lunging reap to finish; the lights are its own hook and rip, a bigger lash with a haul, and the weight swings in your hand as you move.
 
