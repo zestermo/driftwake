@@ -112,6 +112,7 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 	mb.add_cylinder(stone, Transform3D(turn, Vector3.DOWN * 1.2), R + 0.18, R + 0.12, 1.45, sides, 0.6, Color(0.9, 0.9, 0.9), true)
 	mb.add_cylinder(brick, Transform3D(turn, Vector3.UP * 0.25), R, R, H - 0.25, sides, 0.5, Color.WHITE, false, false, false)
 	mb.add_cylinder(wood, Transform3D(turn, Vector3.UP * (H - 0.18)), R + 0.06, R + 0.06, 0.22, sides, 1.0, Color(0.8, 0.8, 0.8), false, false, false)
+	var rm := mb.mark()
 	# the roof: tiers stepping in up a tall cone, snow on each step
 	var tiers := rng.randi_range(4, 6)
 	var rh := R * rng.randf_range(1.8, 2.5)
@@ -130,6 +131,7 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 		y += th
 	var peak := y
 	mb.add_cylinder(snow, Transform3D(Basis(), Vector3.UP * (peak - 0.12)), eave * 0.2, 0.18, 0.3, 10, 0.6)
+	mb.hull_since(rm, body, "RoofCol")
 	# the finial: a brick chimney with a pointed clay cap
 	mb.add_cylinder(brick, Transform3D(turn, Vector3.UP * (peak - 0.3)), 0.28, 0.24, 0.85, 8, 1.0, Color.WHITE, true)
 	mb.add_cylinder(clay, Transform3D(Basis(), Vector3.UP * (peak + 0.5)), 0.36, 0.0, 0.75, 8, 1.0, Color.WHITE, false, true, false)
@@ -181,13 +183,6 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 	cs.shape = cyl
 	cs.position = Vector3(0, (H + 1.2) * 0.5 - 1.0, 0)
 	body.add_child(cs)
-	var cone := CollisionShape3D.new()
-	var cc := CylinderShape3D.new()
-	cc.radius = eave * 0.55
-	cc.height = rh * 0.7
-	cone.shape = cc
-	cone.position = Vector3(0, H + rh * 0.35, 0)
-	body.add_child(cone)
 	var door := Marker3D.new()
 	door.name = "Door"
 	door.position = Vector3(0, 0.0, dz + 1.4)
@@ -278,8 +273,10 @@ static func storehouse(seed_value: int) -> Node3D:
 		y += course * 0.5
 		k += 1
 	mb.add_box(dark, _xf(Vector3(0, fl + h * 0.5, 0)), Vector3(w - 0.1, h, d - 0.1), 0.6, Color(0.5, 0.45, 0.4))
+	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, fl + h + 0.05, 0), PI * 0.5), d, w, d * 0.9, 0.55, 0.6, Color.WHITE, logs)
 	mb.add_box(snow, _xf(Vector3(0, fl + h + d * 0.9 + 0.08, 0)), Vector3(w + 1.0, 0.18, 0.4), 0.6)
+	mb.hull_since(rm, body, "RoofCol")
 	Buildings.panel_door(mb, _xf(Vector3(0, fl, d * 0.5 + 0.13)), 0.8, 1.5, Buildings.door_leaf(Color(0.5, 0.36, 0.3)), dark)
 	var run := Buildings.door_steps(body, mb, dark, 0.0, d * 0.5 + 0.13, fl, 1.2, 0.4, 0.8, true)
 	var door := Marker3D.new()
@@ -328,8 +325,10 @@ static func workshop(seed_value: int) -> Node3D:
 			Props._add_box_col(body, Vector3(0.3, ph, 0.3), Vector3(x, ph * 0.5, z))
 	mb.add_box(dark, _xf(Vector3(0, 2.65, d * 0.5)), Vector3(w + 0.3, 0.16, 0.18), 0.6, Color.WHITE, false)
 	mb.add_box(dark, _xf(Vector3(0, 3.35, -d * 0.5)), Vector3(w + 0.3, 0.16, 0.18), 0.6, Color.WHITE, false)
+	var rm := mb.mark()
 	Buildings.add_shed_roof(mb, roof, dark, _xf(Vector3(0, 2.72, 0)), w, d, 0.75, 0.6)
 	mb.add_box(snow, Transform3D(Basis(Vector3.RIGHT, atan2(0.75, d + 1.2)), Vector3(0, 3.35, 0)), Vector3(w + 0.8, 0.2, d + 1.0), 0.5)
+	mb.hull_since(rm, body, "RoofCol")
 	# the log back wall
 	for i in range(11):
 		mb.add_cylinder(logs, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(w * 0.5, 0.15 + i * 0.29, -d * 0.5 + 0.12)), 0.15, 0.15, w, 6, 0.8, Color.WHITE.darkened(rng.randf() * 0.15), true, true)
@@ -411,12 +410,14 @@ static func shrine(seed_value: int) -> Node3D:
 		for z in [-1.6, 0.9]:
 			mb.add_cylinder(dark, _xf(Vector3(x, t2, z)), 0.11, 0.1, 2.6, 6, 0.8)
 			Props._add_box_col(body, Vector3(0.24, 3.4, 0.24), Vector3(x, 1.7, z))
+	var rm := mb.mark()
 	for i in range(3):
 		var r := 2.3 - i * 0.65
 		var y := t2 + 2.6 + i * 0.55
 		mb.add_cylinder(roof, Transform3D(Basis(Vector3.UP, PI / 4.0), Vector3(0, y, -0.35)), r, r * 0.7, 0.6, 4, 0.7, Color.WHITE, false, i == 0, false)
 		mb.add_cylinder(snow, Transform3D(Basis(Vector3.UP, PI / 4.0), Vector3(0, y + 0.56, -0.35)), r * 0.72, r * 0.5, 0.12, 4, 0.6, Color.WHITE, false, false, false)
 	mb.add_cylinder(PSXMat.lit("roof_tiles", Color(0.95, 0.62, 0.4)), _xf(Vector3(0, t2 + 4.3, -0.35)), 0.2, 0.0, 0.6, 6, 1.0)
+	mb.hull_since(rm, body, "RoofCol")
 	# offerings: candles and pine sprigs; lanterns at the steps
 	var flame := PSXMat.glow(Color(1.0, 0.75, 0.35), 3.0)
 	var wax := PSXMat.flat(Color(0.93, 0.9, 0.8))

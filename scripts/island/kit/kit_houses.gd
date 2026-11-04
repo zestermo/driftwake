@@ -169,6 +169,7 @@ static func room(spec: Dictionary) -> StaticBody3D:
 	var ry := fl + h + 0.1
 	var pitch: float = spec.get("pitch", 0.62)
 	var top := ry
+	var roof_at := mb.mark()
 	if str(spec.get("roof", "hip")) == "gable":
 		var rise := d * pitch
 		mb.add_gable_roof(thatch, _xf(Vector3(0, ry, 0), PI * 0.5), d, w, rise, 0.75, 0.5, Color.WHITE, wall)
@@ -180,8 +181,10 @@ static func room(spec: Dictionary) -> StaticBody3D:
 		var r := absf(w - d) * 0.5
 		mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, ry + rise + 0.03, 0)), Vector3(r * 2.0 + 0.5, 0.2, 0.3) if w >= d else Vector3(0.3, 0.2, r * 2.0 + 0.5), 0.8)
 		top = ry + rise
+	mb.hull_since(roof_at, body, "RoofCol")
 	var ly := fl + h - 0.2
 	var lf := fl + h - 0.75
+	Buildings.slab_col(body, Vector3(0, ly, d * 0.5 + 0.2), Vector3(0, lf, zf + 0.4), w + 0.6)
 	mb.add_quad(thatch, Vector3(-w * 0.5 - 0.3, ly, d * 0.5 + 0.2), Vector3(w * 0.5 + 0.3, ly, d * 0.5 + 0.2), Vector3(w * 0.5 + 0.3, lf, zf + 0.4), Vector3(-w * 0.5 - 0.3, lf, zf + 0.4),
 		Vector2.ZERO, Vector2(w * 0.5, 0), Vector2(w * 0.5, 1), Vector2(0, 1), Color.WHITE, Vector3(0, 1, 0.5).normalized())
 	mb.add_quad(thatch, Vector3(-w * 0.5 - 0.3, ly, d * 0.5 + 0.2), Vector3(-w * 0.5 - 0.3, lf, zf + 0.4), Vector3(w * 0.5 + 0.3, lf, zf + 0.4), Vector3(w * 0.5 + 0.3, ly, d * 0.5 + 0.2),
@@ -491,7 +494,9 @@ static func workshop(spec: Dictionary) -> StaticBody3D:
 			_cyl(body, 0.15, ph, Vector3(x, 0.0, z))
 	mb.add_box(dark, _xf(Vector3(0, 2.6, d * 0.5)), Vector3(w + 0.3, 0.16, 0.18), 0.6, Color.WHITE, false)
 	mb.add_box(dark, _xf(Vector3(0, 3.3, -d * 0.5)), Vector3(w + 0.3, 0.16, 0.18), 0.6, Color.WHITE, false)
+	var rm := mb.mark()
 	Buildings.add_shed_roof(mb, thatch, weave, _xf(Vector3(0, 2.68, 0)), w, d, 0.75, 0.6)
+	mb.hull_since(rm, body, "RoofCol")
 	# the woven back wall and a low one on the left
 	Buildings.tiled_box(mb, weave, Vector3(0, 1.6, -d * 0.5 + 0.08), Vector3(w, 3.2, 0.12), 2.4, 0.5)
 	_box(body, Vector3(w, 3.2, 0.14), Vector3(0, 1.6, -d * 0.5 + 0.08))
@@ -580,7 +585,9 @@ static func shrine(spec: Dictionary) -> StaticBody3D:
 			for k in range(3):
 				mb.add_cylinder(paint[k], _xf(Vector3(x, 1.4 + k * 0.45, z)), 0.14, 0.14, 0.12, 6, 1.0, Color.WHITE, false)
 			_cyl(body, 0.13, 3.35, Vector3(x, 0.0, z))
+	var rm := mb.mark()
 	Buildings.add_hip_roof(mb, thatch, _xf(Vector3(0, 3.35, -0.3)), 3.0, 2.6, 1.7, 0.7)
+	mb.hull_since(rm, body, "RoofCol")
 	mb.add_cylinder(palm,_xf(Vector3(0, 3.35 + 1.4, -0.3)), 0.1, 0.06, 0.9, 6, 0.8)
 	mb.add_blob(paint[0], _xf(Vector3(0, 3.35 + 2.35, -0.3)), Vector3(0.16, 0.2, 0.16), rng, 0.1, 3, 6)
 	# the idol
@@ -686,8 +693,10 @@ static func storehouse(spec: Dictionary) -> StaticBody3D:
 		for z in [-d * 0.5, d * 0.5]:
 			mb.add_cylinder(palm,_xf(Vector3(x, st, z)), 0.1, 0.09, h, 5, 0.8)
 	mb.add_box(dark, _xf(Vector3(0, st + h, 0)), Vector3(w + 0.1, 0.12, d + 0.1), 0.6, Color.WHITE, false)
+	var rm := mb.mark()
 	mb.add_gable_roof(thatch, _xf(Vector3(0, st + h + 0.06, 0), PI * 0.5), d, w, d * 0.95, 0.6, 0.5, Color.WHITE, weave)
 	mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, st + h + d * 0.95 + 0.08, 0)), Vector3(w + 1.4, 0.2, 0.3), 0.8)
+	mb.hull_since(rm, body, "RoofCol")
 	_box(body, Vector3(w + 0.3, h + 0.2, d + 0.3), Vector3(0, st + h * 0.5, 0))
 	Buildings.panel_door(mb, _xf(Vector3(0, st, d * 0.5)), 0.75, 1.4, Buildings.door_leaf(), dark)
 	# the ladder up to it
@@ -732,7 +741,9 @@ static func well(roof := "thatch") -> StaticBody3D:
 	mb.add_cylinder(PSXMat.lit("rope", Color(0.8, 0.75, 0.6)), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.3, 1.9, 0)), 0.13, 0.13, 0.6, 7, 1.5, Color.WHITE, true, true)
 	mb.add_box(PSXMat.lit("rope"), _xf(Vector3(0.1, 1.45, 0)), Vector3(0.025, 0.9, 0.025), 1.0)
 	mb.add_cylinder(PSXMat.lit("planks_dark"), _xf(Vector3(0.1, 0.85, 0)), 0.14, 0.17, 0.26, 7, 1.0)
+	var rm := mb.mark()
 	mb.add_gable_roof(PSXMat.lit(roof, Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 2.25, 0)), 1.4, 2.6, 0.75, 0.25, 0.6)
+	mb.hull_since(rm, body, "RoofCol")
 	_jar(mb, PSXMat.lit("plaster", Color(0.75, 0.42, 0.25)), _xf(Vector3(r0 + 0.45, 0.0, 0.5)), 1.2)
 	body.add_child(mb.to_instance())
 	_cyl(body, r0 + 0.05, hh, Vector3.ZERO)
@@ -941,7 +952,9 @@ static func gate(width := 4.4, roof := "thatch") -> StaticBody3D:
 		_torch_into(mb, Vector3(s * (hw + 0.45), 0.0, 0.55), 2.3)
 	mb.add_cylinder(bark, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(hw + 0.6, 4.25, 0)), 0.2, 0.2, hw * 2.0 + 1.2, 7, 0.6, Color.WHITE, true, true)
 	mb.add_box(dark, _xf(Vector3(0, 3.75, 0)), Vector3(hw * 2.0 + 0.3, 0.18, 0.22), 0.6, Color.WHITE, false)
+	var rm := mb.mark()
 	mb.add_gable_roof(PSXMat.lit(roof, Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 4.45, 0), PI * 0.5), 1.3, hw * 2.0 + 1.8, 0.55, 0.2, 0.6)
+	mb.hull_since(rm, body, "RoofCol")
 	var board := _xf(Vector3(0, 3.25, 0.16))
 	mb.add_box(PSXMat.lit("planks", Color(0.85, 0.75, 0.6)), board, Vector3(1.8, 0.55, 0.06), 1.0)
 	var paint := [PSXMat.flat(Color(0.7, 0.18, 0.12)), PSXMat.flat(Color(0.95, 0.85, 0.75))]
@@ -978,7 +991,7 @@ static func ruin(spec: Dictionary) -> StaticBody3D:
 		var along: Vector3 = sides[si][1]
 		var length: float = sides[si][2]
 		var strips := int(length / 0.5)
-		var sum := 0.0
+		var stand: Array = []
 		for k in range(strips):
 			var x := -length * 0.5 + (k + 0.5) * length / strips
 			if si == 3 and absf(x) < 0.7:
@@ -987,20 +1000,33 @@ static func ruin(spec: Dictionary) -> StaticBody3D:
 				continue
 			var edge := 1.0 - absf(x) / (length * 0.5)
 			var sh := h * clampf(rng.randf_range(0.15, 0.7) + (1.0 - edge) * 0.4, 0.15, 1.0)
-			sum += sh
+			stand.append([k, sh])
 			var shade := rng.randf_range(0.55, 0.85)
 			var tb := Transform3D(Basis(Vector3.UP, 0.0 if along.x > 0.5 else PI * 0.5), o + along * x + Vector3(0, fl + sh * 0.5, 0))
 			mb.add_box(wall, tb, Vector3(length / strips + 0.02, sh, 0.16), 0.5, Color(shade, shade, shade))
 			if rng.randf() < 0.35:
 				mb.add_blob(leaves, _xf(o + along * x + Vector3(0, fl + sh, 0)), Vector3(0.3, 0.22, 0.3), rng, 0.3, 2, 5)
-		var avg := sum / strips
-		_box(body, Vector3(length if along.x > 0.5 else 0.2, avg, 0.2 if along.x > 0.5 else length), o + Vector3(0, fl + avg * 0.5, 0))
+		# (a box over each run of standing strips of about one height: the broken wall's own outline, its gaps open)
+		var sw := length / strips
+		var i := 0
+		while i < stand.size():
+			var j := i
+			while j + 1 < stand.size() and int(stand[j + 1][0]) == int(stand[j][0]) + 1 and absf(float(stand[j + 1][1]) - float(stand[i][1])) < 0.3:
+				j += 1
+			var hh := 0.0
+			for r in range(i, j + 1):
+				hh += float(stand[r][1]) / (j - i + 1)
+			var mid := -length * 0.5 + (float(stand[i][0]) + float(stand[j][0]) + 1.0) * 0.5 * sw
+			var run := (j - i + 1) * sw
+			_box(body, Vector3(run if along.x > 0.5 else 0.2, hh, 0.2 if along.x > 0.5 else run), o + along * mid + Vector3(0, fl + hh * 0.5, 0))
+			i = j + 1
 	for x in [-w * 0.5, w * 0.5]:
 		for z in [-d * 0.5, d * 0.5]:
 			mb.add_cylinder(palm, _xf(Vector3(x, fl, z)), 0.14, 0.12, rng.randf_range(0.8, h + 0.2), 6, 0.6)
 	# the roof, fallen in against the back wall, and its rafters
 	var roof := Transform3D(Basis(Vector3.RIGHT, 0.55), Vector3(rng.randf_range(-0.4, 0.4), fl + 0.95, -d * 0.1))
 	mb.add_box(PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color(0.6, 0.55, 0.45), {"affine": 0.8}), roof, Vector3(w * 0.75, 0.14, d * 0.75), 0.5, Color.WHITE, false)
+	_box(body, Vector3(w * 0.75, 0.14, d * 0.75), roof.origin, roof.basis)
 	var dark := PSXMat.lit("planks_dark")
 	for k in range(3):
 		var x := -w * 0.35 + k * w * 0.35

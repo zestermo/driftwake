@@ -126,6 +126,9 @@ static func merchantman(parent: CollisionObject3D) -> void:
 	var flag := PSXMat.lit("cloth_blue")
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 19.0, -0.7)), 1.6, 0.9, Rect2(0, 0, 0.5, 0.5))
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 19.0, -0.7)), 1.6, 0.9, Rect2(0, 0, 0.5, 0.5))
+	# (1.30) the masts' feet, as high as a captain on her deck reaches
+	for mz2 in [[-7.0, HullLayout.DECK_Y, 0.27], [-1.0, HullLayout.DECK_Y, 0.27], [mz, HullLayout.base().qd_y, 0.2]]:
+		KitLandmarks.cyl_col(parent, float(mz2[2]), 4.5, Vector3(0, float(mz2[1]) + 2.25, float(mz2[0])))
 	_finish(parent, mb)
 
 

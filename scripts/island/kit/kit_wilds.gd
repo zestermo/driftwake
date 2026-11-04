@@ -315,6 +315,8 @@ static func _sky_wreck(isl: GenIsland, ctx: KitContext, pl: Dictionary, node: No
 				y = maxf(y, (gxf * Vector3(x * 0.4, 3.2, z - 1.0)).y)
 			row.append(Vector3(x, y, z))
 		grid.append(row)
+	# (the draped envelope is walked over and climbed: a mesh shape of its sheet, collided from both sides)
+	var sheet := PackedVector3Array()
 	for j in range(rows - 1):
 		for i in range(cols - 1):
 			if (i + j * 3) % 11 == 5:
@@ -329,6 +331,15 @@ static func _sky_wreck(isl: GenIsland, ctx: KitContext, pl: Dictionary, node: No
 				nrm = -nrm
 			e.add_quad(m, a, b2, c, d, Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, nrm)
 			e.add_quad(m, a, d, c, b2, Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Color(0.6, 0.6, 0.6), -nrm)
+			sheet.append_array([a, b2, c, a, c, d])
+	var eb := KitLandmarks.body("EnvelopeSheet")
+	var ecs := CollisionShape3D.new()
+	var es := ConcavePolygonShape3D.new()
+	es.set_faces(sheet)
+	es.backface_collision = true
+	ecs.shape = es
+	eb.add_child(ecs)
+	node.add_child(eb)
 	for i in [1, 4, 7]:
 		var pts := PackedVector3Array()
 		for j in range(rows):

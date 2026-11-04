@@ -164,6 +164,18 @@ static func _roof_col(body: Node3D, kind: String, uw: float, ud: float, y0: floa
 	body.add_child(cs)
 
 
+## (1.30) A thin sloped roof's collider (a porch roof, an awning, a lean-to): a slab `w` wide from the middle of its
+## high edge `a` down to its low edge's `b` (running along z).
+static func slab_col(body: Node3D, a: Vector3, b: Vector3, w: float) -> void:
+	var v := b - a
+	var cs := CollisionShape3D.new()
+	var s := BoxShape3D.new()
+	s.size = Vector3(w, 0.15, v.length())
+	cs.shape = s
+	cs.transform = Transform3D(Basis(Vector3.RIGHT, atan2(-v.y, v.z)), (a + b) * 0.5 + Vector3.DOWN * 0.05)
+	body.add_child(cs)
+
+
 const TRIM_COLORS := [Color(0.27, 0.42, 0.62), Color(0.25, 0.5, 0.44), Color(0.6, 0.22, 0.16), Color(0.78, 0.62, 0.26),
 	Color(0.86, 0.85, 0.8), Color(0.35, 0.3, 0.45)]
 const BLOOMS := [Color(0.9, 0.2, 0.22), Color(0.95, 0.82, 0.25), Color(0.92, 0.5, 0.7), Color(0.95, 0.95, 0.92), Color(0.6, 0.4, 0.85)]
@@ -556,6 +568,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			ct = maxf(ct, _roof_y(roof_kind, uw, ud, y0, top, pitch, ev, cx + (0.35 if k % 2 == 0 else -0.35), cz + (0.35 if k < 2 else -0.35)) + 0.6)
 		mb.add_box(stone, _xf(Vector3(cx, (ct + top - 0.4) * 0.5, cz)), Vector3(0.7, ct - top + 0.4, 0.7), 0.6, Color.WHITE, true, false)
 		mb.add_box(stone, _xf(Vector3(cx, ct + 0.05, cz)), Vector3(0.86, 0.12, 0.86), 0.6)
+		_box_col(body, Vector3(0.8, ct - top + 0.5, 0.8), Vector3(cx, (ct + top) * 0.5 - 0.15, cz))
 		mb.add_cylinder(PSXMat.lit("plaster", Color(0.72, 0.42, 0.28)), _xf(Vector3(cx, ct + 0.1, cz)), 0.13, 0.11, 0.3, 6, 1.0)
 		if spec.get("smoke", true):
 			_smoke(body, Vector3(cx, ct + 0.5, cz))
@@ -590,6 +603,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_box(seat, _xf(bz + Vector3(0, 0.42, 0)), Vector3(1.2, 0.07, 0.34), 1.0)
 			for s in [-1.0, 1.0]:
 				mb.add_box(beam, _xf(bz + Vector3(s * 0.48, 0.2, 0)), Vector3(0.08, 0.4, 0.3), 1.0)
+			_box_col(body, Vector3(1.2, 0.45, 0.34), bz + Vector3(0, 0.225, 0))
 
 	# covered porch along the front
 	if porch > 0.0:
@@ -610,6 +624,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 				mb.add_box(beam, _xf(Vector3(x, (post_top + post_y) * 0.5, pz - 0.1)), Vector3(0.16, post_top - post_y, 0.16), 0.6)
 			if lashings:
 				_lash(mb, Vector3(x, fl - 0.25, pz - 0.1), 0.1)
+			_box_col(body, Vector3(0.2, post_top - post_y, 0.2), Vector3(x, (post_top + post_y) * 0.5, pz - 0.1))
 		mb.add_box(beam, _xf(Vector3(0, post_top + 0.07, pz - 0.1)), Vector3(w - 0.1, 0.14, 0.14), 0.6, Color.WHITE, false)
 		var porch_roof_y := fl + h * 0.9
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
@@ -618,6 +633,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(-w * 0.5 - 0.2, porch_roof_y - 0.2, pz + 0.3),
 			Vector3(w * 0.5 + 0.2, porch_roof_y - 0.2, pz + 0.3), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
 			Vector2.ZERO, Vector2(0, 1), Vector2(w * 0.5, 1), Vector2(w * 0.5, 0), Color(0.55, 0.55, 0.55), Vector3(0, -1, -0.3).normalized())
+		slab_col(body, Vector3(0, fl + h - 0.05, d * 0.5), Vector3(0, porch_roof_y - 0.2, pz + 0.3), w + 0.4)
 
 	# lean-to shed on one side
 	var lean: String = spec.get("lean_to", "")
@@ -628,7 +644,9 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		var lh := h * 0.75
 		mb.add_box(PSXMat.lit("planks_weathered"), _xf(Vector3(lx, fl + lh * 0.5 - 0.15, 0)), Vector3(lw, lh, d * 0.8), 0.5, Color.WHITE, true, true)
 		var rx := _xf(Vector3(lx, fl + lh - 0.15, 0), -s * PI * 0.5)
+		var rm := mb.mark()
 		add_shed_roof(mb, roof, PSXMat.lit("planks_weathered"), rx, d * 0.8, lw, 0.6, 0.3)
+		mb.hull_since(rm, body, "LeanRoofCol")
 		mb.add_box(stone, _xf(Vector3(lx, (0.3 - found) * 0.5 + stilts * 0.5, 0)), Vector3(lw + 0.2, 0.3 + found + stilts, d * 0.8 + 0.2), 0.5, Color.WHITE, true, false)
 		_box_col(body, Vector3(lw, lh + 0.3, d * 0.8), Vector3(lx, (fl + lh) * 0.5, 0))
 
@@ -654,10 +672,13 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_tri(cloth, Vector3(x0, ay - 0.55, z0 + ad), tip - Vector3(0, 0, 0.02), Vector3(x1, ay - 0.55, z0 + ad), Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0.9), Vector2(0.12, 1.0), Vector2(0.25, 0.9), Color(0.6, 0.6, 0.6), Vector3.FORWARD)
 		for s in [-1.0, 1.0]:
 			mb.add_box(beam, _xf(Vector3(s * aw * 0.5, (ay - 0.55) * 0.5, z0 + ad)), Vector3(0.08, ay - 0.55, 0.08), 1.0)
+			_box_col(body, Vector3(0.12, ay - 0.55, 0.12), Vector3(s * aw * 0.5, (ay - 0.55) * 0.5, z0 + ad))
+		slab_col(body, Vector3(0, ay, z0), Vector3(0, ay - 0.55, z0 + ad), aw)
 		# goods out front on the ground either side of the steps: a crate and a basket
 		var cx := door_x - dw * 0.5 - 0.8
 		if cx > -aw * 0.5 + 0.4:
 			mb.add_box(PSXMat.lit("planks", Color(0.9, 0.85, 0.75)), _xf(Vector3(cx, 0.3, z0 + 0.7)), Vector3(0.7, 0.6, 0.6), 1.2)
+			_box_col(body, Vector3(0.7, 0.6, 0.6), Vector3(cx, 0.3, z0 + 0.7))
 		var kx := door_x + dw * 0.5 + 0.75
 		if kx < aw * 0.5 - 0.35:
 			mb.add_cylinder(PSXMat.lit("straw"), _xf(Vector3(kx, 0.0, z0 + 0.8)), 0.26, 0.3, 0.32, 7, 1.0)
@@ -1361,6 +1382,8 @@ static func stall(kind: String) -> Node3D:
 			for x in [-w * 0.5, w * 0.5]:
 				for z in [-0.6, 1.1]:
 					mb.add_box(post, _xf(Vector3(x, 1.2, z)), Vector3(0.1, 2.4, 0.1), 0.8)
+					_box_col(body, Vector3(0.14, 2.4, 0.14), Vector3(x, 1.2, z))
+			slab_col(body, Vector3(0, 2.5, -0.7), Vector3(0, 2.35, 1.25), w + 0.4)
 			var canvas := PSXMat.lit("canvas", Color.WHITE, {"affine": 0.6})
 			mb.add_quad(canvas, Vector3(-w * 0.5 - 0.2, 2.45, -0.7), Vector3(w * 0.5 + 0.2, 2.45, -0.7), Vector3(w * 0.5 + 0.2, 2.3, 1.25), Vector3(-w * 0.5 - 0.2, 2.3, 1.25),
 				Vector2.ZERO, Vector2(1.6, 0), Vector2(1.6, 1), Vector2(0, 1), Color.WHITE, Vector3.UP)
@@ -1392,8 +1415,12 @@ static func stall(kind: String) -> Node3D:
 			for x in [-w * 0.5, w * 0.5]:
 				mb.add_box(post, _xf(Vector3(x, 1.25, 0.9)), Vector3(0.1, 2.5, 0.1), 0.8)
 				mb.add_box(post, _xf(Vector3(x, 1.25, -0.6)), Vector3(0.1, 2.5, 0.1), 0.8)
+				for z in [0.9, -0.6]:
+					_box_col(body, Vector3(0.14, 2.5, 0.14), Vector3(x, 1.25, z))
 			var aw := PSXMat.lit("cloth_red", Color.WHITE, {"affine": 0.6})
+			var rm := mb.mark()
 			mb.add_gable_roof(aw, _xf(Vector3(0, 2.5, 0.15)), 1.5, w, 0.6, 0.25, 0.6, Color.WHITE, aw)
+			mb.hull_since(rm, body, "AwningCol")
 		"cloth":
 			# a rack hung with bolts and drapes, a tall pole awning
 			mb.add_box(wood, _xf(Vector3(0, 0.45, 0.4)), Vector3(w, 0.9, 0.7), 1.0, Color.WHITE, true, false)
@@ -1404,6 +1431,9 @@ static func stall(kind: String) -> Node3D:
 			for x in [-w * 0.5 - 0.05, w * 0.5 + 0.05]:
 				mb.add_box(post, _xf(Vector3(x, 1.1, -0.55)), Vector3(0.1, 2.2, 0.1), 0.8)
 				mb.add_box(post, _xf(Vector3(x, 1.25, 1.0)), Vector3(0.1, 2.5, 0.1), 0.8)
+				_box_col(body, Vector3(0.14, 2.2, 0.14), Vector3(x, 1.1, -0.55))
+				_box_col(body, Vector3(0.14, 2.5, 0.14), Vector3(x, 1.25, 1.0))
+			slab_col(body, Vector3(0, 2.8, -0.7), Vector3(0, 2.5, 1.2), w + 0.4)
 			for i in range(4):
 				var cm := PSXMat.lit("fabric", cols[(i + 1) % cols.size()])
 				var x0 := -1.35 + i * 0.72
@@ -1437,7 +1467,10 @@ static func stall(kind: String) -> Node3D:
 				mb.add_cylinder(post, Transform3D(Basis(Vector3.FORWARD, PI * 0.5), Vector3(s * (w * 0.5 + 0.05), 0.35, 0.35)), 0.35, 0.35, 0.08, 8, 1.0, Color.WHITE, true, true)
 			mb.add_box(post, _xf(Vector3(w * 0.5 + 0.25, 1.4, 0.9)), Vector3(0.07, 2.8, 0.07), 0.8)
 			var umb := PSXMat.lit("cloth_red", Color(1.0, 0.85, 0.6), {"affine": 0.6})
+			var rm := mb.mark()
 			mb.add_cylinder(umb, _xf(Vector3(w * 0.5 + 0.25, 2.45, 0.9)), 1.3, 0.05, 0.45, 8, 0.6, Color.WHITE, false, true, false)
+			mb.hull_since(rm, body, "UmbrellaCol")
+			_box_col(body, Vector3(0.12, 2.5, 0.12), Vector3(w * 0.5 + 0.25, 1.25, 0.9))
 	body.add_child(mb.to_instance())
 	_box_col(body, Vector3(w, 1.0, 0.8), Vector3(0, 0.5, 0.35))
 	_marker(body, "Vendor", Vector3(0, 0, -0.75), 0.0)

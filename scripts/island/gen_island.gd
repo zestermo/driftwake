@@ -1259,9 +1259,20 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, col_r: 
 	_bucket(buckets, mesh, "tree", xf)
 	var crown := xf * GrapplePoints.crown_of(mesh)
 	_crowns.append(crown)
-	_shapes.append([col_r * s, col_h, Vector3(p.x, h + col_h * 0.5, p.y)])
+	if not _trunk_shapes(mesh, xf, s):
+		_shapes.append([col_r * s, col_h, Vector3(p.x, h + col_h * 0.5, p.y)])
 	reserve(p, 1.2)
 	return crown
+
+
+## (1.30) A tree's trunk colliders where its wood stands (IslandTheme.trunk: a column per bend of a leaning or twisting
+## trunk); false when its mesh has no such profile.
+func _trunk_shapes(mesh: Mesh, xf: Transform3D, s: float) -> bool:
+	var tk: Array = mesh.get_meta("trunk", [])
+	for c in tk:
+		var m: Vector2 = c[0]
+		_shapes.append([float(c[3]) * s, (float(c[2]) - float(c[1])) * s, xf * Vector3(m.x, (float(c[1]) + float(c[2])) * 0.5, m.y)])
+	return not tk.is_empty()
 
 
 ## A big tree from `trees` ([body, detail, lean]): its trunk's collider and a grapple
@@ -1284,7 +1295,8 @@ func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: floa
 	_crowns.append(xf * GrapplePoints.crown_of(pick[0]))
 	# a tree that gives its trunk radius (the fog isle's giants: [body, detail, lean, r]) gets a trunk that thick
 	var tr: float = float(pick[3]) if pick.size() > 3 else 1.1
-	_shapes.append([tr * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
+	if not _trunk_shapes(pick[0], xf, s):
+		_shapes.append([tr * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
 	reserve(p, maxf(3.5, tr * s + 1.5))
 	return {"xf": xf, "body": pick[0]}
 

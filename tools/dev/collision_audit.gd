@@ -9,7 +9,8 @@ extends SceneTree
 ## by material and by ALLOW below.
 ## Out: tools/dev/out/collision/<tag>/<island>.txt (kinds by score: area x how near the paths), summary.txt, one
 ## "CA <island> holes <n> area <m2> shapes <n>" line per island. Env: CA_TAG=before (the folder under out/collision), CA_ONLY=snow,capital (labels or prefixes),
-## CA_SEEDS=4242,77. Headless: & $env:GODOT --headless --path . --script res://tools/dev/collision_audit.gd
+## CA_SEEDS=4242,77. Opens a window (headless keeps no MultiMesh transforms), ~15 min for all:
+## & $env:GODOT --path . --script res://tools/dev/collision_audit.gd
 const TK := preload("res://tools/dev/test_kit.gd")
 const SEEDS := [4242, 77]
 const SPACING := 0.6
@@ -18,6 +19,8 @@ const PROBE := 0.3
 const BAND := 4.0
 const ROOF := 12.0
 const NEAR_PATH := 12.0
+## Deeper than a wader reaches (m under the sea) is passable: coral and rock a swimmer meets (Zach, 1.30).
+const WADE := 1.2
 const MASK := 2049
 var OUT := "res://tools/dev/out/collision/" + (OS.get_environment("CA_TAG") if OS.get_environment("CA_TAG") != "" else "now")
 ## Node-name or kind fragments that are meant to be passable, and why.
@@ -28,7 +31,7 @@ const ALLOW := {
 	"Paving": "lies on the ground", "Path": "lies on the ground", "Decal": "decal", "Cobwebs": "cloth",
 }
 ## Textures that are never solid (foliage the cutout shader doesn't already cover, water, cloth).
-const PASS_TEX := ["leaves", "leaves_late", "pine_snow", "fir_needles", "palm_frond", "fern", "bush", "grass_tuft", "thornbrush", "water", "fabric"]
+const PASS_TEX := ["leaves", "pine_snow", "fir_needles", "palm_frond", "fern", "bush", "grass_tuft", "thornbrush", "moss", "water", "fabric"]
 ## Textures passable only on the plants (snow banked round a tree's foot; a snow-capped roof still counts).
 const PASS_PLANT_TEX := ["snow", "volcanic_ash"]
 
@@ -41,11 +44,17 @@ var cur: Dictionary = {}
 var isl
 var summary := PackedStringArray()
 var by_file := {}
+var by_kind := {}
 var _samples := {}
 var _q: PhysicsShapeQueryParameters3D
 
 
 func _initialize() -> void:
+	# (headless, the dummy renderer keeps no MultiMesh transforms: every tree, rock and coral would read as at the origin)
+	if DisplayServer.get_name() == "headless":
+		printerr("collision_audit needs a window (MultiMesh instances only read back from a real renderer): run it without --headless")
+		quit(1)
+		return
 	TK.seed_of(self)
 	load("res://scripts/psx/mesh_builder.gd").trace = true
 	stage = TK.stage(self, {"hud": false})
@@ -80,12 +89,14 @@ func _process(_d: float) -> bool:
 			step = 1
 		1:
 			if queue.is_empty():
-				var files: Array = by_file.keys()
-				files.sort_custom(func(a, b): return float(by_file[a][1]) > float(by_file[b][1]))
-				summary.append("")
-				summary.append("By builder file (all islands): holes, m2, where")
-				for fl in files:
-					summary.append("%6d %9.0f  %s  %s" % [by_file[fl][0], by_file[fl][1], fl, " ".join((by_file[fl][2] as Dictionary).keys())])
+				for t in [["By builder file", by_file], ["By builder", by_kind]]:
+					var d: Dictionary = t[1]
+					var keys: Array = d.keys()
+					keys.sort_custom(func(a, b): return float(d[a][1]) > float(d[b][1]))
+					summary.append("")
+					summary.append("%s (all islands): holes, m2, where" % t[0])
+					for fl in keys:
+						summary.append("%6d %9.0f  %s  %s" % [d[fl][0], d[fl][1], fl, " ".join((d[fl][2] as Dictionary).keys())])
 				var f := FileAccess.open(OUT + "/summary.txt", FileAccess.WRITE)
 				f.store_string("\n".join(summary) + "\n")
 				print("CA done: %s" % ProjectSettings.globalize_path(OUT))
@@ -115,11 +126,12 @@ func _process(_d: float) -> bool:
 				summary.append("    " + k)
 			for k in rep["kinds"]:
 				var file := str(k).get_slice(".", 0) if not str(k).contains("/") else "node " + str(k).get_slice("/", 0)
-				var e: Array = by_file.get(file, [0, 0.0, {}])
-				e[0] += int(rep["kinds"][k]["holes"])
-				e[1] += float(rep["kinds"][k]["area"])
-				e[2][str(cur["label"]).get_slice("_", 0)] = true
-				by_file[file] = e
+				for t in [[by_file, file], [by_kind, str(k)]]:
+					var e: Array = (t[0] as Dictionary).get(t[1], [0, 0.0, {}])
+					e[0] += int(rep["kinds"][k]["holes"])
+					e[1] += float(rep["kinds"][k]["area"])
+					e[2][str(cur["label"]).get_slice("_", 0)] = true
+					t[0][t[1]] = e
 			isl.queue_free()
 			w.chain_islands.clear()
 			_samples.clear()
@@ -141,6 +153,12 @@ func _probe(root_isl: Node3D, at: Vector3) -> void:
 	q.shape = sph
 	q.collision_mask = MASK
 	q.transform = Transform3D(Basis(), wp)
+	for mmi in root_isl.find_children("*", "MultiMeshInstance3D", true, false):
+		var mm: MultiMesh = (mmi as MultiMeshInstance3D).multimesh
+		for i in range(mm.instance_count):
+			var o: Vector3 = root_isl.to_local((mmi as Node3D).global_transform * mm.get_instance_transform(i).origin)
+			if Vector2(o.x - at.x, o.z - at.z).length() < 3.0:
+				print("   instance %d of %s (%s) at %s, basis scale %s" % [i, root_isl.get_path_to(mmi), mm.mesh.get_meta("made_by", "?"), o, mm.get_instance_transform(i).basis.get_scale()])
 	for r in space.intersect_shape(q, 12):
 		var cs: Node = (r["collider"] as CollisionObject3D).shape_owner_get_owner((r["collider"] as CollisionObject3D).shape_find_owner(int(r["shape"])))
 		print("   within 1.5 m: %s (%s)" % [root_isl.get_path_to(r["collider"]), cs.shape.get_class() if cs is CollisionShape3D else "?"])
@@ -218,7 +236,7 @@ func audit(root_isl: Node3D, label: String) -> Dictionary:
 				var wn: Vector3 = (xf.basis * (s[1] as Vector3)).normalized()
 				var lp := root_isl.to_local(wp)
 				var rel: float = lp.y - float(root_isl.hv(Vector2(lp.x, lp.z)))
-				if rel < 0.3 or rel > ROOF + 4.0 or lp.y < -0.5:
+				if rel < 0.3 or rel > ROOF + 4.0 or lp.y < -WADE:
 					continue
 				_q.transform = Transform3D(Basis(), wp + wn * 0.05)
 				if not space.intersect_shape(_q, 1).is_empty():
@@ -266,6 +284,9 @@ func audit(root_isl: Node3D, label: String) -> Dictionary:
 func _walk(n: Node, out: Array) -> void:
 	if n is CharacterBody3D or n is RigidBody3D or n is Area3D or n.is_in_group("npc") or n.is_in_group("enemies"):
 		return
+	# (a far stand-in, drawn only past its near twin's range, is never touched)
+	if n is GeometryInstance3D and (n as GeometryInstance3D).visibility_range_begin > 0.0:
+		return
 	if n is MeshInstance3D and (n as MeshInstance3D).mesh != null and (n as Node3D).is_visible_in_tree():
 		out.append(n)
 	elif n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh != null and (n as MultiMeshInstance3D).multimesh.mesh != null and (n as Node3D).is_visible_in_tree():
@@ -302,7 +323,7 @@ func _solid(m: Material, plant: bool) -> bool:
 		return false
 	if sm.has_meta("psx"):
 		var tex := str(sm.get_meta("psx")[0])
-		if tex in PASS_TEX or (plant and tex in PASS_PLANT_TEX):
+		if tex.begins_with("leaves") or tex in PASS_TEX or (plant and tex in PASS_PLANT_TEX):
 			return false
 	return true
 

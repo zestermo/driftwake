@@ -112,7 +112,7 @@ func _dress(rng: RandomNumberGenerator, site: Node3D) -> void:
 		GrapplePoints.add(self, perch + Vector3(0, 1.2, 0))
 		trees.append({"base": at, "top": top, "r": 1.1 * xf.basis.get_scale().x, "perch": perch, "ang": atan2(at.z, at.x)})
 	_brush(rng, g)
-	_floor(mb, bark, rng, g)
+	_floor(mb, body, bark, rng, g)
 	# (1.20: the theme's own ground for every boss of it - the snow's ice grotto - then the kind's own dressing)
 	var th := IslandThemes.of(isl.theme)
 	if th.arena_dress.is_valid():
@@ -180,7 +180,7 @@ func _brush(rng: RandomNumberGenerator, g: Dictionary) -> void:
 
 ## The floor under the canopy: roots snaking over it from the giants, a fallen
 ## giant along the edge, mossy stones.
-func _floor(mb: MeshBuilder, bark: Material, rng: RandomNumberGenerator, g: Dictionary) -> void:
+func _floor(mb: MeshBuilder, body: StaticBody3D, bark: Material, rng: RandomNumberGenerator, g: Dictionary) -> void:
 	var c: Vector2 = g["c"]
 	var y0 := isl.hv(c)
 	for t in trees:
@@ -208,7 +208,9 @@ func _floor(mb: MeshBuilder, bark: Material, rng: RandomNumberGenerator, g: Dict
 	var e1 := mid + along * 8.0
 	var p0 := Vector3(e0.x, isl.hv(c + e0) - y0 + 0.6, e0.y)
 	var p1 := Vector3(e1.x, isl.hv(c + e1) - y0 + 0.7, e1.y)
+	var log_at := mb.mark()
 	mb.add_tube(bark, [p0, p0.lerp(p1, 0.5) + Vector3(0, 0.1, 0), p1], 1.0, 0.75, 8, 0.4, Color(0.7, 0.72, 0.62), true, true)
+	mb.hull_since(log_at, body, "FallenGiant")
 
 
 func _dress_ape(mb: MeshBuilder, body: StaticBody3D, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:

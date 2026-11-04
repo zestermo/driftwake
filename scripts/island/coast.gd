@@ -167,7 +167,8 @@ static func rocks(cols: Array, seed_value: int, ground: Callable) -> Dictionary:
 				_column(a, rng, sp, g - 1.0, rng.randf_range(3.0, minf(11.0, top + 2.0)), rng.randf_range(1.6, 3.0), 6, shade * 0.95, true)
 		for s in range(rng.randi_range(0, 3)):
 			var q := at + to_sea * rng.randf_range(2.4, 5.0) + along * rng.randf_range(-1.6, 1.6)
-			_column(a, rng, q, rng.randf_range(-3.0, -1.5), rng.randf_range(-0.6, 0.35), rng.randf_range(0.35, 0.9), 5, shade * 0.9, false)
+			# (in a wader's reach and the skimmer's way: solid since 1.30)
+			_column(a, rng, q, rng.randf_range(-3.0, -1.5), rng.randf_range(-0.6, 0.35), rng.randf_range(0.35, 0.9), 5, shade * 0.9, true)
 	for key in out.keys():
 		out[key] = pack(out[key])
 	return out

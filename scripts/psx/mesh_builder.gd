@@ -56,6 +56,40 @@ func surface_count() -> int:
 	return _order.filter(func(m): return not (_surfaces[m]["v"] as PackedVector3Array).is_empty()).size()
 
 
+## Where every surface's vertices stand now: hull_since(mark) is a collider over what was added after it.
+func mark() -> Dictionary:
+	var m := {}
+	for mat in _order:
+		m[mat] = (_surfaces[mat]["v"] as PackedVector3Array).size()
+	return m
+
+
+## The vertices added since `m`, each once (to 2 cm).
+func points_since(m: Dictionary) -> PackedVector3Array:
+	var seen := {}
+	var out := PackedVector3Array()
+	for mat in _order:
+		var v: PackedVector3Array = _surfaces[mat]["v"]
+		for i in range(int(m.get(mat, 0)), v.size()):
+			var k := Vector3i((v[i] * 50.0).round())
+			if not seen.has(k):
+				seen[k] = true
+				out.append(v[i])
+	return out
+
+
+## (1.30) A convex collider round what was built since `m` (a roof, a canopy, a round tower): one shape where boxes
+## won't fit. Added to `body` (a CollisionObject3D), named `col_name`.
+func hull_since(m: Dictionary, body: Node, col_name := "Hull") -> CollisionShape3D:
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = points_since(m)
+	var cs := CollisionShape3D.new()
+	cs.name = col_name
+	cs.shape = shape
+	body.add_child(cs)
+	return cs
+
+
 ## Core primitive. `want` is the desired facing direction (used for winding).
 func add_tri(mat: Material, a: Vector3, b: Vector3, c: Vector3,
 		na: Vector3, nb: Vector3, nc: Vector3,

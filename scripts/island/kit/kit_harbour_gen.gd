@@ -864,6 +864,7 @@ func _walk_body(list: Array, loose: Array, node_name: String) -> StaticBody3D:
 			for e in (posts[side] as Array) + [[INF, Vector3.ZERO]]:
 				if float(e[0]) - last > step * 1.6 and run.size() > 0:
 					HarbourModels.rope_rail(mb, palm, rope, run, breaks)
+					HarbourModels.rail_cols(body, run, breaks)
 					run = PackedVector3Array()
 					breaks = []
 				if float(e[0]) == INF:
@@ -874,6 +875,8 @@ func _walk_body(list: Array, loose: Array, node_name: String) -> StaticBody3D:
 				last = float(e[0])
 		for b in w["bollards"]:
 			HarbourModels.bollard(mb, dark, rope, KitContext.v3(b, deck_y))
+			KitLandmarks.cyl_col(body, 0.19, 0.6, KitContext.v3(b, deck_y + 0.3))
+		HarbourModels.pile_cols(body, piles)
 	if not loose.is_empty():
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([ctx.seed, SALT, node_name])
@@ -882,6 +885,7 @@ func _walk_body(list: Array, loose: Array, node_name: String) -> StaticBody3D:
 			var p: Vector2 = e[0]
 			piles.append([KitContext.v3(p, ctx.hv(p) - 0.6), KitContext.v3(p, e[1]), e[2]])
 		HarbourModels.piles(mb, palm, piles, rng, false, 0.08)
+		HarbourModels.pile_cols(body, piles)
 	var mesh := mb.to_instance(node_name + "Mesh")
 	body.add_child(mesh)
 	var cs := CollisionShape3D.new()
@@ -976,15 +980,11 @@ func _build_rocks(rocks: Array) -> void:
 		var p: Vector2 = e[0]
 		var rad: Vector3 = e[1]
 		var y := ctx.ground_min(p, rad.x * 0.7)
+		var at := mb.mark()
 		mb.add_blob(rock, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(p.x, y + rad.y * 0.35, p.y)), rad, rng, 0.25, 4, 7, 0.35,
 			Color(0.78 + rng.randf() * 0.22, 0.84, 0.8), -0.6)
-		var cs := CollisionShape3D.new()
-		var cyl := CylinderShape3D.new()
-		cyl.radius = rad.x * 0.8
-		cyl.height = rad.y * 1.5
-		cs.shape = cyl
-		cs.position = Vector3(p.x, y + rad.y * 0.6, p.y)
-		body.add_child(cs)
+		# (its own shape: an upright cylinder missed a long rock's ends)
+		mb.hull_since(at, body, "Rock")
 	body.add_child(mb.to_instance("RockMesh"))
 	ctx.add(body)
 

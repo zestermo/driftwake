@@ -315,11 +315,14 @@ static func _castle(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 				mb.add_box(m["stone"], pier, Vector3(2.2, wall_h, thick + 0.4), 0.5, Color.WHITE, false)
 				_box_col(body, Vector3(2.2, wall_h, thick + 0.4), pier.origin, yaw)
 			mb.add_box(m["stone"], wall_xf * Transform3D(Basis(), Vector3(0, wall_h * 0.5 - 0.6, 0)), Vector3(L, 1.2, thick + 0.4), 0.5, Color(0.9, 0.9, 0.92), false)
+			_box_col(body, Vector3(L, 1.2, thick + 0.4), wall_xf * Vector3(0, wall_h * 0.5 - 0.6, 0), yaw)
 			for q in range(int((L - 4.4) / 0.5)):
 				mb.add_box(m["iron"], wall_xf * Transform3D(Basis(), Vector3(-(L - 4.4) * 0.5 + 0.25 + q * 0.5, wall_h * 0.5 - 1.2, 0)), Vector3(0.08, 0.9, 0.08), 1.0, Color.WHITE, false)
 		else:
 			mb.add_box(m["stone"], wall_xf, Vector3(L, wall_h, thick), 0.5, Color.WHITE, false)
 			_box_col(body, Vector3(L, wall_h, thick), wall_xf.origin, yaw)
+			# (the merlons as one strip: a crenel's 0.7 m is no way through anyway)
+			_box_col(body, Vector3(L, 0.7, thick), wall_xf * Vector3(0, wall_h * 0.5 + 0.35, 0), yaw)
 			for q in range(int(L / 1.4)):
 				var cx := -L * 0.5 + 0.7 + q * 1.4
 				mb.add_box(m["stone"], wall_xf * Transform3D(Basis(), Vector3(cx, wall_h * 0.5 + 0.35, 0)), Vector3(0.7, 0.7, thick), 0.5, Color(0.92, 0.92, 0.94), false)
@@ -331,11 +334,13 @@ static func _castle(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 		mb.add_cylinder(m["stone"], _xf(Vector3(tp.x, y0, tp.y)), tr, tr * 0.92, th, 10, 0.5, Color.WHITE, false, false, false)
 		KitLandmarks.cyl_col(body, tr, th, Vector3(tp.x, y0 + th * 0.5, tp.y))
 		var ry := y0 + th
+		var rm := mb.mark()
 		for t in range(3):
 			var r0 := (tr + 0.5) * (1.0 - t * 0.28)
 			mb.add_cylinder(m["roof"], _xf(Vector3(tp.x, ry, tp.y)), r0, r0 * 0.7, 1.0, 10, 0.7, Color.WHITE, false, t == 0, false)
 			mb.add_cylinder(m["snow"], _xf(Vector3(tp.x, ry + 0.95, tp.y)), r0 * 0.72, r0 * 0.55, 0.12, 10, 0.6, Color.WHITE, false, false, false)
 			ry += 1.0
 		mb.add_cylinder(m["roof"], _xf(Vector3(tp.x, ry, tp.y)), (tr + 0.5) * 0.3, 0.0, 1.4, 8, 0.7)
+		mb.hull_since(rm, body, "TowerRoof%d" % k)
 		mb.add_box(m["dark"], Transform3D(Basis(Vector3.UP, PI * 0.5 - a1), Vector3(tp.x, y0 + th - 1.5, tp.y) + Vector3(cos(a1), 0, sin(a1)) * (tr - 0.05)), Vector3(0.4, 0.9, 0.12), 1.0)
 	_finish(node, body, mb)
