@@ -110,6 +110,19 @@ Picks the open rows of docs/v1_29_plan.md ("The brig and galleon (1.30)", "Creat
 | The old ship | **Keep every ship you own, swap at a shipyard.** Paint and figurehead carry over; upgrades are per ship | Zach | Play |
 | Numbers | **The agent picks** price, parts, hull, guns, speed, turn and the galleon's chain unlock on the economy's curve; Zach tunes in play (no preview table) | Zach | Play |
 
+## Decided (2026-11-04, round 9): how an island's quests read
+Zach: "slightly too many people in each village, and the vendors should always be in their shop or at their stall; the
+little boss fights/missions you accept from the board are not clear or obvious to a player."
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Crowds | **Fewer villagers** in each generated village (about a quarter fewer; named characters and quest givers kept) | Zach | Play |
+| Vendors | **Always at their shop or stall**, day and night; their routine never walks them off it | Zach | Play |
+| The board | **No more taking jobs at the board.** It shows the newest bounties and an **island completion tracker**: % explored, quests done split into the main mission and side missions, and points of interest found out of the total. It also **lists the NPCs looking for materials or with quests**, so the island's offer reads at a glance | Zach | Mock render, play |
+| Landing objectives | On a new island: **1. find the village** (a "Find the town" goal until you reach it), **2. talk to the main-quest giver** (the elder: the island's trouble), **3. check the board**. They run through the chain goal and the objective box | Zach | Play |
+| Bounties (assumed) | The board's bounties, lairs and beasts need no taking step: each is listed with its reward and its place marked on the map; the fight starts when you get there, and you report to the poster for the gold. **assumed** | "Not clear or obvious" | Play |
+| Explored % (assumed) | By the share of the island's ground cells a captain has been near; POIs are the island's places and spots (camps, caves, ruins, wrecks, landmarks, dive sites...), found when you get close. Shared by the crew. **assumed** | - | Play |
+
 ## Build order (lead, 2026-11-03; two agents at a time)
 Previews and mocks approved by Zach 2026-11-03 (docs/v1_30_previews.md, the "Driftwake 1.30 UI mocks" canvas).
 1. Running: **sea fixes** (enemy_ship, admiralty, rival_watch) and **land fixes** (vault + fruit, rack and drills,
