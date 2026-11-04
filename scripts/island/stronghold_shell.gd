@@ -37,20 +37,38 @@ static func build(build_ms: Dictionary) -> Array:
 # --------------------------------------------------------------------------
 # The palette
 # --------------------------------------------------------------------------
+## (1.30 round 7, Marineford / Enies Lobby) white dressed stone, navy trim, gold fittings, blue glazed roofs: the stone
+## tints all fold into one surface (fold_tints), the metal's too.
 static func _wall_m() -> Material:
-	return PSXMat.lit("limestone", Color(0.66, 0.7, 0.8))
+	return PSXMat.lit("admiralty_stone", Color(1.0, 1.0, 1.0))
 
 
 static func _dark_m() -> Material:
-	return PSXMat.lit("stone_brick", Color(0.72, 0.76, 0.86))
+	return PSXMat.lit("admiralty_stone", Color(0.8, 0.83, 0.88))
+
+
+static func _trim_m() -> Material:
+	return PSXMat.lit("admiralty_stone", Color(0.2, 0.28, 0.56))
+
+
+static func _soot_m() -> Material:
+	return PSXMat.lit("admiralty_stone", Color(0.34, 0.34, 0.37))
 
 
 static func _foot_m() -> Material:
-	return PSXMat.lit("black_rock", Color(0.6, 0.6, 0.63))
+	return PSXMat.lit("admiralty_stone", Color(0.66, 0.7, 0.76))
 
 
 static func _flag_m() -> Material:
-	return PSXMat.lit("flagstones", Color(0.56, 0.57, 0.6))
+	return PSXMat.lit("admiralty_paving", Color(0.95, 0.96, 0.98))
+
+
+static func _roof_m() -> Material:
+	return PSXMat.lit("admiralty_roof")
+
+
+static func _gold_m() -> Material:
+	return PSXMat.lit("metal", Color(1.0, 0.8, 0.36))
 
 
 static func _iron_m() -> Material:
@@ -76,14 +94,22 @@ static func _paving(out: Array) -> void:
 	var mb := MeshBuilder.new()
 	mb.all_faces = true
 	var cols: Array = []
-	var cob := PSXMat.lit("cobbles", Color(0.6, 0.6, 0.62))
+	var cob := _flag_m()
 	for d in P.DISTRICTS:
 		var r: Rect2 = d[1]
 		M.box(cols, M.xf(M.v3(r.get_center(), float(d[2]) - 0.75)), Vector3(r.size.x, 1.5, r.size.y))
 		var y: float = float(d[2]) + 0.03
 		mb.add_quad(cob, Vector3(r.position.x, y, r.position.y), Vector3(r.end.x, y, r.position.y), Vector3(r.end.x, y, r.end.y), Vector3(r.position.x, y, r.end.y),
-			Vector2.ZERO, Vector2(r.size.x * 0.35, 0), Vector2(r.size.x * 0.35, r.size.y * 0.35), Vector2(0, r.size.y * 0.35), Color.WHITE, Vector3.UP)
+			Vector2.ZERO, Vector2(r.size.x * 0.25, 0), Vector2(r.size.x * 0.25, r.size.y * 0.25), Vector2(0, r.size.y * 0.25), Color.WHITE, Vector3.UP)
 	mb.add_box(_foot_m(), M.xf(M.v3(Vector2(0, P.FRONT_Z - 0.4), P.QUAY_Y - 2.2)), Vector3(112.0, 4.6, 0.8), 0.5)
+	# the quay's coping in navy-trimmed white, and a border course of darker slabs round each district's floor
+	mb.add_box(_trim_m(), M.xf(M.v3(Vector2(0, P.FRONT_Z - 0.35), P.QUAY_Y + 0.06)), Vector3(112.0, 0.14, 0.9), 0.5, Color.WHITE, false)
+	for d in P.DISTRICTS:
+		var r: Rect2 = (d[1] as Rect2).grow(-0.6)
+		var y: float = float(d[2]) + 0.05
+		for e in [[Vector2(r.get_center().x, r.position.y), Vector3(r.size.x, 0.04, 1.2)], [Vector2(r.get_center().x, r.end.y), Vector3(r.size.x, 0.04, 1.2)],
+				[Vector2(r.position.x, r.get_center().y), Vector3(1.2, 0.04, r.size.y)], [Vector2(r.end.x, r.get_center().y), Vector3(1.2, 0.04, r.size.y)]]:
+			mb.add_box(_flag_m(), M.xf(M.v3(e[0], y)), e[1], 0.5, Color(0.72, 0.76, 0.84), true)
 	CapitalShell._piece(out, "Paving", mb, cols, FAR, false)
 
 
@@ -147,6 +173,7 @@ static func _ways(out: Array) -> void:
 		for s: float in [-1.0, 1.0]:
 			var side := along * Transform3D(Basis(), Vector3(s * (hw + 0.4), 0.6, 0))
 			_block(mb, cols, _wall_m(), side, Vector3(0.8, 1.2, a3.distance_to(b3) + 0.6))
+			mb.add_box(_trim_m(), side * Transform3D(Basis(), Vector3(0, 0.66, 0)), Vector3(1.0, 0.14, a3.distance_to(b3) + 0.7), 0.5)
 	CapitalShell._piece(out, "Ways", mb, cols, FAR, true)
 
 
@@ -215,11 +242,37 @@ static func _wall(mb: MeshBuilder, cols: Array, a: Vector2, b: Vector2, y: float
 	mb.add_box(_foot_m(), M.xf(M.v3(c, low + 1.5), yaw), Vector3(t + 1.0, 3.0, L + 0.3), 0.5)
 	if posmod(hash(c.round()), 7) == 0:
 		_torch(mb, c, y + h)
-	mb.add_box(_iron_m(), M.xf(M.v3(c, y + h - 0.4), yaw), Vector3(t + 0.16, 0.3, L + 0.2), 0.5, Color.WHITE, false)
+	# (1.30 round 7) a navy band under the walk with a gold line through it, a navy plinth course over the footing
+	mb.add_box(_trim_m(), M.xf(M.v3(c, y + h - 0.6), yaw), Vector3(t + 0.2, 0.9, L + 0.2), 0.5, Color.WHITE, false)
+	mb.add_box(_gold_m(), M.xf(M.v3(c, y + h - 0.6), yaw), Vector3(t + 0.26, 0.12, L + 0.2), 1.0, Color.WHITE, false)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, low + 3.2), yaw), Vector3(t + 1.1, 0.5, L + 0.3), 0.5, Color(0.8, 0.8, 0.8), false)
+	# (1.30 round 7) relief: buttresses down the outer face, pilasters on the inner, framed slits between
+	var outn := n if P.terrain(c + n * 3.0) < P.terrain(c - n * 3.0) else -n
+	var face := t * 0.5
+	match posmod(hash(c.round()), 4):
+		0:
+			var bt := y + h - 1.6
+			_block(mb, cols, _wall_m(), M.xf(M.v3(c + outn * (face + 0.7), (low + bt) * 0.5), yaw), Vector3(1.4, bt - low, 1.3))
+			mb.add_box(_trim_m(), M.xf(M.v3(c + outn * (face + 0.7), bt + 0.15), yaw), Vector3(1.6, 0.3, 1.5), 0.5)
+			mb.add_box(_wall_m(), M.xf(M.v3(c + outn * (face + 1.0), (low + y) * 0.5 - 1.0), yaw), Vector3(2.0, maxf(y - low - 2.0, 0.5), 1.6), 0.5)
+		1:
+			var sy := y + h * 0.55
+			mb.add_box(PSXMat.flat(Color(0.06, 0.07, 0.1)), M.xf(M.v3(c + outn * (face + 0.02), sy), yaw), Vector3(0.06, 1.8, 0.35), 1.0, Color.WHITE, false)
+			for e in [[Vector3(0.16, 0.22, 0.95), 1.0], [Vector3(0.16, 0.22, 0.95), -1.0]]:
+				mb.add_box(_dark_m(), M.xf(M.v3(c + outn * (face + 0.06), sy + float(e[1]) * 1.0), yaw), e[0], 0.5)
+			for s: float in [-1.0, 1.0]:
+				mb.add_box(_dark_m(), M.xf(M.v3(c + outn * (face + 0.06) + dir * s * 0.35, sy), yaw), Vector3(0.14, 2.0, 0.2), 0.5)
+		2:
+			if y > 10.0 and P.room_at(c - outn * (face + 2.4)) < 0:
+				var pt := y + h - 1.0
+				_block(mb, cols, _wall_m(), M.xf(M.v3(c - outn * (face + 0.18), (y + pt) * 0.5), yaw), Vector3(0.36, pt - y, 0.9))
+				mb.add_box(_trim_m(), M.xf(M.v3(c - outn * (face + 0.22), y + 0.35), yaw), Vector3(0.46, 0.7, 1.06), 0.5)
+				mb.add_box(_dark_m(), M.xf(M.v3(c - outn * (face + 0.25), pt - 0.2), yaw), Vector3(0.52, 0.4, 1.1), 0.5)
 	var mn := maxi(int(L / 2.2), 1)
 	for j in range(mn):
 		var z := -L * 0.5 + (j + 0.5) * L / mn
-		mb.add_box(_wall_m(), M.xf(M.v3(c, 0.0), yaw) * Transform3D(Basis(), Vector3(0, y + h + 0.6, z)), Vector3(t, 1.2, 1.1), 0.5, Color(0.92, 0.92, 0.95))
+		mb.add_box(_wall_m(), M.xf(M.v3(c, 0.0), yaw) * Transform3D(Basis(), Vector3(0, y + h + 0.55, z)), Vector3(t, 1.1, 1.1), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(c, 0.0), yaw) * Transform3D(Basis(), Vector3(0, y + h + 1.17, z)), Vector3(t + 0.12, 0.14, 1.22), 0.5)
 
 
 ## A round tower: a drum on a flared black-rock foot, a corbelled ring at the top with square merlons round it and a
@@ -246,34 +299,60 @@ static func _tower_round(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, r:
 static func _tower_square(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, w: float, h: float) -> void:
 	mb.add_box(_foot_m(), M.xf(M.v3(c, y0 - 4.0)), Vector3(w + 1.6, 8.0, w + 1.6), 0.5)
 	_block(mb, cols, _wall_m(), M.xf(M.v3(c, y0 + h * 0.5 - 4.0)), Vector3(w, h + 8.0, w))
-	mb.add_box(_dark_m(), M.xf(M.v3(c, y0 + h + 0.5)), Vector3(w + 1.2, 1.0, w + 1.2), 0.5)
-	var n := maxi(int(w / 2.0), 2)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, y0 + 0.4)), Vector3(w + 0.3, 0.8, w + 0.3), 0.5)
 	for s in range(4):
-		for k in range(n):
-			var t := -w * 0.5 + (k + 0.5) * w / n
-			var o: Vector2 = [Vector2(t, -w * 0.5 - 0.3), Vector2(w * 0.5 + 0.3, t), Vector2(t, w * 0.5 + 0.3), Vector2(-w * 0.5 - 0.3, t)][s]
-			if k % 2 == 0:
-				mb.add_box(_wall_m(), M.xf(M.v3(c + o, y0 + h + 1.7)), Vector3(1.1, 1.4, 1.1), 0.5)
 		var f: Vector2 = [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)][s]
-		mb.add_box(PSXMat.flat(Color(0.05, 0.05, 0.06)), M.xf(M.v3(c + f * (w * 0.5 + 0.02), y0 + h * 0.6), M.yaw_of(Vector2(-f.y, f.x))), Vector3(0.4, 2.0, 0.1), 1.0, Color.WHITE, false)
+		for row: float in [0.45, 0.72]:
+			mb.add_box(_window_m(), M.xf(M.v3(c + f * (w * 0.5 + 0.03), y0 + h * row), M.yaw_of(Vector2(-f.y, f.x))), Vector3(0.1, 1.6, 0.7), 1.0, Color.WHITE, false)
+	_cap(mb, c, y0 + h, w, h > 20.0)
 
 
-## A gatehouse across a way at frame point c, its floor y: two square towers either side of an opening `gap` wide
-## under a heavy lintel, a raised iron portcullis in it and a fire basket on each tower.
+## A gatehouse across a way at frame point c, its floor y: two square towers either side of an opening `gap` wide and
+## h - 5 high under a lintel, a raised iron portcullis in it. (1.30 round 7) Dressed: rusticated jambs, a voussoir
+## course and a navy band over the opening, the gold crest on both faces of the lintel, merlons on it, banners down the
+## towers.
 static func _gate(mb: MeshBuilder, cols: Array, c: Vector2, y: float, h: float, gap: float) -> void:
 	var tw := 6.0
+	var th := h
 	for s: float in [-1.0, 1.0]:
 		var tc := c + Vector2(s * (gap * 0.5 + tw * 0.5), 0)
-		_tower_square(mb, cols, tc, y, tw, h)
-		mb.add_box(_iron_m(), M.xf(M.v3(tc, y + h + 2.6)), Vector3(1.2, 0.8, 1.2), 0.5)
-		mb.add_box(_fire_m(), M.xf(M.v3(tc, y + h + 3.2)), Vector3(0.9, 0.6, 0.9), 1.0, Color.WHITE, false)
-	_block(mb, cols, _dark_m(), M.xf(M.v3(c, y + h - 2.5)), Vector3(gap + 0.4, 5.0, tw))
+		_tower_square(mb, cols, tc, y, tw, th)
+		for f: float in [-1.0, 1.0]:
+			_banner(mb, tc + Vector2(0, f * (tw * 0.5 + 0.02)), y + th - 1.5, Vector2(0, f), tw * 0.56, minf(th * 0.55, 12.0))
+		# rusticated jambs: stones set proud up the opening's sides, every other one navy-banded
+		for k in range(int((h - 5.0) / 0.9)):
+			var jy := y + 0.45 + k * 0.9
+			var jx := c.x + s * (gap * 0.5 + 0.12)
+			for f: float in [-1.0, 1.0]:
+				var jw := 1.4 if k % 2 == 0 else 0.9
+				mb.add_box(_wall_m() if k % 4 != 3 else _trim_m(), M.xf(Vector3(jx + s * jw * 0.5 - s * 0.3, jy, c.y + f * (tw * 0.5 + 0.06))), Vector3(jw, 0.8, 0.14), 0.5)
+	var lt := y + h - 5.0
+	var top := y + th
+	_block(mb, cols, _dark_m(), M.xf(M.v3(c, (lt + top) * 0.5)), Vector3(gap + 0.4, top - lt, tw))
+	mb.add_box(_trim_m(), M.xf(M.v3(c, lt + 0.5)), Vector3(gap + 0.5, 1.0, tw + 0.2), 0.5)
+	mb.add_box(_gold_m(), M.xf(M.v3(c, lt + 1.05)), Vector3(gap + 0.5, 0.14, tw + 0.24), 1.0)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, top + 0.4)), Vector3(gap + 0.6, 0.8, tw + 1.0), 0.5)
+	for f: float in [-1.0, 1.0]:
+		_crest(mb, c + Vector2(0, f * (tw * 0.5 + 0.02)), (lt + 1.2 + top) * 0.5, Vector2(0, f), minf(gap * 0.32, (top - lt - 1.2) * 0.46))
+		# a voussoir course over the opening: wedge stones fanned along the lintel's foot
+		var nv := int(gap / 0.8)
+		for k in range(nv):
+			var x := -gap * 0.5 + (k + 0.5) * gap / nv
+			var tilt := clampf(x / (gap * 0.5), -1.0, 1.0) * 0.25
+			mb.add_box(_wall_m() if k % 2 == 0 else _dark_m(), Transform3D(Basis(Vector3.BACK, -tilt), M.v3(c + Vector2(x, f * (tw * 0.5 + 0.08)), lt + 0.55)), Vector3(0.7, 1.1, 0.16), 0.5)
+	# merlons along the lintel's top between the towers
+	var n := int(gap / 2.2)
+	for k in range(n):
+		var x := -gap * 0.5 + (k + 0.5) * gap / n
+		for f: float in [-1.0, 1.0]:
+			mb.add_box(_wall_m(), M.xf(M.v3(c + Vector2(x, f * (tw * 0.5 - 0.4)), top + 1.3)), Vector3(1.1, 1.2, 0.8), 0.5)
+			mb.add_box(_trim_m(), M.xf(M.v3(c + Vector2(x, f * (tw * 0.5 - 0.4)), top + 1.97)), Vector3(1.22, 0.14, 0.92), 0.5)
 	# the portcullis, raised into the lintel's underside
 	var bars := int(gap / 0.9)
 	for k in range(bars + 1):
 		var x := -gap * 0.5 + k * gap / bars
-		mb.add_box(_iron_m(), M.xf(M.v3(c + Vector2(x, 0), y + h - 6.2)), Vector3(0.14, 2.6, 0.14), 0.5)
-	mb.add_box(_iron_m(), M.xf(M.v3(c, y + h - 7.4)), Vector3(gap, 0.16, 0.16), 0.5)
+		mb.add_box(_iron_m(), M.xf(M.v3(c + Vector2(x, 0), lt - 1.2)), Vector3(0.14, 2.6, 0.14), 0.5)
+	mb.add_box(_iron_m(), M.xf(M.v3(c, lt - 2.4)), Vector3(gap, 0.16, 0.16), 0.5)
 
 
 ## The edge from a to b cut where a way crosses it: the runs left.
@@ -320,7 +399,7 @@ static func _buildings(out: Array) -> void:
 			_furnish(mb, cols, rm)
 	# the foundry's chimneys: tapering round stacks banded with iron, their mouths glowing
 	for p: Vector2 in [Vector2(74.0, -32.0), Vector2(92.0, -32.0)]:
-		mb.add_cylinder(_dark_m(), M.xf(M.v3(p, 14.0)), 2.6, 1.8, 34.0, 12, 0.5, Color.WHITE, false)
+		mb.add_cylinder(_soot_m(), M.xf(M.v3(p, 14.0)), 2.6, 1.8, 34.0, 12, 0.5, Color.WHITE, false)
 		M.cyl(cols, M.v3(p, 14.0), 2.6, 34.0)
 		for yy: float in [22.0, 32.0, 42.0]:
 			mb.add_cylinder(_iron_m(), M.xf(M.v3(p, yy)), 2.6 - (yy - 14.0) * 0.024 + 0.1, 2.6 - (yy - 14.0) * 0.024 + 0.1, 0.5, 12, 0.5)
@@ -332,7 +411,10 @@ static func _buildings(out: Array) -> void:
 	# the prison: a stepped drum, its upper drum narrower, an iron cage crown
 	mb.add_cylinder(_foot_m(), M.xf(M.v3(P.PRISON, 6.0)), 15.0, 13.0, 8.0, 18, 0.5, Color.WHITE, false)
 	mb.add_cylinder(_wall_m(), M.xf(M.v3(P.PRISON, 14.0)), 13.0, 12.6, 22.0, 18, 0.5, Color.WHITE, false)
-	mb.add_cylinder(_dark_m(), M.xf(M.v3(P.PRISON, 36.0)), 13.4, 13.4, 1.2, 18, 0.5)
+	mb.add_cylinder(_trim_m(), M.xf(M.v3(P.PRISON, 36.0)), 13.4, 13.4, 1.2, 18, 0.5)
+	mb.add_cylinder(_gold_m(), M.xf(M.v3(P.PRISON, 35.9)), 13.45, 13.45, 0.16, 18, 1.0)
+	mb.add_cylinder(_trim_m(), M.xf(M.v3(P.PRISON, 14.0)), 13.1, 13.1, 0.8, 18, 0.5)
+	mb.add_cylinder(_trim_m(), M.xf(M.v3(P.PRISON, 48.4)), 9.7, 9.7, 0.8, 16, 0.5)
 	mb.add_cylinder(_wall_m(), M.xf(M.v3(P.PRISON, 37.2)), 9.5, 9.0, 12.0, 16, 0.5, Color.WHITE, true)
 	M.cyl(cols, M.v3(P.PRISON, 6.0), 13.4, 43.2)
 	for k in range(16):
@@ -379,7 +461,8 @@ static func _verdict(out: Array) -> void:
 			_furnish(mb, cols, P.ROOMS[3])
 		else:
 			_block(mb, cols, _wall_m(), M.xf(M.v3(c, (below + top) * 0.5)), Vector3(hw * 2.0, top - below, hw * 2.0))
-		mb.add_box(_dark_m(), M.xf(M.v3(c, top + 0.6)), Vector3(hw * 2.0 + 1.6, 1.2, hw * 2.0 + 1.6), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(c, top + 0.6)), Vector3(hw * 2.0 + 1.6, 1.2, hw * 2.0 + 1.6), 0.5)
+		mb.add_box(_gold_m(), M.xf(M.v3(c, top + 0.1)), Vector3(hw * 2.0 + 1.66, 0.16, hw * 2.0 + 1.66), 1.0)
 		_ribs(mb, c, hw, hw, below, top)
 		below = top
 	var hw0: float = SPIRE_STAGES[0][0]
@@ -390,6 +473,11 @@ static func _verdict(out: Array) -> void:
 	# (either side of the Command Hall's door, not over it)
 	for s: float in [-1.0, 1.0]:
 		_banner(mb, c + Vector2(s * 13.0, hw0 + 0.12), y0 + float(SPIRE_STAGES[0][1]) - 2.0, Vector2(0, 1), 8.0, 20.0)
+	# (1.30 round 7) the crest over the Command Hall's door, and on the second stage's four faces
+	_crest(mb, c + Vector2(0, hw0 + 0.02), y0 + 18.0, Vector2(0, 1), 4.6)
+	var hw1: float = SPIRE_STAGES[1][0]
+	for f: Vector2 in [Vector2(0, 1), Vector2(1, 0), Vector2(-1, 0), Vector2(0, -1)]:
+		_crest(mb, c + f * (hw1 + 0.02), y0 + (float(SPIRE_STAGES[0][1]) + float(SPIRE_STAGES[1][1])) * 0.5 + 1.0, f, 5.5)
 	# the twin towers: each in slices across its width, the slices near the cleft cut by the circle
 	var tw: float = TWINS[0]
 	var td: float = TWINS[1]
@@ -420,11 +508,20 @@ static func _verdict(out: Array) -> void:
 		_ribs(mb, c + Vector2(mid, 0), tw * 0.5, td * 0.5, ry + rr, top_s)
 		# its crown: a cornice, a lantern room with merlons and a fire
 		var tc := c + Vector2(mid, 0)
-		mb.add_box(_dark_m(), M.xf(M.v3(tc, top_s + 0.6)), Vector3(tw + 1.4, 1.2, td + 1.4), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(tc, top_s + 0.6)), Vector3(tw + 1.4, 1.2, td + 1.4), 0.5)
+		mb.add_box(_gold_m(), M.xf(M.v3(tc, top_s + 0.08)), Vector3(tw + 1.46, 0.16, td + 1.46), 1.0)
 		for cn: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-			mb.add_box(_dark_m(), M.xf(M.v3(tc + Vector2(cn.x * (tw * 0.5 - 0.8), cn.y * (td * 0.5 - 0.8)), top_s + 4.0)), Vector3(1.6, 6.0, 1.6), 0.5)
-		mb.add_box(_dark_m(), M.xf(M.v3(tc, top_s + 7.4)), Vector3(tw + 0.8, 1.0, td + 0.8), 0.5)
+			mb.add_box(_wall_m(), M.xf(M.v3(tc + Vector2(cn.x * (tw * 0.5 - 0.8), cn.y * (td * 0.5 - 0.8)), top_s + 4.0)), Vector3(1.6, 6.0, 1.6), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(tc, top_s + 7.4)), Vector3(tw + 0.8, 1.0, td + 0.8), 0.5)
 		mb.add_box(_fire_m(), M.xf(M.v3(tc, top_s + 2.2)), Vector3(2.4, 2.0, 2.4), 1.0, Color.WHITE, false)
+		# (1.30 round 7) merlons round the crown's slab, a gold staff and the Admiralty's flag over it
+		for k in range(6):
+			for f: float in [-1.0, 1.0]:
+				var x := -tw * 0.5 + (k + 0.5) * tw / 6.0
+				mb.add_box(_wall_m(), M.xf(M.v3(tc + Vector2(x, f * (td * 0.5 + 0.1)), top_s + 8.5)), Vector3(1.2, 1.2, 0.8), 0.5)
+				mb.add_box(_trim_m(), M.xf(M.v3(tc + Vector2(x, f * (td * 0.5 + 0.1)), top_s + 9.17)), Vector3(1.34, 0.14, 0.94), 0.5)
+		mb.add_cylinder(_gold_m(), M.xf(M.v3(tc, top_s + 7.9)), 0.18, 0.12, 12.0, 5, 1.0)
+		mb.add_box_unit_uv(_banner_m(), M.xf(M.v3(tc + Vector2(s * 3.0, 0), top_s + 17.6)), Vector3(5.6, 3.6, 0.08))
 		# lit windows in columns up the outer faces
 		for row in range(8):
 			var wy := below + 10.0 + row * (top_s - below - 20.0) / 7.0
@@ -438,7 +535,7 @@ static func _verdict(out: Array) -> void:
 		var p := Vector2(cos(a) * rr, 0)
 		if absf(p.x) < gap * 0.5:
 			continue
-		mb.add_box(_iron_m(), M.xf(M.v3(c + p, ry + sin(a) * rr)), Vector3(1.0, 1.0, td + 0.4), 0.5)
+		mb.add_box(_gold_m(), M.xf(M.v3(c + p, ry + sin(a) * rr)), Vector3(1.0, 1.0, td + 0.4), 0.5)
 	var fy := ry - 2.0
 	mb.add_box(_iron_m(), M.xf(M.v3(c, fy)), Vector3(4.0, 4.0, 4.0), 0.5)
 	mb.add_box(_fire_m(), M.xf(M.v3(c, fy + 0.5)), Vector3(3.2, 3.8, 3.2), 1.0, Color.WHITE, false)
@@ -456,7 +553,7 @@ static func _ribs(mb: MeshBuilder, c: Vector2, hx: float, hz: float, y0: float, 
 	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
 		for k: float in [-0.6, 0.0, 0.6]:
 			var o := Vector2(f.x * (hx + 0.1) - f.y * hx * k, f.y * (hz + 0.1) + f.x * hz * k)
-			mb.add_box(_iron_m(), M.xf(M.v3(c + o, (y0 + y1) * 0.5)), Vector3(0.5 if absf(f.x) > 0.5 else 0.7, y1 - y0, 0.7 if absf(f.x) > 0.5 else 0.5), 0.5, Color.WHITE, false)
+			mb.add_box(_dark_m(), M.xf(M.v3(c + o, (y0 + y1) * 0.5)), Vector3(0.5 if absf(f.x) > 0.5 else 0.9, y1 - y0, 0.9 if absf(f.x) > 0.5 else 0.5), 0.5, Color.WHITE, false)
 
 
 # --------------------------------------------------------------------------
@@ -491,14 +588,8 @@ static func _tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, w: float
 	mb.add_box(_foot_m(), M.xf(M.v3(c, (foot + y0) * 0.5 - 0.5)), Vector3(w + 1.6, y0 - foot + 1.0, w + 1.6), 0.5)
 	_block(mb, cols, _wall_m(), M.xf(M.v3(c, (foot + y0 + h) * 0.5)), Vector3(w, y0 + h - foot, w))
 	var top := y0 + h
-	mb.add_box(_dark_m(), M.xf(M.v3(c, top + 0.4)), Vector3(w + 1.0, 0.8, w + 1.0), 0.5)
-	var lh := 4.2
-	var hw := w * 0.5 - 0.6
-	for cn: Vector2 in [Vector2(-hw, -hw), Vector2(hw, -hw), Vector2(hw, hw), Vector2(-hw, hw)]:
-		mb.add_box(_dark_m(), M.xf(M.v3(c + cn, top + 0.8 + lh * 0.5)), Vector3(1.2, lh, 1.2), 0.5)
-		mb.add_box(_wall_m(), M.xf(M.v3(c + cn * 1.08, top + 0.8 + lh + 1.4)), Vector3(1.2, 1.4, 1.2), 0.5)
-	mb.add_box(_dark_m(), M.xf(M.v3(c, top + 0.8 + lh + 0.35)), Vector3(w + 0.6, 0.7, w + 0.6), 0.5)
-	mb.add_box(_fire_m(), M.xf(M.v3(c, top + 1.4)), Vector3(1.4, 1.1, 1.4), 1.0, Color.WHITE, false)
+	_cap(mb, c, top, w, h > 14.0)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, y0 + 0.4)), Vector3(w + 0.3, 0.8, w + 0.3), 0.5)
 	# lit windows high up, a row or two on each face
 	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
 		var along := Vector2(-f.y, f.x)
@@ -512,22 +603,84 @@ static func _tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, w: float
 	_banner(mb, c + bf * (w * 0.5 + 0.12), top - 1.5, bf, w * 0.62, minf(h * 0.45, 12.0))
 
 
-## A blue banner with the Admiralty's emblem (a ring with a staff and a bar through it) hung flat on a wall: its top
-## middle at frame point at, height top_y, facing f (bw wide, bh long), on an iron rod.
+## (1.30 round 7) The Admiralty's banner hung flat on a wall: its top middle at frame point at, height top_y, facing f
+## (bw wide, bh long), on a gold rod with finials; the picture (navy, gold border, the white gull) is admiralty_banner,
+## its foot cut in a swallowtail.
 static func _banner(mb: MeshBuilder, at: Vector2, top_y: float, f: Vector2, bw: float, bh: float) -> void:
 	var along := Vector2(-f.y, f.x)
 	var yaw := M.yaw_of(along)
-	mb.add_box(_iron_m(), M.xf(M.v3(at + f * 0.05, top_y + 0.1), yaw), Vector3(0.12, 0.12, bw + 0.6), 0.5)
-	mb.add_box(PSXMat.lit("cloth_blue", Color(0.5, 0.58, 1.0)), M.xf(M.v3(at, top_y - bh * 0.5), yaw), Vector3(0.06, bh, bw), 0.5, Color.WHITE, false)
-	var pale := PSXMat.flat(Color(0.82, 0.86, 0.96))
-	var o := at + f * 0.05
-	var ring_y := top_y - bh * 0.32
-	var rr := bw * 0.24
-	for k in range(14):
-		var a := TAU * k / 14.0
-		mb.add_box(pale, M.xf(M.v3(o + along * cos(a) * rr, ring_y + sin(a) * rr), yaw), Vector3(0.05, 0.22, 0.22), 1.0, Color.WHITE, false)
-	mb.add_box(pale, M.xf(M.v3(o, ring_y - bh * 0.12), yaw), Vector3(0.05, bh * 0.62, 0.2), 1.0, Color.WHITE, false)
-	mb.add_box(pale, M.xf(M.v3(o, ring_y), yaw), Vector3(0.05, 0.2, bw * 0.62), 1.0, Color.WHITE, false)
+	mb.add_box(_gold_m(), M.xf(M.v3(at + f * 0.08, top_y + 0.1), yaw), Vector3(0.16, 0.16, bw + 0.8), 0.5)
+	for s: float in [-1.0, 1.0]:
+		mb.add_box(_gold_m(), M.xf(M.v3(at + f * 0.08 + along * s * (bw * 0.5 + 0.45), top_y + 0.1), yaw), Vector3(0.3, 0.3, 0.3), 0.5)
+	var body := bh * 0.86
+	var t := M.xf(M.v3(at + f * 0.04, top_y - body * 0.5), M.yaw_of(f))
+	mb.add_box_unit_uv(_banner_m(), t, Vector3(bw, body, 0.06))
+	# the swallowtail: two navy points under the picture
+	var tail := bh - body
+	for s: float in [-1.0, 1.0]:
+		var o := PackedVector2Array([Vector2(s * bw * 0.5, 0.0), Vector2(0.0, 0.0), Vector2(s * bw * 0.25, -tail), Vector2(s * bw * 0.5, -tail)])
+		if s < 0.0:
+			o.reverse()
+		mb.add_extrude(_trim_m(), M.xf(M.v3(at + f * 0.04, top_y - body), M.yaw_of(f)), o, 0.06, 0.5)
+
+
+static func _banner_m() -> Material:
+	return PSXMat.lit("admiralty_banner", Color.WHITE, {"vertex_color": false})
+
+
+## The gull of the Admiralty's crest (x -1..1, y up), as on its banners: wings spread in a shallow M.
+static func gull() -> PackedVector2Array:
+	var half := [Vector2(0.0, 0.30), Vector2(0.10, 0.40), Vector2(0.30, 0.52), Vector2(0.55, 0.60), Vector2(0.80, 0.56), Vector2(1.0, 0.44),
+		Vector2(0.78, 0.40), Vector2(0.55, 0.38), Vector2(0.32, 0.26), Vector2(0.14, 0.12), Vector2(0.10, -0.10), Vector2(0.20, -0.36), Vector2(0.0, -0.26)]
+	var o := PackedVector2Array()
+	for k in range(half.size()):
+		o.append(half[k])
+	for k in range(half.size() - 2, 0, -1):
+		o.append(Vector2(-half[k].x, half[k].y))
+	o.reverse()
+	return o
+
+
+## The Admiralty's crest on a wall: a navy disc in a gold ring with the white gull over it, r across, its middle at frame
+## point at, height y, facing f.
+static func _crest(mb: MeshBuilder, at: Vector2, y: float, f: Vector2, r: float) -> void:
+	var face := M.yaw_of(f)
+	var disc := Basis(Vector3.UP, face) * Basis(Vector3.RIGHT, PI * 0.5)
+	mb.add_cylinder(_gold_m(), Transform3D(disc, M.v3(at, y)), r, r, 0.3, 20, 0.5, Color.WHITE, true, true)
+	mb.add_cylinder(_trim_m(), Transform3D(disc, M.v3(at + f * 0.3, y)), r * 0.84, r * 0.84, 0.12, 20, 0.5, Color.WHITE, true, false)
+	mb.add_extrude(_wall_m(), M.xf(M.v3(at + f * 0.5, y + r * 0.05), face).scaled_local(Vector3(r * 0.78, r * 0.78, 1.0)), gull(), 0.2, 0.5, Color(1.08, 1.08, 1.1))
+
+
+## A tower's crown at height top, w across (the 1.27 shape: a cornice, an open lantern room on corner piers with a fire,
+## a slab roof with merlons at its corners), detailed: the cornice navy over a gold line and corbels, the piers white
+## with navy caps, the merlons capped; a flagstaff with the Admiralty's flag over the taller ones.
+static func _cap(mb: MeshBuilder, c: Vector2, top: float, w: float, flag: bool) -> void:
+	mb.add_box(_trim_m(), M.xf(M.v3(c, top + 0.4)), Vector3(w + 1.0, 0.8, w + 1.0), 0.5)
+	mb.add_box(_gold_m(), M.xf(M.v3(c, top + 0.04)), Vector3(w + 1.06, 0.12, w + 1.06), 1.0)
+	var nc := maxi(int(w / 1.6), 2)
+	for s in range(4):
+		var f: Vector2 = [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)][s]
+		var al := Vector2(-f.y, f.x)
+		for k in range(nc):
+			var u := -w * 0.5 + (k + 0.5) * w / nc
+			mb.add_box(_wall_m(), M.xf(M.v3(c + f * (w * 0.5 + 0.2) + al * u, top - 0.35), M.yaw_of(f)), Vector3(0.4, 0.7, 0.4), 0.5)
+	var lh := 4.2
+	var hw := w * 0.5 - 0.6
+	for cn: Vector2 in [Vector2(-hw, -hw), Vector2(hw, -hw), Vector2(hw, hw), Vector2(-hw, hw)]:
+		mb.add_box(_wall_m(), M.xf(M.v3(c + cn, top + 0.8 + lh * 0.5)), Vector3(1.2, lh, 1.2), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(c + cn, top + 0.8 + lh - 0.2)), Vector3(1.4, 0.3, 1.4), 0.5)
+		mb.add_box(_wall_m(), M.xf(M.v3(c + cn * 1.08, top + 0.8 + lh + 1.4)), Vector3(1.2, 1.4, 1.2), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(c + cn * 1.08, top + 0.8 + lh + 2.17)), Vector3(1.34, 0.14, 1.34), 0.5)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, top + 0.8 + lh + 0.35)), Vector3(w + 0.6, 0.7, w + 0.6), 0.5)
+	mb.add_box(_fire_m(), M.xf(M.v3(c, top + 1.4)), Vector3(1.4, 1.1, 1.4), 1.0, Color.WHITE, false)
+	mb.add_cylinder(_iron_m(), M.xf(M.v3(c, top + 0.8)), 0.9, 1.1, 0.5, 8, 0.5)
+	if flag:
+		var ft := top + 0.8 + lh + 0.7
+		mb.add_cylinder(_gold_m(), M.xf(M.v3(c, ft)), 0.12, 0.08, 7.0, 5, 1.0)
+		mb.add_cylinder(_gold_m(), M.xf(M.v3(c, ft + 7.0)), 0.22, 0.22, 0.3, 6, 1.0)
+		var fw := 3.4
+		var t := Transform3D(Basis(Vector3.UP, posmod(hash(c.round()), 628) * 0.01), M.v3(c, ft + 5.8))
+		mb.add_box_unit_uv(_banner_m(), t * Transform3D(Basis(), Vector3(fw * 0.5 + 0.1, 0, 0)), Vector3(fw, 2.2, 0.05))
 
 
 ## A torch: an iron post with a fire basket, its foot on frame point p at height y.
@@ -645,7 +798,10 @@ static func _sea_gate(out: Array) -> void:
 	var mid := (g1 + g2) * 0.5
 	var lb := top - 7.0
 	_block(mb, cols, _dark_m(), M.xf(M.v3(mid, (lb + top) * 0.5)), Vector3(SEA_GATE_GAP + 1.0, top - lb, 8.0))
-	_banner(mb, mid + Vector2(0, 4.12), top - 0.5, Vector2(0, 1), 8.0, 6.0)
+	mb.add_box(_trim_m(), M.xf(M.v3(mid, lb + 0.5)), Vector3(SEA_GATE_GAP + 1.1, 1.0, 8.2), 0.5)
+	mb.add_box(_trim_m(), M.xf(M.v3(mid, top + 0.4)), Vector3(SEA_GATE_GAP + 1.2, 0.8, 8.6), 0.5)
+	for f: float in [-1.0, 1.0]:
+		_crest(mb, mid + Vector2(0, f * 4.02), (lb + 1.0 + top) * 0.5, Vector2(0, f), 2.6)
 	var bars := int(SEA_GATE_GAP / 1.2)
 	for k in range(bars + 1):
 		var x := -SEA_GATE_GAP * 0.5 + k * SEA_GATE_GAP / bars
@@ -701,14 +857,69 @@ static func _room(mb: MeshBuilder, cols: Array, rm: Array, top := -1.0) -> void:
 		_block(mb, cols, _dark_m(), M.xf(M.v3(c, (y + h + roof) * 0.5)), Vector3(r.size.x, roof - y - h, r.size.y))
 	if top > 0.0:
 		return
-	mb.add_box(_dark_m(), M.xf(M.v3(c, roof + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8), 0.5)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, roof + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8), 0.5)
+	mb.add_box(_gold_m(), M.xf(M.v3(c, roof + 0.02)), Vector3(r.size.x + 0.86, 0.14, r.size.y + 0.86), 1.0)
+	mb.add_box(_trim_m(), M.xf(M.v3(c, y + 0.4)), Vector3(r.size.x + 0.3, 0.8, r.size.y + 0.3), 0.5)
+	# (1.30 round 7) a crenellated parapet round the flat roof, the stacks dressed stone with navy caps, a skylight
+	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
+		var al := Vector2(-f.y, f.x)
+		var L := absf(al.x) * r.size.x + absf(al.y) * r.size.y
+		var nm := int(L / 2.2)
+		var e := c + Vector2(f.x * r.size.x * 0.5, f.y * r.size.y * 0.5)
+		mb.add_box(_wall_m(), M.xf(M.v3(e, roof + 1.4), M.yaw_of(al)), Vector3(0.6, 0.8, L + 0.8), 0.5)
+		for k in range(nm):
+			if k % 2 == 0:
+				var q := e + al * (-L * 0.5 + (k + 0.5) * L / nm)
+				mb.add_box(_wall_m(), M.xf(M.v3(q, roof + 2.2), M.yaw_of(al)), Vector3(0.6, 0.8, L / nm), 0.5)
+				mb.add_box(_trim_m(), M.xf(M.v3(q, roof + 2.66), M.yaw_of(al)), Vector3(0.72, 0.12, L / nm + 0.1), 0.5)
 	for k: float in [-1.0, 1.0]:
-		mb.add_cylinder(_iron_m(), M.xf(M.v3(c + Vector2(k * r.size.x * 0.3, 0), roof + 1.0)), 0.6, 0.6, 4.0, 8, 0.5)
+		var sc := c + Vector2(k * r.size.x * 0.3, 0)
+		mb.add_box(_wall_m(), M.xf(M.v3(sc, roof + 2.5)), Vector3(1.6, 3.0, 1.2), 0.5)
+		mb.add_box(_trim_m(), M.xf(M.v3(sc, roof + 4.1)), Vector3(1.8, 0.2, 1.4), 0.5)
+		for j: float in [-0.35, 0.35]:
+			mb.add_cylinder(_soot_m(), M.xf(M.v3(sc + Vector2(j, 0), roof + 4.2)), 0.22, 0.2, 0.8, 6, 1.0)
+	mb.add_box(_roof_m(), M.xf(M.v3(c, roof + 1.25)), Vector3(r.size.x * 0.4, 0.5, 3.0), 0.5)
 	for f: Vector2 in [Vector2(0, -1), Vector2(0, 1)]:
 		var n := int(r.size.x / 3.0)
 		for k in range(n):
 			var x := r.position.x + (k + 0.5) * r.size.x / n
-			mb.add_box(_window_m(), M.xf(M.v3(Vector2(x, c.y + f.y * (r.size.y * 0.5 + 0.02)), y + h * 0.75)), Vector3(0.4, 1.4, 0.1), 1.0, Color.WHITE, false)
+			var wq := Vector2(x, c.y + f.y * (r.size.y * 0.5 + 0.02))
+			var wy := y + h * 0.75
+			mb.add_box(_window_m(), M.xf(M.v3(wq, wy)), Vector3(0.4, 1.4, 0.1), 1.0, Color.WHITE, false)
+			# (1.30 round 7) its frame: a navy sill, a white hood, louvred navy shutters folded back
+			mb.add_box(_trim_m(), M.xf(M.v3(wq + f * 0.1, wy - 0.82)), Vector3(1.0, 0.16, 0.3), 0.5)
+			mb.add_box(_dark_m(), M.xf(M.v3(wq + f * 0.12, wy + 0.86)), Vector3(1.1, 0.3, 0.34), 0.5)
+			for s: float in [-1.0, 1.0]:
+				mb.add_box(_dark_m(), M.xf(M.v3(wq + f * 0.05 + Vector2(s * 0.28, 0), wy)), Vector3(0.12, 1.5, 0.1), 0.5)
+				mb.add_box(_trim_m(), M.xf(M.v3(wq + f * 0.06 + Vector2(s * 0.62, 0), wy)), Vector3(0.48, 1.4, 0.06), 0.5)
+				for j in range(4):
+					mb.add_box(_dark_m(), M.xf(M.v3(wq + f * 0.1 + Vector2(s * 0.62, 0), wy - 0.5 + j * 0.33)), Vector3(0.44, 0.05, 0.04), 1.0)
+	# (1.30 round 7) pilasters up the outer faces (between the windows), the door's frame and the crest over it
+	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
+		var al := Vector2(-f.y, f.x)
+		var L := absf(al.x) * r.size.x + absf(al.y) * r.size.y
+		var e := c + Vector2(f.x * r.size.x * 0.5, f.y * r.size.y * 0.5)
+		var n := int(L / 3.0) if absf(f.y) > 0.5 else int(L / 4.0)
+		# (not on a face over a narrow strip to the curtain wall: the sneaking ways behind the halls stay as wide)
+		var dr: Rect2 = P.DISTRICTS[P.district_at(c)][1]
+		var to_edge := (dr.end.x - e.x) * f.x + (dr.end.y - e.y) * f.y if f.x + f.y > 0.0 else (e.x - dr.position.x) * -f.x + (e.y - dr.position.y) * -f.y
+		if to_edge < 4.0:
+			n = 0
+		for k in range(1, n):
+			var u := -L * 0.5 + k * L / n
+			if f.is_equal_approx(door) and absf(u) < dw * 0.5 + 0.9:
+				continue
+			var q := e + al * u + f * 0.18
+			_block(mb, cols, _wall_m(), M.xf(M.v3(q, (y + roof) * 0.5), M.yaw_of(al)), Vector3(0.36, roof - y, 0.7))
+			mb.add_box(_trim_m(), M.xf(M.v3(q + f * 0.04, y + 0.5), M.yaw_of(al)), Vector3(0.46, 1.0, 0.84), 0.5)
+			mb.add_box(_dark_m(), M.xf(M.v3(q + f * 0.05, roof - 0.35), M.yaw_of(al)), Vector3(0.5, 0.5, 0.9), 0.5)
+		if f.is_equal_approx(door):
+			for s: float in [-1.0, 1.0]:
+				_block(mb, cols, _dark_m(), M.xf(M.v3(e + al * s * (dw * 0.5 + 0.35) + f * 0.25, y + dh * 0.5), M.yaw_of(al)), Vector3(0.5, dh, 0.7))
+			mb.add_box(_trim_m(), M.xf(M.v3(e + f * 0.3, y + dh + 0.4), M.yaw_of(al)), Vector3(0.6, 0.8, dw + 1.8), 0.5)
+			mb.add_box(_gold_m(), M.xf(M.v3(e + f * 0.62, y + dh + 0.4), M.yaw_of(al)), Vector3(0.04, 0.12, dw + 1.8), 1.0)
+			if roof - y - dh > 3.6:
+				_crest(mb, e + f * 0.02, y + dh + 0.8 + minf(roof - y - dh - 1.0, 4.0) * 0.5, f, minf(roof - y - dh - 1.4, 3.6) * 0.45)
 
 
 ## What's in a room, by its key, and its lanterns (lights).
