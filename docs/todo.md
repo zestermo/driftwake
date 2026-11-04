@@ -24,6 +24,15 @@ download (co-op by hosted / forwarded address) is the way to play; nothing web o
   island exists (Brinehollow leaves once you set out, a fork's other island is freed past a commit point); the Calm
   Belt off the lane (no wind, Sea Kings); scenery islands you pass but can't land on. A floating origin only if a
   true endless strip is wanted (waves, saves and co-op all touch it).
+- **Co-op visibility** (Zach, 2026-11-04): the glider isn't seen by other captains (the skimmer is); check every gadget. Rope
+  swings, grapples and other interactables don't show either ("I can't see when people are swinging on ropes or
+  grappling"). Audit what each puppet mirrors.
+- **Skimmer:** jump off it; mount it in the air over water. Riding animation: the whole body leans forward to turn
+  right, back to pull it toward you and turn left. A wake and splashy spray off it, like Wind Waker's boat.
+- **Swinging and grappling, one look for all of them:** one-handed, with a phase where you're pulled toward the
+  grapple point, an organic floppy swing, then a release. Decide: always the off hand, or either hand.
+- **Interact animations:** finish them all: pumping water aboard, patching holes, putting out fires, opening the
+  inventory, etc.
 
 ## Now: v1.12, light, music and a living sea (started 2026-10-14)
 
