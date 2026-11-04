@@ -112,14 +112,18 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 	mb.add_cylinder(stone, Transform3D(turn, Vector3.DOWN * 1.2), R + 0.18, R + 0.12, 1.45, sides, 0.6, Color(0.9, 0.9, 0.9), true)
 	mb.add_cylinder(brick, Transform3D(turn, Vector3.UP * 0.25), R, R, H - 0.25, sides, 0.5, Color.WHITE, false, false, false)
 	mb.add_cylinder(wood, Transform3D(turn, Vector3.UP * (H - 0.18)), R + 0.06, R + 0.06, 0.22, sides, 1.0, Color(0.8, 0.8, 0.8), false, false, false)
-	var rm := mb.mark()
-	# the roof: tiers stepping in up a tall cone, snow on each step
+	# the roof: tiers stepping in up a tall cone, snow on each step (each tier its own hull: one over the whole cone
+	# stood half a metre proud of the steps)
 	var tiers := rng.randi_range(4, 6)
 	var rh := R * rng.randf_range(1.8, 2.5)
 	var eave := R + rng.randf_range(0.45, 0.65)
 	var th := rh / tiers
 	var y := H - 0.1
+	var rm := mb.mark()
 	for i in range(tiers):
+		if i > 0:
+			mb.hull_since(rm, body, "RoofTier%d" % i)
+			rm = mb.mark()
 		var r0 := eave * (1.0 - float(i) / tiers * 0.86)
 		var r1 := eave * (1.0 - float(i + 1) / tiers * 0.86)
 		var top := r0 * 0.84 if i < tiers - 1 else r1 * 0.5
@@ -142,8 +146,10 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 	Buildings.panel_door(mb, Transform3D(Basis(), Vector3(0, 0.25, dz)), 1.0, 2.0, Buildings.door_leaf(Color(0.5, 0.36, 0.3)), wood)
 	for s in [-1.0, 1.0]:
 		mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, -0.6), Vector3(s * 0.66, 2.6, dz + 0.32)), Vector3(0.1, 0.1, 0.8), 1.0, Color.WHITE, false)
+	var hood := mb.mark()
 	mb.add_gable_roof(roof, Transform3D(Basis(), Vector3(0, 2.67, dz + 0.45)), 1.6, 1.0, 0.55, 0.15, 0.7, Color.WHITE, wood)
 	mb.add_box(snow, Transform3D(Basis(), Vector3(0, 3.17, dz + 0.45)), Vector3(0.3, 0.12, 1.3), 0.6)
+	mb.hull_since(hood, body, "DoorHood")
 	Buildings.door_steps(body, mb, stone, 0.0, dz, 0.25, 1.6, 0.5, 1.2)
 	# windows on other flats, a sill and a little snow on each
 	var n_win := rng.randi_range(2, 4)
@@ -410,14 +416,14 @@ static func shrine(seed_value: int) -> Node3D:
 		for z in [-1.6, 0.9]:
 			mb.add_cylinder(dark, _xf(Vector3(x, t2, z)), 0.11, 0.1, 2.6, 6, 0.8)
 			Props._add_box_col(body, Vector3(0.24, 3.4, 0.24), Vector3(x, 1.7, z))
-	var rm := mb.mark()
 	for i in range(3):
 		var r := 2.3 - i * 0.65
 		var y := t2 + 2.6 + i * 0.55
+		var rm := mb.mark()
 		mb.add_cylinder(roof, Transform3D(Basis(Vector3.UP, PI / 4.0), Vector3(0, y, -0.35)), r, r * 0.7, 0.6, 4, 0.7, Color.WHITE, false, i == 0, false)
 		mb.add_cylinder(snow, Transform3D(Basis(Vector3.UP, PI / 4.0), Vector3(0, y + 0.56, -0.35)), r * 0.72, r * 0.5, 0.12, 4, 0.6, Color.WHITE, false, false, false)
+		mb.hull_since(rm, body, "RoofTier%d" % i)
 	mb.add_cylinder(PSXMat.lit("roof_tiles", Color(0.95, 0.62, 0.4)), _xf(Vector3(0, t2 + 4.3, -0.35)), 0.2, 0.0, 0.6, 6, 1.0)
-	mb.hull_since(rm, body, "RoofCol")
 	# offerings: candles and pine sprigs; lanterns at the steps
 	var flame := PSXMat.glow(Color(1.0, 0.75, 0.35), 3.0)
 	var wax := PSXMat.flat(Color(0.93, 0.9, 0.8))

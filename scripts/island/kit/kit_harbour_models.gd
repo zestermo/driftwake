@@ -428,10 +428,10 @@ static func warehouse(spec: Dictionary) -> StaticBody3D:
 	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, top + 0.1, 0)), w, d, ridge, 0.55, 0.5, Color.WHITE, wall)
 	mb.add_box(PSXMat.lit(spec["roof"], Color(0.7, 0.66, 0.62), {"affine": 0.8}), _xf(Vector3(0, top + 0.1 + ridge + 0.04, 0)), Vector3(0.3, 0.18, d + 1.2), 0.8)
-	mb.hull_since(rm, body, "RoofCol")
 	for z in [-(d * 0.5 + 0.55), d * 0.5 + 0.55]:
 		for s in [-1.0, 1.0]:
 			Buildings.beam_between(mb, beam, Vector3(s * (w * 0.5 + 0.55), top + 0.1 - 0.55 * pitch * 2.0, z), Vector3(0, top + 0.1 + ridge, z), 0.16, 0.07)
+	mb.hull_since(rm, body, "RoofCol")
 	body.add_child(mb.to_instance("WarehouseMesh"))
 	KitLandmarks.box_col(body, Vector3(w + 0.3, fl + h + found, d + 0.3), Vector3(0, (fl + h - found) * 0.5, 0))
 	Buildings._marker(body, "Door", Vector3(0, 0, d * 0.5 + 1.4))

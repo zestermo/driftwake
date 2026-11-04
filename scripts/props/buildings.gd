@@ -1450,6 +1450,7 @@ static func stall(kind: String) -> Node3D:
 			# pots: a cart-like stand with shelves of pottery, no awning but an umbrella
 			mb.add_box(wood, _xf(Vector3(0, 0.4, 0.35)), Vector3(w, 0.8, 0.8), 1.0, Color.WHITE, true, false)
 			mb.add_box(wood, _xf(Vector3(0, 1.1, -0.3)), Vector3(w, 0.06, 0.45), 1.0, Color.WHITE, false, false)
+			_box_col(body, Vector3(w, 1.35, 0.45), Vector3(0, 0.675, -0.3))
 			for x in [-w * 0.5 + 0.05, w * 0.5 - 0.05]:
 				mb.add_box(post, _xf(Vector3(x, 0.6, -0.3)), Vector3(0.08, 1.2, 0.45), 0.8)
 			var clay := [Color(0.72, 0.4, 0.22), Color(0.6, 0.32, 0.18), Color(0.82, 0.72, 0.55)]

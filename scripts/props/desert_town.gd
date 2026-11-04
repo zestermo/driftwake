@@ -361,6 +361,7 @@ static func room(kind: String, seed_value: int, size: float) -> StaticBody3D:
 		mb.add_box(stone, wx * _xf(Vector3(0, -0.36, 0.12)), Vector3(0.76, 0.07, t + 0.16), 1.0, STONE_COL, false)
 	# the roof: a slab, beams across it seen from inside, the parapet round it
 	mb.add_box(adobe, _xf(Vector3(0, fl + h + 0.06, 0)), Vector3(w + 0.1, 0.14, d + 0.1), 0.5, ROOF_COL, false)
+	_box(body, Vector3(w + 0.1, 0.14, d + 0.1), Vector3(0, fl + h + 0.06, 0))
 	for k in range(4):
 		mb.add_cylinder(_beam(), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-w * 0.375 + k * w * 0.25, fl + h - 0.1, -d * 0.5)), 0.08, 0.08, d, 5, 1.0, Color(0.8, 0.75, 0.7), false, false)
 	_parapet(mb, body, w, d, fl + h + 0.13, col, rng.randf() < 0.3)
@@ -439,6 +440,7 @@ static func inn(seed_value: int, w: float, d: float) -> StaticBody3D:
 		var px := clampf(-w * 0.5 + aw * k, -w * 0.5 + 0.35, w * 0.5 - 0.35)
 		_box(body, Vector3(0.7, h1, 0.3), Vector3(px, fl + h1 * 0.5, d * 0.5 - 0.15))
 	mb.add_box(_adobe(), _xf(Vector3(0, fl + h1 + 0.08, d * 0.5 - ad * 0.5)), Vector3(w, 0.16, ad), 0.5, ROOF_COL, false)
+	_box(body, Vector3(w, 0.16, ad), Vector3(0, fl + h1 + 0.08, d * 0.5 - ad * 0.5))
 	for s in [-1.0, 1.0]:
 		mb.add_box(_adobe(), _xf(Vector3(s * (w * 0.5 - 0.15), fl + h1 * 0.5, d * 0.5 - ad * 0.5)), Vector3(0.3, h1, ad), 0.5, col)
 		_box(body, Vector3(0.3, h1, ad), Vector3(s * (w * 0.5 - 0.15), fl + h1 * 0.5, d * 0.5 - ad * 0.5))
@@ -457,6 +459,7 @@ static func inn(seed_value: int, w: float, d: float) -> StaticBody3D:
 	for k in range(int(w / 0.5)):
 		mb.add_cylinder(stone, _xf(Vector3(-w * 0.5 + 0.25 + k * 0.5, gy, d * 0.5 - 0.15)), 0.07, 0.07, 0.75, 5, 1.0, STONE_COL)
 	mb.add_box(stone, _xf(Vector3(0, gy + 0.8, d * 0.5 - 0.15)), Vector3(w, 0.1, 0.25), 0.8, STONE_COL)
+	_box(body, Vector3(w, 0.85, 0.25), Vector3(0, gy + 0.425, d * 0.5 - 0.15))
 	_windows(mb, _xf(Vector3(0, gy, bz + bd * 0.5 + 0.005)), w, 1.4, rng, INF, true)
 	_windows(mb, _xf(Vector3(0, fl, -d * 0.5 - 0.005), PI), w, 1.6, rng)
 	_parapet(mb, body, w, bd, fl + h1 + h2, col, true, bz)
@@ -487,8 +490,9 @@ static func workshop(seed_value: int, size: float) -> StaticBody3D:
 	for s in [-1.0, 1.0]:
 		Buildings.door_steps(body, mb, _stone(), s * w * 0.25, d * 0.5 + 0.15, fl, w * 0.5 - 1.2, 0.0, FOOT)
 	mb.add_box(_adobe(), _xf(Vector3(0, fl + h + 0.06, 0)), Vector3(w + 0.1, 0.14, d + 0.1), 0.5, ROOF_COL, false)
+	_box(body, Vector3(w + 0.1, 0.14, d + 0.1), Vector3(0, fl + h + 0.06, 0))
 	_parapet(mb, body, w, d, fl + h + 0.13, col, false)
-	var kp := Vector3(-w * 0.5 + 1.2, fl, -d * 0.5 + 1.1)
+	var kp :=Vector3(-w * 0.5 + 1.2, fl, -d * 0.5 + 1.1)
 	mb.add_blob(PSXMat.lit("adobe", Color(0.85, 0.6, 0.45)), _xf(kp), Vector3(0.9, 1.0, 0.9), rng, 0.08, 4, 8, 0.6, Color.WHITE, 0.0)
 	mb.add_box(PSXMat.glow(Color(1.0, 0.5, 0.15), 2.5), _xf(kp + Vector3(0.0, 0.3, 0.86)), Vector3(0.4, 0.35, 0.05), 1.0)
 	_box(body, Vector3(1.8, 1.0, 1.8), kp + Vector3(0, 0.5, 0))
@@ -531,15 +535,18 @@ static func shrine(seed_value: int) -> StaticBody3D:
 	for x in [-1.0, 1.0]:
 		_box(body, Vector3(0.9, h, 0.3), Vector3(x * (s * 0.5 - 0.45), fl + h * 0.5, s * 0.5 - 0.15))
 	mb.add_box(stone, _xf(Vector3(0, fl + h + 0.06, 0)), Vector3(s + 0.2, 0.14, s + 0.2), 0.5, Color(0.9, 0.88, 0.85), false)
+	_box(body, Vector3(s + 0.2, 0.14, s + 0.2), Vector3(0, fl + h + 0.06, 0))
 	for cx in [-1.0, 1.0]:
 		for cz in [-1.0, 1.0]:
 			mb.add_box(_adobe(), _xf(Vector3(cx * (s * 0.5 - 0.15), fl + h + 0.4, cz * (s * 0.5 - 0.15))), Vector3(0.3, 0.7, 0.3), 0.5, col)
+			_box(body, Vector3(0.3, 0.7, 0.3), Vector3(cx * (s * 0.5 - 0.15), fl + h + 0.4, cz * (s * 0.5 - 0.15)))
 	dome(mb, Vector3(0, fl + h + 0.13, 0), s * 0.4, DOMES[rng.randi() % DOMES.size()], rng.randf() < 0.5, 0.4, body)
 	_arch_recess(mb, _xf(Vector3(0, fl + 0.4, -s * 0.5 + 0.31)), 0.9, 1.6, false)
 	mb.add_box(PSXMat.glow(Color(1.0, 0.75, 0.4), 2.4), _xf(Vector3(0, fl + 0.6, -s * 0.5 + 0.5)), Vector3(0.16, 0.2, 0.16), 1.0)
 	mb.add_quad(PSXMat.lit("rug_kilim"), Vector3(-0.8, fl + 0.02, -0.9), Vector3(0.8, fl + 0.02, -0.9), Vector3(0.8, fl + 0.02, 0.9), Vector3(-0.8, fl + 0.02, 0.9),
 		Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, Vector3.UP)
 	mb.add_box(stone, _xf(Vector3(0, fl * 0.5, s * 0.5 + 0.6)), Vector3(2.2, fl, 1.2), 0.6, Color(0.9, 0.88, 0.85))
+	_box(body, Vector3(2.2, fl, 1.2), Vector3(0, fl * 0.5, s * 0.5 + 0.6))
 	body.add_child(mb.to_instance("ShrineMesh"))
 	_marker(body, "Keeper", Vector3(1.3, 0.0, s * 0.5 + 0.9), atan2(-1.3, -0.9))
 	_marker(body, "Pray", Vector3(0, 0.0, s * 0.5 + 1.6), PI)
@@ -559,16 +566,12 @@ static func storehouse(seed_value: int, size: float) -> StaticBody3D:
 		var r := size * rng.randf_range(0.24, 0.3)
 		var hh := r * rng.randf_range(1.6, 2.0)
 		var sink := FOOT * 0.3
+		var hive := mb.mark()
 		mb.add_loft(mud, _xf(c - Vector3(0, sink, 0)), [[0.0, r, r], [sink + hh * 0.35, r * 1.02, r * 1.02], [sink + hh * 0.75, r * 0.72, r * 0.72], [sink + hh, r * 0.18, r * 0.18], [sink + hh + 0.05, 0.02, 0.02]],
 			MeshBuilder.profile_circle(10), 0.5, Color.WHITE.darkened(rng.randf() * 0.1))
+		# (the beehive's own shape: an upright cylinder stood a metre over its shoulders)
+		mb.hull_since(hive, body, "Hive%d" % k)
 		mb.add_box(_dark(), _xf(c + Vector3(0, hh * 0.45, r * 0.98)), Vector3(r * 0.5, r * 0.55, 0.06), 1.0)
-		var cs := CollisionShape3D.new()
-		var cyl := CylinderShape3D.new()
-		cyl.radius = r
-		cyl.height = hh
-		cs.shape = cyl
-		cs.position = c + Vector3(0, hh * 0.5, 0)
-		body.add_child(cs)
 	body.add_child(mb.to_instance("GranaryMesh"))
 	return body
 
@@ -585,21 +588,25 @@ static func ruin(seed_value: int, w: float, d: float) -> StaticBody3D:
 		var b := Basis(Vector3.UP, float(e[1]))
 		var length: float = e[2]
 		var segs := int(length / 0.9)
-		var tot := 0.0
+		var sl := length / segs
 		for k in range(segs):
 			var sh := rng.randf_range(0.6, 2.8)
 			if rng.randf() < 0.2:
 				continue
-			tot += sh
-			mb.add_box(_adobe(), Transform3D(b, o + b * Vector3(-length * 0.5 + (k + 0.5) * length / segs, sh * 0.5 - 0.4, 0)), Vector3(length / segs + 0.02, sh + 0.4, 0.3), 0.5, col.darkened(rng.randf() * 0.15))
-		_box(body, Vector3(length, maxf(tot / segs, 0.5), 0.3), o + Vector3(0, maxf(tot / segs, 0.5) * 0.5, 0), b)
+			mb.add_box(_adobe(), Transform3D(b, o + b * Vector3(-length * 0.5 + (k + 0.5) * sl, sh * 0.5 - 0.4, 0)), Vector3(sl + 0.02, sh + 0.4, 0.3), 0.5, col.darkened(rng.randf() * 0.15))
+			# (each standing stretch its own: one box at the walls' average height hid the gaps and stood over the low bits)
+			_box(body, Vector3(sl, sh, 0.3), o + b * Vector3(-length * 0.5 + (k + 0.5) * sl, sh * 0.5, 0), b)
 	_arched_wall(mb, _adobe(), _xf(Vector3(0, -0.3, d * 0.5)), w * 0.6, 2.8, [[0.0, 1.3, 2.5]], 0.3, col)
 	for s in [-1.0, 1.0]:
 		_box(body, Vector3(w * 0.15, 2.5, 0.3), Vector3(s * w * 0.22, 1.0, d * 0.5))
 	Buildings.beam_between(mb, _beam(), Vector3(-w * 0.4, 2.2, -d * 0.45), Vector3(w * 0.3, 0.1, d * 0.2), 0.16)
 	var sand := PSXMat.lit("desert_sand")
+	var drift := mb.mark()
 	mb.add_blob(sand, _xf(Vector3(rng.randf_range(-0.5, 0.5), 0.0, -d * 0.1)), Vector3(w * 0.55, 0.9, d * 0.5), rng, 0.15, 3, 8, 0.25, Color.WHITE, 0.0)
+	mb.hull_since(drift, body, "Drift0")
+	drift = mb.mark()
 	mb.add_blob(sand, _xf(Vector3(w * 0.5, 0.0, 0)), Vector3(1.6, 1.4, d * 0.6), rng, 0.15, 3, 7, 0.25, Color.WHITE, 0.0)
+	mb.hull_since(drift, body, "Drift1")
 	body.add_child(mb.to_instance("RuinMesh"))
 	_marker(body, "Cache", Vector3(-w * 0.2, 0.4, -d * 0.15), 0.0)
 	return body
@@ -637,6 +644,7 @@ static func minaret(seed_value: int, h: float) -> StaticBody3D:
 	cs.shape = cyl
 	cs.position = Vector3(0, base + (shaft + top + 0.4) * 0.5, 0)
 	body.add_child(cs)
+	KitLandmarks.cyl_col(body, 1.5, 0.35, Vector3(0, by + 0.175, 0))
 	body.add_child(mb.to_instance("MinaretMesh"))
 	return body
 
@@ -680,6 +688,7 @@ static func great_hall(seed_value: int, size := 10.0) -> StaticBody3D:
 		for cz in [-1.0, 1.0]:
 			var tp := Vector3(cx * (w * 0.5 - 0.1), fl, cz * (w * 0.5 - 0.1))
 			mb.add_cylinder(_adobe(), _xf(tp), 0.6, 0.55, h + 1.6, 8, 0.5, col)
+			KitLandmarks.cyl_col(body, 0.6, h + 1.6, tp + Vector3(0, (h + 1.6) * 0.5, 0))
 			dome(mb, tp + Vector3(0, h + 1.6, 0), 0.62, glaze, true, 0.1, body)
 	# the drum, ringed with arched windows, and the great dome
 	var r := w * 0.3
@@ -750,6 +759,7 @@ static func watchtower(seed_value: int, h := 6.0) -> StaticBody3D:
 		for sz2 in [-1.0, 1.0]:
 			mb.add_cylinder(stone, _xf(Vector3(sx * kq, top, sz2 * kq)), 0.1, 0.09, 2.3, 6, 0.8, STONE_COL)
 	mb.add_box(adobe, _xf(Vector3(0, top + 2.38, 0)), Vector3(kq * 2.0 + 0.5, 0.16, kq * 2.0 + 0.5), 0.5, col, false)
+	_box(body, Vector3(kq * 2.0 + 0.5, 0.16, kq * 2.0 + 0.5), Vector3(0, top + 2.38, 0))
 	dome(mb, Vector3(0, top + 2.46, 0), 0.95, DOMES[rng.randi() % DOMES.size()], rng.randf() < 0.6, 0.15, body)
 	body.add_child(mb.to_instance("WatchtowerMesh"))
 	var lad := Ladder.new()
@@ -777,12 +787,18 @@ static func bandit_hut(seed_value: int, w := 5.5, d := 4.5) -> StaticBody3D:
 	_box(body, Vector3(w, h, d), Vector3(0, fl + h * 0.5, 0))
 	# a parapet in broken stretches
 	for s in [-1.0, 1.0]:
+		var run := 0.0
 		for k in range(4):
 			var ph := rng.randf_range(0.15, 0.6)
+			run += ph * 0.25
 			mb.add_box(adobe, _xf(Vector3(-w * 0.5 + (k + 0.5) * w / 4.0, fl + h + ph * 0.5, s * (d * 0.5 - 0.1))), Vector3(w / 4.0 + 0.01, ph, 0.2), 0.5, col.darkened(0.05))
+		_box(body, Vector3(w, run, 0.2), Vector3(0, fl + h + run * 0.5, s * (d * 0.5 - 0.1)))
+		run = 0.0
 		for k in range(3):
 			var ph := rng.randf_range(0.15, 0.6)
+			run += ph / 3.0
 			mb.add_box(adobe, _xf(Vector3(s * (w * 0.5 - 0.1), fl + h + ph * 0.5, -d * 0.5 + (k + 0.5) * d / 3.0)), Vector3(0.2, ph, d / 3.0 - 0.02), 0.5, col.darkened(0.05))
+		_box(body, Vector3(0.2, run, d), Vector3(s * (w * 0.5 - 0.1), fl + h + run * 0.5, 0))
 	_vigas(mb, w, d * 0.5 + 0.1, fl + h - 0.3)
 	_arch_recess(mb, _xf(Vector3(-0.6, fl, d * 0.5)), 1.1, 2.1, false)
 	for x in [-w * 0.5 + 0.8, w * 0.5 - 0.8]:

@@ -745,6 +745,7 @@ static func well(roof := "thatch") -> StaticBody3D:
 	mb.add_gable_roof(PSXMat.lit(roof, Color.WHITE, {"affine": 0.8}), _xf(Vector3(0, 2.25, 0)), 1.4, 2.6, 0.75, 0.25, 0.6)
 	mb.hull_since(rm, body, "RoofCol")
 	_jar(mb, PSXMat.lit("plaster", Color(0.75, 0.42, 0.25)), _xf(Vector3(r0 + 0.45, 0.0, 0.5)), 1.2)
+	_cyl(body, 0.26, 0.7, Vector3(r0 + 0.45, 0.0, 0.5))
 	body.add_child(mb.to_instance())
 	_cyl(body, r0 + 0.05, hh, Vector3.ZERO)
 	return body
