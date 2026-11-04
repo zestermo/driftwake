@@ -140,17 +140,21 @@ static func house(mb: MeshBuilder, cols: Array, lot: Dictionary, low: float, top
 	return eaves
 
 
-static func roof(mb: MeshBuilder, kind: String, t: Transform3D, w: float, d: float, y: float, rcol: Color, rng: RandomNumberGenerator, cols: Array = []) -> void:
+static func roof(mb: MeshBuilder, kind: String, t: Transform3D, w: float, d: float, y: float, rcol: Color, rng: RandomNumberGenerator, cols: Array = [], solid := false) -> void:
 	var at := t * Transform3D(Basis(), Vector3(0, y, 0))
 	match kind:
 		"hip":
-			_hip(mb, at, w, d, minf(w, d) * ROOF_PITCH, 0.35, rcol)
+			_hip(mb, at, w, d, minf(w, d) * ROOF_PITCH, 0.35, rcol, cols if solid else null)
 		"gable":
 			var along_x := w > d
 			var rt := at * Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3.ZERO) if along_x else at
 			var rw := d if along_x else w
 			var rd := w if along_x else d
+			var gm := mb.mark()
 			mb.add_gable_roof(mat("roof"), rt, rw, rd, rw * ROOF_PITCH, 0.35, 0.5, rcol, mat("wash"))
+			# (`solid`: its own shape, for a roof nothing else covers)
+			if solid:
+				hull(cols, mb, gm)
 		_:
 			for s in [-1.0, 1.0]:
 				mb.add_box(mat("lime"), at * Transform3D(Basis(), Vector3(s * (w * 0.5 - 0.15), 0.4, 0)), Vector3(0.3, 0.8, d), 0.6, Color(0.94, 0.92, 0.88))
@@ -167,7 +171,8 @@ static func roof(mb: MeshBuilder, kind: String, t: Transform3D, w: float, d: flo
 
 
 ## A hip roof whose tiles keep the roof texture's scale and shade with `col` (Buildings.add_hip_roof, coloured).
-static func _hip(mb: MeshBuilder, t: Transform3D, w: float, d: float, h: float, over: float, col: Color) -> void:
+static func _hip(mb: MeshBuilder, t: Transform3D, w: float, d: float, h: float, over: float, col: Color, cols = null) -> void:
+	var mk := mb.mark()
 	var hw := w * 0.5 + over
 	var hd := d * 0.5 + over
 	var along_x := w >= d
@@ -198,6 +203,9 @@ static func _hip(mb: MeshBuilder, t: Transform3D, w: float, d: float, h: float, 
 		else:
 			mb.add_tri(m, a, b, f[2], n, n, n, Vector2(0, sl), Vector2(L, sl), Vector2(L * 0.5, 0), col, n)
 			mb.add_tri(m, a, f[2], b, -n, -n, -n, Vector2(0, sl), Vector2(L * 0.5, 0), Vector2(L, sl), col * 0.55, -n)
+	# (1.30) given cols, its own shape (a roof with nothing under it but its walls' box)
+	if cols != null:
+		hull(cols, mb, mk)
 
 
 # --------------------------------------------------------------------------

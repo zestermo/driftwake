@@ -187,7 +187,7 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	M.facade_quad(mb, fac, t * Vector3(hw, sill, -hd), t * Vector3(-hw, sill, -hd), g1, (t.basis * Vector3.FORWARD).normalized(), col * 0.96, g1)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, sill + g1, 0)), Vector3(w + 0.16, 0.22, d + 0.16), 0.6, Color(0.9, 0.88, 0.84), false)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, eaves + 0.12, 0)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
-	M.roof(mb, str(l["roof"]), t, w, d, eaves + 0.24, rcol, rng, cols)
+	M.roof(mb, str(l["roof"]), t, w, d, eaves + 0.24, rcol, rng, cols, true)
 	M.stack(mb, t, w, d, eaves + 0.24, str(l["roof"]), int(l["seed"]), cols)
 	# (1.27) what CapitalRoofs needs to make the roof walkable
 	l["frame"] = t
@@ -444,7 +444,7 @@ static func _specials(out: Dictionary) -> void:
 					M.facade_quad(mb, M.mat("facade_a"), t * Vector3(s * w * 0.5, y1, -s * d * 0.5), t * Vector3(s * w * 0.5, y1, s * d * 0.5), 4.2, (t.basis * Vector3(s, 0, 0)).normalized(), Color(0.95, 0.88, 0.76), 4.2)
 				M.facade_quad(mb, M.mat("facade_a"), t * Vector3(w * 0.5, y1, -d * 0.5), t * Vector3(-w * 0.5, y1, -d * 0.5), 4.2, (t.basis * Vector3.FORWARD).normalized(), Color(0.95, 0.88, 0.76), 4.2)
 				mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, eaves + 0.12, 0)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
-				M._hip(mb, t * Transform3D(Basis(), Vector3(0, eaves + 0.24, 0)), w, d, 4.5, 0.4, Color(0.96, 0.88, 0.82))
+				M._hip(mb, t * Transform3D(Basis(), Vector3(0, eaves + 0.24, 0)), w, d, 4.5, 0.4, Color(0.96, 0.88, 0.82), cols)
 				M.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -1.6)), Vector3(w, eaves - low, d - 3.2))
 				Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -1.6)), Vector3(w, eaves - low, d - 3.2))
 				M.box(cols, t * Transform3D(Basis(), Vector3(0, (low + y1) * 0.5, d * 0.5 - 1.6)), Vector3(w, y1 - low, 3.2))
@@ -496,7 +496,7 @@ static func _specials(out: Dictionary) -> void:
 				var body_t := t * Transform3D(Basis(), Vector3(0, 0, -2.0))
 				M.facade_box(mb, M.mat("facade_b"), body_t, w, d - 4.0, y1, h, Color(1.0, 0.99, 0.96) if key == "guild" else Color(0.97, 0.94, 0.86))
 				mb.add_box(lime, body_t * Transform3D(Basis(), Vector3(0, y1 + h + 0.2, 0)), Vector3(w + 0.4, 0.4, d - 3.6), 0.6, Color(0.92, 0.9, 0.86), false)
-				M._hip(mb, body_t * Transform3D(Basis(), Vector3(0, y1 + h + 0.4, 0)), w, d - 4.0, 3.6, 0.3, Color.WHITE)
+				M._hip(mb, body_t * Transform3D(Basis(), Vector3(0, y1 + h + 0.4, 0)), w, d - 4.0, 3.6, 0.3, Color.WHITE, cols)
 				M.box(cols, body_t * Transform3D(Basis(), Vector3(0, (low + y1 + h) * 0.5, 0)), Vector3(w, y1 + h - low, d - 4.0))
 				Occluders.box(cols, body_t * Transform3D(Basis(), Vector3(0, (y1 + y1 + h) * 0.5, 0)), Vector3(w, h, d - 4.0))
 				# the portico: steps the width of it, columns, an entablature and a pediment
@@ -795,7 +795,7 @@ static func _quay(out: Dictionary) -> void:
 		for sz in [-2.4, 3.0]:
 			mb.add_box(M.mat("lime"), M.xf(M.v3(fm + Vector2(sx, sz), y + 1.9)), Vector3(0.4, 3.8, 0.4), 0.6, Color(0.92, 0.9, 0.86))
 			M.box(cols, M.xf(M.v3(fm + Vector2(sx, sz), y + 1.9)), Vector3(0.4, 3.8, 0.4))
-	M._hip(mb, M.xf(M.v3(fm + Vector2(0, 0.3), y + 3.8)), 21.0, 6.4, 1.8, 0.5, Color.WHITE)
+	M._hip(mb, M.xf(M.v3(fm + Vector2(0, 0.3), y + 3.8)), 21.0, 6.4, 1.8, 0.5, Color.WHITE, cols)
 	for i in range(5):
 		absorb(mb, cols, Props.fish_rack() if i % 2 == 0 else Props.net_pile(), M.xf(M.v3(Vector2(-58.0 + i * 3.4, 116.5), y), rng.randf_range(-0.3, 0.3)))
 	for i in range(3):
@@ -803,7 +803,7 @@ static func _quay(out: Dictionary) -> void:
 	# the harbourmaster's booth by the berth
 	var hm := Vector2(48.0, 112.0)
 	mb.add_box(M.mat("wash"), M.xf(M.v3(hm, y + 1.4)), Vector3(3.2, 2.8, 2.6), 0.5, Color(0.98, 0.95, 0.88))
-	M._hip(mb, M.xf(M.v3(hm, y + 2.8)), 3.2, 2.6, 1.0, 0.35, Color.WHITE)
+	M._hip(mb, M.xf(M.v3(hm, y + 2.8)), 3.2, 2.6, 1.0, 0.35, Color.WHITE, cols)
 	mb.add_box_unit_uv(M.mat("window"), M.xf(M.v3(hm + Vector2(0, 1.32), y + 1.5)), Vector3(1.4, 1.0, 0.04))
 	M.box(cols, M.xf(M.v3(hm, y + 1.4)), Vector3(3.2, 2.8, 2.6))
 	_spot(out, "harbourmaster", hm + Vector2(0, 2.4), y, Vector2(0, 1))
@@ -996,7 +996,7 @@ static func warehouse(mb: MeshBuilder, cols: Array, l: Dictionary) -> Dictionary
 		mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, y, 0)), Vector3(w + 0.12, 0.3, d + 0.12), 0.8, Color(0.8, 0.72, 0.62), false)
 	for s in [-1.0, 1.0]:
 		mb.add_box(dark, t * Transform3D(Basis(), Vector3(s * (hw - 0.12), (sill + eaves) * 0.5, hd + 0.04)), Vector3(0.28, eaves - sill, 0.12), 0.8, Color(0.8, 0.72, 0.62))
-	M.roof(mb, "gable", t, w, d, eaves, M.ROOFS[rng.randi() % M.ROOFS.size()], rng)
+	M.roof(mb, "gable", t, w, d, eaves, M.ROOFS[rng.randi() % M.ROOFS.size()], rng, cols, true)
 	var cell: Rect2 = l["cell"]
 	M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -0.2)), Vector3(w, eaves - low, d - 0.4))
@@ -1117,7 +1117,7 @@ static func _yard_hall(out: Dictionary, mb: MeshBuilder, cols: Array) -> void:
 		mb.add_box(dark, t * Transform3D(Basis(), Vector3(x, top + h * 0.5, d * 0.5 - 0.2)), Vector3(0.4, h, 0.4), 0.8)
 		M.box(cols, t * Transform3D(Basis(), Vector3(x, top + h * 0.5, d * 0.5 - 0.2)), Vector3(0.4, h, 0.4))
 	mb.add_box(dark, t * Transform3D(Basis(), Vector3(0, top + h - 0.2, d * 0.5 - 0.2)), Vector3(w, 0.4, 0.45), 0.8, Color.WHITE, false)
-	M.roof(mb, "gable", t, w, d, top + h, Color(0.86, 0.8, 0.76), _rng(4418))
+	M.roof(mb, "gable", t, w, d, top + h, Color(0.86, 0.8, 0.76), _rng(4418), cols, true)
 	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, top + h * 0.5, -d * 0.5 + 0.15)), Vector3(w, h, 0.3))
 	# the hull on its stocks: a keel along the hall's depth, ribs curving up from it, a stem post
 	var keel_y := top + 1.1

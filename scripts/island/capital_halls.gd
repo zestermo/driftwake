@@ -121,7 +121,7 @@ static func _shell(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: fl
 	# the roof, its slab solid, the cornice; steps up to the door; a portico frame round it
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, fy + h + 0.15, 0)), Vector3(w + 0.5, 0.3, d + 0.5), 0.6, Color(0.9, 0.88, 0.84), false)
 	M.box(cols, t * Transform3D(Basis(), Vector3(0, fy + h + 0.15, 0)), Vector3(w, 0.3, d))
-	M._hip(mb, t * Transform3D(Basis(), Vector3(0, fy + h + 0.3, 0)), w + 0.4, d + 0.4, minf(w, d) * M.ROOF_PITCH, 0.3, M.ROOFS[0])
+	M._hip(mb, t * Transform3D(Basis(), Vector3(0, fy + h + 0.3, 0)), w + 0.4, d + 0.4, minf(w, d) * M.ROOF_PITCH, 0.3, M.ROOFS[0], cols)
 	for k in range(2):
 		var sy := gy + RISE * (k + 1) / 2.0
 		var st := t * Transform3D(Basis(), Vector3(0, (sy + gy - 1.0) * 0.5, hd + 0.3 + (1 - k) * 0.4))
@@ -362,7 +362,7 @@ static func _loggia(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d: f
 			M.cyl(cols, t * cq, 0.3, h - 0.4)
 		z += (d - 1.2) / 3.0
 	mb.add_box(PSXMat.lit("planks_dark"), t * Transform3D(Basis(), Vector3(0, gy + h - 0.1, 0)), Vector3(w, 0.3, d), 0.6, Color.WHITE)
-	M._hip(mb, t * Transform3D(Basis(), Vector3(0, gy + h + 0.05, 0)), w + 0.6, d + 0.6, minf(w, d) * M.ROOF_PITCH * 0.8, 0.4, M.ROOFS[2])
+	M._hip(mb, t * Transform3D(Basis(), Vector3(0, gy + h + 0.05, 0)), w + 0.6, d + 0.6, minf(w, d) * M.ROOF_PITCH * 0.8, 0.4, M.ROOFS[2], cols)
 	# the fish slabs in two rows, the catch on them, baskets, a scale
 	var fish := [Color(0.62, 0.66, 0.7), Color(0.75, 0.55, 0.5), Color(0.5, 0.56, 0.62)]
 	var rng := RandomNumberGenerator.new()

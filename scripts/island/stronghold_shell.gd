@@ -269,6 +269,8 @@ static func _wall(mb: MeshBuilder, cols: Array, a: Vector2, b: Vector2, y: float
 				mb.add_box(_trim_m(), M.xf(M.v3(c - outn * (face + 0.22), y + 0.35), yaw), Vector3(0.46, 0.7, 1.06), 0.5)
 				mb.add_box(_dark_m(), M.xf(M.v3(c - outn * (face + 0.25), pt - 0.2), yaw), Vector3(0.52, 0.4, 1.1), 0.5)
 	var mn := maxi(int(L / 2.2), 1)
+	# (1.30) the merlons as one strip: a crenel's gap is no way through
+	M.box(cols, M.xf(M.v3(c, 0.0), yaw) * Transform3D(Basis(), Vector3(0, y + h + 0.55, 0)), Vector3(t, 1.1, L))
 	for j in range(mn):
 		var z := -L * 0.5 + (j + 0.5) * L / mn
 		mb.add_box(_wall_m(), M.xf(M.v3(c, 0.0), yaw) * Transform3D(Basis(), Vector3(0, y + h + 0.55, z)), Vector3(t, 1.1, 1.1), 0.5)
@@ -858,6 +860,7 @@ static func _room(mb: MeshBuilder, cols: Array, rm: Array, top := -1.0) -> void:
 	if top > 0.0:
 		return
 	mb.add_box(_trim_m(), M.xf(M.v3(c, roof + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8), 0.5)
+	M.box(cols, M.xf(M.v3(c, roof + 0.5)), Vector3(r.size.x + 0.8, 1.0, r.size.y + 0.8))
 	mb.add_box(_gold_m(), M.xf(M.v3(c, roof + 0.02)), Vector3(r.size.x + 0.86, 0.14, r.size.y + 0.86), 1.0)
 	# a navy plinth course round the outside (four strips: the hall's floor inside stays clear)
 	for f: Vector2 in [Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)]:
@@ -877,6 +880,7 @@ static func _room(mb: MeshBuilder, cols: Array, rm: Array, top := -1.0) -> void:
 		var nm := int(L / 2.2)
 		var e := c + Vector2(f.x * r.size.x * 0.5, f.y * r.size.y * 0.5)
 		mb.add_box(_wall_m(), M.xf(M.v3(e, roof + 1.4), M.yaw_of(al)), Vector3(0.6, 0.8, L + 0.8), 0.5)
+		M.box(cols, M.xf(M.v3(e, roof + 1.8), M.yaw_of(al)), Vector3(0.6, 1.6, L + 0.8))
 		for k in range(nm):
 			if k % 2 == 0:
 				var q := e + al * (-L * 0.5 + (k + 0.5) * L / nm)
@@ -885,10 +889,12 @@ static func _room(mb: MeshBuilder, cols: Array, rm: Array, top := -1.0) -> void:
 	for k: float in [-1.0, 1.0]:
 		var sc := c + Vector2(k * r.size.x * 0.3, 0)
 		mb.add_box(_wall_m(), M.xf(M.v3(sc, roof + 2.5)), Vector3(1.6, 3.0, 1.2), 0.5)
+		M.box(cols, M.xf(M.v3(sc, roof + 2.6)), Vector3(1.8, 3.2, 1.4))
 		mb.add_box(_trim_m(), M.xf(M.v3(sc, roof + 4.1)), Vector3(1.8, 0.2, 1.4), 0.5)
 		for j: float in [-0.35, 0.35]:
 			mb.add_cylinder(_soot_m(), M.xf(M.v3(sc + Vector2(j, 0), roof + 4.2)), 0.22, 0.2, 0.8, 6, 1.0)
 	mb.add_box(_roof_m(), M.xf(M.v3(c, roof + 1.25)), Vector3(r.size.x * 0.4, 0.5, 3.0), 0.5)
+	M.box(cols, M.xf(M.v3(c, roof + 1.25)), Vector3(r.size.x * 0.4, 0.5, 3.0))
 	for f: Vector2 in [Vector2(0, -1), Vector2(0, 1)]:
 		var n := int(r.size.x / 3.0)
 		for k in range(n):
