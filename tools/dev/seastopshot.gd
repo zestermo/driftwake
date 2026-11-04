@@ -2,7 +2,7 @@ extends SceneTree
 ## 1.28 sea stops renders on the light stage (opens a window): the merchant ship from afar and on her deck
 ## (_merchant_far, _merchant_near, _merchant_deck), the floating restaurant from afar, close, at her landing stage,
 ## inside the hall and with raiders on her deck (_rest_far, _rest_near, _rest_landing, _rest_hall, _rest_raid), and the
-## big named ships (_<kind>_far, _<kind>_near, _<kind>_deck, _<kind>_fight) once they exist. Args: <out_prefix> [psx]
+## big named ships (_<kind>_far, _<kind>_near, _<kind>_deck, _<kind>_fight) once they exist. Args: <out_prefix> [psx] [sky: the real sky, sea and weather (the World stage), not the bare stage]
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var out := ""
@@ -18,7 +18,7 @@ var SeaStops
 func _initialize() -> void:
 	out = OS.get_cmdline_user_args()[0]
 	TK.seed_of(self)
-	stage = TK.stage(self, {"hud": false, "ship": true})
+	stage = TK.stage(self, {"hud": false, "ship": true, "weather": OS.get_cmdline_user_args().has("sky")})
 
 
 func _look(node: Node3D, from_local: Vector3, at_local: Vector3, n: String) -> void:
@@ -70,6 +70,8 @@ func _process(_d: float) -> bool:
 			cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 			root.add_child(cam)
 			cam.current = true
+			if OS.get_cmdline_user_args().has("sky"):
+				root.get_node("Settings").set_value("video", "pixelate", true, false)
 			stop = _make("merchant", ship.global_position + Vector3(60, 0, -30), 4242)
 			until = TK.wait_secs(4.0)
 		1:
