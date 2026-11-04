@@ -10485,3 +10485,28 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   (dressing, no shadow).
 - **Tests:** t/story/ironwood_grove (new), t/story/island_steps (to the grove). Renders: `tools/dev/groveshot.gd`
   (standing, felled). Tool: `brineprobe.gd` (ground, slope, paths and reserves at island points).
+## 2026-11-04: 1.30 collision audit, piece 1 + the snow ice (Zach: "a lot of structures... missing collision"; "janky frozen rivers")
+- **The audit** (`tools/dev/collision_audit.gd`, headless, ~10 min for all): builds every theme on seeds 4242 and 77,
+  Brinehollow, the capital, the canal city and the stronghold, and samples every lit opaque surface every 0.6 m. A sample
+  is open when no collider (the terrain left out) is within 0.3 m and it's 0.3-4 m over the floor below it (or faces up,
+  a roof, to 12 m); open samples of one instance joined into a patch 0.6 m+ on two axes are a hole. Holes group by the
+  builder that made the mesh: `MeshBuilder.trace` (static, the audit turns it on) keeps the two calling functions as the
+  mesh's `made_by` meta (DrawLOD's tint fold carries it over). Skipped: foliage and needles (cutout, or the leaves /
+  pine_snow / fir_needles textures; snow and ash only on plants), water, fabric, decals; ALLOW names cloth, rope, fx,
+  water and paving nodes. `CA_PROBE` prints what's at given spots. Report: out/collision/<tag>/<island>.txt, summary.txt.
+- **The snow ice:** its collider's faces were wound facing down (`[p0, p2, p1]`, the terrain's are `tl, tr, bl`:
+  `(b-a)x(c-a).y < 0` is up), and Jolt lets a body through a mesh shape's back faces: captains fell through the ice onto
+  the bed 0.6 m under it and walked in it to the chest. Also: the river's ice was flat quads per 18 m segment at the
+  bed's height at their ends (the bed between bulged through or fell away), wedge gaps at every bend, a 0.45 m lip at
+  every bank, and on a slope the lake's ice hung over its downhill shore.
+  Now (`snow_land.gd`): every ice face goes through `_sheet` (drawn and collided facing up). The river has a level per
+  point (`_river_levels`: the base land and the peak's flank there, 1.4 m under, smoothed; kept in the river grid beside
+  the distance) and `_bank` shapes the ground round frozen water: the bed 0.6 m under the ice, a shore climbing to 0.6 m
+  over it 2.5 m out, then higher land rising over 12 m+ (no wall cut into a slope) or lower land reached by a dyke. The
+  ice runs 3 m on under the banks (ICE_PAST), so the shore is the ground coming up through the ice. The river's ice is
+  a mitred strip of stations every 3 m (`_river_strip`), laid where the bed and both banks are; where they stop (a
+  site's levelled ground, a cave, a lake) the next station slopes down into the ground. A lake's rim drops into the
+  ground where something levelled its bank away; lakes are reserved (places kept off their banks); spires give way
+  to the river. The plants keep off the wider ice.
+- Tests: t/island/snow_ice (new), t/island/snow_land. Renders: `tools/dev/iceshot.gd` (before/after in
+  tools/dev/out/review/collision_ice_*: before, the captain stood in the river to the chest).

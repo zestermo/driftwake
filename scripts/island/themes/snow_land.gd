@@ -12,9 +12,15 @@ const TOP_R := 13.0
 const PEAK_K := 1.6
 ## How far round a site the spires and drifts give way (m: none within the first, all past the second).
 const SITE_CLEAR := [34.0, 72.0]
-## The ice sits this far over the ground cut for it (the vertex snap: ground and a surface laid on it mustn't fight).
+## The ice sits this far over the ground cut for it (the vertex snap: ground and a surface laid on it mustn't fight);
+## the banks rise at least as far over it, and the ice runs on under them (ICE_PAST), so its edge is always buried and
+## the shore is the ground coming up through the ice: no lip to snag on, no sheet hanging over a drop (1.30).
 const ICE_LIFT := 0.6
-const RIVER_DEPTH := 2.0
+## The river's ice under the frozen water's level: its level runs this far under the land beside it.
+const RIVER_SINK := 1.4
+## The ice past the bed's edge (m), the bank's climb out of the bed (m past the edge), and where it eases back into the land.
+const ICE_PAST := 3.0
+const BANK_RISE := 2.5
 const PLANT_PAD := 2.0
 ## No tree, bush or rock this near a cave's mouth (a trunk in the way and you can't walk in).
 const MOUTH_CLEAR := 9.0
@@ -46,6 +52,8 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 			continue
 		# (in a hollow a metre under the land there: the base's and the peak's flank)
 		lakes.append({"c": c, "r": lr, "level": float(isl._height_natural(c)) + _cone(lp["main"], c) - 1.0})
+		# (a place's levelled ground cut a step into the bank)
+		isl.reserve_area(c, lr + ICE_PAST + 4.0)
 	lp["lakes"] = lakes
 	# the river: from the main peak's foot outward to the sea, wandering
 	var dir := Vector2.from_angle(rng.randf() * TAU)
@@ -59,7 +67,8 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 		pts.append(at)
 	lp["river"] = pts
 	lp["river_w"] = rng.randf_range(4.5, 7.0)
-	lp["river_grid"] = _river_grid(pts, float(isl.half))
+	lp["river_lvl"] = _river_levels(isl, lp, pts)
+	lp["river_grid"] = _river_grid(pts, lp["river_lvl"], float(isl.half))
 	var drift := FastNoiseLite.new()
 	drift.seed = rng.randi()
 	drift.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
@@ -82,11 +91,28 @@ const GRID_CELL := 3.0
 const GRID_BAND := 40.0
 
 
-static func _river_grid(pts: PackedVector2Array, half: float) -> Dictionary:
+## The ice's level at each of the river's points: the land there (the base, the peak's flank; no spires or drifts, which
+## give way to the river) under RIVER_SINK, smoothed along the river. Plan time: the base land only (land_plan is empty).
+static func _river_levels(isl, lp: Dictionary, pts: PackedVector2Array) -> PackedFloat32Array:
+	var lv := PackedFloat32Array()
+	for q in pts:
+		var h: float = isl._height_natural(q)
+		lv.append(_flank(isl, lp, q, h) - RIVER_SINK)
+	for k in range(2):
+		var sm := lv.duplicate()
+		for i in range(1, lv.size() - 1):
+			sm[i] = lv[i - 1] * 0.25 + lv[i] * 0.5 + lv[i + 1] * 0.25
+		lv = sm
+	return lv
+
+
+static func _river_grid(pts: PackedVector2Array, lvl: PackedFloat32Array, half: float) -> Dictionary:
 	var n := int(ceil(half * 2.0 / GRID_CELL)) + 1
 	var d := PackedFloat32Array()
 	d.resize(n * n)
 	d.fill(GRID_BAND)
+	var l := PackedFloat32Array()
+	l.resize(n * n)
 	for j in range(pts.size() - 1):
 		var a := pts[j]
 		var ab := pts[j + 1] - a
@@ -97,12 +123,24 @@ static func _river_grid(pts: PackedVector2Array, half: float) -> Dictionary:
 				var q := Vector2(-half + ix * GRID_CELL, -half + iz * GRID_CELL)
 				var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
 				var i := iz * n + ix
-				d[i] = minf(d[i], q.distance_to(a + ab * t))
-	return {"n": n, "half": half, "d": d}
+				var dq := q.distance_to(a + ab * t)
+				if dq < d[i]:
+					d[i] = dq
+					l[i] = lerpf(lvl[j], lvl[j + 1], t)
+	return {"n": n, "half": half, "d": d, "l": l}
 
 
 ## The distance from p to the river (bilinear on the grid; GRID_BAND past it).
 static func _river_near(lp: Dictionary, p: Vector2) -> float:
+	return _grid_at(lp, p, "d")
+
+
+## The river's ice level nearest p (within GRID_BAND of it).
+static func _river_level(lp: Dictionary, p: Vector2) -> float:
+	return _grid_at(lp, p, "l")
+
+
+static func _grid_at(lp: Dictionary, p: Vector2, key: String) -> float:
 	var g: Dictionary = lp["river_grid"]
 	var n: int = g["n"]
 	var fx := clampf((p.x + float(g["half"])) / GRID_CELL, 0.0, n - 1.001)
@@ -111,7 +149,7 @@ static func _river_near(lp: Dictionary, p: Vector2) -> float:
 	var iz := int(fz)
 	var tx := fx - ix
 	var tz := fz - iz
-	var d: PackedFloat32Array = g["d"]
+	var d: PackedFloat32Array = g[key]
 	var i := iz * n + ix
 	return lerpf(lerpf(d[i], d[i + 1], tx), lerpf(d[i + n], d[i + n + 1], tx), tz)
 
@@ -121,9 +159,9 @@ static func _river_near(lp: Dictionary, p: Vector2) -> float:
 static func _ice_at(lp: Dictionary, p: Vector2, pad := 0.0) -> float:
 	var k := 0.0
 	for lk in lp["lakes"]:
-		k = maxf(k, 1.0 - smoothstep(float(lk["r"]) + pad, float(lk["r"]) + pad + 3.0, p.distance_to(lk["c"])))
+		k = maxf(k, 1.0 - smoothstep(float(lk["r"]) + pad + 1.0, float(lk["r"]) + pad + ICE_PAST + 1.0, p.distance_to(lk["c"])))
 	var w: float = float(lp["river_w"]) * 0.5 + pad
-	return maxf(k, 1.0 - smoothstep(w + 0.5, w + 3.0, _river_near(lp, p)))
+	return maxf(k, 1.0 - smoothstep(w + 1.0, w + ICE_PAST + 1.0, _river_near(lp, p)))
 
 
 ## No forest on the ice; the peaks' high flanks thin out to bare snow and rock.
@@ -177,38 +215,65 @@ static func _cone(m: Dictionary, p: Vector2) -> float:
 	return float(m["h"]) * pow(1.0 - t, PEAK_K)
 
 
+## The base land with the cliffs taken out under the peak and the peak's flank on it (`h` the base height at p).
+static func _flank(isl, lp: Dictionary, p: Vector2, h: float) -> float:
+	var land := smoothstep(0.5, 4.0, h)
+	# (the base raises a cliff's whole bearing to the cliff's height, which tears the middle of the island where
+	# the bearings meet: under the peak it's taken back out)
+	var mid := 1.0 - smoothstep(0.15, 0.4, p.length() / float(isl.radius))
+	var s := h - (float(isl._cliff_h) - float(isl._def["base"])) * float(isl._cliff(atan2(p.y, p.x))) * mid * land
+	return s + _cone(lp["main"], p) * land
+
+
+## The ground round frozen water at `level`, `d` m from the bed's edge (negative inside): the bed ICE_LIFT under
+## the ice, a shore climbing to ICE_LIFT over it by BANK_RISE m out, then the land `s`: higher land rises from the
+## shore over BANK_EASE m or more (no wall cut into a slope), lower land is reached by a dyke easing down to it.
+const BANK_EASE := 12.0
+const BANK_REACH := 31.0
+static func _bank(s: float, level: float, d: float) -> float:
+	var rim := level + ICE_LIFT
+	var g := lerpf(level - ICE_LIFT, rim, smoothstep(-0.5, BANK_RISE, d))
+	if s >= rim:
+		return g + (s - rim) * smoothstep(-0.5, minf(BANK_EASE + s - rim, BANK_REACH - 1.0), d)
+	return lerpf(g, s, smoothstep(BANK_RISE + 1.5, minf(BANK_RISE + 9.5 + rim - s, BANK_REACH - 1.0), d))
+
+
 static func shape(isl, p: Vector2, h: float) -> float:
 	var lp: Dictionary = isl.land_plan
 	var land := smoothstep(0.5, 4.0, h)
 	if land <= 0.0:
 		return h
-	# (the base raises a cliff's whole bearing to the cliff's height, which tears the middle of the island where
-	# the bearings meet: under the peak it's taken back out)
-	var mid := 1.0 - smoothstep(0.15, 0.4, p.length() / float(isl.radius))
-	var s := h - (float(isl._cliff_h) - float(isl._def["base"])) * float(isl._cliff(atan2(p.y, p.x))) * mid * land
-	s += _cone(lp["main"], p) * land
+	var s := _flank(isl, lp, p, h)
+	var hw: float = float(lp["river_w"]) * 0.5
+	var dr := _river_near(lp, p)
 	var clear := _clear(isl, p)
 	if clear > 0.0:
 		var pass_k := _pass(isl, p)
+		# (the spires give way to the river: it runs between them, not through a gorge)
+		var by_river := smoothstep(hw + 4.0, hw + BANK_REACH, dr)
 		for sp in lp["spires"]:
 			var d := p.distance_to(sp["c"])
 			if d < float(sp["r"]):
 				var crag: FastNoiseLite = lp["crag"]
 				var t := d / float(sp["r"])
-				s += (float(sp["h"]) * pow(1.0 - t, float(sp["k"])) + crag.get_noise_2d(p.x * 1.6, p.y * 1.6) * 6.0 * (1.0 - t)) * clear * pass_k * land
+				s += (float(sp["h"]) * pow(1.0 - t, float(sp["k"])) + crag.get_noise_2d(p.x * 1.6, p.y * 1.6) * 6.0 * (1.0 - t)) * clear * pass_k * land * by_river
 		var drift: FastNoiseLite = lp["drift"]
 		s += maxf(drift.get_noise_2d(p.x * 0.35 + p.y * 0.15, p.y * 1.4 - p.x * 0.2), 0.0) * 2.2 * clear * (0.3 + 0.7 * pass_k) * land
 	for lk in lp["lakes"]:
-		var d := p.distance_to(lk["c"])
-		var lr: float = lk["r"]
-		if d < lr + 12.0:
-			var bed: float = float(lk["level"]) - ICE_LIFT
-			s = lerpf(bed, s, smoothstep(lr - 1.0, lr + 12.0, d)) if d > lr - 1.0 else bed
-	var w: float = lp["river_w"]
-	var dr := _river_near(lp, p)
-	if dr < w * 0.5 + 6.0:
-		s -= RIVER_DEPTH * (1.0 - smoothstep(w * 0.5, w * 0.5 + 6.0, dr))
+		var d := p.distance_to(lk["c"]) - float(lk["r"])
+		if d < BANK_REACH:
+			s = _bank(s, float(lk["level"]), d)
+	if dr - hw < BANK_REACH:
+		s = lerpf(s, _bank(s, _river_level(lp, p), dr - hw), _off_lakes(lp, p))
 	return s
+
+
+## 0..1: how far p is off the lakes and their banks (the river gives way on them: the lake's ice is the one laid there).
+static func _off_lakes(lp: Dictionary, p: Vector2) -> float:
+	var k := 1.0
+	for lk in lp["lakes"]:
+		k = minf(k, smoothstep(float(lk["r"]) + ICE_PAST + 1.0, float(lk["r"]) + ICE_PAST + 8.0, p.distance_to(lk["c"])))
+	return k
 
 
 ## The ice on the lakes and the river, and crystal clusters on the high steep ground.
@@ -223,6 +288,65 @@ static func _in_interior(isl, p: Vector2, r := 0.0) -> bool:
 		if p.distance_to(e["at"]) < float(e["radius"]) + r + 4.0:
 			return true
 	return false
+
+
+## The river's ice as stations every ~RIVER_STEP m: [point, side (unit, mitred: neighbours share their edges), level,
+## laid]. It starts ICE_PAST + the half width back up the bed (its end under the head of the bed) and is laid where the
+## bed is (or next to it, so a run's end is under the ground that filled it), off the lakes and caves, down to where
+## the ice is under the sea.
+const RIVER_STEP := 3.0
+static func _river_strip(isl, lp: Dictionary) -> Array:
+	var pts: PackedVector2Array = lp["river"]
+	var lvl: PackedFloat32Array = lp["river_lvl"]
+	var hw: float = float(lp["river_w"]) * 0.5
+	var line: Array = [[pts[0] - (pts[1] - pts[0]).normalized() * (hw + ICE_PAST), lvl[0]]]
+	for j in range(pts.size() - 1):
+		var k := maxi(1, ceili(pts[j].distance_to(pts[j + 1]) / RIVER_STEP))
+		for i in range(k):
+			line.append([pts[j].lerp(pts[j + 1], float(i) / k), lerpf(lvl[j], lvl[j + 1], float(i) / k)])
+	line.append([pts[pts.size() - 1], lvl[lvl.size() - 1]])
+	var out: Array = []
+	var good: Array = []
+	var low: Array = []
+	for i in range(line.size()):
+		var a: Vector2 = line[maxi(i - 1, 0)][0]
+		var b: Vector2 = line[mini(i + 1, line.size() - 1)][0]
+		var p: Vector2 = line[i][0]
+		var n0 := (p - a).normalized().orthogonal() if i > 0 else (b - p).normalized().orthogonal()
+		var n1 := (b - p).normalized().orthogonal() if i < line.size() - 1 else n0
+		var side := (n0 + n1).normalized()
+		side /= maxf(side.dot(n0), 0.5)
+		var l: float = line[i][1]
+		var g: float = isl.hv(p)
+		var edge := side.normalized() * (hw + ICE_PAST)
+		var banks := minf(float(isl.hv(p + edge)), float(isl.hv(p - edge)))
+		good.append(_off_lakes(lp, p) >= 1.0 and not _in_interior(isl, p) and l > -0.6 and g < l - 0.2 and g > l - ICE_LIFT - 0.3 and banks > l + 0.1)
+		low.append(minf(g, banks) - 0.15)
+		out.append([p, side, l, false])
+	# (where the bed or its banks stop - a site's levelled ground, a cave, a lake - the ice slopes down into the ground
+	# over the next station: its end is buried too)
+	for i in range(out.size()):
+		if good[i]:
+			out[i][3] = true
+		elif (i > 0 and good[i - 1]) or (i < out.size() - 1 and good[i + 1]):
+			out[i][2] = minf(float(out[i][2]), float(low[i]))
+			out[i][3] = true
+	return out
+
+
+## One triangle of ice, drawn up and in the collider facing up (a face's front is the side its winding shows: the
+## old ice collider's faces were wound to face down, and Jolt lets a body through a mesh shape's back faces, so
+## captains fell through the ice onto the bed under it).
+static func _sheet(mb: MeshBuilder, mat: Material, faces: PackedVector3Array, t: Array, col: Color) -> void:
+	var a: Vector3 = t[0]
+	var b: Vector3 = t[1]
+	var c: Vector3 = t[2]
+	if (b - a).cross(c - a).y > 0.0:
+		var x := b
+		b = c
+		c = x
+	mb.add_tri(mat, a, b, c, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(a.x, a.z) * 0.12, Vector2(b.x, b.z) * 0.12, Vector2(c.x, c.z) * 0.12, col, Vector3.UP)
+	faces.append_array([a, b, c])
 
 
 static func _ice(isl) -> void:
@@ -240,29 +364,37 @@ static func _ice(isl) -> void:
 		if absf(float(isl.hv(c)) - (float(lk["level"]) - ICE_LIFT)) > 0.3 or _in_interior(isl, c, float(lk["r"])):
 			continue
 		var y: float = lk["level"]
-		var lr: float = float(lk["r"]) + 1.0
-		var n := 20
+		var n := 32
+		# (a ring on the bed's edge, and the rim out under the bank; where something levelled the bank away, the rim
+		# slopes down into the ground there instead of hanging over it)
+		var inner: Array = []
+		var rim: Array = []
 		for i in range(n):
-			var a0 := TAU * i / n
-			var a1 := TAU * (i + 1) / n
-			var p0 := Vector3(c.x, y, c.y)
-			var p1 := Vector3(c.x + cos(a0) * lr, y, c.y + sin(a0) * lr)
-			var p2 := Vector3(c.x + cos(a1) * lr, y, c.y + sin(a1) * lr)
-			mb.add_tri(ice, p0, p1, p2, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(c.x, c.y) * 0.12, Vector2(p1.x, p1.z) * 0.12, Vector2(p2.x, p2.z) * 0.12, Color.WHITE, Vector3.UP)
-			faces.append_array([p0, p2, p1])
-	var pts: PackedVector2Array = lp["river"]
-	var hw: float = float(lp["river_w"]) * 0.5 + 1.0
-	for j in range(pts.size() - 1):
-		var a := pts[j]
-		var b := pts[j + 1]
-		var side := (b - a).normalized().orthogonal() * hw
-		var ya := maxf(float(isl.hv(a)), -0.8) + ICE_LIFT
-		var yb := maxf(float(isl.hv(b)), -0.8) + ICE_LIFT
-		if (ya < 0.2 and yb < 0.2) or _in_interior(isl, a) or _in_interior(isl, b):
+			var d := Vector2.from_angle(TAU * i / n)
+			var q: Vector2 = c + d * (float(lk["r"]) + ICE_PAST)
+			var g: float = isl.hv(q)
+			inner.append(Vector3(c.x + d.x * (float(lk["r"]) - 1.0), y, c.y + d.y * (float(lk["r"]) - 1.0)))
+			rim.append(Vector3(q.x, y if g > y + 0.1 else minf(y, g - 0.15), q.y))
+		var mid := Vector3(c.x, y, c.y)
+		for i in range(n):
+			var j := (i + 1) % n
+			_sheet(mb, ice, faces, [mid, inner[i], inner[j]], Color.WHITE)
+			_sheet(mb, ice, faces, [inner[i], rim[i], rim[j]], Color.WHITE)
+			_sheet(mb, ice, faces, [inner[i], rim[j], inner[j]], Color.WHITE)
+	var strip := _river_strip(isl, lp)
+	var hw: float = float(lp["river_w"]) * 0.5 + ICE_PAST
+	for j in range(strip.size() - 1):
+		var a: Array = strip[j]
+		var b: Array = strip[j + 1]
+		if not (a[3] and b[3]):
 			continue
-		var q := [Vector3(a.x - side.x, ya, a.y - side.y), Vector3(a.x + side.x, ya, a.y + side.y), Vector3(b.x + side.x, yb, b.y + side.y), Vector3(b.x - side.x, yb, b.y - side.y)]
-		mb.add_quad(ice, q[0], q[1], q[2], q[3], Vector2(q[0].x, q[0].z) * 0.12, Vector2(q[1].x, q[1].z) * 0.12, Vector2(q[2].x, q[2].z) * 0.12, Vector2(q[3].x, q[3].z) * 0.12, Color(0.95, 0.97, 1.0), Vector3.UP)
-		faces.append_array([q[0], q[2], q[1], q[0], q[3], q[2]])
+		var pa: Vector2 = a[0]
+		var pb: Vector2 = b[0]
+		var sa: Vector2 = a[1] * hw
+		var sb: Vector2 = b[1] * hw
+		var q := [Vector3(pa.x - sa.x, a[2], pa.y - sa.y), Vector3(pa.x + sa.x, a[2], pa.y + sa.y), Vector3(pb.x + sb.x, b[2], pb.y + sb.y), Vector3(pb.x - sb.x, b[2], pb.y - sb.y)]
+		_sheet(mb, ice, faces, [q[0], q[1], q[2]], Color(0.95, 0.97, 1.0))
+		_sheet(mb, ice, faces, [q[0], q[2], q[3]], Color(0.95, 0.97, 1.0))
 	if mb.is_empty():
 		return
 	var mi := mb.to_instance("Ice")
