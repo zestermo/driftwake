@@ -6,9 +6,17 @@ extends "res://tools/dev/genshot.gd"
 ## `& $env:GODOT --path . --script res://tools/dev/atollshot.gd -- <out_prefix> 1 2`
 
 
+## (the island's last build steps - the basin, the harvest, its clear lagoon - may still be running: wait for them)
+func _process(d: float) -> bool:
+	var w = root.get_node_or_null("World/Islands")
+	if isl == null and w != null and w.chain_ready() and w.chain_islands.has(want) and w.chain_islands[want].building:
+		return false
+	return super._process(d)
+
+
 func _setup(island) -> void:
 	if OS.get_environment("GSHOT_ONLY") == "":
-		OS.set_environment("GSHOT_ONLY", "aerial,boss,beast,atoll_stilts,atoll_wreck,atoll_pearls,wade,shoal,town,causeway,hole,reef_head,reef_clam,reef_arch,reef_moray,floor,basin_surface,basin_wall,basin_deep,basin_pillar,basin_cave,basin_vent")
+		OS.set_environment("GSHOT_ONLY", "aerial,boss,beast,atoll_stilts,atoll_wreck,atoll_pearls,wade,shoal,town,causeway,hole,reef_head,reef_clam,reef_arch,reef_moray,floor,basin_surface,basin_wall,basin_deep,basin_pillar,basin_cave,basin_vent,basin_shark,basin_life,reef_pen,reef_urchins,approach,edge_high")
 	super._setup(island)
 	var lp: Dictionary = isl.land_plan
 	var v: Vector2 = isl.sites["village"]
@@ -66,6 +74,21 @@ func _setup(island) -> void:
 			var kq: Vector2 = caves[0]
 			var ct := (kq - hc).normalized().orthogonal()
 			shots.append(["basin_cave", "a swim-through cave", Vector3(kq.x + ct.x * 13.0, isl.hv(kq) + 2.2, kq.y + ct.y * 13.0), Vector3(kq.x, isl.hv(kq) + 1.6, kq.y), false, 0.0])
+		var life: Node3D = isl.get_node_or_null("AtollDeepLife")
+		if life:
+			# (held still on its circle for the shot)
+			var sh1: Node3D = life.get_node("Shark1")
+			sh1.set("turn", 0.0)
+			var ph: float = sh1.get("phase")
+			var sp3: Vector3 = sh1.position + Vector3(cos(ph) * float(sh1.get("ring_r")), float(sh1.get("depth")), sin(ph) * float(sh1.get("ring_r")))
+			# (the shot's island may sit asleep here, so the shark is put on its mark by hand)
+			var sk: Node3D = sh1.get_node("Shark")
+			sk.global_position = isl.to_global(sp3)
+			sk.global_basis = Basis(Vector3.UP, -ph).scaled(Vector3.ONE * float(sh1.get("size")))
+			sk.visible = true
+			shots.append(["basin_shark", "a reef shark prowling the basin", sp3 + Vector3(6.0, 1.5, 5.0), sp3, false, 0.0])
+			var sch: Node3D = life.get_child(0)
+			shots.append(["basin_life", "a shoal wheeling in the basin", sch.position + Vector3(9.0, 2.0, 7.0), sch.position, false, 0.0])
 		var vents: Array = bn.get_meta("vents")
 		if not vents.is_empty():
 			var vq: Vector2 = vents[0]
@@ -78,13 +101,17 @@ func _setup(island) -> void:
 	# (1.28.1) under the water: a coral head and its outcrop, a giant clam, the reef wall outside the ring
 	var reef: Node3D = isl.get_node_or_null("AtollReef")
 	if reef:
-		for e in [["reef_head", "Spar_", "a coral head under the water, an outcrop to break a spar from"], ["reef_clam", "Clam_", "a giant clam on the lagoon floor"], ["reef_arch", "Arch", "a swim-through arch of coral rock"], ["reef_moray", "Moray", "a moray's crevice"]]:
+		for e in [["reef_head", "Spar_", "a coral head under the water, an outcrop to break a spar from"], ["reef_clam", "Clam_", "a giant clam on the lagoon floor"], ["reef_arch", "Arch", "a swim-through arch of coral rock"], ["reef_moray", "Moray", "a moray's crevice"], ["reef_pen", "Pen_", "a pen shell, its golden silk to cut"],
+				["reef_urchins", "Urchins_", "a cluster of urchins to gather"]]:
 			var found: Array = reef.get_children().filter(func(m): return m.name.begins_with(e[1]))
 			if not found.is_empty():
-				var at: Vector3 = (found[0] as Node3D).position
+				# (the pen shells and urchins: the last, in the deep basin)
+				var at: Vector3 = (found[found.size() - 1 if e[1] in ["Pen_", "Urchins_"] else 0] as Node3D).position
 				shots.append([e[0], e[2], at + Vector3(3.2, 0.9, 2.4), at + Vector3(0, 0.5, 0), false, 0.0])
 	var only := OS.get_environment("GSHOT_ONLY")
 	shots = shots.filter(func(e): return e[0] in only.split(","))
 	# (the aerial last: the island's last build steps, its clear lagoon among them, are still running at the first shot)
 	shots = shots.filter(func(e): return e[0] != "aerial") + shots.filter(func(e): return e[0] == "aerial")
+	# (the shark first: it wakes only once a camera's near it, checking once a second while it's far)
+	shots = shots.filter(func(e): return e[0] == "basin_shark") + shots.filter(func(e): return e[0] != "basin_shark")
 	_aim()

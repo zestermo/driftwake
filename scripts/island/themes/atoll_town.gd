@@ -281,11 +281,16 @@ static func _people(isl, _ctx, pl: Dictionary) -> void:
 	var who := "%s the Pearl Trader" % names[rng.randi() % names.size()]
 	var id: String = isl.save_key("pearl_trader")
 	var tier := IslandContent.tier(isl)
-	Shops.extra[id] = {"name": who, "line": "White, gold and black. Every one dived from this lagoon. And I'll buy whatever the reef gives you.",
+	# (1.30) she points you at the deep reef, where the skimmer's makings are
+	var way := _compass((isl.land_plan["hole"][0] as Vector2) - (pl["at"] as Vector2))
+	Shops.extra[id] = {"name": who, "line": ("White, gold and black, every one dived from this lagoon. The big rose pearls come from the deep reef, out %s: "
+		+ "giant clams on its ledge, coral spars round its pillars, pen shells for silk. Breathe at the vents down there.") % way,
 		"trade": "grocer", "stock": [["pearl", 3 + tier], ["oyster", 6], ["sea_urchin", 4], ["seaweed", 6]] + _skimmer_stock(), "buys": {"loot": 1.15, "ingredient": 0.7}}
 	_npc(isl, pl, node, who, looks[0], Vector2(-(SQUARE - 1.6), sq_z - 0.4), Vector2(0, 1), {"shop": id,
-		"barks": ["Pearls! White, gold and black!", "Dived this morning. Feel the weight.", "Bring me what the reef gives you, Captain."]})
-	var fbarks := ["Fish are running in the pass.", "Quiet. You'll scare them.", "Lagoon's like glass. Nothing biting.", "Big one took the bait. Then the bait."]
+		"barks": ["Pearls! White, gold and black!", "Dived this morning. Feel the weight.", "Bring me what the reef gives you, Captain.",
+			"Want a skimmer? The deep reef %s has all you need. Look for the glint." % way]})
+	var fbarks := ["Fish are running in the pass.", "Quiet. You'll scare them.", "Lagoon's like glass. Nothing biting.", "Big one took the bait. Then the bait.",
+		"Sharks in the deep reef %s. Mind your legs." % way]
 	var plats := _square_plats(L)
 	for i in range(2):
 		var e: Vector2 = plats[1 + i]
@@ -305,6 +310,12 @@ static func _npc(isl, pl: Dictionary, node: Node3D, who: String, look: Dictionar
 	node.add_child(npc)
 	npc.global_position = isl.to_global(Vector3(q.x, D.TOWN_DECK_Y, q.y))
 	return npc
+
+
+## "to the north-east" etc. for a direction in island space (-z north).
+static func _compass(d: Vector2) -> String:
+	var names := ["east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"]
+	return "to the " + names[posmod(roundi(d.angle() / (TAU / 8.0)), 8)]
 
 
 ## (1.28.1) The skimmer's: the trader's sea-silk and its blueprint (only once the game has them: GadgetData's).

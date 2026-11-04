@@ -165,7 +165,7 @@ const PARTS := {
 	"ember_ore": ["Ember Ore", 18, "A warm red ore from the fire islands' forges. Mk III work needs it."],
 	"leviathan_scale": ["Leviathan Scale", 60, "A scale the size of a shield, harder than iron. Only the great beasts of the deep shed them."],
 	"coral_spar": ["Coral Spar", 8, "A straight, light branch of white coral, broken off a coral head under an atoll's lagoon. A skimmer's board and mast."],
-	"sea_silk": ["Sea-silk", 12, "A bolt of shimmering cloth spun from the threads of lagoon clams. Sold by an atoll's pearl trader: a skimmer's sail."],
+	"sea_silk": ["Sea-silk", 12, "A skein of shimmering golden thread from a pen shell's foot, cut on an atoll's reef (or bought from its pearl trader): a skimmer's sail."],
 	"lagoon_pearl": ["Lagoon Pearl", 30, "A big rose-white pearl from a giant clam in an atoll's lagoon. Set in a skimmer's mast foot, it keeps her trim."],
 }
 ## The parts only an atoll gives (not in ALL_PARTS: loot tables and merchants roll from that).

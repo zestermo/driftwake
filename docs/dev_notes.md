@@ -9712,6 +9712,36 @@ Prepush was red on 12 suites, all from the unpushed 1.26.1 and 1.24.1 changes (s
   GPU's. +3 draws of rock, ~60 more coral batches near the basin.
 - Tests: t/island/atoll_basin, t/swim/atoll_vent (new). Renders: atollshot `hole`, `basin_*`.
 
+## 2026-11-04: 1.30 the atoll's underwater, piece 3: life, the harvest, the skimmer's parts
+- **The harvest** (`AtollReef.harvest`, step "atoll harvest" after the basin's; its own stream): giant clams 12-18
+  (a Lagoon Pearl + 0-1 pearl; one in each cave), coral outcrops 18-26 (2 Coral Spar), **pen shells** 10-16 (new: a
+  tall bivalve half buried, golden threads at its foot: 1 Sea-silk; GadgetData's text says so), urchin clusters 8-12
+  (2-4 sea urchins), 4-6 of DiveSites' oyster beds / reef gardens on the basin's ledge. About half on the lagoon's
+  patches (clams on the deeper ones, spars on the heads and reef, pen shells on the floor), half in the basin (ledge,
+  floor, pillars' feet). Each taken once per save (GameManager.opened), as before. One atoll now holds ~40 spar,
+  ~13 silk, ~15 lagoon pearls: Mk I (4/2/1) many times over, and a Mk III's 9 pearls in one atoll (1.28.1 meant two).
+- **The tells:** the clams' mantles glow blue round their glowing pearl (and sit 1.35x), the outcrops glow pale with a
+  pink spar, the pen shells' silk glows gold (1.5x), the urchins glow violet; and `AtollReef.Glints` (one per atoll,
+  each screen's own) sparkles what's still to take within 40 m of the camera in its colour, half of them every 0.7 s
+  (2 s checks while the camera's off the atoll).
+- **The hint:** the pearl trader's shop line and a bark point to "the deep reef, out to the <compass>" (from her stall
+  to the basin: `AtollTown._compass`), what's there (clams, spars, pen shells) and the vents; a fisher warns of sharks.
+- **Life** (`scripts/island/themes/atoll_deeplife.gd`, step "atoll deep life"): 8-12 big shoals (40-80 fish, bright reef
+  colours) at every depth round the pillars, 2 schools of silver jacks (the shoal fish x3.2), 3 eagle rays and 2 turtles
+  circling the basin: all the shoal shader. **Reef sharks** (`AtollDeepLife.Prowler`, 2, the second 1.7x and harder):
+  a slow circle through the basin on `Ocean.clock()` (every screen agrees); this machine's diver within 7 m (9 for the
+  big one) gets a tell (it turns on them, 0.7 s), a charge (7.5 m/s, up to 2 s) and a bite (14 / 20) inside 1.8 m,
+  then it swings back and leaves them 7 s. 6 more morays in the basin's walls (13 in all). Spear spots by three
+  pillars (SpearSchool already works anywhere past 2.5 m).
+- **Build time:** the reef's step (was 380 ms in one frame: 9000 `ring_r` calls) now reads a 128-bearing table and
+  breathes (GenIsland.breathe) in its loops, as do the seabed's and the basin's.
+- Per frame/tick: Glints 1.4 checks a second near (a loop over ~60 entries, a few sparkles); a shark is a position
+  and a basis a tick within 140 m of the camera, a distance once a second otherwise; nothing else new on the CPU.
+- **Co-op:** everything is built from the island's seed on every screen; harvests are each captain's own (the saves'
+  opened lists, as the 1.28.1 clams); morays and sharks bite only their own machine's diver (the moray's rule); a
+  shark charging someone else's diver on your screen still circles (its charge isn't sent). Not nettested.
+- Tests: t/island/atoll_harvest, t/swim/atoll_shark (new); t/island/atoll_reef to the new counts.
+
 ## 2026-11-03: 1.30 boss phase resets + clearing moves (v1_30_plan "Boss phases", "Boss space"; playtest row 9)
 
 - **`BossReset`** (`scripts/enemies/boss_reset.gd`, a RefCounted the boss owns; the host ticks it). `start(centre)`: a

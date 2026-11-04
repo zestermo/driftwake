@@ -361,8 +361,11 @@ static func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 static func steps(isl) -> Array:
 	return [["atoll spots", func(): AtollSpots.build(isl)], ["atoll shoals", func(): SHOALS.build(isl)],
-		["atoll reef", func(): load("res://scripts/island/themes/atoll_reef.gd").build(isl)], ["atoll water", func(): _water(isl)]] \
-		+ load("res://scripts/island/themes/atoll_basin.gd").steps(isl) + load("res://scripts/island/themes/atoll_seabed.gd").steps(isl)
+		["atoll reef", func(): await load("res://scripts/island/themes/atoll_reef.gd").build(isl)], ["atoll water", func(): _water(isl)]] \
+		+ load("res://scripts/island/themes/atoll_basin.gd").steps(isl) \
+		+ [["atoll harvest", func(): await load("res://scripts/island/themes/atoll_reef.gd").harvest(isl)],
+			["atoll deep life", func(): load("res://scripts/island/themes/atoll_deeplife.gd").build(isl)]] \
+		+ load("res://scripts/island/themes/atoll_seabed.gd").steps(isl)
 
 
 ## The lagoon's clear water (atoll_water.gd): a disc over it, the lagoon's edge on average.

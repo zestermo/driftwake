@@ -790,6 +790,9 @@ scripts/npc/sickle_moves.gd             t/weapons/sickle_tree t/weapons/sickle_m
 tools/texture_gen/gen_sickle_icons.py   t/weapons/sickle_tree
 scripts/island/themes/atoll_reef.gd     t/island/atoll_reef
 scripts/island/themes/atoll_seabed.gd   t/island/atoll_seabed
+scripts/island/themes/atoll_deeplife.gd t/island/atoll_harvest t/swim/atoll_shark
+scripts/island/themes/atoll_reef.gd     t/island/atoll_harvest
+scripts/island/themes/atoll_town.gd     t/island/atoll_harvest
 scripts/island/themes/atoll_water.gd    t/island/atoll_seabed
 scripts/island/themes/atoll_basin.gd    t/island/atoll_basin t/swim/atoll_vent
 scripts/island/themes/atoll_land.gd     t/island/atoll_basin t/island/atoll_seabed

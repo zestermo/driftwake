@@ -49,7 +49,7 @@ func _process(_d: float) -> bool:
 			check("...ranged and unshadowed", gardens.all(func(m): return m.visibility_range_end > 0.0 and m.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF))
 			var clams: Array = reef.get_children().filter(func(m): return m.name.begins_with("Clam_"))
 			var spars: Array = reef.get_children().filter(func(m): return m.name.begins_with("Spar_"))
-			check("eight giant clams and ten coral outcrops (%d, %d)" % [clams.size(), spars.size()], clams.size() == 8 and spars.size() == 10)
+			check("giant clams and coral outcrops, plenty (%d, %d)" % [clams.size(), spars.size()], clams.size() >= 12 and spars.size() >= 18)
 			check("rays and turtles glide over it", reef.get_children().any(func(m): return m.name.begins_with("Shoal")))
 			var p = stage.player
 			var R = load("res://scripts/island/themes/atoll_reef.gd")
@@ -66,7 +66,7 @@ func _process(_d: float) -> bool:
 			var arches: Array = reef.get_children().filter(func(m): return m.name.begins_with("Arch"))
 			var morays: Array = reef.get_children().filter(func(m): return m.name.begins_with("Moray"))
 			check("six swim-through arches, solid (%d)" % arches.size(), arches.size() == 6 and arches.all(func(m): return m is StaticBody3D and m.get_child_count() >= 4))
-			check("seven moray crevices (%d)" % morays.size(), morays.size() == 7)
+			check("moray crevices on the patches and in the basin's walls (%d)" % morays.size(), morays.size() == 13)
 			# a diver in reach of a moray through its tell gets bitten
 			var m: Node3D = morays[0]
 			p.health_component.max_health = 500.0

@@ -43,7 +43,7 @@ func _process(_d: float) -> bool:
 			check("with them it's built Mk I", G.build(p, "skimmer") == "" and p.gadgets.tier_of("skimmer") == 0)
 			check("...onto the belt", "skimmer" in p.gadgets.slots)
 			check("...cooldown only, no charges", p.gadgets.max_charges("skimmer") == 0)
-			check("the three tiers' speeds are 9, 11, 13", GadgetData.GADGETS["skimmer"]["speed"] == [9.0, 11.0, 13.0])
+			check("the three tiers' speeds are 11, 13.5, 16 (1.30)", GadgetData.GADGETS["skimmer"]["speed"] == [11.0, 13.5, 16.0])
 			return TK.done(fails)
 	step += 1
 	return false
