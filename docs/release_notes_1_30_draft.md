@@ -100,7 +100,7 @@
 - ✅ **Fixed: falling through the capital's roofs.** About 330 houses behind the front rows are now solid.
 - ✅ **Unstuck** in the pause menu: back to the last safe ground you stood on, back on the deck if that was a ship, otherwise the bunk. 10 s cooldown. If you end up under the ground, you're put back on your own after about a second.
 - ✅ **Missing textures fixed** in the capital and the Admiralty muster.
-- 🔨 **The atoll under the water:** the seabed's hard texture edge fixed and the floor dressed; a huge deep reef basin in the lagoon's middle with towering coral, clear blue water, more to hunt and harvest, and skimmer parts you can actually find.
+- ✅ **The atoll under the water:** the seabed's hard edges and the dark square round the island are gone, and the floor is dressed with seagrass, rubble, shells, starfish, urchins and sponges. Clear tropical water in the lagoon. A deep reef basin (about 30 m down) with towering coral pillars, table corals, giant fans, arches, overhangs and swim-through caves, breathing vents to refill your air, big shoals, rays, turtles, morays and prowling reef sharks. Clams, coral spar and new pen shells (Sea-silk) glow and sparkle when you're near, so the skimmer's parts are easy to gather, and the pearl trader points you to the deep reef.
 - 📋 **Redtide's mountain.** Morrow's arena sits inside a natural rock rising from the sea, open only by the stair.
 - 📋 **The brig, the galleon and new creatures** for the thinner island themes, after their own design pass.
 
