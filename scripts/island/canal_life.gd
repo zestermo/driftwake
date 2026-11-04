@@ -305,8 +305,10 @@ func _talk(blessing: Dictionary, oar: Dictionary, glass: Dictionary) -> void:
 		{"text": "Do you build ships to sell?", "next": "ships"}]}
 	var mnodes := {"intro": {"text": ["Ottavio Grane, Master of the Arsenal. Every hull on this lagoon has passed under my eye, and most of them under my hand."], "next": "menu"},
 		"menu": mmenu, "yard": {"text": ["Let's see her, then. Whatever Brinehollow's yard does, mine does better."], "event": "shipwright:Grane", "next": "end"},
-		"ships": {"text": ["We do. Caravels: light, quick, a bow chaser and a bigger hold, though she'll take a broadside worse than your sloop.", "Yours for %s, the materials my yard eats." % ShipClasses.price_text("caravel")], "next": "menu"},
-		"buy": {"text": ["Done! I'll have her at your berth by the time you're down the steps. Your sloop stays here, looked after."], "event": "ship:buy:caravel", "next": "end"}}
+		"ships": {"text": ["We do. Caravels: light, quick, a bow chaser and a bigger hold, though she'll take a broadside worse than your sloop. %s." % ShipClasses.price_text("caravel"),
+			"Brigs, if you mean to fight: two masts, five guns a side and a hull that shrugs off a sloop's broadside. %s." % ShipClasses.price_text("brig"),
+			"And galleons. Three masts, two gun decks, a stern castle you could hold court in. %s, and I build them only for crews I've seen prove themselves." % ShipClasses.price_text("galleon"),
+			"Whatever you sail, your colours and your figurehead go on her. The old ship stays in my yard, looked after."], "next": "menu"}}
 	_ship_choices(mmenu["choices"], mnodes, true)
 	quest_node.hand_over(blessing, mmenu["choices"], mnodes)
 	for j in job_qs.filter(func(q): return str(q.get("recipient", "")) == "Master Ottavio Grane"):
@@ -406,13 +408,27 @@ func ride(to: int) -> void:
 	tw.tween_property(_fader, "color:a", 0.0, 0.5)
 
 
-## A shipwright's ship choices (ShipClasses): buy the caravel (the arsenal's master only) while she isn't the crew's,
-## and take out whichever ship is laid up. Shown only when they apply (read off the crew's kit as you talk).
+## A shipwright's ship choices (ShipClasses): buy a caravel, brig or galleon (the arsenal's master only) while she isn't
+## the crew's (the galleon once she's for sale: ShipClasses.locked_why; before that, Grane says why), and take out
+## whichever ship is laid up. Shown only when they apply (read off the crew's kit and the chain as you talk).
+const BUY_LINES := {"caravel": "Done! I'll have her at your berth by the time you're down the steps. Your old ship stays here, looked after.",
+	"brig": "A brig it is. My best gun crew's fitting her out now; she'll be at your berth by the time you're down the steps, in your colours.",
+	"galleon": "Ha! A galleon. The lagoon will talk of nothing else for a week. She's at your berth, Captain, colours flying."}
+
+
 static func _ship_choices(choices: Array, nodes: Dictionary, sells: bool) -> void:
-	var kit := func() -> Dictionary: return ShipKit.merged((Engine.get_main_loop() as SceneTree).root.get_node("GameManager").ship_kit)
+	var gm := func() -> Node: return (Engine.get_main_loop() as SceneTree).root.get_node("GameManager")
+	var kit := func() -> Dictionary: return ShipKit.merged(gm.call().ship_kit)
 	if sells:
-		choices.insert(0, {"text": "I'll buy the caravel (%s)." % ShipClasses.price_text("caravel"), "next": "buy",
-			"if": func(): return not ShipClasses.owns(kit.call(), "caravel")})
+		var open := func(c: String) -> bool: return ShipClasses.locked_why(c, ShipClasses.chain_layer(gm.call()), gm.call().log_pose_set()) == ""
+		choices.insert(0, {"text": "And a galleon?", "next": "galleon_wait",
+			"if": func(): return not ShipClasses.owns(kit.call(), "galleon") and not open.call("galleon")})
+		nodes["galleon_wait"] = {"text": [ShipClasses.locked_why("galleon", -1, false)], "next": "menu"}
+		for i in range(ShipClasses.FOR_SALE.size() - 1, -1, -1):
+			var c: String = ShipClasses.FOR_SALE[i]
+			choices.insert(0, {"text": "I'll buy the %s (%s)." % [str(ShipClasses.CLASSES[c]["name"]).to_lower(), ShipClasses.price_text(c)], "next": "buy_" + c,
+				"if": func(): return not ShipClasses.owns(kit.call(), c) and open.call(c)})
+			nodes["buy_" + c] = {"text": [BUY_LINES[c]], "event": "ship:buy:" + c, "next": "end"}
 	for cls in ShipClasses.CLASSES:
 		var c: String = cls
 		choices.insert(0, {"text": "I'll sail the %s." % str(ShipClasses.CLASSES[c]["name"]).to_lower(), "next": "sail_" + c,

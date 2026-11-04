@@ -180,7 +180,7 @@ func harbour_spawn() -> Vector3:
 
 func mooring() -> Array:
 	var b := from_city_dir(Vector2(1, 0))
-	return [city_global(StrongholdPlan.BERTH, 0.0), atan2(-b.x, -b.y)]
+	return [city_global(StrongholdPlan.BERTH + Vector2(0, Ship.moor_out(get_tree())), 0.0), atan2(-b.x, -b.y)]
 
 
 func _dock_here() -> void:

@@ -881,7 +881,7 @@ func _plan_dock() -> void:
 ## Where a ship lies alongside the pier's head (world), and her heading out.
 func mooring() -> Array:
 	var side := Vector2(-dock_dir.y, dock_dir.x)
-	var at: Vector2 = sites["dock_end"] + side * 6.0 - dock_dir * 4.0
+	var at: Vector2 = sites["dock_end"] + side * (6.0 + Ship.moor_out(get_tree())) - dock_dir * 4.0
 	return [to_global(Vector3(at.x, 0.0, at.y)), atan2(-dock_dir.x, -dock_dir.y)]
 
 

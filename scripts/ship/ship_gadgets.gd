@@ -78,7 +78,7 @@ static func fire(p: Node) -> bool:
 ## (every machine) What gadget `g` at tier `t` does to `ship`.
 static func apply(ship: Ship, g: String, t: int, target: Node3D, by: Node) -> void:
 	var fx := _fx()
-	var stern: Vector3 = ship.global_transform * Vector3(0, 1.2, Ship.STERN_Z)
+	var stern: Vector3 = ship.global_transform * Vector3(0, 1.2, ship.layout.stern_z)
 	var aft: Vector3 = ship.global_basis.z
 	aft.y = 0.0
 	aft = aft.normalized()
@@ -101,7 +101,7 @@ static func apply(ship: Ship, g: String, t: int, target: Node3D, by: Node) -> vo
 			ship.paddle_k = float(GadgetData.tier_val(g, "boost", t))
 			var right: Vector3 = ship.global_basis.x
 			for s in [-1.0, 1.0]:
-				var at: Vector3 = ship.global_position + right * s * (Ship.HALF_BEAM + 0.4)
+				var at: Vector3 = ship.global_position + right * s * (ship.layout.half_beam + 0.4)
 				fx.puff_ring(Vector3(at.x, 0.2, at.z), "dust_low", 8, 0.4, 1.4, 0.8, Color(0.92, 0.96, 1.0, 0.85), 6.0)
 			fx.sfx("clack", ship.global_position + Vector3.UP * 2.0, -2.0, 0.05, 0.6)
 			fx.sfx("splash", ship.global_position, -2.0, 0.1, 1.2)

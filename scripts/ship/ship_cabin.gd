@@ -42,6 +42,8 @@ static func mats() -> Dictionary:
 
 ## The room at Quarters `q` into [main, fine].
 static func build(L: HullLayout, q: int) -> Array:
+	if L.rooms:
+		return ShipRooms.build(L)
 	var mb := MeshBuilder.new()
 	var fine := MeshBuilder.new()
 	var m := mats()
@@ -69,6 +71,8 @@ static func build(L: HullLayout, q: int) -> Array:
 
 ## Where its seats go: [top of the seat, height, facing] (ship-local).
 static func seats(L: HullLayout, q: int) -> Array:
+	if L.rooms:
+		return ShipRooms.seats(L)
 	var t := table_at(L, q)
 	var out: Array = []
 	var y := L.cabin_y
@@ -90,6 +94,8 @@ static func seats(L: HullLayout, q: int) -> Array:
 
 ## What you can't walk through: [centre, size] boxes (ship-local; the stools and benches are seats, not solid).
 static func solids(L: HullLayout, q: int) -> Array:
+	if L.rooms:
+		return ShipRooms.solids(L)
 	var out: Array = [
 		[L.bed_at + Vector3(0, 0.26, 0), Vector3(1.15, 0.52, 2.15)],
 		[L.stove_at + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95)],
@@ -114,6 +120,8 @@ static func solids(L: HullLayout, q: int) -> Array:
 
 ## The table's middle on the floor: across the cabin's middle, the mess table (4) along it.
 static func table_at(L: HullLayout, q: int) -> Vector3:
+	if L.rooms:
+		return L.table_at
 	return Vector3(0.0, L.cabin_y, 6.9) if q >= 4 else L.table_at
 
 
@@ -330,6 +338,8 @@ static func _lamp(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: HullLayo
 
 ## Where the cabin's lamp hangs (its light: Ship's CabinLight sits on it).
 static func lamp_at(L: HullLayout, q: int) -> Vector3:
+	if L.rooms:
+		return ShipRooms.lamp_at(L)
 	var t := table_at(L, q)
 	return Vector3(t.x, L.qd_y - (1.0 if q >= 4 else 0.65), t.z - (0.0 if q >= 4 else 1.1))
 
