@@ -138,6 +138,24 @@ func _rebuild() -> void:
 	_fine.mesh = fine.commit()
 
 
+## (1.30) Her class changed: everything the lines put on her goes (Ship._refit_class frees the rig the ropes hang
+## from); the next apply builds it all on the new hull.
+func strip() -> void:
+	for n in _nodes + _ropes:
+		if is_instance_valid(n):
+			n.free()
+	_nodes.clear()
+	_ropes.clear()
+	jib = null
+	rudder_node = null
+	levels = {}
+
+
+## The sloop's z for a fitting, on her hull (HullLayout.map).
+func mz(z: float) -> float:
+	return z * ship.layout.kz
+
+
 ## A rope at each end of the yard once the line's bought (they turn with the yard as it's braced round).
 func _fit_ropes() -> void:
 	var bought := lv("ropes") >= 1
@@ -151,7 +169,7 @@ func _fit_ropes() -> void:
 				rope.name = "RopeS" if sgn > 0.0 else "RopeP"
 				rope.length = rope_length()
 				rope.ride_cap = rope_length() + SwingRope.HANG
-				rope.position = Vector3(sgn * ROPE_X, -0.1, 0.0)
+				rope.position = Vector3(sgn * ROPE_X * ship.layout.yard_w / 9.0, -0.1, 0.0)
 				ship._rig.add_child(rope)
 				_ropes.append(rope)
 	_counts["ropes"] = 1 if bought else 0
@@ -230,15 +248,15 @@ func _armour(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	if n >= 1:
 		# rubbing strakes: two heavy wales the length of her, painted (they read whatever her hull paint)
 		for y in [-0.1, -0.8]:
-			_band(mb, _m["wale"], -11.8, 9.85, y, 0.26, 0.1)
+			_band(mb, _m["wale"], mz(-11.8), ship.layout.qd_back - 0.05, y, 0.26, 0.1)
 		_count("armour")
 	if n >= 2:
 		# iron knees: straps amidships
-		_straps(mb, [-2.0, 1.0, 4.0])
+		_straps(mb, [mz(-2.0), mz(1.0), mz(4.0)])
 		_count("armour")
 	if n >= 3:
 		# straps her whole length, and an iron band under the rail
-		_straps(mb, [-8.0, -5.0, 7.0, 9.4])
+		_straps(mb, [mz(-8.0), mz(-5.0), mz(7.0), mz(9.4)])
 		var rings: Array = ship.layout.rings
 		for i in range(rings.size() - 2):
 			var a: Array = rings[i]
@@ -253,8 +271,8 @@ func _armour(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		var bw: Array = rings_last()
 		var top := float(bw[3]) + ship.layout.lip
 		mb.add_box(iron, Transform3D(Basis(), Vector3(0, (top + float(bw[4])) * 0.5, float(bw[0]) - 0.18)), Vector3(0.34, top - float(bw[4]) + 0.1, 0.12), 1.0, Color.WHITE, false)
-		_skin(mb, iron, -12.45, -10.2, -0.55, 1.3, 0.035, Color(0.85, 0.85, 0.88))
-		_rivets(fine, [-12.0, -11.1, -10.2], -0.5, 1.25)
+		_skin(mb, iron, float(bw[0]) + 0.15, mz(-10.2), -0.55, 1.3, 0.035, Color(0.85, 0.85, 0.88))
+		_rivets(fine, [mz(-12.0), mz(-11.1), mz(-10.2)], -0.5, 1.25)
 		_count("armour")
 	if n >= 5:
 		# iron capping along the main deck's rails
@@ -270,8 +288,8 @@ func _armour(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("armour")
 	if n >= 6:
 		# riveted plates over her stern quarters, up to the quarterdeck rail
-		_skin(mb, iron, 6.0, ship.layout.qd_back - 0.02, 0.45, ship.layout.qd_y, 0.04, Color(0.8, 0.8, 0.84))
-		_rivets(fine, [6.0, 7.3, 8.6, 9.8], 0.5, ship.layout.qd_y - 0.05)
+		_skin(mb, iron, mz(6.0), ship.layout.qd_back - 0.02, 0.45, ship.layout.qd_y, 0.04, Color(0.8, 0.8, 0.84))
+		_rivets(fine, [mz(6.0), mz(7.3), mz(8.6), mz(9.8)], 0.5, ship.layout.qd_y - 0.05)
 		_count("armour")
 
 
@@ -308,9 +326,11 @@ func _rivets(fine: MeshBuilder, zs: Array, y0: float, y1: float) -> void:
 func _guns(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	if n >= 1:
 		# a rack of shot inboard of every gun
-		var pairs := 3 if n >= 2 else 2
+		var pairs := ship.layout.base_guns + (1 if n >= 2 else 0)
 		for i in range(pairs):
 			var g: Array = ship.layout.gun_spots[i]
+			if is_equal_approx(float(g[2]), ship.layout.lower_y):
+				continue
 			for sgn in [-1.0, 1.0]:
 				var at := Vector3(sgn * (float(g[1]) - 0.55), float(g[2]), float(g[0]) + 0.75)
 				mb.add_box(_m["oak"], Transform3D(Basis(), at + Vector3(0, 0.09, 0)), Vector3(0.36, 0.18, 0.5), 1.0)
@@ -342,9 +362,10 @@ func _sails(mb: MeshBuilder, n: int) -> void:
 		_count("sails")
 	if n >= 2:
 		# a jib from the bowsprit's end up the forestay
-		var tack := Vector3(0, 2.45, -16.1)
-		var head := Vector3(0, 11.2, -3.0) - tack
-		var clew := Vector3(0, 2.3, -9.6) - tack
+		var L := ship.layout
+		var tack := Vector3(0, L.sprit_at.y + 1.4, mz(-16.1))
+		var head := Vector3(0, L.yard_y - 2.6, mz(-3.0)) - tack
+		var clew := Vector3(0, L.sprit_at.y + 1.25, mz(-9.6)) - tack
 		var jmb := MeshBuilder.new()
 		jmb.add_tri(_m["trim"], Vector3.ZERO, head, clew, Vector3.RIGHT, Vector3.RIGHT, Vector3.RIGHT, Vector2(0, 2.4), Vector2(1.2, 0), Vector2(1.4, 2.4), Color.WHITE, Vector3.RIGHT)
 		jmb.add_tri(_m["trim"], Vector3.ZERO, head, clew, Vector3.LEFT, Vector3.LEFT, Vector3.LEFT, Vector2(0, 2.4), Vector2(1.2, 0), Vector2(1.4, 2.4), Color(0.8, 0.8, 0.75), Vector3.LEFT)
@@ -357,14 +378,14 @@ func _sails(mb: MeshBuilder, n: int) -> void:
 		jib.add_child(jm)
 		_nodes.append(jm)
 		HullBuilder._line(mb, _m["rope"], tack, tack + head, 0.04)
-		HullBuilder._line(mb, _m["rope"], tack + clew, Vector3(0.0, ship.layout.deck_y + 0.9, -9.2), 0.03)
+		HullBuilder._line(mb, _m["rope"], tack + clew, Vector3(0.0, ship.layout.deck_y + 0.9, mz(-9.2)), 0.03)
 		_count("sails")
 	if n >= 3:
 		_count("sails")
 	if n >= 4:
 		# studding sails: booms out past each end of the yard, a sail hanging from each
 		var bmb := MeshBuilder.new()
-		var sx: float = (RIG_SCALE[n] as Vector2).x
+		var sx: float = (RIG_SCALE[n] as Vector2).x * ship.layout.sail_k.x
 		for sgn in [-1.0, 1.0]:
 			bmb.add_cylinder(_m["trim"], Transform3D(Basis(Vector3.BACK, -sgn * PI * 0.5), Vector3(sgn * 4.3 * sx, 0.12, 0.18)), 0.07, 0.06, 1.8 * sx, 6, 0.8)
 		_own(bmb.to_instance("StudBooms"), ship._rig)
@@ -447,7 +468,7 @@ func _rudder(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	if n >= 5:
 		# a carved, gilded taffrail across her stern, scrolls at its ends
 		var hb := ship.layout.half_width(ship.layout.qd_back)
-		var y := ship.layout.qd_y + 1.1
+		var y := (ship.layout.poop_y if ship.layout.has_poop() else ship.layout.qd_y) + 1.1
 		var z := ship.layout.qd_back + 0.04
 		mb.add_box(_m["gilt"], Transform3D(Basis(), Vector3(0, y, z)), Vector3(hb * 1.7, 0.42, 0.1), 1.0)
 		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(0, y + 0.26, z)), Vector3(hb * 1.8, 0.1, 0.16), 1.0)
@@ -468,13 +489,15 @@ func steer(r: float) -> void:
 # Copper bottom: sheathing along her waterline, bow first
 # --------------------------------------------------------------------------
 func copper_z() -> Array:
-	return [-12.45, -6.0, 2.0, ship.layout.qd_back - 0.02]
+	return [mz(-12.45), mz(-6.0), mz(2.0), ship.layout.qd_back - 0.02]
 
 
 func _copper(mb: MeshBuilder, n: int) -> void:
+	# (along her waterline: the sloop's is at -1.15)
+	var dy := ship.layout.waterline_y + 1.15
 	for k in range(n):
-		_skin(mb, _m["copper"], copper_z()[k], copper_z()[k + 1], -1.7, -0.97, 0.03)
-		_band(mb, _m["copper"], copper_z()[k], copper_z()[k + 1], -0.95, 0.07, 0.05, Color(1.35, 1.25, 1.1))
+		_skin(mb, _m["copper"], copper_z()[k], copper_z()[k + 1], -1.7 + dy, -0.97 + dy, 0.03)
+		_band(mb, _m["copper"], copper_z()[k], copper_z()[k + 1], -0.95 + dy, 0.07, 0.05, Color(1.35, 1.25, 1.1))
 		_count("copper")
 
 
@@ -486,15 +509,16 @@ const CHASER_AT := Vector3(0, HullLayout.DECK_Y + 0.42, -10.9)
 
 
 func _chaser(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
+	var at_ := ship.layout.map(CHASER_AT)
 	if n >= 1:
-		var step := Vector3(CHASER_AT.x, ship.layout.deck_y, CHASER_AT.z)
+		var step := Vector3(at_.x, ship.layout.deck_y, at_.z)
 		mb.add_box(_m["oak"], Transform3D(Basis(), step + Vector3(0, 0.21, 0.4)), Vector3(1.7, 0.42, 2.0), 1.0)
 		mb.add_box(_m["trim"], Transform3D(Basis(), step + Vector3(0, 0.43, 0.4)), Vector3(1.78, 0.04, 2.08), 1.0)
 		_solid(step + Vector3(0, 0.21, 0.4), Vector3(1.7, 0.42, 2.0))
 		_count("chaser")
 	if n >= 2:
 		# a shot locker to starboard of the step, balls ready on its lid
-		var at := Vector3(1.25, ship.layout.deck_y, -9.0)
+		var at := Vector3(1.25, ship.layout.deck_y, at_.z + 1.9)
 		mb.add_box(_m["oak"], Transform3D(Basis(), at + Vector3(0, 0.25, 0)), Vector3(0.5, 0.5, 0.6), 1.0)
 		mb.add_box(_m["dark_iron"], Transform3D(Basis(), at + Vector3(0, 0.51, 0)), Vector3(0.54, 0.04, 0.64), 1.0)
 		for k in range(3):
@@ -503,15 +527,15 @@ func _chaser(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("chaser")
 	if n >= 3:
 		# a rail round the step's front, a grating on it
-		var top := CHASER_AT.y
+		var top := at_.y
 		for x in [-0.8, 0.0, 0.8]:
-			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(x, top + 0.3, CHASER_AT.z - 0.62)), Vector3(0.08, 0.6, 0.08), 1.0)
+			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(x, top + 0.3, at_.z - 0.62)), Vector3(0.08, 0.6, 0.08), 1.0)
 		for sx in [-1.0, 1.0]:
-			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(sx * 0.82, top + 0.3, CHASER_AT.z - 0.1)), Vector3(0.08, 0.6, 0.08), 1.0)
-			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(sx * 0.82, top + 0.6, CHASER_AT.z - 0.36)), Vector3(0.08, 0.07, 0.6), 1.0)
-		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(0, top + 0.6, CHASER_AT.z - 0.62)), Vector3(1.72, 0.07, 0.08), 1.0)
+			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(sx * 0.82, top + 0.3, at_.z - 0.1)), Vector3(0.08, 0.6, 0.08), 1.0)
+			mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(sx * 0.82, top + 0.6, at_.z - 0.36)), Vector3(0.08, 0.07, 0.6), 1.0)
+		mb.add_box(_m["trim"], Transform3D(Basis(), Vector3(0, top + 0.6, at_.z - 0.62)), Vector3(1.72, 0.07, 0.08), 1.0)
 		for k in range(5):
-			mb.add_box(_m["dark_iron"], Transform3D(Basis(), Vector3(0, top + 0.03, CHASER_AT.z - 0.5 + k * 0.25)), Vector3(1.1, 0.03, 0.06), 1.0)
+			mb.add_box(_m["dark_iron"], Transform3D(Basis(), Vector3(0, top + 0.03, at_.z - 0.5 + k * 0.25)), Vector3(1.1, 0.03, 0.06), 1.0)
 		_count("chaser")
 
 
@@ -568,13 +592,15 @@ func _lantern_string(mb: MeshBuilder, a: Vector3, b: Vector3, droop: float, n: i
 
 
 func _lanterns(mb: MeshBuilder, n: int) -> void:
-	var mast := Vector3(0, 9.0, ship.layout.mast_z)
+	var L := ship.layout
+	var mast := Vector3(0, 9.0, L.mast_z)
 	if n >= 1:
-		_lantern_string(mb, mast + Vector3(0, 0, -0.2), Vector3(0, 2.6, -15.7), 1.3, 10)
+		_lantern_string(mb, mast + Vector3(0, 0, -0.2), Vector3(0, L.sprit_at.y + 1.55, mz(-15.7)), 1.3, 10)
 		_count("lanterns")
 	if n >= 2:
+		var aft_y := (L.poop_y if L.has_poop() else L.qd_y) + 1.7
 		for sgn in [-1.0, 1.0]:
-			_lantern_string(mb, mast + Vector3(sgn * 0.2, 0, 0.2), Vector3(sgn * 3.3, ship.layout.qd_y + 1.7, ship.layout.qd_back - 0.35), 1.1, 9, 1)
+			_lantern_string(mb, mast + Vector3(sgn * 0.2, 0, 0.2), Vector3(sgn * 3.3 * L.kx, aft_y, L.qd_back - 0.35), 1.1, 9, 1)
 		_count("lanterns")
 	if n >= 3:
 		# a ring under the nest, and along the main rails
@@ -585,9 +611,9 @@ func _lanterns(mb: MeshBuilder, n: int) -> void:
 			HullBuilder._line(mb, _m["rope"], p + Vector3(0, 0.3, 0), p + Vector3(0, 0.13, 0), 0.02)
 			mb.add_cylinder(mats[k % 3], Transform3D(Basis(), p - Vector3(0, 0.13, 0)), 0.12, 0.12, 0.24, 6, 1.0, Color.WHITE, true, true)
 		for sgn in [-1.0, 1.0]:
-			var r0 := ring_at(-8.0)
-			var r1 := ring_at(4.4)
-			_lantern_string(mb, Vector3(sgn * (float(r0[1]) - 0.05), float(r0[3]) + ship.layout.lip + 1.0, -8.0), Vector3(sgn * (float(r1[1]) - 0.05), float(r1[3]) + ship.layout.lip + 1.0, 4.4), 0.5, 9, 2)
+			var r0 := ring_at(mz(-8.0))
+			var r1 := ring_at(mz(4.4))
+			_lantern_string(mb, Vector3(sgn * (float(r0[1]) - 0.05), float(r0[3]) + ship.layout.lip + 1.0, mz(-8.0)), Vector3(sgn * (float(r1[1]) - 0.05), float(r1[3]) + ship.layout.lip + 1.0, mz(4.4)), 0.5, 9, 2)
 		_count("lanterns")
 
 
@@ -601,7 +627,8 @@ const RAIL_SPANS := [[0, 1], [3, 4], [4, 5], [5, 6], [6, 7]]
 const RAIL_H := 0.55
 
 
-func _rail_top(z: float, sgn: float) -> Vector3:
+func _rail_top(z0: float, sgn: float) -> Vector3:
+	var z := mz(z0)
 	var r := ring_at(z)
 	return Vector3(sgn * (float(r[1]) - 0.05), float(r[3]) + ship.layout.lip + 0.07, z)
 
@@ -658,8 +685,9 @@ func _rails(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 # Tangerine grove: trees in planters on the quarterdeck, fruit to pick
 # --------------------------------------------------------------------------
 func grove_at() -> Array:
-	var y := ship.layout.qd_y
-	return [Vector3(-1.7, y, 9.15), Vector3(1.7, y, 9.15), Vector3(0.0, y, 9.35)]
+	var L := ship.layout
+	var y := L.poop_y if L.has_poop() else L.qd_y
+	return [Vector3(-1.7 * L.kx, y, mz(9.15)), Vector3(1.7 * L.kx, y, mz(9.15)), Vector3(0.0, y, mz(9.35))]
 ## A tree ripens a tangerine this often (game seconds), up to RIPE_MAX on it.
 const RIPEN := 150.0
 const RIPE_MAX := 2
@@ -705,7 +733,7 @@ func _grove(mb: MeshBuilder, n: int) -> void:
 		sp.radius = 1.4
 		cs.shape = sp
 		z.add_child(cs)
-		z.position = Vector3(0, ship.layout.qd_y + 0.8, 8.85)
+		z.position = Vector3(0, float(grove_at()[0].y) + 0.8, mz(8.85))
 		_own(z, self)
 		z.interacted.connect(pick)
 		grove_zone = z
@@ -755,6 +783,9 @@ func pick(p: Player) -> void:
 # --------------------------------------------------------------------------
 func _quarters(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	var L := ship.layout
+	# (the brig's and galleon's rooms don't grow: no Quarters line on them)
+	if L.rooms:
+		return
 	if n >= 1:
 		# a skylight on the quarterdeck over the cabin, forward of the binnacle
 		var at := Vector3(0, L.qd_y, L.qd_front + 0.9)
@@ -804,25 +835,60 @@ func _quarters(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 # --------------------------------------------------------------------------
 # Galley & bunks (in the cabin; the chimney shows on the quarterdeck)
 # --------------------------------------------------------------------------
+## An upper bunk on posts over the bed: its pillow, a blanket rolled at the foot, a lee board, three rungs up the
+## foot post, a curtain on a rod.
+func _upper_bunk(mb: MeshBuilder, fine: MeshBuilder, bed: Vector3) -> void:
+	var y := 1.25
+	for sx in [-0.55, 0.55]:
+		for sz in [-1.02, 1.02]:
+			mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(sx, (y + 0.2) * 0.5, sz)), Vector3(0.08, y + 0.2, 0.08), 1.0)
+	mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0, y, 0)), Vector3(1.15, 0.12, 2.1), 1.0, Color.WHITE, false)
+	mb.add_box(_m["linen"], Transform3D(Basis(), bed + Vector3(0, y + 0.12, 0)), Vector3(1.0, 0.12, 1.95), 1.0)
+	mb.add_box(_m["blanket"], Transform3D(Basis(), bed + Vector3(0, y + 0.19, -0.3)), Vector3(1.04, 0.05, 1.25), 1.0)
+	mb.add_box(_m["linen"], Transform3D(Basis(), bed + Vector3(0, y + 0.25, 0.75)), Vector3(0.6, 0.12, 0.34), 1.0)
+	mb.add_cylinder(_m["blanket"], Transform3D(Basis(Vector3.BACK, PI * 0.5), bed + Vector3(0.45, y + 0.3, -0.85)), 0.1, 0.1, 0.9, 6, 1.0)
+	mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0.56, y + 0.22, 0)), Vector3(0.05, 0.18, 1.9), 1.0)
+	for k in range(3):
+		mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0.6, 0.35 + k * 0.32, -1.02)), Vector3(0.05, 0.05, 0.34), 1.0)
+	HullBuilder._line(fine, _m["brass"], bed + Vector3(0.62, y + 0.75, -1.0), bed + Vector3(0.62, y + 0.75, 1.0), 0.02)
+	mb.add_box(_m["pennant"], Transform3D(Basis(), bed + Vector3(0.63, y + 0.42, 0.7)), Vector3(0.03, 0.66, 0.55), 1.0, Color(0.85, 0.85, 0.85))
+
+
+## Hammocks slung under the beams to starboard, one rolled and stowed (lashed up to the deckhead at both ends); a
+## pillow lying in each hammock near its head, a sea bag hung on its lashing at the aft end.
+func _hammocks(mb: MeshBuilder, rng: RandomNumberGenerator) -> void:
+	for k in range(2):
+		var x := 1.2 + k * 1.15
+		var a := Vector3(x, ship.layout.qd_y - 0.35, 6.2)
+		var b := Vector3(x, ship.layout.qd_y - 0.35, 7.6)
+		var pts := MeshBuilder.sag_points(a, b, 0.45, 6)
+		for i in range(pts.size() - 1):
+			var d: Vector3 = pts[i + 1] - pts[i]
+			mb.add_box(_m["canvas"], Transform3D(Basis.looking_at(d.normalized(), Vector3.UP), (pts[i] + pts[i + 1]) * 0.5), Vector3(0.62, 0.04, d.length() + 0.02), 1.0)
+		HullBuilder._line(mb, _m["rope"], a, a + Vector3(0, 0.15, 0), 0.03)
+		HullBuilder._line(mb, _m["rope"], b, b + Vector3(0, 0.15, 0), 0.03)
+	mb.add_cylinder(_m["canvas"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-1.6, ship.layout.qd_y - 0.4, 6.4)), 0.12, 0.12, 1.2, 6, 1.0)
+	for z in [6.6, 7.4]:
+		HullBuilder._line(mb, _m["rope"], Vector3(-1.6, ship.layout.qd_y - 0.28, z), Vector3(-1.6, ship.layout.qd_y - 0.12, z), 0.03)
+	for k in range(2):
+		var x := 1.2 + k * 1.15
+		var a := Vector3(x, ship.layout.qd_y - 0.35, 6.2)
+		var b := Vector3(x, ship.layout.qd_y - 0.35, 7.6)
+		var pts := MeshBuilder.sag_points(a, b, 0.45, 6)
+		var rest: Vector3 = (pts[4] as Vector3).lerp(pts[5], 0.5)
+		mb.add_box(_m["linen"], Transform3D(Basis(Vector3.RIGHT, 0.35), rest + Vector3(0, 0.07, 0)), Vector3(0.36, 0.1, 0.24), 1.0)
+		var bag := b + Vector3(0, -0.55, 0.12)
+		HullBuilder._line(mb, _m["rope"], b, bag + Vector3(0, 0.22, 0), 0.025)
+		mb.add_blob(_m["canvas"], Transform3D(Basis(), bag), Vector3(0.16, 0.24, 0.16), rng, 0.12, 4, 6, 0.5, Color(0.85, 0.8, 0.7))
+
+
 func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 	var bed := ship.layout.bed_at
+	# (the brig's and galleon's bunks are already two high, their hammocks below: the line brings the rest)
+	var rooms := ship.layout.rooms
 	if n >= 1:
-		# an upper bunk on posts over the bed
-		var y := 1.25
-		for sx in [-0.55, 0.55]:
-			for sz in [-1.02, 1.02]:
-				mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(sx, (y + 0.2) * 0.5, sz)), Vector3(0.08, y + 0.2, 0.08), 1.0)
-		mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0, y, 0)), Vector3(1.15, 0.12, 2.1), 1.0, Color.WHITE, false)
-		mb.add_box(_m["linen"], Transform3D(Basis(), bed + Vector3(0, y + 0.12, 0)), Vector3(1.0, 0.12, 1.95), 1.0)
-		mb.add_box(_m["blanket"], Transform3D(Basis(), bed + Vector3(0, y + 0.19, -0.3)), Vector3(1.04, 0.05, 1.25), 1.0)
-		# its pillow, a blanket rolled at the foot, a lee board, three rungs up the foot post, a curtain on a rod
-		mb.add_box(_m["linen"], Transform3D(Basis(), bed + Vector3(0, y + 0.25, 0.75)), Vector3(0.6, 0.12, 0.34), 1.0)
-		mb.add_cylinder(_m["blanket"], Transform3D(Basis(Vector3.BACK, PI * 0.5), bed + Vector3(0.45, y + 0.3, -0.85)), 0.1, 0.1, 0.9, 6, 1.0)
-		mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0.56, y + 0.22, 0)), Vector3(0.05, 0.18, 1.9), 1.0)
-		for k in range(3):
-			mb.add_box(_m["oak"], Transform3D(Basis(), bed + Vector3(0.6, 0.35 + k * 0.32, -1.02)), Vector3(0.05, 0.05, 0.34), 1.0)
-		HullBuilder._line(fine, _m["brass"], bed + Vector3(0.62, y + 0.75, -1.0), bed + Vector3(0.62, y + 0.75, 1.0), 0.02)
-		mb.add_box(_m["pennant"], Transform3D(Basis(), bed + Vector3(0.63, y + 0.42, 0.7)), Vector3(0.03, 0.66, 0.55), 1.0, Color(0.85, 0.85, 0.85))
+		if not rooms:
+			_upper_bunk(mb, fine, bed)
 		# the pantry's spice rack on the wall beside it (more room: Ship.pantry_slots)
 		var pa := ship.layout.pantry_at
 		var rx := ship.layout.cabin_hw - 0.08
@@ -866,34 +932,10 @@ func _galley(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_solid(cb + Vector3(0, 0.32, 0), Vector3(0.75, 0.64, 0.5))
 		_count("galley")
 	if n >= 3:
-		# hammocks slung under the beams to starboard, one rolled and stowed
-		for k in range(2):
-			var x := 1.2 + k * 1.15
-			var a := Vector3(x, ship.layout.qd_y - 0.35, 6.2)
-			var b := Vector3(x, ship.layout.qd_y - 0.35, 7.6)
-			var pts := MeshBuilder.sag_points(a, b, 0.45, 6)
-			for i in range(pts.size() - 1):
-				var d: Vector3 = pts[i + 1] - pts[i]
-				mb.add_box(_m["canvas"], Transform3D(Basis.looking_at(d.normalized(), Vector3.UP), (pts[i] + pts[i + 1]) * 0.5), Vector3(0.62, 0.04, d.length() + 0.02), 1.0)
-			HullBuilder._line(mb, _m["rope"], a, a + Vector3(0, 0.15, 0), 0.03)
-			HullBuilder._line(mb, _m["rope"], b, b + Vector3(0, 0.15, 0), 0.03)
-		mb.add_cylinder(_m["canvas"], Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(-1.6, ship.layout.qd_y - 0.4, 6.4)), 0.12, 0.12, 1.2, 6, 1.0)
-		# (lashed up to the deckhead at both ends)
-		for z in [6.6, 7.4]:
-			HullBuilder._line(mb, _m["rope"], Vector3(-1.6, ship.layout.qd_y - 0.28, z), Vector3(-1.6, ship.layout.qd_y - 0.12, z), 0.03)
-		# a pillow lying in each hammock near its head, a sea bag hung on its lashing at the aft end
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 33
-		for k in range(2):
-			var x := 1.2 + k * 1.15
-			var a := Vector3(x, ship.layout.qd_y - 0.35, 6.2)
-			var b := Vector3(x, ship.layout.qd_y - 0.35, 7.6)
-			var pts := MeshBuilder.sag_points(a, b, 0.45, 6)
-			var rest: Vector3 = (pts[4] as Vector3).lerp(pts[5], 0.5)
-			mb.add_box(_m["linen"], Transform3D(Basis(Vector3.RIGHT, 0.35), rest + Vector3(0, 0.07, 0)), Vector3(0.36, 0.1, 0.24), 1.0)
-			var bag := b + Vector3(0, -0.55, 0.12)
-			HullBuilder._line(mb, _m["rope"], b, bag + Vector3(0, 0.22, 0), 0.025)
-			mb.add_blob(_m["canvas"], Transform3D(Basis(), bag), Vector3(0.16, 0.24, 0.16), rng, 0.12, 4, 6, 0.5, Color(0.85, 0.8, 0.7))
+		if not rooms:
+			_hammocks(mb, rng)
 		# the pantry's fruit net hung from the deckhead by the shelves, sacks stacked on the cold box
 		var pa := ship.layout.pantry_at
 		var net := Vector3(ship.layout.cabin_hw - 0.55, ship.layout.qd_y - 0.9, pa.z + 0.3)
@@ -929,7 +971,10 @@ func _hold(mb: MeshBuilder, fine: MeshBuilder, n: int) -> void:
 		_count("chest")
 	if n >= 3:
 		# a hatch on the main deck aft of the mast, crates lashed beside it
-		var h := Vector3(0, ship.layout.deck_y, 2.7)
+		# (the galleon's: beside her own hatch, to port)
+		var h := Vector3(0, ship.layout.deck_y, mz(2.7))
+		if ship.layout.has_lower():
+			h = Vector3(-2.4, ship.layout.deck_y, mz(-3.6))
 		for sx in [-1.0, 1.0]:
 			mb.add_box(_m["oak"], Transform3D(Basis(), h + Vector3(sx * 0.85, 0.08, 0)), Vector3(0.12, 0.16, 1.5), 1.0)
 			mb.add_box(_m["oak"], Transform3D(Basis(), h + Vector3(0, 0.08, sx * 0.7)), Vector3(1.82, 0.16, 0.12), 1.0)

@@ -76,6 +76,8 @@ var _sail_corners: Array = []
 var _furl_node: Node3D
 var _rig: Node3D
 var _yard_node: Node3D
+## (1.30) The other masts' rigs (the brig's foremast, the galleon's fore and mizzen): [rig, yard, sail, furled].
+var _rigs: Array = []
 ## How much bigger the yard and mainsail are than plain (x across, y down: the sails line's levels).
 ## (The yard and sails are scaled, not the rig: the swing ropes on it can't take a stretched scale.)
 var rig_scale := Vector2.ONE
@@ -86,6 +88,7 @@ var _anchor: Node3D
 var _cable: Node3D
 var _anchor_drop: float = 0.0
 ## The anchor hangs from the cathead here (ship-model space), off the bow.
+## (the sloop's: every class's are her layout's, anchor_at and capstan_at)
 const ANCHOR_AT := Vector3(2.4, 1.3, -9.3)
 const CAPSTAN_AT := Vector3(0.0, DECK_Y, -7.0)
 const CHAIN_STEP := 0.13
@@ -138,6 +141,8 @@ var _cabin_mesh: MeshInstance3D
 var _cabin_fine: MeshInstance3D
 var _cabin_light: OmniLight3D
 var _cabin_t := 0.0
+var _hold_mesh: MeshInstance3D
+var _hold_light: OmniLight3D
 var _helm_post: MeshInstance3D
 ## What the upgrade lines have put on her (ShipParts, built from the kit).
 var parts: ShipParts
@@ -203,6 +208,7 @@ func _ready() -> void:
 	helm_zone.reach = 1.0
 	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 	arm.add_excluded_object(get_rid())
+	arm.spring_length = layout.cam_arm
 	# moved every rendered frame from the hull's interpolated transform
 	ship_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 
@@ -309,7 +315,7 @@ func _physics_process(delta: float) -> void:
 					var cm := get_node_or_null("/root/CombatManager")
 					if cm:
 						cm.apply_camera_shake(0.25)
-					Net.fx("sfx", ["thud", global_position + fwd * (BOW_Z * -1.0), 2.0, 0.05, 0.6])
+					Net.fx("sfx", ["thud", global_position + fwd * (layout.bow_z * -1.0), 2.0, 0.05, 0.6])
 				var was := absf(speed)
 				speed *= lerpf(1.0, -0.15, head_on)
 				_yaw_rate *= 0.5
@@ -328,19 +334,20 @@ func _physics_process(delta: float) -> void:
 
 	# swell: sample the waves under bow, stern and both sides
 	var t: float = Ocean.clock()
-	var hb := _wave(pos + fwd * -BOW_Z, t)
-	var hs := _wave(pos + fwd * -STERN_Z, t)
-	var hp := _wave(pos - right * HALF_BEAM, t)
-	var hr := _wave(pos + right * HALF_BEAM, t)
+	var L := layout
+	var hb := _wave(pos + fwd * -L.bow_z, t)
+	var hs := _wave(pos + fwd * -L.stern_z, t)
+	var hp := _wave(pos - right * L.half_beam, t)
+	var hr := _wave(pos + right * L.half_beam, t)
 	var hc := _wave(pos, t)
 	var mean := (hb + hs + hp + hr + hc * 2.0) / 6.0
 	# (bow/stern/sides average most of the swell away; the midship sample
-	# keeps a slow, shallow rise and fall)
-	var target_y := lerpf(mean, hc, 0.5) * HEAVE_SCALE + FREEBOARD - 0.6 * flood
+	# keeps a slow, shallow rise and fall; a bigger hull rides it steadier)
+	var target_y := lerpf(mean, hc, 0.5) * HEAVE_SCALE / sqrt(L.kz) + L.freeboard - 0.6 * flood
 	var accel_f := (speed - _prev_speed) / maxf(delta, 0.0001)
 	_prev_speed = speed
-	var target_pitch := clampf(atan((hb - hs) / (STERN_Z - BOW_Z)) * 0.35, -0.045, 0.045) + clampf(accel_f * 0.008, -0.03, 0.03) + clampf(speed * 0.003, -0.01, 0.04)
-	var target_roll := clampf(atan((hr - hp) / (HALF_BEAM * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06) - 0.12 * flood * _list_side()
+	var target_pitch := clampf(atan((hb - hs) / (L.stern_z - L.bow_z)) * 0.35, -0.045, 0.045) + clampf(accel_f * 0.008, -0.03, 0.03) + clampf(speed * 0.003, -0.01, 0.04)
+	var target_roll := clampf(atan((hr - hp) / (L.half_beam * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06) - 0.12 * flood * _list_side()
 	if not _init:
 		_init = true
 		_y = target_y
@@ -486,8 +493,13 @@ const GUN_RELOAD := 3.2
 
 
 func _build_cannons() -> void:
-	for i in range(2):
+	for i in range(layout.base_guns):
 		_add_gun_pair(i)
+
+
+## The Gun deck line's pair on the quarterdeck: the one after her class's own (the sloop's third).
+func _aft_pair() -> int:
+	return layout.base_guns
 
 
 func _add_gun_pair(i: int) -> void:
@@ -548,11 +560,11 @@ func hull_hit(dmg: float, at: Vector3) -> void:
 	_send_hull(true)
 	if dmg >= BREACH_MIN_DMG:
 		var l := global_transform.affine_inverse() * at
-		var z := clampf(l.z, DECK_Z_MIN, DECK_Z_MAX)
+		var z := clampf(l.z, layout.deck_z_min, layout.deck_z_max)
 		if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < BREACH_CHANCE:
 			add_breach(-1.0 if l.x < 0.0 else 1.0, z)
 		if fires.size() < MAX_FIRES and _dmg_rng.randf() < FIRE_CHANCE:
-			add_fire(Vector3(clampf(l.x, -DECK_X_MAX, DECK_X_MAX), DECK_Y, z))
+			add_fire(Vector3(clampf(l.x, -layout.deck_x_max, layout.deck_x_max), DECK_Y, z))
 
 
 func _set_crippled(on: bool) -> void:
@@ -596,7 +608,7 @@ func _hull_tick(delta: float) -> void:
 		_burn_t -= delta
 		if _burn_t <= 0.0:
 			_burn_t = 0.25 if crippled else 0.6
-			var spot := global_transform * Vector3(randf_range(-DECK_X_MAX, DECK_X_MAX), DECK_Y + 0.2, randf_range(DECK_Z_MIN, DECK_Z_MAX))
+			var spot := global_transform * Vector3(randf_range(-layout.deck_x_max, layout.deck_x_max), DECK_Y + 0.2, randf_range(layout.deck_z_min, layout.deck_z_max))
 			FX.smoke(spot, 2, 1.2, 2.0)
 			if crippled:
 				FX.flame(spot, 4, 0.5, 0.5, 0.3)
@@ -625,11 +637,11 @@ const PATCH_TIME := 2.2
 const DOUSE_TIME := 1.4
 const WORK_REACH := 1.3
 const PUMP_AT := Vector3(1.2, DECK_Y, -0.3)
-## Where holes and fires can be on the main deck (ship-local).
+## Where holes and fires can be on the sloop's main deck (ship-local; every class's: layout.deck_z_min...).
 const DECK_Z_MIN := -7.8
 const DECK_Z_MAX := 4.4
 const DECK_X_MAX := 2.6
-## The waterline on her side (ship-local y), where holes show.
+## The waterline on the sloop's side (ship-local y), where holes show (layout.waterline_y).
 const WATERLINE_Y := -1.15
 
 ## [id, deck spot above the hole (ship-local)]
@@ -665,7 +677,7 @@ func _list_side() -> float:
 func add_breach(side: float, z: float) -> void:
 	_dmg_id += 1
 	breaches.append([_dmg_id, Vector3(side * (layout.half_width(z) - 0.55), DECK_Y, z)])
-	FX.sfx("wood_crack", global_transform * Vector3(side * layout.half_width(z), WATERLINE_Y, z), 4.0, 0.05, 0.75)
+	FX.sfx("wood_crack", global_transform * Vector3(side * layout.half_width(z), layout.waterline_y, z), 4.0, 0.05, 0.75)
 	_send_damage()
 
 
@@ -737,7 +749,7 @@ func _damage_tick(delta: float) -> void:
 				Net.fx("dust", [global_position + Vector3(0, 0.2, 0), 12, 1.2])
 				CombatManager.apply_camera_shake(0.18)
 				if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < 0.4:
-					add_breach(-1.0 if _dmg_rng.randf() < 0.5 else 1.0, _dmg_rng.randf_range(DECK_Z_MIN, DECK_Z_MAX))
+					add_breach(-1.0 if _dmg_rng.randf() < 0.5 else 1.0, _dmg_rng.randf_range(layout.deck_z_min, layout.deck_z_max))
 	if not breaches.is_empty():
 		flood = minf(flood + breaches.size() * FLOOD_RATE * delta, 1.0)
 		if flood >= 1.0 and not crippled:
@@ -752,7 +764,7 @@ func _damage_tick(delta: float) -> void:
 			f[2] = 0.0
 			var a := _dmg_rng.randf() * TAU
 			var p: Vector3 = f[1] + Vector3(cos(a), 0.0, sin(a)) * 1.6
-			spread.append(Vector3(clampf(p.x, -DECK_X_MAX, DECK_X_MAX), DECK_Y, clampf(p.z, DECK_Z_MIN, DECK_Z_MAX)))
+			spread.append(Vector3(clampf(p.x, -layout.deck_x_max, layout.deck_x_max), DECK_Y, clampf(p.z, layout.deck_z_min, layout.deck_z_max)))
 	if not fires.is_empty():
 		_send_hull(false)
 	for p in spread:
@@ -778,7 +790,7 @@ func _rebuild_holes() -> void:
 		q.size = Vector2(0.9, 0.6)
 		mi.mesh = q
 		mi.material_override = PSXMat.lit("planks_dark", Color(0.08, 0.06, 0.05))
-		mi.position = Vector3(side * (_side_at(spot.z, WATERLINE_Y) + 0.03), WATERLINE_Y, spot.z)
+		mi.position = Vector3(side * (_side_at(spot.z, layout.waterline_y) + 0.03), layout.waterline_y, spot.z)
 		mi.rotation.y = side * PI * 0.5
 		ship_model.add_child(mi)
 		_holes[id] = mi
@@ -802,7 +814,7 @@ func _damage_view(delta: float) -> void:
 		for b in breaches:
 			var spot: Vector3 = b[1]
 			var side := signf(spot.x)
-			var at := global_transform * Vector3(side * (_side_at(spot.z, WATERLINE_Y) + 0.2), WATERLINE_Y + 0.1, spot.z)
+			var at := global_transform * Vector3(side * (_side_at(spot.z, layout.waterline_y) + 0.2), layout.waterline_y + 0.1, spot.z)
 			FX.splash(at, 3, 0.5)
 	if not _ropes.is_empty():
 		_show_ropes()
@@ -834,7 +846,7 @@ func _damage_view(delta: float) -> void:
 		if d < best:
 			best = d; job = "douse"; id = int(f[0])
 	for t in torn:
-		var spot: Vector3 = MEND_AT[int(t[1])]
+		var spot: Vector3 = layout.mend_at[int(t[1])]
 		var d := Vector2(local.x - spot.x, local.z - spot.z).length()
 		if d < best:
 			best = d; job = "mend"; id = int(t[0])
@@ -842,9 +854,9 @@ func _damage_view(delta: float) -> void:
 		var d := Vector2(local.x - l[1].x, local.z - l[1].z).length()
 		if d < best:
 			best = d; job = "cut"; id = int(l[0])
-	if flood > 0.0 and Vector2(local.x - PUMP_AT.x, local.z - PUMP_AT.z).length() < best:
+	if flood > 0.0 and Vector2(local.x - layout.pump_at.x, local.z - layout.pump_at.z).length() < best:
 		job = "bail"; id = 0
-	elif job == "" and Vector2(local.x - CAPSTAN_AT.x, local.z - CAPSTAN_AT.z).length() < WORK_REACH:
+	elif job == "" and Vector2(local.x - layout.capstan_at.x, local.z - layout.capstan_at.z).length() < WORK_REACH:
 		job = "anchor"; id = 1 if anchored else 0
 	local_job = job
 	if job == "":
@@ -872,7 +884,7 @@ func _damage_view(delta: float) -> void:
 				_work_t = 0.0
 				me.body_model.kneeling = false
 				Net.ship_anchor(not anchored)
-				FX.sfx("rope", global_transform * CAPSTAN_AT, -2.0, 0.05, 0.75)
+				FX.sfx("rope", global_transform * layout.capstan_at, -2.0, 0.05, 0.75)
 				Seamanship.xp(get_tree(), Seamanship.CAPSTAN)
 			_set_work(("Hold %s: weigh anchor" if anchored else "Hold %s: let go the anchor") % Glyphs.of("interact"), _work_t / need)
 		_:
@@ -930,7 +942,7 @@ const LASHED_SPEED := 2.2
 const CUT_TIME := 1.1
 ## A line parts when the ships it holds drift this far apart.
 const LINE_SNAP := 26.0
-## [id, mend slot (MEND_AT), the tear on the sail (sail-local)]
+## [id, mend slot (layout.mend_at), the tear on the sail (sail-local)]
 var torn: Array = []
 ## [id, rail spot (ship-local), the ship holding it (Net key), its end on her (her local)]
 var lines: Array = []
@@ -958,10 +970,11 @@ func tear_sail(local: Vector3) -> void:
 	while slot in used:
 		slot += 1
 	_dmg_id += 1
-	var py := clampf(local.y - (layout.yard_y - 0.15), -7.6, -0.9)
+	var rs := layout.sail_k
+	var py := clampf((local.y - (layout.yard_y - 0.15)) / rs.y, -7.6, -0.9)
 	# (on the sheet, which bellies aft to 0.45 at its middle reef band and back to 0.1 at the foot: _build_rig)
 	var pz := lerpf(0.0, 0.45, -py / 4.35) if py > -4.35 else lerpf(0.45, 0.1, (-py - 4.35) / 4.2)
-	var patch := Vector3(clampf(local.x, -3.4, 3.4), py, pz)
+	var patch := Vector3(clampf(local.x / rs.x, -3.4, 3.4), py, pz)
 	torn.append([_dmg_id, slot, patch])
 	Net.fx("sfx", ["whoosh_big", global_transform * local, 2.0, 0.05, 0.7])
 	Net.fx("dust", [global_transform * local, 14, 1.2])
@@ -970,7 +983,8 @@ func tear_sail(local: Vector3) -> void:
 
 ## Host: grapples from `by` (on our `side`: 1 starboard) bite into the rail.
 func lash(by: Node3D, side: float) -> void:
-	for z in [-5.0, -1.0, 3.0]:
+	for z0 in [-5.0, -1.0, 3.0]:
+		var z: float = z0 * layout.kz
 		_dmg_id += 1
 		lines.append([_dmg_id, Vector3(side * (layout.half_width(z) - 0.5), DECK_Y, z), Net.key_of(by), Vector3(-side * 3.7, 2.6, z)])
 	_send_damage()
@@ -1112,7 +1126,7 @@ func _show_ropes() -> void:
 ## The foam wake (every machine lays its own from the ship's speed; her spray is ShipSpray's).
 func _wake(pos: Vector3, fwd: Vector3) -> void:
 	if absf(speed) > 1.0:
-		Ocean.wake(self, pos - fwd * STERN_Z, clampf(absf(speed) / 9.0, 0.0, 1.0))
+		Ocean.wake(self, pos - fwd * layout.stern_z, clampf(absf(speed) / 9.0, 0.0, 1.0))
 
 
 func _wave(p: Vector3, t: float) -> float:
@@ -1156,8 +1170,8 @@ func _build_collision() -> void:
 	var capstan := CylinderShape3D.new()
 	capstan.radius = 0.32
 	capstan.height = 0.75
-	_shape(capstan, Transform3D(Basis.IDENTITY, CAPSTAN_AT + Vector3(0, 0.37, 0)))
-	for s in ShipCabin.solids(layout, layout.tier):
+	_shape(capstan, Transform3D(Basis.IDENTITY, layout.capstan_at + Vector3(0, 0.37, 0)))
+	for s in ShipCabin.solids(layout, layout.tier) + ShipRooms.hold_solids(layout):
 		_box_at(s[0], s[1])
 	_box_at(_bench_at() + Vector3(0, Workbench.TOP * 0.5, 0), Vector3(Workbench.W, Workbench.TOP, Workbench.D))
 	_box_at(_shelf_at() + Vector3(0, BookModels.SHELF_H * 0.5, BookModels.SHELF_D * 0.5), Vector3(BookModels.SHELF_W, BookModels.SHELF_H, BookModels.SHELF_D))
@@ -1372,21 +1386,57 @@ func _build_psx_model() -> void:
 	_build_rig(canvas, wood)
 	_build_climbing()
 	_build_anchor(wood)
-	# the bilge pump by the mast
-	var pmb := MeshBuilder.new()
-	pmb.add_box(wood, Transform3D(Basis(), PUMP_AT + Vector3(0, 0.35, 0)), Vector3(0.3, 0.7, 0.3), 1.0)
-	pmb.add_box(trim, Transform3D(Basis(), PUMP_AT + Vector3(0, 0.75, 0)), Vector3(0.12, 0.12, 0.7), 1.0)
-	pmb.add_box(trim, Transform3D(Basis(), PUMP_AT + Vector3(0.18, 0.55, 0)), Vector3(0.08, 0.08, 0.22), 1.0)
-	ship_model.add_child(pmb.to_instance("Pump"))
+	_build_pump(wood, trim)
 	_dmg_rng.randomize()
 	_build_flag()
 	_figure_node = Node3D.new()
 	_figure_node.name = "Figurehead"
-	_figure_node.position = Vector3(0, 0.2, -12.7)
-	_figure_node.scale = Vector3.ONE * 2.0
 	ship_model.add_child(_figure_node)
+	_place_figure()
 	_build_storage()
 	_build_puddles()
+
+
+## The bilge pump by the mast.
+func _build_pump(wood: Material, trim: Material) -> void:
+	var pmb := MeshBuilder.new()
+	pmb.add_box(wood, Transform3D(Basis(), layout.pump_at + Vector3(0, 0.35, 0)), Vector3(0.3, 0.7, 0.3), 1.0)
+	pmb.add_box(trim, Transform3D(Basis(), layout.pump_at + Vector3(0, 0.75, 0)), Vector3(0.12, 0.12, 0.7), 1.0)
+	pmb.add_box(trim, Transform3D(Basis(), layout.pump_at + Vector3(0.18, 0.55, 0)), Vector3(0.08, 0.08, 0.22), 1.0)
+	ship_model.add_child(pmb.to_instance("Pump"))
+
+
+func _place_figure() -> void:
+	_figure_node.position = layout.figure_at
+	_figure_node.scale = Vector3.ONE * layout.figure_k
+
+
+## (1.30) A different hull (her class changed at a shipyard, on every screen): what the old one carried goes and is
+## built again on the new one (the rig and its masts, the climbing, the anchor and capstan, the pump, the puddles, the
+## guns), then her layout's own (_relayout). The upgrade lines' pieces come back with the next ShipParts.apply.
+func _refit_class(want: HullLayout) -> void:
+	parts.strip()
+	for n in ["Rig", "RiggingS", "RiggingP", "Anchor", "Chain", "Capstan", "DeckChain", "Pump", "Puddles"]:
+		ship_model.get_node(n).free()
+	for r in _rigs:
+		(r[0] as Node).free()
+	_rigs.clear()
+	_tears.clear()
+	for c in cannons:
+		(c as Node).free()
+	cannons.clear()
+	layout = want
+	var wood := PSXMat.lit("bark")
+	_build_rig(_canvas_mat, wood)
+	_build_climbing()
+	_build_anchor(wood)
+	_build_pump(wood, PSXMat.lit("planks", Color(0.85, 0.65, 0.35)))
+	_build_puddles()
+	_place_figure()
+	_relayout()
+	_build_cannons()
+	_rebuild_tears()
+	(ship_camera.get_node("SpringArm3D") as SpringArm3D).spring_length = layout.cam_arm
 
 
 ## Everything her layout places (Ship.layout: her class's and her Quarters level's), under _layout_root: the hull,
@@ -1404,8 +1454,9 @@ func _build_layout() -> void:
 	HullBuilder.hull(mb, {"hull": _hull_mat, "deck": _deck_mat, "trim": _trim_mat, "wood": _spar_mat, "rope": PSXMat.lit("rope")}, true, layout)
 	# windows either side of the cabin door, the stern lantern
 	for sx in [-2.0, 2.0]:
-		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(0, layout.qd_y + 1.3, layout.qd_back + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
+		mb.add_box(glass, Transform3D(Basis(), Vector3(sx * layout.kx, DECK_Y + 1.5, layout.qd_front - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
+	var top := layout.poop_y if layout.has_poop() else layout.qd_y
+	mb.add_box(glass, Transform3D(Basis(), Vector3(0, top + 1.3, layout.qd_back + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
 	_psx_model = mb.to_instance("PSXModel")
 	_layout_root.add_child(_psx_model)
 	_wet_overrides()
@@ -1428,6 +1479,7 @@ func _build_layout() -> void:
 	helm_position.position = Vector3(0, layout.qd_y + 0.01, layout.helm_z)
 	helm_zone.position = Vector3(0, layout.qd_y + 0.18, layout.helm_z)
 	respawn_point.position = layout.bed_at + Vector3(1.15, 0.23, -0.05)
+	disembark_position.position = layout.map(Vector3(0, 0.5, -6.0))
 
 
 ## A new layout (her Quarters level changed at the yard, every screen): what it built goes and is built again, and
@@ -1440,10 +1492,11 @@ func _relayout() -> void:
 	for n in ["LadderStarboard", "LadderPort", "GalleyTable"]:
 		ship_model.get_node(n).free()
 	_build_layout()
+	var ai := _aft_pair()
 	for c in cannons:
 		var cn := c as Node3D
-		if cn.name in ["CannonS2", "CannonP2"]:
-			cn.position.y = float(layout.gun_spots[2][2])
+		if cn.name in ["CannonS%d" % ai, "CannonP%d" % ai]:
+			cn.position.y = float(layout.gun_spots[ai][2])
 	var old := ship_model.get_node_or_null("Mizzen")
 	if old:
 		old.free()
@@ -1520,8 +1573,8 @@ func _build_cabin() -> void:
 	for s in ShipCabin.seats(layout, layout.tier):
 		Seat.add(_layout_root, s[0], s[1], s[2])
 	Seat.add(_layout_root, layout.storage_at + Vector3(-0.4, 0.6, 1.0), 0.6)
-	Seat.add(_layout_root, Vector3(2.1, DECK_Y + 0.6, -0.4), 0.6, Vector3(-1, 0, 0))
-	Seat.add(_layout_root, Vector3(-2.2, DECK_Y + 0.5, -4.5), 0.5, Vector3(1, 0, 0))
+	for s in layout.deck_seats:
+		Seat.add(_layout_root, s[0], s[1], s[2])
 	# (1.28) the tinker's workbench on deck, against the cabin front under the port window (Workbench)
 	# (solid as one of her own shapes: a body of its own aboard would stop her dead; _build_collision)
 	Workbench.place(_layout_root, _bench_at(), 0.0, {"style": "ship", "solid": false})
@@ -1531,10 +1584,30 @@ func _build_cabin() -> void:
 	_cabin_light.name = "CabinLight"
 	_cabin_light.light_color = Color(1.0, 0.75, 0.45)
 	_cabin_light.light_energy = 1.4
-	_cabin_light.omni_range = 6.5
+	_cabin_light.omni_range = 8.5 if layout.rooms else 6.5
 	_cabin_light.shadow_enabled = false
 	_cabin_light.position = ShipCabin.lamp_at(layout, layout.tier) + Vector3(0, -0.15, 0)
 	_layout_root.add_child(_cabin_light)
+	# (1.30) the brig's and galleon's other rooms' lamps (they hide with the cabin), and the galleon's gun deck below
+	# (its own mesh and light, shown while a camera's near it)
+	for at in ShipRooms.lamps(layout):
+		var l := _cabin_light.duplicate() as OmniLight3D
+		l.position = at
+		_cabin_mesh.add_child(l)
+	_hold_mesh = null
+	_hold_light = null
+	if layout.has_lower():
+		_hold_mesh = (ShipRooms.hold(layout) as MeshBuilder).to_instance("GunDeck")
+		_hold_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_hold_mesh.visibility_range_end = 60.0
+		_layout_root.add_child(_hold_mesh)
+		_hold_light = _cabin_light.duplicate() as OmniLight3D
+		_hold_light.omni_range = (layout.lower_back - layout.lower_front) * 0.6
+		_hold_light.light_energy = 1.2
+		_hold_light.position = Vector3(0, layout.deck_y - 0.6, (layout.lower_front + layout.lower_back) * 0.5)
+		_layout_root.add_child(_hold_light)
+		for n in [_hold_mesh, _hold_light]:
+			(n as Node3D).visible = false
 	# (hidden until _show_cabin finds a camera near, next frame)
 	for n in [_cabin_mesh, _cabin_fine, _cabin_light]:
 		(n as Node3D).visible = false
@@ -1568,7 +1641,11 @@ func _show_cabin(delta: float) -> void:
 	var on := false
 	if cam:
 		var l := ship_model.to_local(cam.global_position)
-		on = absf(l.x) < layout.cabin_hw + 1.5 and l.z > layout.qd_front - 6.0 and l.z < layout.qd_back + 0.5 and l.y < layout.qd_y + 0.5
+		var top := layout.poop_y if layout.has_poop() else layout.qd_y
+		on = absf(l.x) < layout.cabin_hw + 1.5 and l.z > layout.qd_front - 6.0 and l.z < layout.qd_back + 0.5 and l.y < top + 0.5
+		if _hold_mesh:
+			_hold_mesh.visible = absf(l.x) < layout.half_beam + 1.0 and l.z > layout.lower_front - 3.0 and l.z < layout.lower_back + 1.0 and l.y < layout.deck_y + 2.6
+			_hold_light.visible = _hold_mesh.visible
 	_cabin_mesh.visible = on
 	_cabin_fine.visible = on
 	_cabin_light.visible = on
@@ -1796,8 +1873,11 @@ func apply_kit(k: Dictionary) -> void:
 	# (her class and her Quarters level: her layout, 1.29)
 	var want := HullLayout.for_kit(kit)
 	if want != layout:
-		layout = want
-		_relayout()
+		if want.rings != layout.rings:
+			_refit_class(want)
+		else:
+			layout = want
+			_relayout()
 	# (her class over her upgrades: ShipClasses, 1.21)
 	var sc := ShipClasses.of(kit)
 	var was := max_hull
@@ -1806,12 +1886,13 @@ func apply_kit(k: Dictionary) -> void:
 	_top_k = 1.0 + ShipLines.total(kit, "speed") + float(sc["speed"])
 	_turn_k = 1.0 + ShipLines.total(kit, "turn") + float(sc["turn"])
 	_accel_k = 1.0 + float(sc["accel"])
-	var aft := get_node_or_null("ShipModel/CannonS2") != null
+	var ai := _aft_pair()
+	var aft := get_node_or_null("ShipModel/CannonS%d" % ai) != null
 	var aft_ok: bool = ShipLines.total(kit, "guns") >= 1.0 and bool(sc["aft_guns"])
 	if aft_ok and not aft:
-		_add_gun_pair(2)
+		_add_gun_pair(ai)
 	elif not aft_ok and aft:
-		for n in ["CannonS2", "CannonP2"]:
+		for n in ["CannonS%d" % ai, "CannonP%d" % ai]:
 			var c := ship_model.get_node(n)
 			cannons.erase(c)
 			c.free()
@@ -1822,7 +1903,7 @@ func apply_kit(k: Dictionary) -> void:
 		bow.name = "CannonBow"
 		bow.ship = self
 		bow.team = "crew"
-		bow.position = ShipParts.CHASER_AT
+		bow.position = layout.map(ShipParts.CHASER_AT)
 		ship_model.add_child(bow)
 		cannons.append(bow)
 	elif not chaser_ok and bow:
@@ -1850,6 +1931,8 @@ func apply_kit(k: Dictionary) -> void:
 	_repaint(_trim_mat, ShipKit.RAILS[int(kit["rail"])][1])
 	var spars := _repaint(_spar_mat, ShipKit.SPARS[int(kit["spar"])][1])
 	_yard_node.material_override = spars
+	for e in _rigs:
+		(e[1] as MeshInstance3D).material_override = spars
 	_deck_tint = ShipKit.DECKS[int(kit["deck"])][1]
 	_rain_on_deck(0.0)
 	_stripe(int(kit["stripe"]))
@@ -1857,6 +1940,9 @@ func apply_kit(k: Dictionary) -> void:
 	sails.set_shader_parameter("albedo_color", ShipKit.SAILS[int(kit["sail"])][1])
 	_sail_node.material_override = sails
 	_furl_node.material_override = sails
+	for e in _rigs:
+		(e[2] as MeshInstance3D).material_override = sails
+		(e[3] as MeshInstance3D).material_override = sails
 	_sail_emblem(kit)
 	parts.apply(kit, sails)
 	_mizzen(ShipClasses.class_of(kit) == "caravel", sails)
@@ -1914,7 +2000,7 @@ func _stripe(n: int) -> void:
 	var z := float(st[0]) + 0.02
 	mb.add_box(mat, Transform3D(Basis(), Vector3(0, layout.qd_y + 0.02, z)), Vector3(float(st[1]) * 2.0 - 0.1, 0.14, 0.03), 1.0)
 	for sx in [-3.3, 3.3]:
-		mb.add_box(mat, Transform3D(Basis(Vector3.BACK, PI * 0.25), Vector3(sx, layout.qd_y - 0.45, z)), Vector3(0.32, 0.32, 0.04), 1.0)
+		mb.add_box(mat, Transform3D(Basis(Vector3.BACK, PI * 0.25), Vector3(sx * layout.kx, layout.qd_y - 0.45, z)), Vector3(0.32, 0.32, 0.04), 1.0)
 	var mi := mb.to_instance("Stripe")
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = 400.0
@@ -2025,7 +2111,48 @@ func _build_rig(canvas: Material, wood: Material) -> void:
 	_furl_node = fmb.to_instance("FurledSail")
 	_furl_node.position = top + Vector3(0, -0.12, 0.05) - pivot
 	_rig.add_child(_furl_node)
+	for i in range(layout.masts.size()):
+		_rigs.append(_mast_rig(i + 1, layout.masts[i], canvas, wood))
 	_show_sail(0.0)
+
+
+## Another mast's yard and its square sail (sized to the mast: its yard's width, down to ~3 m over its deck) and the
+## canvas furled on the yard; it braces, sets and furls with the main (_show_sail).
+func _mast_rig(i: int, m: Array, canvas: Material, wood: Material) -> Array:
+	var z := float(m[0])
+	var w := float(m[4])
+	var drop := float(m[3]) - float(m[1]) - 3.2
+	var rig := Node3D.new()
+	rig.name = "Rig%d" % i
+	rig.position = Vector3(0, float(m[3]), z)
+	ship_model.add_child(rig)
+	var ymb := MeshBuilder.new()
+	ymb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(w * 0.5, 0, 0)), 0.12, 0.12, w, 6, 0.8)
+	var yard := ymb.to_instance("Yard")
+	rig.add_child(yard)
+	var hw := w * 0.5 - 0.3
+	var c := [Vector3(-hw, 0, 0), Vector3(hw, 0, 0), Vector3(hw - 0.3, -drop * 0.51, 0.45), Vector3(-hw + 0.3, -drop * 0.51, 0.45),
+		Vector3(hw - 0.6, -drop, 0.1), Vector3(-hw + 0.6, -drop, 0.1)]
+	var smb := MeshBuilder.new()
+	var n := Vector3(0, 0, 1)
+	var dim := Color(0.8, 0.8, 0.75)
+	var u := w / 4.2
+	smb.add_quad(canvas, c[0], c[1], c[2], c[3], Vector2(0, 0), Vector2(u, 0), Vector2(u, 1.0), Vector2(0, 1.0), Color.WHITE, n)
+	smb.add_quad(canvas, c[3], c[2], c[4], c[5], Vector2(0, 1.0), Vector2(u, 1.0), Vector2(u, 2.0), Vector2(0, 2.0), Color.WHITE, n)
+	smb.add_quad(canvas, c[0], c[3], c[2], c[1], Vector2(0, 0), Vector2(0, 1.0), Vector2(u, 1.0), Vector2(u, 0), dim, -n)
+	smb.add_quad(canvas, c[3], c[5], c[4], c[2], Vector2(0, 1.0), Vector2(0, 2.0), Vector2(u, 2.0), Vector2(u, 1.0), dim, -n)
+	var sail := smb.to_instance("Sail")
+	sail.position = Vector3(0, -0.15, 0.25)
+	rig.add_child(sail)
+	var fmb := MeshBuilder.new()
+	fmb.add_cylinder(canvas, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(hw - 0.15, 0, 0)), 0.26, 0.26, hw * 2.0 - 0.3, 6, 0.8)
+	var furl := fmb.to_instance("FurledSail")
+	furl.position = Vector3(0, -0.27, 0.3)
+	rig.add_child(furl)
+	furl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for mi in [yard, sail, furl]:
+		(mi as MeshInstance3D).visibility_range_end = 900.0
+	return [rig, yard, sail, furl]
 
 
 ## The rigging up to the crow's nest (both sides). The swing ropes at the yard's
@@ -2047,12 +2174,19 @@ func _show_sail(delta: float) -> void:
 	_brace = lerp_angle(_brace, clampf(rel * 0.5, -0.8, 0.8), clampf(1.5 * delta, 0.0, 1.0))
 	_rig.rotation.y = _brace
 	var belly := lerpf(0.8, 1.25, clampf((wind_effect() - 1.0) / FAIR_BOOST, 0.0, 1.0))
-	_sail_node.scale = Vector3(rig_scale.x, lerpf(0.03, 1.0, k) * rig_scale.y, belly)
+	var rs := rig_scale * layout.sail_k
+	_sail_node.scale = Vector3(rs.x, lerpf(0.03, 1.0, k) * rs.y, belly)
 	_sail_node.visible = k > 0.01
 	var r := lerpf(1.0, 0.35, k)
-	_furl_node.scale = Vector3(rig_scale.x, r, r)
-	_yard_node.scale.x = rig_scale.x
+	_furl_node.scale = Vector3(rs.x, r, r)
+	_yard_node.scale.x = rig_scale.x * layout.yard_w / 9.0
 	_furl_node.visible = k < 0.98
+	for e in _rigs:
+		(e[0] as Node3D).rotation.y = _brace
+		(e[2] as Node3D).scale = Vector3(1.0, lerpf(0.03, 1.0, k), belly)
+		(e[2] as Node3D).visible = k > 0.01
+		(e[3] as Node3D).scale = Vector3(1.0, r, r)
+		(e[3] as Node3D).visible = k < 0.98
 	parts.show_sail(k)
 
 
@@ -2123,15 +2257,15 @@ func _build_anchor(wood: Material) -> void:
 	amb.add_box(iron, Transform3D(Basis(Vector3.BACK, -0.9), Vector3(-0.2, -0.82, 0)), Vector3(0.08, 0.42, 0.08), 1.0)
 	amb.add_cylinder(iron, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.02, -0.04)), 0.07, 0.07, 0.08, 6, 1.0)
 	_anchor = amb.to_instance("Anchor")
-	_anchor.position = ANCHOR_AT
+	_anchor.position = layout.anchor_at
 	ship_model.add_child(_anchor)
 	# the capstan: a drum with its bars, chain wound round it
 	var cap := MeshBuilder.new()
-	cap.add_cylinder(wood, Transform3D(Basis(), CAPSTAN_AT), 0.32, 0.26, 0.75, 8, 1.0)
-	cap.add_cylinder(iron, Transform3D(Basis(), CAPSTAN_AT + Vector3(0, 0.3, 0)), 0.29, 0.29, 0.14, 8, 1.0)
+	cap.add_cylinder(wood, Transform3D(Basis(), layout.capstan_at), 0.32, 0.26, 0.75, 8, 1.0)
+	cap.add_cylinder(iron, Transform3D(Basis(), layout.capstan_at + Vector3(0, 0.3, 0)), 0.29, 0.29, 0.14, 8, 1.0)
 	for k in range(4):
 		var b := Basis(Vector3.UP, PI * 0.25 * k)
-		cap.add_box(wood, Transform3D(b, CAPSTAN_AT + Vector3(0, 0.66, 0)), Vector3(1.3, 0.06, 0.06), 1.0)
+		cap.add_box(wood, Transform3D(b, layout.capstan_at + Vector3(0, 0.66, 0)), Vector3(1.3, 0.06, 0.06), 1.0)
 	ship_model.add_child(cap.to_instance("Capstan"))
 	# a link, two ways round (they alternate down the chain)
 	var lm := MeshBuilder.new()
@@ -2140,8 +2274,8 @@ func _build_anchor(wood: Material) -> void:
 	var link := lm.commit()
 	# along the deck to the rail (it doesn't move)
 	var deck_chain := MeshBuilder.new()
-	var from := CAPSTAN_AT + Vector3(0, 0.3, 0)
-	var to := ANCHOR_AT + Vector3(-0.15, 0.1, 0.0)
+	var from := layout.capstan_at + Vector3(0, 0.3, 0)
+	var to := layout.anchor_at + Vector3(-0.15, 0.1, 0.0)
 	var n := int(from.distance_to(to) / CHAIN_STEP)
 	var along := Basis.looking_at((to - from).normalized(), Vector3.UP) * Basis(Vector3.RIGHT, PI * 0.5)
 	for i in range(n):
@@ -2152,7 +2286,7 @@ func _build_anchor(wood: Material) -> void:
 	# down to the anchor: links shown as far as it's let go
 	_cable = Node3D.new()
 	_cable.name = "Chain"
-	_cable.position = ANCHOR_AT
+	_cable.position = layout.anchor_at
 	ship_model.add_child(_cable)
 	for i in range(CHAIN_LINKS):
 		var mi := MeshInstance3D.new()
@@ -2168,15 +2302,15 @@ func set_anchored(on: bool) -> void:
 	if anchored == on:
 		return
 	anchored = on
-	FX.sfx("rope", global_transform * ANCHOR_AT, -2.0, 0.05, 0.7 if on else 0.9)
+	FX.sfx("rope", global_transform * layout.anchor_at, -2.0, 0.05, 0.7 if on else 0.9)
 	if on:
-		FX.splash(global_transform * (ANCHOR_AT + Vector3(0, -2.0, 0)), 8, 1.0)
+		FX.splash(global_transform * (layout.anchor_at + Vector3(0, -2.0, 0)), 8, 1.0)
 
 
 func _show_anchor(delta: float) -> void:
 	_anchor_drop = move_toward(_anchor_drop, 1.0 if anchored else 0.0, delta * 0.8)
 	var depth := lerpf(0.0, 5.6, _anchor_drop)
-	_anchor.position = ANCHOR_AT + Vector3(0, -depth, 0)
+	_anchor.position = layout.anchor_at + Vector3(0, -depth, 0)
 	for i in range(_cable.get_child_count()):
 		(_cable.get_child(i) as Node3D).visible = (i + 1) * CHAIN_STEP <= depth + 0.05
 

@@ -1944,7 +1944,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
-		if (event as InputEventKey).ctrl_pressed:
+		if (event as InputEventKey).ctrl_pressed and (event as InputEventKey).shift_pressed:
+			# Ctrl+Shift+F10: the crew's ship the next class (sloop, caravel, brig, galleon), owned for free (1.30)
+			var kit := ShipKit.merged(GameManager.ship_kit)
+			var order: Array = ShipClasses.CLASSES.keys()
+			var cls: String = order[(order.find(ShipClasses.class_of(kit)) + 1) % order.size()]
+			Net.set_ship_kit(ShipClasses.switch_to(kit, cls))
+			_toast("Debug: sailing the %s" % str(ShipClasses.CLASSES[cls]["name"]).to_lower())
+		elif (event as InputEventKey).ctrl_pressed:
 			# Ctrl+F10: the ship alongside the next chain island's pier, you on the pier
 			_debug_to_next_island()
 		elif (event as InputEventKey).alt_pressed:

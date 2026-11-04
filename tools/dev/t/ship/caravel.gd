@@ -2,7 +2,8 @@ extends SceneTree
 ## The caravel (ShipClasses, 1.21 piece 5): buying her short of the price changes nothing and says what's short; with
 ## it, the gold and the materials go and she's the crew's ship: faster (13 m/s top), quicker to turn and off the mark,
 ## a lighter hull (340), a bow chaser fitted, no quarterdeck guns even with that line bought, four more bag slots, her
-## lateen mizzen up; the sloop laid up keeps her own upgrades and paint and has them again when she's taken out.
+## lateen mizzen up; the sloop laid up keeps her own upgrades and has them again when she's taken out; the paint goes
+## with the crew from ship to ship (1.30).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -54,7 +55,7 @@ func _process(_d: float) -> bool:
 			check("a bow chaser fitted, no quarterdeck guns", ship.get_node_or_null("ShipModel/CannonBow") != null and ship.get_node_or_null("ShipModel/CannonS2") == null)
 			check("four more bag slots", load("res://scripts/loot/inventory_component.gd").bonus_slots == 4)
 			check("her lateen mizzen up", ship.get_node_or_null("ShipModel/Mizzen") != null)
-			check("fresh: none of the sloop's upgrades or paint", int(ship.kit["guns"]) == 0 and int(ship.kit["sail"]) == 0)
+			check("fresh: none of the sloop's upgrades, her paint carried over (1.30)", int(ship.kit["guns"]) == 0 and int(ship.kit["sail"]) == 2)
 			menu._ship_event("switch", "sloop")
 			until = TK.wait_ticks(2)
 		3:

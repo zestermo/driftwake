@@ -37,27 +37,31 @@ static func crew(model: Node3D, L: HullLayout) -> void:
 	var wood := PSXMat.lit("planks_dark")
 	var dy := L.deck_y
 	# the stern: a lantern on a post at each of the quarterdeck's aft corners, one light over the helm
+	# (the galleon's on her poop, over the stateroom)
+	var top := L.poop_y if L.has_poop() else L.qd_y
 	for sx in [-3.2, 3.2]:
-		var foot := Vector3(sx, L.qd_y + 0.9, L.qd_back - 0.3)
+		var foot := Vector3(sx * L.kx, top + 0.9, L.qd_back - 0.3)
 		mb.add_box(wood, Transform3D(Basis.IDENTITY, foot - Vector3(0, 0.45, 0)), Vector3(0.13, 0.9, 0.13), 1.0)
 		lantern(mb, Transform3D(Basis.IDENTITY, foot), 1.15, iron, glass)
-	_light(model, Vector3(0, L.qd_y + 1.4, L.qd_back - 1.0), 1.3, 11.0)
+	_light(model, Vector3(0, L.qd_y + 1.4, minf(L.qd_back, L.poop_front) - 1.0), 1.3, 11.0)
 	# the mast: hung on its aft side over the main deck
 	var m := _hung(mb, Vector3(0, dy + 3.05, L.mast_z + 0.15), Vector3(0, dy + 3.05, L.mast_z + 0.6), iron, glass, wood)
 	_light(model, m, 1.4, 12.0)
 	# the bow: on a post at the stem
-	var bow := Vector3(0, dy + 1.2, -9.4)
-	mb.add_box(wood, Transform3D(Basis.IDENTITY, Vector3(0, dy + 0.6, -9.4)), Vector3(0.14, 1.2, 0.14), 1.0)
+	var bz := -9.4 * L.kz
+	var bow := Vector3(0, dy + 1.2, bz)
+	mb.add_box(wood, Transform3D(Basis.IDENTITY, Vector3(0, dy + 0.6, bz)), Vector3(0.14, 1.2, 0.14), 1.0)
 	lantern(mb, Transform3D(Basis.IDENTITY, bow), 1.0, iron, glass)
 	_light(model, bow + Vector3(0, 0.3, 0.6), 1.1, 9.0)
 	# the cabin door: one either side on the quarterdeck's front wall, one light between
 	for sx in [-1.25, 1.25]:
-		var wall := Vector3(sx, dy + 2.0, L.qd_front - 0.02)
+		var wall := Vector3(sx * L.kx, dy + 2.0, L.qd_front - 0.02)
 		_hung(mb, wall, wall + Vector3(0, 0, -0.35), iron, glass, wood)
 	_light(model, Vector3(0, dy + 1.8, L.qd_front - 0.8), 1.0, 8.0)
 	# the rail amidships (between the shrouds and the stairs), both sides: a stanchion, hung inboard
 	for sgn in [-1.0, 1.0]:
-		var post := Vector3(sgn * (L.half_width(0.0) - 0.02), dy, 0.0)
+		var pz := 1.2 * (L.kz - 1.0)
+		var post := Vector3(sgn * (L.half_width(pz) - 0.02), dy, pz)
 		mb.add_box(wood, Transform3D(Basis.IDENTITY, post + Vector3(0, 0.8, 0)), Vector3(0.14, 1.6, 0.14), 1.0)
 		var r := _hung(mb, post + Vector3(0, 1.5, 0), post + Vector3(-sgn * 0.4, 1.5, 0), iron, glass, wood)
 		_light(model, r - Vector3(sgn * 0.3, 0, 0), 0.8, 7.0)

@@ -36,13 +36,16 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 		mb.add_quad(hull_m, a_bl, a_br, b_br, b_bl, _plank_uv(a_bl), _plank_uv(a_br), _plank_uv(b_br), _plank_uv(b_bl), Color(0.7, 0.7, 0.7), Vector3.DOWN)
 		# (under the quarterdeck the floor is the cabin's)
 		var fy := L.cabin_y if castle else L.deck_y
-		_deck_quad(mb, deck_m, Vector3(-a[1] + 0.1, fy, a[0]), Vector3(a[1] - 0.1, fy, a[0]), Vector3(b[1] - 0.1, fy, b[0]), Vector3(-b[1] + 0.1, fy, b[0]), Color.WHITE, Vector3.UP)
+		if castle or L.hatch.is_empty():
+			_deck_quad(mb, deck_m, Vector3(-a[1] + 0.1, fy, a[0]), Vector3(a[1] - 0.1, fy, a[0]), Vector3(b[1] - 0.1, fy, b[0]), Vector3(-b[1] + 0.1, fy, b[0]), Color.WHITE, Vector3.UP)
+		else:
+			HullDecks.deck_around_hatch(mb, deck_m, L, float(a[0]), float(b[0]), fy, false)
 		if castle:
-			# the stern castle: the hull's sides carry on up to the quarterdeck
+			# the stern castle: the hull's sides carry on up to the quarterdeck (and the poop, over it)
 			for sgn in [-1.0, 1.0]:
 				var p0 := Vector3(sgn * float(a[1]), float(a[3]), float(a[0]))
 				var p1 := Vector3(sgn * float(b[1]), float(b[3]), float(b[0]))
-				var up := Vector3(0, L.qd_y + 0.1, 0)
+				var up := Vector3(0, (L.poop_y if float(b[0]) >= L.poop_front - 0.001 else L.qd_y) + 0.1, 0)
 				var p2 := Vector3(p1.x, up.y, p1.z)
 				var p3 := Vector3(p0.x, up.y, p0.z)
 				mb.add_quad(hull_m, p0, p1, p2, p3, _side_uv(p0), _side_uv(p1), _side_uv(p2), _side_uv(p3), Color.WHITE, Vector3(sgn, 0, 0))
@@ -61,7 +64,8 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 			mb.add_quad(hull_m, q0, q1, q2, q3, _side_uv(q0), _side_uv(q1), _side_uv(q2), _side_uv(q3), Color(0.8, 0.8, 0.8), Vector3(-sgn, 0, 0))
 	# the transom, up to the quarterdeck rail
 	var st: Array = L.rings[0]
-	var t0 := Vector3(-st[1], L.qd_y + 0.1, st[0]); var t1 := Vector3(st[1], L.qd_y + 0.1, st[0])
+	var ty := (L.poop_y if L.has_poop() else L.qd_y) + 0.1
+	var t0 := Vector3(-st[1], ty, st[0]); var t1 := Vector3(st[1], ty, st[0])
 	var t2 := Vector3(st[1], st[3], st[0]); var t3 := Vector3(-st[1], st[3], st[0])
 	var t4 := Vector3(st[2], st[4], st[0]); var t5 := Vector3(-st[2], st[4], st[0])
 	mb.add_quad(hull_m, t0, t1, t2, t3, _transom_uv(t0), _transom_uv(t1), _transom_uv(t2), _transom_uv(t3), Color.WHITE, Vector3.BACK)
@@ -77,17 +81,22 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 		Vector2(0, 0), Vector2(0.4, 0), Vector2(0.4, 0.5), Vector2(0, 0.5), Color(0.8, 0.8, 0.8), Vector3.BACK)
 	mb.add_box(trim, Transform3D(Basis(), Vector3(0, btop, bz - 0.02)), Vector3(float(bw[1]) * 2.0 + 0.2, 0.14, 0.2), 1.0)
 	mb.add_box(trim, Transform3D(Basis(), Vector3(0, (btop + 0.1 + float(bw[4])) * 0.5, bz - 0.08)), Vector3(0.26, btop + 0.1 - float(bw[4]), 0.16), 1.0)
-	for z in [-9.5, -6.0, -3.0, 0.0, 3.0]:
+	for z in L.stanchions:
 		for sgn in [-1.0, 1.0]:
 			mb.add_box(trim, Transform3D(Basis(), Vector3(sgn * (L.half_width(z) - 0.02), L.deck_y + 0.3, z)), Vector3(0.14, 0.6, 0.14), 1.0)
 	_quarterdeck(mb, m, L)
 	_stairs(mb, m, L)
+	if L.has_poop():
+		var V := L.castle_view()
+		_quarterdeck(mb, m, V)
+		_stairs(mb, m, V)
 	# bowsprit
-	mb.add_cylinder(wood, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-70)), Vector3(0, 1.05, -12.3)), 0.15, 0.09, 4.5, 6, 0.8)
+	mb.add_cylinder(wood, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-70)), L.sprit_at), 0.15 * sqrt(L.kx), 0.09 * sqrt(L.kx), L.sprit_len, 6, 0.8)
+	HullDecks.hull(mb, m, L, rig)
 	if not rig:
 		return
 	# the mast, the crow's nest at its head, and the rigging up to it
-	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, L.deck_y - 0.02, L.mast_z)), 0.3, 0.17, L.mast_top - L.deck_y, 8, 0.8)
+	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, L.deck_y - 0.02, L.mast_z)), L.mast_r, L.mast_r - 0.13, L.mast_top - L.deck_y, 8, 0.8)
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, L.nest_y - 0.12, L.mast_z)), L.nest_r, L.nest_r, 0.14, 12, 1.0, Color.WHITE, true, true)
 	for k in L.nest_rail():
 		mb.add_box(trim, Transform3D(Basis(Vector3.UP, -float(k)), L.nest_rail_at(float(k))), Vector3(0.08, 0.9, L.nest_r * 0.55), 1.0)
@@ -104,8 +113,8 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true, L: HullLayout
 			var w := lerpf(0.55 * 1.6, 0.25, k)
 			_line(mb, rope, c + Vector3(0, 0, -w), c + Vector3(0, 0, w), 0.035)
 		# a forestay-ish line to the bow and a backstay to the quarterdeck
-		_line(mb, rope, Vector3(sgn * 0.1, L.mast_top - 0.3, L.mast_z), Vector3(sgn * 0.1, 1.5, -12.0), 0.04)
-		_line(mb, rope, Vector3(sgn * 0.1, L.mast_top - 0.3, L.mast_z), Vector3(sgn * 3.6, L.qd_y + 0.8, L.qd_back - 0.4), 0.04)
+		_line(mb, rope, Vector3(sgn * 0.1, L.mast_top - 0.3, L.mast_z), Vector3(sgn * 0.1, L.sprit_at.y + 0.45, L.stay_z), 0.04)
+		_line(mb, rope, Vector3(sgn * 0.1, L.mast_top - 0.3, L.mast_z), Vector3(sgn * 3.6 * L.kx, (L.poop_y if L.has_poop() else L.qd_y) + 0.8, L.qd_back - 0.4), 0.04)
 
 
 ## The hull's lengths between its rings, split where the quarterdeck starts: [aft ring, fore ring, under the
@@ -116,6 +125,8 @@ static func _segments(L: HullLayout) -> Array:
 		zs.append(float(r[0]))
 	if not zs.has(L.qd_front):
 		zs.append(L.qd_front)
+	if L.has_poop():
+		zs.append(L.poop_front)
 	zs.sort()
 	zs.reverse()
 	var out: Array = []
@@ -194,21 +205,25 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary, L: HullLayout) -> void:
 	# beams under the ceiling, every 1.4 m forward from the stern
 	for z in beams(L):
 		mb.add_box(hull_m, Transform3D(Basis(), Vector3(0, L.qd_y - 0.2, z)), Vector3(L.cabin_hw * 2.0, 0.16, 0.18), 1.0, Color.WHITE, false, false)
-	# quarterdeck rails: round the sides and stern, and along its front edge
+	# quarterdeck rails: round the sides and stern (as far as the poop, where there's one), and along its front edge
 	# between the stairheads
+	var rb := minf(L.qd_back, L.poop_front)
+	var hr := L.half_width(rb)
 	for sgn in [-1.0, 1.0]:
 		var p0 := Vector3(sgn * (hf - 0.02), L.qd_y + 0.8, zf)
-		var p1 := Vector3(sgn * (hb - 0.02), L.qd_y + 0.8, L.qd_back)
+		var p1 := Vector3(sgn * (hr - 0.02), L.qd_y + 0.8, rb)
 		var d := p1 - p0
 		mb.add_box(trim, Transform3D(Basis.looking_at(d.normalized(), Vector3.UP), (p0 + p1) * 0.5), Vector3(0.14, 0.12, d.length() + 0.1), 1.0)
 		for k in range(4):
 			var p := p0.lerp(p1, (k + 0.5) / 4.0)
 			mb.add_box(trim, Transform3D(Basis(), Vector3(p.x, L.qd_y + 0.4, p.z)), Vector3(0.1, 0.8, 0.1), 1.0)
-	mb.add_box(trim, Transform3D(Basis(), Vector3(0, L.qd_y + 0.8, L.qd_back - 0.05)), Vector3(hb * 2.0, 0.12, 0.14), 1.0)
+	if not L.has_poop():
+		mb.add_box(trim, Transform3D(Basis(), Vector3(0, L.qd_y + 0.8, L.qd_back - 0.05)), Vector3(hb * 2.0, 0.12, 0.14), 1.0)
 	mb.add_box(trim, Transform3D(Basis(), Vector3(0, L.qd_y + 0.8, zf + 0.05)), Vector3(L.stair_x0 * 2.0, 0.12, 0.12), 1.0)
-	for x in [-2.6, -1.3, 0.0, 1.3, 2.6]:
+	for x in L.qd_posts:
 		mb.add_box(trim, Transform3D(Basis(), Vector3(x, L.qd_y + 0.4, zf + 0.05)), Vector3(0.1, 0.8, 0.1), 1.0)
-		mb.add_box(trim, Transform3D(Basis(), Vector3(x * 1.4, L.qd_y + 0.4, L.qd_back - 0.05)), Vector3(0.1, 0.8, 0.1), 1.0)
+		if not L.has_poop():
+			mb.add_box(trim, Transform3D(Basis(), Vector3(x * 1.4, L.qd_y + 0.4, L.qd_back - 0.05)), Vector3(0.1, 0.8, 0.1), 1.0)
 
 
 ## The cabin's deck beams' z (forward to aft).
@@ -463,7 +478,9 @@ static func marine_material() -> ShaderMaterial:
 ## and its rails, the stairs, and (rig) the mast and the crow's nest.
 static func collide(body: CollisionObject3D, rig: bool = true, L: HullLayout = HullLayout.base()) -> void:
 	var zf := L.qd_front
-	if L.cabin_y < L.deck_y:
+	if L.has_lower():
+		HullDecks.volume(body, L)
+	elif L.cabin_y < L.deck_y:
 		# a stepped-down cabin: the hull's volume tops out at the main deck forward of it and at the cabin's floor
 		# under it, a ramp down over the steps inside the door
 		var cut: Array = _ring(L, zf)
@@ -487,6 +504,31 @@ static func collide(body: CollisionObject3D, rig: bool = true, L: HullLayout = H
 			_box(body, Vector3(sgn * (float(a[1]) - 0.05), L.deck_y + 0.4, float(a[0])), Vector3(sgn * (float(b[1]) - 0.05), L.deck_y + 0.4, float(b[0])), 0.18, 0.8)
 	var bw: Array = L.rings[L.rings.size() - 1]
 	_cbox(body, Vector3(0, L.deck_y + 0.4, float(bw[0])), Vector3(float(bw[1]) * 2.0 + 0.3, 0.8, 0.2))
+	_castle(body, L)
+	if L.has_poop():
+		_castle(body, L.castle_view())
+	HullDecks.collide(body, L, rig)
+	if not rig:
+		return
+	# the mast and the crow's nest (floor and a rail with gaps for the rigging)
+	var mast := CylinderShape3D.new()
+	mast.radius = L.mast_r - 0.02
+	mast.height = L.mast_top - L.deck_y
+	_shape(body, mast, Transform3D(Basis.IDENTITY, Vector3(0, (L.mast_top + L.deck_y) * 0.5, L.mast_z)))
+	var nest := CylinderShape3D.new()
+	nest.radius = L.nest_r
+	nest.height = 0.14
+	_shape(body, nest, Transform3D(Basis.IDENTITY, Vector3(0, L.nest_y - 0.12, L.mast_z)))
+	for k in L.nest_rail():
+		var bx := BoxShape3D.new()
+		bx.size = Vector3(0.1, 0.9, L.nest_r * 0.6)
+		_shape(body, bx, Transform3D(Basis(Vector3.UP, -float(k)), L.nest_rail_at(float(k))))
+
+
+## The cabin's walls round the door, the quarterdeck over it, its rails and the stairs up to it (and, with the poop's
+## view of the layout: L.castle_view, the stateroom, the poop over it and its stairs).
+static func _castle(body: CollisionObject3D, L: HullLayout) -> void:
+	var zf := L.qd_front
 	# (the walls stand on the cabin's floor; the lintel over the door from the main deck)
 	var wall_h := L.qd_y - L.cabin_y
 	var wy := L.cabin_y + wall_h * 0.5
@@ -505,10 +547,12 @@ static func collide(body: CollisionObject3D, rig: bool = true, L: HullLayout = H
 	slab.points = PackedVector3Array([Vector3(-hf, L.qd_y, zf), Vector3(hf, L.qd_y, zf), Vector3(-hb, L.qd_y, L.qd_back), Vector3(hb, L.qd_y, L.qd_back),
 		Vector3(-hf, L.qd_y - 0.12, zf), Vector3(hf, L.qd_y - 0.12, zf), Vector3(-hb, L.qd_y - 0.12, L.qd_back), Vector3(hb, L.qd_y - 0.12, L.qd_back)])
 	_shape(body, slab, Transform3D.IDENTITY)
-	# its rails: sides, stern, and the front edge between the stairheads
+	# its rails: sides, stern, and the front edge between the stairheads (to the poop, where there's one)
+	var rb := minf(L.qd_back, L.poop_front)
 	for sgn in [-1.0, 1.0]:
-		_box(body, Vector3(sgn * (hf - 0.05), L.qd_y + 0.45, zf), Vector3(sgn * (hb - 0.05), L.qd_y + 0.45, L.qd_back), 0.18, 0.9)
-	_cbox(body, Vector3(0, L.qd_y + 0.45, L.qd_back - 0.05), Vector3(hb * 2.0, 0.9, 0.18))
+		_box(body, Vector3(sgn * (hf - 0.05), L.qd_y + 0.45, zf), Vector3(sgn * (L.half_width(rb) - 0.05), L.qd_y + 0.45, rb), 0.18, 0.9)
+	if not L.has_poop():
+		_cbox(body, Vector3(0, L.qd_y + 0.45, L.qd_back - 0.05), Vector3(hb * 2.0, 0.9, 0.18))
 	_cbox(body, Vector3(0, L.qd_y + 0.45, zf + 0.05), Vector3(L.stair_x0 * 2.0, 0.9, 0.16))
 	# the stairs: a wedge each side
 	for sgn in [-1.0, 1.0]:
@@ -520,21 +564,6 @@ static func collide(body: CollisionObject3D, rig: bool = true, L: HullLayout = H
 		_shape(body, wedge, Transform3D.IDENTITY)
 		# the hand rail along the inner side (don't step off the side mid-flight)
 		_box(body, Vector3(sgn * (L.stair_x0 - 0.05), L.deck_y + 0.9, L.stair_z0 + 0.2), Vector3(sgn * (L.stair_x0 - 0.05), L.qd_y + 0.8, zf), 0.1, 0.5)
-	if not rig:
-		return
-	# the mast and the crow's nest (floor and a rail with gaps for the rigging)
-	var mast := CylinderShape3D.new()
-	mast.radius = 0.28
-	mast.height = L.mast_top - L.deck_y
-	_shape(body, mast, Transform3D(Basis.IDENTITY, Vector3(0, (L.mast_top + L.deck_y) * 0.5, L.mast_z)))
-	var nest := CylinderShape3D.new()
-	nest.radius = L.nest_r
-	nest.height = 0.14
-	_shape(body, nest, Transform3D(Basis.IDENTITY, Vector3(0, L.nest_y - 0.12, L.mast_z)))
-	for k in L.nest_rail():
-		var bx := BoxShape3D.new()
-		bx.size = Vector3(0.1, 0.9, L.nest_r * 0.6)
-		_shape(body, bx, Transform3D(Basis(Vector3.UP, -float(k)), L.nest_rail_at(float(k))))
 
 
 ## A convex volume of the hull through these sections ([ring, its top y]), keel up.

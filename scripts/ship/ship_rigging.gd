@@ -44,7 +44,7 @@ func _zone(n: String, prompt: String, at: Vector3, reach: float) -> Interactable
 
 ## Where you stand on deck at the foot of the ratlines (ship-local).
 func deck_spot() -> Vector3:
-	return Vector3(side * 3.05, layout.deck_y, layout.mast_z + 0.75)
+	return Vector3(side * (layout.rig_bottom.x - 0.7), layout.deck_y, layout.mast_z + 0.75)
 
 
 ## Where you step off into the crow's nest (ship-local).
