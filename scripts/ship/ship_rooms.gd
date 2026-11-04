@@ -263,8 +263,8 @@ static func _stateroom(mb: MeshBuilder, fine: MeshBuilder, m: Dictionary, L: Hul
 		var l := c + Vector3(cos(a - 0.2), 0.004, sin(a - 0.2)) * 0.22
 		var rr := c + Vector3(cos(a + 0.2), 0.004, sin(a + 0.2)) * 0.22
 		var col := Color(1.0, 0.8, 0.35) if k == 12 else (Color(0.95, 0.9, 0.78) if k % 2 == 0 else Color(0.4, 0.28, 0.2))
-		mb.add_tri(m["tile"], c + Vector3(0, 0.004, 0), rr, tip, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(0.5, 0.5), Vector2(0.6, 0.5), Vector2(0.5, 0), col, Vector3.UP)
-		mb.add_tri(m["tile"], c + Vector3(0, 0.004, 0), tip, l, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(0.5, 0.5), Vector2(0.5, 0), Vector2(0.4, 0.5), col.darkened(0.15), Vector3.UP)
+		mb.add_tri(m["tile"], c + Vector3(0, 0.004, 0), tip, rr, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(0.5, 0.5), Vector2(0.5, 0), Vector2(0.6, 0.5), col, Vector3.UP)
+		mb.add_tri(m["tile"], c + Vector3(0, 0.004, 0), l, tip, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(0.5, 0.5), Vector2(0.4, 0.5), Vector2(0.5, 0), col.darkened(0.15), Vector3.UP)
 	# the chart table on the rose: a chart, dividers, a globe on a stand beside it
 	var t := c + Vector3(0, -0.006, 0)
 	mb.add_box(m["oak"], Transform3D(Basis(), t + Vector3(0, 0.78, 0)), Vector3(1.6, 0.07, 1.0), 1.0)

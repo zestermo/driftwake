@@ -42,13 +42,24 @@ static func fresh() -> Dictionary:
 	return k
 
 
+## (1.30) Her looks: the crew's, whichever ship she is (ShipClasses.switch_to carries them over; a laid-up ship keeps none).
+const LOOKS := ["hull", "sail", "field", "emblem", "mark", "figure", "rail", "spar", "deck", "stripe", "skull", "crossed", "headpiece"]
+
+
 ## A saved kit over the defaults (older saves have none; their one-time
-## refits are bools, each its line's matching level).
+## refits are bools, each its line's matching level). (1.30) A laid-up ship's own looks from before go: the crew's are
+## the ship she sails.
 static func merged(saved: Dictionary) -> Dictionary:
 	var k := fresh()
 	k.merge(saved, true)
 	for id in ShipLines.LINES.keys():
 		k[id] = ShipLines.from_saved(id, k[id])
+	if k.has("fleet"):
+		var fleet: Dictionary = (k["fleet"] as Dictionary).duplicate(true)
+		for c in fleet:
+			for key in LOOKS:
+				(fleet[c] as Dictionary).erase(key)
+		k["fleet"] = fleet
 	return k
 
 

@@ -688,13 +688,18 @@ func _ship_event(action: String, cls: String) -> void:
 	if pl == null or not ShipClasses.CLASSES.has(cls):
 		return
 	var name_: String = ShipClasses.CLASSES[cls]["name"]
+	var was: String = ShipClasses.CLASSES[ShipClasses.class_of(GameManager.ship_kit)]["name"]
 	if action == "buy":
+		var why := ShipClasses.locked_why(cls, ShipClasses.chain_layer(GameManager), GameManager.log_pose_set())
+		if why != "":
+			get_tree().call_group("hud", "show_toast", why)
+			return
 		var short := ShipClasses.short_of(pl.inventory_component, cls)
 		if short != "":
 			get_tree().call_group("hud", "show_toast", "The %s costs %s: you're short %s." % [name_.to_lower(), ShipClasses.price_text(cls), short])
 			return
 		ShipClasses.pay(pl.inventory_component, cls)
-		get_tree().call_group("hud", "show_banner", "A %s of your own!" % name_.to_lower(), "She's at the berth. Your sloop's laid up at the yard, upgrades and all.", true)
+		get_tree().call_group("hud", "show_banner", "A %s of your own!" % name_.to_lower(), "She's at the berth, in your colours. Your %s's laid up at the yard, upgrades and all." % was.to_lower(), true)
 	else:
 		get_tree().call_group("hud", "show_toast", "You'll sail the %s. The other's laid up at the yard." % name_.to_lower())
 	get_node("/root/Net").request_ship(action, cls)

@@ -34,9 +34,8 @@ const GALLEON_AFTER := 6
 ## Sold at the canal city's arsenal (Master Grane), in this order.
 const FOR_SALE := ["caravel", "brig", "galleon"]
 ## What goes with a ship when she's laid up: everything in the kit but these. (1.30) Her paint, colours, flag and
-## figurehead are the crew's, not one ship's: they carry over to whichever she sails (LOOKS).
+## figurehead are the crew's, not one ship's: they carry over to whichever she sails (ShipKit.LOOKS).
 const SHARED := ["class", "fleet"]
-const LOOKS := ["hull", "sail", "field", "emblem", "mark", "figure", "rail", "spar", "deck", "stripe", "skull", "crossed", "headpiece"]
 
 
 static func class_of(kit: Dictionary) -> String:
@@ -66,7 +65,7 @@ static func switch_to(kit: Dictionary, cls: String) -> Dictionary:
 	fleet[cur] = laid
 	var out: Dictionary = fleet.get(cls, ShipKit.fresh()).duplicate(true)
 	fleet.erase(cls)
-	for k in LOOKS:
+	for k in ShipKit.LOOKS:
 		if kit.has(k):
 			out[k] = kit[k]
 	out["class"] = cls
@@ -81,6 +80,15 @@ static func owned(kit: Dictionary) -> Array:
 		if c != out[0] and (kit.get("fleet", {}) as Dictionary).has(c):
 			out.append(c)
 	return out
+
+
+## The chain layer the crew's at (GameManager `gm`; -1 in Brinehollow's sea or outside the world).
+static func chain_layer(gm: Node) -> int:
+	var c: Chain = gm.call("chain")
+	var at := int(gm.get("chain_at"))
+	if c == null or at < 0:
+		return -1
+	return int(c.node(at).get("layer", -1))
 
 
 ## Why `cls` isn't for sale yet ("" when it is): the galleon waits on the chain. `layer`: the chain layer the crew's at

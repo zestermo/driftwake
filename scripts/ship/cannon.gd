@@ -183,8 +183,14 @@ func holder() -> int:
 func _process(delta: float) -> void:
 	# (a gunner's Seamanship reloads the gun they man faster)
 	cool = maxf(cool - delta * (1.0 + Seamanship.station(get_tree(), "gun_reload", ship as Ship) if aiming_locally else 1.0), 0.0)
-	# (an enemy's gun at rest: nothing to move, no transform notifications down the barrel)
-	if interactable == null and not aiming_locally and _recoil <= 0.0 and is_equal_approx(yaw, _yaw_node.rotation.y) and is_equal_approx(pitch, _pitch_node.rotation.x):
+	# (a gun at rest: nothing to move, no transform notifications down the barrel; a crew gun only says if it's free.
+	# The galleon carries twenty of them.)
+	if not aiming_locally and _recoil <= 0.0 and is_equal_approx(yaw, _yaw_node.rotation.y) and is_equal_approx(pitch, _pitch_node.rotation.x):
+		if interactable:
+			var h0 := holder()
+			interactable.enabled = h0 == 0 or h0 == Net.my_id()
+		if _arc and _arc.visible:
+			_arc.visible = false
 		return
 	if _recoil > 0.0:
 		_recoil = maxf(_recoil - delta * 1.6, 0.0)

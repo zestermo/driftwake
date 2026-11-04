@@ -1222,7 +1222,7 @@ func summon_spot(at: Vector3) -> Array:
 ## from high up: from sea level the ray would start inside a hillside.)
 func _fits(c: Vector3) -> bool:
 	for k in range(9):
-		var p := c if k == 8 else c + Vector3(cos(TAU * k / 8.0), 0.0, sin(TAU * k / 8.0)) * 12.0
+		var p := c if k == 8 else c + Vector3(cos(TAU * k / 8.0), 0.0, sin(TAU * k / 8.0)) * 12.0 * layout.kz
 		p.y = 80.0
 		if float(Ocean.depth_at(p, [get_rid()], true)) < SUMMON_DEPTH:
 			return false
@@ -1406,6 +1406,13 @@ func _build_pump(wood: Material, trim: Material) -> void:
 	ship_model.add_child(pmb.to_instance("Pump"))
 
 
+## (1.30) How much further off a quay or pier the crew's ship lies than the sloop does (the brig and galleon are wider):
+## every island's mooring() adds it on her open side.
+static func moor_out(tree: SceneTree) -> float:
+	var s := tree.get_first_node_in_group("ship") as Ship
+	return s.layout.half_beam - HALF_BEAM if s else 0.0
+
+
 func _place_figure() -> void:
 	_figure_node.position = layout.figure_at
 	_figure_node.scale = Vector3.ONE * layout.figure_k
@@ -1437,6 +1444,7 @@ func _refit_class(want: HullLayout) -> void:
 	_build_cannons()
 	_rebuild_tears()
 	(ship_camera.get_node("SpringArm3D") as SpringArm3D).spring_length = layout.cam_arm
+	(get_node("ShipSpray") as ShipSpray).fit(layout)
 
 
 ## Everything her layout places (Ship.layout: her class's and her Quarters level's), under _layout_root: the hull,
