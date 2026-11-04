@@ -74,6 +74,12 @@ func _initialize() -> void:
 
 
 func _process(_d: float) -> bool:
+	# (a windowed first launch opens the character creator: accept the default captain)
+	if not stage.up:
+		var cc := load("res://scripts/ui/character_creator.gd")
+		for n in root.find_children("*", "", true, false):
+			if n.get_script() == cc and n.is_inside_tree():
+				n._finish(true)
 	if not stage.up or TK.ticking(until):
 		return false
 	match step:
