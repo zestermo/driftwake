@@ -4,6 +4,11 @@ class_name FoePoses
 ## (fo_frenzy, fo_lurk, fo_en_garde, fo_guard_walk, fo_parry_ready) are upper-body holds: the legs keep circling.
 
 
+## The rifleman's bayonet thrust: its length and when the point lands (s; PirateGrunt's SHOVE state reads them).
+const BAYONET_LEN := 0.75
+const BAYONET_HIT := 0.38
+
+
 static func pose(h, n: String, u: float) -> Array:
 	var lift := Vector3.ZERO
 	var t: float = h._t
@@ -103,4 +108,55 @@ static func pose(h, n: String, u: float) -> Array:
 				"leg_l": Vector3(1.2, 0, -0.12), "shin_l": Vector3(-1.6, 0, 0), "leg_r": Vector3(0.7, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0),
 				"_scale": Vector3.ONE}, true)
 			return [h._keys(u, [[0.0, {}], [0.25, off, "out"], [0.55, off], [0.8, stake, "in"], [1.0, stake]]), "full", lift]
+		"fo_hip_shot":
+			# a quick shot from the hip: side-on, the rifle levelled at the waist (the grunt points the gun itself), the kick
+			var ap: float = h.aim_pitch
+			var hip := {"torso": Vector3(ap * 0.2, -0.55, 0), "head": Vector3(-ap * 0.2, 0.5, 0),
+				"arm_r": Vector3(0.35 + ap, 0.3, 0.3), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
+				"arm_l": Vector3(1.0 + ap, -0.15, 0.05), "fore_l": Vector3(0.6, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+				"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.45, 0, 0), "leg_r": Vector3(-0.3, 0, 0.14), "shin_r": Vector3(-0.35, 0, 0),
+				"_lift": Vector3(0, -0.1, 0)}
+			var kick := hip.merged({"torso": Vector3(ap * 0.2 + 0.2, -0.45, 0), "arm_r": Vector3(0.55 + ap, 0.3, 0.3)}, true)
+			if u < 0.8:
+				return [h._keys(u, [[0.0, {}], [0.25, hip, "out"], [0.8, hip]]), "full", lift]
+			return [h._keys(u, [[0.8, hip], [0.86, kick, "out"], [1.0, hip]]), "full", lift]
+		"fo_kneel_aim":
+			# the kneeling aimed shot: down on the right knee, the left foot planted ahead, the rifle shouldered, still
+			var ap2: float = h.aim_pitch
+			var kneel := {"pivot": Vector3.ZERO, "hips": Vector3(0, 0.25, 0), "torso": Vector3(ap2 * 0.3 - 0.05, -0.45, 0), "head": Vector3(0.15 - ap2 * 0.2, 0.4, 0.1),
+				"arm_r": Vector3(0.75 + ap2, 0.65, 0.4), "fore_r": Vector3(1.65, 0, 0), "hand_r": Vector3(-2.4, 0, 0),
+				"arm_l": Vector3(1.45 + ap2, -0.1, 0.05), "fore_l": Vector3(0.25, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+				"leg_l": Vector3(1.45, 0, -0.15), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-1.95, 0, 0),
+				"_lift": Vector3(0, -0.5, 0)}
+			var kick2 := kneel.merged({"torso": Vector3(ap2 * 0.3 + 0.2, -0.45, 0), "head": Vector3(0.35 - ap2 * 0.2, 0.4, 0.1)}, true)
+			if u < 0.88:
+				return [h._keys(u, [[0.0, {}], [0.15, kneel, "out"], [0.88, kneel]]), "full", lift]
+			return [h._keys(u, [[0.88, kneel], [0.92, kick2, "out"], [1.0, kneel]]), "full", lift]
+		"fo_bayonet":
+			# rushed: the rifle drawn back at the hip (the tell, short), then driven forward point first in a lunge
+			var draw := {"pivot": Vector3.ZERO, "hips": Vector3(0, 0.3, 0), "torso": Vector3(0.05, 0.55, 0), "head": Vector3(0, -0.45, 0),
+				"arm_r": Vector3(-0.2, 0.3, 0.3), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+				"arm_l": Vector3(0.5, 0.3, -0.15), "fore_l": Vector3(1.2, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+				"leg_l": Vector3(0.35, 0, -0.12), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-0.4, 0, 0),
+				"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(1.03, 0.95, 1.0)}
+			var thrust := {"pivot": Vector3.ZERO, "hips": Vector3(0, -0.2, 0), "torso": Vector3(-0.4, -0.3, 0), "head": Vector3(0.3, 0.25, 0),
+				"arm_r": Vector3(1.0, -0.1, 0.2), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(0.0, 0, 0),
+				"arm_l": Vector3(1.45, 0.15, -0.05), "fore_l": Vector3(0.2, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+				"leg_l": Vector3(1.05, 0, -0.1), "shin_l": Vector3(-1.05, 0, 0), "leg_r": Vector3(-0.75, 0, 0.1), "shin_r": Vector3(-0.15, 0, 0),
+				"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(0.97, 1.0, 1.07)}
+			var k: float = BAYONET_HIT / maxf(float(h._action.get("dur", 1.0)), 0.01)
+			return [h._keys(u, [[0.0, {}], [k * 0.6, draw, "out"], [k - 0.04, draw], [k + 0.06, thrust, "out"], [0.8, thrust], [1.0, {}]]), "full", lift]
+		"fo_roll_l", "fo_roll_r":
+			# the dodge roll: tucked, over the shoulder sideways (the body turns about its forward axis), up on the far side
+			var s := -1.0 if n == "fo_roll_l" else 1.0
+			var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.6, 0, 0), "head": Vector3(-0.4, 0, 0),
+				"leg_l": Vector3(1.6, 0, 0), "shin_l": Vector3(-2.1, 0, 0), "leg_r": Vector3(1.5, 0, 0), "shin_r": Vector3(-2.1, 0, 0),
+				"arm_l": Vector3(1.1, 0, -0.25), "fore_l": Vector3(1.6, 0, 0), "arm_r": Vector3(1.1, 0, 0.25), "fore_r": Vector3(1.6, 0, 0)}
+			var tw := sin(clampf(u, 0.0, 1.0) * PI)
+			var pose := {}
+			for j in tuck.keys():
+				pose[j] = (tuck[j] as Vector3) * tw
+			pose["pivot"] = Vector3(0, 0, -s * TAU * clampf((u - 0.1) / 0.75, 0.0, 1.0))
+			lift.y = -0.5 * tw
+			return [pose, "full", lift]
 	return []

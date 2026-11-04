@@ -27,7 +27,7 @@ const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
 const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "gun_kata", "axe_whirl", "axe_flip",
-	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "twin_cyclone", "vault_back"]
+	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "twin_cyclone", "vault_back", "fo_roll_l", "fo_roll_r"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
 var look: Dictionary = {}

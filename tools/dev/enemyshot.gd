@@ -4,7 +4,7 @@ extends SceneTree
 ## Morrow's Tide Rush, the Brood Queen's burrow and a poison puddle. Saves <out>/<scene>_<n>.png.
 ## Args: [out_dir] [scenes, comma-separated] (default res://tools/dev/out/enemies, all)
 const TK = preload("res://tools/dev/test_kit.gd")
-const ALL := ["shove", "sweep", "feint", "dash", "leap", "grell", "morrow", "queen", "puddle"]
+const ALL := ["shove", "sweep", "feint", "dash", "leap", "kneel", "bayonet", "grell", "morrow", "queen", "puddle"]
 var t := 0.0
 var out := "res://tools/dev/out/enemies"
 var todo: Array = ALL.duplicate()
@@ -112,6 +112,29 @@ func _begin(n: String) -> void:
 			foe._jump_at = foe._jump_spot(p)
 			foe._start_jump("leap", p)
 			times = [0.1, 0.4, 0.62, 0.8, 0.95, 1.1, 1.25, 1.5]
+		"kneel", "bayonet":
+			# (1.30) a rifleman's kneeling aimed shot from 10 m, and his bayonet thrust when rushed
+			var s3 = camp.grunts[2]
+			var f3 := Vector3(-sin(s3.post_yaw), 0.0, -cos(s3.post_yaw))
+			for x in camp.grunts:
+				if x.role == "rifle":
+					foe = x
+			_quiet(camp)
+			foe.process_mode = Node.PROCESS_MODE_INHERIT
+			_put(s3.post + f3 * 0.6 + Vector3.UP * 0.3, f3)
+			foe.global_position = s3.post + f3 * (10.6 if n == "kneel" else 3.2) + Vector3.UP * 0.3
+			foe.reset_physics_interpolation()
+			foe.health.heal(999.0)
+			foe.alert()
+			foe._set_state(16)
+			foe._shot_cd = 9.0
+			foe._roll_cd = 9.0
+			if n == "kneel":
+				foe._start_aim("kneel")
+				times = [0.1, 0.5, 1.0, 1.6, 1.95, 2.05, 2.3]
+			else:
+				foe._start_shove(true)
+				times = [0.05, 0.2, 0.3, 0.4, 0.5, 0.7]
 		"grell":
 			var den = isl.get_node("PirateDen")
 			for g in den.grunts:
@@ -177,7 +200,7 @@ func _cam() -> void:
 	var d := b - a
 	d.y = 0.0
 	d = d.normalized() if d.length() > 0.1 else Vector3.FORWARD
-	var far := 9.0 if name_ in ["grell", "morrow", "queen"] else 4.2
+	var far := 9.0 if name_ in ["grell", "morrow", "queen", "kneel"] else 4.2
 	cam.global_position = a - d * far * 0.55 + Vector3.UP * (far * 0.45) + d.cross(Vector3.UP) * 1.2
 	cam.look_at((a + b) * 0.5 + Vector3.UP * 0.6, Vector3.UP)
 

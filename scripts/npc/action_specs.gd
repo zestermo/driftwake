@@ -639,6 +639,11 @@ const SPECS := {
 	"fo_leap": {"len": 0.8, "stance": "sword", "weapon": "cutlass"},
 	"fo_jump_slash": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"fo_dive": {"len": 0.65, "stance": "sword", "weapon": "cutlass"},
+	"fo_hip_shot": {"len": 0.8, "stance": "sword", "weapon": "rifle"},
+	"fo_kneel_aim": {"len": 2.3, "stance": "sword", "weapon": "rifle"},
+	"fo_bayonet": {"len": 0.75, "stance": "sword", "weapon": "rifle"},
+	"fo_roll_l": {"len": 0.6, "stance": "sword", "weapon": "rifle"},
+	"fo_roll_r": {"len": 0.6, "stance": "sword", "weapon": "rifle"},
 }
 
 

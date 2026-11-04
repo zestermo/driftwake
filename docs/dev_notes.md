@@ -10062,3 +10062,21 @@ After the lead's review of piece 1 (bursts small and puffy, the telegraph discs 
     animsheet jump moves), enemyshot's new "leap" strip.
   - Tests: t/combat/jump_attack, ledge_dive, rival_personality; rival_duel now reads its closest approach in the first
     5 s (it may jump in or circle out at the moment it used to sample).
+- **Piece 3, riflemen** (PirateGrunt, role "rifle"; FoePoses fo_hip_shot, fo_kneel_aim, fo_bayonet, fo_roll_l/r):
+  - Hip shot: within HIP_RANGE 6 m (beyond the butt's reach), on its own 4-7 s cooldown: a 0.5 s aim (0.18 s locked),
+    9 x level; back to KEEP (no reposition).
+  - Rushed (within BAYONET_RANGE 3.4 m, the shove's cooldown): the butt stroke (a knockdown, as before) or the bayonet
+    thrust (always past the butt's 3 m): a 0.75 s move, the point lands at 0.38 s, a narrow arc tell, 11 x level, a
+    stagger, no knockdown; the rifle levelled forward while it plays.
+  - Kneeling aimed shot: from KNEEL_FROM 9 m, `_kneel_odds` 30% of its rifle shots: a 2.0 s aim (0.55 s locked), down on
+    one knee with a red glint and a line; 22 x level and a knockdown.
+  - Dodge roll (`_rifle_evade`, every think in KEEP/REPOSITION, ROLL_CD 5-8 s, 55%): a heavy/draw/shot coming its way
+    (`_threat_of`) or a captain charging it within 6 m (> 5 m/s at it): a 0.5 s sideways roll at 7.5 m/s (S.DASH with
+    `_dash_len`/`_dash_speed`, the elites' i-frames), `fo_roll_*` spun about the forward axis (SPIN_ACTIONS).
+  - A side-step hop (35%) each time it changes its strafe; reposition spots on ground above the captain score up to 6 m
+    cheaper; rifle aims jittered (-0.2..+0.35 s) and RIFLE_EVERY +-2.5 s; a ball within VOLLEY_GAP 0.35 s of another
+    rifleman's holds its shot 0.15-0.3 s more (static `_volley_tick`), so a group never fires as one.
+  - Co-op: all host-side; puppets get the poses by play, the aim line by the snapshot (`_gun` "hip"/"kneel" picks the
+    rifle's muzzle), the state ints (no new states).
+  - Cost: think-tick only (the evade check reads the captain's state and the projectiles group, as the elites' dash does).
+  - Tests: t/combat/rifle_moves. Renders: enemyshot "kneel" and "bayonet" strips, posebench tools/dev/out/fo/rf_*.

@@ -181,6 +181,32 @@ var _jump_cd := 0.0
 var _jump_at := Vector3.ZERO
 var _jump_land := -1.0
 var _hit_pounce: HitData
+## (1.30) Riflemen, less predictable: up close a hip shot (HIP_*, a short aim), rushed the bayonet thrust or the butt,
+## now and then a kneeling aimed shot from range (KNEEL_*: the kneel and a red glint the tell, a harder ball that knocks
+## down), a dodge roll out of a heavy, a shot or a charge (ROLL_*), a side-step hop as it changes its strafe, high ground
+## preferred when it moves after a shot, and never two riflemen's balls within VOLLEY_GAP s (the later one waits).
+const HIP_RANGE := 6.0
+const HIP_AIM := 0.5
+const HIP_LOCK := 0.18
+const HIP_CD := Vector2(4.0, 7.0)
+const KNEEL_FROM := 9.0
+const KNEEL_AIM := 2.0
+const KNEEL_LOCK := 0.55
+const KNEEL_TELL := Color(1.0, 0.35, 0.25)
+const BAYONET_RANGE := 3.4
+const ROLL_LEN := 0.5
+const ROLL_SPEED := 7.5
+const ROLL_CD := Vector2(5.0, 8.0)
+const HOP_ODDS := 0.35
+const VOLLEY_GAP := 0.35
+var _kneel_odds := 0.3
+var _roll_odds := 0.55
+var _hip_cd := 0.0
+var _roll_cd := 0.0
+var _jab := false
+var _dash_len := DASH_LEN
+var _dash_speed := DASH_SPEED
+static var _volley_tick := -100000
 
 var _col: CollisionShape3D
 var _bark: Label3D
@@ -608,6 +634,8 @@ func _ready() -> void:
 	_rush_cd = _rng.randf_range(2.5, 4.5)
 	_pistol_cd = _rng.randf_range(2.0, 6.0)
 	_shot_cd = _rng.randf_range(1.0, 2.5)
+	_hip_cd = _rng.randf_range(1.0, 3.0)
+	_roll_cd = _rng.randf_range(1.0, 3.0)
 
 	# the aim line (thin, red while tracking, white-hot once locked)
 	_aim_mat = StandardMaterial3D.new()
@@ -824,6 +852,8 @@ func _physics_process(delta: float) -> void:
 	_parry_t -= delta
 	_parry_cd -= delta
 	_jump_cd -= delta
+	_hip_cd -= delta
+	_roll_cd -= delta
 	_guard_load = maxf(_guard_load - Personality.GUARD_DRAIN * delta, 0.0)
 	_fight_t =_fight_t + delta if in_combat() else 0.0
 	_disarm_tick(delta)
@@ -1068,12 +1098,12 @@ func _physics_process(delta: float) -> void:
 					else:
 						_backoff_t = _rng.randf_range(0.7, 1.2)
 		S.DASH:
-			var u := clampf(st_t / DASH_LEN, 0.0, 1.0)
-			want = _dash_dir * DASH_SPEED * (1.4 - 1.1 * u)
+			var u := clampf(st_t / _dash_len, 0.0, 1.0)
+			want = _dash_dir * _dash_speed * (1.4 - 1.1 * u)
 			accel = 400.0
 			turn = 12.0
 			_face(dir_p)
-			if st_t >= DASH_LEN:
+			if st_t >= _dash_len:
 				# slipped a heavy or a draw: straight back in while they recover
 				if _threat in ["heavy", "iai"]:
 					_cooldown = 0.0
@@ -1123,14 +1153,22 @@ func _physics_process(delta: float) -> void:
 			turn = 12.0 if st_t < _aim_len - _lock_len else 1.0
 			_aim_update(p, delta)
 			if st_t >= _aim_len and not _fired:
-				_fire(p)
-			if st_t >= _aim_len + (0.35 if _gun == "pistol" else 0.3):
+				# (another rifleman's ball just went: this one holds a beat longer, so a group never fires as one)
+				if _gun != "pistol" and Engine.get_physics_frames() - _volley_tick < int(VOLLEY_GAP * Engine.physics_ticks_per_second):
+					_aim_len += _rng.randf_range(0.15, 0.3)
+				else:
+					_fire(p)
+			if _fired and st_t >= _aim_len + (0.35 if _gun == "pistol" else 0.3):
 				if _gun == "pistol":
 					humanoid.set_weapon(Props.weapon_mesh(_blade_model))
 					_pistol_cd = PISTOL_COOLDOWN
 					_set_state(S.CHASE)
+				elif _gun == "hip":
+					_hip_cd = _rng.randf_range(HIP_CD.x, HIP_CD.y)
+					_shot_cd = maxf(_shot_cd, 2.0)
+					_set_state(S.KEEP)
 				else:
-					_shot_cd = RIFLE_EVERY + _rng.randf_range(-1.0, 1.0)
+					_shot_cd = RIFLE_EVERY + _rng.randf_range(-2.5, 2.5)
 					_start_reposition(p)
 		S.KEEP:
 			if _lost(p, dist):
@@ -1141,6 +1179,8 @@ func _physics_process(delta: float) -> void:
 				if _strafe_t <= 0.0:
 					_strafe_t = _rng.randf_range(1.5, 3.0)
 					_strafe_dir = -_strafe_dir if _rng.randf() < 0.5 else _strafe_dir
+					if _rng.randf() < HOP_ODDS:
+						_hop(Vector3.UP.cross(dir_p) * _strafe_dir)
 				var mid := (RIFLE_NEAR + RIFLE_FAR) * 0.5
 				var radial := 0.0
 				if dist < RIFLE_NEAR:
@@ -1153,10 +1193,14 @@ func _physics_process(delta: float) -> void:
 				want = dir_p * radial + Vector3.UP.cross(dir_p) * _strafe_dir * 1.0 + _separation()
 				var sees := _los(p)
 				_no_los_t = 0.0 if sees else _no_los_t + delta
-				if dist < SHOVE_RANGE and _shove_cd <= 0.0 and _player_ok(p):
-					_start_shove()
+				if _rifle_evade(p, dist, dir_p):
+					pass
+				elif dist < BAYONET_RANGE and _shove_cd <= 0.0 and _player_ok(p):
+					_start_shove(dist > SHOVE_RANGE or _rng.randf() < 0.5)
+				elif _hip_cd <= 0.0 and dist < HIP_RANGE and sees and _player_ok(p) and _guns_free():
+					_start_aim("hip")
 				elif _shot_cd <= 0.0 and sees and _player_ok(p) and dist < GUN_RANGE * 0.6 and _guns_free():
-					_start_aim("rifle")
+					_start_aim("kneel" if dist > KNEEL_FROM and _rng.randf() < _kneel_odds else "rifle")
 				elif _no_los_t > 1.5:
 					_start_reposition(p)
 		S.REPOSITION:
@@ -1171,36 +1215,39 @@ func _physics_process(delta: float) -> void:
 					running = true
 				else:
 					_set_state(S.KEEP)
-				if dist < SHOVE_RANGE and _shove_cd <= 0.0 and _player_ok(p):
-					_start_shove()
+				if _rifle_evade(p, dist, dir_p):
+					pass
+				elif dist < BAYONET_RANGE and _shove_cd <= 0.0 and _player_ok(p):
+					_start_shove(dist > SHOVE_RANGE or _rng.randf() < 0.5)
 		S.SHOVE:
 			_face(dir_p)
-			turn = 6.0 if st_t < 0.25 else 1.0
+			var hit_at := FoePoses.BAYONET_HIT if _jab else SHOVE_HIT
+			turn = 6.0 if st_t < hit_at - 0.3 else 1.0
 			accel = 12.0
-			if st_t > 0.28 and not _glinted:
+			if st_t > hit_at - 0.28 and not _glinted:
 				_glinted = true
 				var butt := global_position + Vector3(0, 1.1, 0) - _fwd() * 0.2
 				if humanoid.weapon and humanoid.weapon.is_inside_tree():
-					butt = humanoid.weapon.global_transform * Vector3(0, 0, 0.45)
+					butt = humanoid.weapon.global_transform * Vector3(0, 0, -1.4 if _jab else 0.45)
 				Net.fx("sparkle", [butt, 5, Color(1.0, 1.0, 0.95)])
 				Net.fx("sfx", ["blip_high", butt, -12.0, 0.05, 1.3])
-			if st_t > SHOVE_HIT and not _shoved:
+			if st_t > hit_at and not _shoved:
 				_shoved = true
-				velocity += _fwd() * 3.0
+				velocity += _fwd() * (5.0 if _jab else 3.0)
 				Net.fx("sfx", ["whoosh", global_position, -6.0, 0.08, 1.3])
-				if p and dist < SHOVE_RANGE and _fwd().dot(dir_p) > 0.2 and p.has_node("Hurtbox"):
+				if p and dist < (BAYONET_RANGE + 0.3 if _jab else SHOVE_RANGE) and _fwd().dot(dir_p) > 0.2 and p.has_node("Hurtbox"):
 					var hb := p.get_node("Hurtbox") as Hurtbox
 					if hb.monitorable:
 						var hd := HitData.new()
-						hd.damage = _dmg(6.0)
-						hd.knockback_force = 7.0
-						hd.knockdown = true  # the rifle butt puts you on the ground
-						hd.stagger_duration = 0.4
-						hd.hitstop_duration = 0.05
-						hd.camera_shake_intensity = 0.12
-						hd.impact = "punch"
+						hd.damage = _dmg(11.0 if _jab else 6.0)
+						hd.knockback_force = 5.0 if _jab else 7.0
+						hd.knockdown = not _jab  # the rifle butt puts you on the ground; the point just runs you through
+						hd.stagger_duration = 0.35 if _jab else 0.4
+						hd.hitstop_duration = 0.07 if _jab else 0.05
+						hd.camera_shake_intensity = 0.14 if _jab else 0.12
+						hd.impact = "slice" if _jab else "punch"
 						hb.take_hit(hd, self)
-			if st_t > SHOVE_LEN:
+			if st_t > (FoePoses.BAYONET_LEN if _jab else SHOVE_LEN):
 				_shove_cd = SHOVE_COOLDOWN
 				_set_state(S.KEEP)
 		S.RETURN:
@@ -2387,6 +2434,8 @@ func _start_dash(dir: Vector3) -> void:
 	_release_token()
 	hitbox.deactivate()
 	_dash_dir = picked
+	_dash_len = DASH_LEN
+	_dash_speed = DASH_SPEED
 	_dash_cd = _rng.randf_range(4.0, 6.0)
 	_set_state(S.DASH)
 	var local := facing.global_basis.orthonormalized().inverse() * picked
@@ -3356,8 +3405,9 @@ func _start_aim(gun: String) -> void:
 	_release_token()
 	_gun = gun
 	_fired = false
-	_aim_len = PISTOL_AIM if gun == "pistol" else RIFLE_AIM
-	_lock_len = PISTOL_LOCK if gun == "pistol" else RIFLE_LOCK
+	# (a rifle's aim jittered, so a group doesn't fire in rhythm)
+	_aim_len = {"pistol": PISTOL_AIM, "hip": HIP_AIM, "kneel": KNEEL_AIM}.get(gun, RIFLE_AIM + _rng.randf_range(-0.2, 0.35))
+	_lock_len = {"pistol": PISTOL_LOCK, "hip": HIP_LOCK, "kneel": KNEEL_LOCK}.get(gun, RIFLE_LOCK)
 	if gun == "pistol":
 		humanoid.set_weapon(Props.weapon_mesh("pistol"))
 		humanoid._attach_weapon(true)
@@ -3365,12 +3415,20 @@ func _start_aim(gun: String) -> void:
 	_aim_point = _chest(p) if p else global_position + _fwd() * 10.0
 	_set_state(S.AIM)
 	_sense(p, "shot")
-	humanoid.play("aim_pistol" if gun == "pistol" else "aim_rifle", _aim_len + 0.3)
+	humanoid.play({"pistol": "aim_pistol", "hip": "fo_hip_shot", "kneel": "fo_kneel_aim"}.get(gun, "aim_rifle"), _aim_len + 0.3)
 	_aim_mat.albedo_color = AIM_TRACK
 	_locked = false
 	_aim_line.visible = true
 	Net.fx("sfx", ["blip_low", global_position, -10.0, 0.05, 0.7])
-	bark(["Hold still...", "Got you now.", "Steady..."], 0.3)
+	if gun == "kneel":
+		# the tell: down on one knee, a red glint at the muzzle
+		Net.fx("sparkle", [_muzzle(), 6, KNEEL_TELL])
+		Net.fx("dust", [global_position, 4, 0.4])
+		bark(["Steady... steady...", "Got you in my sights.", "One shot."], 0.6)
+	elif gun == "hip":
+		bark(["Eat lead!", "Close enough!"], 0.3)
+	else:
+		bark(["Hold still...", "Got you now.", "Steady..."], 0.3)
 
 
 ## Track the target (lagging a little, so moving makes it miss), then lock.
@@ -3392,7 +3450,7 @@ func _aim_update(p: Node3D, delta: float) -> void:
 func _muzzle() -> Vector3:
 	var w := humanoid.weapon
 	if w and w.is_inside_tree():
-		return w.global_transform * Vector3(0, 0.06, -(1.35 if _gun == "rifle" else 0.4))
+		return w.global_transform * Vector3(0, 0.06, -(0.4 if _gun == "pistol" else 1.35))
 	return global_position + Vector3(0, 1.4, 0) + _fwd() * 0.6
 
 
@@ -3410,7 +3468,9 @@ func _fire(p: Node3D) -> void:
 	_fired = true
 	var from := _muzzle()
 	var end := _shot_end(from)
-	var big := _gun == "rifle"
+	var big := _gun != "pistol"
+	if big:
+		_volley_tick = Engine.get_physics_frames()
 	var shot_dir := (end - from).normalized()
 	# muzzle flash, a spray of sparks and a cloud of powder smoke (readable
 	# from across the beach), plus a thin smoke trail along the shot
@@ -3433,8 +3493,9 @@ func _fire(p: Node3D) -> void:
 	var hd := HitData.new()
 	hd.ranged = true
 	hd.impact = "shot"
-	hd.damage = _dmg(10.0 if _gun == "pistol" else 15.0)
-	hd.knockback_force = 3.0 if _gun == "pistol" else 4.0
+	hd.damage = _dmg({"pistol": 10.0, "hip": 9.0, "kneel": 22.0}.get(_gun, 15.0))
+	hd.knockback_force = {"pistol": 3.0, "kneel": 6.0}.get(_gun, 4.0)
+	hd.knockdown = _gun == "kneel"
 	hd.stagger_duration = 0.3
 	hd.hitstop_duration = 0.05
 	hd.camera_shake_intensity = 0.16
@@ -3490,6 +3551,8 @@ func _start_reposition(p: Node3D) -> void:
 		var cost := c.distance_to(global_position)
 		if cost < 3.0:
 			cost += 6.0  # actually move somewhere
+		# (1.30) high ground over the captain is worth a longer run
+		cost -= clampf((c.y - p.global_position.y) * 2.0, 0.0, 6.0)
 		if cost < best:
 			best = cost
 			_repos_target = c
@@ -3498,17 +3561,65 @@ func _start_reposition(p: Node3D) -> void:
 		_repos_target = global_position + _flat(p.global_position - global_position) * 0.4
 
 
-func _start_shove() -> void:
+## A rifleman's dodge roll (on ROLL_CD, _roll_odds of the time) out of a heavy or a draw coming its way, a shot on its
+## line, or a captain charging it from close: sideways, untouchable for its first DASH_IFRAMES. True if it rolled.
+func _rifle_evade(p: Node3D, dist: float, dir_p: Vector3) -> bool:
+	if _roll_cd > 0.0 or p == null:
+		return false
+	var th: String = _threat_of(p, dist, dir_p)[0]
+	var pv: Vector3 = p.get("velocity") if p is CharacterBody3D else Vector3.ZERO
+	if th == "" and not (dist < 6.0 and _flat(pv).dot(-dir_p) > 5.0):
+		return false
+	_roll_cd = _rng.randf_range(ROLL_CD.x, ROLL_CD.y)
+	if _rng.randf() > _roll_odds:
+		return false
+	var side := Vector3.UP.cross(dir_p) * (1.0 if _rng.randf() < 0.5 else -1.0)
+	for c in [side, -side, -dir_p]:
+		if _dash_ok(c):
+			_start_roll(c)
+			return true
+	return false
+
+
+func _start_roll(dir: Vector3) -> void:
+	_release_token()
+	_dash_dir = dir
+	_dash_len = ROLL_LEN
+	_dash_speed = ROLL_SPEED
+	_set_state(S.DASH)
+	var local := facing.global_basis.orthonormalized().inverse() * dir
+	humanoid.play("fo_roll_r" if local.x > 0.0 else "fo_roll_l", ROLL_LEN + 0.1)
+	Net.fx("dust", [global_position + Vector3(0, 0.05, 0), 8, 0.6])
+	Net.fx("sfx", ["whoosh", global_position, -8.0, 0.1, 0.9])
+
+
+## A quick side-step hop as it changes its strafe (riflemen between shots).
+func _hop(dir: Vector3) -> void:
+	if not _dash_ok(dir):
+		return
+	velocity += dir * 4.5
+	var local := facing.global_basis.orthonormalized().inverse() * dir
+	humanoid.dash_dir = Vector2(local.x, -local.z)
+	humanoid.play("dash", DASH_LEN)
+	Net.fx("dust", [global_position + Vector3(0, 0.05, 0), 4, 0.4])
+
+
+## Rushed: the butt stroke (a knockdown), or with `jab` the bayonet thrust (quicker, longer, a narrower tell).
+func _start_shove(jab := false) -> void:
 	_shoved = false
 	_glinted = false
+	_jab = jab
 	_set_state(S.SHOVE)
-	humanoid.play("shove", SHOVE_LEN)
-	bark(["Back off!", "Get away!", "Too close!"], 0.5)
+	humanoid.play("fo_bayonet" if jab else "shove", FoePoses.BAYONET_LEN if jab else SHOVE_LEN)
+	bark(["Have some steel!", "Stick 'em!", "Come on, then!"] if jab else ["Back off!", "Get away!", "Too close!"], 0.5)
 	var p := _target()
 	if p:
 		_face(_flat(p.global_position - global_position))
 	var d := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
-	Net.fx("arc_warn", [global_position, d, SHOVE_RANGE, 1.7, SHOVE_HIT, SHOVE_TELL])
+	if jab:
+		Net.fx("arc_warn", [global_position, d, BAYONET_RANGE + 0.3, 0.7, FoePoses.BAYONET_HIT, SHOVE_TELL])
+	else:
+		Net.fx("arc_warn", [global_position, d, SHOVE_RANGE, 1.7, SHOVE_HIT, SHOVE_TELL])
 	Net.fx("sfx", ["clack", global_position, -6.0, 0.05, 1.2])
 
 
@@ -3600,10 +3711,13 @@ func _process(delta: float) -> void:
 			var d := _aim_point - grip
 			if d.length() > 0.2:
 				w.global_basis = Basis.looking_at(d.normalized(), Vector3.UP)
-		elif role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming and humanoid.current_action() != "shove":
+		elif role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming and humanoid.current_action() not in ["shove", "fo_bayonet", "fo_roll_l", "fo_roll_r"]:
 			w.global_basis = facing.global_basis * Basis.from_euler(Vector3(0.75, 0.25, 0.85))
-		# riflemen keep the off hand on the stock, whatever the pose
-		if role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming:
+		elif humanoid.current_action() == "fo_bayonet":
+			# (the point out ahead, level, both hands on it)
+			w.global_basis = facing.global_basis * Basis.from_euler(Vector3(0.05, 0.0, 0.0))
+		# riflemen keep the off hand on the stock, whatever the pose (not tumbling through a roll)
+		if role == "rifle" and humanoid.ragdoll == null and not humanoid.swimming and not humanoid.current_action().begins_with("fo_roll"):
 			# grab the forestock as far forward as the arm reaches
 			var sh := humanoid.arm_l.global_position
 			var reach := (humanoid.fore_l.position.length() + humanoid.hand_l.position.length()) * humanoid.global_basis.get_scale().x * 0.95
