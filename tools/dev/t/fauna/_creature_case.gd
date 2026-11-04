@@ -25,8 +25,9 @@ func case() -> Dictionary:
 
 func _initialize() -> void:
 	TK.seed_of(self)
-	stage = TK.stage(self, {"hud": false})
 	cfg = case()
+	# (night needs Weather running: the stage named "World")
+	stage = TK.stage(self, {"hud": false, "weather": cfg.get("night", false)})
 
 
 func check(what: String, cond: bool) -> void:

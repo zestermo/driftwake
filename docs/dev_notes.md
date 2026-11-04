@@ -10441,3 +10441,23 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - **Tests:** t/fauna/pale_stalker, bog_hound, grave_moth (the shared case). Render: `creaturesheet.gd`.
 - **Per tick:** each sleeps on the spawner's LOD like every creature; the moth's lure look and the stalker's flicker
   (a fposmod in _pose) are the only additions.
+
+## 2026-11-04: 1.30 creatures, piece 3: the forest's fairy-tale creatures
+- **Roster** (ForestTheme.FAUNA): shroom_crawler p 0.65 (groups of 2-4), thorn_boar 0.55 (1-3, the first a big one),
+  owl_beast 0.5; the shared boar 0.55 -> 0.4, fox 0.5 -> 0.4, wolf 0.3 -> 0.2. Every forest island's roll changes.
+- **Mushroom crawler** (`fauna/shroom_crawler.gd`): a cart-wheel toadstool (red with white warts, brown, or a glowing
+  violet) on a stem with six root-feet. Sits as a mushroom (IDLE) until a captain is within 5.5 m, creeps (1.6 m/s);
+  the tell is the cap swelling 1 s with `spore_puff`, then a 5.2 m spore burst round it (9, poisons 5 s x 3: Creature
+  venom). Hit while it swells, it bursts early. Walks home and sits down again. Drops mushrooms.
+- **Thorn-backed boar** (`fauna/thorn_boar.gd`, on Boar): moss hide, a briar ridge of curved thorns; hostile from 7.5 m
+  (stealth-scaled), the boar's paw tell and charge (10.5 m/s), every charge a knock-down. A blow from behind (attacker
+  behind its facing) does x0.45 and throws bark (Creature._armor): take it in the face or flank. Drops haunch, tusk, timber.
+- **Owl-beast** (`fauna/owl_beast.gd`): a bear-sized owl on four legs. By day it sleeps where it is (not hostile; hit, it
+  wakes and hunts). At night it sees a captain from 22 m (0.3 s look), charges at 6.2 m/s, rears up with its wings
+  flung wide and `owl_screech` (the tell, 0.75 s), then drops on you with both talons (22, a knock-down). Below 20% it
+  flees. Drops plumes, bear_claw.
+- **Tests:** t/fauna/shroom_crawler (+ its spores poison), thorn_boar (+ its back turns a blow), owl_beast (night). The
+  shared case now runs night cases on a stage named World so Weather turns the clock (`weather` stage opt).
+  t/island/forest_* stay green. Render: `creaturesheet.gd` (every new kind).
+- **Per tick:** each on the spawner's LOD; the owl's 0.3 s night look. Triangles: crawler 432, owl 1000, thorn boar 1930
+  (the thorn tubes), stalker 492, moth 404, bog hound 971, zombie 723.

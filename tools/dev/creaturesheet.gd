@@ -35,7 +35,7 @@ func _initialize() -> void:
 	jobs = (a[1].split(",") as Array) if a.size() > 1 else KINDS
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out))
 	TK.seed_of(self)
-	stage = TK.stage(self, {"hud": false})
+	stage = TK.stage(self, {"hud": false, "weather": true})
 	DisplayServer.window_set_size(Vector2i(W, H))
 
 

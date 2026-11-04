@@ -652,6 +652,11 @@ scripts/enemies/fauna/grave_moth.gd     t/fauna/grave_moth
 scripts/enemies/fauna/wolf.gd           t/fauna/bog_hound
 scripts/enemies/fauna/flyer.gd          t/fauna/grave_moth
 scripts/island/themes/fog_theme.gd      t/fauna
+scripts/enemies/fauna/shroom_crawler.gd t/fauna/shroom_crawler
+scripts/enemies/fauna/thorn_boar.gd     t/fauna/thorn_boar
+scripts/enemies/fauna/owl_beast.gd      t/fauna/owl_beast
+scripts/enemies/fauna/boar.gd           t/fauna/thorn_boar
+scripts/island/themes/forest_theme.gd   t/fauna t/island/forest_fauna
 scripts/enemies/fauna/creature.gd       t/fauna t/combat/creature_tell
 scripts/world/weather.gd                t/swim/dive_shafts
 shaders/world/dive_shafts.gdshader      t/swim/dive_shafts

@@ -131,12 +131,16 @@ const STYLE := {
 ## Each kind: its zones, how likely an island has it, how many groups (dens), a group's size ("pack" [lo, hi] round a
 ## lead) and the chance each follower is a young one. Ordinary woodland animals - red deer herds round a stag, boar,
 ## red foxes, a wolf pack now and then, bats, shore crabs - and the folklore that walks among them: will-o'-wisps,
-## wood sprites (under the leaves by day, up at night) and treantlings (stumps that walk).
+## wood sprites (under the leaves by day, up at night) and treantlings (stumps that walk); and the fairy-tale wood's
+## own hunters (1.30): mushroom crawlers in the leaf litter, thorn-backed boars, owl-beasts that hunt at night.
 const FAUNA := {
 	"deer": {"zones": ["floor"], "p": 0.85, "dens": [2, 4], "pack": [3, 5], "young": 0.4},
-	"boar": {"zones": ["floor"], "p": 0.55, "dens": [1, 3]},
-	"fox": {"zones": ["floor"], "p": 0.5, "dens": [1, 3], "pack": [1, 2], "young": 0.3},
-	"wolf": {"zones": ["floor"], "p": 0.3, "dens": [1, 2], "pack": [3, 4]},
+	"shroom_crawler": {"zones": ["floor"], "p": 0.65, "dens": [2, 4], "pack": [2, 4]},
+	"thorn_boar": {"zones": ["floor"], "p": 0.55, "dens": [1, 2], "pack": [1, 3]},
+	"owl_beast": {"zones": ["floor"], "p": 0.5, "dens": [1, 2]},
+	"boar": {"zones": ["floor"], "p": 0.4, "dens": [1, 3]},
+	"fox": {"zones": ["floor"], "p": 0.4, "dens": [1, 3], "pack": [1, 2], "young": 0.3},
+	"wolf": {"zones": ["floor"], "p": 0.2, "dens": [1, 2], "pack": [3, 4]},
 	"wisp": {"zones": ["floor"], "p": 0.75, "dens": [2, 4], "pack": [2, 4]},
 	"sprite": {"zones": ["floor"], "p": 0.6, "dens": [2, 4], "pack": [2, 3]},
 	"treant": {"zones": ["floor"], "p": 0.55, "dens": [2, 4], "pack": [1, 2]},
@@ -145,6 +149,9 @@ const FAUNA := {
 }
 const CREATURES := {
 	"deer": "res://scripts/enemies/fauna/deer.gd",
+	"shroom_crawler": "res://scripts/enemies/fauna/shroom_crawler.gd",
+	"thorn_boar": "res://scripts/enemies/fauna/thorn_boar.gd",
+	"owl_beast": "res://scripts/enemies/fauna/owl_beast.gd",
 	"boar": "res://scripts/enemies/fauna/boar.gd",
 	"fox": "res://scripts/enemies/fauna/red_fox.gd",
 	"wolf": "res://scripts/enemies/fauna/wolf.gd",
