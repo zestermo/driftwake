@@ -76,6 +76,8 @@ func _process(d: float) -> bool:
 			["rest_side", "", 0, Vector3(36, 7, -16), Vector3(12, 5, -7)],
 			["rest_landing", "", 0, Vector3(31, 2.5, 18), Vector3(22, -0.5, -6)],
 			["rest_hall", "", 0, Vector3(3.5, 2.6, 12), Vector3(-0.5, 1.2, -18)],
+			["rest_kitchen", "", 0, Vector3(-3.0, 2.3, -13.0), Vector3(3.0, 1.4, -22.5)],
+			["rest_hall_back", "", 0, Vector3(-2.0, 2.4, -12.0), Vector3(0.0, 3.0, 14.0)],
 			["rest_raid", "restaurant", _restaurant_seed(true), Vector3(-10, 6, 40), Vector3(0, 1, 20)],
 			["flagship_far", "flagship", 4242, Vector3(-240, 16, 160), Vector3(0, 12, 0)],
 			["flagship_near", "", 0, Vector3(34, 10, 30), Vector3(0, 9, 0)],

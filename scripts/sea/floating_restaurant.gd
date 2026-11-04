@@ -571,7 +571,8 @@ static func _terrace_tables() -> Array:
 	return [Vector3(-8.0, 0, 18.5), Vector3(8.0, 0, 18.5), Vector3(-4.5, 0, 22.0), Vector3(4.5, 0, 22.0), Vector3(-8.0, 0, 25.5), Vector3(8.0, 0, 25.5)]
 
 
-## A round table with a cloth and three stools (the terrace's in red check, the hall's in white).
+## A round table with a cloth, three chairs (the diners' seats) and places laid: the terrace's cloth red check,
+## the hall's white with a candle.
 func _table(mb: MeshBuilder, t: Vector3, outside: bool) -> void:
 	var wood := PSXMat.lit("planks", Color(0.7, 0.5, 0.34))
 	var cloth := PSXMat.lit("fabric_check", Color(1.0, 0.55, 0.5) if outside else Color(0.95, 0.9, 0.85))
@@ -580,7 +581,19 @@ func _table(mb: MeshBuilder, t: Vector3, outside: bool) -> void:
 	mb.add_cylinder(cloth, _xf(t + Vector3(0, 0.6, 0)), 0.92, 0.85, 0.2, 10, 1.0, Color.WHITE, true, true)
 	for k in range(3):
 		var a := k * TAU / 3.0 + 0.4
-		mb.add_cylinder(wood, _xf(t + Vector3(cos(a), 0, sin(a)) * 1.25), 0.22, 0.2, 0.45, 6, 1.0, Color.WHITE, false, true)
+		var dir := Vector3(cos(a), 0, sin(a))
+		var ch := Transform3D(Basis(Vector3.UP, atan2(dir.x, dir.z)), t + dir * 1.25)
+		mb.add_box(wood, ch * _xf(Vector3(0, 0.42, 0)), Vector3(0.46, 0.06, 0.44), 1.0, Color.WHITE, false)
+		for lx in [-0.19, 0.19]:
+			for lz in [-0.18, 0.18]:
+				mb.add_box(wood, ch * _xf(Vector3(lx, 0.2, lz)), Vector3(0.05, 0.4, 0.05), 1.0, Color(0.8, 0.8, 0.8))
+			mb.add_box(wood, ch * _xf(Vector3(lx, 0.7, 0.2)), Vector3(0.05, 0.56, 0.05), 1.0, Color(0.8, 0.8, 0.8))
+		mb.add_box(wood, ch * _xf(Vector3(0, 0.86, 0.2)), Vector3(0.44, 0.22, 0.04), 1.0)
+		mb.add_cylinder(_m["wall"], _xf(t + dir * 0.55 + Vector3(0, 0.8, 0)), 0.16, 0.17, 0.025, 8, 1.0, Color(1.05, 1.05, 1.0))
+		mb.add_cylinder(_m["beam"], _xf(t + dir * 0.5 + Vector3(dir.z, 0, -dir.x) * 0.26 + Vector3(0, 0.8, 0)), 0.05, 0.05, 0.13, 6, 1.0, Color(1.3, 1.2, 1.0))
+	if not outside:
+		mb.add_cylinder(_m["wall"], _xf(t + Vector3(0, 0.8, 0)), 0.04, 0.04, 0.16, 5, 1.0)
+		mb.add_box(_m["glow"], _xf(t + Vector3(0, 1.0, 0)), Vector3(0.04, 0.07, 0.04), 1.0, Color.WHITE, false)
 
 
 func _landing(mb: MeshBuilder, dress: MeshBuilder) -> void:
@@ -703,35 +716,299 @@ func _signs() -> void:
 ## Real light, on the budget: the front door, the terrace, the hall inside (always), the chimney's smoke.
 func _lights() -> void:
 	var hi: Vector3 = HALL[1]
-	for spec in [[Vector3(0, 3.6, hi.z + 1.5), 1.2, 12.0, false], [Vector3(0, 3.0, 24.0), 1.0, 14.0, false], [Vector3(0, 4.6, -6.0), 0.8, 24.0, true]]:
+	for spec in [[Vector3(0, 3.6, hi.z + 1.5), 1.2, 12.0, false], [Vector3(0, 3.0, 24.0), 1.0, 14.0, false], [Vector3(0, 4.6, -6.0), 0.8, 24.0, true], [Vector3(7.0, 1.8, HALL[0].z + 3.2), 0.9, 7.0, true]]:
 		var l := NightLight.make(Color(1.0, 0.75, 0.45), spec[1], spec[2], spec[3])
 		l.position = spec[0]
 		add_child(l)
 	FX.chimney_smoke(self, Vector3(7.0, hi.y + UPPER + 8.2, HALL[0].z + 3.0))
 
 
-## Tables and stools, the kitchen counter and its stove, the guest room's door, the rumour board (one mesh).
+## The dining hall inside (one mesh, near only): wainscot, posts, beams and pillars, chandeliers and sconces, the
+## tables laid, the counter, the open kitchen behind it, the room's door, the rumour board, the cook-off table, a
+## mounted marlin over the door and nets on the walls.
 func _interior() -> void:
 	var mb := MeshBuilder.new()
-	var wood := PSXMat.lit("planks", Color(0.7, 0.5, 0.34))
-	var stone := PSXMat.lit("stone_brick")
-	var fire := PSXMat.glow(Color(1.0, 0.5, 0.2), 2.2)
-	var door := PSXMat.lit("door")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_value, "interior"])
+	_frame_inside(mb)
 	for t in _tables():
 		_table(mb, t, false)
-	var lo: Vector3 = HALL[0]
-	mb.add_box(wood, _xf(Vector3(0, 0.55, lo.z + 8.5)), Vector3(16.0, 1.1, 0.9), 0.5)
-	mb.add_box(stone, _xf(Vector3(5.0, 0.6, lo.z + 1.2)), Vector3(2.4, 1.2, 1.4), 0.5)
-	mb.add_box(fire, _xf(Vector3(5.0, 0.7, lo.z + 1.95)), Vector3(1.2, 0.5, 0.05), 1.0)
-	mb.add_box(stone, _xf(Vector3(-4.0, 0.5, lo.z + 1.0)), Vector3(3.0, 1.0, 1.0), 0.5)
-	mb.add_box(door, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(-11.67, 1.1, _room_z())), Vector3(1.2, 2.2, 0.06), 1.0)
-	mb.add_box(wood, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(11.66, 1.7, _room_z())), Vector3(1.6, 1.1, 0.08), 1.0)
-	mb.add_card(PSXMat.lit("canvas", Color(0.95, 0.92, 0.8)), Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(11.6, 1.75, _room_z())), 1.3, 0.8)
-	mb.add_box(wood, _xf(Vector3(-8.5, 0.45, -10.5)), Vector3(2.4, 0.9, 1.2), 0.5)
+	_counter(mb, rng)
+	_kitchen(mb, rng)
+	_decor(mb, rng)
 	var inst := mb.to_instance("Interior")
-	inst.visibility_range_end = 160.0
+	inst.visibility_range_end = 90.0
 	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(inst)
+
+
+## Interior posts, beams and pillars (x, z) under the long beams.
+const PILLARS := [Vector2(-6.25, -7.25), Vector2(6.25, -7.25), Vector2(-6.25, -0.75), Vector2(6.25, -0.75), Vector2(-6.25, 5.75), Vector2(6.25, 5.75)]
+const IN_X := 11.7
+
+
+func _frame_inside(mb: MeshBuilder) -> void:
+	var lo: Vector3 = HALL[0]
+	var hi: Vector3 = HALL[1]
+	var h := hi.y
+	var dark := PSXMat.lit("planks_dark", Color(0.62, 0.42, 0.3))
+	var z0 := lo.z + 0.3
+	var z1 := hi.z - 0.3
+	# wainscot round the walls (gaps at the doors), a gilt cap rail
+	var runs := [[Vector3(-IN_X, 0, z0), Vector3(-IN_X, 0, z1), Vector3.RIGHT], [Vector3(IN_X, 0, z0), Vector3(IN_X, 0, SIDE_Z - SIDE_HW), Vector3.LEFT],
+		[Vector3(IN_X, 0, SIDE_Z + SIDE_HW), Vector3(IN_X, 0, z1), Vector3.LEFT], [Vector3(-IN_X, 0, z0), Vector3(IN_X, 0, z0), Vector3.BACK],
+		[Vector3(-IN_X, 0, z1), Vector3(-DOOR_HW, 0, z1), Vector3.FORWARD], [Vector3(DOOR_HW, 0, z1), Vector3(IN_X, 0, z1), Vector3.FORWARD]]
+	for r in runs:
+		var n: Vector3 = r[2]
+		Buildings.beam_between(mb, dark, r[0] + n * 0.03 + Vector3(0, 0.6, 0), r[1] + n * 0.03 + Vector3(0, 0.6, 0), 0.06, 1.2)
+		Buildings.beam_between(mb, _m["trim"], r[0] + n * 0.06 + Vector3(0, 1.22, 0), r[1] + n * 0.06 + Vector3(0, 1.22, 0), 0.1, 0.08)
+	# posts on the side walls at every bay, cross beams over them, two long beams on pillars down the room
+	for k in range(1, 8):
+		var z := lo.z + k * BAY
+		for s in [-1.0, 1.0]:
+			mb.add_box(_m["beam"], _xf(Vector3(s * (IN_X - 0.15), h * 0.5, z)), Vector3(0.3, h, 0.3), 0.8)
+			Buildings.beam_between(mb, _m["beam"], Vector3(s * (IN_X - 0.3), h - 1.0, z), Vector3(s * (IN_X - 1.1), h - 0.2, z), 0.16)
+		mb.add_box(_m["beam"], _xf(Vector3(0, h - 0.18, z)), Vector3(IN_X * 2.0, 0.36, 0.3), 0.8, Color.WHITE, false)
+		if k % 2 == 1:
+			for s in [-1.0, 1.0]:
+				_lantern(mb, Vector3(s * (IN_X - 0.3), 2.9, z), Vector3(-s, 0, 0))
+	for s in [-1.0, 1.0]:
+		mb.add_box(_m["beam"], _xf(Vector3(s * 6.25, h - 0.51, (z0 + z1) * 0.5)), Vector3(0.3, 0.3, z1 - z0), 0.8, Color(0.85, 0.85, 0.85), false)
+	for p in PILLARS:
+		mb.add_box(_m["beam"], _xf(Vector3(p.x, (h - 0.66) * 0.5, p.y)), Vector3(0.34, h - 0.66, 0.34), 0.8)
+		mb.add_box(dark, _xf(Vector3(p.x, 0.2, p.y)), Vector3(0.48, 0.4, 0.48), 0.8)
+		for dz in [-1.0, 1.0]:
+			Buildings.beam_between(mb, _m["beam"], Vector3(p.x, h - 1.6, p.y + dz * 0.15), Vector3(p.x, h - 0.7, p.y + dz * 1.0), 0.16)
+	# chandeliers: an iron wheel of candles on three chains
+	for z in [-7.25, -0.75, 5.75]:
+		var c := Vector3(0, 3.7, z)
+		var ring := PackedVector3Array()
+		for k in range(13):
+			ring.append(c + Vector3(cos(k * TAU / 12.0), 0, sin(k * TAU / 12.0)) * 1.1)
+		mb.add_tube(_m["dark"], ring, 0.05, -1.0, 4, 1.0)
+		for k in range(6):
+			var a := k * TAU / 6.0
+			var p := c + Vector3(cos(a), 0, sin(a)) * 1.1
+			mb.add_cylinder(_m["wall"], _xf(p), 0.05, 0.05, 0.2, 5, 1.0)
+			mb.add_box(_m["glow"], _xf(p + Vector3(0, 0.26, 0)), Vector3(0.05, 0.09, 0.05), 1.0, Color.WHITE, false)
+			if k % 2 == 0:
+				mb.add_tube(_m["dark"], PackedVector3Array([p, Vector3(0, h - 0.36, z)]), 0.02, -1.0, 3, 1.0)
+
+
+## The long counter before the kitchen: panelled front, a foot rail, a top laid with the day's bowls and loaves,
+## bar stools, the menu board hung over it.
+func _counter(mb: MeshBuilder, rng: RandomNumberGenerator) -> void:
+	var cz := HALL[0].z + 8.5
+	var dark := PSXMat.lit("planks_dark", Color(0.62, 0.42, 0.3))
+	mb.add_box(dark, _xf(Vector3(0, 0.5, cz)), Vector3(16.0, 1.0, 0.8), 0.6)
+	mb.add_box(_m["deck"], _xf(Vector3(0, 1.05, cz + 0.1)), Vector3(16.4, 0.1, 1.1), 0.8, Color(1.1, 1.0, 0.9), false)
+	mb.add_box(_m["dark"], _xf(Vector3(0, 0.08, cz + 0.42)), Vector3(16.0, 0.16, 0.05), 1.0)
+	for k in range(17):
+		mb.add_box(_m["beam"], _xf(Vector3(-8.0 + k * 1.0, 0.55, cz + 0.42)), Vector3(0.12, 0.8, 0.05), 1.0)
+	mb.add_tube(_m["trim"], PackedVector3Array([Vector3(-7.8, 0.25, cz + 0.62), Vector3(7.8, 0.25, cz + 0.62)]), 0.04, -1.0, 5, 1.0)
+	for x in [-7.0, -4.8, -2.4, 2.4, 4.8, 7.0]:
+		mb.add_cylinder(_m["beam"], _xf(Vector3(x, 0, cz + 1.0)), 0.05, 0.05, 0.75, 5, 1.0)
+		mb.add_cylinder(_m["red"], _xf(Vector3(x, 0.75, cz + 1.0)), 0.22, 0.22, 0.08, 8, 1.0, Color.WHITE, true, true)
+		mb.add_cylinder(_m["dark"], _xf(Vector3(x, 0.25, cz + 1.0)), 0.18, 0.18, 0.03, 6, 1.0)
+	# on the counter: bowls of the pot, loaves, stacked plates, bottles, the service bell
+	for k in range(9):
+		var x := -7.2 + k * 1.8 + rng.randf_range(-0.3, 0.3)
+		match k % 3:
+			0:
+				mb.add_cylinder(_m["wall"], _xf(Vector3(x, 1.1, cz + 0.1)), 0.12, 0.18, 0.1, 8, 1.0, Color(0.9, 0.95, 1.0))
+				mb.add_cylinder(_m["fish"], _xf(Vector3(x, 1.1, cz + 0.1)), 0.15, 0.15, 0.09, 8, 1.0, Color(0.8, 0.55, 0.4))
+			1:
+				mb.add_blob(_m["trim"], _xf(Vector3(x, 1.16, cz + 0.2)), Vector3(0.22, 0.1, 0.12), rng, 0.1, 2, 6, 1.0, Color(0.9, 0.62, 0.38))
+			2:
+				for j in range(4):
+					mb.add_cylinder(_m["wall"], _xf(Vector3(x, 1.1 + j * 0.03, cz - 0.05)), 0.17, 0.17, 0.025, 8, 1.0)
+	for x in [-3.2, 3.6, 3.75]:
+		mb.add_loft(_m["paint"], _xf(Vector3(x, 1.1, cz - 0.15)), [[0.0, 0.07, 0.07], [0.2, 0.07, 0.07], [0.27, 0.025, 0.025], [0.36, 0.025, 0.025]],
+			MeshBuilder.profile_circle(6), 1.0, Color(0.5, 0.75, 0.45), false, true)
+	mb.add_loft(_m["trim"], _xf(Vector3(0.6, 1.1, cz + 0.3)), [[0.0, 0.12, 0.12], [0.08, 0.1, 0.1], [0.14, 0.03, 0.03]], MeshBuilder.profile_circle(8), 1.0, Color.WHITE, false, true)
+	# the menu board hung from the beam over the counter
+	var mz := cz + 0.95
+	mb.add_box(_m["dark"], _xf(Vector3(0, 3.8, mz)), Vector3(4.2, 1.3, 0.06), 1.0, Color(0.4, 0.45, 0.4), false)
+	for s in [-1.0, 1.0]:
+		mb.add_box(_m["trim"], _xf(Vector3(0, 3.8 + s * 0.69, mz)), Vector3(4.4, 0.1, 0.1), 1.0, Color.WHITE, false)
+		mb.add_box(_m["trim"], _xf(Vector3(s * 2.15, 3.8, mz)), Vector3(0.1, 1.3, 0.1), 1.0)
+		mb.add_tube(_m["dark"], PackedVector3Array([Vector3(s * 1.8, 4.5, mz), Vector3(s * 1.8, HALL[1].y - 0.36, HALL[0].z + 9.5)]), 0.015, -1.0, 3, 1.0)
+	_label("TODAY'S POT\nTidewater Bouillabaisse", Transform3D(Basis(), Vector3(0, 3.8, mz + 0.05)), 0.0058, Color(0.95, 0.95, 0.88))
+
+
+## The kitchen behind the counter: the range under its hood and the chimney, an iron stove, the prep table, hams and
+## herbs and pans hanging from a rack, shelves of jars and bottles, sacks and barrels.
+func _kitchen(mb: MeshBuilder, rng: RandomNumberGenerator) -> void:
+	var lo: Vector3 = HALL[0]
+	var iron := PSXMat.lit("metal", Color(0.32, 0.31, 0.33))
+	var stone: Material = _m["stone"]
+	var fire := PSXMat.glow(Color(1.0, 0.5, 0.2), 2.4)
+	var rz := lo.z + 1.2
+	mb.add_box(stone, _xf(Vector3(7.0, 0.5, rz)), Vector3(4.2, 1.0, 1.6), 0.6)
+	mb.add_box(iron, _xf(Vector3(7.0, 1.04, rz)), Vector3(4.3, 0.08, 1.7), 1.0)
+	for x in [6.0, 8.0]:
+		mb.add_box(fire, _xf(Vector3(x, 0.45, rz + 0.81)), Vector3(0.8, 0.45, 0.04), 1.0)
+		mb.add_box(iron, _xf(Vector3(x, 0.72, rz + 0.83)), Vector3(0.95, 0.08, 0.06), 1.0)
+	mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, PI * 0.25), Vector3(7.0, 2.3, rz - 0.1)), 2.5, 1.05, 1.6, 4, 0.6, Color(0.85, 0.85, 0.85), true, true, false)
+	mb.add_box(stone, _xf(Vector3(7.0, 4.65, rz - 0.1)), Vector3(1.5, 1.5, 1.5), 0.6, Color(0.85, 0.85, 0.85))
+	mb.add_loft(iron, _xf(Vector3(6.1, 1.08, rz)), [[0.0, 0.42, 0.42], [0.55, 0.45, 0.45], [0.58, 0.47, 0.47]], MeshBuilder.profile_circle(10), 1.0, Color.WHITE, true, true)
+	mb.add_cylinder(iron, _xf(Vector3(8.0, 1.08, rz + 0.2)), 0.32, 0.3, 0.1, 8, 1.0)
+	mb.add_box(iron, _xf(Vector3(8.0, 1.14, rz + 0.75)), Vector3(0.06, 0.04, 0.5), 1.0)
+	mb.add_loft(iron, _xf(Vector3(7.9, 1.08, rz - 0.45)), [[0.0, 0.18, 0.18], [0.25, 0.2, 0.2], [0.35, 0.08, 0.08]], MeshBuilder.profile_circle(8), 1.0, Color.WHITE, true, true)
+	# the iron stove and its pipe, a pot on it
+	var sv := Vector3(-3.5, 0, lo.z + 0.9)
+	mb.add_box(iron, _xf(sv + Vector3(0, 0.45, 0)), Vector3(2.0, 0.9, 1.1), 1.0)
+	mb.add_box(fire, _xf(sv + Vector3(-0.4, 0.42, 0.56)), Vector3(0.5, 0.3, 0.03), 1.0)
+	mb.add_cylinder(iron, _xf(sv + Vector3(0.6, 0.9, -0.3)), 0.14, 0.14, HALL[1].y - 0.9, 6, 1.0)
+	mb.add_loft(iron, _xf(sv + Vector3(-0.3, 0.9, 0.1)), [[0.0, 0.28, 0.28], [0.32, 0.3, 0.3], [0.34, 0.32, 0.32]], MeshBuilder.profile_circle(8), 1.0, Color.WHITE, true, true)
+	# the prep table: a board, a fish, vegetables, a knife
+	var pt := Vector3(0.5, 0, lo.z + 4.4)
+	mb.add_box(_m["deck"], _xf(pt + Vector3(0, 0.9, 0)), Vector3(4.0, 0.08, 1.2), 0.8, Color(1.1, 1.05, 0.95), false)
+	mb.add_box(_m["deck"], _xf(pt + Vector3(0, 0.25, 0)), Vector3(3.8, 0.05, 1.0), 0.8, Color(0.8, 0.75, 0.7), false)
+	for x in [-1.9, 1.9]:
+		for z in [-0.5, 0.5]:
+			mb.add_box(_m["beam"], _xf(pt + Vector3(x, 0.45, z)), Vector3(0.09, 0.9, 0.09), 1.0)
+	mb.add_box(_m["beam"], _xf(pt + Vector3(-0.8, 0.97, 0)), Vector3(0.9, 0.05, 0.6), 1.0, Color(1.4, 1.25, 1.0))
+	mb.add_loft(_m["fish"], Transform3D(Basis(Vector3.BACK, -PI * 0.5), pt + Vector3(-1.25, 1.06, 0)), [[0.0, 0.03, 0.02], [0.2, 0.1, 0.05], [0.55, 0.08, 0.04], [0.75, 0.02, 0.01]], MeshBuilder.profile_circle(6), 2.0, Color(0.7, 0.85, 1.0))
+	mb.add_box(iron, _xf(pt + Vector3(-0.3, 1.0, 0.15)), Vector3(0.3, 0.02, 0.06), 1.0, Color(1.6, 1.6, 1.6))
+	for k in range(7):
+		var m: Material = [_m["leaves"], _m["red"], _m["cream"]][k % 3]
+		mb.add_blob(m, _xf(pt + Vector3(0.5 + rng.randf_range(-0.4, 1.3), 1.02, rng.randf_range(-0.4, 0.4))), Vector3.ONE * rng.randf_range(0.07, 0.11), rng, 0.2, 2, 5, 1.0)
+	mb.add_cylinder(_m["wall"], _xf(pt + Vector3(1.5, 0.94, -0.3)), 0.25, 0.3, 0.14, 8, 1.0, Color(0.85, 0.55, 0.38))
+	# the rack over it: hams, herb bundles, garlic, pans
+	var ry := 3.3
+	mb.add_box(_m["beam"], _xf(pt + Vector3(0, ry, 0)), Vector3(4.4, 0.12, 0.12), 1.0, Color.WHITE, false)
+	for x in [-2.0, 2.0]:
+		mb.add_tube(_m["dark"], PackedVector3Array([pt + Vector3(x, ry, 0), Vector3(pt.x + x, HALL[1].y - 0.36, lo.z + BAY)]), 0.02, -1.0, 3, 1.0)
+	var ham := PSXMat.lit("leather", Color(0.78, 0.36, 0.26))
+	for k in range(10):
+		var x := -1.9 + k * 0.42
+		var at := pt + Vector3(x, ry, 0)
+		match k % 4:
+			0:
+				mb.add_tube(_m["dark"], PackedVector3Array([at, at - Vector3(0, 0.25, 0)]), 0.012, -1.0, 3, 1.0)
+				mb.add_blob(ham, _xf(at - Vector3(0, 0.55, 0)), Vector3(0.17, 0.3, 0.15), rng, 0.12, 3, 6, 1.0)
+				mb.add_cylinder(_m["wall"], _xf(at - Vector3(0, 0.3, 0)), 0.04, 0.05, 0.1, 5, 1.0)
+			1:
+				mb.add_blob(_m["leaves"], _xf(at - Vector3(0, 0.3, 0)), Vector3(0.1, 0.24, 0.1), rng, 0.25, 2, 5, 1.0, Color(0.75, 0.9, 0.6))
+			2:
+				for j in range(4):
+					mb.add_blob(_m["wall"], _xf(at - Vector3(0, 0.12 + j * 0.14, 0)), Vector3.ONE * 0.07, rng, 0.15, 2, 5, 1.0, Color(1.1, 1.05, 0.95))
+			3:
+				mb.add_box(iron, _xf(at - Vector3(0, 0.25, 0)), Vector3(0.03, 0.4, 0.03), 1.0)
+				mb.add_cylinder(iron, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), at - Vector3(0, 0.6, 0.02)), 0.24, 0.22, 0.05, 8, 1.0)
+	# shelves of jars and bottles on the bow wall, more on the port wall, sacks and barrels below
+	for spec in [[Vector3(-8.7, 0, lo.z + 0.55), 0.0, 5.0], [Vector3(-IN_X + 0.3, 0, lo.z + 4.2), PI * 0.5, 4.0]]:
+		var sh := Transform3D(Basis(Vector3.UP, spec[1]), spec[0])
+		var w: float = spec[2]
+		for s in [-1.0, 1.0]:
+			mb.add_box(_m["beam"], sh * _xf(Vector3(s * w * 0.5, 1.4, 0)), Vector3(0.08, 2.8, 0.45), 1.0)
+		for y in [0.9, 1.7, 2.5]:
+			mb.add_box(_m["deck"], sh * _xf(Vector3(0, y, 0)), Vector3(w, 0.06, 0.45), 1.0, Color(0.85, 0.75, 0.65), false)
+			var x := -w * 0.5 + 0.25
+			while x < w * 0.5 - 0.2:
+				var r := rng.randf_range(0.07, 0.13)
+				var hh := rng.randf_range(0.18, 0.36)
+				if rng.randf() < 0.55:
+					mb.add_cylinder(_m["wall"], sh * _xf(Vector3(x, y + 0.03, 0)), r, r * 0.9, hh, 6, 1.0, [Color(0.85, 0.55, 0.38), Color(1, 1, 0.95), Color(0.6, 0.7, 0.8)][rng.randi() % 3], true)
+				else:
+					mb.add_loft(_m["paint"], sh * _xf(Vector3(x, y + 0.03, 0)), [[0.0, 0.06, 0.06], [hh, 0.06, 0.06], [hh + 0.07, 0.02, 0.02], [hh + 0.14, 0.02, 0.02]],
+						MeshBuilder.profile_circle(6), 1.0, [Color(0.4, 0.7, 0.35), Color(0.7, 0.45, 0.25)][rng.randi() % 2], false, true)
+				x += r * 2.0 + rng.randf_range(0.05, 0.2)
+	for p in [Vector3(-10.4, 0, lo.z + 7.0), Vector3(-9.6, 0, lo.z + 7.4), Vector3(-10.1, 0.45, lo.z + 7.2)]:
+		mb.add_blob(_m["cream"], _xf(p + Vector3(0, 0.3, 0)), Vector3(0.32, 0.32, 0.28), rng, 0.15, 3, 6, 1.0, Color(0.85, 0.78, 0.62), 0.0)
+	for p in _kitchen_barrels():
+		mb.add_cylinder(_m["beam"], _xf(p), 0.36, 0.36, 0.95, 8, 1.0, Color(1.2, 1.1, 1.0))
+		for y in [0.18, 0.77]:
+			mb.add_cylinder(_m["dark"], _xf(p + Vector3(0, y, 0)), 0.38, 0.38, 0.06, 8, 1.0)
+
+
+static func _kitchen_barrels() -> Array:
+	return [Vector3(10.6, 0, HALL[0].z + 4.2), Vector3(10.7, 0, HALL[0].z + 5.1), Vector3(4.2, 0, HALL[0].z + 0.8)]
+
+
+## The room's door, the rumour board, the cook-off table and its banner, the marlin over the front door, nets,
+## potted plants by the door.
+func _decor(mb: MeshBuilder, rng: RandomNumberGenerator) -> void:
+	var hi: Vector3 = HALL[1]
+	var rz := _room_z()
+	# the room: a panelled door in a frame, a sign over it
+	mb.add_box_unit_uv(_m["door"], _xf(Vector3(-IN_X + 0.08, 1.15, rz)), Vector3(0.06, 2.3, 1.2))
+	for s in [-1.0, 1.0]:
+		mb.add_box(_m["beam"], _xf(Vector3(-IN_X + 0.1, 1.2, rz + s * 0.7)), Vector3(0.16, 2.4, 0.2), 1.0)
+	mb.add_box(_m["beam"], _xf(Vector3(-IN_X + 0.1, 2.45, rz)), Vector3(0.16, 0.2, 1.6), 1.0, Color.WHITE, false)
+	mb.add_box(_m["paint"], _xf(Vector3(-IN_X + 0.06, 2.85, rz)), Vector3(0.06, 0.45, 1.3), 1.0)
+	_label("Rooms", Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(-IN_X + 0.1, 2.85, rz)), 0.006, Color(1.0, 0.86, 0.5))
+	# the rumour board: a cork panel in a frame, notes pinned up
+	var bx := IN_X - 0.06
+	mb.add_box(_m["deck"], _xf(Vector3(bx, 1.75, rz)), Vector3(0.06, 1.2, 1.8), 1.0, Color(0.85, 0.62, 0.42))
+	for s in [-1.0, 1.0]:
+		mb.add_box(_m["beam"], _xf(Vector3(bx - 0.02, 1.75 + s * 0.64, rz)), Vector3(0.1, 0.08, 1.96), 1.0, Color.WHITE, false)
+		mb.add_box(_m["beam"], _xf(Vector3(bx - 0.02, 1.75, rz + s * 0.94)), Vector3(0.1, 1.2, 0.08), 1.0)
+	for k in range(8):
+		var at := Vector3(bx - 0.05, 1.75 + rng.randf_range(-0.4, 0.4), rz + rng.randf_range(-0.7, 0.7))
+		mb.add_box(_m["cream"] if k % 3 != 0 else _m["wall"], Transform3D(Basis(Vector3.RIGHT, rng.randf_range(-0.2, 0.2)), at), Vector3(0.02, rng.randf_range(0.22, 0.32), rng.randf_range(0.18, 0.26)), 2.0)
+		mb.add_box(_m["red"], _xf(at + Vector3(-0.02, 0.1, 0)), Vector3(0.03, 0.03, 0.03), 1.0)
+	_label("RUMOURS", Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(bx - 0.08, 2.55, rz)), 0.006, Color(1.0, 0.86, 0.5))
+	# the cook-off table: a red runner, the judge's bell, a covered dish and a cup for the winner; a banner over it
+	var ct := Vector3(-8.5, 0, -10.5)
+	mb.add_box(_m["deck"], _xf(ct + Vector3(0, 0.86, 0)), Vector3(2.4, 0.08, 1.2), 0.8, Color(1.1, 1.0, 0.9), false)
+	for x in [-1.1, 1.1]:
+		for z in [-0.5, 0.5]:
+			mb.add_box(_m["beam"], _xf(ct + Vector3(x, 0.41, z)), Vector3(0.09, 0.82, 0.09), 1.0)
+	mb.add_box(_m["red"], _xf(ct + Vector3(0, 0.91, 0)), Vector3(2.5, 0.02, 0.5), 1.0)
+	mb.add_loft(PSXMat.lit("metal", Color(0.85, 0.85, 0.9)), _xf(ct + Vector3(-0.5, 0.92, 0)), [[0.0, 0.3, 0.3], [0.15, 0.28, 0.28], [0.28, 0.15, 0.15], [0.33, 0.04, 0.04], [0.38, 0.04, 0.04]],
+		MeshBuilder.profile_circle(10), 1.0, Color.WHITE, false, true)
+	mb.add_loft(_m["trim"], _xf(ct + Vector3(0.5, 0.92, 0.1)), [[0.0, 0.1, 0.1], [0.03, 0.04, 0.04], [0.16, 0.04, 0.04], [0.2, 0.08, 0.08], [0.36, 0.12, 0.12], [0.38, 0.12, 0.12]],
+		MeshBuilder.profile_circle(8), 1.0, Color.WHITE, true, true)
+	mb.add_loft(_m["trim"], _xf(ct + Vector3(0.95, 0.92, -0.25)), [[0.0, 0.1, 0.1], [0.08, 0.09, 0.09], [0.14, 0.03, 0.03]], MeshBuilder.profile_circle(8), 1.0, Color.WHITE, false, true)
+	mb.add_box(_m["red"], _xf(Vector3(-IN_X + 0.05, 4.45, ct.z)), Vector3(0.05, 0.75, 3.0), 1.0)
+	_label("COOK-OFF", Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(-IN_X + 0.09, 4.45, ct.z)), 0.01, Color(1.0, 0.92, 0.7))
+	# the marlin over the front door, on a plaque
+	var mz := hi.z - 0.36
+	mb.add_box(_m["beam"], _xf(Vector3(0, 4.35, mz - 0.02)), Vector3(4.6, 1.3, 0.08), 1.0)
+	var blue := PSXMat.lit("scales", Color(0.4, 0.55, 0.85))
+	var mf := Transform3D(Basis(Vector3.BACK, -PI * 0.5), Vector3(-1.5, 4.35, mz - 0.18))
+	mb.add_loft(blue, mf, [[0.0, 0.06, 0.04], [0.5, 0.28, 0.12], [1.4, 0.36, 0.14], [2.3, 0.26, 0.11], [2.7, 0.1, 0.05]], MeshBuilder.profile_circle(8), 1.5)
+	mb.add_cone(_m["dark"], Transform3D(Basis(Vector3.BACK, -PI * 0.5), Vector3(1.15, 4.33, mz - 0.18)), 0.06, 1.3, 5, 1.0)
+	var fins := Transform3D(Basis(), Vector3(-1.5, 4.35, mz - 0.18))
+	mb.add_extrude(blue, fins, PackedVector2Array([Vector2(0.06, 0), Vector2(-0.5, 0.6), Vector2(-0.25, 0.0), Vector2(-0.5, -0.6)]), 0.04, 1.5, Color(0.7, 0.7, 0.8))
+	mb.add_extrude(blue, fins, PackedVector2Array([Vector2(0.5, 0.25), Vector2(0.9, 0.85), Vector2(1.9, 0.6), Vector2(2.2, 0.25)]), 0.03, 1.5, Color(0.6, 0.65, 0.8))
+	mb.add_cylinder(_m["dark"], Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0.95, 4.4, mz - 0.18)), 0.05, 0.05, 0.16, 6, 1.0)
+	# fishing nets with cork floats draped over a post on each side wall
+	for spec in [[-1.0, -0.25], [1.0, 4.5]]:
+		var s: float = spec[0]
+		var x := s * (IN_X - 0.36)
+		var zc: float = spec[1]
+		for k in range(-4, 5):
+			var top := Vector3(x, 3.9, zc + k * 0.3)
+			mb.add_tube(PSXMat.lit("rope"), MeshBuilder.sag_points(top, Vector3(x, 2.1, zc + k * 0.3 + 0.9), 0.06, 3), 0.015, -1.0, 3, 2.0)
+			mb.add_tube(PSXMat.lit("rope"), MeshBuilder.sag_points(top, Vector3(x, 2.1, zc + k * 0.3 - 0.9), 0.06, 3), 0.015, -1.0, 3, 2.0)
+			mb.add_blob(_m["red"] if k % 2 else _m["cream"], _xf(top + Vector3(0, 0.02, 0)), Vector3(0.08, 0.06, 0.08), rng, 0.1, 2, 5, 1.0)
+	# potted palms either side of the front door
+	for s in [-1.0, 1.0]:
+		var pp := Vector3(s * 2.7, 0, hi.z - 0.8)
+		mb.add_cylinder(_m["wall"], _xf(pp), 0.3, 0.4, 0.55, 8, 1.0, Color(0.85, 0.48, 0.32), true)
+		for k in range(5):
+			var a := k * TAU / 5.0 + 0.3
+			mb.add_blob(_m["leaves"], _xf(pp + Vector3(cos(a) * 0.3, 0.95 + k * 0.05, sin(a) * 0.3)), Vector3(0.35, 0.16, 0.22), rng, 0.25, 2, 5, 1.0)
+
+
+func _label(text: String, xf: Transform3D, px: float, col: Color) -> void:
+	var l := Label3D.new()
+	l.text = text
+	l.font = load("res://assets/fonts/PixelifySans-Regular.woff2")
+	l.font_size = 48
+	l.pixel_size = px
+	l.outline_size = 8
+	l.outline_modulate = Color(0.1, 0.07, 0.05)
+	l.modulate = col
+	l.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	l.shaded = false
+	l.double_sided = false
+	l.visibility_range_end = 40.0
+	l.transform = xf
+	add_child(l)
 
 
 static func _room_z() -> float:
@@ -821,11 +1098,20 @@ func _collide() -> void:
 	_cyl(Vector3(19.4, 0, -10.6), 0.12, 2.8)
 	for at in [Vector3(-17.5, 0, -32.0), Vector3(17.5, 0, -32.0), Vector3(-17.0, 0, 36.0), Vector3(17.0, 0, 36.0)]:
 		_cyl(at, 0.26, 6.0)
-	# inside: the counter and the stoves, the cook-off table
-	_box(Vector3(0, 0.55, lo.z + 8.5), Vector3(16.0, 1.1, 0.9))
-	_box(Vector3(5.0, 0.6, lo.z + 1.2), Vector3(2.4, 1.2, 1.4))
-	_box(Vector3(-4.0, 0.5, lo.z + 1.0), Vector3(3.0, 1.0, 1.0))
+	# inside: the counter, the range and the stove, the prep table, shelves, barrels, pillars, the cook-off table, plants
+	_box(Vector3(0, 0.55, lo.z + 8.55), Vector3(16.0, 1.1, 1.0))
+	_box(Vector3(7.0, 0.55, lo.z + 1.2), Vector3(4.3, 1.1, 1.7))
+	_box(Vector3(-3.5, 0.45, lo.z + 0.9), Vector3(2.0, 0.9, 1.1))
+	_box(Vector3(0.5, 0.47, lo.z + 4.4), Vector3(4.0, 0.95, 1.2))
+	_box(Vector3(-8.7, 1.4, lo.z + 0.55), Vector3(5.0, 2.8, 0.5))
+	_box(Vector3(-IN_X + 0.3, 1.4, lo.z + 4.2), Vector3(0.5, 2.8, 4.0))
+	for p in _kitchen_barrels():
+		_cyl(p, 0.4, 0.95)
+	for p in PILLARS:
+		_cyl(Vector3(p.x, 0, p.y), 0.26, h - 0.66)
 	_box(Vector3(-8.5, 0.45, -10.5), Vector3(2.4, 0.9, 1.2))
+	for s in [-1.0, 1.0]:
+		_cyl(Vector3(s * 2.7, 0, hi.z - 0.8), 0.4, 0.6)
 	# the pontoon, the ramp and its head and rails
 	var pl: Vector3 = PONTOON[0]
 	var ph: Vector3 = PONTOON[1]
