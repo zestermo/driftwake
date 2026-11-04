@@ -10,7 +10,7 @@ extends RefCounted
 ## "head" (what the box calls it), "id" (an arc's journal key, else "")}; {} outside the world.
 
 const BOARD_GOAL := "Check the notice board"
-const DIRS :=["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
+const DIRS := ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
 
 
 ## What this captain follows: the tracked quest while it's live, else the chain's next step.
