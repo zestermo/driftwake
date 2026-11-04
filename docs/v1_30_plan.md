@@ -1,4 +1,4 @@
-# 1.30: the playtest fixes, guidance, and bigger ships
+# 1.30 'Full Sail': the playtest fixes, guidance, and bigger ships (shipped as the stable v1.30, 2026-11-04)
 
 **What it is.** The four-captain playtest of 1.29 (2026-11-02, docs/playtest_2026_11_02.md) found broken systems
 (rivals unseen, ships that can't catch you, marines that let go, the vault, collision, Admiralty lag, the drills) and

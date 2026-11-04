@@ -10816,3 +10816,6 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - Tests: `t/sea/restaurant` (spots moved to the new pontoon, ramp and deck), `t/sea/cookoff` (the captain's spot moved
   off a table/pillar), `t/sea/merchant`, `t/sea/big_ship`, `t/sea/stop_rolls`, `t/ship/layout_parity`. Renders:
   `seastopworld.gd` (shots reframed for the new size, new ones added). Expect legtest (sea_legs.gd) at prepush.
+
+## v1.30 release files (2026-11-04)
+- Stable v1.30 'Full Sail': version, What's new NOTES, releases section, news post, home latest, roadmap (1.30 shipped, 1.31 The Voyage planned), preview_130 from seastop_rest_bow_after. No UNSTABLE file.

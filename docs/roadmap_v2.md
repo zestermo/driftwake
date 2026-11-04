@@ -128,7 +128,7 @@ to work toward.
 - **1.29 'Shipshape'** (docs/v1_29_plan.md "Decided"): the hull layout as data, the sloop's detail pass (a stepped-down
   cabin that grows with a Quarters line, ladders, the flag, an upgrading wheel, the galley and berths), new clothing
   (masks, wraps, parachute pants, a jester outfit, a bouncing backpack, coats worn over the shoulders), hitches and
-  flakes; **released as the stable v1.29** (2026-11-02). **1.30**: the brig and galleon on new layouts, new creatures for the thinnest themes. The submarine later.
+  flakes; **released as the stable v1.29** (2026-11-02). **1.30** (the brig and galleon on new layouts, new creatures for the thinnest themes): **released as the stable v1.30 'Full Sail'** (2026-11-04). **1.31**: life after Brinehollow and the voyage (docs/todo.md "1.31 candidates"). The submarine later.
 
 ## Decided (2026-11-03)
 - **1.30** takes everything from the 1.29 playtest (docs/playtest_2026_11_02.md, docs/v1_30_plan.md "Decided"): the

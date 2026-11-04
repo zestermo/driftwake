@@ -946,14 +946,30 @@
 		},
 		{
 			"v": "1.30",
-			"name": "Bigger Ships",
+			"name": "Full Sail",
+			"date": "2026-11-04",
+			"status": "shipped",
+			"headline": "A log that always says what's next, wall runs and air dashes, bosses that reset and fight back, the Admiralty raid, and the brig and galleon.",
+			"img": "preview_130",
+			"alt": "The floating restaurant's carved fish-head bow and timber hall, afloat on a blue sea",
+			"github": true,
+			"added": [
+				["Always a next step", "A standing goal in the objective box and a Captain's Log with NEXT, QUESTS, NEWS and DONE."],
+				["Move and fight", "Slope slide, wall moves and air dashes, boss phase resets, overkill splats and enemy personalities."],
+				["The Admiralty raid", "The stronghold as a raid in acts, a dressed fortress and the Scouring as an escape."],
+				["Bigger ships", "The brig and the galleon, a rebuilt flagship and warship, and a floating restaurant twice the size."]
+			]
+		},
+		{
+			"v": "1.31",
+			"name": "The Voyage",
 			"status": "planned",
-			"headline": "The brig and the galleon, with decks and rooms of their own, and new creatures for the quieter islands.",
+			"headline": "Life after Brinehollow: islands with a story and a cast, and a voyage that winds on from one to the next.",
 			"img": "seaking",
 			"alt": "A Leviathan rearing over the sloop in a storm (current build)",
 			"plan": [
-				["Two ships", "The brig and the galleon at the canal city's shipyard, each laid out with its own decks, gun decks and rooms."],
-				["Creatures", "New hostile creatures for the island types with the least wildlife."]
+				["Life after Brinehollow", "Islands with authored intent: a story spine of named places, set pieces in view of the landing, smaller and denser, and a named cast."],
+				["The voyage", "A winding route between islands, longer legs with more on them, and scenery islands you pass but can't land on."]
 			]
 		},
 		{
@@ -966,7 +982,7 @@
 			"plan": [
 				["The sea between", "The Kraken at shipwrecks, sea monsters, merchant and treasure ships, storms and whirlpools with purpose."],
 				["Enemies", "More mob variations for every island type."],
-				["Ships to work toward", "A fast caravel, a brig, a galleon and an oddball submarine, bought at the canal city's shipyard, each with its own upgrades."],
+				["Ships to work toward", "A fast caravel and an oddball submarine, bought at the canal city's shipyard, each with its own upgrades."],
 				["Hunted", "Admiralty patrols and pursuit, and named Admiralty captains tracking you down the chain."],
 				["Gear to make your own", "Upgrading, effects and renaming for blue gear and up, and more clothing and looks."]
 			]

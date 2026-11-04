@@ -7,11 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Your ship's cabin", "Stepped down into the hull and roomier, and it grows: buy Quarters at Tackett's, four levels up to a great cabin with a mess table, stern windows and a stove."],
-	["Galley and pantry", "A shared pantry in the galley: Stow food, and cooking takes from it first. Bunks, pots, shelves and lamps in detail; rest in the bunk to be Rested."],
-	["Make her yours", "A new wheel that shows your helm upgrades, a jolly roger builder, paint for rails, masts, deck and a stripe, and ten new figureheads."],
-	["New clothes", "Drape any coat over your shoulders (DRAPE in the inventory), masks and face coverings, wraps, parachute pants, a jester's outfit and a backpack. Clothes and armour now share one outfitter."],
-	["Reef and skimmer", "The atoll's reef to dive, a skimmer board to sail built from its parts, and one gadget carried, two with a belt, four with a bag."],
+	["Always a next step", "The objective box never goes blank: it shows the chain's next step, with bearing and distance. The Captain's Log (J) has NEXT, QUESTS, NEWS and DONE tabs, and important news pins as a card until you open it."],
+	["Move like a pirate", "Slide down hills with C, then wall jump, wall run, wall cling and air dash in the Acrobatics map. Every skill tree is now one map you zoom and pan, with node shapes that say what each one is."],
+	["Bosses fight back", "Bosses leap to the middle at each phase with a shockwave and a roar, roar you off when you crowd them, and scale for the crew. Big hits fling foes into walls, and levels matter in a fight."],
+	["Raid the Admiralty", "The stronghold run is a raid in acts: seals, Vane, the vault and the Scouring's fiery escape, in a fortress dressed in white stone, with a Driftfruit in the vault and gadget packs from Nessa's."],
+	["Bigger ships, fuller sea", "Buy the brig and the galleon at the canal city's shipyard. Pirates trade broadsides, rivals arrive by ship, and there's a deep reef, Redtide's mountain and a floating restaurant twice the size."],
+	["Easier to get around", "Menus laid out for 1080p, an Unstuck button in the pause menu, a transmog box on every clothing slot, and a step-up onto ledges."],
 ]
 
 
