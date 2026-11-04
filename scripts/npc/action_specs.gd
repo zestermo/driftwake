@@ -174,15 +174,19 @@ const SPECS := {
 	# --- polearm (PoleMoves: the body keyed, the two-handed grip solved; no "lead": its offset samples would
 	# overwrite the grip) ---
 	# --- the fighting staff (StaffMoves: keyed like the polearm, held near its middle) ---
-	# --- the chain sickle (SickleMoves: the dagger's cuts, the chain's lash and whirl; the chain drawn by SickleMoves.chain) ---
+	# --- the chain sickle (SickleMoves: the hook and rip, the chain's lash and whirl; the chain drawn by SickleMoves.chain) ---
 	"sk_stance": {"len": 1.0, "stance": "sickle", "weapon": "sickle"},
-	"sk_1": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "stance": "sickle", "weapon": "sickle"},
-	"sk_2": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_1"}},
-	"sk_3": {"len": 0.7, "hit": [0.42, 0.62], "chain": 0.62, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_2"}},
-	"sk_4": {"len": 0.95, "hit": [0.22, 0.82], "chain": 0.82, "stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_3"}},
+	"sk_1": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "swoosh": [0.32, 0.54], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle"},
+	"sk_2": {"len": 0.5, "hit": [0.36, 0.5], "chain": 0.44, "swoosh": [0.32, 0.54], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_1"}},
+	"sk_3": {"len": 0.7, "hit": [0.42, 0.62], "chain": 0.62, "lead": {"hips": 0.03, "torso": 0.015}, "stance": "sickle", "weapon": "sickle",
+		"extras": {"after": "sk_2"}},
+	"sk_4": {"len": 0.95, "hit": [0.22, 0.82], "chain": 0.82, "sharp": 50.0, "retime": [[0.0, 0.0], [0.78, 0.83], [1.0, 1.0]], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sickle", "weapon": "sickle", "extras": {"after": "sk_3"}},
 	"sk_heavy": {"len": 1.3, "hit": [0.24, 0.8], "swoosh": [0.66, 0.82], "sharp": 50.0, "retime": [[0.0, 0.0], [0.78, 0.83], [1.0, 1.0]], "lead": {"hips": 0.03, "torso": 0.015},
 		"stance": "sickle", "weapon": "sickle"},
-	"sk_dash": {"len": 0.8, "hit": [0.48, 0.66], "stance": "sickle", "weapon": "sickle"},
+	"sk_dash": {"len": 0.8, "hit": [0.48, 0.66], "swoosh": [0.46, 0.68], "stance": "sickle", "weapon": "sickle"},
 	"sk_throw": {"len": 0.75, "hit": [0.35, 0.6], "stance": "sickle", "weapon": "sickle"},
 	"sk_parry": {"len": 0.6, "stance": "sickle", "weapon": "sickle"},
 	"sk_deflect": {"len": 0.4, "stance": "sickle", "weapon": "sickle"},

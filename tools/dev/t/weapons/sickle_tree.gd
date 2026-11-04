@@ -1,6 +1,6 @@
 extends SceneTree
 ## The sickle's tree (SkillTrees "sickle"): its root and three branches, its links on the tree, its moves and skills
-## real (each a sickle Technique), its steps 30, two ultimates at 30, ghostfire as its element, the style mapped to
+## real (each a sickle Technique), its steps 34, two ultimates at 30, ghostfire as its element, the style mapped to
 ## it; and with it mastered each technique and both ultimates land on the dummy, the hurtbox back on after.
 const TK := preload("res://tools/dev/test_kit.gd")
 const TECHS := ["harvest_of_souls", "soul_chain", "binding_coil", "serpent_lash", "reel_and_reap", "hook_step"]
@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 					if str(e).begins_with("mv_"):
 						moves.append(str(e).trim_prefix("mv_"))
 			check("its links stay on the tree %s" % str(bad), bad.is_empty())
-			check("30 steps (%d)" % steps, steps == 30)
+			check("34 steps, Quick Hands' four in (%d)" % steps, steps == 34)
 			check("two ultimates at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Reaping Circle, Chain Rush (%s)" % str(moves), moves.size() == 2 and "reaping_circle" in moves and "chain_rush" in moves)
 			var ok := skills.size() == TECHS.size()

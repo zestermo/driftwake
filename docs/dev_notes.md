@@ -10646,3 +10646,21 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   see and it jumped when you sheathed. CameraRig.combat_zoom is the stance's own distance (2..8, half-steps), the
   wheel moves whichever is showing.
 - Test: t/ship/helm_camera.
+## 2026-11-04: the chain sickle's lights and the rest (animation audit, piece 2)
+- **Own cuts** (SickleMoves `_hook`, `_rip`; no longer the dagger's dg_slash/dg_rise, parry/deflect still borrowed):
+  sk_1 the hook (wound far right, the weight hand reaching for them, stepped through and hooked across to the left, the
+  arm folding across), sk_2 the rip (out of the hook's follow-through, low across the left hip, ripped up to the high
+  right onto the toes). Hips/torso ranges 1.3/1.9 and 1.0/1.7 rad (the dagger's ~0.85/1.45); squash on the wind,
+  stretch and smear on the strike. Both draw the sickle's real trail now ("swoosh"), as does Chain Rush.
+- **The lash** (`_lash`, sk_3/sk_throw): a deeper wind with the chest open and the sickle out of the face, a lunge throw
+  with the sickle flung back, held at full stretch, then a haul leaning back as the weight comes in.
+- **Reaping Circle** (sk_4): the heavy's whirl with one turn (`_reap(h, g, u, 1)`, its wind-up time-mapped shorter),
+  chain path to match, "retime" for the recovery, sharp 50. **Chain Rush** (sk_dash): the lash's throw, then the hook.
+- **The weight in the hand** hangs off the left hand on 0.18 m and swings as you move (a verlet pendulum, `_give`); after a
+  throw cut short it reels in at 10 m/s instead of snapping. Idle/run poses: the stance's own guard, unchanged.
+- **Timing:** every light's hit window, chain time and length unchanged; sk_4 the same in played time.
+  Recovery peaks (hand m/s, strike in brackets): sk_1 ~19 (37), sk_2 15 (39), sk_3 11 (25), sk_4 trimmed by retime.
+- **Plus moves** (Serpent Lash, Binding Coil, Reel and Reap, Hook Step, Rising Reap, Chain Dive, Grave Drop, Whirling
+  Rush, both ultimates) pose these actions, so they pick the new keys up without changes of their own.
+- **Tests:** sickle_combo, sickle_moves, plus_sickle, sickle_heavy pass; sickle_tree's step count 30 -> 34 (stale since
+  Quick Hands, c40c6924). Renders: tools/dev/out/review/scythe_*.png.
