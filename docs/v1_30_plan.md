@@ -160,6 +160,7 @@ Queued, in order, each briefed already (resume the stopped agent with its contex
    every screen re-laid out to use the room (not just centred), renders of each at 1920x1080. Before transmog, so
    transmog is laid out once on the new canvas. If the usage stop arrives first, it opens 1.31.
 7. **Sea stops polish** (Zach, 2026-11-04: "Polish in 1.30"; renders: tools/dev/seastopworld.gd, review/seastops_sheet.png):
-   the floating restaurant (a carved fish bow, the hall's outside with framing, trim, signage and real windows, a
+   the floating restaurant twice its size (Zach: "quite large"; 42x21 m -> ~84x42 m, the hall, landing stage and
+   anchorage spot scaled with it), a carved fish bow, the hall's outside with framing, trim, signage and real windows, a
    furnished dining hall), the flagship and warship rigged and hulled as the big ships they are (two or three masts,
    their scale read from afar; the warship's hull not stone), the merchant's deck dressed. After transmog starts.
