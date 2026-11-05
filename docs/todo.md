@@ -33,6 +33,14 @@ download (co-op by hosted / forwarded address) is the way to play; nothing web o
   grapple point, an organic floppy swing, then a release. Decide: always the off hand, or either hand.
 - **Interact animations:** finish them all: pumping water aboard, patching holes, putting out fires, opening the
   inventory, etc.
+- **Screen feel for the player** (Zach, 2026-11-05): "feel like you're wooshing through the air if you got launched or
+  used a move". A red vignette at low health (pulsing harder near death); a brief dim / pass-out blink on a hit big
+  enough to splat you (knockdown, a heavy launch, a big fall); speed blur and a depth-of-field shift when moving fast
+  through the air (launched, a dash or leap technique), maybe a slight FOV widen; a light camera bob and kick on
+  sprinting, landing and chosen moves. Builds on what's there: camera_rig.gd's FOV punch, psx_post.gdshader (one post
+  pass: add the vignette/dim/blur there, PS1-style, not a modern filter), breath_meter.gd's vignette. Needs: a Settings
+  toggle/strength for shake and blur (motion sickness), local-only (each captain's own screen, never through Net.fx),
+  the 1080p check, and it stays readable in combat. Grill first (how strong, which moves, the blur's look in PS1 style).
 
 ## Now: v1.12, light, music and a living sea (started 2026-10-14)
 
