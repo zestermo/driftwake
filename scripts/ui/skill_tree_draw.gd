@@ -132,10 +132,47 @@ static func parents(id: String) -> Array:
 
 ## The tree into `area` on screen `s` (a SkillMapScreen: hit(), inspected()): its panel, links, nodes and names, the
 ## branches' names, the zoom buttons. `pr` is the captain's Progression.
+## (1.30.2, Zach) The map's sea: deeper towards the bottom, rows of little pixel wave crests (whole pixels, a 2 px step)
+## drifting slowly, each row the other way to the one above, swelling up and down a pixel; shifted a quarter of the
+## pan so it sits behind the tree. Faint: the tree reads first.
+const SEA_ROW := 22.0
+const SEA_GAP := 46.0
+const SEA_CREST := Color("2a6670")
+const SEA_FOAM := Color("4f8f93")
+const SEA_DEEP := Color("0b2d33")
+
+
+static func draw_sea(s: CanvasItem, area: Rect2, t: float, pan_px: Vector2) -> void:
+	var bands := 6
+	for b in bands:
+		var h := area.size.y / bands
+		s.draw_rect(Rect2(area.position.x, area.position.y + h * b, area.size.x, ceilf(h)), Color(SEA_DEEP, 0.07 * b))
+	var off := -pan_px * 0.25
+	var rows := int(area.size.y / SEA_ROW) + 2
+	for r in rows:
+		var dir := 1.0 if r % 2 == 0 else -1.0
+		var y0 := area.position.y + fposmod(off.y + r * SEA_ROW, rows * SEA_ROW) - SEA_ROW * 0.5
+		var drift := fposmod(off.x + dir * t * (6.0 + 2.0 * (r % 3)) + r * 17.0, SEA_GAP)
+		var n := int(area.size.x / SEA_GAP) + 2
+		for i in n:
+			var x := floorf(area.position.x + drift + (i - 1) * SEA_GAP)
+			var bob := 2.0 if sin(t * 1.6 + i * 1.3 + r * 0.7) > 0.4 else 0.0
+			var y := floorf(y0 + bob)
+			if x < area.position.x + 2.0 or x + 12.0 > area.end.x - 2.0 or y < area.position.y + 2.0 or y + 4.0 > area.end.y - 2.0:
+				continue
+			# a crest: a 6 px top with a foamy middle, shoulders dropping either side
+			s.draw_rect(Rect2(x + 4.0, y, 4.0, 2.0), Color(SEA_FOAM, 0.35))
+			s.draw_rect(Rect2(x + 2.0, y + 2.0, 2.0, 2.0), Color(SEA_CREST, 0.5))
+			s.draw_rect(Rect2(x + 8.0, y + 2.0, 2.0, 2.0), Color(SEA_CREST, 0.5))
+			s.draw_rect(Rect2(x, y + 4.0, 2.0, 2.0), Color(SEA_CREST, 0.3))
+			s.draw_rect(Rect2(x + 10.0, y + 4.0, 2.0, 2.0), Color(SEA_CREST, 0.3))
+
+
 static func draw_map(s: SkillMapScreen, tree: String, area: Rect2, k: float, pan: Vector2, pr: Progression, t: float) -> void:
 	var td := SkillTrees.tree_def(tree)
 	var col: Color = td["color"]
 	s.draw_rect(area, MAP_BG)
+	draw_sea(s, area, t, pan * k)
 	s.draw_rect(area, DIM_RIM, false, 2.0)
 	var at := layout(tree, area, k, pan)
 	var z := size_k(k)
