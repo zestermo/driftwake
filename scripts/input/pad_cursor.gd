@@ -130,6 +130,9 @@ func _process(delta: float) -> void:
 
 func _show(on: bool) -> void:
 	if on == shown:
+		# (a screen opening from another sets the pointer visible again)
+		if on and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and not Settings.tool_run():
+			Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 		return
 	shown = on
 	_ring.visible = on
