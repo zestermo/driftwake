@@ -1155,7 +1155,10 @@ func _physics_process(delta: float) -> void:
 			if st_t >= _aim_len and not _fired:
 				# (another rifleman's ball just went: this one holds a beat longer, so a group never fires as one)
 				if _gun != "pistol" and Engine.get_physics_frames() - _volley_tick < int(VOLLEY_GAP * Engine.physics_ticks_per_second):
-					_aim_len += _rng.randf_range(0.15, 0.3)
+					var wait := _rng.randf_range(0.15, 0.3)
+					_aim_len += wait
+					# (and the aim's pose with it: a kneeling rifleman stood up before its delayed shot)
+					humanoid.extend_action({"hip": "fo_hip_shot", "kneel": "fo_kneel_aim"}.get(_gun, "aim_rifle"), wait)
 				else:
 					_fire(p)
 			if _fired and st_t >= _aim_len + (0.35 if _gun == "pistol" else 0.3):

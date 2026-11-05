@@ -255,8 +255,10 @@ func _on_preview_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if (event.is_action_pressed("pause") or GameMenu.pad_back(event)) and not first_time:
-		Pad.swallow(event)
+	# (the autoloads by path: chartest loads the creator before they exist)
+	var pad_back: bool = event is InputEventJoypadButton and event.is_action_pressed("ui_cancel")
+	if (event.is_action_pressed("pause") or pad_back) and not first_time:
+		get_node("/root/Pad").swallow(event)
 		_finish(false)
 		get_viewport().set_input_as_handled()
 

@@ -1463,6 +1463,12 @@ func stop_action() -> void:
 		_finish_action()
 
 
+## The action playing as `name` held `secs` longer (a rifleman holding its aim a beat for a partner's shot).
+func extend_action(name: String, secs: float) -> void:
+	if current_action() == name:
+		_action["dur"] = float(_action["dur"]) + secs
+
+
 func current_action() -> String:
 	return "" if _action.is_empty() else str(_action["name"])
 
