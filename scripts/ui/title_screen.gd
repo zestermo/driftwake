@@ -219,13 +219,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_open_whats_new()
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("pause") and _whats_new.visible and not _loading:
+	var back := event.is_action_pressed("pause") or GameMenu.pad_back(event)
+	if back and _whats_new.visible and not _loading:
 		_whats_new.visible = false
 		WHATS_NEW.mark_seen()
 		_show_menu()
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("pause") and (_slots.visible or _coop.visible) and not _loading:
+	if back and (_slots.visible or _coop.visible) and not _loading:
 		Net.leave()
 		_show_menu()
 		get_viewport().set_input_as_handled()

@@ -139,6 +139,15 @@ func is_open() -> bool:
 	return _current != ""
 
 
+func screen() -> String:
+	return _current
+
+
+## The pad's B (ui_cancel): back out of a screen, like Esc. (Not the B key's dodge in play.)
+static func pad_back(event: InputEvent) -> bool:
+	return event is InputEventJoypadButton and event.is_action_pressed("ui_cancel")
+
+
 ## On the title screen only Options opens (from its own menu).
 func _on_title() -> bool:
 	return get_tree().get_first_node_in_group("title_screen") != null
@@ -166,11 +175,20 @@ func _input(event: InputEvent) -> void:
 	if CharacterCreator.active or ChatBox.typing:
 		return
 	if _on_title():
-		if _current != "" and event.is_action_pressed("pause"):
+		if _current != "" and (event.is_action_pressed("pause") or pad_back(event)):
+			Pad.swallow(event)
 			close()
 			get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("pause"):
+	if pad_back(event) and _current != "" and _current != "cook":
+		Pad.swallow(event)
+		_play("back")
+		if _current in ["options", "controls", "load", "idea"]:
+			open("pause")
+		else:
+			close()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("pause"):
 		if _current == "cook":
 			_cook.give_up()
 		elif _current == "":
@@ -422,6 +440,9 @@ func _build_pause() -> Control:
 		["Resume", func(): close()],
 		["Inventory", func(): open("inventory")],
 		["Skill Map", func(): open("skills")],
+		["Captain's Log", func():
+			close()
+			Journal.open()],
 		["Crew", func(): open("crew")],
 		["Wanted", func(): open("wanted")],
 		["Appearance", func(): _open_appearance()],
@@ -518,6 +539,7 @@ func _build_options() -> Control:
 	p.add_child(outer)
 	outer.add_child(UIStyle.title("Options"))
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.custom_minimum_size = Vector2(480, 300)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	outer.add_child(scroll)
@@ -659,7 +681,7 @@ func start_bind(action: String) -> void:
 
 ## A press while a row waits: binds it (a key another action had swaps over), Esc or a pad button cancels.
 func bind_event(event: InputEvent) -> void:
-	if event is InputEventJoypadButton or (event is InputEventKey and event.pressed \
+	if event is InputEventJoypadButton or event.device == Pad.CURSOR_DEVICE or (event is InputEventKey and event.pressed \
 			and (event.physical_keycode == KEY_ESCAPE or event.keycode == KEY_ESCAPE)):
 		_bind_note.text = "Cancelled"
 		bind_wait = ""
@@ -694,6 +716,7 @@ func _build_controls() -> Control:
 	p.add_child(vb)
 	vb.add_child(UIStyle.title("Controls"))
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.custom_minimum_size = Vector2(580, 300)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vb.add_child(scroll)

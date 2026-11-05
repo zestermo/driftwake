@@ -10903,3 +10903,39 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - Tests: `t/ui/skills_map_tidy` (every tree: no node/name overlaps, no crossing map links, no link through a node,
   outward from the root, reach <= 960); `t/ui/skills_map_view` checks the node it opens on rather than Air Dash.
   Render: `tools/dev/skillmapfull.gd` (whole trees at one zoom).
+## 2026-11-05: controller UI, piece 1: the pad's menu pointer and d-pad/A/B in menus (1.31)
+- Players: on a pad, gameplay felt good but menus didn't work. **Root cause:** Godot 4.7's `ui_*` actions have no pad
+  events at all (ui_accept / ui_cancel / ui_up.. are keys only), so A never pressed a focused button, B never backed
+  out and the d-pad never stepped focus anywhere; only the custom pad code (wheels, skill map LB/RB/Y, dialogue's
+  stick) worked. `Pad.UI` now adds A, B and the d-pad to them on start (the left stick stays off them).
+- **PadCursor** (`scripts/input/pad_cursor.gd`, `Pad.cursor`, a CanvasLayer at 128 under the root): while a screen that
+  takes the mouse is up (`menu_open`: GameMenu but the cooking game, the creator, the Captain's Log, the title, any
+  `pad_menus` node such as PlayerMenu; never a talk, a wheel or chat) and the pad was used last, the left stick moves a
+  pixel ring (radius 7 canvas px, cream on a dark outline, the dot gold over a button or pressed, the ring a pixel
+  smaller while A is held; drawn at the UI scale's whole pixels). Speed: deadzone 0.18, 60 to 860 canvas px/s on a
+  t^2.4 curve, x0.55 over an enabled button. It feeds real mouse events (device `Pad.CURSOR_DEVICE` 77) through
+  Input.parse_input_event: A = left button (held: drag, button_mask set), X = right button, right stick = wheel
+  notches (0.3 s to 0.05 s apart; not on the skill map, whose right stick pans). Keeps itself the root's last child
+  while live so its `_input` sees pad events first and eats A / X (and the left stick's events, which would step
+  focus too); `Pad.swallow` lets go of what they pressed (jump, interact...).
+- Modes: AUTO on open (the ring shows unless a button / slider / line edit has focus, which the d-pad and A then
+  work: the pause menu opens on Resume), CURSOR once the stick moves, NAV after a d-pad press (ring hidden). The mouse
+  moving or a key hides it (`Pad.seen`, now called first by the cursor since a screen may eat the event before Pad).
+  Played (not `Settings.tool_run()`): the OS pointer is warped under the ring and hidden (MOUSE_MODE_HIDDEN, back to
+  VISIBLE when the ring hides); the warp's own motion echo is eaten by position. A test or tool never moves or hides
+  the real mouse.
+- **Leaks:** Godot 4.7 reports `is_action_just_pressed` for a press even after `Input.action_release`, so the A that
+  ended a talk jumped (keyboard Space too). `Pad.swallow(event)` records the actions an event matched; `Pad.fresh(a)`
+  is false that frame and the next; `CaptainInput.just_pressed` checks it. Swallowed: the cursor's buttons, B backing
+  out (GameMenu, title, creator, PlayerMenu, Captain's Log), Dialogue's advance and walk-away.
+- B (`GameMenu.pad_back`: a joypad ui_cancel) backs out like Esc: Options / Controls / Load / Idea to the pause menu,
+  anything else closes (not the cooking game, whose Esc gives up). The title's panels, the creator (not on first
+  launch), the captain menu and the Captain's Log too. The Captain's Log was J only: the pause menu has a
+  "Captain's Log" button now, and B / Menu close it. Options and Controls scroll to follow focus. The keybind editor
+  cancels a waiting row on a pointer click (it would have bound the left mouse button).
+- Per frame: PadCursor._process is a few checks while the pad is in use (menu_open: GameMenu / Journal / creator /
+  title group / pad_menus group); in a menu also two gui_get_focus_owner / hovered lookups per visible PixelCanvas and a
+  move_child check. The ring redraws (~150 rects) only when its look changes.
+- Tests: `t/input/pad_cursor`, `t/input/pad_menu_nav`, `t/input/pad_dialogue`. Render: `tools/dev/padcursorshot.gd`.
+- Still awkward on a pad: the duel challenge answers on Y / N keys only; the Walkthrough tips' "Got it" wants the
+  pointer or Enter; custom-drawn grids (inventory bag, skill map) step by focus where they have it, else the pointer.

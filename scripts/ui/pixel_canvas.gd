@@ -16,6 +16,7 @@ var _vp: SubViewport
 
 
 func _init() -> void:
+	add_to_group("pixel_canvas")
 	stretch = true
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_vp = SubViewport.new()
@@ -38,6 +39,10 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(fit)
 	fit()
 	_on_visibility()
+
+
+func viewport() -> SubViewport:
+	return _vp
 
 
 func _on_visibility() -> void:

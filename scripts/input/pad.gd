@@ -7,9 +7,13 @@ extends Node
 ## swapped input was pressing is let go (its release would otherwise match the other layer's action).
 ## L3 is a sprint latch: click it and you sprint until the stick sits centred or your stamina runs out.
 ## Also here: which device you used last (Glyphs reads it) and the right stick's look, curved, at
-## Settings' pad sensitivity.
+## Settings' pad sensitivity. In menus the left stick drives a pointer instead (PadCursor, `cursor`).
 
 signal device_changed(pad: bool)
+
+const CURSOR := preload("res://scripts/input/pad_cursor.gd")
+## The mouse events PadCursor feeds carry this device, so they never count as the mouse being used.
+const CURSOR_DEVICE := 77
 
 ## The skills layer, held on LB: action -> its pad input (a button index, or [axis, sign]).
 const LAYER := {
@@ -19,6 +23,9 @@ const LAYER := {
 	"emote": JOY_BUTTON_DPAD_RIGHT, "ping_marker": JOY_BUTTON_RIGHT_STICK, "transform": JOY_BUTTON_LEFT_STICK,
 	"skill_map": JOY_BUTTON_BACK, "gadget_fire": [JOY_AXIS_TRIGGER_LEFT, 1.0],
 }
+## Godot's ui_* actions have no pad buttons: A presses a focused button, B backs out, the d-pad steps focus.
+const UI := {"ui_accept": JOY_BUTTON_A, "ui_cancel": JOY_BUTTON_B, "ui_up": JOY_BUTTON_DPAD_UP,
+	"ui_down": JOY_BUTTON_DPAD_DOWN, "ui_left": JOY_BUTTON_DPAD_LEFT, "ui_right": JOY_BUTTON_DPAD_RIGHT}
 const MODIFIER := JOY_BUTTON_LEFT_SHOULDER
 const SPRINT := JOY_BUTTON_LEFT_STICK
 const MOVE := ["move_left", "move_right", "move_forward", "move_back"]
@@ -41,15 +48,22 @@ var _added: Array = []
 var _idle := 0.0
 var _lb_real := false
 var _edge := {}
+var _swallowed := {}
 
 
 ## The base layer as project.godot binds it: action -> its first pad input (a button index or [axis, sign]),
 ## taken before any swap (Glyphs names buttons from this and LAYER).
 var base := {}
+var cursor: CanvasLayer
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	cursor = CURSOR.new()
+	get_tree().root.add_child.call_deferred(cursor)
+	for a in UI:
+		if not InputMap.action_get_events(a).any(func(e): return _same(e, _event_of(UI[a]))):
+			InputMap.action_add_event(a, _event_of(UI[a]))
 	for a in InputMap.get_actions():
 		if str(a).begins_with("ui_"):
 			continue
@@ -74,20 +88,33 @@ func _apply_deadzones() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	note(event)
+
+
+## Which device was used, the held buttons and axes (PadCursor calls it for the pad events it eats).
+func note(event: InputEvent) -> void:
+	if event is InputEventMouse and event.device == CURSOR_DEVICE:
+		return
+	seen(event)
 	if event is InputEventJoypadButton:
 		var b := event as InputEventJoypadButton
 		_down[b.button_index] = b.pressed
-		if b.pressed:
-			_saw(true)
 		if b.button_index == MODIFIER:
 			set_layer(b.pressed)
 		elif b.button_index == SPRINT and b.pressed and not layer:
 			_latch(not sprint_latched)
 	elif event is InputEventJoypadMotion:
-		var m := event as InputEventJoypadMotion
-		_axis[m.axis] = m.axis_value
-		if absf(m.axis_value) > 0.4:
-			_saw(true)
+		_axis[(event as InputEventJoypadMotion).axis] = (event as InputEventJoypadMotion).axis_value
+
+
+## Which device was used last (PadCursor calls it first: a screen may eat the event before Pad sees it).
+func seen(event: InputEvent) -> void:
+	if event is InputEventMouse and event.device == CURSOR_DEVICE:
+		return
+	if event is InputEventJoypadButton and event.is_pressed():
+		_saw(true)
+	elif event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) > 0.4:
+		_saw(true)
 	elif (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
 		_saw(false)
 	elif event is InputEventMouseMotion and (event as InputEventMouseMotion).relative.length() > 6.0:
@@ -108,6 +135,25 @@ func _process(delta: float) -> void:
 		var p := get_tree().get_first_node_in_group("player")
 		if _idle >= LATCH_GRACE or (p and p.has_method("can_sprint") and not p.can_sprint()):
 			_latch(false)
+
+
+## An axis's last value from its events (any pad).
+func axis_of(a: JoyAxis) -> float:
+	return float(_axis.get(a, 0.0))
+
+
+## Let go of every action `event` pressed as it was parsed (a press a menu or a talk used mustn't reach the
+## game): Input still calls it just pressed this frame, so `fresh` says no for it till the next.
+func swallow(event: InputEvent) -> void:
+	for a in InputMap.get_actions():
+		if InputMap.event_is_action(event, a):
+			_swallowed[a] = Engine.get_process_frames()
+			if Input.is_action_pressed(a):
+				Input.action_release(a)
+
+
+func fresh(action: String) -> bool:
+	return Engine.get_process_frames() - int(_swallowed.get(action, -9)) > 1
 
 
 func _saw(pad: bool) -> void:

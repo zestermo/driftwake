@@ -562,6 +562,11 @@ func close() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if is_open() and event is InputEventJoypadButton and (GameMenu.pad_back(event) or event.is_action_pressed("pause")):
+		Pad.swallow(event)
+		get_viewport().set_input_as_handled()
+		close()
+		return
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		if is_open() and event is InputEventKey:
 			get_viewport().set_input_as_handled()

@@ -220,6 +220,7 @@ func _input(event: InputEvent) -> void:
 	# Esc walks away from any conversation
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
+		Pad.swallow(event)
 		_close()
 		return
 	if _box.handle_input(event):
@@ -229,6 +230,7 @@ func _input(event: InputEvent) -> void:
 		or event.is_action_pressed("ui_accept") or event.is_action_pressed("light_attack")
 	if advance:
 		get_viewport().set_input_as_handled()
+		Pad.swallow(event)
 		_advance()
 	elif event is InputEventKey or event is InputEventMouseButton:
 		# Swallow combat/other inputs while talking (mouse look still works).

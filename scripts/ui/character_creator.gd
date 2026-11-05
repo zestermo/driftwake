@@ -255,7 +255,8 @@ func _on_preview_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause") and not first_time:
+	if (event.is_action_pressed("pause") or GameMenu.pad_back(event)) and not first_time:
+		Pad.swallow(event)
 		_finish(false)
 		get_viewport().set_input_as_handled()
 

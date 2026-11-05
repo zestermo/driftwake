@@ -846,3 +846,8 @@ scripts/game/settings.gd                t/ui/keybinds
 scripts/progression/skill_trees.gd      t/ui/skills_map_tidy t/ui/skills_map_view
 scripts/ui/skill_tree_draw.gd           t/ui/skills_map_tidy
 scripts/ui/game_menu.gd                 t/ui/keybinds t/input/glyphs
+scripts/ui/game_menu.gd                 t/input/pad_cursor t/input/pad_menu_nav
+scripts/dialogue/dialogue_manager.gd    t/input/pad_dialogue
+scripts/dialogue/dialogue_box.gd        t/input/pad_dialogue
+scripts/ui/pixel_canvas.gd              t/input/pad_cursor t/ui/canvas_960
+scripts/quests/journal.gd               t/ui/captains_log

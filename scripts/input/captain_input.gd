@@ -11,7 +11,7 @@ func pressed(action: String) -> bool:
 
 
 func just_pressed(action: String) -> bool:
-	return Input.is_action_just_pressed(action)
+	return Input.is_action_just_pressed(action) and Pad.fresh(action)
 
 
 func release(action: String) -> void:

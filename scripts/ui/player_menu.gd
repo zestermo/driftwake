@@ -23,6 +23,7 @@ var _scan_t := 0.0
 
 func _ready() -> void:
 	layer = 6
+	add_to_group("pad_menus")
 	Duel.ensure(get_tree()).kit_received.connect(_on_kit)
 	_canvas = PixelCanvas.new()
 	_canvas.visible = false
@@ -201,7 +202,8 @@ func in_reach(p: Node3D, feet: Vector3) -> bool:
 func _input(event: InputEvent) -> void:
 	if target == null:
 		return
-	if event.is_action_pressed("pause"):
+	if event.is_action_pressed("pause") or GameMenu.pad_back(event):
+		Pad.swallow(event)
 		if _inspect and _inspect.visible:
 			_inspect.visible = false
 			_panel.visible = true
