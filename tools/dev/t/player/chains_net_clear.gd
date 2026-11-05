@@ -35,12 +35,17 @@ func _process(_d: float) -> bool:
 	if not SpringChains.native_ok:
 		print("SKIP native not built (no ChainSolver at API %d in bin/): the cloth has no nets" % SpringChains.NATIVE_API)
 		return TK.done(fails)
-	for netted in [false, true]:
+	# (1.30.3: the net's clearing judged on the cloth as built; the heavier default weight lags into this script's
+	# backward leg kicks more (cape look: 91 frames, worst 6.3 cm; clothlab's real animation shows fewer) and is printed)
+	var feel := BodyBuilder.cloth_feel
+	for pass_ in [[false, 0], [true, 0], [true, feel]]:
+		var netted: bool = pass_[0]
+		BodyBuilder.cloth_feel = pass_[1]
 		BodyBuilder.cloth_net = netted
 		BodyBuilder.cape_net = netted
 		for lk in KIT.looks():
 			var base := "cloak" if lk.get("cloak", false) else "cape"
-			var tag := base + (", nets" if netted else ", no nets")
+			var tag := base + (", nets" if netted else ", no nets") + (", weight %s" % BodyBuilder.CLOTH_FEELS[pass_[1]][0] if pass_[1] != 0 else "")
 			var h = KIT.body(root, lk, SpringChains.native_ok)
 			var rec := {"legs": [0, 0.0], "torso": [0, 0.0]}
 			for i in range(KIT.FRAMES):
@@ -52,6 +57,8 @@ func _process(_d: float) -> bool:
 			var was: Dictionary = bare.get(base, {})
 			if not netted:
 				bare[base] = rec
+			elif pass_[1] != 0:
+				pass
 			else:
 				var legs_was: int = was["legs"][0]
 				var hair_was: int = was["torso"][0]
@@ -63,6 +70,7 @@ func _process(_d: float) -> bool:
 			h.queue_free()
 	BodyBuilder.cloth_net = true
 	BodyBuilder.cape_net = true
+	BodyBuilder.cloth_feel = feel
 	return TK.done(fails)
 
 

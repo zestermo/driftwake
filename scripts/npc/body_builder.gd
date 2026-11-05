@@ -39,8 +39,13 @@ static var cloth_net := true
 ## (1.30.3 piece 0) How heavy the netted cloth on the hips and torso swings (coat tails, skirts, hakama, the apron, sash
 ## tails; not hair): [name, damping (null: each chain's own, ~0.06), stiffness x]. The cape runs damping 0.3 with
 ## four passes and feels the steadiest; these try that weight on the rest. Cycled by the cloth stage (Home).
-const CLOTH_FEELS := [["as built", null, 1.0], ["heavy", 0.18, 1.0], ["heavier", 0.26, 0.85], ["cape-like", 0.32, 0.7]]
-static var cloth_feel := 0
+## Zach (2026-11-05): "between" heavier and cape-like on most; a draped coat's sleeves cape-like (CLOTH_FEEL_DRAPE).
+## Per garment weights come with the pattern format (docs/v1_30_3_clothing_plan.md).
+const CLOTH_FEELS := [["as built", null, 1.0], ["heavy", 0.18, 1.0], ["heavier", 0.26, 0.85], ["between", 0.29, 0.78],
+	["cape-like", 0.32, 0.7]]
+const CLOTH_FEEL_DRAPE := 4
+const CLOTH_FEEL_SKIRT := 2
+static var cloth_feel := 3
 
 
 ## The next cape mode (or every net on/off: the capes' and the cloth's), every caped or cloaked body in the tree (every
@@ -284,7 +289,12 @@ func _nets() -> void:
 		if key == h.head:
 			s.use_net(["torso", "hair_sh"], [], 0.012, 1.4, 1.0)
 		else:
-			var feel: Array = CLOTH_FEELS[cloth_feel]
+			# (a draped coat's empty sleeves and tails on the torso: cape-like, unless the stage picked "as built")
+			var fi := CLOTH_FEEL_DRAPE if key == h.torso and _draped() and cloth_feel != 0 else cloth_feel
+			# (a skirt or hakama with no long coat over it: "heavier", Zach's pick for the skirt)
+			if key == h.hips and fi == 3 and str(lk.get("legs", "")) in ["skirt", "hakama"] and not _long_coat():
+				fi = CLOTH_FEEL_SKIRT
+			var feel: Array = CLOTH_FEELS[fi]
 			if feel[1] != null:
 				for ci in range(s.chain_count()):
 					var c := s.chain(ci)

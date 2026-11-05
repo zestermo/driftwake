@@ -59,6 +59,22 @@ Each piece declares the **body regions** it covers (neck, shoulders, chest, back
 whole compatibility rule (plus the slot itself), shown on the doll when you try to equip. The same data tells the
 builder what a piece is fitted over (below).
 
+### Coats hang from the shoulders (Zach, 2026-11-05)
+
+Today a coat is a texture layer painted on the body plus a short band of cloth chains sticking out below as tails.
+Zach wants coats rebuilt as real garments: cut from the shoulders and collar, the body of the coat its own shell over
+the layers under it, and the skirt and tails continuing from it as one lattice pinned at the shoulders, collar and
+(where belted) the waist, so it hangs and moves like a jacket. After the connected panels work (piece 2); the
+coats round of piece 4 builds them this way, the draped coat (1.29) included.
+
+### Piece 0 result (2026-11-05)
+
+The weights on the cloth stage: Zach picked "between" heavier and cape-like (damping 0.29, stiffness x0.78) for
+most, cape-like for a draped coat's sleeves, heavier for the skirt. Now the default (BodyBuilder.cloth_feel 3,
+CLOTH_FEEL_DRAPE). clothlab, as built to cape-like: hip jitter mean 4.3-5.1 -> 2.8-3.1 mm; the duster's frames in
+the legs 309 -> 78; the single-frame pops (17-29 cm, the net's discrete turns) unchanged or worse: piece 2's job.
+Per-garment weight goes in each pattern.
+
 ## The pattern format
 
 A garment is data, not a hand-written function in body_builder.gd:
