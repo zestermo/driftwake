@@ -10859,3 +10859,30 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   - The objective marker pinned to the screen's edge sat on the skill bar when the target was behind you: the pin
     keeps out of the bottom 76 px (`ObjectiveHud.FOOT`).
 - Checked by the renders and `t/ui`.
+
+## 2026-11-05: 1.30.2 cleanup (gameplay half)
+
+- **Lighthouse climb:** `BrinehollowLighthouse._move` turned the Player *root* (`p.rotation.y`), the only place that did;
+  every state assumes the root sits at yaw 0, so the captain moved and faced sideways. It now turns `player_model` only.
+- **Slope slide is automatic** (`SlideState.auto_start` from MoveState, `can_start(p, true, fall_vy)` from FallState):
+  island hill ground (a body named "Terrain", so never stairs, roofs or decks) at 29 deg+ (START_SLOPE 0.5) run down for
+  0.12 s, or landed on from a real fall (> 4 m/s). It carries on to 14 deg (MIN_SLOPE) and hands back below walk speed
+  (Long Slide: 2 m/s). Gentler: PULL 0.75, TOP 11, FRICTION 6. No C: C mid-slide does nothing. Pose: stood up side-on,
+  left shoulder leading (`MovePoses._slide`, the model at heading - 90 deg). t/player/slope_slide.
+- **Acrobatics xp** (`Progression.on_air` / `on_jump`): a plain jump 1 (once per 1.2 s), 1 per 1.5 s airborne (not
+  climbing), a drop of 4 m+ a point per 2 m (max 10), a blow landed mid-air 3 (after the per-foe cap). t/progression/acrobatics.
+- **Diving Fist:** METEOR_CHAIN 2, bounce 7 m/s then x0.55 (it climbed each bounce: ~3.5 s up while mashing, now ~1.6);
+  the dive homes on its foe (METEOR_HOME 7 /s) and hits within DIVE_HIT_R 1.7; `_aimed` cone 0.9 rad, foes up to 1.6 m
+  above. t/weapons/fist_air_spam.
+- **Slingshot:** held in the LEFT hand, drawn with the right (Zach: inline with the right-shoulder camera). Poses stay
+  authored fork-right and are mirrored in `GunMoves._sling` / `GunMoves.held()` (swap _l/_r, negate y and z); the fork on
+  hand_l (`Humanoid._attach_weapon`), band and pouch on hand_r. DRAW_ARM keeps the drawing elbow level and back. New
+  weighted shot (reach dip, taut draw, snap, overshoot; SHOT_LEN 0.42, RELEASE 0.24 = the snap key), `sl_rapid` loop for
+  Bag of Tricks (its stones left from the resting hand), trick shots loose on the snap (TRICK_AT 0.31).
+- **Fist skills:** Shockwave Palm, Rising Dragon, Hundred Fists got pivot/squash/stretch keys and layered FX
+  (`TechniqueState._shock` ring waves, speed lines, glints, slow-mo beat on a hit). t/weapons/fist_skills.
+- **Bugs from the test logs:** Projectile frees itself when its thrower is gone (220 errors in net-rival); the hitbox
+  keeps its immediate `monitoring = false` on deactivate (deferring it broke chained swings: Godot re-reports overlaps
+  only when monitoring really toggles; t/combat/rifle_moves caught it; the rare in-signal warning is harmless, `active` guards);
+  Reaver's Sweep played a missing "dx_dash" pose (now dx_rush), Shoulder Charge and Chopping Block a missing "axe_kick"
+  (now axe_hook).

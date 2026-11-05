@@ -201,6 +201,10 @@ func _physics_process(delta: float) -> void:
 		return
 	if _done:
 		return
+	# (its thrower gone: a guest who left, a foe freed mid-flight)
+	if not is_instance_valid(source):
+		queue_free()
+		return
 	if _thrown():
 		_fly_update(delta)
 		return
