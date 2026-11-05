@@ -398,10 +398,24 @@ func _arena(a, tag: String) -> void:
 	var inside: Array = []
 	var ring := 0
 	for s in a._shapes:
-		var sd := Vector2(s[2].x, s[2].z).distance_to(ac)
+		var sr: float
+		var sh: float
+		var sc: Vector3
+		if s.size() == 1:
+			var box := AABB((s[0] as PackedVector3Array)[0], Vector3.ZERO)
+			for pt in s[0]:
+				box = box.expand(pt)
+			sr = maxf(box.size.x, box.size.z) * 0.5
+			sh = box.size.y
+			sc = box.get_center()
+		else:
+			sr = s[0]
+			sh = s[1]
+			sc = s[2]
+		var sd := Vector2(sc.x, sc.z).distance_to(ac)
 		if sd < ar:
-			inside.append("r %.1f h %.1f at %s, %.1f m in" % [s[0], s[1], Vector2(s[2].x, s[2].z).round(), sd])
-		elif sd < ar + 8.0 and float(s[0]) > 0.9:
+			inside.append("r %.1f h %.1f at %s, %.1f m in" % [sr, sh, Vector2(sc.x, sc.z).round(), sd])
+		elif sd < ar + 8.0 and sr > 0.9:
 			ring += 1
 	var roof: int = a._crowns.filter(func(c): return Vector2(c.x, c.z).distance_to(ac) < ar and c.y - a.hv(Vector2(c.x, c.z)) > 10.0).size()
 	var under: float = a.undergrowth_at(a.position + Vector3(ac.x, 0, ac.y))

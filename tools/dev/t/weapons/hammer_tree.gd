@@ -57,7 +57,7 @@ func _process(_d: float) -> bool:
 					if str(e).begins_with("mv_"):
 						moves.append(str(e).trim_prefix("mv_"))
 			check("its links stay on the tree %s" % str(bad), bad.is_empty())
-			check("30 steps for its 29 points (%d)" % steps, steps == 30)
+			check("33 steps, Quick Hands' three in (%d)" % steps, steps == 33)
 			check("two ultimates (1.26), at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Wrecking Spin, Rising Crush, Hammerfall (%s)" % str(moves),
 				moves.size() == 3 and "wrecking_spin" in moves and "rising_crush" in moves and "hammerfall" in moves)

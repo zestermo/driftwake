@@ -217,7 +217,7 @@ func _initialize():
 		h.free()
 	check("60 random looks build (max %d mesh instances each, every one ending at BodyBuilder.RANGE x height)" % max_meshes, ok and max_meshes <= 12)
 	# draw calls: shins and forearms ride the skinned meshes, tints fold into vertex colours (v1.14: 23.3 -> 14.9)
-	check("a body is at most 20 draws (mean %.1f, worst %d)" % [all_surf / 60.0, max_surf], max_surf <= 20 and all_surf / 60.0 <= 16.5)
+	check("a body is at most 24 draws, the traveller's pack's six included (mean %.1f, worst %d)" % [all_surf / 60.0, max_surf], max_surf <= 24 and all_surf / 60.0 <= 16.5)
 	# 1b. the skinned lower body: one surface, thighs without meshes of their own,
 	# nothing inside-out, and the thigh bones follow the leg joints
 	var lb_ok := true

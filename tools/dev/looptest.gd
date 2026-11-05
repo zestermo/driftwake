@@ -46,6 +46,8 @@ func next() -> void:
 func grab() -> void:
 	p = root.get_tree().get_first_node_in_group("player")
 	ship = root.get_tree().get_first_node_in_group("ship")
+	if ship == null:
+		return
 	HB = ship.layout
 	gm = root.get_node("GameManager")
 
@@ -84,7 +86,7 @@ func _process(d: float) -> bool:
 			# (the world takes longer than a fixed wait to come up now: wait for the captain, then the save applies)
 			if not wait(3.0): return false
 			grab()
-			if p == null or p.health_component == null: return false
+			if p == null or ship == null or p.health_component == null: return false
 			up_at = t
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			p.health_component.max_health = 500.0

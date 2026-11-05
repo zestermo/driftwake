@@ -112,7 +112,7 @@ func _process(_d: float) -> bool:
 			var lads: Array = tw.get_children().filter(func(x): return x.get("deck_depth") != null)
 			var lad: Node3D = lads[0] if lads.size() > 0 else null
 			var space := root.world_3d.direct_space_state
-			var deck := space.intersect_ray(PhysicsRayQueryParameters3D.create(tw.global_position + Vector3(0.3, 12.0, -0.6), tw.global_position + Vector3(0.3, 5.0, -0.6)))
+			var deck := space.intersect_ray(PhysicsRayQueryParameters3D.create(tw.global_position + Vector3(0.3, 10.5, -0.6), tw.global_position + Vector3(0.3, 5.0, -0.6)))
 			check("the desert's lookout: not the timber one, a platform at its height, a ladder from it to the ground on +Z",
 				tw.find_children("WatchtowerMesh", "", true, false).size() == 1 and not deck.is_empty() and absf(deck["position"].y - 9.09) < 0.05
 				and lad != null and absf(lad.position.y - 9.09) < 0.05 and lad.position.z > 1.5 and absf(float(lad.get("length")) - lad.position.y) < 0.05)

@@ -282,7 +282,16 @@ static func storehouse(seed_value: int) -> Node3D:
 	var rm := mb.mark()
 	mb.add_gable_roof(roof, _xf(Vector3(0, fl + h + 0.05, 0), PI * 0.5), d, w, d * 0.9, 0.55, 0.6, Color.WHITE, logs)
 	mb.add_box(snow, _xf(Vector3(0, fl + h + d * 0.9 + 0.08, 0)), Vector3(w + 1.0, 0.18, 0.4), 0.6)
-	mb.hull_since(rm, body, "RoofCol")
+	# (its eaves hang to head height over the door's steps: the shape starts at the wall top)
+	var roof_pts := PackedVector3Array()
+	for q in mb.points_since(rm):
+		roof_pts.append(Vector3(q.x, maxf(q.y, fl + h), q.z))
+	var roof_shape := ConvexPolygonShape3D.new()
+	roof_shape.points = roof_pts
+	var roof_cs := CollisionShape3D.new()
+	roof_cs.name = "RoofCol"
+	roof_cs.shape = roof_shape
+	body.add_child(roof_cs)
 	Buildings.panel_door(mb, _xf(Vector3(0, fl, d * 0.5 + 0.13)), 0.8, 1.5, Buildings.door_leaf(Color(0.5, 0.36, 0.3)), dark)
 	var run := Buildings.door_steps(body, mb, dark, 0.0, d * 0.5 + 0.13, fl, 1.2, 0.4, 0.8, true)
 	var door := Marker3D.new()

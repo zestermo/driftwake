@@ -197,8 +197,9 @@ const LIFE := "res://scripts/island/brinehollow_life.gd"
 ## Where the woods round the town grow (_plant_woods, _woods): the land but the den's corner.
 const WOODS_RECT := Rect2(-210, -170, 380, 560)
 ## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns): the old
-## island takes 18, the grown town's pieces after it (2026-10-17: 34, a share kept for the town's life).
-const LIGHTS := 34
+## island takes 18, the grown town's pieces after it (2026-10-17: 34, a share kept for the town's life; 1.30: 36, the
+## teahouse's lantern and the chapel close's).
+const LIGHTS := 36
 
 var heights := PackedFloat32Array()
 var paths: Array = []        # Array of PackedVector2Array (smoothed)

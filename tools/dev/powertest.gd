@@ -105,9 +105,9 @@ func _process(d: float) -> bool:
 			var pr = p.progression
 			while pr.mastery_level("ember") < 20:
 				pr.add_mastery("ember", pr.mastery_to_next(pr.mastery_level("ember")))
-			check("the Ember tree bought with its own points", ["e_kindled", "e_dash", "e_field", "e_smolder", "e_inferno"].all(func(k): return pr.buy(k)))
+			check("the Ember tree bought with its own points (Flicker first, the parent check)", ["e_dash", "e_field", "e_flicker", "e_kindled", "e_smolder", "e_inferno"].all(func(k): return pr.buy(k)))
 			check("learned the Ember tree", pr.knows("flame_dash") and pr.knows("inferno") and pr.has_flag("kindled_blade"))
-			check("auto-equipped onto the bar", pc.loadout[2] == "flame_dash" and pc.loadout[3] == "ember_field" and pc.loadout[4] == "inferno")
+			check("auto-equipped onto the bar %s" % str(pc.loadout), pc.loadout[2] == "flame_dash" and pc.loadout[3] == "ember_field" and pc.loadout[4] == "inferno")
 			# fire fist at a grunt 7 m away
 			g = camp.grunts[0]
 			g2 = camp.grunts[3]

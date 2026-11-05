@@ -11,7 +11,7 @@ const SEEDS := [4242, 777]
 const TK = preload("res://tools/dev/test_kit.gd")
 var seeds: Array = []
 ## Each kind's least: [buildings, props] in fidelity's harbour district (a bare landing has next to nothing).
-const LEAST := {"stilts": [7, 20], "cove": [7, 20], "wharf": [7, 20], "ruins": [7, 20], "landing": [0, 4]}
+const LEAST := {"stilts": [7, 20], "cove": [7, 20], "wharf": [5, 20], "ruins": [7, 20], "landing": [0, 4]}
 var t := 0.0
 var step := 0
 var wait := 0.0

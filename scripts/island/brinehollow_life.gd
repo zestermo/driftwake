@@ -635,8 +635,11 @@ static func _at_mark(isl: StarterIsland, key: String, marker: String) -> Diction
 			var front := 1.7 + 2.2 + 0.9
 			if marker == "Vendor":
 				out["lane"] = PackedVector2Array([lp.call(Vector3(0.6, 0, m.z)), lp.call(Vector3(0.6, 0, 2.7)), lp.call(Vector3(0.6, 0, front))])
+			elif m.z > front:
+				# (the bench out under the parasol: along its length, the parasol's pole stands 0.8 m in front)
+				out["lane"] = PackedVector2Array([lp.call(Vector3(m.x - 1.3, 0, m.z))])
 			else:
-				out["lane"] = PackedVector2Array([lp.call(Vector3(m.x, 0, maxf(front, m.z + 0.9)))])
+				out["lane"] = PackedVector2Array([lp.call(Vector3(m.x, 0, front))])
 			if marker.begins_with("Seat"):
 				out["act"] = "sit"
 				out["seat_y"] = 0.46

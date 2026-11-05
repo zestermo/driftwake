@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 					if str(e).begins_with("mv_"):
 						moves.append(str(e).trim_prefix("mv_"))
 			check("its links stay on the tree %s" % str(bad), bad.is_empty())
-			check("30 steps (%d)" % steps, steps == 30)
+			check("33 steps, Quick Hands' three in (%d)" % steps, steps == 33)
 			check("two ultimates at 30 (%s)" % str(ults), ults == [30, 30])
 			check("its moves: Wind Wheel, Vault Kick (%s)" % str(moves), moves.size() == 2 and "wind_wheel" in moves and "vault_kick" in moves)
 			var ok := skills.size() == TECHS.size()

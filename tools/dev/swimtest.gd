@@ -87,7 +87,7 @@ func _process(d: float) -> bool:
 			p.health_component.current_health = p.health_component.max_health
 			# swim to the starboard ladder and climb
 			var lad = ship.get_node("ShipModel/LadderStarboard")
-			p.global_position = lad.global_transform * Vector3(0, -1.6, 0.6)
+			p.global_position = lad.global_transform * Vector3(0, -1.6, 0.6 - lad.lean * 1.6)
 			p.reset_physics_interpolation()
 			wait = 0.6
 		7:

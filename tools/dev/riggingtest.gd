@@ -312,7 +312,7 @@ func _process(d: float) -> bool:
 		36:
 			check("S down off the bottom: into the sea (%s)" % st(), st() == "Swim")
 			var lad = ship.ship_model.get_node("LadderStarboard")
-			p.global_position = lad.global_transform * Vector3(0, -HB.ladder_len + 0.6, 0.8)
+			p.global_position = lad.global_transform * Vector3(0, -HB.ladder_len + 0.6, 0.8 - lad.lean * (HB.ladder_len - 0.6))
 			p.reset_physics_interpolation()
 			wait = 1.0
 			step += 1
