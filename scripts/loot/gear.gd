@@ -290,6 +290,8 @@ const PLUNDER := [
 	["hands", "gauntlets", {"gloves": true, "gloves_color": Color(0.1, 0.08, 0.07), "gauntlets": true}],
 	["feet", "greaves", {"feet": "greaves", "feet_color": Color(0.1, 0.08, 0.07)}],
 	["accessory", "pauldron", {"pauldron": true}],
+	["shoulders", "pauldron_r", {"pauldron_r": true}],
+	["shoulders", "pauldrons", {"pauldron": true, "pauldron_r": true}],
 	["accessory", "cape", {"cape": true, "cape_color": Color(0.4, 0.1, 0.12), "cape_tatter": 0.85}],
 	["head", "kettle", {"hat": "kettle"}],
 	["head", "coif", {"hat": "coif"}],

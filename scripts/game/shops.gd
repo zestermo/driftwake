@@ -89,6 +89,8 @@ const SHOPS := {
 			["feet", "tall_boots", {"feet": "tall_boots", "feet_color": Color(0.1, 0.09, 0.09)}, 1, 70],
 			["belt", "sash", {"belt": "sash", "sash_color": Color(0.66, 0.14, 0.12)}, 0, 20],
 			["accessory", "pauldron", {"pauldron": true}, 1, 80],
+			["shoulders", "pauldron_r", {"pauldron_r": true}, 1, 80],
+			["shoulders", "pauldrons", {"pauldron": true, "pauldron_r": true}, 1, 150],
 			["accessory", "scarf", {"scarf": true, "scarf_color": Color(0.8, 0.62, 0.2)}, 0, 18],
 			["head", "fez", {"hat": "fez", "hat_color": Color(0.66, 0.14, 0.12)}, 0, 20],
 			["head", "headband", {"hat": "headband", "hat_color": Color(0.14, 0.18, 0.34)}, 0, 10],
