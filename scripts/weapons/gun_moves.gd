@@ -159,6 +159,33 @@ static func _loosed(pitch: float) -> Dictionary:
 		"torso": (d["torso"] as Vector3) + Vector3(0.04, -0.04, 0), "_scale": Vector3(1.0, 1.0, 1.03)}, true)
 
 
+## The reach before a draw: the pouch hand forward onto the fork, the chest coiling a little back towards it, the
+## body dipped and squashed over the knees.
+static func _reach(pitch: float) -> Dictionary:
+	return _sg().merged({"hips": Vector3(0, 0.2, 0), "torso": Vector3(pitch * 0.4 - 0.14, 0.12, -0.03), "head": Vector3(0.02 - pitch * 0.3, -0.3, 0),
+		"arm_r": Vector3(1.25 + pitch * 0.5, 0.0, 0.4), "fore_r": Vector3(0.3, 0, 0),
+		"arm_l": Vector3(1.5, -0.15, 0.25), "fore_l": Vector3(0.75, 0, 0), "_scale": Vector3(1.05, 0.94, 1.05)}, true)
+
+
+## Full draw with the band's tension in the body: drawn past the ear, the chest wound further round and leaning back,
+## the body stretched tall.
+static func _taut(pitch: float, k: float = 1.0) -> Dictionary:
+	var d := _drawn(pitch)
+	return d.merged({"hips": Vector3(0, 0.45 + 0.12 * k, 0), "torso": (d["torso"] as Vector3) + Vector3(0.1, 0.22, 0.03) * k,
+		"pivot": Vector3(0.05 * k, 0, 0), "head": (d["head"] as Vector3) + Vector3(0, -0.1, 0) * k, "arm_l": Vector3(1.3, -0.7 - 0.1 * k, 0.25), "fore_l": Vector3(2.4 + 0.1 * k, 0, 0),
+		"_scale": Vector3(1.0 - 0.03 * k, 1.0 + 0.05 * k, 1.0 - 0.03 * k)}, true)
+
+
+## The snap of the loose: the chest unwinding forward through the shot, the fork arm kicked up by the band, the left
+## hand flung back open, the body squashed with the recoil; `k` how hard.
+static func _snap(pitch: float, k: float = 1.0) -> Dictionary:
+	var l := _loosed(pitch)
+	return l.merged({"pivot": Vector3(-0.06 * k, 0, 0), "hips": Vector3(0, 0.22, 0), "torso": (l["torso"] as Vector3) + Vector3(-0.18, -0.32, 0) * k,
+		"head": (l["head"] as Vector3) + Vector3(-0.06, 0.16, 0) * k, "arm_r": (l["arm_r"] as Vector3) + Vector3(0.45, 0, 0.08) * k,
+		"fore_r": Vector3(0.0, 0, 0), "hand_r": Vector3(-0.6 * k, 0, 0), "arm_l": Vector3(0.35, -0.6, -0.95), "fore_l": Vector3(0.7, 0, 0),
+		"_scale": Vector3(1.0 + 0.06 * k, 1.0 - 0.08 * k, 1.0 + 0.06 * k)}, true)
+
+
 ## [pose, mask, lift] for a slingshot move (keyed arms: no grip channels).
 static func _sling(h, n: String, u: float) -> Array:
 	var g := _sg()
@@ -167,15 +194,25 @@ static func _sling(h, n: String, u: float) -> Array:
 		"sl_stance":
 			return [g, "full", Vector3.ZERO]
 		"sl_shot":
-			# drawn back to the cheek in one pull, loosed: the left hand flung back open, the fork hand snapping on
-			return [h._keys(u, [[0.0, g], [0.42, _drawn(ap), "out"], [0.52, _drawn(ap)], [0.58, _loosed(ap), "out"], [1.0, g]]), "upper", Vector3.ZERO]
+			# (1.30.2) the hand to the fork in a dip, one long pull back to the ear rising tall, a hair's hold on the
+			# tension, then the snap (SlingArts.RELEASE, u 0.57): the chest unwinding through it, the fork kicked up, the
+			# hand flung open; it overshoots and settles back to the guard
+			var follow := _loosed(ap).merged({"_scale": Vector3(0.99, 1.02, 0.99)}, true)
+			return [h._keys(u, [[0.0, g], [0.14, _reach(ap), "out"], [0.46, _taut(ap), "in"], [0.54, _taut(ap, 1.2)],
+				[0.6, _snap(ap), "out"], [0.78, follow, "back"], [1.0, g]]), "upper", Vector3.ZERO]
+		"sl_rapid":
+			# Bag of Tricks' quick loosing: from full draw, the snap at once (the stone flies as it plays), and
+			# straight back to full draw for the next, a seamless loop
+			return [h._keys(u, [[0.0, _taut(ap)], [0.18, _snap(ap, 0.8), "out"], [0.45, _loosed(ap)], [1.0, _taut(ap), "in"]]), "upper", Vector3.ZERO]
 		"sl_draw":
-			# (held) the power draw: drawn right back past the ear, the chest turned further, the fork arm locked out
-			var d := _drawn(ap).merged({"torso": Vector3(ap * 0.5 - 0.02, 0.5, 0.04), "arm_l": Vector3(1.3, -0.65, 0.3), "fore_l": Vector3(2.45, 0, 0),
-				"_scale": Vector3(1.0, 1.02, 1.0)}, true)
-			return [h._keys(u, [[0.0, g], [1.0, d, "out"]]), "upper", Vector3.ZERO]
+			# (held) the power draw: the reach and dip, then drawn right back past the ear, the chest wound further round,
+			# leaning back and stretched with the band
+			var d := _taut(ap, 1.6).merged({"torso": Vector3(ap * 0.5 + 0.06, 0.58, 0.05), "arm_l": Vector3(1.3, -0.72, 0.3), "fore_l": Vector3(2.5, 0, 0)}, true)
+			return [h._keys(u, [[0.0, g], [0.3, _reach(ap), "out"], [1.0, d, "in"]]), "upper", Vector3.ZERO]
 		"sl_release":
-			return [h._keys(u, [[0.0, _drawn(ap)], [0.14, _loosed(ap), "out"], [0.5, _loosed(ap)], [1.0, g]]), "upper", Vector3.ZERO]
+			# the power draw let go: the heaviest snap, then a recoil that overshoots back to the guard
+			var follow := _loosed(ap).merged({"torso": (_loosed(ap)["torso"] as Vector3) + Vector3(0.06, 0, 0), "_scale": Vector3(0.98, 1.03, 0.98)}, true)
+			return [h._keys(u, [[0.0, _taut(ap, 1.6)], [0.12, _snap(ap, 1.5), "out"], [0.4, follow, "back"], [0.62, _loosed(ap)], [1.0, g]]), "full", Vector3.ZERO]
 		"sl_skid":
 			# Skid Shot: down into a slide on the left hip, the right leg out ahead, drawn and loosed from the ground
 			var slide := {"pivot": Vector3(0.25, 0, 0), "leg_l": Vector3(0.6, 0, -0.25), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(1.45, 0, 0.15),

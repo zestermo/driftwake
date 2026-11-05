@@ -12,8 +12,8 @@ const SPEED := 46.0
 const GRAVITY := 7.0
 const DAMAGE := 9.0
 ## A stone's draw and loose: the move's length and when it flies (s, x the design's "speed").
-const SHOT_LEN := 0.36
-const RELEASE := 0.2
+const SHOT_LEN := 0.42
+const RELEASE := 0.24
 ## The power draw: seconds to levels 1 and 2 (Quick Draw shortens them), each level's damage, the longest hold.
 const DRAW_AT := [0.4, 0.9]
 const DRAW_DAMAGE := [14.0, 24.0, 36.0]
@@ -136,7 +136,7 @@ static func _pouch_trick(p: Player) -> String:
 # Skid Shot (attacked at a sprint): down into a slide, three stones fanned out ahead
 # --------------------------------------------------------------------------
 const SKID_SPEED := 10.0
-const SKID_AT := 0.22
+const SKID_AT := 0.25
 const SKID_FAN := 0.12
 
 
@@ -347,7 +347,9 @@ static func air_update(s, delta: float) -> void:
 # five, a trick each, at double strength, at the foes ahead
 # --------------------------------------------------------------------------
 const TRICK_SHOT := {"fire_pellet": "fire", "smoke_pellet": "smoke", "blast_pellet": "blast", "sticky_pellet": "sticky"}
-const TRICK_AT := 0.28
+## (the trick shot plays sl_shot over TRICK_LEN: its snap at u 0.57)
+const TRICK_LEN := 0.55
+const TRICK_AT := 0.31
 const TRICK_DAMAGE := 10.0
 const BAG := ["fire", "sticky", "blast", "smoke", "fire"]
 const BAG_REACH := 30.0
@@ -359,7 +361,7 @@ const BAG_K := 1.6
 static func enter(s, id: String) -> bool:
 	var p: Player = s.player
 	if TRICK_SHOT.has(id):
-		s.dur = 0.55
+		s.dur = TRICK_LEN
 		LongGunArts._pitch(p)
 		p.body_model.play("sl_shot", s.dur)
 		return true
@@ -394,7 +396,7 @@ static func update(s, delta: float) -> bool:
 					if is_instance_valid(e):
 						to = s._body_center(e)
 						s.face_direction(s._flat_to(e), 1.0)
-				p.body_model.play("sl_shot", BAG_EVERY + 0.05)
+				p.body_model.play("sl_rapid", BAG_EVERY)
 				loose(p, "pellet", TRICK_DAMAGE * BAG_K, "%s@%.2f" % [BAG[i], BAG_K], to, 0.0 if to != Vector3.INF else (i - 2) * 0.15)
 		if s._once("open", s.dur - 0.2):
 			p.hurtbox.set_deferred("monitorable", true)

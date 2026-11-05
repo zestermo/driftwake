@@ -347,7 +347,8 @@ const SPECS := {
 	"cn_back": {"len": 1.0, "stance": "cannon", "weapon": "cannon"},
 	# --- the slingshot (GunMoves): the draw and loose, the held power draw, the slide, the hail ---
 	"sl_stance": {"len": 1.0, "stance": "slingshot", "weapon": "slingshot"},
-	"sl_shot": {"len": 0.36, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
+	"sl_shot": {"len": 0.42, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
+	"sl_rapid": {"len": 0.22, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
 	"sl_draw": {"len": 0.18, "hold": true, "stance": "slingshot", "weapon": "slingshot"},
 	"sl_release": {"len": 0.35, "stance": "slingshot", "weapon": "slingshot", "sharp": 60.0},
 	"sl_skid": {"len": 0.6, "stance": "slingshot", "weapon": "slingshot"},

@@ -84,7 +84,7 @@ func _process(_d: float) -> bool:
 			ti += 1
 			if ti < TRICKS.size():
 				step = 1
-				until = TK.wait_secs(3.0)
+				until = TK.wait_secs(4.0)
 				return false
 			var SA = load("res://scripts/weapons/sling_arts.gd")
 			p.set_meta("sling_n", 0)
