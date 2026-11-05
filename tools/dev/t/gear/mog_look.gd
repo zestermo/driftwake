@@ -70,7 +70,7 @@ func _process(_d: float) -> bool:
 					continue
 				var bare: Dictionary = gear.bare(s[0], false)
 				ok = ok and gear.SLOT_KEYS.has(s[0]) and not bare.is_empty()
-			check("every mog slot draws on the body", ok and p.equipment.MOG_SLOTS.size() == 10)
+			check("every mog slot draws on the body", ok and p.equipment.MOG_SLOTS.size() == 12)
 			return TK.done(fails)
 	step += 1
 	return false

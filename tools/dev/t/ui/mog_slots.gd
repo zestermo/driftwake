@@ -63,13 +63,13 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(6)
 		1:
 			ui = gm._inventory
-			check("a MOG box for each of the 10 clothing slots, none for accessories or equipment",
-				ui._mog_box.size() == 10 and not ui._mog_box.has("acc1") and not ui._mog_box.has("equipment"))
+			check("a MOG box for each of the 12 clothing slots, none for trinkets or equipment",
+				ui._mog_box.size() == 12 and not ui._mog_box.has("trinket1") and not ui._mog_box.has("equipment"))
 			var shown := 0
 			for s in ui._mog_box.keys():
 				if ui._mog_box[s].visible and not ui._mog_box[s].button_pressed and not ui._mog[s].visible:
 					shown += 1
-			check("all unticked, their cosmetic slots hidden (%d)" % shown, shown == 10)
+			check("all unticked, their cosmetic slots hidden (%d)" % shown, shown == 12)
 			for s in ui._mog.keys():
 				ui._mog_box[s].button_pressed = true
 			var bad := []
@@ -87,9 +87,9 @@ func _process(_d: float) -> bool:
 						bad.append("%s over %s" % [a.name, o.name])
 			check("ticked: every cosmetic slot and box clear of the rest (%s)" % ", ".join(bad.slice(0, 4)), bad.is_empty())
 			var head_r: Rect2 = rect(ui._doll["head"])
-			var legs_r: Rect2 = rect(ui._doll["legs"])
-			check("...beside its slot on the outer side (head left, legs right)", rect(ui._mog["head"]).end.x <= head_r.position.x
-				and is_equal_approx(rect(ui._mog["head"]).position.y, head_r.position.y) and rect(ui._mog["legs"]).position.x >= legs_r.end.x)
+			var legs_r: Rect2 = rect(ui._doll["feet"])
+			check("...beside its slot on the outer side (head left, feet right: 1.30.3 legs moved left)", rect(ui._mog["head"]).end.x <= head_r.position.x
+				and is_equal_approx(rect(ui._mog["head"]).position.y, head_r.position.y) and rect(ui._mog["feet"]).position.x >= legs_r.end.x)
 			for s in ui._mog.keys():
 				if s != "head" and s != "legs":
 					ui._mog_box[s].button_pressed = false

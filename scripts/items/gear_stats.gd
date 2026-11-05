@@ -24,7 +24,7 @@ const WEIGHT := {
 	"leathers": MEDIUM,
 	"boots": MEDIUM, "tall_boots": MEDIUM, "cavalier_boots": MEDIUM, "greaves": HEAVY, "sabatons": HEAVY,
 	"wide_belt": MEDIUM,
-	"mantle": MEDIUM, "cloak": MEDIUM, "pauldron": HEAVY,
+	"mantle": MEDIUM, "cloak": MEDIUM, "pauldron": HEAVY, "pauldron_r": HEAVY, "pauldrons": HEAVY,
 	"bulwark_helm": HEAVY, "bulwark_brigandine": HEAVY, "bulwark_gauntlets": HEAVY,
 	"bosun_coat": MEDIUM,
 	"mouth_guard": MEDIUM, "iron_mask": HEAVY, "backpack": MEDIUM,
@@ -43,7 +43,7 @@ const ROW := {"head": "head", "torso": "torso", "vest": "torso", "coat": "coat",
 ## Accessories' and belts' one trait each.
 const TRAITS := {
 	"earring": {"gold_pct": 0.05}, "eyepatch": {"crit_all": 0.03}, "scarf": {"max_stamina": 5.0},
-	"pauldron": {"defense": 4.0}, "pouch": {"use_speed_pct": 0.10}, "apron": {"regen_pct": 0.10},
+	"pauldron": {"defense": 4.0}, "pauldron_r": {"defense": 4.0}, "pauldrons": {"defense": 7.0}, "pouch": {"use_speed_pct": 0.10}, "apron": {"regen_pct": 0.10},
 	"cape": {"dodge_dist_pct": 0.04}, "cloak": {"defense": 3.0}, "bandolier": {"reload_pct": 0.06},
 	"necklace": {"damage_pct": 0.02}, "goggles": {"breath_pct": 0.10}, "mantle": {"stamina_regen_pct": 0.05},
 	"baldric": {"attack_speed_pct": 0.03}, "spyglass": {"xp_pct": 0.03},
@@ -110,7 +110,7 @@ static func scale(tier: int) -> float:
 
 ## The piece's untiered stats: its slot and weight's row, or its trait (no bonus, no tier).
 static func base(item: ItemData) -> Dictionary:
-	if item.gear_slot in ["accessory", "belt", "face", "back"]:
+	if item.gear_slot in ["accessory", "belt", "face", "back", "shoulders", "strap", "trinket"]:
 		return (TRAITS.get(item.icon_kind, {}) as Dictionary).duplicate()
 	return (TABLE[ROW[item.gear_slot]][weight(item)] as Dictionary).duplicate()
 

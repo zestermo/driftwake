@@ -76,6 +76,11 @@ func _process(d: float) -> bool:
 			bag.add_item(ItemDB.get_item("rum"), 3)
 			bag.add_item(ItemDB.get_item("gold"), 140)
 			bag.add_item(ItemDB.get_item("treasure"), 2)
+			# (1.30.3) the new slots worn: the pair of pauldrons, a bandolier, an earring
+			p.equipment.equip(Gear.make("shoulders", "pauldrons", Gear.PAULDRONS["pauldrons"]))
+			p.equipment.equip(Gear.make("strap", "bandolier", {"bandolier": true}))
+			p.equipment.equip(Gear.make("trinket", "earring", {"earring": true}))
+			p.refresh_look()
 			gm.open("inventory")
 			stage = 1; t = 0
 		1:

@@ -3583,20 +3583,24 @@ func _accessories() -> void:
 	if lk.get("cloak", false) or lk.get("cape", false):
 		_cape(tr, coated, lk.get("cloak", false))
 	_lantern_spot(tr, coated)
-	if lk.get("pauldron", false):
+	# (1.30.3) "pauldron" the left shoulder's plate, "pauldron_r" the right's (the Shoulders slot: left, right or the pair)
+	for side in [-1.0, 1.0]:
+		if not lk.get("pauldron" if side < 0 else "pauldron_r", false):
+			continue
 		var pm := PSXMat.lit("metal", Color(0.85, 0.85, 0.9))
 		var pmb := MeshBuilder.new()
 		var k := limb * (1.0 + (sh - 1.0) * 0.4)
 		# worn over what's on the shoulder: a coat's sleeve, or a greatcoat's cape or a mantle (it sank into them)
 		var caped: bool = str(lk.get("coat", "none")) == "greatcoat" or lk.get("mantle", false) or _draped()
 		var g := 0.03 if caped else (0.014 if coated else 0.0)
-		var lift := Vector3(-0.01, 0.045 if caped else 0.0, 0.0)
-		pmb.add_loft(pm, Transform3D(Basis(Vector3.FORWARD, 0.3), lift),
+		var lift := Vector3(0.01 * side, 0.045 if caped else 0.0, 0.0)
+		var tilt := Basis(Vector3.FORWARD, -0.3 * side)
+		pmb.add_loft(pm, Transform3D(tilt, lift),
 			[[-0.09, 0.11 * k + g, 0.115 * k + g], [0.0, 0.105 * k + g, 0.11 * k + g], [0.05 + g * 0.6, 0.075 * k + g, 0.08 * k + g], [0.075 + g, 0.02, 0.02]],
 			MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
-		pmb.add_loft(_leather("belt_color"), Transform3D(Basis(Vector3.FORWARD, 0.3), lift),
+		pmb.add_loft(_leather("belt_color"), Transform3D(tilt, lift),
 			[[-0.1, 0.113 * k + g, 0.118 * k + g], [-0.085, 0.113 * k + g, 0.118 * k + g]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
-		_mesh(h.arm_l, pmb)
+		_mesh(h.arm_l if side < 0 else h.arm_r, pmb)
 	_mesh(h.torso, mb)
 	_mesh(h.head, hmb)
 

@@ -45,7 +45,7 @@ func _process(_d: float) -> bool:
 				check("%s: a %s piece named %s, %s" % [style, it.gear_slot, it.display_name, str(st)],
 					it.gear_slot == gear.LOOKS[style][0] and gear.NAMES.has(style) and gear.DESCRIPTIONS.has(style) and not st.is_empty() and it.icon != null)
 				check("%s is sold or plundered" % style, placed.has(style))
-				var kept: Dictionary = gear.compose({}, {gear.LOOKS[style][0] if gear.LOOKS[style][0] != "accessory" else "acc1": it})
+				var kept: Dictionary = gear.compose({}, {gear.LOOKS[style][0] if gear.LOOKS[style][0] != "trinket" else "trinket1": it})
 				var worn := true
 				for k in (gear.LOOKS[style][1] as Dictionary).keys():
 					worn = worn and kept.get(k) == gear.LOOKS[style][1][k]

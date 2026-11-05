@@ -10939,3 +10939,23 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - Tests: `t/input/pad_cursor`, `t/input/pad_menu_nav`, `t/input/pad_dialogue`. Render: `tools/dev/padcursorshot.gd`.
 - Still awkward on a pad: the duel challenge answers on Y / N keys only; the Walkthrough tips' "Got it" wants the
   pointer or Enter; custom-drawn grids (inventory bag, skill map) step by focus where they have it, else the pointer.
+
+## 2026-11-05: 1.30.3 piece 1: slots and layers (docs/v1_30_3_slots.md)
+- **What:** the two Accessory slots are gone. Gear.SLOTS: head, face, torso, vest, coat, shoulders, back, strap, belt,
+  hands, legs, feet, trinket1/2, equipment. Capes, cloaks and the mantle share Back with the pack; the scarf is Face;
+  the apron is Belt; bandolier/baldric are Strap; earring, eyepatch, goggles, spyglass, necklace, pouch are trinkets.
+  Pauldrons: three items (`pauldron` left, as before; `pauldron_r` right; `pauldrons` the pair; Gear.PAULDRONS),
+  BodyBuilder draws a plate per side (look keys pauldron / pauldron_r; NPC looks with "pauldron": true unchanged).
+- **Migration:** `Gear.make` maps the old kind "accessory" through ACC_KIND, so every item rebuilt from data (saves,
+  chests, storage, shops' and loot tables, which still say "accessory") lands in its slot with no other change. Worn
+  "acc1"/"acc2" pieces in an old save go through SaveGame._rehome after the rest loads: a filled slot or a blocked
+  pair sends the piece to the bag (a full bag: worn if its slot is free).
+- **Rules:** Gear.BLOCKS (cloak + pauldrons, mantle + greatcoat, mantle + draped coat, helm/kettle/morion + oni/iron
+  mask/mask, apron + frock) on the look the pieces carry; EquipmentComponent.clash(item, slot, drape) on the worn and
+  the shown pieces; Player.equip_gear_from_bag and drape_coat refuse with a toast; mog_from_bag refuses too. Gear.HIDES
+  (goggles under helms/hoods, eyepatch under eye-covering masks, earring under hood/coif/helm, necklace under a scarf)
+  in compose. compose now lays every slot's bare look before its piece (a slot holds several kinds of piece).
+- **UI:** the doll is two columns of seven (left head..legs, right shoulders..trinkets), the weapon row under them;
+  checked at 1920x1080 (invshot_real now wears the pair, a bandolier and an earring). Tags SHLD, STRAP, TRNK.
+- **Tests:** t/gear/slots (new); stale counts fixed in t/gear/mog_look, t/ui/mog_slots (12 mog slots; legs moved
+  left), t/gear/new_pieces (the Shark's Tooth is a trinket). The whole t/gear group passes.

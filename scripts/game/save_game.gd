@@ -226,6 +226,20 @@ static func item_from(ref: Array) -> ItemData:
 	return ItemDB.get_item(str(ref[1]))
 
 
+## (1.30.3) Old saves' accessories (worn in "acc1"/"acc2") into their own slots: a slot already filled, or a piece that
+## can't be worn with what's on (Gear.BLOCKS: a cloak and a pauldron), sends it to the bag.
+static func _rehome(player: Node, moved: Array) -> void:
+	for it in moved:
+		var slot: String = player.equipment.slot_for(it)
+		if slot != "" and player.equipment.slots.get(slot) == null and player.equipment.clash(it, slot) == "":
+			player.equipment.slots[slot] = it
+		elif not player.inventory_component.add_item(it, 1):
+			# (a full bag: worn after all rather than lost, if its slot is free)
+			push_warning("save: no room in the bag for %s (%s)" % [it.display_name, slot])
+			if slot != "" and player.equipment.slots.get(slot) == null:
+				player.equipment.slots[slot] = it
+
+
 ## Co-op: true while playing in someone else's world. Your slot then keeps
 ## your captain (level, gear, fruit, loot, chests you opened...) but not
 ## that world's state (burnt brush, where the ship is, where you stand).
@@ -411,9 +425,14 @@ static func load_into(player: Player) -> bool:
 		player.appearance = (lk as Dictionary).duplicate(true)
 	player.equipment.slots.clear()
 	var worn: Dictionary = data.get("worn", {})
+	var moved: Array = []
 	for slot in worn.keys():
 		var it := item_from(worn[slot])
 		if it:
+			if slot in ["acc1", "acc2"]:
+				# (saves before 1.30.3 wore accessories in two slots: each goes to its own slot now, after the rest)
+				moved.append(it)
+				continue
 			# (saves before v1.18's equipment slot wore an instrument in "instrument")
 			player.equipment.slots["equipment" if slot == "instrument" else slot] = it
 	player.equipment.hidden.clear()
@@ -432,6 +451,7 @@ static func load_into(player: Player) -> bool:
 	player.equipment.mog.clear()
 	for slot in data.get("mog", []):
 		player.equipment.mog[str(slot)] = true
+	_rehome(player, moved)
 	player.refresh_look()
 	var w := item_from(data.get("weapon", []))
 	if w:

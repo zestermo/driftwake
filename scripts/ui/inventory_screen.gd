@@ -19,9 +19,10 @@ const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const LIGHT := preload("res://scripts/player_states/light_attack_state.gd")
 const HEAVY := preload("res://scripts/player_states/heavy_attack_state.gd")
 const SHOOT := preload("res://scripts/player_states/shoot_state.gd")
-const DOLL := [["head", "face", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "back", "acc1", "acc2"]]
+## (1.30.3) seven a side: what you wear on the left, what goes over it and the small things on the right
+const DOLL := [["head", "face", "torso", "vest", "coat", "belt", "legs"], ["shoulders", "back", "strap", "hands", "feet", "trinket1", "trinket2"]]
 const TAGS := {"head": "HEAD", "face": "FACE", "back": "BACK", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
-	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
+	"legs": "LEGS", "feet": "FEET", "shoulders": "SHLD", "strap": "STRAP", "trinket1": "TRNK", "trinket2": "TRNK", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
 const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake", "cleave": "Charged cleave", "lunge": "The lunge"}
 ## Item cards from these places compare with what you hold or wear.
 const COMPARE := ["bag", "loot", "shop"]
@@ -544,7 +545,7 @@ func _layout() -> void:
 			var x := _cx - dx - SLOT if c == 0 else _cx + dx
 			_park(_doll[DOLL[c][r]], Vector2(x, y0 + step * r), 2.0, false)
 	# the hands, and the equipment a little apart (its SHOW box beside it)
-	var wy := y0 + step * 5 + SLOT + 12
+	var wy := y0 + step * ((DOLL[0] as Array).size() - 1) + SLOT + 12
 	var wx := _cx - roundf((SLOT * 3 + 10) * 0.5)
 	_park(_weapon_slot, Vector2(wx, wy), 2.0, false)
 	_park(_offhand_slot, Vector2(wx + SLOT + 2, wy), 2.0, false)

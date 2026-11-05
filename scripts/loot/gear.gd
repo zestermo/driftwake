@@ -9,11 +9,14 @@ extends RefCounted
 ## (items_from_look), so what you designed is what you wear and can swap out.
 
 ## Paper-doll slots: [slot id, label, accepted gear_slot kind].
+## (1.30.3, docs/v1_30_3_slots.md) The two "Accessory" slots are gone: capes, cloaks and the mantle go on the Back (with
+## the pack), pauldrons on the Shoulders (left, right or a pair), straps across the body on the Strap, the scarf on the
+## Face, the apron on the Belt, and small things in two Trinket slots.
 const SLOTS := [
 	["head", "Head", "head"], ["face", "Face", "face"], ["torso", "Torso", "torso"], ["vest", "Vest", "vest"],
-	["coat", "Coat", "coat"], ["belt", "Belt", "belt"], ["back", "Back", "back"],
-	["hands", "Hands", "hands"], ["legs", "Legs", "legs"], ["feet", "Feet", "feet"],
-	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"], ["equipment", "Equipment", "equipment"]]
+	["coat", "Coat", "coat"], ["shoulders", "Shoulders", "shoulders"], ["back", "Back", "back"], ["strap", "Strap", "strap"],
+	["belt", "Belt", "belt"], ["hands", "Hands", "hands"], ["legs", "Legs", "legs"], ["feet", "Feet", "feet"],
+	["trinket1", "Trinket", "trinket"], ["trinket2", "Trinket", "trinket"], ["equipment", "Equipment", "equipment"]]
 ## The equipment slot (was the instrument slot, v1.18): what's carried for the hands (an instrument, a fishing
 ## rod, later tools). Its look keys name what's carried; "equip_hidden" keeps it off the body (still usable).
 const EQUIP_KEYS := ["instrument", "rod"]
@@ -21,27 +24,59 @@ const EQUIP_KEYS := ["instrument", "rod"]
 ## Look keys each slot kind controls.
 const SLOT_KEYS := {
 	"head": ["hat", "hat_color"],
-	"face": ["face_wear", "face_color"],
+	"face": ["face_wear", "face_color", "scarf", "scarf_color"],
 	"torso": ["top", "sleeves", "top_color", "top_pattern"],
 	"vest": ["vest", "vest_color", "vest_pattern"],
 	"coat": ["coat", "coat_color", "trim_color", "coat_pattern"],
+	"shoulders": ["pauldron", "pauldron_r"],
 	"hands": ["gloves", "gloves_color", "gauntlets", "bracers", "long_gloves", "arm_wraps", "wraps_color"],
 	"legs": ["legs", "legs_color", "legs_pattern"],
 	"feet": ["feet", "feet_color"],
-	"belt": ["belt", "belt_color", "sash_color"],
-	"back": ["backpack", "backpack_color"],
+	"belt": ["belt", "belt_color", "sash_color", "apron", "apron_color"],
+	"back": ["backpack", "backpack_color", "cape", "cape_color", "cape_tatter", "cloak", "cloak_color", "cloak_tatter",
+		"mantle", "mantle_color"],
+	"strap": ["bandolier", "baldric"],
 	"equipment": ["instrument", "rod", "equip_hidden"],
 }
-## Accessories are on/off look flags (+ a color for some).
+## Accessories are on/off look flags (+ a color for some). (1.30.3) Each now has a slot kind (ACC_KIND); the small ones
+## are trinkets (TRINKETS), two worn at once.
 const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle",
-	"baldric", "spyglass", "cloak"]
+	"baldric", "spyglass", "cloak", "pauldron_r"]
+const TRINKETS := ["earring", "eyepatch", "goggles", "spyglass", "necklace", "pouch"]
+## An accessory's slot kind (old saves' and drops' "accessory" items become these in make()).
+const ACC_KIND := {"scarf": "face", "pauldron": "shoulders", "pauldron_r": "shoulders", "pauldrons": "shoulders",
+	"cape": "back", "cloak": "back", "mantle": "back", "bandolier": "strap", "baldric": "strap", "apron": "belt",
+	"earring": "trinket", "eyepatch": "trinket", "goggles": "trinket", "spyglass": "trinket", "necklace": "trinket",
+	"pouch": "trinket", "shark_tooth": "trinket"}
+## The three pauldron items: the left one (today's, on the left arm), the right, and the pair.
+const PAULDRONS := {"pauldron": {"pauldron": true}, "pauldron_r": {"pauldron_r": true},
+	"pauldrons": {"pauldron": true, "pauldron_r": true}}
+## Pieces that can't be worn together ([look key, values or true] each side, the reason), and pieces worn but not drawn
+## while another covers them (docs/v1_30_3_slots.md). Judged on the look the pieces carry, so a styled piece (the
+## Bulwark Helm, drawn as a helm) follows its shape.
+const HELMS := ["helm", "kettle", "morion"]
+const FULL_MASKS := ["oni", "iron_mask", "mask"]
+const BLOCKS := [
+	[["cloak", true], ["pauldron", true], "The cloak covers the shoulders"],
+	[["cloak", true], ["pauldron_r", true], "The cloak covers the shoulders"],
+	[["mantle", true], ["coat", ["greatcoat"]], "The greatcoat has its own shoulder cape"],
+	[["mantle", true], ["coat_drape", true], "The mantle and a draped coat both sit on the shoulders"],
+	[["hat", HELMS], ["face_wear", FULL_MASKS], "A helm's face guards won't go over a full mask"],
+	[["apron", true], ["coat", ["frock"]], "The frock is buttoned closed to the knee"],
+]
+const HIDES := [
+	[["goggles", true], ["hat", HELMS + ["hood", "coif"]]],
+	[["eyepatch", true], ["face_wear", FULL_MASKS + ["eye_wrap"]]],
+	[["earring", true], ["hat", ["hood", "coif", "helm"]]],
+	[["necklace", true], ["scarf", true]],
+]
 const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color", "mantle": "mantle_color", "cloak": "cloak_color"}
 ## How torn a cape or cloak is (0..1, BodyBuilder._drape_rows), carried by the item.
 const ACC_TATTER := {"cape": "cape_tatter", "cloak": "cloak_tatter"}
 ## Tailors' skins (1.24): a pattern woven into a piece's cloth ("<slot>_pattern": BodyBuilder._cloth), named first.
 const PATTERN_NAMES := {"stripes": "Striped", "check": "Check", "brocade": "Brocade", "patched": "Patched"}
 ## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
-const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm",
+const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "pauldron_r", "pauldrons", "kettle", "coif", "crown", "scale", "sabatons", "helm",
 	"bulwark_helm", "bulwark_gauntlets", "iron_mask"]
 ## (1.25) Pieces cut from another style's garment: style -> the garment it's drawn as (its look carries that garment;
 ## its icon is that garment's). Their stats, names and sets go by their own style.
@@ -58,7 +93,7 @@ const LOOKS := {
 	"bulwark_gauntlets": ["hands", {"gloves": true, "gloves_color": Color(0.36, 0.12, 0.1), "gauntlets": true}],
 	"bosun_coat": ["coat", {"coat": "longcoat", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.92, 0.9, 0.84)}],
 	"powder_belt": ["belt", {"belt": "belt_sash", "belt_color": Color(0.1, 0.08, 0.07), "sash_color": Color(0.28, 0.28, 0.3)}],
-	"shark_tooth": ["accessory", {"necklace": true}],
+	"shark_tooth": ["trinket", {"necklace": true}],
 }
 
 const NAMES := {
@@ -71,7 +106,7 @@ const NAMES := {
 	"trousers": "Trousers", "breeches": "Breeches", "shorts": "Shorts", "skirt": "Skirt",
 	"tall_boots": "Tall Boots", "boots": "Boots", "shoes": "Shoes",
 	"belt": "Belt", "sash": "Sash", "belt_sash": "Belt and Sash",
-	"scarf": "Scarf", "pauldron": "Pauldron", "earring": "Gold Earring", "eyepatch": "Eyepatch",
+	"scarf": "Scarf", "pauldron": "Pauldron (Left)", "earring": "Gold Earring", "eyepatch": "Eyepatch",
 	"pouch": "Belt Pouch", "apron": "Apron",
 	"cavalier": "Cavalier Hat", "morion": "Morion", "turban": "Turban",
 	"cuirass": "Cuirass", "brigandine": "Brigandine", "mail": "Mail Shirt",
@@ -91,6 +126,7 @@ const NAMES := {
 	"cloak": "Cloak",
 	"bulwark_helm": "Bulwark Helm", "bulwark_brigandine": "Bulwark Brigandine", "bulwark_gauntlets": "Bulwark Gauntlets",
 	"bosun_coat": "Bosun's Coat", "powder_belt": "Powder Belt", "shark_tooth": "Shark's Tooth",
+	"pauldron_r": "Pauldron (Right)", "pauldrons": "Pauldrons",
 	"mask": "Carved Mask", "oni": "Oni Mask", "half_mask": "Half Mask", "iron_mask": "Iron Faceplate", "kerchief": "Kerchief",
 	"mouth_guard": "Mouth Guard", "bandage": "Head Bandage", "eye_wrap": "Eye Wrap", "arm_wraps": "Arm Wraps", "foot_wraps": "Foot Wraps",
 	"backpack": "Traveller's Pack", "parachute": "Parachute Pants", "jester": "Jester's Cap", "motley": "Motley Doublet", "motley_hose": "Motley Hose", "curled": "Curled Shoes",
@@ -123,7 +159,9 @@ const DESCRIPTIONS := {
 	"sash": "A wide cloth sash knotted at the hip.",
 	"belt_sash": "A sash under a leather belt. Pirate fashion.",
 	"scarf": "A long scarf against the wind.",
-	"pauldron": "A riveted shoulder plate.",
+	"pauldron": "A riveted shoulder plate for the left arm.",
+	"pauldron_r": "A riveted shoulder plate for the right arm.",
+	"pauldrons": "A matched pair of riveted shoulder plates.",
 	"earring": "A gold hoop. Pays for your burial, they say.",
 	"eyepatch": "Covers the eye. Whether you need it is your business.",
 	"pouch": "A small leather pouch on the belt.",
@@ -204,7 +242,7 @@ const DEFENSE := {
 	"trousers": 2.0, "breeches": 2.0, "shorts": 1.0, "skirt": 1.0,
 	"tall_boots": 2.0, "boots": 2.0, "shoes": 1.0,
 	"belt": 0.0, "sash": 0.0, "belt_sash": 1.0,
-	"scarf": 0.0, "pauldron": 3.0, "earring": 0.0, "eyepatch": 0.0, "pouch": 0.0, "apron": 1.0,
+	"scarf": 0.0, "pauldron": 3.0, "pauldron_r": 3.0, "pauldrons": 5.0, "earring": 0.0, "eyepatch": 0.0, "pouch": 0.0, "apron": 1.0,
 	"cavalier": 2.0, "morion": 5.0, "turban": 2.0,
 	"cuirass": 7.0, "brigandine": 5.0, "mail": 5.0,
 	"greatcoat": 5.0, "gauntlets": 3.0, "greaves": 4.0,
@@ -315,6 +353,9 @@ static func color_name(c: Color) -> String:
 ## Make (and register) a gear item. `style` is the look value that names it
 ## (e.g. "longcoat"); `look` holds the keys it sets when worn.
 static func make(kind: String, style: String, look: Dictionary, display: String = "", tier: int = 0, roll: int = 0) -> ItemData:
+	# (1.30.3) "accessory" is the old kind: old saves, chests and the shops' tables still name it; each piece has its slot now
+	if kind == "accessory":
+		kind = str(ACC_KIND.get(style, "trinket"))
 	var it := ItemData.new()
 	it.item_type = ItemData.ItemType.GEAR
 	it.rarity = tier as ItemData.Rarity
@@ -347,15 +388,16 @@ static func make(kind: String, style: String, look: Dictionary, display: String 
 static func _main_color_key(kind: String, style: String) -> String:
 	match kind:
 		"head": return "hat_color"
-		"face": return "face_color"
-		"back": return "backpack_color"
+		"face": return "scarf_color" if style == "scarf" else "face_color"
+		"back": return str(ACC_COLOR.get(style, "backpack_color"))
+		"shoulders", "strap", "trinket": return str(ACC_COLOR.get(style, ""))
 		"hands": return "wraps_color" if style == "arm_wraps" else ""
 		"torso": return "top_color"
 		"vest": return "vest_color"
 		"coat": return "coat_color"
 		"legs": return "legs_color"
 		"feet": return "feet_color"
-		"belt": return "sash_color" if style == "sash" else ""
+		"belt": return "sash_color" if style == "sash" else ("apron_color" if style == "apron" else "")
 		"accessory": return str(ACC_COLOR.get(style, ""))
 	return ""
 
@@ -401,22 +443,32 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 	var belt := str(lk.get("belt", "none"))
 	if belt != "none":
 		out["belt"] = make("belt", belt, {"belt": belt, "belt_color": lk.get("belt_color"), "sash_color": lk.get("sash_color")})
+	# (1.30.3) the accessories each to their slot (the first piece in a slot wins; the rest go to the bag)
 	var extra: Array = []
+	var pl: bool = lk.get("pauldron", false)
+	var pr: bool = lk.get("pauldron_r", false)
+	if pl or pr:
+		var ps := "pauldrons" if pl and pr else ("pauldron" if pl else "pauldron_r")
+		out["shoulders"] = make("shoulders", ps, PAULDRONS[ps])
 	var n := 0
 	for a in ACCESSORIES:
-		if not lk.get(a, false):
+		if not lk.get(a, false) or a in ["pauldron", "pauldron_r"]:
 			continue
 		var part := {a: true}
 		if ACC_COLOR.has(a):
 			part[ACC_COLOR[a]] = lk.get(ACC_COLOR[a])
 		if ACC_TATTER.has(a) and lk.has(ACC_TATTER[a]):
 			part[ACC_TATTER[a]] = lk[ACC_TATTER[a]]
-		var it := make("accessory", a, part)
-		if n < 2:
-			out["acc%d" % (n + 1)] = it
-		else:
+		var kind := str(ACC_KIND[a])
+		var it := make(kind, a, part)
+		var slot := kind
+		if kind == "trinket":
+			slot = "trinket%d" % (n + 1) if n < 2 else ""
+			n += 1
+		if slot == "" or out.has(slot):
 			extra.append(it)
-		n += 1
+		else:
+			out[slot] = it
 	out["extra"] = extra
 	return out
 
@@ -425,8 +477,10 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 static func bare(kind: String, fem: bool) -> Dictionary:
 	match kind:
 		"head": return {"hat": "none"}
-		"face": return {"face_wear": "none"}
-		"back": return {"backpack": false}
+		"face": return {"face_wear": "none", "scarf": false}
+		"back": return {"backpack": false, "cape": false, "cloak": false, "mantle": false}
+		"shoulders": return {"pauldron": false, "pauldron_r": false}
+		"strap": return {"bandolier": false, "baldric": false}
 		"torso":
 			# a plain sleeveless undershirt for feminine bodies, bare-chested otherwise
 			return {"top": "shirt", "sleeves": "none", "top_color": CharacterLook.CLOTH[1]} if fem else {"top": "bare"}
@@ -435,7 +489,7 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 		"hands": return {"gloves": false, "gauntlets": false, "bracers": false, "long_gloves": false, "arm_wraps": false}
 		"legs": return {"legs": "shorts", "legs_color": CharacterLook.CLOTH[1]}
 		"feet": return {"feet": "barefoot"}
-		"belt": return {"belt": "none"}
+		"belt": return {"belt": "none", "apron": false}
 		"equipment": return {"instrument": "none", "rod": "none", "equip_hidden": false}
 	return {}
 
@@ -445,24 +499,46 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 static func compose(appearance: Dictionary, equipped: Dictionary, hidden: Dictionary = {}, draped: Dictionary = {}) -> Dictionary:
 	var lk := appearance.duplicate(true)
 	var fem := str(lk.get("body", "masc")) == "fem"
+	for a in ACCESSORIES:
+		lk[a] = false
+	for k in ACC_TATTER.values():
+		lk.erase(k)
 	for kind in SLOT_KEYS.keys():
 		var it: ItemData = equipped.get(kind)
 		for k in SLOT_KEYS[kind]:
 			if k.ends_with("_pattern"):
 				lk.erase(k)
-		if kind == "equipment":
-			lk.merge(bare(kind, fem), true)
-		lk.merge(it.look if it else bare(kind, fem), true)
+		# (1.30.3: the slot's bare look first, then the piece: a slot holds several kinds of piece now, a cape or a pack)
+		lk.merge(bare(kind, fem), true)
+		if it:
+			lk.merge(it.look, true)
 	var eq: ItemData = equipped.get("equipment")
 	lk["equip_hidden"] = eq != null and hidden.has(eq.id)
 	var ct: ItemData = equipped.get("coat")
 	lk["coat_drape"] = ct != null and draped.has(ct.id)
-	for a in ACCESSORIES:
-		lk[a] = false
-	for k in ACC_TATTER.values():
-		lk.erase(k)
-	for slot in ["acc1", "acc2"]:
+	for slot in ["trinket1", "trinket2"]:
 		var it: ItemData = equipped.get(slot)
 		if it:
 			lk.merge(it.look, true)
+	# what another piece covers is worn, not drawn
+	for hd in HIDES:
+		if _has(lk, hd[0]) and _has(lk, hd[1]):
+			lk[hd[0][0]] = false
 	return lk
+
+
+## Whether a look has [key, true] or [key, [values...]].
+static func _has(lk: Dictionary, cond: Array) -> bool:
+	var v = lk.get(cond[0])
+	if cond[1] is Array:
+		return str(v) in cond[1]
+	return v == cond[1]
+
+
+## (1.30.3) Why the pieces in `equipped` (slot -> item) can't be worn together, or "" when they can; `draped` as compose's.
+static func clash(equipped: Dictionary, draped: Dictionary = {}) -> String:
+	var lk := compose({}, equipped, {}, draped)
+	for b in BLOCKS:
+		if _has(lk, b[0]) and _has(lk, b[1]):
+			return str(b[2])
+	return ""

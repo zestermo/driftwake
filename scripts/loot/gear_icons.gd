@@ -65,7 +65,7 @@ static func _main_color(it: ItemData) -> Color:
 	match it.icon_kind:
 		"earring": return GOLD
 		"eyepatch": return Color(0.12, 0.1, 0.09)
-		"pauldron": return STEEL
+		"pauldron", "pauldron_r", "pauldrons": return STEEL
 		"pouch", "bandolier", "goggles", "baldric": return LEATHER
 		"spyglass": return Color(0.82, 0.66, 0.3)
 		"necklace", "shark_tooth": return Color(0.92, 0.88, 0.76)
@@ -395,6 +395,26 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 			return [["m", [Vector2(4, 6), Vector2(20, 6), Vector2(20, 11), Vector2(4, 11)]],
 				["m", [Vector2(14, 9), Vector2(18, 9), Vector2(19, 21), Vector2(15, 21)]],
 				["d", [Vector2(15, 19), Vector2(19, 19), Vector2(19, 21), Vector2(15, 21)]]]
+		"pauldron_r":
+			# (1.30.3) the right one: the left's plate mirrored
+			var out := []
+			for layer in _shapes("pauldron", look):
+				var pts := []
+				for p in layer[1]:
+					pts.append(Vector2(24 - p.x, p.y))
+				out.append([layer[0], pts])
+			return out
+		"pauldrons":
+			# the pair: two smaller plates side by side
+			var pair := []
+			for side in [-1.0, 1.0]:
+				for layer in _shapes("pauldron", look):
+					var pts := []
+					for p in layer[1]:
+						var q := Vector2(12 + (p.x - 12) * 0.55, 3 + p.y * 0.8)
+						pts.append(Vector2(12 + side * 5.5 + (q.x - 12) * side, q.y + 2))
+					pair.append([layer[0], pts])
+			return pair
 		"pauldron":
 			return [["s", [Vector2(3, 16), Vector2(5, 8), Vector2(12, 4), Vector2(19, 8), Vector2(21, 16), Vector2(12, 13)]],
 				["k", [Vector2(11, 7), Vector2(13, 7), Vector2(13, 9), Vector2(11, 9)]],

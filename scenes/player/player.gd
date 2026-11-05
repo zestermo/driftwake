@@ -485,6 +485,11 @@ func equip_gear_from_bag(idx: int) -> bool:
 	var it := inventory_component.items[idx].item
 	if not it.is_gear():
 		return false
+	# (1.30.3) pieces that can't be worn together (Gear.BLOCKS): say why and leave it in the bag
+	var why := equipment.clash(it)
+	if why != "":
+		_toast(why)
+		return false
 	inventory_component.take_at(idx)
 	var prev := equipment.equip(it)
 	if prev:
@@ -506,6 +511,10 @@ func show_equipment(on: bool) -> void:
 func drape_coat(on: bool) -> void:
 	var it := equipment.look_item("coat")
 	if it == null:
+		return
+	var why := equipment.clash(null, "coat", on)
+	if why != "":
+		_toast(why)
 		return
 	equipment.set_draped(it, on)
 	refresh_look()

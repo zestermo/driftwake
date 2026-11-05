@@ -18,7 +18,7 @@ var draped: Dictionary = {}
 ## (1.30) Transmog: the clothing slots that can show a cosmetic piece instead of the worn one (the wardrobe's MOG boxes).
 ## The worn piece gives every stat; `cosmetic` (slot -> piece, out of the bag while it sits there) is what the body
 ## draws while that slot's `mog` is ticked. An empty cosmetic slot shows the worn piece.
-const MOG_SLOTS := ["head", "face", "torso", "vest", "coat", "belt", "back", "hands", "legs", "feet"]
+const MOG_SLOTS := ["head", "face", "torso", "vest", "coat", "shoulders", "belt", "back", "strap", "hands", "legs", "feet"]
 var cosmetic: Dictionary = {}
 var mog: Dictionary = {}
 
@@ -88,6 +88,10 @@ func mog_from_bag(inv: InventoryComponent, idx: int, slot: String = "") -> bool:
 		slot = it.gear_slot if it.is_gear() else ""
 	if not fits_cosmetic(it, slot):
 		return false
+	var shown := look_slots()
+	shown[slot] = it
+	if Gear.clash(shown, draped) != "":
+		return false
 	inv.take_at(idx)
 	var prev := wear_cosmetic(it, slot)
 	if prev:
@@ -135,17 +139,40 @@ func get_item(slot: String) -> ItemData:
 	return slots.get(slot)
 
 
-## Which slot an item goes into: its own kind, or the first free accessory slot.
+## Which slot an item goes into: its own kind, or the first free trinket slot.
 func slot_for(item: ItemData) -> String:
 	if item == null or not item.is_gear():
 		return ""
-	if item.gear_slot == "accessory":
-		if slots.get("acc1") == null:
-			return "acc1"
-		if slots.get("acc2") == null:
-			return "acc2"
-		return "acc1"
+	if item.gear_slot == "trinket":
+		if slots.get("trinket1") == null:
+			return "trinket1"
+		if slots.get("trinket2") == null:
+			return "trinket2"
+		return "trinket1"
 	return item.gear_slot
+
+
+## (1.30.3) Why `item` can't go in `slot` (its own if "") beside what's worn, or "" when it can (Gear.BLOCKS). Judged on
+## the worn pieces and on what's drawn (a mogged slot's cosmetic piece).
+func clash(item: ItemData, slot: String = "", drape: Variant = null) -> String:
+	if slot == "":
+		slot = slot_for(item)
+	var dr := draped.duplicate()
+	if drape != null:
+		var ct: ItemData = item if slot == "coat" and item != null else look_item("coat")
+		if ct:
+			if drape:
+				dr[ct.id] = true
+			else:
+				dr.erase(ct.id)
+	for base in [slots, look_slots()]:
+		var trial: Dictionary = base.duplicate()
+		if item:
+			trial[slot] = item
+		var why := Gear.clash(trial, dr)
+		if why != "":
+			return why
+	return ""
 
 
 ## Wear an item; returns whatever it replaced (or null).
