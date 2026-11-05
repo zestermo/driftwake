@@ -50,9 +50,14 @@ const SWIM_M := 4.0
 const SWIM_TICKS := 15
 ## (1.30, docs/v1_30_previews.md section 2) The Adventure trees that earn twice the xp for what you do.
 const LIFE_XP_K := {"defense": 2, "cook": 2, "sea": 2, "swim": 2, "tinker": 2, "fish": 2, "stealth": 2}
-## Acrobatics' xp, only for what counts (no plain jumps): an air jump, a wall jump, an air dash, a blow dodged, a fall
-## lived through, a sky leap.
-const ACRO_XP := {"air_jump": 6, "wall_jump": 6, "air_dash": 5, "slip": 6, "fall": 8, "sky_leap": 10, "moonstep": 8}
+## Acrobatics' xp: an air jump, a wall jump, an air dash, a blow dodged, a fall lived through, a sky leap; (1.30.2) a
+## plain jump (one each JUMP_GAP_S at most), each AIR_S in the air, a tall drop (DROP_M or more: a point each 2 m, up to
+## 10), a blow landed in the air (each foe counts HITS_PER_FOE times like weapon mastery).
+const ACRO_XP := {"air_jump": 6, "wall_jump": 6, "air_dash": 5, "slip": 6, "fall": 8, "sky_leap": 10, "moonstep": 8,
+	"jump": 1, "air": 1, "air_hit": 3}
+const JUMP_GAP_S := 1.2
+const AIR_S := 1.5
+const DROP_M := 4.0
 ## Passive slots at the start; the Captain's milestones add one at 10, 20 and 30 (5 at most).
 const PASSIVE_SLOTS := 2
 ## How close to the ship's bunk (m) steps, versions and talents can be switched.
@@ -117,6 +122,10 @@ var _sneak_m := 0.0
 ## foe instance id -> hits that taught mastery
 var _foe_hits: Dictionary = {}
 var _swim_m: float = 0.0
+var _air_t := 0.0
+var _air_acc := 0.0
+var _air_peak := 0.0
+var _jump_at := -9.0
 var _swim_at := Vector3.INF
 
 
@@ -469,6 +478,8 @@ func on_hit(target: Node = null, hit: HitData = null) -> void:
 	if _mine() and Story.step == "vey_rack":
 		return
 	add_mastery(hand_tree(), MASTERY_PER_HIT)
+	if target and not player.is_on_floor() and not player.is_swimming() and player.context == Player.Context.ON_FOOT:
+		add_life("acrobatics", ACRO_XP["air_hit"])
 
 
 ## (1.30) Still within AMBUSH_TICKS of sneaking: a blow now is struck out of a sneak (HitData.sneak).
@@ -507,6 +518,31 @@ func hand_tree() -> String:
 ## here), and cooking and fishing (their systems call add_life). LIFE_XP_K's trees earn twice (1.30).
 func add_life(skill: String, amount: int) -> void:
 	add_mastery(skill, amount * int(LIFE_XP_K.get(skill, 1)))
+
+
+## (1.30.2) Player's tick on foot: in the air (`airborne`) at height `y`. Air time teaches Acrobatics; the landing's
+## drop from the highest point does too, when it's a tall one.
+func on_air(delta: float, airborne: bool, y: float) -> void:
+	if airborne:
+		_air_peak = maxf(_air_peak, y) if _air_t > 0.0 else y
+		_air_t += delta
+		_air_acc += delta
+		if _air_acc >= AIR_S:
+			_air_acc -= AIR_S
+			add_life("acrobatics", ACRO_XP["air"])
+		return
+	if _air_t > 0.0 and _air_peak - y >= DROP_M:
+		add_life("acrobatics", mini(int((_air_peak - y) / 2.0), 10))
+	_air_t = 0.0
+
+
+## A plain jump off the ground: a point, once each JUMP_GAP_S.
+func on_jump() -> void:
+	var now := PlayerState.now_s()
+	if now - _jump_at < JUMP_GAP_S:
+		return
+	_jump_at = now
+	add_life("acrobatics", ACRO_XP["jump"])
 
 
 func on_swim(metres: float) -> void:

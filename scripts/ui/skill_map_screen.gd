@@ -35,7 +35,7 @@ const CHIPS := {"damage_pct": ["+%d%% DMG", 100], "defense": ["+%d DEF", 1], "ma
 	"xp_pct": ["+%d%% XP", 100], "armament": ["HEAVIES UNBLOCKABLE", 0], "observation": ["SENSE INTENT", 0]}
 ## How each Adventure tree grows (shown on its card).
 const GROWS := {
-	"acrobatics": "Jump, dodge and attack in the air. A dodge through a blow counts most, and a fall you live through.",
+	"acrobatics": "Jump, stay in the air, drop from heights and strike foes mid-air. Air steps, wall jumps and a dodge through a blow count most.",
 	"defense": "Block and parry real blows. Perfect parries count most, and staying on your feet when hit.",
 	"sea": "Sail the ship: time at the helm and every job on deck.",
 	"swim": "Swim open water: every few metres count.",

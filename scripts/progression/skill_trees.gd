@@ -523,7 +523,7 @@ static func _build_acrobatics() -> void:
 	_steps("ac_slick", "Slick Slide", 3, [3, 7, 11], {"slide_pct": 0.08}, "You slide 8% faster a step.", ["ac_root"], "+8% slide speed")
 	_at("ac_slidejump", "Slide Jump", "mech", 3, 6, 1, {"slide_jump": 1}, "A jump out of a slide keeps all its speed: jump off a mast, slide down the hill, launch off the bottom.", ["ac_slick"])
 	_at("ac_slidekick", "Slide Kick", "move", 3, 9, 1, {"slide_kick": 1}, "Slide into a foe and kick their legs out: they go down.", ["ac_slick"])
-	_at("ac_longslide", "Long Slide", "mech", 3, 12, 1, {"long_slide": 1}, "Slides keep going on gentle slopes and flat decks, and crouch at a sprint to start one on the flat.", ["ac_slidejump"])
+	_at("ac_longslide", "Long Slide", "mech", 3, 12, 1, {"long_slide": 1}, "Slides keep their speed further across gentle slopes and the flat at the bottom.", ["ac_slidejump"])
 	# Footwork
 	_steps("m_swift", "Swift Step", 2, [2, 5, 8], {"dodge_cost_pct": 0.13, "dodge_dist_pct": 0.1, "dodge_iframe_pct": 0.17},
 		"Your dodge costs 13% less stamina, carries you 10% further and leaves you untouchable 17% longer, a step.", ["ac_root"], "cheaper, longer dodges")

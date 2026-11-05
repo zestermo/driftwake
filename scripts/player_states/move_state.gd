@@ -41,6 +41,10 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, "Fall", {})
 		return
 
+	if SlideState.auto_start(player, delta):
+		transitioned.emit(self, "Slide", {})
+		return
+
 	if wants_jump():
 		transitioned.emit(self, "Jump", {})
 		return

@@ -193,11 +193,13 @@ static func _climb(body: Node3D, n: String, prompt: String, at: Vector3, r: floa
 	return it
 
 
-## The captain up or down the tower: there, facing `yaw`, a toast.
+## The captain up or down the tower: there, facing away from the tower (`yaw` is the tower's), a toast. Only the model
+## turns: the Player root stays at yaw 0 (input, the camera and every state assume it).
 static func _move(p: Player, to: Vector3, yaw: float, say: String) -> void:
 	p.global_position = to
 	p.velocity = Vector3.ZERO
-	p.rotation.y = yaw
+	p.rotation = Vector3.ZERO
+	p.player_model.rotation.y = yaw + PI
 	p.reset_physics_interpolation()
 	p.get_tree().call_group("hud", "show_toast", say)
 

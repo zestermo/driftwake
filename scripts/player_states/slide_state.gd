@@ -1,26 +1,28 @@
 extends PlayerState
 class_name SlideState
-## (1.30) The slope slide, free for everyone (Acrobatics' Slides branch upgrades it): C while moving on a slope, or C
-## pressed on the way down (or held) and you land into it. Gravity carries you down the slope faster and faster, the
-## stick steers it, the ground's friction slows it on the flat; jump launches out of it (Slide Jump keeps all its
-## speed, Spring Heels goes higher), C again stands you up. Slick Slide: faster; Slide Kick: a foe you slide into goes
-## down; Long Slide: less friction, and C at a sprint starts one on the flat.
-## Jump off a mast, C on the way down, land on the hill and slide it.
+## (1.30.2) The slope slide, free for everyone (Acrobatics' Slides branch upgrades it), no key: running down ground
+## steeper than START_SLOPE for a moment, or landing on it, starts one by itself. Stood up side-on like surfing the hill,
+## gravity carries you down it, the stick steers, the ground's friction slows it once the slope eases; jump launches
+## out of it (Slide Jump keeps all its speed, Spring Heels goes higher). Slick Slide: faster; Slide Kick: a foe you
+## slide into goes down; Long Slide: less friction, so it carries on further across gentle ground.
 
-## Slopes at least this steep (rad, ~11 deg) start a slide; the hill's pull is g x sin(slope) x PULL.
-const MIN_SLOPE := 0.19
-const PULL := 1.1
+## Slopes this steep (rad, ~29 deg) start a slide, after STEEP_S of running down them; it carries on while the slope is
+## at least MIN_SLOPE (~14 deg). The hill's pull is g x sin(slope) x PULL.
+const START_SLOPE := 0.5
+const STEEP_S := 0.12
+const MIN_SLOPE := 0.25
+const PULL := 0.75
 ## The ground's drag (m/s^2), Long Slide's, and the top speed (Slick Slide: + slide_pct).
-const FRICTION := 4.5
-const FRICTION_LONG := 1.4
-const TOP := 15.0
+const FRICTION := 6.0
+const FRICTION_LONG := 2.5
+const TOP := 11.0
 ## How fast the stick turns the slide (rad/s), and pulled back against it, how hard it brakes (m/s^2).
 const STEER := 2.6
 const BRAKE := 7.0
 ## Speed a slide starts with at least, below which it ends (off a slope), and a landing's fall turned into it (x).
-const START := 4.0
-const STOP := 1.5
-const LAND_K := 0.45
+const START := 3.0
+const STOP := 2.0
+const LAND_K := 0.3
 ## A jump out of it keeps this share of its speed (Slide Jump: all of it).
 const JUMP_KEEP := 0.6
 ## Slide Kick: a foe this close ahead at KICK_MIN m/s or more goes down.
@@ -34,16 +36,40 @@ var _air := 0.0
 var _dust := 0.0
 
 
-## A slide can start here: on the ground of a slope steep enough, going down it (or at a sprint with Long Slide);
-## `landing`: coming down onto it, any way you're going.
-static func can_start(p: Player, landing: bool = false) -> bool:
+## A slide can start here: on the ground of a slope steep enough and going down it; `landing`: coming down onto it,
+## any way you're going (a short hop onto a hill doesn't count: `fall_vy` under 4 m/s).
+static func can_start(p: Player, landing: bool = false, fall_vy: float = 0.0) -> bool:
 	if p.context != Player.Context.ON_FOOT or p.is_swimming() or not p.is_on_floor():
 		return false
-	var hv := Vector3(p.velocity.x, 0.0, p.velocity.z)
 	var n := p.get_floor_normal()
-	if acos(clampf(n.y, -1.0, 1.0)) >= MIN_SLOPE:
-		return landing or hv.length() > 1.0
-	return p.progression.has_flag("long_slide") and (p.sprinting or landing) and hv.length() > 3.0
+	if acos(clampf(n.y, -1.0, 1.0)) < START_SLOPE or not _on_terrain(p):
+		return false
+	if landing:
+		return absf(fall_vy) > 4.0
+	var hv := Vector3(p.velocity.x, 0.0, p.velocity.z)
+	return hv.length() > 1.0 and hv.normalized().dot(Vector3(n.x, 0.0, n.z).normalized()) > 0.4
+
+
+## The ground underfoot is an island's hill (its "Terrain" body), not stairs, a roof, a ramp or a deck.
+static func _on_terrain(p: Player) -> bool:
+	for i in p.get_slide_collision_count():
+		var c := p.get_slide_collision(i)
+		var col := c.get_collider() as Node
+		if col != null and col.name == "Terrain" and c.get_normal().y > 0.3:
+			return true
+	return false
+
+
+## MoveState's tick: true once the captain has run down steep ground for STEEP_S (a bump's one odd normal doesn't
+## start a slide).
+static func auto_start(p: Player, delta: float) -> bool:
+	var t := float(p.get_meta("steep_t", 0.0))
+	t = t + delta if can_start(p) else 0.0
+	p.set_meta("steep_t", t)
+	if t < STEEP_S:
+		return false
+	p.set_meta("steep_t", 0.0)
+	return true
 
 
 func enter(data: Dictionary) -> void:
@@ -105,7 +131,8 @@ func physics_update(delta: float) -> void:
 	player.move_and_slide()
 	_v = Vector3(player.velocity.x, 0.0, player.velocity.z)
 	if _v.length() > 0.3:
-		player.player_model.rotation.y = lerp_angle(player.player_model.rotation.y, atan2(-_v.x, -_v.z), minf(10.0 * delta, 1.0))
+		# side-on to the slide, the left shoulder leading
+		player.player_model.rotation.y = lerp_angle(player.player_model.rotation.y, atan2(-_v.x, -_v.z) - PI * 0.5, minf(8.0 * delta, 1.0))
 	_dust -= delta
 	if _dust <= 0.0 and player.is_on_floor():
 		_dust = 0.08
@@ -131,7 +158,7 @@ func physics_update(delta: float) -> void:
 	if next != "":
 		transitioned.emit(self, next, {"combo_index": 0})
 		return
-	if _v.length() < STOP and slope < MIN_SLOPE:
+	if slope < MIN_SLOPE and _v.length() < (STOP if pr.has_flag("long_slide") else player.move_speed):
 		transitioned.emit(self, "Move" if input.length() > 0.1 else "Idle", {})
 
 

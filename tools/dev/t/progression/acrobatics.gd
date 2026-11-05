@@ -1,6 +1,7 @@
 extends SceneTree
-## Acrobatics is learned by what counts (1.30): a plain jump or a dodge through no blow teaches nothing, an air jump does;
-## Acrobatics 2 lets Geppo be bought (a second jump in mid-air). Its own curve: 40 x lv^1.15.
+## Acrobatics is learned in the air (1.30.2): a plain jump a point (once each JUMP_GAP_S), a dodge through no blow
+## nothing, an air jump more, time in the air and a tall drop too; Acrobatics 2 lets Geppo be bought (a second jump in
+## mid-air). Its own curve: 40 x lv^1.15.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -37,22 +38,32 @@ func _process(_d: float) -> bool:
 			TK.act("jump")
 			until = TK.wait_ticks(60)
 		1:
-			check("a plain jump teaches nothing (%d)" % xp(), xp() == 0)
+			check("a plain jump teaches a point (%d)" % xp(), xp() == pr.ACRO_XP["jump"])
+			TK.act("jump")
+			until = TK.wait_ticks(60)
+		2:
+			check("...but not another straight after (%d)" % xp(), xp() == pr.ACRO_XP["jump"])
 			TK.act("dodge")
 			until = TK.wait_ticks(40)
-		2:
-			check("nor does a dodge through no blow (%d)" % xp(), xp() == 0)
+		3:
+			check("a dodge through no blow teaches nothing (%d)" % xp(), xp() == pr.ACRO_XP["jump"])
 			pr.add_life("acrobatics", pr.mastery_to_next(1, "acrobatics") + pr.mastery_to_next(2, "acrobatics"))
 			check("Acrobatics 3 (467 xp by 5 on its own curve): Geppo bought with its 2 Adventure points, a second jump in mid-air",
 				pr.mastery_to_next(4, "acrobatics") == 197 and pr.buy("m_geppo") and p.max_jumps == 2)
 			x0 = xp()
 			TK.act("jump")
 			until = TK.wait_ticks(12)
-		3:
-			TK.act("jump")
-			until = TK.wait_ticks(60)
 		4:
-			check("an air jump teaches it (%d)" % (xp() - x0), xp() - x0 == pr.ACRO_XP["air_jump"])
+			TK.act("jump")
+			until = TK.wait_ticks(90)
+		5:
+			check("an air jump teaches more (%d)" % (xp() - x0), xp() - x0 >= pr.ACRO_XP["air_jump"])
+			x0 = xp()
+			p.global_position += Vector3(0, 9.0, 0)
+			p.reset_physics_interpolation()
+			until = TK.wait_secs(2.5)
+		6:
+			check("a tall drop and its air time teach it (%d)" % (xp() - x0), xp() - x0 >= 4 + pr.ACRO_XP["air"])
 			return TK.done(fails)
 	step += 1
 	return false

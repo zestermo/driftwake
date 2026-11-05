@@ -75,6 +75,8 @@ func _launch(double: bool) -> void:
 		player.air_speed = player.move_speed
 	if double:
 		pr.add_life("acrobatics", Progression.ACRO_XP["air_jump"])
+	else:
+		pr.on_jump()
 	# (a polearm drawn: the sprint's bound is a pole vault, higher and further)
 	if kind == "jump_sprint" and player.armed and player.style() == "polearm" and pr.has_move("pole_vault"):
 		kind = "pole_vault"

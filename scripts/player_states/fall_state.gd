@@ -24,8 +24,6 @@ func enter(data: Dictionary) -> void:
 ## slide down it at CLING_SLIDE m/s while you keep pushing.
 const CLING_S := 1.0
 const CLING_SLIDE := 2.5
-## C pressed this long before landing still drops you into a slide.
-const SLIDE_LAND_S := 3.0
 
 var _fall_vy := 0.0
 
@@ -115,10 +113,8 @@ func physics_update(delta: float) -> void:
 	if player.is_on_floor():
 		player.jumps_remaining = player.max_jumps
 		player.air_speed = 0.0
-		# (C pressed on the way down, or held: come down into the slope slide)
-		var slide_c := now_s() - float(player.get_meta("slide_land", -9.0)) < SLIDE_LAND_S or player.inp.pressed("crouch")
-		if slide_c and SlideState.can_start(player, true):
-			player.remove_meta("slide_land")
+		# (a fall onto steep ground comes down into the slope slide)
+		if SlideState.can_start(player, true, _fall_vy):
 			transitioned.emit(self, "Slide", {"velocity": player.velocity, "fall_vy": _fall_vy})
 			return
 		if player.consume_jump_buffer():

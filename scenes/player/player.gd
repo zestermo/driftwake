@@ -1383,6 +1383,8 @@ func _physics_process(delta: float) -> void:
 		if sf:
 			global_position += sf.current_at(global_position) * delta * 0.7
 	var on_floor := is_on_floor()
+	if context == Context.ON_FOOT and not is_swimming():
+		progression.on_air(delta, not on_floor and current_state_name() != "Climb", global_position.y)
 	if on_floor:
 		_coyote = coyote_time
 		gun_rains = 0
@@ -1982,13 +1984,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if st == "Crouch":
 			state_machine.force_state("Idle", {})
 		elif st == "Slide":
-			state_machine.force_state("Move" if inp.stick().length() > 0.1 else "Idle", {})
-		elif st == "Move" and SlideState.can_start(self):
-			# (1.30) C while moving on a slope: the slope slide, armed or not
-			state_machine.force_state("Slide", {})
-		elif st in ["Jump", "Fall"]:
-			# (and on the way down: land into one, FallState)
-			set_meta("slide_land", PlayerState.now_s())
+			# (1.30.2: the slope slide starts and ends by itself, SlideState)
+			pass
 		elif (armed or (power.fruit_stance and crew_tech.id() != "")) and context == Context.ON_FOOT:
 			crew_tech.trigger()
 		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():

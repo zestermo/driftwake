@@ -47,19 +47,24 @@ static func pose(h, n: String, u: float) -> Array:
 	return []
 
 
-## (held, 1.30) The slope slide: dropped onto the left hip, the right leg out ahead nearly straight, the left folded
-## under it, leaning back with the left hand trailing on the ground and the right arm up and forward for balance; the
-## body rocks a little with the ground (h._t).
+## (held, 1.30.2) The slope slide, stood up and side-on like surfing the hill (SlideState turns the body so the left
+## shoulder leads): feet wide, knees soft, the head and chest turned down the slope, both arms out for balance, the
+## body bobbing and the arms seesawing a little with the ground (h._t).
 static func _slide(h, u: float) -> Array:
-	var rock := sin(h._t * 9.0) * 0.04
-	var slide := {"pivot": Vector3(0.38 + rock, 0, 0.1), "hips": Vector3(0, 0.25, 0), "torso": Vector3(0.12, -0.2, 0.08), "head": Vector3(-0.35, 0.18, 0),
-		"leg_r": Vector3(1.45, 0, 0.08), "shin_r": Vector3(-0.25, 0, 0), "leg_l": Vector3(0.6, 0, -0.3), "shin_l": Vector3(-2.1, 0, 0),
-		"arm_l": Vector3(-0.35, 0, -0.75), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(1.15, 0, 0.55), "fore_r": Vector3(0.5, 0, 0),
-		"_lift": Vector3(0, -0.5, 0), "_scale": Vector3(1.04, 0.96, 1.04)}
-	var drop := slide.duplicate()
-	drop["_scale"] = Vector3(1.1, 0.88, 1.1)
-	drop["_lift"] = Vector3(0, -0.58, 0)
-	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.35, drop, "out"], [1.0, slide]])), "full", Vector3.ZERO]
+	var bob := sin(h._t * 7.0)
+	var saw := sin(h._t * 3.1) * 0.12
+	var surf := {"pivot": Vector3(-0.06, 0, -0.06 + saw * 0.3), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.08, 0.35, -0.05), "head": Vector3(0.05, 0.75, 0),
+		"leg_l": Vector3(0.3, 0, -0.32), "shin_l": Vector3(-0.55 - bob * 0.06, 0, 0), "leg_r": Vector3(0.3, 0, 0.32), "shin_r": Vector3(-0.6 + bob * 0.06, 0, 0),
+		"arm_l": Vector3(0.35, 0, -1.25 - saw), "fore_l": Vector3(0.25, 0, 0), "arm_r": Vector3(0.1, 0, 1.05 - saw), "fore_r": Vector3(0.35, 0, 0),
+		"_lift": Vector3(0, -0.13 + bob * 0.015, 0), "_scale": Vector3.ONE}
+	var catch_ := surf.duplicate()
+	catch_["shin_l"] = Vector3(-0.95, 0, 0)
+	catch_["shin_r"] = Vector3(-1.0, 0, 0)
+	catch_["arm_l"] = Vector3(0.6, 0, -1.5)
+	catch_["arm_r"] = Vector3(0.4, 0, 1.4)
+	catch_["_lift"] = Vector3(0, -0.26, 0)
+	catch_["_scale"] = Vector3(1.06, 0.92, 1.06)
+	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.3, catch_, "out"], [1.0, surf]])), "full", Vector3.ZERO]
 
 
 ## (1.30) The wall jump: crouched against the wall (it's behind you now), both legs driven back off it, the body flung
