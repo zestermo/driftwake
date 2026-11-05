@@ -241,7 +241,8 @@ const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_
 	"buzzsaw", "falling_cleave", "cyclone_heel", "falling_moon", "sky_shot", "recoil_leap", "hail_shot"]
 ## The 1.24 ranged kinds' air attacks, run by their arts file (GunKinds.art: air_enter / air_update).
 const GUN_AIR := ["sky_shot", "recoil_leap", "hail_shot"]
-const METEOR_CHAIN := 3
+## Diving Fists a jump at most (each one that connects bounces you up, lower each time, for the next).
+const METEOR_CHAIN := 2
 
 ## (1.26, WeaponPlus) The weapon tree's aerial heavy (right-click in the air) once its node is bought, else "".
 func air_heavy() -> String:

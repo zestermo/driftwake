@@ -72,7 +72,11 @@ const METEOR_COCK := 0.12
 const METEOR_SPEED := 21.0
 const METEOR_REACH := 12.0
 const METEOR_DAMAGE := 20.0
-const METEOR_BOUNCE := Vector2(3.5, 9.0) # m/s back, up off the one you kicked
+const METEOR_BOUNCE := Vector2(3.5, 7.0) # m/s back, up off the one you kicked (the second: x METEOR_BOUNCE2)
+const METEOR_BOUNCE2 := 0.55
+## How hard the dive turns onto its foe as they move (per s), and how close its fist must come.
+const METEOR_HOME := 7.0
+const DIVE_HIT_R := 1.7
 const METEOR_MAX := 1.0                  # s of dive before giving up
 
 const HANGSHOT_LEN := 0.62
@@ -766,10 +770,10 @@ func _trail(tree: String) -> Color:
 ## you (the one a dive goes for), or null.
 func _aimed(reach: float) -> Node3D:
 	var best: Node3D = null
-	var best_a := 0.7
+	var best_a := 0.9
 	for e in player.power.enemies_in(player.global_position, reach):
 		var hb := (e as Node).get("hurtbox") as Node3D
-		if hb == null or hb.global_position.y > player.global_position.y + 1.0:
+		if hb == null or hb.global_position.y > player.global_position.y + 1.6:
 			continue
 		var to := hb.global_position - player.global_position
 		to.y = 0.0
@@ -885,10 +889,22 @@ func _dive_update(delta: float) -> void:
 					Net.fx("blade_swoosh", [player.body_model, 0.35, _trail("sword")])
 				set_meta("from", from)
 		1:
+			var chest := player.global_position + Vector3(0, 0.7, 0)
+			var aimed := _target != null and is_instance_valid(_target) and not (_target.owner in _struck)
+			if aimed:
+				# (it turns onto the foe as they move, still always coming down)
+				var want := (_target.global_position - chest).normalized()
+				if want.y > -0.1:
+					want = (Vector3(want.x, 0.0, want.z).normalized() + Vector3.DOWN * 0.1).normalized()
+				_line = _line.slerp(want, minf(METEOR_HOME * delta, 1.0)).normalized()
 			player.velocity = _line * (METEOR_SPEED if kick else DIVE_LUNGE)
 			player.move_and_slide()
-			var front := player.global_position + Vector3(0, 0.7, 0) + _line * (0.5 if kick else 0.9)
-			for e in player.power.enemies_in(front, 1.4):
+			chest = player.global_position + Vector3(0, 0.7, 0)
+			if aimed and (_target as Node3D).global_position.distance_to(chest + _line * 0.4) < DIVE_HIT_R:
+				_dive_hit(_target as Hurtbox, kick, tree)
+				return
+			var front := chest + _line * (0.5 if kick else 0.9)
+			for e in player.power.enemies_in(front, DIVE_HIT_R):
 				var hb := (e as Node).get("hurtbox") as Hurtbox
 				if hb == null or hb.owner in _struck:
 					continue
@@ -940,6 +956,8 @@ func _dive_hit(hb: Hurtbox, kick: bool, tree: String) -> void:
 		player.air_uses["bounce"] = int(player.air_uses.get("bounce", 0)) + 1
 	var back := Vector3(_line.x, 0.0, _line.z).normalized()
 	var off := METEOR_BOUNCE if kick else DIVE_VAULT
+	if kick and int(player.air_uses.get("bounce", 0)) >= 2:
+		off *= METEOR_BOUNCE2
 	player.velocity = -back * off.x + Vector3.UP * off.y
 	player.body_model.play("vault_back", 0.45)
 	phase = 3
