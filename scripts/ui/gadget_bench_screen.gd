@@ -6,7 +6,7 @@ extends Control
 
 const W_LIST := 190
 const W_CARD := 320
-const LIST_H := 360
+const LIST_H := 280
 
 var bench: Node3D
 var _menu: Node

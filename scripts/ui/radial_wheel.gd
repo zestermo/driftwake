@@ -262,7 +262,7 @@ func _restyle() -> void:
 # --------------------------------------------------------------------------
 ## The ring's middle radius: room for every segment's symbol and label.
 func _mid_r() -> float:
-	return maxf(80.0, entries.size() * 60.0 / TAU)
+	return maxf(72.0, entries.size() * 52.0 / TAU)
 
 
 ## A label cut to `w` px: whole if it fits, else its first word, else letters off the end.
@@ -305,7 +305,7 @@ func _draw_wheel() -> void:
 	var rm := _mid_r()
 	var ri := rm - 24.0
 	var ro := rm + 24.0
-	var hub := minf(ri - 6.0, 54.0)
+	var hub := minf(ri - 6.0, 48.0)
 	_root.draw_circle(c, ro + 6.0, Color(0, 0, 0, 0.35))
 	_root.draw_circle(c, ri, Color(UIStyle.OUTLINE, 0.8))
 	for i in range(n):

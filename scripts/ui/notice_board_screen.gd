@@ -8,11 +8,11 @@ extends Control
 ##   WHO NEEDS A HAND: the people with work or wanting something (materials, food...), where they are, how it stands.
 ## Reading it is the landing's third objective (ChainGoal): a world flag, the crew's.
 
-const W := 860.0
-const H := 470.0
-const REC_W := 240.0
-const BOUNTY_W := 300.0
-const FOLK_W := 290.0
+const W := 780.0
+const H := 420.0
+const REC_W := 210.0
+const BOUNTY_W := 280.0
+const FOLK_W := 250.0
 const FOLK_ROWS := 8
 const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const CORK := Color("6b4a2c")

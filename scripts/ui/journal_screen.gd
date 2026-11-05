@@ -11,12 +11,12 @@ extends Control
 
 const TABS := ["next", "quests", "news", "done"]
 const NAMES := {"next": "NEXT", "quests": "QUESTS", "news": "NEWS", "done": "DONE"}
-const W := 820.0
-const H := 470.0
-const LEFT_W := 430.0
-const LIST_W := 290.0
-const BODY_H := 404.0
-const MAP_H := 250.0
+const W := 740.0
+const H := 420.0
+const LEFT_W := 380.0
+const LIST_W := 260.0
+const BODY_H := 354.0
+const MAP_H := 210.0
 const SMALL := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const BOLD := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const PAPER := Color("e9d9b0")

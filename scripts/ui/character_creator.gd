@@ -74,8 +74,11 @@ func _build_ui() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 10)
+	# (a 780x500 page in the middle of the 960x540 canvas, not edge to edge)
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 90)
+	for side in ["top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 20)
 	root.add_child(margin)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 4)
@@ -91,7 +94,7 @@ func _build_ui() -> void:
 
 	# ---- preview
 	var pv_panel := PanelContainer.new()
-	pv_panel.custom_minimum_size = Vector2(340, 0)
+	pv_panel.custom_minimum_size = Vector2(300, 0)
 	pv_panel.add_theme_stylebox_override("panel", UIStyle.panel(STAGE, UIStyle.BORDER, 0))
 	hb.add_child(pv_panel)
 	var pv_box := VBoxContainer.new()

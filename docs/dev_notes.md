@@ -10844,3 +10844,18 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   sprint is on Shift (`Keybinds.sprint_shift`). Left hard-coded (not UI): progression's "(K)" points line, story/quest
   text with "(M)"/"(F)"/"Hold H", the fruits' "Press V".
 - Test: `t/ui/keybinds`; `t/input/glyphs` reads the new page.
+
+## 2026-11-05: 1.30.1 UI sizes at 1080p
+- Zach: some UI too big after the 960x540 canvas pass. Rendered every screen at 1920x1080 (uishots, journalshot,
+  boardshot, titleshot, creatorshot, skillmapshot) and brought in what filled the screen edge to edge or overflowed:
+  - Inventory / shop / storage slots 52 -> 42 (`InventoryScreen.SLOT`, icons 48 -> 36: 1.5x, so 3 screen pixels a texel
+    at 1080p and 6 at 4K, still whole), GAP 3, PANEL_W 400, the doll's columns closer (dx 0.18 h, step 0.1 h), the
+    storage view 204 tall. The shop follows (its slots are the inventory's).
+  - Captain's Log 820x470 -> 740x420 (left 380, list 260, map 210); notice board 860x470 -> 780x420 (columns
+    210/280/250); workbench list 360 -> 280 tall; bookshelf rows 400 -> 320 wide; Options list 360 -> 300 tall.
+  - The creator: a 780x500 page (margins 90 / 20) instead of the whole canvas; the preview 300 wide.
+  - The wheels (emote, items, loadouts, actions): ring radius per entry 60 -> 52 / TAU (min 72), hub 48.
+  - Load Game rows were shorter than their five lines (the version line ran into the next row): row = thumb + 22.
+  - The objective marker pinned to the screen's edge sat on the skill bar when the target was behind you: the pin
+    keeps out of the bottom 76 px (`ObjectiveHud.FOOT`).
+- Checked by the renders and `t/ui`.

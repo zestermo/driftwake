@@ -6,12 +6,12 @@ extends Control
 ## show only in their slots. Drawn into a SubViewport shown at a whole multiple of its pixels
 ## (_fit_canvas), so the pixel fonts and icons stay crisp at any window size.
 
-## Slots show their 24 px icons at 2x (ICON) on the 960x540 canvas.
-const SLOT := 52
-const ICON := 48
-const GAP := 4
+## Slots show their 24 px icons at 1.5x (ICON) on the 960x540 canvas: 3 screen pixels a texel at 1080p, 6 at 4K.
+const SLOT := 42
+const ICON := 36
+const GAP := 3
 const COLS := 5
-const PANEL_W := 450
+const PANEL_W := 400
 const INFO_W := 150
 const TIP_W := 180
 const SMALL := preload("res://assets/fonts/Silkscreen-Regular.woff2")
@@ -63,7 +63,7 @@ class Slot extends Button:
 		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex.size = Vector2(ICON, ICON)
 		tex.pivot_offset = Vector2(ICON, ICON) * 0.5
-		tex.position = Vector2(2, 2)
+		tex.position = Vector2.ONE * (SLOT - ICON) * 0.5
 		add_child(tex)
 		count = InventoryScreen.small("", UIStyle.TEXT)
 		count.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -181,7 +181,7 @@ var _loot_title: Label
 var _loot_grid: GridContainer
 var _loot_tabs: HBoxContainer
 ## The storage window's slots on show before it scrolls (canvas px).
-const LOOT_VIEW_H := 252.0
+const LOOT_VIEW_H := 204.0
 var _loot_slots: Array[Slot] = []
 var _container: Node = null
 var _view: Array[int] = []
@@ -536,9 +536,9 @@ func _layout() -> void:
 	_park(_panel, pp, -3.0, true)
 	_cx = roundf((w - PANEL_W - 10) * 0.5)
 	# (the gear columns keep a slot's width clear on their outer side, for a second slot beside each)
-	var dx := roundf(h * 0.2)
-	var y0 := roundf(h * 0.15)
-	var step := maxf(roundf(h * 0.118), SLOT + 12)
+	var dx := roundf(h * 0.18)
+	var y0 := roundf(h * 0.17)
+	var step := maxf(roundf(h * 0.1), SLOT + 12)
 	for c in range(2):
 		for r in range((DOLL[c] as Array).size()):
 			var x := _cx - dx - SLOT if c == 0 else _cx + dx

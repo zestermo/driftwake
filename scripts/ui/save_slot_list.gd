@@ -91,7 +91,8 @@ func refresh() -> void:
 ## One save as a row: a button over the whole of it (load / pick), the picture on the left, the lines beside, Delete.
 func _row(slot: int, info: Dictionary) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(ROW_W, THUMB.y + 10.0)
+	# (tall enough for the five lines beside the picture: the version line ran out of the row)
+	b.custom_minimum_size = Vector2(ROW_W, THUMB.y + 22.0)
 	b.focus_mode = Control.FOCUS_ALL
 	_list.add_child(b)
 	var hb := HBoxContainer.new()
@@ -107,6 +108,7 @@ func _row(slot: int, info: Dictionary) -> Button:
 	pic.custom_minimum_size = THUMB
 	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var shot := str(info.get("shot", ""))
 	if shot != "":

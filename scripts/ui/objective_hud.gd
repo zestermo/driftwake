@@ -9,6 +9,8 @@ extends Control
 const NPC_NEAR := 3.5
 const PLACE_NEAR := 22.0
 const EDGE := 16.0
+## The skill bar's band at the foot of the screen.
+const FOOT := 76.0
 const GOLD := Color(1.0, 0.82, 0.3)
 const MARK := "quest"
 const W := 216.0
@@ -275,14 +277,16 @@ func _draw() -> void:
 	var sp := PixelCanvas.project(cam, pos, vs)
 	if behind:
 		sp = vs - sp
-	var inside := not behind and Rect2(Vector2(EDGE, EDGE + 30.0), vs - Vector2(EDGE * 2.0, EDGE * 2.0 + 30.0)).has_point(sp)
+	# (pinned to the edge it stays off the compass at the top and the skill bar at the foot)
+	var room := Rect2(Vector2(EDGE, EDGE + 30.0), vs - Vector2(EDGE * 2.0, EDGE * 2.0 + 30.0 + FOOT))
+	var inside := not behind and room.has_point(sp)
 	var at := sp
 	if not inside:
-		var mid := vs * 0.5
+		var mid := room.get_center()
 		var dv := sp - mid
 		if dv.length() < 1.0:
 			dv = Vector2(0, 1)
-		var half := mid - Vector2(EDGE, EDGE)
+		var half := room.size * 0.5
 		at = mid + dv * minf(half.x / maxf(absf(dv.x), 0.001), half.y / maxf(absf(dv.y), 0.001))
 	var bob := sin(_t * 5.0) * 2.0 if inside else 0.0
 	var p := at + Vector2(0, bob)

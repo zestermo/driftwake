@@ -518,7 +518,7 @@ func _build_options() -> Control:
 	p.add_child(outer)
 	outer.add_child(UIStyle.title("Options"))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(480, 360)
+	scroll.custom_minimum_size = Vector2(480, 300)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	outer.add_child(scroll)
 	var list := VBoxContainer.new()
