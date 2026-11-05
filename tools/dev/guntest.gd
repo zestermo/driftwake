@@ -33,6 +33,7 @@ func _process(d: float) -> bool:
 		0:
 			if t < 1.5: return false
 			p = root.get_tree().get_first_node_in_group("player")
+			p.progression.level = Levels.REF
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
@@ -141,10 +142,10 @@ func _process(d: float) -> bool:
 			if rifle.state == SHOVE and not rifle._shoved and rifle.st_t > 0.3 and not has_meta("tell"):
 				set_meta("tell", true)
 				print("   shove tell at %.2f s: arc %d, glint %s, hp lost %.1f" % [rifle.st_t, root.find_children("ArcWarn", "", true, false).size(), rifle._glinted, hp0 - p.health_component.current_health])
-				check("shove: wound up with a glint and a ground arc before the blow", root.find_children("ArcWarn", "", true, false).size() > 0 and rifle._glinted and rifle.humanoid.current_action() == "shove")
+				check("shove: wound up with a glint and a ground arc before the blow", root.find_children("ArcWarn", "", true, false).size() > 0 and rifle._glinted and rifle.humanoid.current_action() in ["shove", "fo_bayonet"])
 				check("...nothing lands during the tell", is_equal_approx(hp0, p.health_component.current_health))
 			if rifle.state == SHOVE and rifle._shoved:
-				check("...the blow comes over half a second in (time to dodge)", has_meta("tell") and rifle.st_t >= 0.5)
+				check("...the blow comes over half a second in (time to dodge; the bayonet thrust comes at 0.38)", has_meta("tell") and rifle.st_t >= (0.35 if rifle._jab else 0.5))
 				wait = 0.05; step += 1
 			elif t - t0 > 3.0:
 				check("shoves when you're too close", false); step = 99

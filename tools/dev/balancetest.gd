@@ -59,6 +59,7 @@ func _process(d: float) -> bool:
 			for c in root.find_children("*", "CharacterCreator", true, false):
 				c._finish(true)
 			p = root.get_tree().get_first_node_in_group("player")
+			p.progression.level = Levels.REF
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			p.health_component.max_health = 9999.0
 			p.health_component.current_health = 9999.0
@@ -221,6 +222,7 @@ func _process(d: float) -> bool:
 			check("tier 1 needs cutlass mastery 16, tier 2 25 (%s)" % pr.can_learn("s_elem"), pr.can_learn("s_elem") == "Needs Cutlass 16" and pr.can_learn("s_elem2") == "Needs Cutlass 25")
 			while pr.mastery_level("sword") < 16:
 				pr.add_mastery("sword", pr.mastery_to_next(pr.mastery_level("sword")))
+			pr._own("s_swordfish")
 			check("tier 1 bought at 16", pr.buy("s_elem") and pr.elemental("sword") and not pr.elemental("sword", 2))
 			while pr.mastery_level("sword") < 25:
 				pr.add_mastery("sword", pr.mastery_to_next(pr.mastery_level("sword")))

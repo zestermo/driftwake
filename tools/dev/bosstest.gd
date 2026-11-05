@@ -152,9 +152,18 @@ func _dens() -> void:
 		put(near)
 		await wait(2.2)
 		check("...a captain close: it turns and stomps them flat (%s, %.1f m off, captain %.1f m above it)" % [r.state_name(), r.global_position.distance_to(p.global_position), p.global_position.y - r.global_position.y], r.in_combat() and p.health_component.current_health < hp)
-		put(r.ground_at(r.global_position + Vector3(0, 0, 80.0)))
-		await wait(8.0)
-		check("...everyone gone: it goes back to grazing, healed", r.state in [0, 3] and r.health.current_health == r.health.max_health)
+		# (a charging beast can close 80 m inside its 6 s leash: the captain keeps their distance)
+		# (some way off there must be ground to stand on, or the captain falls and is brought back to the beast)
+		var far: Vector3 = r.global_position + Vector3(0, 0, 80.0)
+		for k in range(16):
+			var c: Vector3 = r.global_position + Vector3(cos(k * TAU / 16.0), 0, sin(k * TAU / 16.0)) * 80.0
+			if r.ground_at(c) != c:
+				far = c
+				break
+		for i in range(16):
+			put(r.ground_at(far))
+			await wait(0.5)
+		check("...everyone gone: it goes back to grazing, healed (%s, %.0f/%.0f)" % [r.state_name(), r.health.current_health, r.health.max_health], r.state in [0, 3] and r.health.current_health == r.health.max_health)
 
 
 func _boss(kind: String) -> void:

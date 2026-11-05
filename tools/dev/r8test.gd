@@ -81,6 +81,8 @@ func _process(d: float) -> bool:
 	t += d
 	if boss and is_instance_valid(boss) and boss.get("_special") != null and str(boss._special) != "":
 		saw["special_" + str(boss._special)] = true
+	if boss and is_instance_valid(boss) and boss.get("_attack") == "reset":
+		saw["special_roar"] = true
 	if wait > 0.0:
 		until = TK.wait_secs(wait)
 		wait = 0.0

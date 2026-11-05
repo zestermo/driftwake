@@ -78,7 +78,7 @@ func _process(_d: float) -> bool:
 			var ph: int = boss.phase
 			boss.health.current_health = boss.health.max_health * 0.3
 			boss._phase_check()
-			check("down past two thirds of its health it erupts into its last phase, a moment (%d -> %d, %s)" % [ph, boss.phase, boss.move], boss.phase == 3 and boss.move == "moment")
+			check("down past two thirds of its health it leaps home into its last phase (the reset) (%d -> %d, %s)" % [ph, boss.phase, boss.move], boss.phase == 3 and boss.move == "leap_home")
 			return TK.done(fails)
 	step += 1
 	return false

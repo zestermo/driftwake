@@ -151,7 +151,7 @@ func jump_poses(n: int) -> Array:
 				for arm in [h.arm_l, h.arm_r]:
 					var dirv: Vector3 = inv * ((arm as Node3D).global_basis.orthonormalized() * Vector3.DOWN)
 					rec[3] = minf(rec[3], absf(dirv.x) - absf(dirv.z))
-			if f == 65:
+			if f == 35:
 				rec[2] = gap
 		out.append(rec)
 	h.queue_free()

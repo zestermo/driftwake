@@ -86,7 +86,7 @@ func _process(d: float) -> bool:
 			step += 1
 		6:
 			var hips: Vector3 = p.body_model.hips.global_position
-			print("   thrown: hips %s aboard %s, root aboard %s, state %s" % [hips, ship.aboard(hips), ship.aboard(p.global_position), p.current_state_name()])
+			print("   thrown: hips %s (local %s) aboard %s, root aboard %s, state %s" % [hips, ship.global_transform.affine_inverse() * hips, ship.aboard(hips), ship.aboard(p.global_position), p.current_state_name()])
 			check("thrown over the rail the root follows the body overboard (max gap %.2f m)" % max_gap, max_gap < 2.5 and not ship.aboard(p.global_position))
 			wait = 4.0
 			step += 1

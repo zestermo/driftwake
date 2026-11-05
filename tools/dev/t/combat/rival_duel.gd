@@ -66,18 +66,22 @@ func _process(_d: float) -> bool:
 			check("its loadout fits its cutlass (%s) and it used it (%d casts)" % [str(lo), r.get_node("Brain").casts], lo.filter(func(s): return s != "").size() >= 3 and r.get_node("Brain").casts > 0)
 			p.health_component.current_health = p.health_component.max_health
 			# the captain attacks the sharp one: count what it answers
+			# (1.30: a personality leans its answers a way: a plain one answers by skill alone)
+			r.get_node("Brain").personality = "plain"
 			swings = 0
 			defences = 0
 			until = TK.wait_ticks(1)
 		4:
-			if swings < 8:
+			# (1.30: it answers only between its own chains, jumps and heavies: swing until it has, up to 30 times)
+			var ans: Dictionary = r.get_node("Brain").answers
+			if swings < 30 and int(ans.get("dodge", 0)) + int(ans.get("parry", 0)) + int(ans.get("block", 0)) == 0:
+				p.health_component.current_health = p.health_component.max_health
 				face(p, r)
 				if p.current_state_name() in ["Idle", "Move"]:
 					TK.act("light_attack")
 					swings += 1
 				until = TK.wait_ticks(4)
 				return false
-			var ans: Dictionary = r.get_node("Brain").answers
 			defences = int(ans.get("dodge", 0)) + int(ans.get("parry", 0)) + int(ans.get("block", 0))
 			check("a sharp rival answers the captain's attacks (%s, %d swings)" % [str(ans), swings], defences > 0)
 			r.queue_free()

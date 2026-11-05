@@ -217,7 +217,10 @@ func _process(d: float) -> bool:
 			wait = 1.5
 			step = 5
 		5:
-			check("smugglers beaten: back to Vey", story().step == "vey_skills")
+			# (1.30: the flour errand to Brann comes between the smugglers and Vey: t/story/close_steps drives it)
+			check("smugglers beaten: Brann's flour, on to the farm", story().step == "farm")
+			story().step = "vey_skills"
+			story().changed.emit()
 			check("  the skill map's still locked", not story().skills_open())
 			points0 = p.progression.mastery_level(p.progression.hand_tree())
 			check("Vey: skills", _talk("vey", "Sergeant Vey").begins_with("Back already"))
@@ -226,7 +229,7 @@ func _process(d: float) -> bool:
 			root.get_node("GameMenu").open("skills")
 			check("  (K works)", root.get_node("GameMenu")._current == "skills")
 			root.get_node("GameMenu").close()
-			check("  next: the shrine (the Edy reading)", story().step == "shrine")
+			check("  next: Wick the tinker, then Aldous's book, then the shrine", story().step == "tinker")
 			# (the reading, Tomo and the ruins stone are t/story's)
 			story().step = "grell"
 			story().changed.emit()

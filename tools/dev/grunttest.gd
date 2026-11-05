@@ -102,6 +102,7 @@ func _process(d: float) -> bool:
 		0:
 			if t < 1.5: return false
 			p = root.get_tree().get_first_node_in_group("player")
+			p.progression.level = Levels.REF
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")

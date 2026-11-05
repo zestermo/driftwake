@@ -10819,3 +10819,5 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 
 ## v1.30 release files (2026-11-04)
 - Stable v1.30 'Full Sail': version, What's new NOTES, releases section, news post, home latest, roadmap (1.30 shipped, 1.31 The Voyage planned), preview_130 from seastop_rest_bow_after. No UNSTABLE file.
+
+- Gate fixes (combat tests, stale not game): the level gap divides a foe's poise damage, so tests that floor a level-3 Brinehollow grunt set the captain to Levels.REF; riflemen jab or butt (guntest takes either); 1.30 pirates carry +30% health (leveltest, netclient); storytest knows the farm and tinker steps; r8test sees the reset as the roar; rival_duel swings until answered; r10test samples the fall before the long-fall pose.

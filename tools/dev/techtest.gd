@@ -20,6 +20,7 @@ var pos0 := Vector3.ZERO
 var gpos0 := Vector3.ZERO
 var moved := 0.0
 var went_down := false
+var went_reel := false
 var guard := 0
 var idx := 0
 var phase := 0
@@ -144,6 +145,7 @@ func _process(d: float) -> bool:
 	if g and is_instance_valid(g) and phase == 2:
 		moved = maxf(moved, g.global_position.distance_to(gpos0))
 		went_down = went_down or g.state in [DOWN, DEAD, SWIM]
+		went_reel = went_reel or g.state == 9
 	# (waits are game time, in physics ticks: under load frames run fewer ticks than seconds pass)
 	if wait > 0.0:
 		until = TK.wait_secs(wait)
@@ -155,6 +157,7 @@ func _process(d: float) -> bool:
 			if t < 1.5: return false
 			p = root.get_tree().get_first_node_in_group("player")
 			pr = p.progression
+			pr.level = Levels.REF
 			pc = p.power
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			p.health_component.max_health = 99999.0
@@ -245,6 +248,7 @@ func _process(d: float) -> bool:
 					gpos0 = g.global_position
 					moved = 0.0
 					went_down = false
+					went_reel = false
 					var ult := Skills.is_ult(str(c[0]))
 					var slot := 4 if ult else 0
 					# (1.26: an ultimate isn't swapped mid-fight; the test clears R first, as a player out of the fight would)
@@ -264,7 +268,7 @@ func _process(d: float) -> bool:
 					match str(c[3]):
 						"down":
 							# (thrown far enough, they land in the sea and swim)
-							check("%s knocks them down (state %d, poise %.1f/%.1f, immune %s, player %s)" % [c[0], g.state, g.poise.value, g.poise.full, str(g.poise.immune()), p.current_state_name()], went_down or g.state == 9)  # (1.25.1: grunt poise 50, a technique on a fresh grunt may reel instead)
+							check("%s knocks them down (state %d, poise %.1f/%.1f, immune %s, player %s)" % [c[0], g.state, g.poise.value, g.poise.full, str(g.poise.immune()), p.current_state_name()], went_down or went_reel)  # (1.25.1: grunt poise 50, a technique on a fresh grunt may reel instead)
 						"blink":
 							check("Phantom Step blinks you behind them (moved %.1f m)" % p.global_position.distance_to(pos0), p.global_position.distance_to(pos0) > 4.0)
 						"axe_back":

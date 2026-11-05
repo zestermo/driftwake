@@ -115,6 +115,7 @@ func _process(d: float) -> bool:
 			var host_p = net.players.get(1)
 			if net.world_ready and host_p and is_instance_valid(host_p) and host_p.visible:
 				p = net.local_player
+				p.progression.level = Levels.REF
 				check("local player renamed P<id>", str(p.name) == "P%d" % net.my_id())
 				check("host's captain is a puppet here", not host_p.is_local and str(host_p.name) == "P1")
 				check("puppets aren't in the 'player' group", get_first_node_in_group("player") == p)
@@ -193,13 +194,13 @@ func _process(d: float) -> bool:
 			var g_hp_scale: float = 0.0
 			for k in r["enemies"].keys():
 				if "SmugglersCamp" in k:
-					g_hp_scale = float(r["enemies"][k][3]) / 110.0
+					g_hp_scale = float(r["enemies"][k][3]) / (110.0 * 1.3)
 					break
-			var want_k := 1.0 + 0.6 * float(int(r["roster"]) - 1)
+			var want_k := 1.0 + 0.85 * float(int(r["roster"]) - 1)
 			# (a captain in the roster counts once their world's loaded: with late joiners still loading, a step behind)
-			var steps := (g_hp_scale - 1.0) / 0.6
+			var steps := (g_hp_scale - 1.0) / 0.85
 			check("grunts get tougher with more captains (x%.2f for %d)" % [g_hp_scale, int(r["roster"])],
-				g_hp_scale > 1.59 and g_hp_scale < want_k + 0.01 and absf(steps - roundf(steps)) < 0.02)
+				g_hp_scale > 1.84 and g_hp_scale < want_k + 0.01 and absf(steps - roundf(steps)) < 0.02)
 			if mode == "water":
 				var ship = net._ship()
 				p.global_position = ship.global_transform * Vector3(7.0, 2.0, 0.6)
