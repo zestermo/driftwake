@@ -284,6 +284,7 @@ func open(screen: String) -> void:
 		if pl:
 			pl.call("_toast", "You don't know how to train yet. Sergeant Vey will show you.")
 		return
+	Perf.crumb("open " + screen)
 	if _current == "":
 		_play("open")
 	if _current == "inventory" and screen != "inventory":
@@ -344,6 +345,7 @@ func _fit_current() -> void:
 
 func close() -> void:
 	var was := _current
+	Perf.crumb("close " + was)
 	if _current == "cook" and _cook.timing != null:
 		_cook.clear()
 	if _current == "inventory":

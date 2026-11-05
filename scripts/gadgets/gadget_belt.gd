@@ -348,7 +348,8 @@ static func wear(body: Humanoid, tier: int) -> void:
 	body.pouch_tier = tier
 	var old := body.torso.get_node_or_null("GadgetPouch")
 	if old:
-		old.free()
+		body.torso.remove_child(old)
+		old.queue_free()
 	if tier < 0:
 		return
 	var mi := MeshInstance3D.new()

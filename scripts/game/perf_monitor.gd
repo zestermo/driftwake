@@ -49,6 +49,11 @@ var _ticks_at := 0
 var _last_us := 0
 ## The newest spikes' lines, oldest first (the F12 capture's).
 var recent: Array = []
+## The crash trail (crumb()): user://crumbs.log, each line flushed as written, so a hard crash still leaves the last
+## menus and clicks behind it (the previous session's trail is kept as crumbs_prev.log).
+var _crumbs: FileAccess
+var _crumb_n := 0
+const CRUMBS_MAX := 4000
 ## Since the last frame: each section's us and calls, named steps [us, what], nodes added and by script.
 var _cat_us := PackedInt64Array()
 var _cat_n := PackedInt32Array()
@@ -81,6 +86,33 @@ func _ready() -> void:
 	Settings.changed.connect(func(section, key, value):
 		if section == "video" and key == "perf_overlay":
 			_layer.visible = bool(value))
+
+
+## One line on the crash trail: the game minute, the physics frame, the open menu and `what`.
+func crumb(what: String) -> void:
+	if log_dir == "" or OS.get_thread_caller_id() != OS.get_main_thread_id():
+		return
+	if _crumbs == null or _crumb_n >= CRUMBS_MAX:
+		var path := log_dir + "crumbs.log"
+		if _crumbs == null and FileAccess.file_exists(path):
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(log_dir + "crumbs_prev.log"))
+		_crumbs = FileAccess.open(path, FileAccess.WRITE)
+		_crumb_n = 0
+		if _crumbs == null:
+			log_dir = ""
+			return
+		_crumbs.store_line("Driftwake %s" % ProjectSettings.get_setting("application/config/version"))
+	var menu: String = str(GameMenu.get("_current")) if GameMenu.is_open() else "-"
+	var co := "co-op %s %d" % ["host" if Net.hosting else "guest", multiplayer.get_peers().size() + 1] if Net.active else "solo"
+	_crumbs.store_line("%6.2f min  f%d  %s  menu %s  %s" % [_session_t / 60.0, Engine.get_physics_frames(), co, menu, what])
+	_crumbs.flush()
+	_crumb_n += 1
+
+
+func _input(event: InputEvent) -> void:
+	var mb := event as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index <= MOUSE_BUTTON_MIDDLE and GameMenu.is_open():
+		crumb("click %d%s at %v" % [mb.button_index, " double" if mb.double_click else "", mb.position.floor()])
 
 
 func _unhandled_input(event: InputEvent) -> void:

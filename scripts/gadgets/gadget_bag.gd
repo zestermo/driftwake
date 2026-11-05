@@ -74,11 +74,16 @@ static func wear(body: Humanoid, colour: String, open := false) -> void:
 	if body == null:
 		return
 	body.bag_colour = colour
+	if body.is_inside_tree():
+		body.get_node("/root/Perf").crumb("gadget bag '%s' on %s" % [colour, body.name])
+	# (1.30.1) out of the tree now, freed at the frame's end, not mid-frame: this runs on every inventory change
+	# (inside a click, a drop or a co-op message), and 1.30's co-op crashes came from clicks in the menus
 	for n in ["GadgetBag", "GadgetBagStrap"]:
 		var old := body.torso.get_node_or_null(n)
 		if old:
 			body._sims.erase(old)
-			old.free()
+			body.torso.remove_child(old)
+			old.queue_free()
 	if colour == "":
 		return
 	var col: Color = COLOURS[colour]

@@ -80,7 +80,8 @@ static func remote(p: Node, args: Array) -> void:
 static func wear_helmet(body: Humanoid, t: int, secs: float) -> void:
 	var old := body.head.get_node_or_null("DivingHelmet")
 	if old:
-		old.free()
+		body.head.remove_child(old)
+		old.queue_free()
 	var mi := MeshInstance3D.new()
 	mi.name = "DivingHelmet"
 	mi.mesh = GadgetModels.helmet(t)

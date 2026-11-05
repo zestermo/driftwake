@@ -343,6 +343,7 @@ func _build_doll() -> void:
 func _show_toggle() -> Button:
 	var b := _tick_box("ShowEquipment", "SHOW", "Show it on your captain (hidden, it still works)")
 	b.toggled.connect(func(on: bool):
+		Perf.crumb("show equipment %s" % on)
 		var pl := _player()
 		if pl and pl.equipment.is_hidden(pl.equipment.get_item("equipment")) == on:
 			pl.show_equipment(on)
@@ -355,6 +356,7 @@ func _show_toggle() -> Button:
 func _drape_toggle() -> Button:
 	var b := _tick_box("DrapeCoat", "DRAPE", "Wear it draped over your shoulders, the sleeves empty")
 	b.toggled.connect(func(on: bool):
+		Perf.crumb("drape coat %s" % on)
 		var pl := _player()
 		if pl and pl.equipment.is_draped(pl.equipment.look_item("coat")) != on:
 			pl.drape_coat(on)
@@ -368,6 +370,7 @@ func _drape_toggle() -> Button:
 func _mog_toggle(slot: String) -> Button:
 	var b := _tick_box("Mog_" + slot, "MOG", "Wear another piece for looks: this slot still gives the stats")
 	b.toggled.connect(func(on: bool):
+		Perf.crumb("mog %s %s" % [slot, on])
 		var pl := _player()
 		if pl and pl.equipment.is_mogged(slot) != on:
 			pl.equipment.set_mog(slot, on)
@@ -1157,6 +1160,7 @@ func _flash(text: String) -> void:
 # Actions
 # ==========================================================================
 func _click_bag(cell: int, shift: bool = Input.is_key_pressed(KEY_SHIFT)) -> void:
+	Perf.crumb("bag click %d%s" % [cell, " shift" if shift else ""])
 	if cell >= _view.size():
 		return
 	if shift:
@@ -1191,6 +1195,7 @@ func quick_move(idx: int) -> void:
 
 
 func _use(idx: int) -> void:
+	Perf.crumb("use bag %d" % idx)
 	var pl := _player()
 	if pl == null or idx >= pl.inventory_component.items.size():
 		return
@@ -1560,6 +1565,7 @@ func _can_drop_on(target: Dictionary, d) -> bool:
 
 
 func _drop_on(target: Dictionary, d) -> void:
+	Perf.crumb("drop %s onto %s" % [str(d.get("src", "?")) if d is Dictionary else "?", str(target.get("src", target.get("slot", "?")))])
 	var pl := _player()
 	if pl == null or not _can_drop_on(target, d):
 		return
@@ -1729,6 +1735,7 @@ func _grow_loot(n: int) -> void:
 ## Click a chest slot: one into your bag; shift+click: the whole stack (as shift+click stores a
 ## whole stack from the bag side).
 func _click_loot(idx: int, shift: bool) -> void:
+	Perf.crumb("loot click %d%s" % [idx, " shift" if shift else ""])
 	var pl := _player()
 	if pl and has_container() and idx < _container.contents.size():
 		var it: ItemData = _container.contents[idx].item
