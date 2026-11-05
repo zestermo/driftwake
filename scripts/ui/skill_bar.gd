@@ -227,7 +227,7 @@ func _draw_crew() -> void:
 	var open := ct.offer > 0.0
 	var a := 0.75 + 0.25 * sin(_t * (12.0 if open else 4.0)) if player.armed else 0.5
 	draw_arc(c, 8.0, 0.0, TAU, 20, Color(col.r, col.g, col.b, a) if player.armed else UIStyle.BORDER_DIM, 2.0 if open else 1.0)
-	_text(c + Vector2(-10.0, 3.0), "C", UIStyle.ACCENT if player.armed else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
+	_text(c + Vector2(-10.0, 3.0), Glyphs.short_of("crouch"), UIStyle.ACCENT if player.armed else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
 
 
 func _text(pos: Vector2, s: String, col: Color = UIStyle.TEXT, size_px: int = 8, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
@@ -326,7 +326,7 @@ func _cooldown_pie(r: Rect2, frac: float) -> void:
 func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 	var pc := player.power
 	var sk := pc.skill(i)
-	var key := PowerComponent.key_of(i)
+	var key := PowerComponent.key_name(i)
 	if sk.is_empty():
 		_slot_frame(r, EMPTY_RIM)
 		_text(r.position + Vector2(2, 8), key, EMPTY_RIM)
@@ -394,7 +394,7 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 	draw_arc(c, rad, 0.0, TAU, 32, Color(0, 0, 0, 0.8), 4.0)
 	if sk.is_empty():
 		_slot_frame(r, EMPTY_RIM)
-		_text(r.position + Vector2(2, 9), "R", EMPTY_RIM)
+		_text(r.position + Vector2(2, 9), Glyphs.short_of("ultimate"), EMPTY_RIM)
 		return
 	var frac := pc.ult / PowerComponent.ULT_MAX
 	var full := frac >= 1.0
@@ -426,7 +426,7 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 		_text(Vector2(r.position.x, c.y + 4.0), "%d%%" % int(frac * 100.0), Color(1, 1, 1, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	if _ready_flash[4] > 0.0:
 		draw_rect(r.grow(-2.0), Color(1, 0.9, 0.6, _ready_flash[4]))
-	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
+	_text(r.position + Vector2(2, 9), Glyphs.short_of("ultimate"), UIStyle.ACCENT)
 
 
 ## Sea King Fist armed: a gold ring draining with the time left to let it go, and the seconds.
@@ -441,7 +441,7 @@ func _draw_armed(r: Rect2, sk: Dictionary) -> void:
 	if tex:
 		draw_texture_rect(tex, r.grow(-2.0), false, Color.WHITE)
 	_text(Vector2(r.position.x, c.y + 4.0), "%d" % ceili(player.fist_armed), Color(1.0, 0.95, 0.7), 12, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
+	_text(r.position + Vector2(2, 9), Glyphs.short_of("ultimate"), UIStyle.ACCENT)
 
 
 func _draw_item(r: Rect2) -> void:
@@ -464,7 +464,7 @@ func _draw_item(r: Rect2) -> void:
 		if _quick_ready > 0.0:
 			draw_rect(r.grow(-1.0), Color(1, 1, 1, _quick_ready * 1.2))
 		_text(Vector2(r.position.x, r.end.y - 1.0), str(qty), Color.WHITE if qty > 0 else UIStyle.DANGER_TEXT, 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
-	_text(r.position + Vector2(2, 8), "E", UIStyle.ACCENT if item else UIStyle.TEXT_DIM)
+	_text(r.position + Vector2(2, 8), Glyphs.short_of("quick_item"), UIStyle.ACCENT if item else UIStyle.TEXT_DIM)
 
 
 ## The glint across a slot just filled: a slanted bright band sweeping left to right (`u` 0..1), and a gold rim.
@@ -509,7 +509,7 @@ func _draw_xp() -> void:
 		var bits: Array = spend.map(func(p): return "+%d %s" % [pr.pool(p), Progression.pool_name(p).to_upper()])
 		if perk:
 			bits.append("A PERK")
-		_text(badge + Vector2(13.0, 3.0), " ".join(bits) + " [K]", Color(0.75, 0.95, 0.55, a))
+		_text(badge + Vector2(13.0, 3.0), " ".join(bits) + " [%s]" % Glyphs.short_of("skill_map"), Color(0.75, 0.95, 0.55, a))
 
 
 ## Pistols: loaded shots per gun over the middle of the plate.

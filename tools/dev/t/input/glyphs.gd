@@ -34,12 +34,12 @@ func cap() -> String:
 	return (stage.hud._interact_key.get_child(0) as Label).text
 
 
-func page_key(what: String) -> String:
-	var gm = root.get_node("GameMenu")
-	for i in range(gm.BINDINGS.size()):
-		if gm.BINDINGS[i][0] == what:
-			return gm._binding_keys[i].text
-	return "?"
+func page_key(action: String) -> String:
+	return root.get_node("GameMenu")._bind_buttons[action].text
+
+
+func page_pad(action: String) -> String:
+	return root.get_node("GameMenu")._bind_pads[action].text
 
 
 func _process(_d: float) -> bool:
@@ -54,7 +54,7 @@ func _process(_d: float) -> bool:
 			stage.hud._interact_text = "Talk"
 			stage.hud._show_interact()
 			check("the HUD's key cap says F (%s)" % cap(), cap() == "F")
-			check("the controls page says Space for jump (%s)" % page_key("Jump / double jump"), page_key("Jump / double jump") == "Space")
+			check("the controls page says Space for jump (%s)" % page_key("jump"), page_key("jump") == "Space")
 			button(JOY_BUTTON_A, true)
 			button(JOY_BUTTON_A, false)
 			until = TK.wait_ticks(2)
@@ -64,7 +64,7 @@ func _process(_d: float) -> bool:
 				G.of("heavy_attack") == "RT" and G.of("parry") == "LT" and G.of("interact") == "X")
 			check("skill 1 is LB+X, the ultimate LB+RT (%s, %s)" % [G.of("skill_1"), G.of("ultimate")], G.of("skill_1") == "LB+X" and G.of("ultimate") == "LB+RT")
 			check("the HUD's key cap says X (%s)" % cap(), cap() == "X")
-			check("the controls page says A for jump (%s)" % page_key("Jump / double jump"), page_key("Jump / double jump") == "A")
+			check("the controls page's pad column says A for jump (%s)" % page_pad("jump"), page_pad("jump") == "A")
 			button(JOY_BUTTON_LEFT_SHOULDER, true)
 			until = TK.wait_ticks(2)
 		2:

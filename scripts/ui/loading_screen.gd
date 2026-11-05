@@ -10,13 +10,13 @@ const LOGO_FONT := preload("res://assets/fonts/PixelifySans-SemiBold.woff2")
 const SMALL_FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const TIPS := [
 	"Stow your haul in the ship's storage chest. Whatever you carry is buried where you fall.",
-	"Parry (Q) just as a blow lands to turn it aside.",
-	"A heavy attack (right click) ends fights. A missed one ends you.",
-	"Roll (Ctrl) through an attack, not away from it.",
+	"Parry ({parry}) just as a blow lands to turn it aside.",
+	"A heavy attack ({heavy_attack}) ends fights. A missed one ends you.",
+	"Roll ({dodge}) through an attack, not away from it.",
 	"Nessa buys anything that glitters. Treasure sells for more than gold weighs.",
-	"Hold F at the capstan to drop or weigh anchor.",
+	"Hold {interact} at the capstan to drop or weigh anchor.",
 	"Pirates only hunt ships with a captain aboard.",
-	"Tap E to drink your rum in a pinch; hold E to pick other food and drink.",
+	"Tap {quick_item} to drink your rum in a pinch; hold {quick_item} to pick other food and drink.",
 ]
 
 var scene_path: String = ""
@@ -42,9 +42,7 @@ static func go(tree: SceneTree, path: String) -> void:
 func _ready() -> void:
 	layer = 100
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_tip = TIPS[randi() % TIPS.size()]
-	if OS.has_feature("web"):
-		_tip = _tip.replace("(Ctrl)", "(C)")
+	_tip = Glyphs.fill(TIPS[randi() % TIPS.size()])
 	_card = Control.new()
 	_card.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP

@@ -10824,3 +10824,23 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 ## 2026-11-04: 1.30 release gate, progression/island/ladder/ship fixes
 - Stale tests brought to the 1.30 design: the melee `t/weapons/*_tree` step counts (Quick Hands: +3/+4 steps), powertest/progtest (the parent check: buy Flicker before Kindled, Steadfast and Unshaken before Ballast, Smoke Bomb before Gun Rain; the Fang test grunt has 500 hp), `t/downtime/tinker` (tinker xp x2), swimtest/riggingtest (the ladder's lean: a swimmer stands against the hull), looptest (grab waits for the ship), isletest `_arena` (hull-point shapes), `t/island/desert_town` (the lookout's roof hull: the deck ray starts under it), lifetest (a stall keeper has one stay; walkers counted), harbourtest (a wharf on a short shore keeps two of its four warehouse slots: 5 buildings), lighttest/`StarterIsland.LIGHTS` 36 (teahouse and chapel close lanterns), chartest (the traveller's pack's six surfaces: worst body 24).
 - Game fixes: the teahouse's under-parasol bench (Seat3) walked its sitters into the parasol pole (`BrinehollowLife._at_mark`: its lane runs along the bench); the snow storehouse's roof hull hung its eaves to 1.75 m over the door steps (`SnowProps.storehouse`: the shape starts at the wall top).
+
+## 2026-11-05: 1.30.1 rebindable keys
+- Options > Controls is a keybind editor (`GameMenu._build_controls`): every gameplay action in `Keybinds.GROUPS`
+  (scripts/input/keybinds.gd: Movement, Combat, Abilities, Interface; no ui_*, pause, look_* or F-keys) with its keys and
+  a dim pad column. Click a row (`start_bind`), press a key or mouse button (`GameMenu._input` sends it to `bind_event`
+  while `bind_wait` is set, before anything else sees it); Esc or a pad button cancels; F-keys, Esc and the wheel can't
+  be bound. A key another action had swaps over (`Keybinds.bind`: the other action gets this one's old first key, the
+  note says so). A rebind replaces all of an action's keyboard/mouse events (Tab / I becomes one key); pad events kept.
+- Saved as Settings' "keys" section, only the actions that differ from project.godot (`"k<physical keycode>"` /
+  `"m<button>"`), applied in `Settings._ready` before the web remaps. No VERSION bump (a new section). `_load` now keeps
+  the sections with no defaults (`FREE_SECTIONS`: "keys", and "tips" whose seen list never came back before).
+- Tests and tools: `Settings.save_path()` is `user://settings_tool.cfg` in a tool run (they used to rewrite the
+  player's settings.cfg), and a tool run starts on the default keys whatever the player rebound. `Settings.reload(path)`.
+- Prompts follow: `Glyphs.key_of` already read the InputMap; new `Glyphs.fill("{action}")` for tip text (Walkthrough,
+  LoadingScreen tips, the crew-technique lines), `Glyphs.short_of` for small caps (the skill bar's slot keys via
+  `PowerComponent.key_name`, R/E/C/[K] on the bar, the marker overflow and Leviathan toast). `PowerComponent.key_of`
+  stays the slot number (it names the `skill_N` action). `Player._input`'s stuck-Shift sprint release only runs while
+  sprint is on Shift (`Keybinds.sprint_shift`). Left hard-coded (not UI): progression's "(K)" points line, story/quest
+  text with "(M)"/"(F)"/"Hold H", the fruits' "Press V".
+- Test: `t/ui/keybinds`; `t/input/glyphs` reads the new page.

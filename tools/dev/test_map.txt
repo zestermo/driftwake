@@ -841,3 +841,6 @@ scripts/ui/notice_board_screen.gd       t/quests/landing_goals t/quests/island_t
 scripts/quests/chain_goal.gd            t/quests/landing_goals t/quests/chain_goal
 scripts/island/kit/kit_quests.gd        t/quests/bounty_no_take t/quests/landing_goals
 scripts/ui/game_menu.gd                 t/quests/landing_goals
+scripts/input/keybinds.gd               t/ui/keybinds t/input
+scripts/game/settings.gd                t/ui/keybinds
+scripts/ui/game_menu.gd                 t/ui/keybinds t/input/glyphs

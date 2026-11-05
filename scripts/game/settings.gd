@@ -6,6 +6,8 @@ extends Node
 signal changed(section: String, key: String, value: Variant)
 
 const PATH := "user://settings.cfg"
+const TOOL_PATH := "user://settings_tool.cfg"
+const FREE_SECTIONS := ["tips", "keys"]
 
 const DEFAULTS := {
 	"video": {
@@ -77,6 +79,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_values = DEFAULTS.duplicate(true)
 	_load()
+	# (a test plays on the default keys whatever the player rebound)
+	Keybinds.apply({} if tool_run() else _values.get("keys", {}))
 	_ensure_buses()
 	_apply_audio()
 	# a test or render tool with a window open must not blast the game's sound at whoever's at the PC
@@ -121,20 +125,45 @@ func reset_section(section: String) -> void:
 	save()
 
 
+## Where saves go: a test or render tool keeps its own file, so it never rewrites the player's settings.
+func save_path() -> String:
+	return TOOL_PATH if tool_run() else PATH
+
+
 func save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("meta", "version", VERSION)
 	for section in _values.keys():
 		for key in _values[section].keys():
 			cfg.set_value(section, key, _values[section][key])
-	cfg.save(PATH)
+	cfg.save(save_path())
 
 
-func _load() -> void:
+## (1.30.1) The InputMap's rebound keys (Keybinds) into the "keys" section, saved.
+func save_keys() -> void:
+	_values["keys"] = Keybinds.overrides()
+	changed.emit("keys", "", null)
+	save()
+
+
+## Every setting again from `path` (a test's save/load round trip), keys included.
+func reload(path: String) -> void:
+	_values = DEFAULTS.duplicate(true)
+	_load(path)
+	Keybinds.apply(_values.get("keys", {}))
+
+
+func _load(path: String = PATH) -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(PATH) != OK:
+	if cfg.load(path) != OK:
 		return
 	for section in cfg.get_sections():
+		# sections with no defaults (the tips seen, rebound keys) come back as they were saved
+		if section in FREE_SECTIONS:
+			_values[section] = {}
+			for key in cfg.get_section_keys(section):
+				_values[section][key] = cfg.get_value(section, key)
+			continue
 		if not _values.has(section):
 			continue
 		for key in cfg.get_section_keys(section):

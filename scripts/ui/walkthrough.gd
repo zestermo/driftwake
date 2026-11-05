@@ -6,21 +6,21 @@ extends CanvasLayer
 
 ## screen id -> [title, lines]
 const TIPS := {
-	"skills": ["The skill map (K)", [
+	"skills": ["The skill map ({skill_map})", [
 		"Every weapon you fight with has its own tree. Use a weapon and its mastery rises; each level gives that tree points.",
-		"Click a node to buy it once its level is reached. Techniques go on your bar (1-5), passives in your passive slots.",
+		"Click a node to buy it once its level is reached. Techniques go on your bar ({skill_1}-{skill_5}), passives in your passive slots.",
 		"Versions and talents switch at a rest spot: the ship's bunk, an inn, or your camp."]],
-	"inventory": ["Your bag (I)", [
+	"inventory": ["Your bag ({inventory})", [
 		"Drag gear onto your body to wear it, a weapon into your hands to wield it. Shift+click moves a whole stack.",
 		"Your empty hand slot switches fists and kicks (once you know black leg).",
-		"Each loadout (X) remembers what's in your hands: set one up here, then swap to it in a fight."]],
-	"loadout": ["Loadouts (X)", [
+		"Each loadout ({loadout}) remembers what's in your hands: set one up here, then swap to it in a fight."]],
+	"loadout": ["Loadouts ({loadout})", [
 		"A loadout is a weapon setup: twin daggers in one, a cutlass and pistol in another, your kicks in a third.",
-		"Tap X to swap to the next, hold X to pick. Your techniques follow the weapon they belong to.",
+		"Tap {loadout} to swap to the next, hold {loadout} to pick. Your techniques follow the weapon they belong to.",
 		"Set a loadout up by equipping what you want while it's the one in use."]],
-	"action": ["The action wheel (N)", [
+	"action": ["The action wheel ({action_wheel})", [
 		"Everything you can do where you stand: make camp, cook, train, fish, read, sleep aboard.",
-		"Hold N and point at one. It only shows what fits where you are."]],
+		"Hold {action_wheel} and point at one. It only shows what fits where you are."]],
 	"journal": ["The journal (J)", [
 		"Every quest the crew has taken, what's done, and the rumours you've heard.",
 		"T tracks a quest (the marker and the goal at the top of the screen follow it); X twice drops one."]],
@@ -76,9 +76,9 @@ func _build(tip: Array) -> void:
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
 	pc.add_child(vb)
-	vb.add_child(UIStyle.label(str(tip[0]), 12, UIStyle.ACCENT))
+	vb.add_child(UIStyle.label(Glyphs.fill(str(tip[0])), 12, UIStyle.ACCENT))
 	for line in tip[1]:
-		var l := UIStyle.label(str(line), 8, UIStyle.TEXT)
+		var l := UIStyle.label(Glyphs.fill(str(line)), 8, UIStyle.TEXT)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(360, 0)
 		vb.add_child(l)

@@ -974,7 +974,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				fx.append([line, Color(0.8, 0.88, 1.0)])
 			fx.append(["Two-handed", UIStyle.TEXT_DIM])
 	elif Instruments.kind_of(it) != "":
-		fx.append(["Play it: hold T, pick Play", UIStyle.ACCENT])
+		fx.append([Glyphs.fill("Play it: hold {emote}, pick Play"), UIStyle.ACCENT])
 	elif Rods.tier_of(it) != "":
 		var t := Rods.tier_of(it)
 		_stat(grid, "REACH", "%d M" % int(Rods.stat(t, "range")), 0, false)
@@ -1440,7 +1440,7 @@ func _fill_sheet() -> void:
 	_section("Skill bar")
 	for i in PowerComponent.KEYS + [PowerComponent.ULT]:
 		var sk := pl.power.skill(i)
-		var key := PowerComponent.key_of(i)
+		var key := PowerComponent.key_name(i)
 		if sk.is_empty():
 			_row(key, "-")
 		else:

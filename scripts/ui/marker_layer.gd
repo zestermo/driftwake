@@ -93,7 +93,7 @@ func _draw_waypoints(cam: Camera3D, vs: Vector2, me: Node3D) -> void:
 		draw_string_outline(_font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0, 0, 0, col.a))
 		draw_string(_font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
 	if all.size() > SHOWN:
-		var more := "+%d more marks (M)" % (all.size() - SHOWN)
+		var more := "+%d more marks (%s)" % [all.size() - SHOWN, Glyphs.short_of("sea_chart")]
 		var w := _font.get_string_size(more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var tp := Vector2(vs.x - w - 8.0, vs.y - 30.0)
 		draw_string_outline(_font, tp, more, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)

@@ -225,6 +225,11 @@ static func key_of(slot: int) -> String:
 	return "R" if slot == ULT else str(KEYS.find(slot) + 1)
 
 
+## (1.30.1) The slot's key as bound now (Keybinds), for the bar and the skill map.
+static func key_name(slot: int) -> String:
+	return Glyphs.short_of("ultimate" if slot == ULT else "skill_%d" % (KEYS.find(slot) + 1))
+
+
 ## Where a skill is used from (loadout_for): the hands (it needs no weapon, or the one in hand fits), or
 ## no loadout fits; otherwise the loadout it switches to.
 const HANDS := -1

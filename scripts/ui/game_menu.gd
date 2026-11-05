@@ -154,6 +154,12 @@ func _back() -> void:
 
 # _input (not _unhandled_input) so Tab/Esc are seen before GUI focus navigation.
 func _input(event: InputEvent) -> void:
+	if bind_wait != "" and _current == "controls":
+		if event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton:
+			if event.is_pressed():
+				bind_event(event)
+			get_viewport().set_input_as_handled()
+		return
 	var dialogue := get_node_or_null("/root/Dialogue")
 	if dialogue and dialogue.active:
 		return
@@ -227,7 +233,7 @@ func _on_dialogue_event(ev: String) -> void:
 		var gm := get_node("/root/GameManager")
 		if not gm.charted.has("king"):
 			gm.charted["king"] = true
-			get_tree().call_group("hud", "show_toast", "The Leviathan's waters are on your chart (M)")
+			get_tree().call_group("hud", "show_toast", "The Leviathan's waters are on your chart (%s)" % Glyphs.short_of("sea_chart"))
 
 
 ## (1.28) A workbench's gadgets (Workbench.use).
@@ -291,6 +297,9 @@ func open(screen: String) -> void:
 		_inventory.on_close()
 	if _current == "yard" and screen != "yard":
 		_yard.end_preview()
+	if bind_wait != "":
+		bind_wait = ""
+		_refresh_bindings()
 	_current = screen
 	_root.visible = true
 	Walkthrough.first(get_tree(), screen)
@@ -623,63 +632,123 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 
 
 # ==========================================================================
-# Controls reference
+# Controls (1.30.1: a keybind editor, Keybinds)
 # ==========================================================================
-## [what, keyboard and mouse, pad]: the pad's is an action Glyphs names (so it follows Pad's layout) or the
-## words themselves. The page shows the device in use (Pad.using_pad) and flips with it.
-const BINDINGS := [
-	["Move", "W A S D", "move"], ["Look", "Mouse", "look"], ["Sprint", "Shift", "L3 (click: run)"], ["Jump / double jump", "Space", "jump"],
-	["Ready / sheathe weapon", "Z", "ready_weapon"], ["Light attack (3-hit combo)", "Left click", "light_attack"], ["Heavy attack", "Right click", "heavy_attack"],
-	["Dodge roll", "Left Ctrl", "dodge"], ["Sneak; armed: crew technique", "C", "crouch"], ["Emote wheel (hold, point to pick)", "T", "emote"], ["Parry", "Q", "parry"], ["Interact / talk", "F", "interact"], ["Skills", "1 - 5", "LB+X Y B A RB"],
-	["Ultimate", "R", "ultimate"], ["Eat / drink (hold: choose)", "E", "quick_item"], ["Action wheel (hold: camp...)", "N", "action_wheel"], ["Swap weapon loadout (hold: choose)", "X", "loadout"], ["Crew chat (co-op)", "Enter", "-"],["Block (hold)", "Q", "parry"],
-	["Inventory", "Tab / I", "inventory"], ["Skill map", "K", "skill_map"], ["Map: out / away (click: mark)", "M", "sea_chart"], ["Belt lantern on / off", "L", "lantern"], ["Use gadget / next gadget", "U / O", "gadget_fire"],["Read the lodestone (hold)", "H", "log_pose"], ["Zoan: shift form", "V", "transform"], ["Summon your ship (hold)", "B", "summon_ship"], ["Pause menu", "Esc", "pause"], ["Zoom camera", "Mouse wheel", "-"],
-	["PSX resolution / dither", "F2 / F3", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter", "F11 / Alt+Enter"],
-]
-var _binding_keys: Array[Label] = []
-
-
-## Row i's button(s) for the device in use.
-func _binding_key(i: int) -> String:
-	if Pad.using_pad:
-		var a: String = BINDINGS[i][2]
-		return Glyphs.pad_of(a) if InputMap.has_action(a) or Glyphs.PAD_PSEUDO.has(a) else a
-	var key: String = BINDINGS[i][1]
-	if OS.has_feature("web") and key == "Left Ctrl":
-		key = "C"   # (Settings: Ctrl+W would close the browser tab)
-	return key
+## The keys that can't be changed, under the list.
+const FIXED_KEYS := "Esc: pause   Mouse: look   Wheel: zoom   F2 / F3: pixelation / dither   F11: fullscreen"
+## action -> its key button; the pad's button beside it is a dim label.
+var _bind_buttons: Dictionary = {}
+var _bind_pads: Dictionary = {}
+## The action waiting for a key ("": none) and the line that says what happened.
+var bind_wait: String = ""
+var _bind_note: Label
 
 
 func _refresh_bindings() -> void:
-	for i in range(_binding_keys.size()):
-		_binding_keys[i].text = _binding_key(i)
+	for a in _bind_buttons.keys():
+		(_bind_buttons[a] as Button).text = "Press a key..." if a == bind_wait else Keybinds.keys_text(a)
+		(_bind_pads[a] as Label).text = Glyphs.pad_of(a).replace("?", "-").replace("Left stick", "L stick")
+
+
+## Click a row: its next key or mouse button press binds it (GameMenu._input sends it to bind_event).
+func start_bind(action: String) -> void:
+	bind_wait = action
+	_bind_note.text = "Press a key or mouse button for %s (Esc: cancel)" % Keybinds.label_of(action)
+	_refresh_bindings()
+
+
+## A press while a row waits: binds it (a key another action had swaps over), Esc or a pad button cancels.
+func bind_event(event: InputEvent) -> void:
+	if event is InputEventJoypadButton or (event is InputEventKey and event.pressed \
+			and (event.physical_keycode == KEY_ESCAPE or event.keycode == KEY_ESCAPE)):
+		_bind_note.text = "Cancelled"
+		bind_wait = ""
+		_refresh_bindings()
+		return
+	var e := Keybinds.bindable(event)
+	if e == null:
+		return
+	var a := bind_wait
+	bind_wait = ""
+	var other := Keybinds.bind(a, e)
+	Settings.save_keys()
+	_play("confirm")
+	_bind_note.text = "%s: %s" % [Keybinds.label_of(a), Keybinds.keys_text(a)]
+	if other != "":
+		_bind_note.text += "  (swapped: %s is now %s)" % [Keybinds.label_of(other), Keybinds.keys_text(other)]
+	_refresh_bindings()
+
+
+func reset_binds() -> void:
+	bind_wait = ""
+	Keybinds.reset()
+	Settings.save_keys()
+	_bind_note.text = "Every key back to its default"
+	_refresh_bindings()
 
 
 func _build_controls() -> Control:
-	var p := _centered_panel(Vector2(520, 0))
+	var p := _centered_panel(Vector2(600, 0))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
 	p.add_child(vb)
 	vb.add_child(UIStyle.title("Controls"))
-	# two columns of (action, key) pairs
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 0)
-	vb.add_child(grid)
-	var half := ceili(BINDINGS.size() / 2.0)
-	_binding_keys.resize(BINDINGS.size())
-	for i in range(half):
-		for j in [i, i + half]:
-			if j < BINDINGS.size():
-				grid.add_child(UIStyle.label(BINDINGS[j][0], 12))
-				_binding_keys[j] = UIStyle.label("", 12, UIStyle.ACCENT)
-				grid.add_child(_binding_keys[j])
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(580, 300)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vb.add_child(scroll)
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 16)
+	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(cols)
+	# Movement and Combat on the left, Abilities and Interface on the right
+	for half in [Keybinds.GROUPS.slice(0, 2), Keybinds.GROUPS.slice(2)]:
+		var list := VBoxContainer.new()
+		list.add_theme_constant_override("separation", 2)
+		list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cols.add_child(list)
+		for g in half:
+			list.add_child(UIStyle.ribbon(g[0]))
+			for row in g[1]:
+				var action: String = row[0]
+				var hb := HBoxContainer.new()
+				hb.add_theme_constant_override("separation", 4)
+				var l := UIStyle.label(row[1], 12)
+				l.custom_minimum_size = Vector2(136, 0)
+				l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				l.clip_text = true
+				hb.add_child(l)
+				var b := UIStyle.button("", 88)
+				b.name = action
+				b.clip_text = true
+				b.pressed.connect(start_bind.bind(action))
+				hb.add_child(b)
+				var pad := UIStyle.label("", 12, UIStyle.TEXT_DIM)
+				pad.custom_minimum_size = Vector2(56, 0)
+				pad.clip_text = true
+				hb.add_child(pad)
+				list.add_child(hb)
+				_bind_buttons[action] = b
+				_bind_pads[action] = pad
+	_bind_note = UIStyle.label("Click a key to change it. A key another action uses swaps over.", 12, UIStyle.ACCENT)
+	_bind_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(_bind_note)
+	var fixed := UIStyle.label(FIXED_KEYS, 12, UIStyle.TEXT_DIM)
+	fixed.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(fixed)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 10)
+	vb.add_child(buttons)
+	var reset := UIStyle.button("Reset to defaults", 150)
+	reset.name = "ResetKeys"
+	reset.pressed.connect(reset_binds)
+	buttons.add_child(reset)
+	var back := UIStyle.button("Back", 120)
+	back.pressed.connect(_back)
+	buttons.add_child(back)
 	_refresh_bindings()
 	Pad.device_changed.connect(func(_pad: bool): _refresh_bindings())
-	var back := UIStyle.button("Back", 120)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.pressed.connect(_back)
-	vb.add_child(back)
 	return p
 
 

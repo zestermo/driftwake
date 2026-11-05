@@ -14,7 +14,10 @@ const BUTTONS := {
 }
 const AXES := {JOY_AXIS_TRIGGER_LEFT: "LT", JOY_AXIS_TRIGGER_RIGHT: "RT",
 	JOY_AXIS_LEFT_X: "Left stick", JOY_AXIS_LEFT_Y: "Left stick", JOY_AXIS_RIGHT_X: "Right stick", JOY_AXIS_RIGHT_Y: "Right stick"}
-const MOUSE := {MOUSE_BUTTON_LEFT: "Left click", MOUSE_BUTTON_RIGHT: "Right click", MOUSE_BUTTON_MIDDLE: "Middle click"}
+const MOUSE := {MOUSE_BUTTON_LEFT: "Left click", MOUSE_BUTTON_RIGHT: "Right click", MOUSE_BUTTON_MIDDLE: "Middle click",
+	MOUSE_BUTTON_XBUTTON1: "Mouse 4", MOUSE_BUTTON_XBUTTON2: "Mouse 5"}
+const SHORT_MOUSE := {MOUSE_BUTTON_LEFT: "LMB", MOUSE_BUTTON_RIGHT: "RMB", MOUSE_BUTTON_MIDDLE: "MMB",
+	MOUSE_BUTTON_XBUTTON1: "M4", MOUSE_BUTTON_XBUTTON2: "M5"}
 const KEYS_PSEUDO := {"move": "W A S D", "look": "Mouse"}
 const PAD_PSEUDO := {"move": "Left stick", "look": "Right stick", "sprint": "L3"}
 
@@ -40,17 +43,46 @@ static func key_of(action: String) -> String:
 	if not InputMap.has_action(action):
 		return "?"
 	for e in InputMap.action_get_events(action):
-		if e is InputEventKey:
-			var k := e as InputEventKey
-			# the key's name on this keyboard's layout (a headless run has no layout: the US name)
-			var code := k.keycode
-			if code == KEY_NONE:
-				code = k.physical_keycode if DisplayServer.get_name() == "headless" \
-					else DisplayServer.keyboard_get_keycode_from_physical(k.physical_keycode)
-			return OS.get_keycode_string(code)
-		if e is InputEventMouseButton:
-			return MOUSE.get((e as InputEventMouseButton).button_index, "Mouse")
+		if e is InputEventKey or e is InputEventMouseButton:
+			return event_name(e)
 	return "?"
+
+
+## The action's first key or mouse button in a few letters, for a small key cap ("LMB", "Ctrl", "5").
+static func short_of(action: String) -> String:
+	for e in InputMap.action_get_events(action):
+		if e is InputEventMouseButton:
+			return SHORT_MOUSE.get((e as InputEventMouseButton).button_index, "M")
+		if e is InputEventKey:
+			return event_name(e)
+	return "?"
+
+
+## A key's name on this keyboard's layout (a headless run has no layout: the US name), or a mouse button's.
+static func event_name(e: InputEvent) -> String:
+	if e is InputEventMouseButton:
+		return MOUSE.get((e as InputEventMouseButton).button_index, "Mouse")
+	var k := e as InputEventKey
+	var code := k.keycode
+	if code == KEY_NONE:
+		code = k.physical_keycode if DisplayServer.get_name() == "headless" \
+			else DisplayServer.keyboard_get_keycode_from_physical(k.physical_keycode)
+	return OS.get_keycode_string(code)
+
+
+## A prompt's text with "{action}" turned into that action's button for the device in use.
+static func fill(text: String) -> String:
+	var out := text
+	var at := out.find("{")
+	while at != -1:
+		var end := out.find("}", at)
+		if end == -1:
+			break
+		var a := out.substr(at + 1, end - at - 1)
+		var name_ := of(a) if InputMap.has_action(a) or KEYS_PSEUDO.has(a) else "{" + a + "}"
+		out = out.substr(0, at) + name_ + out.substr(end + 1)
+		at = out.find("{", at + name_.length())
+	return out
 
 
 static func pad_of(action: String) -> String:

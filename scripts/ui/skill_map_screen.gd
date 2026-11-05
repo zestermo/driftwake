@@ -532,7 +532,7 @@ func equip_skill(sk: String, slot: int) -> void:
 		_deny(why)
 	elif pl.power.equip(sk, slot):
 		menu._play("equip")
-		_say("%s on %s" % [Skills.get_skill(sk)["name"], PowerComponent.key_of(slot)])
+		_say("%s on %s" % [Skills.get_skill(sk)["name"], PowerComponent.key_name(slot)])
 
 
 ## Why a known skill couldn't be used from the bar now ("" = it can), asked of the slot it's on or would go on.
@@ -582,7 +582,7 @@ func _act(id: String) -> void:
 	elif id.begins_with("bar:") or id.begins_with("pas:"):
 		_say("Pick something in the library, then its key")
 	elif id.begins_with("crew:"):
-		_say("Weapon out, press C (a crewmate joins with F)")
+		_say(Glyphs.fill("Weapon out, press {crouch} (a crewmate joins with {interact})"))
 	elif id == "respec":
 		_respec()
 	elif id == "map:in" or id == "map:out":
@@ -951,7 +951,7 @@ func _crew_info(tid: String, x: float, y: float, w: float, limit: float) -> void
 	draw_string(SILK, Vector2(x, y), "CREW TECHNIQUE · YOURS", HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
 	UIStyle.draw_title(self, Vector2(x, y + 17.0), str(e["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
 	y = _para(Vector2(x, y + 30.0), str(e["desc"]), w, UIStyle.PARCH_INK, limit) + 4.0
-	y = _lines(Vector2(x, y), "Weapon out, press C. A crewmate within %d m presses F in the ring to join." % int(CrewTechniques.MATE_NEAR), w, UIStyle.PARCH_DIM) + 6.0
+	y = _lines(Vector2(x, y), Glyphs.fill("Weapon out, press {crouch}. A crewmate within %d m presses {interact} in the ring to join.") % int(CrewTechniques.MATE_NEAR), w, UIStyle.PARCH_DIM) + 6.0
 	if y < limit - 20.0:
 		draw_string(_font, Vector2(x, y + 2.0), "Alone: %s" % e["solo"], HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK)
 		y = _lines(Vector2(x, y + 13.0), str(e["solo_desc"]), w, UIStyle.PARCH_DIM) + 4.0
@@ -2060,7 +2060,7 @@ func _draw_loadout(body: Rect2) -> void:
 		var st := _skill_tree(sk) if sk != "" else ""
 		var col := _tree_color(st) if sk != "" else SkillTreeDraw.DIM_RIM
 		draw_style_box(UIStyle.frame(Color(UIStyle.BG_DARK, 0.9), UIStyle.SUN if inspected() == "bar:%d" % slot else UIStyle.OUTLINE, 0, "chip"), sr)
-		var key := PowerComponent.key_of(slot)
+		var key := PowerComponent.key_name(slot)
 		draw_style_box(UIStyle.chrome("keycap", 0, 0), Rect2(sr.position.x + 3.0, sr.position.y + 3.0, 11, 12))
 		draw_string(SILK, Vector2(sr.position.x + 3.0, sr.position.y + 12.0), key, HORIZONTAL_ALIGNMENT_CENTER, 11, 8, UIStyle.PARCH_INK)
 		var ib := Rect2(Vector2(roundf(sr.get_center().x - 13.0), sr.position.y + 4.0), Vector2(26, 26))
@@ -2165,7 +2165,7 @@ func _draw_library(card: Rect2) -> void:
 			else:
 				var at := pl.power.loadout.find(id)
 				var cut := _bar_why(id).begins_with("Needs")
-				state = "NEEDS A LOADOUT" if cut else (("ON %s" % PowerComponent.key_of(at)) if at >= 0 else "KNOWN")
+				state = "NEEDS A LOADOUT" if cut else (("ON %s" % PowerComponent.key_name(at).to_upper()) if at >= 0 else "KNOWN")
 				chip = Color("c9a49a") if cut else (UIStyle.TEAL if at >= 0 else chip)
 			var sw := SILK.get_string_size(state, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 6.0
 			draw_rect(Rect2(x + w - sw, y + 2.0, sw, 9), chip)

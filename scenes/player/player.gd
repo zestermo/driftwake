@@ -1794,7 +1794,7 @@ func is_free() -> bool:
 ## (Godot's own key state can be stuck as well, so it isn't asked.)
 func _input(event: InputEvent) -> void:
 	# (a pad's sprint is Pad's L3 latch, not Shift: leave it be)
-	if is_local and event is InputEventWithModifiers and not event.shift_pressed \
+	if is_local and Keybinds.sprint_shift and event is InputEventWithModifiers and not event.shift_pressed \
 			and inp.pressed("sprint") and not Pad.sprint_latched \
 			and not (event is InputEventKey and event.physical_keycode == KEY_SHIFT):
 		inp.release("sprint")
