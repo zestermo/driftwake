@@ -68,6 +68,9 @@ func _initialize() -> void:
 			runs.append([lk, net])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	TK.seed_of(self)
+	if OS.get_environment("CL_FEEL") != "":
+		BodyBuilder.cloth_feel = int(OS.get_environment("CL_FEEL"))
+		print("CLOTH FEEL %s" % BodyBuilder.CLOTH_FEELS[BodyBuilder.cloth_feel][0])
 	stage = TK.stage(self, {"hud": false, "weapon": "cutlass"})
 	RenderingServer.frame_post_draw.connect(_grab)
 
@@ -153,7 +156,7 @@ func _next() -> void:
 	t0 = Engine.get_physics_frames()
 	ev = 0
 	mo = 0
-	rec = {"by": {}, "frames": 0, "pen_frames": 0, "pen_n": 0, "pen_worst": 0.0, "swing": 0.0}
+	rec = {"by": {}, "frames": 0, "pen_frames": 0, "pen_n": 0, "pen_worst": 0.0, "swing": 0.0, "jit": {}, "hist": {}}
 	print("RUN %s net %s" % r)
 
 
@@ -183,6 +186,11 @@ func _event(e: String) -> void:
 			report.append("%-5s net %-5s frames %4d  segments inside the body: %4d in %3d frames (worst %.1f cm)  most swing %.0f deg" % [
 				r[0], "on" if r[1] else "off", rec["frames"], rec["pen_n"], rec["pen_frames"], rec["pen_worst"] * 100.0, rad_to_deg(rec["swing"])])
 			report.append("      by set > capsule: " + str(rec["by"]))
+			var jl := []
+			for k in rec["jit"]:
+				var jv: Array = rec["jit"][k]
+				jl.append("%s mean %.2f mm, worst %.1f mm" % [k, jv[0] / maxf(1.0, jv[1]) * 1000.0, jv[2] * 1000.0])
+			report.append("      jitter (chain tips, body space, per frame): " + ", ".join(jl))
 			_next()
 
 
@@ -237,6 +245,20 @@ func _measure() -> void:
 				var a := gt * bp.origin
 				var b := gt * (bp.origin + bp.basis * seg)
 				rec["swing"] = maxf(rec["swing"], (bp.basis * seg).angle_to(seg))
+				# (1.30.3) jitter: the tip's second difference in the skeleton's space (the body's own motion left out)
+				if j == bones.size() - 1:
+					var tip := bp.origin + bp.basis * seg
+					var hk := "%d/%d" % [s.get_instance_id(), ci]
+					var hs: Array = rec["hist"].get(hk, [])
+					if hs.size() == 2:
+						var acc: float = (tip - 2.0 * (hs[1] as Vector3) + (hs[0] as Vector3)).length()
+						var sk_name: String = s.get_parent().name
+						var jv: Array = rec["jit"].get(sk_name, [0.0, 0, 0.0])
+						rec["jit"][sk_name] = [jv[0] + acc, jv[1] + 1, maxf(jv[2], acc)]
+						hs = [hs[1], tip]
+					else:
+						hs.append(tip)
+					rec["hist"][hk] = hs
 				# (a root segment hangs from where it's sewn on, over a thigh's top or the nape: not a clip)
 				if j == 0:
 					continue

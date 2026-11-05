@@ -36,6 +36,11 @@ static var cape_mode := "a"
 static var cape_net := true
 ## The cape's net on every other set of chains (hair, coat tails, skirts, sashes, ties: SpringChains.use_net, _nets).
 static var cloth_net := true
+## (1.30.3 piece 0) How heavy the netted cloth on the hips and torso swings (coat tails, skirts, hakama, the apron, sash
+## tails; not hair): [name, damping (null: each chain's own, ~0.06), stiffness x]. The cape runs damping 0.3 with
+## four passes and feels the steadiest; these try that weight on the rest. Cycled by the cloth stage (Home).
+const CLOTH_FEELS := [["as built", null, 1.0], ["heavy", 0.18, 1.0], ["heavier", 0.26, 0.85], ["cape-like", 0.32, 0.7]]
+static var cloth_feel := 0
 
 
 ## The next cape mode (or every net on/off: the capes' and the cloth's), every caped or cloaked body in the tree (every
@@ -279,6 +284,12 @@ func _nets() -> void:
 		if key == h.head:
 			s.use_net(["torso", "hair_sh"], [], 0.012, 1.4, 1.0)
 		else:
+			var feel: Array = CLOTH_FEELS[cloth_feel]
+			if feel[1] != null:
+				for ci in range(s.chain_count()):
+					var c := s.chain(ci)
+					c["d"] = maxf(float(c["d"]), float(feel[1]))
+					c["k"] = float(c["k"]) * float(feel[2])
 			# (a draped coat's: eased off the arms too)
 			var soft: Array = SpringChains.NET_LEGS + (DRAPE_HIT.slice(0, 4) if key == h.torso and _draped() else [])
 			s.use_net(soft, ["hips"], 0.02, 1.2, 0.9)
