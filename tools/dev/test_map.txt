@@ -843,4 +843,6 @@ scripts/island/kit/kit_quests.gd        t/quests/bounty_no_take t/quests/landing
 scripts/ui/game_menu.gd                 t/quests/landing_goals
 scripts/input/keybinds.gd               t/ui/keybinds t/input
 scripts/game/settings.gd                t/ui/keybinds
+scripts/progression/skill_trees.gd      t/ui/skills_map_tidy t/ui/skills_map_view
+scripts/ui/skill_tree_draw.gd           t/ui/skills_map_tidy
 scripts/ui/game_menu.gd                 t/ui/keybinds t/input/glyphs

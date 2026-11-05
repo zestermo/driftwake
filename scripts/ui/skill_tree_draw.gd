@@ -141,6 +141,7 @@ static func draw_map(s: SkillMapScreen, tree: String, area: Rect2, k: float, pan
 	var z := size_k(k)
 	var inner := area.grow(-2.0)
 	for id in at.keys():
+		var home := SkillTrees.map_parent(id)
 		for pb in parents(id):
 			if not at.has(pb[0]):
 				continue
@@ -148,8 +149,12 @@ static func draw_map(s: SkillMapScreen, tree: String, area: Rect2, k: float, pan
 			if seg.is_empty():
 				continue
 			var on: bool = pr.owns_node(id) and pr.owns_node(pb[0])
-			if pb[1]:
-				s.draw_dashed_line(seg[0], seg[1], BRIDGE if on else Color(BRIDGE, 0.55), 2.0, 6.0)
+			# (a bridge, or another way in than the branch the node hangs from: dashed and faint unless it's the
+			# picked node's, so the tree's own branches read first)
+			var lit: bool = s.inspected() in ["n:" + id, "n:" + str(pb[0])]
+			if pb[1] or pb[0] != home:
+				var dc := BRIDGE if pb[1] else LINK_OFF
+				s.draw_dashed_line(seg[0], seg[1], dc if on or lit else Color(dc, 0.3), 2.0 if lit else 1.0, 5.0)
 			elif on:
 				s.draw_line(seg[0], seg[1], Color(col, 0.3), 5.0)
 				s.draw_line(seg[0], seg[1], col, 3.0)
@@ -161,10 +166,14 @@ static func draw_map(s: SkillMapScreen, tree: String, area: Rect2, k: float, pan
 		var ids: Array = (td["branches"][b]["nodes"] as Array).filter(func(i): return at.has(i))
 		if ids.is_empty():
 			continue
+		# (out along the middle of the branch's lane, past its furthest ring)
 		var far := 0.0
+		var sum := Vector2.ZERO
 		for i in ids:
-			far = maxf(far, (SkillTrees.node_def(i)["pos"] as Vector2).length())
-		var dir := (SkillTrees.node_def(ids[0])["pos"] as Vector2).normalized()
+			var p: Vector2 = SkillTrees.node_def(i)["pos"]
+			far = maxf(far, p.length())
+			sum += p.normalized()
+		var dir := sum.normalized()
 		var lp := (area.get_center() + (dir * (far + 34.0) - pan) * k).round()
 		var nm := str(td["branches"][b]["name"]).to_upper()
 		var tw := SILK.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
@@ -183,13 +192,17 @@ static func draw_map(s: SkillMapScreen, tree: String, area: Rect2, k: float, pan
 		var nm := str(n["name"])
 		if str(n["kind"]) == "step":
 			nm += " %d/%d" % [pr.steps_of(id), int(n["max_steps"])]
+		# (the level it opens at on a line of its own under the name, so names stay narrow)
 		var lv := _locked_at(id, pr)
-		if lv > 0:
-			nm += "  -  %d" % lv
 		var lit: bool = pr.owns_node(id) or picked or pr.buy_why(id) == ""
-		var lr := Rect2(c.x - 60.0, r.end.y + 2.0, 120.0, 9.0)
+		var lr := Rect2(c.x - 60.0, r.end.y + 2.0, 120.0, 18.0 if lv > 0 else 9.0)
 		if inner.encloses(lr):
+			# (a backing the map's colour under the name: a link running past doesn't scribble through it)
+			var tw := minf(SILK.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, 120.0)
+			s.draw_rect(Rect2(c.x - tw * 0.5 - 2.0, lr.position.y, tw + 4.0, lr.size.y + 1.0), Color(MAP_BG, 0.9))
 			_outlined(s, lr.position + Vector2(0, 8), nm, Color.WHITE if picked else (UIStyle.CREAM if lit else TEXT_OFF), HORIZONTAL_ALIGNMENT_CENTER, 120.0)
+			if lv > 0:
+				_outlined(s, lr.position + Vector2(0, 17), "LV %d" % lv, TAG_OFF, HORIZONTAL_ALIGNMENT_CENTER, 120.0)
 	# zoom in, zoom out, and back to what you can buy next
 	var bx := area.end.x - 24.0
 	for i in range(3):

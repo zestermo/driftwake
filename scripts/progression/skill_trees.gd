@@ -305,13 +305,25 @@ static func _big(id: String, name_: String, kind: String, branch: int, level: in
 	return n
 
 
-## (1.30, docs/v1_30_previews.md section 4) Every tree is one map: the root in the middle, its branches round it
-## clockwise from the upper left (each a slice as wide as its nodes need), each node one ring further out than its
-## parent (a step a little less; every other sibling of three or more half a ring more), its children sharing its slice. A node's parent on the map is its first link (or need).
-const MAP_R := 76.0
-const MAP_STEP_R := 62.0
-const MAP_STAGGER := 0.45
+## (1.30, docs/v1_30_previews.md section 4; 1.30.1 tidy rings) Every tree is one map: the root in the middle, its
+## branches round it clockwise from the upper left, each a lane (a wedge, a gap between lanes). A node sits on the ring
+## of its depth, in the middle of its own wedge, its children sharing that wedge, so no two wedges overlap and no link
+## crosses another. A wedge is as wide as its outermost nodes need (MAP_SPACE of arc each, a name's width); a tree too
+## big for one turn pushes every ring out. A node's parent on the map is its first link (or need).
+const MAP_R := 96.0
+const MAP_RING := 56.0
+const MAP_SPACE := 90.0
+const MAP_GAP := 0.6
+## A node and its name's height on the map.
+const MAP_TALL := 52.0
 const MAP_START := -2.36
+## The open layout's ring radii by depth (only while _map_layout runs).
+static var _rings: Array = []
+
+
+## The node a node hangs from on its map (the map draws that link solid, any other way in dashed).
+static func map_parent(id: String) -> String:
+	return _map_parent(node_def(id))
 
 
 static func _map_parent(n: Dictionary) -> String:
@@ -333,11 +345,50 @@ static func _map_layout(t: String) -> void:
 		kids[par].append(k)
 	for par in kids.keys():
 		(kids[par] as Array).sort_custom(func(a, b): return _map_order(a) < _map_order(b))
-	var w := {}
-	_map_weigh(root, kids, w)
-	_nodes[root]["pos"] = Vector2.ZERO
-	var a0 := MAP_START - PI * float(w[kids[root][0]]) / float(w[root])
-	_map_place(root, kids, w, a0, a0 + TAU, 0.0)
+	var depth := {}
+	_map_depth(root, kids, depth, 0)
+	# (twice: the second time each node's room is measured along its ring where the first put it, so a name on the
+	# left or right of the map, whose neighbours sit above and below it, needs only its height of the ring, not its width)
+	var ang := {}
+	for pass_ in range(2):
+		# each ring far enough out for the nodes on it side by side
+		var per := {}
+		for k in depth.keys():
+			if k != root:
+				per[depth[k]] = float(per.get(depth[k], 0.0)) + _map_room(k, ang)
+		_rings = [0.0]
+		for d in range(1, per.size() + 1):
+			_rings.append(maxf(MAP_R if d == 1 else _rings[d - 1] + MAP_RING, per[d] / TAU))
+		var need := {}
+		var tops: Array = kids[root]
+		var gap := MAP_GAP * MAP_SPACE / float(_rings[1])
+		var lanes := 0.0
+		for i in tops.size():
+			lanes += _map_need(tops[i], kids, depth, need, ang)
+			if _lane_ends(tops, i):
+				lanes += gap
+		# (still too much for one turn: every ring further out, which narrows what each node needs; room to spare spreads out)
+		var grow := maxf(1.0, lanes / TAU)
+		var ka := TAU / lanes
+		_nodes[root]["pos"] = Vector2.ZERO
+		var a: float = MAP_START - float(need[tops[0]]) * ka * 0.5
+		for i in tops.size():
+			var da: float = need[tops[i]] * ka
+			_map_place(tops[i], kids, depth, need, a, da, grow, ka, 0.0, _map_room(root, {}))
+			a += da + (gap * ka if _lane_ends(tops, i) else 0.0)
+		for k in depth.keys():
+			ang[k] = (_nodes[k]["pos"] as Vector2).angle()
+
+
+## The room a node and its name take along its ring (px): the name's width where the ring runs across the map, the
+## node and name's height where it runs up and down (`ang`: where it sits; none yet: the width).
+static func _map_room(k: String, ang: Dictionary) -> float:
+	var n: Dictionary = _nodes[k]
+	var w := maxf(str(n["name"]).length() * 5.6 +(20.0 if n["kind"] == "step" else 0.0), float(n["max_steps"]) * 9.0) + 12.0
+	if not ang.has(k):
+		return maxf(w, MAP_SPACE * 0.5)
+	var t := Vector2.from_angle(float(ang[k]) + PI * 0.5)
+	return maxf(absf(t.x) * w + absf(t.y) * MAP_TALL, MAP_SPACE * 0.5)
 
 
 static func _map_order(k: String) -> Array:
@@ -345,28 +396,47 @@ static func _map_order(k: String) -> Array:
 	return [int(n["branch"]), 1 if n["kind"] == "step" else 0, int(n["level"]), k]
 
 
-static func _map_weigh(k: String, kids: Dictionary, w: Dictionary) -> float:
+static func _lane_ends(tops: Array, i: int) -> bool:
+	return int(_nodes[tops[i]]["branch"]) != int(_nodes[tops[(i + 1) % tops.size()]]["branch"])
+
+
+static func _map_depth(k: String, kids: Dictionary, depth: Dictionary, d: int) -> void:
+	depth[k] = d
+	for c in kids.get(k, []):
+		_map_depth(c, kids, depth, d + 1)
+
+
+static func _map_ring(d: int, grow: float) -> float:
+	return float(_rings[d]) * grow
+
+
+## The angle `k`'s wedge needs at the first rings' scale: its own name's arc on its ring, or its children's side by side.
+static func _map_need(k: String, kids: Dictionary, depth: Dictionary, need: Dictionary, ang: Dictionary) -> float:
 	var s := 0.0
 	for c in kids.get(k, []):
-		s += _map_weigh(c, kids, w)
-	w[k] = maxf(s, 0.7 if _nodes[k]["kind"] == "step" else 1.0)
-	return w[k]
+		s += _map_need(c, kids, depth, need, ang)
+	need[k] = maxf(s, _map_room(k, ang) / _map_ring(int(depth[k]), 1.0))
+	return need[k]
 
 
-static func _map_place(k: String, kids: Dictionary, w: Dictionary, a0: float, a1: float, r: float) -> void:
-	var a := a0
+## `k` in the middle of its wedge [a0, a0 + da] on its ring, its children's wedges (need x `k_`) centred inside it.
+static func _map_place(k: String, kids: Dictionary, depth: Dictionary, need: Dictionary, a0: float, da: float, grow: float, k_: float, pr: float = 0.0, pw: float = 0.0) -> void:
+	var dir := Vector2.from_angle(a0 + da * 0.5)
+	# (out past its parent: far enough along `dir` that the two (node + name) boxes clear side by side or one above
+	# the other, whichever comes first)
+	var w := _map_room(k, {})
+	var clear := minf((pw + w) * 0.5 / maxf(absf(dir.x), 0.01), MAP_TALL / maxf(absf(dir.y), 0.01))
+	var r := maxf(_map_ring(int(depth[k]), grow), pr + maxf(MAP_RING, clear))
+	_park(k, dir * r)
 	var ks: Array = kids.get(k, [])
-	for i in ks.size():
-		var c: String = ks[i]
-		var da := (a1 - a0) * float(w[c]) / float(w[k])
-		var cr := r + (MAP_STEP_R if _nodes[c]["kind"] == "step" else MAP_R)
-		# (three or more side by side: every other one half a ring further out, so their names don't collide)
-		if ks.size() >= 3 and i % 2 == 1:
-			cr += MAP_R * MAP_STAGGER
-		var mid := a + da * 0.5
-		_park(c, Vector2.from_angle(mid) * cr)
-		_map_place(c, kids, w, a, a + da, cr)
-		a += da
+	var inner := 0.0
+	for c in ks:
+		inner += need[c] * k_
+	var a: float = a0 + (da - inner) * 0.5
+	for c in ks:
+		var cd: float = need[c] * k_
+		_map_place(c, kids, depth, need, a, cd, grow, k_, r, w)
+		a += cd
 
 
 ## (1.30, a map's node) A node on `branch` whose parents are `links` (bought once one of them is yours), at its own

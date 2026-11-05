@@ -10886,3 +10886,20 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   only when monitoring really toggles; t/combat/rifle_moves caught it; the rare in-signal warning is harmless, `active` guards);
   Reaver's Sweep played a missing "dx_dash" pose (now dx_rush), Shoulder Charge and Chopping Block a missing "axe_kick"
   (now axe_hook).
+## 2026-11-05: 1.30.1 skill map layout (tidy rings)
+- Zach: the 1.30 staggered radial maps looked messy (names on names, links through nodes, dashed bridges everywhere).
+  `SkillTrees._map_layout` is now a tidy radial tree: each branch a lane (a wedge of the circle, a gap between lanes),
+  every node in the middle of its own wedge with its children's wedges inside it, so wedges never overlap and no two
+  map links cross. A wedge is as wide as its nodes' room along the ring (`_map_room`: the name's width where the ring
+  runs across the map, the node + name height (MAP_TALL) where it runs up and down: two passes, the second measuring
+  where the first put each node). A ring's radius is enough for its nodes side by side; a node steps out from its
+  parent far enough that the two node + name boxes clear (`_map_place`). `SkillTrees.map_parent(id)` names the link
+  a node hangs from.
+- Drawing (`SkillTreeDraw.draw_map`): only that link is solid; bridges and other ways in are dashed and faint
+  (full when the picked node is an end); names sit on a backing in the map's colour; the level a node opens at is a
+  second line ("LV 15") instead of a suffix, so names stay narrow; branch names sit out along the middle of their lane.
+- The trees are bigger (weapon trees ~600-920 px from root at zoom 1, was ~450 but overlapping), so the zoom goes out
+  to 0.3 (was 0.45) and a tree opens on its root while the next buyable node is in view from it (else on that node).
+- Tests: `t/ui/skills_map_tidy` (every tree: no node/name overlaps, no crossing map links, no link through a node,
+  outward from the root, reach <= 960); `t/ui/skills_map_view` checks the node it opens on rather than Air Dash.
+  Render: `tools/dev/skillmapfull.gd` (whole trees at one zoom).

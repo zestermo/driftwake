@@ -13,6 +13,7 @@ var step := 0
 var until := 0
 var fails := 0
 var k0 := 0.0
+var next_id := ""
 
 
 func _initialize() -> void:
@@ -63,8 +64,13 @@ func _process(_d: float) -> bool:
 				if n["kind"] != "version" and pr.buy_why(id) == "" and (n["pos"] as Vector2).length() < bd:
 					bd = (n["pos"] as Vector2).length()
 					want = n["pos"]
+					next_id = id
+			# (1.30.1: on the root while what you can buy next is in view from it)
+			var half: Vector2 = sm._map_rect.size * 0.5 / sm._map_k - Vector2(40, 40)
+			if absf(want.x) < half.x and absf(want.y) < half.y:
+				want = Vector2.ZERO
 			check("opens centred on what you can buy next (%s, want %s)" % [str(sm._map_pan), str(want)], sm._map_pan.is_equal_approx(want) and bd < INF)
-			check("Air Dash (buyable) is drawn as a node you can click", sm._rect_of("n:ac_airdash").size != Vector2.ZERO)
+			check("what you can buy next (%s) is drawn as a node you can click" % next_id, sm._rect_of("n:" + next_id).size != Vector2.ZERO)
 			k0 = sm._map_k
 			var c: Vector2 = sm._map_rect.get_center() + Vector2(60, 0)
 			var under: Vector2 = sm._map_pan + (c - sm._map_rect.get_center()) / sm._map_k
@@ -79,12 +85,12 @@ func _process(_d: float) -> bool:
 			sm._map_pan = Vector2(4000, 0)
 			until = TK.wait_ticks(3)
 		2:
-			check("panned far off: the nodes there aren't clickable", sm._hit_at(sm._map_rect.get_center()) == "" and sm._rect_of("n:ac_airdash").size == Vector2.ZERO)
+			check("panned far off: the nodes there aren't clickable", sm._hit_at(sm._map_rect.get_center()) == "" and sm._rect_of("n:" + next_id).size == Vector2.ZERO)
 			sm._act("map:next")
 			sm.sel = "n:ac_airdash"
 			until = TK.wait_ticks(3)
 		3:
-			check("N brings it back (%s)" % str(sm._map_pan), sm._rect_of("n:ac_airdash").size != Vector2.ZERO)
+			check("N brings it back (%s)" % str(sm._map_pan), sm._rect_of("n:" + next_id).size != Vector2.ZERO)
 			check("the card says what it is and where: ABILITY · AIR", STD.SHAPE_NAME[STD.shape_of("ac_airdash")] == "Ability" and STD.branch_name("ac_airdash") == "Air")
 			check("Twin Dash waits on Air Dash: its parent", pr.parent_why("ac_twindash") == "Needs Air Dash first")
 			return TK.done(fails)

@@ -98,7 +98,7 @@ var _edy_drag := false
 ## (1.30) The tree map's view: px a map unit (MAP_ZOOMS its range, MAP_STEP a wheel notch), the map point at the panel's
 ## centre, the tree it was set for (another tree opens fresh), the panel, a drag going on; the right stick pans
 ## MAP_PAD_SPEED px a second.
-const MAP_ZOOMS := Vector2(0.45, 1.6)
+const MAP_ZOOMS := Vector2(0.3, 1.6)
 const MAP_STEP := 1.15
 const MAP_PAD_SPEED := 420.0
 var _map_k := 1.0
@@ -604,7 +604,7 @@ func _draw_map(area: Rect2) -> void:
 	SkillTreeDraw.draw_map(self, tree, area, _map_k, _map_pan, _pr(), _t)
 
 
-## Centre on the buyable node nearest the root (the root when nothing is).
+## Centre on the buyable node nearest the root (the root when nothing is, or that node's in view from the root).
 func _map_next() -> void:
 	var p := _pr()
 	var best := Vector2.ZERO
@@ -614,7 +614,9 @@ func _map_next() -> void:
 		if n["kind"] != "version" and p.buy_why(id) == "" and (n["pos"] as Vector2).length() < bd:
 			bd = (n["pos"] as Vector2).length()
 			best = n["pos"]
-	_map_pan = best
+	# (on the root while that's in view from it: the root stays the middle of what you see)
+	var half := _map_rect.size * 0.5 / _map_k - Vector2(40, 40)
+	_map_pan = Vector2.ZERO if absf(best.x) < half.x and absf(best.y) < half.y else best
 
 
 ## Zoom by `f` round screen point `at` (the map point under it stays put).
