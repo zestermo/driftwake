@@ -39,7 +39,10 @@ func face(a: Node3D, b: Node3D) -> void:
 func _process(_d: float) -> bool:
 	if r and is_instance_valid(r) and r.current_state_name() == "Plunge":
 		plunged = true
-	if not stage.up or TK.ticking(until):
+	# (the jump-in step ends at the plunge: the AI may cast a skill first, so it's given up to 9 s)
+	if step == 4 and not plunged and TK.ticking(until):
+		return false
+	if step != 4 and (not stage.up or TK.ticking(until)):
 		return false
 	match step:
 		0:
@@ -90,7 +93,7 @@ func _process(_d: float) -> bool:
 			r.reset_physics_interpolation()
 			r.get_node("Brain")._jump_at = 0
 			p.hurtbox.monitorable = false
-			until = TK.wait_secs(5.0)
+			until = TK.wait_secs(9.0)
 		4:
 			check("an AI captain jumps in with a plunge", plunged)
 			check("then waits its cooldown (%.1f s)" % ((r.get_node("Brain")._jump_at - Engine.get_physics_frames()) / 60.0), r.get_node("Brain")._jump_at - Engine.get_physics_frames() > 60 * 4)

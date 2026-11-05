@@ -516,5 +516,9 @@ func _jump_step(bi: CaptainInput.BrainInput) -> void:
 	var t := _now() - _jumping
 	if t > 1 and (p.height_above_ground() > 1.1 or p.velocity.y < 0.5 or t > _ticks(0.5)):
 		bi.hold("jump", false)
-		p.input_buffer.buffer_action("heavy_attack")
+	# (1.30.2) the plunge pressed every tick it's high enough until it starts: a single press made below the air
+	# attack's 0.9 m floor was kept for the landing instead, and the jump came to nothing
+	if p.current_state_name() == "Plunge" or (t > _ticks(0.3) and p.is_on_floor()) or t > _ticks(1.5):
 		_jumping = -1
+	elif t > 1 and p.height_above_ground() > 0.95:
+		p.input_buffer.buffer_action("heavy_attack")

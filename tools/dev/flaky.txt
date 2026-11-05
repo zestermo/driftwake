@@ -18,5 +18,5 @@ t.player.afterimage | its blow shattered the decoy before it faded
 t.progression.fourth_powers_b | ...the foe ahead floored
 t.progression.fruit_alternates | ...the foe floored
 t.progression.fifth_powers | ...the foe hauled in
-t.combat.rival_personality | an AI captain jumps in with a plunge
 t.stronghold.scouring | a captain out of the ring: no shell aimed at them (0 -> 0 hp)
+t.combat.rival_personality | an AI captain jumps in with a plunge
