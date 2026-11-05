@@ -7,12 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Always a next step", "The objective box never goes blank: it shows the chain's next step, with bearing and distance. The Captain's Log (J) has NEXT, QUESTS, NEWS and DONE tabs, and important news pins as a card until you open it."],
-	["Move like a pirate", "Slide down hills with C, then wall jump, wall run, wall cling and air dash in the Acrobatics map. Every skill tree is now one map you zoom and pan, with node shapes that say what each one is."],
-	["Bosses fight back", "Bosses leap to the middle at each phase with a shockwave and a roar, roar you off when you crowd them, and scale for the crew. Big hits fling foes into walls, and levels matter in a fight."],
-	["Raid the Admiralty", "The stronghold run is a raid in acts: seals, Vane, the vault and the Scouring's fiery escape, in a fortress dressed in white stone, with a Driftfruit in the vault and gadget packs from Nessa's."],
-	["Bigger ships, fuller sea", "Buy the brig and the galleon at the canal city's shipyard. Pirates trade broadsides, rivals arrive by ship, and there's a deep reef, Redtide's mountain and a floating restaurant twice the size."],
-	["Easier to get around", "Menus laid out for 1080p, an Unstuck button in the pause menu, a transmog box on every clothing slot, and a step-up onto ledges."],
+	["Menus on a controller", "A ring cursor you steer with the left stick in every menu (A clicks, X right-clicks), the D-pad and A/B work in menus and conversations, and ending a talk with A no longer makes you jump."],
+	["Your keys", "Options > Controls lets you rebind every key and mouse button; prompts and the skill bar show your keys."],
+	["Cleaner skill maps", "Every branch in its own lane with nothing overlapping, over a drifting pixel sea; menus sized better at 1080p."],
+	["Slides and air", "Steep hills slide you on your own, stood up like surfing. Acrobatics now grows from jumps, air time, tall drops and blows struck mid-air."],
+	["Fists and slingshot", "Shockwave Palm, Rising Dragon and Hundred Fists hit with more weight; the Diving Fist can't be spammed and finds its foe. The slingshot is held left-handed, in line with the camera, with a heavier draw."],
+	["Fixes", "The lighthouse no longer leaves you stuck sideways, Bag of Tricks fires from the drawn band, and three axe moves play their own animations again."],
 ]
 
 
