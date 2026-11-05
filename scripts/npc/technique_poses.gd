@@ -325,17 +325,28 @@ static func pose(h, n: String, u: float) -> Array:
 			var ph := s * TAU / 0.14
 			var el := maxf(sin(ph), 0.0)
 			var er := maxf(-sin(ph), 0.0)
-			var barrage := {"hips": Vector3(0, 0.08 * sin(ph), 0), "torso": Vector3(-0.25, 0.12 * sin(ph), 0), "head": Vector3(0.18, -0.1 * sin(ph), 0),
-				"arm_l": Vector3(1.0, 0.5, -0.1).lerp(Vector3(1.55, 0.3, 0.0), el), "fore_l": Vector3(1.9, 0, 0).lerp(Vector3(0.05, 0, 0), el),
-				"arm_r": Vector3(0.9, -0.5, 0.1).lerp(Vector3(1.55, -0.3, 0.0), er), "fore_r": Vector3(2.1, 0, 0).lerp(Vector3(0.05, 0, 0), er),
-				"leg_l": Vector3(0.45, 0, -0.18), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.35, 0, 0.18), "shin_r": Vector3(-0.4, 0, 0),
-				"_lift": Vector3(0, -0.15, 0)}
-			var cross := {"hips": Vector3(0, 0.32, 0), "torso": Vector3(-0.35, 0.45, -0.06), "head": Vector3(0.15, -0.7, 0),
-				"arm_r": Vector3(1.6, -0.72, 0.0), "fore_r": Vector3(0.02, 0, 0), "arm_l": Vector3(0.75, -0.55, -0.05), "fore_l": Vector3(2.35, 0, 0),
-				"leg_l": Vector3(0.75, 0, -0.24), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.7, 0, 0.26), "shin_r": Vector3(-0.12, 0, 0),
-				"_lift": Vector3(0, -0.18, 0)}
+			# (1.30.2) the whole body driving each punch: the shoulders snapping round, the body pitched in behind the
+			# barrage and shuddering with it, each punch's squash; the cross wound up a beat and thrown through with a
+			# stretch, then an overshoot settling back
+			var pulse := maxf(el, er)
+			var barrage := {"pivot": Vector3(-0.12 - 0.04 * pulse, 0, 0.03 * sin(ph * 0.5)), "hips": Vector3(0, 0.2 * sin(ph), 0),
+				"torso": Vector3(-0.3, 0.3 * sin(ph), 0.04 * sin(ph)), "head": Vector3(0.22, -0.25 * sin(ph), 0),
+				"arm_l": Vector3(1.0, 0.5, -0.1).lerp(Vector3(1.6, 0.25, 0.0), el), "fore_l": Vector3(1.9, 0, 0).lerp(Vector3(0.02, 0, 0), el),
+				"arm_r": Vector3(0.9, -0.5, 0.1).lerp(Vector3(1.6, -0.25, 0.0), er), "fore_r": Vector3(2.1, 0, 0).lerp(Vector3(0.02, 0, 0), er),
+				"leg_l": Vector3(0.6, 0, -0.22), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(-0.45, 0, 0.22), "shin_r": Vector3(-0.5, 0, 0),
+				"_lift": Vector3(0, -0.22 - 0.02 * pulse, 0), "_scale": Vector3(1.0 + 0.025 * pulse, 1.0 - 0.03 * pulse, 1.0 + 0.04 * pulse)}
+			var wind := {"pivot": Vector3(0.06, 0, 0), "hips": Vector3(0, -0.55, 0), "torso": Vector3(-0.1, -0.6, 0.06), "head": Vector3(0.15, 0.7, 0),
+				"arm_r": Vector3(0.1, 0.5, 0.45), "fore_r": Vector3(2.2, 0, 0), "arm_l": Vector3(1.5, 0.4, -0.2), "fore_l": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.26), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.35, 0, 0.26), "shin_r": Vector3(-0.85, 0, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.06, 0.92, 1.03)}
+			var cross := {"pivot": Vector3(-0.22, 0, 0), "hips": Vector3(0, 0.42, 0), "torso": Vector3(-0.4, 0.55, -0.06), "head": Vector3(0.25, -0.75, 0),
+				"arm_r": Vector3(1.6, -0.72, 0.0), "fore_r": Vector3(0.02, 0, 0), "arm_l": Vector3(0.6, -0.5, -0.4), "fore_l": Vector3(2.35, 0, 0),
+				"leg_l": Vector3(0.95, 0, -0.26), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.85, 0.3, 0.26), "shin_r": Vector3(-0.05, 0, 0),
+				"_lift": Vector3(0, -0.34, 0), "_scale": Vector3(0.94, 1.02, 1.12)}
+			var held := cross.merged({"pivot": Vector3(-0.16, 0, 0), "_scale": Vector3(1.02, 0.98, 1.0)}, true)
 			var k_x := 1.05 / T
-			return [h._keys(u, [[0.0, g], [0.07, barrage, "out"], [k_x - 0.06, barrage], [k_x, cross, "out"], [k_x + 0.1, cross], [1.0, g]]), "full", lift]
+			return [h._keys(u, [[0.0, g], [0.07, barrage, "out"], [k_x - 0.1, barrage], [k_x - 0.03, wind, "out"], [k_x, cross, "in"],
+				[k_x + 0.05, held, "back"], [k_x + 0.12, held], [1.0, g]]), "full", lift]
 		"rising_dragon":
 			# crouched low, fist cocked by the hip, then exploding upward in an uppercut,
 			# the right knee driving up (launch at 0.16 s)
@@ -350,8 +361,17 @@ static func pose(h, n: String, u: float) -> Array:
 			var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.1, 0, 0), "head": Vector3(0.1, 0, 0),
 				"arm_r": Vector3(1.0, -0.2, 0.2), "fore_r": Vector3(1.6, 0, 0), "arm_l": Vector3(1.0, 0.2, -0.2), "fore_l": Vector3(1.6, 0, 0),
 				"leg_l": Vector3(0.9, 0, -0.12), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(0.6, 0, 0.12), "shin_r": Vector3(-1.2, 0, 0)}
+			# (1.30.2) coiled tight and squashed into the ground, pitched over the fist; the rise stretched long and
+			# leaning back into the uppercut; it eases over at the top and the tuck overshoots into the landing
+			crouch["pivot"] = Vector3(-0.15, 0, 0)
+			crouch["_scale"] = Vector3(1.08, 0.86, 1.05)
+			crouch["_lift"] = Vector3(0, -0.4, 0)
+			rise["pivot"] = Vector3(0.16, 0, -0.06)
+			rise["_scale"] = Vector3(0.9, 1.15, 0.92)
+			var apex := rise.merged({"pivot": Vector3(0.22, 0, -0.1), "arm_r": Vector3(2.8, -0.3, 0.1), "_scale": Vector3(0.97, 1.05, 0.97)}, true)
+			tuck["_scale"] = Vector3(1.04, 0.95, 1.04)
 			var k_up := 0.16 / T
-			return [h._keys(u, [[0.0, g], [k_up * 0.8, crouch, "out"], [k_up, crouch], [k_up + 0.12, rise, "out"], [0.62, rise], [0.85, tuck], [1.0, g]]), "full", lift]
+			return [h._keys(u, [[0.0, g], [k_up * 0.75, crouch, "out"], [k_up, crouch], [k_up + 0.1, rise, "out"], [0.6, apex], [0.84, tuck, "back"], [1.0, g]]), "full", lift]
 		"palm_strike":
 			# wound back with the palm cocked by the ear, then the palm driven out
 			# straight from the hip through a long step (u 0.36)
@@ -365,7 +385,25 @@ static func pose(h, n: String, u: float) -> Array:
 				"arm_l": Vector3(0.5, 0, -0.6), "fore_l": Vector3(1.5, 0, 0),
 				"leg_l": Vector3(1.0, 0, -0.14), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.8, 0, 0.14), "shin_r": Vector3(-0.15, 0, 0),
 				"_lift": Vector3(0, -0.28, 0)}
-			return [h._keys(u, [[0.0, g], [0.22, load_, "out"], [0.27, load_], [0.36, drive, "out"], [0.7, drive], [1.0, g]]), "full", lift]
+			# (1.30.2) the palms drawn together before the chest rising (gathering), sunk and wound back squashed with a
+			# shiver of held power, then the palm thrown out stretched with the whole body pitched in behind it, an
+			# overshoot, and a long held finish
+			var gather := {"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, 0.1, 0), "torso": Vector3(0.05, 0.1, 0), "head": Vector3(-0.05, -0.1, 0),
+				"arm_r": Vector3(1.1, 0.35, 0.45), "fore_r": Vector3(1.5, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.1, -0.35, -0.45), "fore_l": Vector3(1.5, 0, 0), "hand_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(0.2, 0, -0.2), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(-0.15, 0, 0.2), "shin_r": Vector3(-0.35, 0, 0),
+				"_lift": Vector3(0, -0.06, 0), "_scale": Vector3(0.96, 1.05, 0.96)}
+			var shiver := sin(h._t * 60.0) * 0.02
+			load_["pivot"] = Vector3(0.1, 0, shiver)
+			load_["_scale"] = Vector3(1.07, 0.9, 1.04)
+			load_["_lift"] = Vector3(0, -0.24, 0)
+			var coil := load_.merged({"pivot": Vector3(0.12, 0, -shiver), "_scale": Vector3(1.09, 0.88, 1.05)}, true)
+			drive["pivot"] = Vector3(-0.24, 0, 0)
+			drive["_scale"] = Vector3(0.93, 1.02, 1.14)
+			drive["_lift"] = Vector3(0, -0.34, 0)
+			var follow := drive.merged({"pivot": Vector3(-0.18, 0, 0), "torso": Vector3(-0.3, 0.42, 0), "_scale": Vector3(1.02, 0.98, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.12, gather, "out"], [0.24, load_, "out"], [0.32, coil], [0.36, drive, "in"], [0.46, follow, "back"],
+				[0.72, follow], [1.0, g]]), "full", lift]
 		"sea_king_charge":
 			# Sea King Fist armed: a deep horse stance, the right fist drawn back by the hip and the left arm out
 			# sighting, trembling as the fist takes the power; then back to the guard with it

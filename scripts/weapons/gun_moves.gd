@@ -144,12 +144,18 @@ static func _sg() -> Dictionary:
 	return _full(PoleMoves._p([SL_GUARD, SL_SET, {"_lift": Vector3(0, -0.1, 0)}]))
 
 
+## The drawing arm at full draw (authored as the left; held, the right): the upper arm level with the shoulder and out
+## behind it, the elbow bent flat so the forearm runs forward to the cheek (Zach: the elbow back, not up).
+const DRAW_ARM := Vector3(1.4, 1.75, -0.45)
+const DRAW_FORE := 2.2
+
+
 ## Drawn at `pitch`: the fork arm straight out at the target past the turned chest, the fork upright, the pouch drawn back
 ## to the left cheek.
 static func _drawn(pitch: float) -> Dictionary:
 	return _sg().merged({"hips": Vector3(0, 0.45, 0), "torso": Vector3(pitch * 0.5 - 0.04, 0.4, 0.02), "head": Vector3(-0.08 - pitch * 0.3, -0.48, 0.06),
 		"arm_r": Vector3(1.5 + pitch * 0.6, 0.0, 0.5), "fore_r": Vector3(0.08, 0, 0), "hand_r": Vector3(0.0, 0, 0),
-		"arm_l": Vector3(1.35, -0.55, 0.15), "fore_l": Vector3(2.35, 0, 0)}, true)
+		"arm_l": DRAW_ARM, "fore_l": Vector3(DRAW_FORE, 0, 0)}, true)
 
 
 ## The loose: the pouch let go, the left hand flung back open past the ear, the fork hand snapping forward.
@@ -172,7 +178,7 @@ static func _reach(pitch: float) -> Dictionary:
 static func _taut(pitch: float, k: float = 1.0) -> Dictionary:
 	var d := _drawn(pitch)
 	return d.merged({"hips": Vector3(0, 0.45 + 0.12 * k, 0), "torso": (d["torso"] as Vector3) + Vector3(0.1, 0.22, 0.03) * k,
-		"pivot": Vector3(0.05 * k, 0, 0), "head": (d["head"] as Vector3) + Vector3(0, -0.1, 0) * k, "arm_l": Vector3(1.3, -0.7 - 0.1 * k, 0.25), "fore_l": Vector3(2.4 + 0.1 * k, 0, 0),
+		"pivot": Vector3(0.05 * k, 0, 0), "head": (d["head"] as Vector3) + Vector3(0, -0.1, 0) * k, "arm_l": DRAW_ARM + Vector3(-0.05, -0.08, -0.15) * k, "fore_l": Vector3(DRAW_FORE + 0.08 * k, 0, 0),
 		"_scale": Vector3(1.0 - 0.03 * k, 1.0 + 0.05 * k, 1.0 - 0.03 * k)}, true)
 
 
@@ -186,8 +192,44 @@ static func _snap(pitch: float, k: float = 1.0) -> Dictionary:
 		"_scale": Vector3(1.0 + 0.06 * k, 1.0 - 0.08 * k, 1.0 + 0.06 * k)}, true)
 
 
-## [pose, mask, lift] for a slingshot move (keyed arms: no grip channels).
+## (1.30.2, Zach) The slingshot is held in the LEFT hand and drawn with the right, so with the camera over the right
+## shoulder the shot runs along the camera's line. The poses here are authored the other way round (fork right, pouch
+## left) and mirrored as they're handed out: `_l` and `_r` joints swapped, their y and z turns negated.
+static func mirror(p: Dictionary) -> Dictionary:
+	var out := {}
+	for k: String in p:
+		var v = p[k]
+		var to := k
+		if k.ends_with("_l"):
+			to = k.trim_suffix("_l") + "_r"
+		elif k.ends_with("_r"):
+			to = k.trim_suffix("_r") + "_l"
+		if v is Vector3 and not k.begins_with("_"):
+			v = Vector3(v.x, -v.y, -v.z)
+		out[to] = v
+	return out
+
+
+static var _mirrored := {}
+
+
+## A slingshot constant (SL_GUARD, SL_LEGS, SL_BLOCK) as held: mirrored, once.
+static func held(name: String) -> Dictionary:
+	if not _mirrored.has(name):
+		_mirrored[name] = mirror({"SL_GUARD": SL_GUARD, "SL_LEGS": SL_LEGS, "SL_BLOCK": SL_BLOCK}[name])
+	return _mirrored[name]
+
+
+## [pose, mask, lift] for a slingshot move, mirrored into the left-handed hold.
 static func _sling(h, n: String, u: float) -> Array:
+	var r := _sling_authored(h, n, u)
+	if not r.is_empty():
+		r[0] = mirror(r[0])
+	return r
+
+
+## (keyed arms: no grip channels; authored fork-right, see mirror)
+static func _sling_authored(h, n: String, u: float) -> Array:
 	var g := _sg()
 	var ap: float = clampf(h.aim_pitch, -0.6, 0.6)
 	match n:
@@ -207,7 +249,7 @@ static func _sling(h, n: String, u: float) -> Array:
 		"sl_draw":
 			# (held) the power draw: the reach and dip, then drawn right back past the ear, the chest wound further round,
 			# leaning back and stretched with the band
-			var d := _taut(ap, 1.6).merged({"torso": Vector3(ap * 0.5 + 0.06, 0.58, 0.05), "arm_l": Vector3(1.3, -0.72, 0.3), "fore_l": Vector3(2.5, 0, 0)}, true)
+			var d := _taut(ap, 1.6).merged({"torso": Vector3(ap * 0.5 + 0.06, 0.58, 0.05)}, true)
 			return [h._keys(u, [[0.0, g], [0.3, _reach(ap), "out"], [1.0, d, "in"]]), "upper", Vector3.ZERO]
 		"sl_release":
 			# the power draw let go: the heaviest snap, then a recoil that overshoots back to the guard
@@ -246,10 +288,10 @@ static var _band_mat: Material
 
 
 ## Each frame on a slingshot body (Humanoid._process, after posing): the band stretched from each prong tip to the pouch
-## in the left hand while the slingshot's out; hidden put away (the mesh's own slack band shows then).
+## in the right hand (the fork in the left) while the slingshot's out; hidden put away (the mesh's own slack band shows then).
 static func sling_band(h) -> void:
 	var w: MeshInstance3D = h.weapon
-	var on: bool = h.armed and h.weapon_in_hand and w != null and is_instance_valid(w) and w.get_parent() == h.hand_r and h.ragdoll == null \
+	var on: bool = h.armed and h.weapon_in_hand and w != null and is_instance_valid(w) and w.get_parent() == h.hand_l and h.ragdoll == null \
 		and str(w.mesh.get_meta("model", "")).begins_with("slingshot")
 	var band: Array = h.get_meta("sling_band", [])
 	if band.is_empty():
@@ -274,7 +316,7 @@ static func sling_band(h) -> void:
 	if not on:
 		return
 	var design := str(w.mesh.get_meta("model", "")).get_slice(":", 1)
-	var pouch: Vector3 = h.hand_l.global_position
+	var pouch: Vector3 = h.hand_r.global_position
 	for i in 2:
 		var t: Vector3 = w.global_transform * Vector3((1.0 if i == 0 else -1.0) * GunModels.sl_w(design), 0, -GunModels.SL_TIP)
 		var d := pouch - t

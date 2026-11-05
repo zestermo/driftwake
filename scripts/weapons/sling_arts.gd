@@ -38,9 +38,9 @@ static func _col(p: Player, which: int, tier: int = 1) -> Color:
 	return FXS.tree_col("slingshot" if _elem(p, tier) else "plain", which)
 
 
-## Where the stone leaves from: the pouch in the drawing hand, just behind the fork.
+## Where the stone leaves from: the pouch in the drawing (right) hand, just behind the fork.
 static func pouch(p: Player) -> Vector3:
-	return p.body_model.hand_l.global_position
+	return p.body_model.hand_r.global_position
 
 
 static func _speed(p: Player) -> float:

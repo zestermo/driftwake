@@ -498,22 +498,44 @@ func physics_update(delta: float) -> void:
 			_waltz()
 		"hundred_fists":
 			_drift(delta, 1.2)
+			if _once("lines", 0.08):
+				Net.fx("speed_lines", [_chest() + _dir * 0.6, _dir, _col(FX.EDGE), 12, 2.6, 0.95])
 			if t >= 0.1 and t < 1.0 and t >= 0.1 + _hits * 0.07:
 				_hits += 1
-				_cone(2.1, 0.65, 3.0, 1.0, false, false, 0.0)
-				if _hits % 3 == 0:
-					Net.fx("punch_wind", [_chest() + _dir * 0.3 + Vector3(randf_range(-0.25, 0.25), randf_range(-0.15, 0.15), 0), _dir, 1.0, Color(1.0, 0.97, 0.9), false])
+				var struck := _cone(2.1, 0.65, 3.0, 1.0, false, false, 0.0)
+				var side := _dir.cross(Vector3.UP)
+				var at := _chest() + _dir * 0.5 + side * randf_range(-0.3, 0.3) + Vector3(0, randf_range(-0.2, 0.2), 0)
+				if _hits % 2 == 0:
+					Net.fx("punch_wind", [at, _dir, 1.0 + 0.04 * _hits, Color(1.0, 0.97, 0.9), false])
 					Net.fx("sfx", ["whoosh", player.global_position, -10.0, 0.15, 1.6])
+				if not struck.is_empty():
+					Net.fx("star_glint", [at + _dir * 0.9, 0.45, _col(FX.ACCENT), 0.12])
+			if _once("wind", 0.98):
+				Net.fx("star_glint", [player.body_model.hand_r.global_position, 0.9, _col(FX.CORE), 0.2])
+				Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.05, 0.8])
 			if _once("final", 1.05):
-				_cone(2.4, 0.7, 22.0, 12.0, false, true)
-				Net.fx("punch_wind", [_chest() + _dir * 0.3, _dir, 1.6, Color(1.0, 0.97, 0.9), true])
-				player.cam_shake(0.18)
+				var hits := _cone(2.4, 0.7, 22.0, 12.0, false, true)
+				_shock(_chest(), _dir, 3, 1.0)
+				Net.fx("punch_wind", [_chest() + _dir * 0.3, _dir, 2.2, Color(1.0, 0.97, 0.9), true])
+				Net.fx("dust_ring", [player.global_position, 14, 1.0])
+				player.cam_shake(0.22)
+				if not hits.is_empty():
+					_moment(0.3, 0.07, 0.22, 0.0)
 		"rising_dragon":
 			_dragon(delta)
 		"palm_strike":
 			_rooted(delta, 0.0)
+			if _once("gather", 0.06):
+				Net.fx("sparkle", [_chest() + _dir * 0.45, 10, _col(FX.EDGE)])
+				Net.fx("sfx", ["whoosh", player.global_position, -12.0, 0.05, 0.6])
+			if _once("coil", 0.15):
+				Net.fx("star_glint", [player.body_model.hand_r.global_position, 0.8, _col(FX.CORE), 0.18])
 			if _once("palm", 0.2):
 				_palm()
+			if _once("palm2", 0.25):
+				_shock(_chest() + _dir * 1.2, _dir, 1, 1.6)
+			if _once("palm3", 0.3):
+				_shock(_chest() + _dir * 2.6, _dir, 1, 2.4)
 		"conquerors_haki":
 			_rooted(delta, 0.0)
 			if _once("will", 0.38):
@@ -1486,13 +1508,29 @@ func _carry(p: Vector3) -> void:
 # Unarmed: martial arts
 # --------------------------------------------------------------------------
 func _dragon(delta: float) -> void:
+	if _once("coil", 0.06):
+		Net.fx("dust_ring", [player.global_position, 8, 0.6])
+		Net.fx("star_glint", [player.body_model.hand_r.global_position, 0.7, _col(FX.CORE), 0.16])
 	if _once("launch", 0.16):
 		player.velocity = _dir * 3.0 + Vector3.UP * 9.0
 		var hits := _cone(2.4, 0.5, 26.0, 4.0, true, false)
+		var foot := player.global_position
 		Net.fx("punch_wind", [_chest() + _dir * 0.4, Vector3.UP, 1.6, Color(1.0, 0.97, 0.9), true])
-		Net.fx("dust_ring", [player.global_position, 12, 0.9])
+		Net.fx("dust_ring", [foot, 16, 1.2])
+		Net.fx("ring", [foot + Vector3(0, 0.1, 0), Vector3.UP, 2.2, _col(FX.EDGE), 0.3, 0.14])
+		Net.fx("speed_lines", [foot + Vector3(0, 1.0, 0), Vector3.UP, _col(FX.EDGE), 10, 3.5, 0.3])
 		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.2])
 		player.cam_shake(0.2 if hits.size() > 0 else 0.1)
+		if not hits.is_empty():
+			_moment(0.3, 0.07, 0.25, 0.0)
+	# the dragon's coil: rings winding up round the rising fist
+	for i in 4:
+		if _once("coil%d" % i, 0.2 + 0.07 * i):
+			var fist := player.body_model.hand_r.global_position
+			var tilt := Vector3.UP.rotated(_dir.cross(Vector3.UP).normalized(), 0.35 * (1 if i % 2 == 0 else -1))
+			Net.fx("ring", [fist, tilt, 0.6 + 0.2 * i, _col(FX.EDGE), 0.22, 0.1])
+			if i == 3:
+				Net.fx("streak", [player.global_position - Vector3(0, 1.5, 0), fist + Vector3(0, 0.6, 0), _col(FX.EDGE), 0.18, 0.3])
 	if t < 0.16:
 		_rooted(delta, 0.0)
 	else:
@@ -1500,8 +1538,10 @@ func _dragon(delta: float) -> void:
 		player.move_and_slide()
 
 
-## Everyone in the cone is blown back; those close enough are thrown off their feet.
+## Everyone in the cone is blown back; those close enough are thrown off their feet. (1.30.2) A pressure wave of rings
+## rolls out down the line (palm2/palm3 in update), dust kicked up along the ground, a beat of slow motion on a hit.
 func _palm() -> void:
+	var n := 0
 	for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0) + _dir * 2.5, 5.0):
 		var d := (e as Node3D).global_position - player.global_position
 		d.y = 0.0
@@ -1510,10 +1550,24 @@ func _palm() -> void:
 		var hd := _hd(18.0, 15.0, d.length() < 3.0)
 		hd.unblockable = true
 		_strike_toward(e, hd, _flat_to(e))
-	Net.fx("punch_wind", [_chest() + _dir * 0.3, _dir, 2.2, Color(1.0, 0.97, 0.9), true])
-	Net.fx("dust", [player.global_position + _dir * 1.5, 10, 0.8])
+		n += 1
+	_shock(_chest() + _dir * 0.4, _dir, 1, 0.9)
+	Net.fx("punch_wind", [_chest() + _dir * 0.3, _dir, 2.6, Color(1.0, 0.97, 0.9), true])
+	Net.fx("speed_lines", [_chest() + _dir * 1.5, _dir, _col(FX.EDGE), 12, 3.0, 0.25])
+	for k in 3:
+		Net.fx("dust", [player.global_position + _dir * (1.0 + 1.3 * k), 6, 0.7])
 	Net.fx("sfx", ["whoosh_big", player.global_position, -1.0, 0.05, 1.3])
-	player.cam_shake(0.2)
+	Net.fx("sfx", ["thud", player.global_position, -4.0, 0.05, 0.7])
+	player.cam_shake(0.24)
+	player.cam_kick(0.18, 0.3)
+	if n > 0:
+		_moment(0.3, 0.07, 0.2, 0.0)
+
+
+## A shockwave's rings facing down `dir` at `at`: `n` of them, the first `r` across, each wider and further on.
+func _shock(at: Vector3, dir: Vector3, n: int, r: float) -> void:
+	for i in n:
+		Net.fx("ring", [at + dir * 0.5 * i, dir, r * (1.0 + 0.45 * i), _col(FX.EDGE), 0.22 + 0.04 * i, 0.12])
 
 
 # --------------------------------------------------------------------------

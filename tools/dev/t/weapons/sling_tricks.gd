@@ -14,6 +14,7 @@ var down := false
 var ti := 0
 var step := 0
 var until := 0
+var placed := false
 var fails := 0
 
 
@@ -57,6 +58,16 @@ func _process(_d: float) -> bool:
 			g.reset_physics_interpolation()
 			g.velocity = Vector3.ZERO
 			g.set_physics_process(false)
+			# (the captain back on their mark too, a burning grunt shoves them aside; the camera given a few ticks to follow
+			# before the reticle is read)
+			if not placed:
+				placed = true
+				p.global_position = Vector3(0, p.global_position.y, 0)
+				p.velocity = Vector3.ZERO
+				p.reset_physics_interpolation()
+				until = TK.wait_ticks(8)
+				return false
+			placed = false
 			# (the reticle laid on the grunt, as a player aims)
 			var ray: Array = p.reticle_ray()
 			var r: Vector3 = ray[1]

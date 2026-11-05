@@ -891,11 +891,16 @@ func _attach_weapon(in_hand: bool) -> void:
 	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword", "longgun", "cannon", "staff"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
+	# (1.30.2: the slingshot's fork in the left hand, drawn with the right; GunMoves.mirror)
+	if in_hand and kind_of(weapon) == "slingshot":
+		target = hand_l
 	if weapon.get_parent() != target:
 		if weapon.get_parent():
 			weapon.get_parent().remove_child(weapon)
 		target.add_child(weapon)
-	if target == _katana_socket:
+	if target == hand_l:
+		weapon.transform = Transform3D.IDENTITY
+	elif target == _katana_socket:
 		weapon.transform = Transform3D(Basis(), KATANA_SHEATHED)
 	elif target != hand_r and target != hip_socket:
 		weapon.transform = DrawMoves.on_back(weapon)
@@ -1116,7 +1121,7 @@ func _guard() -> Dictionary:
 		"cannon":
 			return GunMoves.CN_GUARD
 		"slingshot":
-			return GunMoves.SL_GUARD
+			return GunMoves.held("SL_GUARD")
 		"sword":
 			return SwordMoves.guard(self)
 		"dual_pistol":
@@ -1153,7 +1158,6 @@ const STANCE_LEGS := {
 	"black_leg": BlackLegMoves.LEGS,
 	"long_gun": GunMoves.LG_LEGS,
 	"cannon": GunMoves.CN_LEGS,
-	"slingshot": GunMoves.SL_LEGS,
 }
 
 
@@ -1345,7 +1349,7 @@ func _block_pose() -> Dictionary:
 		"cannon":
 			return GunMoves.CN_BLOCK
 		"slingshot":
-			return GunMoves.SL_BLOCK
+			return GunMoves.held("SL_BLOCK")
 		"sword":
 			return SwordMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
@@ -2712,7 +2716,7 @@ func _locomotion(delta: float) -> Dictionary:
 				lift.y -= 0.03 * walk + absf(s) * 0.025 * walk
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
-				var ss: Dictionary = MASTERED[stance].legs(self) if stance in MASTERED else STANCE_LEGS.get(stance, STANCE_LEGS[""])
+				var ss: Dictionary = MASTERED[stance].legs(self) if stance in MASTERED else (GunMoves.held("SL_LEGS") if stance == "slingshot" else STANCE_LEGS.get(stance, STANCE_LEGS[""]))
 				p["leg_l"] += (ss["leg_l"] as Vector3) * st
 				p["leg_r"] += (ss["leg_r"] as Vector3) * st
 				p["shin_l"] += Vector3(ss["shin_l"].x, 0, 0) * st
