@@ -554,7 +554,7 @@ static func _build_will() -> void:
 static func _build_acrobatics() -> void:
 	# (1.30, docs/v1_30_previews.md section 4: one map, four branches, small nodes; the slope slide itself is free)
 	_tree("acrobatics", ["Air", "Walls", "Footwork", "Slides"])
-	_root("ac_root", "Acrobatics", {}, "Build it with what counts: air jumps, wall jumps, air dashes, a dodge through a blow, a fall you live through, a sky leap. Plain jumps teach nothing.")
+	_root("ac_root", "Acrobatics", {}, "Built in the air: jumps, time off the ground, tall drops and blows struck mid-air; air jumps, wall jumps, air dashes, a dodge through a blow and a sky leap count most.")
 	# Air
 	_at("m_geppo", "Geppo", "move", 0, 2, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.", ["ac_root"])
 	_at("ac_airdash", "Air Dash", "move", 0, 4, 2, {"air_dash": 1}, "In mid-air, dodge to dash the way you hold (or the way you face), level through the air: once before you land.", ["m_geppo"])
