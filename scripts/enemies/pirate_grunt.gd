@@ -508,6 +508,8 @@ func _ready() -> void:
 	humanoid.name = "Model"
 	facing.add_child(humanoid)
 	humanoid.reset_physics_interpolation()
+	if not humanoid.footstep.is_connected(_on_step):
+		humanoid.footstep.connect(_on_step)
 	# every pirate's blade is their own (and it's the one they drop)
 	_roll_role()
 	_roll_extras()
@@ -3772,6 +3774,14 @@ func net_rescale(k: float) -> void:
 ## Every blow its swing hitbox can carry (co-op: a puppet arms the same one by index).
 func _hit_set() -> Array:
 	return [_hit_light, _hit_heavy, _hit_peril, _hit_rush, _hit_sweep, _hit_pounce]
+
+
+## A pirate's footfall (2026-11-06): heard close by, on what's underfoot, within the shared
+## budget (Footsteps.npc_step) so a crowd doesn't drown the captain's own steps.
+func _on_step(strength: float) -> void:
+	if not net_puppet and not is_on_floor():
+		return
+	preload("res://scripts/game/footsteps.gd").npc_step(self, strength)
 
 
 func _hit_kind() -> int:

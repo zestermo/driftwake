@@ -27,6 +27,34 @@ const ICE_TEX := ["ice"]
 static var _kinds := {}
 static var _grids := {}
 
+## Enemies' and NPCs' steps (2026-11-06): only within NPC_STEP_RANGE m of the camera, quieter than the
+## captain's, and at most NPC_STEP_CAP of them in any NPC_STEP_WINDOW physics ticks across the world.
+const NPC_STEP_RANGE := 22.0
+const NPC_STEP_CAP := 3
+const NPC_STEP_WINDOW := 15
+static var _npc_win := -1000
+static var _npc_count := 0
+## (tests read it)
+static var npc_steps := 0
+
+
+static func npc_step(body: Node3D, strength: float) -> bool:
+	var cam := body.get_viewport().get_camera_3d() if body.is_inside_tree() else null
+	if cam == null or cam.global_position.distance_to(body.global_position) > NPC_STEP_RANGE:
+		return false
+	var f := Engine.get_physics_frames()
+	if f - _npc_win >= NPC_STEP_WINDOW:
+		_npc_win = f
+		_npc_count = 0
+	if _npc_count >= NPC_STEP_CAP:
+		return false
+	_npc_count += 1
+	npc_steps += 1
+	var fx := body.get_tree().root.get_node_or_null("FX")
+	if fx:
+		fx.sfx("step_" + surface_under(body), body.global_position, -19.0 + 14.0 * strength, 0.07, 0.96)
+	return true
+
 
 static func surface_under(body: Node3D) -> String:
 	var at := body.global_position
