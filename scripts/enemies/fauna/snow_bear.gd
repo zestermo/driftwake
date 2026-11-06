@@ -231,3 +231,8 @@ func _pose(delta: float) -> void:
 			if side != 0.0 and float(leg["side"]) == side:
 				sw = -swipe * 1.4
 		(leg["pivot"] as Node3D).rotation = Vector3(sw, 0, 0)
+
+
+## Its blows rake and pinch: claws, pincers, nails.
+func _impact_kind(_i: int) -> String:
+	return "claw"

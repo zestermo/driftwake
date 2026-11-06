@@ -211,3 +211,8 @@ func _pose(delta: float) -> void:
 		(leg["pivot"] as Node3D).rotation = Vector3(sw, 0, 0)
 	if graze > 0.5 and lod == LOD_FULL and fmod(_t, 1.2) < delta:
 		FX.puff(_head.global_position + Vector3.DOWN * 1.0, "snow", 1, 0.5, 0.6, Color.WHITE, 0.3, Vector3.UP)
+
+
+## Its blows are blunt: rams, tusks, a body thrown at you.
+func _impact_kind(_i: int) -> String:
+	return "slam"

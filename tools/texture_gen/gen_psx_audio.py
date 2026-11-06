@@ -2255,6 +2255,65 @@ def punch_takes(name, count, heavy, seed, lufs):
         _write_shot(f"{name}_{k + 1}", _filt(out, lambda f: _lp(f, 4500, 2)), lufs, fade=0.03)
 
 
+def claw_takes(count=3):
+    """Claws raking (2026-11-06, beasts and creatures): three or four quick tearing scrapes a
+    few ms apart, a wet rip of hide and cloth, a soft knock of the paw behind."""
+    for k in range(count):
+        rng = np.random.default_rng(1600 + k)
+        n = int(SR * 0.3)
+        t = np.arange(n) / SR
+        out = np.zeros(n)
+        for j in range(int(rng.integers(3, 5))):
+            at = j * rng.uniform(0.012, 0.02)
+            tt = _at(t, at)
+            fc = 900 + rng.uniform(1300, 1900) * np.exp(-tt / 0.03)
+            sc = _svf_sweep(rng.standard_normal(n), fc, 2.2)
+            sc = sc / (np.max(np.abs(sc)) + 1e-9) * np.exp(-tt * 26) * np.minimum(1, tt / 0.001) * (t >= at)
+            out += sc * rng.uniform(0.6, 1.0)
+        rip = _noise(n, rng, 400, 2200) * (0.3 + 0.7 * _churn(n, rng, 170)) * np.exp(-t * 18) * np.minimum(1, t / 0.004)
+        body = _thump(t, rng.uniform(130, 150), 60, 0.02, 34, 0.0015)
+        out = out + rip * 0.9 + body * 0.5
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.5)
+        _write_shot(f"claw_{k + 1}", _filt(out, lambda f: _lp(f, 3400, 2)), -14.5, fade=0.04)
+
+
+def bite_takes(count=3):
+    """A bite: jaws snapping shut (a hard clack of teeth), a crunch into the flesh under it
+    and a short wet tug as they pull."""
+    for k in range(count):
+        rng = np.random.default_rng(1610 + k)
+        n = int(SR * 0.34)
+        t = np.arange(n) / SR
+        clack = _modes(t, rng, [(rng.uniform(1100, 1400), 1.0, 70), (rng.uniform(2300, 2700), 0.5, 110)])
+        clack += _noise(n, rng, 1000, 3000) * np.exp(-t * 120) * 0.5
+        grit = _noise(n, rng, 500, 2400)
+        crunch = _grains(n, rng, 70, 0.006, 0.12, grit, (0.002, 0.006), decay=12.0)
+        jaw = _thump(t, rng.uniform(160, 190), 70, 0.015, 30, 0.001)
+        tt = _at(t, 0.13)
+        tug = _noise(n, rng, 250, 1200) * (0.4 + 0.6 * _churn(n, rng, 90)) * np.exp(-tt * 14) * np.minimum(1, tt / 0.02) * (t >= 0.13)
+        out = clack * 1.2 + crunch * 3.0 + jaw * 0.6 + tug * 0.5
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.6)
+        _write_shot(f"bite_{k + 1}", _filt(out, lambda f: _lp(f, 3600, 2)), -14.5, fade=0.05)
+
+
+def slam_takes(count=3):
+    """A big body landing a blow (a tail, a stomp, a charge, a golem's fist): a deep
+    chest-hit whump with real mid-range (so it reads on small speakers), the crack of
+    the strike, a short rumble and dust after."""
+    for k in range(count):
+        rng = np.random.default_rng(1620 + k)
+        n = int(SR * 0.55)
+        t = np.arange(n) / SR
+        boom = _thump(t, rng.uniform(110, 130), rng.uniform(45, 52), 0.03, 9, 0.002)
+        mid = _noise(n, rng, 180, 900) * np.exp(-t * 18) * np.minimum(1, t / 0.002)
+        crack = _noise(n, rng, 900, 3200) * np.exp(-t * 80) * np.minimum(1, t / 0.0005)
+        tt = _at(t, 0.05)
+        rumble = _noise(n, rng, 60, 350) * np.exp(-tt * 7) * np.minimum(1, tt / 0.03) * (t >= 0.05)
+        out = boom * 0.45 + mid * 4.0 + crack * 2.2 + rumble * 0.5
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.7)
+        _write_shot(f"slam_{k + 1}", _filt(out, lambda f: _lp(f, 3600, 2)), -13.0, fade=0.08)
+
+
 def shot_hit_takes(count=3):
     """A ball striking a body: a dull close thwack (no crack: that's the gun's), a
     short low thump and a puff of cloth."""
@@ -2851,6 +2910,9 @@ SOUNDS = [
     ("punch", lambda: punch_takes("punch", 3, False, 1540, -15.0)),
     ("punch_heavy", lambda: punch_takes("punch_heavy", 3, True, 1550, -13.5)),
     ("shot_hit", shot_hit_takes),
+    ("claw", claw_takes),
+    ("bite", bite_takes),
+    ("slam", slam_takes),
     ("clash", clash_takes),
     ("step", lambda: [step_takes(s) for s in STEP_SURFACES]),
     ("step_snow", lambda: step_takes("snow")),

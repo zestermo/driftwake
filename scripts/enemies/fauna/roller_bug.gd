@@ -199,3 +199,8 @@ func _pose(delta: float) -> void:
 	var kick := 1.0 if state == S.DOWN else (0.0 if state == S.DEAD else clampf(hs / 0.4, 0.0, 1.0))
 	_legs.rotation = Vector3(sin(_gait * 3.0) * 0.12 * kick, 0, 0)
 	_legs.scale = Vector3(1.0, 1.0 + sin(_gait * 3.0 + 1.0) * 0.15 * kick, 1.0)
+
+
+## Its blows are blunt: rams, tusks, a body thrown at you.
+func _impact_kind(_i: int) -> String:
+	return "slam"

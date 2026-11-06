@@ -195,3 +195,8 @@ func _pose(delta: float) -> void:
 		var ph := _gait + (PI * 0.5 if s > 0.0 else 0.0)
 		(l[0] as Node3D).rotation = Vector3(cos(ph) * 0.18 * moving, sin(ph) * 0.12 * moving, s * (sin(ph) * 0.25 * moving + sin(_t * 18.0 + s) * 0.4 * flail))
 	_body.position.y = 0.2 + absf(sin(_gait * 2.0)) * 0.01 * moving
+
+
+## Its blows rake and pinch: claws, pincers, nails.
+func _impact_kind(_i: int) -> String:
+	return "claw"

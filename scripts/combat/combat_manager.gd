@@ -78,6 +78,28 @@ var last_impact: String = ""
 var last_guard: String = ""
 
 
+## A beast's or creature's blow by its move's name (2026-11-06): teeth bite, claws and pincers
+## rake, anything big and blunt slams; "" (the plain hit) for what fits none (a spit, a gaze).
+const BITE_WORDS := ["bite", "maw", "fang", "snap", "jaw", "chomp", "gnaw", "lunge"]
+const CLAW_WORDS := ["claw", "swipe", "rake", "slash", "maul", "scythe", "pincer", "pinch", "sting", "talon", "swat", "lash"]
+const SLAM_WORDS := ["slam", "stomp", "smash", "charge", "ram", "tail", "pound", "crush", "quake", "leap", "body",
+	"butt", "gore", "fist", "punch", "rush", "trample", "erupt", "dive", "roll", "sweep", "pounce"]
+
+
+static func beast_impact(move_name: String) -> String:
+	var m := move_name.to_lower()
+	for w in BITE_WORDS:
+		if m.contains(w):
+			return "bite"
+	for w in CLAW_WORDS:
+		if m.contains(w):
+			return "claw"
+	for w in SLAM_WORDS:
+		if m.contains(w):
+			return "slam"
+	return ""
+
+
 ## The sound a blow makes on a body, by what struck (HitData.impact).
 func impact_sound(hit: HitData) -> String:
 	if hit.impact == "":

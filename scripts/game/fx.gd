@@ -18,7 +18,7 @@ const SOUNDS := [
 	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
 	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
 	"laugh", "cheer", "hup", "heel_click", "slap",
-	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash",
+	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash", "claw", "bite", "slam",
 	"fin_sting", "jelly_zap",
 	"fish_cast", "fish_plop", "fish_bite", "fish_reel", "fish_catch",
 	"lava_bomb",

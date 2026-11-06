@@ -485,10 +485,17 @@ func _arm(i: int) -> void:
 	hd.stagger_duration = float(m[5])
 	hd.hitstop_duration = 0.06 if hd.knockdown else 0.04
 	hd.camera_shake_intensity = 0.25 if hd.knockdown else 0.12
+	hd.impact = _impact_kind(i)
 	hitbox.hit_data = hd
 	var cs := hitbox.get_child(0) as CollisionShape3D
 	(cs.shape as BoxShape3D).size = m[2]
 	cs.position = m[3]
+
+
+## What blow `i` sounds like on a body (CombatManager.beast_impact's words): most creatures bite;
+## a creature that rakes, rams or pinches says so.
+func _impact_kind(_i: int) -> String:
+	return "bite"
 
 
 func _strike(i: int) -> void:

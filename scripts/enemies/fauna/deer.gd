@@ -206,3 +206,8 @@ func _pose(delta: float) -> void:
 		if state in [S.DOWN, S.DEAD]:
 			swing = sin(_t * 12.0) * 0.4 * (1.0 if state == S.DOWN else maxf(0.0, 1.0 - _dead_t))
 		(leg["pivot"] as Node3D).rotation = Vector3(swing, 0, 0)
+
+
+## Its blows are blunt: rams, tusks, a body thrown at you.
+func _impact_kind(_i: int) -> String:
+	return "slam"

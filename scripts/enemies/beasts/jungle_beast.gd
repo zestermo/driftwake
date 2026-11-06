@@ -726,6 +726,7 @@ func _strike_local(shape: String, args: Array, dmg: float, knock: bool, parry: b
 	hd.stagger_duration = stun
 	hd.hitstop_duration = 0.08
 	hd.camera_shake_intensity = 0.28
+	hd.impact = CombatManager.beast_impact(move) if move != "" else "slam"
 	hb.take_hit(hd, self)
 
 

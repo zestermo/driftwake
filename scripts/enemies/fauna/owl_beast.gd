@@ -237,3 +237,8 @@ func _pose(delta: float) -> void:
 	for h in _hind:
 		var s: float = h["side"]
 		(h["pivot"] as Node3D).rotation = Vector3(-sin(_gait + (0.0 if s > 0.0 else PI)) * 0.6 * moving - pitch, 0, 0)
+
+
+## Its blows rake and pinch: claws, pincers, nails.
+func _impact_kind(_i: int) -> String:
+	return "claw"

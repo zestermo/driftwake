@@ -436,3 +436,8 @@ func _pose(delta: float) -> void:
 		elif state in [S.DOWN, S.DEAD]:
 			x = 0.2
 		(l["pivot"] as Node3D).rotation = Vector3(x, 0, s * 0.04)
+
+
+## Its blows rake and pinch: claws, pincers, nails.
+func _impact_kind(_i: int) -> String:
+	return "claw"

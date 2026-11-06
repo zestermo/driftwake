@@ -352,3 +352,8 @@ func _pose(delta: float) -> void:
 	# rooting kicks up the leaf litter (here only: it's only for looks)
 	if root > 0.8 and lod == LOD_FULL and fmod(_t, 0.7) < delta:
 		FX.dust(_head.global_position + _fwd() * 0.45 * size_k + Vector3.DOWN * 0.5 * size_k, 2, 0.3 * size_k)
+
+
+## Its blows are blunt: rams, tusks, a body thrown at you.
+func _impact_kind(_i: int) -> String:
+	return "slam"

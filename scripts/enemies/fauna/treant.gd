@@ -194,3 +194,8 @@ func _pose(delta: float) -> void:
 		var ph := _gait + PI * k * 0.5
 		(r[0] as Node3D).rotation.z = lerpf(0.5, sin(ph) * 0.35 * moving, up)
 		(r[0] as Node3D).position.y = _trunk.position.y
+
+
+## Its blows are blunt: rams, tusks, a body thrown at you.
+func _impact_kind(_i: int) -> String:
+	return "slam"

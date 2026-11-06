@@ -179,3 +179,8 @@ func _pose(delta: float) -> void:
 		var lift := sin(ph) * 0.35 * moving + sin(_t * 17.0 + s) * 0.5 * flail
 		(l[0] as Node3D).rotation = Vector3(cos(ph) * 0.2 * moving, 0, s * lift)
 	_shell.position.y = 0.22 + absf(sin(_gait)) * 0.015 * moving
+
+
+## Its blows rake and pinch: claws, pincers, nails.
+func _impact_kind(_i: int) -> String:
+	return "claw"

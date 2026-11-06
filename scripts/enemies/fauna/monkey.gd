@@ -320,3 +320,8 @@ func _pose(delta: float) -> void:
 		var sw := sin(_gait + (PI if float(l[1]) > 0.0 else 0.0)) * 0.7 * moving
 		(l[0] as Node3D).rotation = Vector3((0.9 if sitting else -0.2) + sw, 0, 0)
 	_tail.rotation = Vector3(sin(_t * 1.3) * 0.3 - (0.8 if sitting else 0.0), sin(_t * 0.9) * 0.4, 0)
+
+
+## Its blows rake and pinch: claws, pincers, nails.
+func _impact_kind(_i: int) -> String:
+	return "claw"

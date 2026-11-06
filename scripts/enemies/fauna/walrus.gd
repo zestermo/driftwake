@@ -206,3 +206,8 @@ func _pose(_delta: float) -> void:
 	_tail.rotation = Vector3(sin(_t * 2.0) * 0.15, 0, 0)
 	for f in _flippers:
 		(f[0] as Node3D).rotation = Vector3(heave * 0.6, 0, float(f[1]) * (0.2 + rear * 0.4))
+
+
+## Its blows are blunt: rams, tusks, a body thrown at you.
+func _impact_kind(_i: int) -> String:
+	return "slam"
