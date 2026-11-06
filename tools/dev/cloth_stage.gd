@@ -8,6 +8,7 @@ extends Node3D
 const OUTFITS := [
 	["skirt", {"body": "fem", "hair": "short", "legs": "skirt", "coat": "none"}],
 	["twin tails + skirt", {"body": "fem", "hair": "twintails", "legs": "skirt", "coat": "none"}],
+	["jacket", {"hair": "short", "hat": "none", "coat": "jacket", "coat_color": Color(0.36, 0.12, 0.1)}],
 	["long coat + sash", {"hair": "long", "coat": "longcoat", "belt": "sash"}],
 	["captain's coat", {"hair": "short", "coat": "captain"}],
 	["greatcoat", {"hair": "short", "coat": "greatcoat"}],

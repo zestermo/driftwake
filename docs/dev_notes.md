@@ -11018,3 +11018,15 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   chains_native_same compares the solvers with the seam net off (a threshold after either: it turned sub-mm
   differences into cm). Passing: the chains_*, coat_tails_hang, cloth_layers, hair_off_body, flow_hair, look_options,
   t/gear/coat_drape, backpack, cliptest.
+
+## 2026-11-05: 1.30.3: the jacket hangs from the shoulders (Zach: "fix the coat", not a new one)
+- **Was:** a rigid shell painted over the torso from the waist to the shoulders, plus a short band of hip tails.
+- **Now** (`_coat` for "jacket", `_jacket_body`): rigid only over the shoulders and the top of the chest (from
+  tu(JACKET_PIN_U 0.44)); below, one sewn piece of cloth on the torso's chains (four panels, JACKET_SECTORS 30..330:
+  open down the front) from the pin to the hip hem, easing off the body towards the hem; it follows the chest's lean
+  and twist, flares back and up at a run (showing the shirt), swings open on turns. The yoke laps JACKET_LAP 4.5 cm
+  over the cloth's top row (butted, the first bone's turn opened a slit across the shoulder blades). The arms' capsules
+  exist for a jacket too (the torso set's net eases the panels off the arms and legs). The lapels end at the pin.
+- clothlab look `jacket`, the cloth stage's "jacket" outfit. cloth_layers' chain count: the jacket has no hip chains now.
+- Numbers (clothlab, run script): 88 pops, 1306 segment-frames in the body (arms 565, thighs 524): the arms brush the
+  jacket's sides. Backpedal: 17 pops. Judged by Zach on the stage next.
