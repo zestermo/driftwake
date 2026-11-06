@@ -11056,3 +11056,19 @@ The frock (buttoned, a full skirt) and the haori are unchanged.
 - Straps (baldric, bandolier) stand 9 mm further out over a hung coat (cliptest).
 - Tests updated for the move (cloth_layers, coat_tails_hang over the torso's chains too, coat_drape: hung = no arm
   capsules); clothlab looks `captain`, `great`.
+
+### 1.30.3 collars, vest straps, hung cloth's fit (2026-11-06)
+Zach's two fit complaints from the plan, `body_builder.gd`:
+- **Collar gap:** a coat's collar now grows out of its neckline: its first ring is the shell's (a hung coat's yoke's)
+  top edge at tu(0.62), then it narrows in to stand round the neck. The collar was a tube at neck width standing inside
+  the shell's wide open top ring; the shirt showed between them at the sides of the neck.
+- **Vest straps** (`VEST_STRAPS`, `_vest_straps`): every vest kind but the corset and the harness has a band over each
+  shoulder, from the front panel's top edge across the top of the shoulder to the back's, on the body's own rings at the
+  vest's stand-off (the cuirass's in dark leather). The top row only 5 mm + 30% of the stand-off over the last ring: at
+  1 cm + 60% the brigandine's came through a duster's shoulder (cliptest).
+- **Vest through a hung coat's back:** the panels had 4 columns over 70-80 degrees; the chords cut inside the body's
+  curve at the sides and a vest showed through. `HUNG_COLS` 7 (`_seam_weights` / `_mark_seams` take any column count).
+  The jacket's back collider (`jback`) now has its face at the back's deepest between the waist and the pin plus the
+  coat's stand-off (was 0.104 + half the coat), and the fitting pass includes it: a coat hangs straight down from the
+  shoulder blades.
+Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.

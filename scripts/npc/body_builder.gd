@@ -572,8 +572,15 @@ func _colliders() -> void:
 	# (1.30.3) the jacket's back: a capsule set forward so only its back face lies on the back (a round one on the spine
 	# would push the jacket out into a hump); a backpedal or a lean back swung the panel in through the shirt
 	if _hung():
+		# (its back face at the back's deepest between the waist and the pin, plus the coat's stand-off less 6 mm: at
+		# 0.104 + half the coat the cloth settled into a vest at the shoulder blades; a coat hangs straight down from
+		# them, and _hung_body builds it so: jback is in its fitting pass)
 		var rb := 0.09 * de
-		var zb := 0.104 * de + _coat_off() * 0.5 - rb
+		var tr := _torso_rings()
+		var deep := 0.0
+		for i in range(9):
+			deep = maxf(deep, _surf_z(_at(tr, lerpf(0.0, tu(JACKET_PIN_U), i / 8.0)), 0.0, true))
+		var zb := deep + _coat_off() - 0.006 - rb
 		colliders["jback"] = {"node": h.torso, "a": Vector3(0, -0.06, zb), "b": Vector3(0, tu(JACKET_PIN_U), zb), "r": rb}
 
 
@@ -2617,7 +2624,17 @@ func _clothes() -> void:
 	var tr := _torso_rings()
 	var prof := MeshBuilder.profile_oct(0.55)
 	var mb := MeshBuilder.new()
-	match str(lk.get("vest", "none")):
+	var vest_kind := str(lk.get("vest", "none"))
+	if VEST_STRAPS.has(vest_kind):
+		var vs: Array = VEST_STRAPS[vest_kind]
+		var m_strap: Material
+		match str(vs[2]):
+			"cloth": m_strap = _cloth("vest_color")
+			"leather": m_strap = _textured("leather", _col("vest_color"))
+			"mail": m_strap = _textured("mail", Color(0.66, 0.68, 0.72))
+			_: m_strap = _textured("leather", Color(0.32, 0.2, 0.12))
+		_vest_straps(mb, m_strap, tr, tu(float(vs[0])), float(vs[1]))
+	match vest_kind:
 		"vest":
 			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _vest_shell(tr, 0.0, tu(0.57), 0.016, true), open_body(0.3), 3.0, Color.WHITE, false, false, false)
 			for i in range(3):
@@ -2763,7 +2780,15 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	else:
 		mb.add_loft(m_coat, Transform3D.IDENTITY, shell, P_BODY() if frock else open_body(0.3), 3.0, Color.WHITE, false, false, frock)
 	var collar_h := 0.15 if coat == "duster" else 0.11
-	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.6), 0.105 + thick, 0.095 + thick, 0.012], [tu(0.6) + collar_h, 0.115 + thick, 0.105 + thick, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
+	# (1.30.3, Zach: a gap between the collar and the coat) the collar grows out of the coat's neckline: its first ring
+	# is the shell's top edge (the yoke's, a hung coat), so it closes the open ring between the shoulders and the neck
+	# that showed the shirt; then it narrows in to stand up round the neck
+	var neck := _at(shell, tu(0.62))
+	var lift := 0.006 if hung else 0.002
+	var neck_y := maxf(tu(0.6), tu(0.62)) + 0.022
+	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.62) - 0.006, float(neck[1]) + lift, float(neck[2]) + lift, float(neck[3])],
+		[neck_y, 0.108 + thick, 0.098 + thick, 0.014], [tu(0.6) + collar_h, 0.115 + thick, 0.105 + thick, 0.02]],
+		open_front(0.55), 3.0, Color.WHITE, false, false, false)
 	var lap := m_trim if captain else _textured("fabric", _col("coat_color").darkened(0.12))
 	if frock:
 		# buttoned closed: two rows of brass down the chest instead of lapels
@@ -3092,6 +3117,10 @@ func _clear_of(p: Vector3, names: Array, margin: float = 0.012) -> Vector3:
 	return p
 
 
+## (1.30.3) Columns across each hung panel: 4 cut chords inside the body's curve at the sides (a vest showed through)
+const HUNG_COLS := 7
+
+
 ## (1.30.3) Coats hung from the shoulders: what a coat (the jacket, the long coats) is below its rigid yoke (_coat): one
 ## piece of cloth with its top row pinned under the yoke, sewn panels on the torso's chains so it follows the chest's
 ## lean and twist, close over the chest and hips; open at the front, so its edges swing apart and the hem lifts at speed.
@@ -3113,7 +3142,7 @@ func _hung_body(coat: String, m: Material, m_trim: Material, shell: Array) -> vo
 	var sim := _sim(h.torso)
 	var all_rows: Array = []
 	var all_bones: Array = []
-	var fit := ["hips", "thigh_l", "thigh_r"] + (["shin_l", "shin_r"] if long else [])
+	var fit := ["hips", "thigh_l", "thigh_r", "jback"] + (["shin_l", "shin_r"] if long else [])
 	var row_at := func(y: float, a: float, ease: float) -> Vector3:
 		var x := 0.0
 		var z := 0.0
@@ -3143,12 +3172,12 @@ func _hung_body(coat: String, m: Material, m_trim: Material, shell: Array) -> vo
 			# the hem made a bell)
 			var ease := -0.002 if r == 0 else 0.008
 			var row := PackedVector3Array()
-			for k in range(4):
-				row.append(row_at.call(y, lerpf(a0, a1, k / 3.0), ease))
+			for k in range(HUNG_COLS):
+				row.append(row_at.call(y, lerpf(a0, a1, float(k) / (HUNG_COLS - 1)), ease))
 			rows.append(row)
 			chain.append(row_at.call(y, am, ease))
 		var bones := sim.add_chain(chain, 0.42 if long else 0.34, 0.12 if long else 0.1, 1.0, hit)
-		var edge: Vector3 = (rows[n - 1] as PackedVector3Array)[3] - chain[n - 1]
+		var edge: Vector3 = (rows[n - 1] as PackedVector3Array)[HUNG_COLS - 1] - chain[n - 1]
 		sim.set_probes(sim.chain_count() - 1, _panel_probes(edge))
 		all_rows.append(rows)
 		all_bones.append(bones)
@@ -3172,8 +3201,8 @@ func _hung_body(coat: String, m: Material, m_trim: Material, shell: Array) -> vo
 				hem2.append(p + o)
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([bones[n - 1], bones[n - 1]]), 3.0, Color.WHITE, Vector3.ZERO)
 			if si == 0 or si == ns - 1:
-				var c0 := 0 if si == 0 else 3
-				var c1 := 1 if si == 0 else 2
+				var c0 := 0 if si == 0 else HUNG_COLS - 1
+				var c1 := 1 if si == 0 else HUNG_COLS - 2
 				var braid: Array = []
 				for r in range(1, n):
 					var rr: PackedVector3Array = rows[r]
@@ -3276,7 +3305,8 @@ func _mark_seams(sim: SpringChains, sectors: Array, all_rows: Array, rows_n: int
 				var at_vent := vent >= 0.0 and is_equal_approx(fposmod(float(sectors[si][1]), 360.0), fposmod(vent, 360.0))
 				var pts := PackedVector3Array()
 				for r in range(rows_n if not at_vent else rows_n / 2):
-					pts.append((all_rows[si][r] as PackedVector3Array)[3])
+					var rr: PackedVector3Array = all_rows[si][r]
+					pts.append(rr[rr.size() - 1])
 				sim.chain(base + si)["sew"] = [base + sj, pts]
 	sim.sew_legs = PackedStringArray(["thigh_l", "thigh_r", "shin_l", "shin_r"])
 
@@ -3326,11 +3356,11 @@ func _seam_weights(sectors: Array, si: int, rows: Array, all_bones: Array, rows_
 		# (the hem's trim, a band just over the hem row, hangs from it)
 		if absf(pos.y - ys[rows_n - 1]) <= 0.036:
 			row = rows_n - 1
-		# where across the panel: the nearest of its four columns on the hem row (the panel narrows above; the share
+		# where across the panel: the nearest of its columns on the hem row (the panel narrows above; the share
 		# across is the same on every row)
 		var k := 0
 		var best := INF
-		for c in range(4):
+		for c in range(last.size()):
 			var d := Vector2(pos.x - last[c].x, pos.z - last[c].z).length_squared()
 			var rr: PackedVector3Array = rows[row]
 			var d2 := Vector2(pos.x - rr[c].x, pos.z - rr[c].z).length_squared()
@@ -3339,7 +3369,7 @@ func _seam_weights(sectors: Array, si: int, rows: Array, all_bones: Array, rows_
 				best = d
 				k = c
 		# -1 at the left edge, 0 the middle, 1 the right edge (columns at -1, -1/3, 1/3, 1)
-		var u := (k / 3.0) * 2.0 - 1.0
+		var u := (float(k) / (last.size() - 1)) * 2.0 - 1.0
 		var nb := right if u > 0.0 else left
 		var vented: bool = (at_vent_r if u > 0.0 else at_vent_l) and row >= vent_row
 		if nb < 0 or vented or absf(u) < 1e-4:
@@ -3495,6 +3525,54 @@ func _vest_shell(tr: Array, lo: float, hi: float, o: float, strip: bool = false)
 	top[2] = float(top[2]) - o * 0.8
 	rings.append(top)
 	return rings
+
+
+## (1.30.3, Zach: the vest has no fabric over the shoulders) Each vest kind's shoulder straps: [top of its shell, its
+## stand-off, the strap's material key] (the corset and the harness have none).
+const VEST_STRAPS := {"vest": [0.57, 0.016, "cloth"], "cuirass": [0.56, 0.026, "strap"], "brigandine": [0.55, 0.022, "leather"],
+	"mail": [0.57, 0.016, "mail"], "jerkin": [0.57, 0.015, "leather"], "padded": [0.58, 0.028, "cloth"], "scale": [0.56, 0.02, "leather"]}
+
+
+## A vest's shoulder straps: a band over each shoulder from the front panel's top edge (`hi`) up across the top of the
+## shoulder and down to the back panel's, `o` off the body on its own rings (so it lies on the shoulder as the panels lie
+## on the chest), half way between the neck and the arm.
+func _vest_straps(mb: MeshBuilder, m: Material, tr: Array, hi: float, o: float) -> void:
+	var r6 := _at(tr, tu(0.6))
+	var xs := float(r6[1]) * 0.62
+	var w := 0.026
+	for s in [-1.0, 1.0]:
+		var xa: float = s * (xs - w)
+		var xb: float = s * (xs + w)
+		var front: Array = []
+		var back: Array = []
+		var y := hi - 0.012
+		var last_y := y
+		while y < tu(0.66):
+			var r := _at(tr, y)
+			if float(r[1]) < xs + w + 0.006:
+				break
+			var fr := PackedVector3Array()
+			var bk := PackedVector3Array()
+			for x in [xa, xb]:
+				fr.append(Vector3(x, y, _surf_z(r, x) - o))
+				bk.append(Vector3(x, y, _surf_z(r, x, true) + o))
+			front.append(fr)
+			back.append(bk)
+			last_y = y
+			y += 0.012
+		if front.size() < 1:
+			continue
+		# over the top: a row lifted between the last front and back rows
+		var f_top: PackedVector3Array = front[front.size() - 1]
+		var b_top: PackedVector3Array = back[back.size() - 1]
+		var apex := PackedVector3Array()
+		for i in range(2):
+			apex.append(Vector3(f_top[i].x, last_y + 0.005 + o * 0.3, (f_top[i].z + b_top[i].z) * 0.5))
+		var rows: Array = front.duplicate()
+		rows.append(apex)
+		for i in range(back.size() - 1, -1, -1):
+			rows.append(back[i])
+		mb.add_strip_grid(m, Transform3D.IDENTITY, rows, PackedInt32Array(), 3.0, Color.WHITE, Vector3(0, last_y - 0.15, 0))
 
 
 ## How far the vest stands off the body over the chest (`waist` false) or round the belt line,
