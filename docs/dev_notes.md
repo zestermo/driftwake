@@ -11091,3 +11091,12 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - `Music.TRACKS`: title 56 -> 40 bars, island/island_night 64 -> 48 (village unchanged at 52). The island and
   village tracks are the defaults for every theme that doesn't set its own, not just Brinehollow.
 - Render: `py tools/texture_gen/gen_psx_music.py title island island_night village village_night`.
+
+## 2026-11-06 — 1.30.3: skirts and hakama fitted (body_builder.gd)
+- A kimono's hem panels now tuck inside a hakama, as they already did inside a skirt. Before, they hung on their own
+  chains under it and came out through it as white patches at every stride and jump. In the cloth lab the hakama's
+  segments inside the legs fell 1133 -> 450 (backpedalling 256 -> 111) and the pops 162 -> 135.
+- `_cloth_sectors` (skirts, hakama, tunic/doublet hems, the frock's skirt, draped coats' tails) has HUNG_COLS (7)
+  columns per panel, not 4. Below the waistband, each point is fitted clear of the hips and leg capsules at rest
+  (`_sector_fit` -> `_clear_of(..., on_hips=true)`), the same fitting pass as the hung coats.
+- Cloth lab: look "hakama" (kimono + hakama). Tests: t/player, t/gear, cliptest.

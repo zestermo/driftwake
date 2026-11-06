@@ -1091,8 +1091,8 @@ func _torso() -> void:
 		mb.add_loft(m_top, Transform3D.IDENTITY, tr, P_BODY(), 3.0, Color.WHITE, false, true)
 	# the tunic's skirt hangs in cloth panels that swing with the legs (a rigid
 	# tube let the thighs through), snug under the belt and inside any coat's
-	# tails; with a skirt it's tucked in
-	if top in ["tunic", "kimono"] and str(lk.get("legs", "")) != "skirt":
+	# tails; with a skirt or hakama it's tucked in
+	if top in ["tunic", "kimono"] and not (str(lk.get("legs", "")) in ["skirt", "hakama"]):
 		var secs := []
 		for i in range(6):
 			secs.append([i * 60.0, (i + 1) * 60.0])
@@ -3083,8 +3083,9 @@ const JACKET_SECTORS := [[30.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 
 ## (1.30.3) The fitting pass: `p` (torso space, at rest) moved out from the torso's axis until it lies `margin` clear of
 ## the named colliders as they stand at rest. Hung cloth built inside a capsule (the hips' is rounder than the waist)
 ## was pushed out by the net at once, and the chain levered the push into its hem: a long coat stood 6-10 cm out idle.
-func _clear_of(p: Vector3, names: Array, margin: float = 0.012) -> Vector3:
-	var to_torso := h.torso.transform.affine_inverse()
+func _clear_of(p: Vector3, names: Array, margin: float = 0.012, on_hips: bool = false) -> Vector3:
+	# (on_hips: p in the hips' space, the skirts' and the tails' on _cloth_sectors)
+	var to_torso := Transform3D.IDENTITY if on_hips else h.torso.transform.affine_inverse()
 	for _it in range(3):
 		for nm in names:
 			if not colliders.has(nm):
@@ -3250,14 +3251,17 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 				var o := _sector_row(y, tails["top"], tails["bot"], tails["flare"], tails["top_off"], 0.06) - Vector3.ONE * 0.025
 				s = Vector3(minf(s.x, o.x), minf(s.y, o.y), minf(s.z, o.z))
 			var row := PackedVector3Array()
-			for k in range(4):
-				var a := lerpf(a0, a1, k / 3.0)
-				row.append(Vector3(sin(a) * s.x, y, -cos(a) * (s.y if cos(a) >= 0.0 else s.z)))
+			# (1.30.3: HUNG_COLS across, not 4: a panel's flat chords cut inside the hips' curve; below the waistband
+			# fitted clear of the hips and legs at rest, as the hung coats: built inside a thigh's capsule, the net
+			# pushed the panel out at once and its chain levered the push into the hem)
+			for k in range(HUNG_COLS):
+				var a := lerpf(a0, a1, float(k) / (HUNG_COLS - 1))
+				row.append(_sector_fit(Vector3(sin(a) * s.x, y, -cos(a) * (s.y if cos(a) >= 0.0 else s.z)), r))
 			rows.append(row)
-			chain.append(Vector3(sin(am) * s.x, y, -cos(am) * (s.y if cos(am) >= 0.0 else s.z)))
+			chain.append(_sector_fit(Vector3(sin(am) * s.x, y, -cos(am) * (s.y if cos(am) >= 0.0 else s.z)), r))
 		var bones := sim.add_chain(chain, stiff, 0.06, 1.0, ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"])
 		# (the net's probes out to the panel's edges at the hem: a sector is wider than its chain)
-		var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[3] - chain[rows_n - 1]
+		var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[HUNG_COLS - 1] - chain[rows_n - 1]
 		sim.set_probes(sim.chain_count() - 1, _panel_probes(edge))
 		all_rows.append(rows)
 		all_bones.append(bones)
@@ -3282,6 +3286,13 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 			var hb := bones[rows_n - 1]
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([hb, hb]), 3.0, Color.WHITE, Vector3.ZERO)
 		sim.mb.weight_fn = Callable()
+
+
+## (1.30.3) A _cloth_sectors point (hips space) of row `r`: the waistband row as built, the rest clear of the hips and legs.
+func _sector_fit(p: Vector3, r: int) -> Vector3:
+	if r == 0:
+		return p
+	return _clear_of(p, ["hips", "thigh_l", "thigh_r", "shin_l", "shin_r"], 0.012, true)
 
 
 ## Each [from, to] sector (degrees) in `k` equal narrower ones.
