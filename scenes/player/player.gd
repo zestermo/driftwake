@@ -1369,6 +1369,7 @@ func _physics_process(delta: float) -> void:
 	if not is_local:
 		return
 	fall_top = global_position.y if is_on_floor() else maxf(fall_top, global_position.y)
+	_foley_turn(delta)
 	if fist_armed > 0.0:
 		fist_armed -= delta
 		if fist_armed <= 0.0:
@@ -1717,6 +1718,39 @@ func ground_surface() -> String:
 	return "water" if water_depth() > 0.08 else Footsteps.surface_under(self)
 
 
+## (2026-11-06) Something that swings when you move: a coat, a cape, a cloak or a mantle.
+func wears_cloth() -> bool:
+	if body_model == null:
+		return false
+	var l: Dictionary = body_model.look
+	for k in ["coat", "cape", "cloak", "mantle"]:
+		var v = l.get(k, false)
+		if (v is bool and v) or (v is String and v != "" and v != "none"):
+			return true
+	return false
+
+
+var _foley_yaw := INF
+var _foley_cd := 0.0
+## (tests read it)
+var foley_turns := 0
+
+
+## A sharp turn on the ground swings the coat round: one rustle, at most every 0.45 s.
+func _foley_turn(delta: float) -> void:
+	_foley_cd -= delta
+	if body_model == null:
+		return
+	var yaw := body_model.global_rotation.y
+	if _foley_yaw != INF and is_on_floor() and _foley_cd <= 0.0 and delta > 0.0:
+		var rate := absf(angle_difference(_foley_yaw, yaw)) / delta
+		if rate > 7.0 and wears_cloth():
+			_foley_cd = 0.45
+			foley_turns += 1
+			FX.sfx("cloth_rustle", global_position + Vector3.UP, -6.0, 0.1)
+	_foley_yaw = yaw
+
+
 func _on_footstep(strength: float) -> void:
 	# (a puppet isn't moved by physics here: its owner says if it's grounded)
 	if not (is_on_floor() if is_local else bool(_net_flags & NF_FLOOR)):
@@ -1729,6 +1763,12 @@ func _on_footstep(strength: float) -> void:
 	var bk: String = body_model.beast_kind
 	var tread := {"bear": [4.0, 0.72], "wolf": [-5.0, 1.18]}.get(bk, [0.0, 1.0]) as Array
 	FX.sfx("step_" + surf, global_position, -16.0 + 16.0 * strength - (10.0 if sneak else 0.0) + float(tread[0]), 0.06, float(tread[1]))
+	# (2026-11-06) foley on a run: a coat or cape swinging every other stride, the gear clinking on a sprint
+	if not sneak and strength > 0.45 and bk == "":
+		if _step_count % 2 == 0 and wears_cloth():
+			FX.sfx("cloth_rustle", global_position + Vector3.UP, -10.0 + 8.0 * strength, 0.1)
+		elif _step_count % 2 == 1 and strength > 0.7:
+			FX.sfx("gear_jingle", global_position + Vector3.UP, -12.0 + 8.0 * strength, 0.1)
 	if bk == "bear" and not sneak and _step_count % 2 == 0:
 		FX.sfx("thud", global_position, -14.0 + 6.0 * strength, 0.05, 0.6)
 		FX.dust(global_position + Vector3(0, 0.05, 0), 3, 0.45)

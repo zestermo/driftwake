@@ -2099,6 +2099,38 @@ def _step_contact(surface, rng, n, t, k, s):
     return slosh + plunge + drips
 
 
+def cloth_rustle_takes(count=4):
+    """(2026-11-06) A coat or cape swinging: a soft swish of heavy cloth with the folds flapping in it
+    (a fast flutter), quick in and a slower fall."""
+    for k in range(count):
+        rng = np.random.default_rng(1700 + k)
+        L = rng.uniform(0.22, 0.34)
+        n = int(SR * L)
+        t = np.arange(n) / SR
+        env = np.minimum(1, t / 0.035) * np.exp(-np.maximum(t - 0.035, 0) * rng.uniform(9, 13))
+        swish = _noise(n, rng, 300, 2200) * (0.4 + 0.6 * _churn(n, rng, rng.uniform(40, 70)))
+        flap = _noise(n, rng, 120, 600) * _churn(n, rng, 18) * 0.6
+        _write_shot(f"cloth_rustle_{k + 1}", (swish + flap) * env, -24.0, fade=0.05)
+
+
+def gear_jingle_takes(count=3):
+    """(2026-11-06) Gear on the move: a buckle and a ring clinking against each other, two or three
+    small knocks a moment apart, a creak of leather under them."""
+    for k in range(count):
+        rng = np.random.default_rng(1710 + k)
+        n = int(SR * 0.3)
+        t = np.arange(n) / SR
+        out = np.zeros(n)
+        for j in range(int(rng.integers(2, 4))):
+            at = j * rng.uniform(0.03, 0.06)
+            tt = _at(t, at)
+            clink = _modes(tt, rng, [(rng.uniform(1700, 2300), 1.0, 60), (rng.uniform(2900, 3500), 0.4, 90),
+                                     (rng.uniform(900, 1200), 0.5, 45)]) * (t >= at)
+            out += clink * rng.uniform(0.5, 1.0)
+        creak = _noise(n, rng, 200, 900) * _churn(n, rng, 30) * np.exp(-t * 12) * 0.4
+        _write_shot(f"gear_jingle_{k + 1}", _filt(out + creak, lambda f: _lp(f, 3800, 2)), -26.0, fade=0.05)
+
+
 def step_takes(surface):
     """Footsteps on a surface: heel then the roll onto the toe, four takes."""
     for k in range(STEP_TAKES):
@@ -2959,6 +2991,8 @@ SOUNDS = [
     ("bite", bite_takes),
     ("slam", slam_takes),
     ("clash", clash_takes),
+    ("cloth_rustle", cloth_rustle_takes),
+    ("gear_jingle", gear_jingle_takes),
     ("step", lambda: [step_takes(s) for s in STEP_SURFACES]),
     ("step_snow", lambda: step_takes("snow")),
     ("step_ice", lambda: step_takes("ice")),

@@ -17,7 +17,7 @@ const SOUNDS := [
 	"zombie_moan", "grave_burst", "bog_bark", "stalker_shriek", "moth_flutter", "spore_puff", "owl_screech",
 	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
 	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
-	"laugh", "cheer", "hup", "heel_click", "slap",
+	"laugh", "cheer", "hup", "heel_click", "slap", "cloth_rustle", "gear_jingle",
 	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash", "claw", "bite", "slam",
 	"fin_sting", "jelly_zap",
 	"fish_cast", "fish_plop", "fish_bite", "fish_reel", "fish_catch",
