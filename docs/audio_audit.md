@@ -292,33 +292,30 @@ The Music bus has a sidechain compressor keyed from SFX (threshold -12 dB, 2.5:1
 
 - Snow and ice footsteps: made 10-15 (step_snow / step_ice, 4 takes each, -21 / -19.5 LU), not wired yet (the snow
   island agent adds them to FX.SOUNDS and Footsteps). Still open: mud, shallow-reef rock vs sand underwater.
-- Enemy footsteps (grunts emit Humanoid's footstep signal; nobody plays it).
-  Cheap to add from pirate_grunt, but it's another agent's code and many grunts
-  means many sounds: worth a distance cap.
-- Cloth and gear foley (coat rustle on turns, weapon draw/sheathe, armour clink).
+- Enemy footsteps: done 11-06. Pirates' steps through `Footsteps.npc_step`: within 22 m of the camera, on what's
+  underfoot, -19 + 14 x strength dB, at most 3 in any 15 ticks across the world (t/fauna/grunt_steps). Beasts and
+  townsfolk are still silent.
+- Cloth and gear foley: done 11-06. `cloth_rustle` (4, -24 LU) every other running stride when a coat, cape, cloak
+  or mantle is worn (`Player.wears_cloth`), and once on a sharp turn (yaw > 7 rad/s, 0.45 s apart; local only);
+  `gear_jingle` (3, -26 LU) on sprint strides (t/player/coat_foley). Draw/sheathe has been done since v1.14.
 - Weapon-specific impacts: done in v1.13 (below).
 - Menus: done in v1.13 (below).
-- Monsters' impacts: claws, teeth, slams and blasts still play the plain "hit" (HitData.impact "").
-  A claw rake and a bite would be the next set.
+- Monsters' impacts: done 11-06. `claw` (4 tearing scrapes, -14.5 LU), `bite` (a teeth clack, crunch and tug,
+  -14.5), `slam` (a whump with mid body, -14 LU, 33% under 200 Hz). JungleBeast picks one from its move's name
+  (`CombatManager.beast_impact`: bite/maw/fang... claw/swipe/rake... slam/stomp/tail/charge...; spits and gazes stay
+  "hit"); creatures by `Creature._impact_kind` (bite by default; boars, deer, walrus, rollers, treants and the shagback
+  slam; crabs, scorpions, bears, owl beasts, stalkers, monkeys and zombies claw) (t/combat/beast_impact).
 - Underwater: done 10-14 (low-pass on SFX/Ambience and an underwater bed).
-- Reverb zones: caves, the cabin, the fort's halls play dry.
-- Interior ambience (tavern murmur, the cabin's creak), jungle birds/insects on
-  chain islands, night insects, rain on canvas/deck under shelter.
-- Distance cues: cannon fire from far ships uses the same file at a distance;
-  a far "boom" without the crack would sound right past 60 m (FX.sfx skips it).
-
-## Proposals for Zach (need a decision)
-
-1. **Turn the picked samples into the game's tracks**: done in v1.12 for the sea
-   (corsair_waters) and the town (harbour, harbour_calm at night). Still open: a
-   corsair-style combat track and storm as the boss track.
-2. **Longer musical forms**: done in v1.12 for title, sea, island and village (2:19-2:34).
-3. **Layered combat music**: render each track's stems (drums, strings, brass)
-   and bring layers in by intensity: exploration -> enemies near -> fighting ->
-   boss, all in sync. Cleaner transitions than crossfading tracks.
-4. **Day and night variants**: done in v1.12 (sea, island, village).
-5. **Ducking**: done in v1.12 (sidechain compressor on Music keyed from SFX); tune
-   its threshold by ear if it pumps in long fights.
-6. **Island identity**: a short motif per chain-island biome (jungle drums,
-   ruins choir) layered over the island theme.
-7. **Weapon-specific impact sets** and **UI sound set**: done in v1.13 (above).
+- Reverb by place: done 11-06. Ambience's room probe casts one ray per mix tick from the camera, cycling 13
+  directions (up, 8 round, 4 high diagonals). A roof (the ray up, or 3 of the diagonals) plus walls within 18 m
+  set `room` ((walls/8)^1.5) and `room_size` (the mean distance hit). They drive an AudioEffectReverb "room" on the
+  SFX bus: wet 0.3 x room, room_size size/18, darker and longer as it grows; it's off out in the open
+  (t/world/room_reverb).
+- Ambience ashore: done 11-06. `grassland_loop` (57 s: wind through tall grass, skylark, meadow birds, grasshoppers,
+  a bee) is the default style's bed (Brinehollow and any island without its own). Night beds `grassland_night`
+  (crickets, frogs, owl), `jungle_night` and `forest_night` (also the fog theme's) crossfade in by Weather.night,
+  equal power. Interior beds (the cabin's creak) are still open.
+- Rain under shelter: done 11-06. `rain_roof_loop` (23 s: drops drumming on boards and canvas, eave drips, the rain
+  outside muffled) plays at -7 dB x rain x Weather's shelter ray (t/world/rain_roof).
+- Distance cues: done 11-06. Past 45 m (`Cannon.FAR_GUN`) a gun also plays `cannon_far` (3 takes, -17 LU: a dull
+  boom and two echoes off the water, no crack) through FX.far_sfx with a 700 m reach.
