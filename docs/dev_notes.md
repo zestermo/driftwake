@@ -10959,3 +10959,24 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   checked at 1920x1080 (invshot_real now wears the pair, a bandolier and an earring). Tags SHLD, STRAP, TRNK.
 - **Tests:** t/gear/slots (new); stale counts fixed in t/gear/mog_look, t/ui/mog_slots (12 mog slots; legs moved
   left), t/gear/new_pieces (the Shark's Tooth is a trinket). The whole t/gear group passes.
+
+## 2026-11-05: 1.30.3 piece 2: the connected cloth sheet (prototype, off in the game)
+- **What:** `ClothSheet` (scripts/npc/cloth_sheet.gd): a grid of points (rows x columns) with links along, across,
+  diagonally and two apart (position-based dynamics, 4 substeps in fixed 60 Hz steps, drawn blended between the last
+  two like SpringChains "n"), the top row pinned to the hips, tethers to each column's top, the legs' and hips'
+  capsules kept out of points and edges, a pull back to the cut shape (rest_k = the panels' stiffness x the weight's),
+  inertia 0.4 (the share of the body's motion it feels). Each point is a bone; each vertex follows its point and turns
+  with the sheet there.
+- **Where:** BodyBuilder.cloth_lattice (static, off) makes `_cloth_sectors` build `_cloth_lattice`: three columns a
+  sector, shared where sectors meet (sewn), a ring when they go all the way round (skirt, hakama, frock), twice the
+  rows; long coats pass `vent` 180 (the back split from halfway down). Humanoid._cloth steps them beside _sims.
+  Toggles: the cloth stage's L, clothlab's env CL_LATTICE (clothlab also counts sheet points in the capsules, the hem's
+  jitter on the drawn bones, and "pops": a hem point moving > 5 cm more than the frame before, hair aside).
+- **Numbers** (clothlab, 144 fps, net on, between weight; chains / sheet): pops per hem point skirt 9.5 / 4.5, coat
+  11.5 / 5.1, duster 13 / 5.2; skirt hem jitter mean ~2.8 / 2.6 mm, worst 253 / 136 mm. Contacts with the legs: fewer
+  per point (skirt ~10 per point vs 24 per chain segment) but more frames with one (three times the hem points).
+- **Gotchas:** an edge touching a leg beside its pinned end divided the push by ~0 and shot the free point metres
+  (a spike): the share is floored. A first sheet with rest_k 0.02 (10x below the chains) collapsed into the hips.
+  Measured on the 60 Hz points against a body moving every frame, everything looked like a pop: measure what's drawn.
+- **Cost (GDScript):** 3-4 ms a 60 Hz step a sheet (skirt 126 points, coats 98). Lab only; the C++ port follows
+  Zach's OK on the feel. No hem trim yet (the captain's coat's gold hem).

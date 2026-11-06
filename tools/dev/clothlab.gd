@@ -68,6 +68,9 @@ func _initialize() -> void:
 			runs.append([lk, net])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	TK.seed_of(self)
+	if OS.get_environment("CL_LATTICE") != "":
+		BodyBuilder.cloth_lattice = true
+		print("CLOTH LATTICE on")
 	if OS.get_environment("CL_FEEL") != "":
 		BodyBuilder.cloth_feel = int(OS.get_environment("CL_FEEL"))
 		print("CLOTH FEEL %s" % BodyBuilder.CLOTH_FEELS[BodyBuilder.cloth_feel][0])
@@ -191,6 +194,7 @@ func _event(e: String) -> void:
 				var jv: Array = rec["jit"][k]
 				jl.append("%s mean %.2f mm, worst %.1f mm" % [k, jv[0] / maxf(1.0, jv[1]) * 1000.0, jv[2] * 1000.0])
 			report.append("      jitter (chain tips, body space, per frame): " + ", ".join(jl))
+			report.append("      cloth pops (a hem point jumping > 5 cm in a frame, hair aside): %d" % int(rec.get("pops", 0)))
 			_next()
 
 
@@ -255,6 +259,8 @@ func _measure() -> void:
 						var sk_name: String = s.get_parent().name
 						var jv: Array = rec["jit"].get(sk_name, [0.0, 0, 0.0])
 						rec["jit"][sk_name] = [jv[0] + acc, jv[1] + 1, maxf(jv[2], acc)]
+						if acc > 0.05 and sk_name != "Head":
+							rec["pops"] = int(rec.get("pops", 0)) + 1
 						hs = [hs[1], tip]
 					else:
 						hs.append(tip)
@@ -270,6 +276,36 @@ func _measure() -> void:
 						var bk := "%s>%s" % [s.get_parent().name, cap[3]]
 						rec["by"][bk] = int(rec["by"].get(bk, 0)) + 1
 						rec["pen_worst"] = maxf(rec["pen_worst"], depth)
+	# (1.30.3) the connected sheets: their points (below the pinned top row) inside the capsules, and their hem's jitter
+	for sh in hm._cloth:
+		# (what's drawn: the bones, in the sheet's space, and those in the world)
+		var sg: Transform3D = (sh.skel as Node3D).get_global_transform_interpolated()
+		for i in range(sh.nc, sh.x.size()):
+			var tip: Vector3 = sh.skel.get_bone_pose(i).origin
+			var wp: Vector3 = sg * tip
+			# (the row just under the sewn-on top is where the cloth is cut on the body, as a chain's root segment)
+			for cap in (caps if i >= 2 * sh.nc else []):
+				var ab: Vector3 = cap[1] - cap[0]
+				var t := clampf((wp - cap[0]).dot(ab) / ab.length_squared(), 0.0, 1.0)
+				var depth: float = float(cap[2]) - wp.distance_to(cap[0] + ab * t)
+				if depth > 0.0:
+					n += 1
+					var bk := "Sheet>%s" % cap[3]
+					rec["by"][bk] = int(rec["by"].get(bk, 0)) + 1
+					rec["pen_worst"] = maxf(rec["pen_worst"], depth)
+			if i >= sh.x.size() - sh.nc:
+				var hk := "sheet%d/%d" % [sh.get_instance_id(), i]
+				var hs: Array = rec["hist"].get(hk, [])
+				if hs.size() == 2:
+					var acc: float = (tip - 2.0 * (hs[1] as Vector3) + (hs[0] as Vector3)).length()
+					var jv: Array = rec["jit"].get("Sheet", [0.0, 0, 0.0])
+					rec["jit"]["Sheet"] = [jv[0] + acc, jv[1] + 1, maxf(jv[2], acc)]
+					if acc > 0.05:
+						rec["pops"] = int(rec.get("pops", 0)) + 1
+					hs = [hs[1], tip]
+				else:
+					hs.append(tip)
+				rec["hist"][hk] = hs
 	rec["frames"] += 1
 	if n > 0:
 		rec["pen_frames"] += 1

@@ -316,6 +316,8 @@ var _base: Dictionary = {}
 var hip_y: float = PIVOT_Y
 ## Hair / cloth physics (SpringChains) owned by this body.
 var _sims: Array = []
+## (1.30.3) Connected cloth sheets (ClothSheet, BodyBuilder.cloth_lattice), stepped beside the chains.
+var _cloth: Array = []
 var _last_step_sign: float = 1.0
 # ---- Procedural head / neck "look" layer (on top of the posed head) ----
 var _look := Vector3.ZERO
@@ -380,6 +382,7 @@ func _build() -> void:
 		remove_child(c)
 		c.queue_free()
 	_sims.clear()
+	_cloth.clear()
 	var s: float = float(look.get("height", 1.0))
 	scale = Vector3(s, s, s)
 	if str(look.get("beast", "")) == "ape":
@@ -739,7 +742,7 @@ const IK_R_LOD := 25.0
 
 
 func _update_physics(delta: float) -> void:
-	if _sims.is_empty():
+	if _sims.is_empty() and _cloth.is_empty():
 		return
 	# Physics only near the camera; far characters keep their last pose and
 	# snap to rest (once) when they leave range.
@@ -757,6 +760,11 @@ func _update_physics(delta: float) -> void:
 			(s as SpringChains).simulate(delta)
 		else:
 			(s as SpringChains).reset()
+	for c in _cloth:
+		if near:
+			c.simulate(delta)
+		else:
+			c.reset()
 
 
 # ==========================================================================
