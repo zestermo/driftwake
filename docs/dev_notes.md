@@ -11100,3 +11100,17 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   columns per panel, not 4. Below the waistband, each point is fitted clear of the hips and leg capsules at rest
   (`_sector_fit` -> `_clear_of(..., on_hips=true)`), the same fitting pass as the hung coats.
 - Cloth lab: look "hakama" (kimono + hakama). Tests: t/player, t/gear, cliptest.
+
+## 2026-11-06 — 1.30.3: the split hakama (body_builder.gd `_hakama_split`)
+- Zach OK'd wide split trousers over the one-piece skirt. The hakama is now a rigid yoke on the hips (waist to y -0.12)
+  plus a leg each: 5 sewn panels (HUNG_COLS columns) on that thigh's own SpringChains, from inside the yoke (thigh y
+  +0.06) to -0.65 Ls. They're open up the inside of the leg (140..400 deg on the left, mirrored on the right): the
+  thighs' capsules overlap there, so no cloth could sit clear of both. The inner half sits close round the thigh
+  (thigh_r + 1.2 cm), and the inner edges stop 6 mm short of the middle, so the legs meet down the front and back
+  without crossing.
+- Leg chains: stiffness 0.04 (0.12-0.22 held a raised thigh's cloth out along it like a board: the pull back to rest is
+  in the thigh's frame, gravity in the world's). No "hips" hit, and no hard net for the leg sims (`_nets`): their tops
+  are inside the hips capsule, and pushed off it the chains levered the cloth out. CLOTH_FEEL_SKIRT applies to them too.
+- Under a long coat, and with the lattice prototype, it's still the old one-piece panels (kept inside the coat's tails).
+- Cloth lab "hakama": segments in the body 450 -> ~900 (most are a leg's panel's chain line near the other shin while
+  the panel's cloth covers it; the frames look clean), pops 135 -> ~240 (lighter cloth). Test t/gear/hakama_split.

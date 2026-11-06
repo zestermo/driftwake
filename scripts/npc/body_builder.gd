@@ -315,7 +315,7 @@ func _nets() -> void:
 			# (a draped coat's empty sleeves and tails on the torso: cape-like, unless the stage picked "as built")
 			var fi := CLOTH_FEEL_DRAPE if key == h.torso and _draped() and cloth_feel != 0 else cloth_feel
 			# (a skirt or hakama with no long coat over it: "heavier", Zach's pick for the skirt)
-			if key == h.hips and fi == 3 and str(lk.get("legs", "")) in ["skirt", "hakama"] and not _long_coat():
+			if key in [h.hips, h.leg_l, h.leg_r] and fi == 3 and str(lk.get("legs", "")) in ["skirt", "hakama"] and not _long_coat():
 				fi = CLOTH_FEEL_SKIRT
 			var feel: Array = CLOTH_FEELS[fi]
 			if feel[1] != null:
@@ -325,7 +325,10 @@ func _nets() -> void:
 					c["k"] = float(c["k"]) * float(feel[2])
 			# (a draped coat's: eased off the arms too)
 			var soft: Array = SpringChains.NET_LEGS + (DRAPE_HIT.slice(0, 4) if key == h.torso and _draped() else [])
-			s.use_net(soft, ["hips"], 0.02, 1.2, 0.9)
+			# (a split hakama's legs hang from the thighs, their tops inside the hips: pushed off them, the chains levered it
+			# out)
+			var on_leg: bool = key in [h.leg_l, h.leg_r]
+			s.use_net(soft, [] if on_leg else ["hips"], 0.02, 1.2, 0.9)
 			var bind := {}
 			for k in soft:
 				bind[k] = _unposed(key).affine_inverse() * _unposed(colliders[k]["node"])
@@ -3066,10 +3069,80 @@ func _skirt(m: Material) -> void:
 
 ## Hakama: wide pleated trousers hanging in panels from the waist to mid-shin.
 func _hakama(m: Material) -> void:
+	# (1.30.3: split legs; under a long coat the old one-piece panels, kept inside its tails)
+	if not _long_coat() and not cloth_lattice:
+		_hakama_split(m)
+		return
 	var secs := []
 	for i in range(6):
 		secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
 	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.65 * Ls, [0.02, 0.035, 0.055, 0.08, 0.1], 0.22, 0.035, 0.035, _coat_tails())
+
+
+## (1.30.3) The split hakama: wide trousers, not a long skirt (a stride showed one tube round both legs). A rigid yoke
+## round the hips from the waist to below the crotch, and under it a leg each: sewn panels on that thigh's own chains,
+## wide round it from inside the yoke to mid-shin, open up the inside of the leg (the thighs' capsules overlap there:
+## no cloth could sit clear of both), the inner edges stopping short of the middle so the two legs meet down the front
+## and back without crossing. A stride carries each leg's cloth with its thigh; the shins and the other leg push it.
+func _hakama_split(m: Material) -> void:
+	var lg := float(st["leg_gap"])
+	var t0 := _sector_r(0, [0.0], 0.035, 0.0)
+	var y_yoke := -0.12
+	var bot := Vector3(_hips_hw() + 0.075, _hips_hd() + 0.045, _seat_back() + 0.04)
+	var ymb := MeshBuilder.new()
+	var ring := func(y: float, r: Vector3) -> Array:
+		return [y, r.x, (r.y + r.z) * 0.5, (r.z - r.y) * 0.5]
+	ymb.add_loft(m, Transform3D.IDENTITY, [ring.call(0.07, t0), ring.call(-0.03, t0.lerp(bot, 0.6)), ring.call(y_yoke, bot)],
+		P_BODY(), 3.0, Color.WHITE, false, false, true, false, true)
+	_mesh(h.hips, ymb)
+	var thigh_r: float = colliders["thigh_l"]["r"]
+	var y_top := 0.06
+	var y_hem := -0.65 * Ls
+	var rows_n := 5
+	for side in [-1, 1]:
+		var leg: Node3D = h.leg_l if side < 0 else h.leg_r
+		var sim := _sim(leg)
+		# the inside of the leg is +x on the left leg, -x on the right: each covers the rest of the way round
+		var secs: Array = [[140.0, 192.0], [192.0, 244.0], [244.0, 296.0], [296.0, 348.0], [348.0, 400.0]]
+		if side > 0:
+			secs = [[-40.0, 12.0], [12.0, 64.0], [64.0, 116.0], [116.0, 168.0], [168.0, 220.0]]
+		var x_in := lg - 0.006
+		var at := func(a: float, r: int) -> Vector3:
+			var t := float(r) / (rows_n - 1)
+			var y := lerpf(y_top, y_hem, t)
+			var rad := thigh_r + lerpf(0.015, 0.07, t)
+			var x := sin(a) * rad
+			# (the inner half close round the thigh, the width out to the side, front and back: as wide all round, a
+			# leg's cloth sat in the other shin whenever the feet came together; the inner edges short of the middle)
+			if x * side < 0.0:
+				x = sin(a) * (thigh_r + 0.012)
+			x = minf(x, x_in) if side < 0 else maxf(x, -x_in)
+			return Vector3(x, y, -cos(a) * rad)
+		var all_rows: Array = []
+		var all_bones: Array = []
+		for sec in secs:
+			var a0 := deg_to_rad(float(sec[0]))
+			var a1 := deg_to_rad(float(sec[1]))
+			var rows: Array = []
+			var chain := PackedVector3Array()
+			for r in range(rows_n):
+				var row := PackedVector3Array()
+				for k in range(HUNG_COLS):
+					row.append(at.call(lerpf(a0, a1, float(k) / (HUNG_COLS - 1)), r))
+				rows.append(row)
+				chain.append(at.call((a0 + a1) * 0.5, r))
+			var bones := sim.add_chain(chain, 0.04, 0.06, 1.0, ["thigh_l", "thigh_r", "shin_l", "shin_r"])
+			var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[HUNG_COLS - 1] - chain[rows_n - 1]
+			sim.set_probes(sim.chain_count() - 1, _panel_probes(edge))
+			all_rows.append(rows)
+			all_bones.append(bones)
+		if cloth_sewn:
+			_mark_seams(sim, secs, all_rows, rows_n)
+		for si in range(secs.size()):
+			if cloth_sewn:
+				sim.mb.weight_fn = _seam_weights(secs, si, all_rows[si], all_bones, rows_n, -1.0)
+			sim.mb.add_strip_grid(m, Transform3D.IDENTITY, all_rows[si], all_bones[si], 3.0, Color.WHITE, Vector3.ZERO)
+			sim.mb.weight_fn = Callable()
 
 
 ## (1.30.3) Where the jacket stops being rigid: the shell over the shoulders and the top of the chest ends here (in tu).
