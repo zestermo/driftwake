@@ -24,6 +24,9 @@ const ENERGY := 1.0
 const RANGE := 9.0
 
 var lit := false
+## How far up from straight down it may swing, and the least it leans out (Humanoid.wear_lantern: less under a drape).
+var swing_max := SWING_MAX
+var lean := LEAN
 var _swing: Node3D
 var _mesh: MeshInstance3D
 var _light: OmniLight3D
@@ -113,7 +116,7 @@ func _process(delta: float) -> void:
 	var moved := g.origin - _hook
 	_hook = g.origin
 	if _x == Vector3.INF or moved.length() > 1.5 or delta <= 0.0:
-		_x = (g.basis * Vector3(LEAN, -sqrt(1.0 - LEAN * LEAN), 0)).normalized() * arm
+		_x = (g.basis * Vector3(lean, -sqrt(1.0 - lean * lean), 0)).normalized() * arm
 		_px = _x
 		_hv = Vector3.ZERO
 		_kick = Vector3.ZERO
@@ -136,9 +139,9 @@ func _process(delta: float) -> void:
 ## On the strap's length from the hook, never in against the leg, never up over the belt.
 func _limit(b: Basis, r: Vector3, arm: float) -> Vector3:
 	var d := (b.inverse() * r).normalized()
-	d.x = maxf(d.x, LEAN)
+	d.x = maxf(d.x, lean)
 	d = d.normalized()
-	if d.angle_to(Vector3.DOWN) > SWING_MAX:
+	if d.angle_to(Vector3.DOWN) > swing_max:
 		var axis := Vector3.DOWN.cross(d)
-		d = Vector3.DOWN.rotated(axis.normalized(), SWING_MAX) if axis.length_squared() > 1e-8 else Vector3.DOWN
+		d = Vector3.DOWN.rotated(axis.normalized(), swing_max) if axis.length_squared() > 1e-8 else Vector3.DOWN
 	return (b * d).normalized() * arm

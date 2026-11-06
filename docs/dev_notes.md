@@ -11114,3 +11114,18 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - Under a long coat, and with the lattice prototype, it's still the old one-piece panels (kept inside the coat's tails).
 - Cloth lab "hakama": segments in the body 450 -> ~900 (most are a leg's panel's chain line near the other shin while
   the panel's cloth covers it; the frames look clean), pops 135 -> ~240 (lighter cloth). Test t/gear/hakama_split.
+
+## 2026-11-06 — 1.30.3: the draped coat's leftovers (body_builder.gd, belt_lantern.gd, humanoid.gd)
+- **The "sash knot through the drape's back" was the sash's back.** Under a draped coat the belt/sash was still a
+  closed band (only a coat worn the usual way made it a front arc). Its back sits ~1 cm under the drape, and leaning
+  back (backpedalling) PSX vertex snapping pushed it through as a red patch. Colliders couldn't help: the cloth wasn't
+  in it. `_belts`: under a drape the band is open at the back (P_BODY's outline from -120 to 120 deg, ray-cast).
+  A "waist" capsule round the belt for draped coats (DRAPE_HIT, hard on the torso's net) also took the drape's
+  backpedal segments in the body from 301 to 130.
+- **The belt lantern came through coats.** It's hooked just off the waist, but hanging cloth over the hips widens ~7 cm
+  below it. `_lantern_spot` now hooks it 7 cm lower and just outside the widest built cloth vertex within ~21 deg
+  beside it, from y-0.26 to y+0.03: hung coats, coat tails, skirts and the hakama's legs (leg sims mapped to torso
+  space). Under a draped coat that floated it 15 cm off the hip, so there it stays on the belt with a short swing
+  (`Humanoid.lantern_swing` 0.3 rad, lean 0.12 -> BeltLantern `swing_max`/`lean`; swinging out up to 63 deg it came
+  through the drape).
+- Cloth lab: drape, CL_NEAR (+ CL_BACK, CL_FRONT).

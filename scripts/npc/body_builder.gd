@@ -328,7 +328,7 @@ func _nets() -> void:
 			# (a split hakama's legs hang from the thighs, their tops inside the hips: pushed off them, the chains levered it
 			# out)
 			var on_leg: bool = key in [h.leg_l, h.leg_r]
-			s.use_net(soft, [] if on_leg else ["hips"], 0.02, 1.2, 0.9)
+			s.use_net(soft, [] if on_leg else (["hips", "waist"] if key == h.torso and _draped() else ["hips"]), 0.02, 1.2, 0.9)
 			var bind := {}
 			for k in soft:
 				bind[k] = _unposed(key).affine_inverse() * _unposed(colliders[k]["node"])
@@ -572,6 +572,15 @@ func _colliders() -> void:
 		for s in ["l", "r"]:
 			colliders["arm_" + s] = {"node": h.get("arm_" + s), "a": Vector3.ZERO, "b": Vector3(0, -0.3 * A, 0), "r": 0.075 * limb + 0.03}
 			colliders["fore_" + s] = {"node": h.get("fore_" + s), "a": Vector3.ZERO, "b": Vector3(0, -0.3 * A, 0), "r": 0.06 * limb + 0.025}
+	# (1.30.3) a draped coat's back at the waist, round the belt or sash: the hips' round capsule stands inside the band
+	# at the back, and leaning back (backpedalling) the drape settled on it with the sash's back through it
+	if _draped():
+		var tr0 := _torso_rings()
+		var rb := 0.0
+		for i in range(6):
+			rb = maxf(rb, _surf_z(_at(tr0, lerpf(0.0, 0.1, i / 5.0)), 0.0, true))
+		rb += _belt_off(0.02) + 0.012
+		colliders["waist"] = {"node": h.torso, "a": Vector3(0, -0.01, 0), "b": Vector3(0, 0.11, 0), "r": rb}
 	# (1.30.3) the jacket's back: a capsule set forward so only its back face lies on the back (a round one on the spine
 	# would push the jacket out into a hump); a backpedal or a lean back swung the panel in through the shirt
 	if _hung():
@@ -2883,7 +2892,7 @@ func _haori(mb: MeshBuilder, tr: Array) -> void:
 ## arms swung through the cloth at a walk, a sprint and every swing).
 const DRAPE_SECTORS := [[112.0, 146.0], [146.0, 180.0], [180.0, 214.0], [214.0, 248.0]]
 ## What pushes a draped coat's panels and sleeves about.
-const DRAPE_HIT := ["arm_l", "arm_r", "fore_l", "fore_r", "thigh_l", "thigh_r", "hips"]
+const DRAPE_HIT := ["arm_l", "arm_r", "fore_l", "fore_r", "thigh_l", "thigh_r", "hips", "waist"]
 
 
 ## (1.29) Any coat worn over the shoulders: a yoke over the shoulder tops under the collar, open down the front to
@@ -3690,7 +3699,29 @@ func _belts(mb: MeshBuilder, tr: Array, prof: PackedVector2Array) -> void:
 	if coat == "frock" and not _draped():
 		return   # buttoned closed over it
 	var coated := coat != "none" and not _draped()
-	var closed := not coated
+	var closed := not coated and not _draped()
+	if _draped():
+		# (1.30.3) a draped coat hangs over the back only: the band open there, round the sides and front on the body's
+		# own outline (closed, its back a centimetre under the drape came through it by vertex snapping, backpedalling)
+		var body := P_BODY()
+		prof = PackedVector2Array()
+		for i in range(15):
+			var a := deg_to_rad(lerpf(-120.0, 120.0, i / 14.0))
+			var d := Vector2(sin(a), -cos(a))
+			var best := 1.0
+			for j in range(body.size()):
+				var p0 := body[j]
+				var p1 := body[(j + 1) % body.size()]
+				# the ray from the middle along d against the edge p0-p1
+				var e := p1 - p0
+				var den := d.x * e.y - d.y * e.x
+				if absf(den) < 1e-6:
+					continue
+				var t := (p0.x * e.y - p0.y * e.x) / den
+				var u := (p0.x * d.y - p0.y * d.x) / den
+				if t > 0.0 and u >= 0.0 and u <= 1.0:
+					best = t
+			prof.append(d * best)
 	if coated:
 		# the front of the body's own outline (a circle's arc cut inside it at the sides)
 		var body := P_BODY()
@@ -3831,11 +3862,47 @@ func _cape(tr: Array, coated: bool, cloak: bool) -> void:
 ## of a cape behind and the arm's swing), just off the belt or the coat over it.
 func _lantern_spot(tr: Array, coated: bool) -> void:
 	var y := ty(0.05) - 0.01
+	h.lantern_spot = _lantern_belt(tr, coated)
+	# (1.30.3) a draped coat hangs wide from the shoulders over it, as over the belt: the lantern stays on the belt, on a
+	# short swing (Humanoid.lantern_swing: swinging out up to 63 degrees it came through the drape; hooked outside the
+	# drape it floated 15 cm off the hip)
+	h.lantern_swing = 0.3 if _draped() else -1.0
+	if _draped():
+		return
+	# (1.30.3) hanging cloth over the hips (a coat's body or tails, a skirt, the hakama's legs) widens ~7 cm below the
+	# waist: the lantern, hooked off the waist, hung inside it and showed through. Hooked a little lower, just outside
+	# the widest of that cloth (as built) beside and below it.
+	var dir := Vector3(h.lantern_spot.x, 0, h.lantern_spot.z).normalized()
+	var y2 := y - 0.07
+	var most := -INF
+	var to_torso := _unposed(h.torso).affine_inverse()
+	for anchor in _sims:
+		if not (anchor is Node3D) or anchor == h.head:
+			continue
+		var xf := to_torso * _unposed(anchor)
+		for surf in (_sims[anchor] as SpringChains).mb._surfaces.values():
+			for v in (surf["v"] as PackedVector3Array):
+				var p: Vector3 = xf * v
+				if p.y > y2 + 0.03 or p.y < y2 - 0.26:
+					continue
+				var hz := Vector3(p.x, 0, p.z)
+				if hz.length() < 0.001 or hz.normalized().dot(dir) < 0.93:
+					continue
+				most = maxf(most, hz.dot(dir))
+	if most > -INF:
+		var rad := maxf(Vector2(h.lantern_spot.x, h.lantern_spot.z).length(), most + 0.015)
+		h.lantern_spot = Vector3(dir.x * rad, y2, dir.z * rad)
+
+
+## The belt lantern's hook on the belt: the right hip's side a little round toward the back, just off the belt (or the
+## coat's shell over it).
+func _lantern_belt(tr: Array, coated: bool) -> Vector3:
+	var y := ty(0.05) - 0.01
 	var r := _at(tr, y)
 	var a := 0.4
 	var x := float(r[1]) * cos(a)
 	var n := Vector3(cos(a) / float(r[1]), 0, sin(a) / float(r[2])).normalized()
-	h.lantern_spot = Vector3(x, y, _surf_z(r, x, true)) + n * ((_coat_off() if coated else _belt_off(0.02)) + 0.014)
+	return Vector3(x, y, _surf_z(r, x, true)) + n * ((_coat_off() if coated else _belt_off(0.02)) + 0.014)
 
 
 ## A cape's half width at the collar and at the hem (x the shoulders'): a trapezoid, flaring straight out.

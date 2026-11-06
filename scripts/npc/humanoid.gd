@@ -441,6 +441,8 @@ var bag_open := false
 var lantern: BeltLantern
 ## Where it hooks on, in the torso's space (BodyBuilder: the right hip's side, off the belt or the coat).
 var lantern_spot := Vector3.ZERO
+## (1.30.3) How far (rad off straight down) it may swing, -1 its own SWING_MAX (BodyBuilder: short under a draped coat).
+var lantern_swing := -1.0
 
 
 ## Hang the belt lantern on the right hip (clear of the main sheath on the left), keeping whether it was lit.
@@ -449,6 +451,9 @@ func wear_lantern() -> void:
 	lantern = BeltLantern.new()
 	torso.add_child(lantern)
 	lantern.position = lantern_spot
+	if lantern_swing >= 0.0:
+		lantern.swing_max = lantern_swing
+		lantern.lean = 0.12
 	lantern.set_lit(was_lit)
 
 
