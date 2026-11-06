@@ -4,7 +4,9 @@ extends Node
 ##   title   - the title screen (the game's theme)
 ##   village - in a town's streets: Brinehollow's square and harbour front, a chain island's village
 ##   island  - on foot in the wilds (on a chain island: its KitStyle "music")
-##   sea     - at the helm / a cannon, aboard under way, or out on the open sea
+##   sea     - at the helm / a cannon, aboard under way, or out on the open sea: one of SEA_DAY
+##             (by night SEA_NIGHT) at random, a new one each time a track has played through or
+##             you put to sea again, never the same twice running; in a storm, SEA_STORM
 ##   combat  - enemies fighting you (or a pirate ship hunting you) nearby
 ##   boss    - a boss fight close by
 ## plus a short victory fanfare (victory()) that ducks the music for a moment.
@@ -21,8 +23,15 @@ const TRACKS := {
 	"village_night": ["res://assets/audio/music_village_night.ogg", 52],
 	"island": ["res://assets/audio/music_island.ogg", 48],
 	"island_night": ["res://assets/audio/music_island_night.ogg", 48],
-	"sea": ["res://assets/audio/music_sea.ogg", 80],
-	"sea_night": ["res://assets/audio/music_sea_night.ogg", 80],
+	"sea_breeze": ["res://assets/audio/music_sea_breeze.ogg", 52],
+	"sea_horizon": ["res://assets/audio/music_sea_horizon.ogg", 48],
+	"sea_calm": ["res://assets/audio/music_sea_calm.ogg", 40],
+	"sea_trade": ["res://assets/audio/music_sea_trade.ogg", 44],
+	"sea_dawn": ["res://assets/audio/music_sea_dawn.ogg", 36],
+	"sea_wander": ["res://assets/audio/music_sea_wander.ogg", 44],
+	"sea_stars": ["res://assets/audio/music_sea_stars.ogg", 40],
+	"sea_far": ["res://assets/audio/music_sea_far.ogg", 36],
+	"sea_storm": ["res://assets/audio/music_sea_storm.ogg", 40],
 	"combat": ["res://assets/audio/music_combat.ogg", 32],
 	"boss": ["res://assets/audio/music_boss.ogg", 32],
 	"snow": ["res://assets/audio/music_snow.ogg", 56],
@@ -45,6 +54,13 @@ const TRACKS := {
 	"atoll_town_night": ["res://assets/audio/music_atoll_town_night.ogg", 32],
 }
 const FIGHTS := ["combat", "boss"]
+## The sea's rotation (2026-11-06): every calm sea track by day, the hushed ones by night.
+const SEA_DAY := ["sea_breeze", "sea_horizon", "sea_calm", "sea_trade", "sea_dawn", "sea_wander", "sea_stars", "sea_far"]
+const SEA_NIGHT := ["sea_calm", "sea_stars", "sea_dawn", "sea_horizon"]
+const SEA_STORM := "sea_storm"
+## Weather.storm into and out of the storm's track (apart, so a storm's edge doesn't flip it).
+const STORM_IN := 0.55
+const STORM_OUT := 0.35
 const VICTORY := "res://assets/audio/music_victory.ogg"
 const RIVAL := "res://assets/audio/music_rival.ogg"
 const BASE_DB := -5.0
@@ -86,10 +102,19 @@ var _left: Dictionary = {}
 var _want: String = ""
 ## Seconds to the playing track's next bar line, once a calm change is waiting for it.
 var _cue: float = -1.0
+## The sea track picked from the rotation, how long it has played, when the sea was last wanted.
+var sea_pick: String = ""
+var _sea_played: float = 0.0
+var _sea_seen: float = -INF
+var _storming := false
+## Seconds this node has run (paused included), for the sea's "put to sea again".
+var _clock: float = 0.0
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_rng.randomize()
 	_a = _player("MusicA")
 	_b = _player("MusicB")
 	_active = _a
@@ -119,7 +144,7 @@ func bar_len(track: String) -> float:
 	return _stream(track).get_length() / float(TRACKS[track][1])
 
 
-## "sea_night" -> "sea": the context, which day and night share.
+## "island_night" -> "island": the context, which day and night share.
 static func context_of(track: String) -> String:
 	return track.trim_suffix("_night")
 
@@ -178,10 +203,13 @@ func rival() -> void:
 
 
 func _process(delta: float) -> void:
+	_clock += delta
 	_check_t -= delta
 	if _check_t <= 0.0:
 		_check_t = 0.5
-		_want = override if override != "" else _variant(_pick(0.5))
+		_want = override if override != "" else _resolve(_pick(0.5))
+	if current == sea_pick and _active.playing:
+		_sea_played += delta
 	if _want != current:
 		_change(delta)
 	else:
@@ -219,9 +247,47 @@ func _change(delta: float) -> void:
 
 ## The night arrangement of a calm track between DUSK and DAWN.
 func _variant(track: String) -> String:
-	var h: float = Weather.hour()
 	var night := track + "_night"
-	return night if TRACKS.has(night) and (h >= DUSK or h < DAWN) else track
+	return night if TRACKS.has(night) and is_night() else track
+
+
+func is_night() -> bool:
+	var h: float = Weather.hour()
+	return h >= DUSK or h < DAWN
+
+
+## "sea" -> a track of the sea's (the storm's, or the rotation's); anything else its time of day's.
+func _resolve(track: String) -> String:
+	return sea_track() if track == "sea" else _variant(track)
+
+
+## The sea's track now: the storm's in a storm; else the rotation's pick, a new one once it has
+## played through, when you put to sea again after a while, or when the pool changes at dusk/dawn.
+func sea_track() -> String:
+	var now := _clock
+	var st: float = Weather.storm
+	_storming = st > (STORM_OUT if _storming else STORM_IN)
+	var away := now - _sea_seen > RESUME_WITHIN
+	_sea_seen = now
+	if _storming:
+		return SEA_STORM
+	var pool: Array = SEA_NIGHT if is_night() else SEA_DAY
+	var done := sea_pick != "" and _sea_played >= _stream(sea_pick).get_length()
+	if sea_pick not in pool or done or away:
+		next_sea(pool)
+	return sea_pick
+
+
+## Pick the rotation's next track from `pool`, never the one just played.
+func next_sea(pool: Array = SEA_DAY) -> String:
+	var choices := pool.filter(func(t): return t != sea_pick)
+	sea_pick = choices[_rng.randi() % choices.size()]
+	_sea_played = 0.0
+	return sea_pick
+
+
+static func is_sea(track: String) -> bool:
+	return track.begins_with("sea_")
 
 
 ## What fits right now.
@@ -264,6 +330,8 @@ func _pick(dt: float) -> String:
 	# swimming: whatever was on (the sea stays the sea)
 	if me.has_method("is_swimming") and me.is_swimming():
 		var was := context_of(current)
+		if is_sea(was):
+			return "sea"
 		return was if was not in ["", "title"] and was not in FIGHTS else "island"
 	if in_village(tree, pos):
 		return KitStyle.of(KitStyle.around(tree, pos)[0])["music_town"]

@@ -182,10 +182,10 @@ func _process(d: float) -> bool:
 			for s in get_nodes_in_group("enemy_ships"):
 				if s.in_combat():
 					print("   ship in combat: %s %.0f m" % [s.get_path(), (s as Node3D).global_position.distance_to(p.global_position)])
-			check("aboard under sail out at sea: the sea theme (%s, %.1f m/s)" % [m.current, ship.speed], m.current == "sea")
+			check("aboard under sail out at sea: the sea theme (%s, %.1f m/s)" % [m.current, ship.speed], m.current in m.SEA_DAY and m.current == m.sea_pick)
 			set_hour(22.0)
-			wait(1.5)
+			wait(5.0)
 		13:
-			check("...and the sea at night (%s)" % m.current, m.current == "sea_night")
+			check("...and the sea at night: a hushed one (%s)" % m.current, m.current in m.SEA_NIGHT)
 			finish()
 	return false

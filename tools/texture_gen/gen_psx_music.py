@@ -1444,135 +1444,6 @@ WATERS_B = ("D5/2 G5/2 B5/2 | A5/3 G5/1 F#5/2 | G5/2 E5/2 B4/2 | C5/4 E5/2 | "
             "D5/2 G5/2 B5/2 | D6/3 C6/1 B5/1 A5/1 | G5/2 E5/2 C5/2 | D5/4 F#5/2")
 THEME_68 = ("G4/2 D4/1 G4/2 A4/1 | B4/2 C5/1 D5/3 | E5/2 D5/1 B4/2 G4/1 | A4/5 -/1 | "
             "G4/2 D4/1 G4/2 A4/1 | B4/2 C5/1 D5/2 G5/1 | E5/2 D5/1 C5/1 B4/1 A4/1 | G4/5 -/1")
-SEA_BRIDGE = ("E5/3 A5/2 G5/1 | G5/3 E5/2 B4/1 | C5/2 D5/1 E5/2 A5/1 | G5/6 | "
-              "E5/3 A5/2 B5/1 | B5/3 G5/2 E5/1 | F5/2 E5/1 D5/2 C5/1 | B4/3 D#5/3")
-
-
-def track_sea(night=False):
-    # The open sea: 6/8, dotted quarter = 69 (eighth 207), E minor lifting to G major;
-    # 80 bars (2:19). Intro (the harp rolling, strings breathing with the swell, wind) |
-    # A horns | B strings | A' strings and horns | T the theme sails by (horns in G) |
-    # the bridge (becalmed: oboe, harp, no gallop) | B' with choir | A'' everyone |
-    # T' the theme on strings | A''' easing off | the turn (horn calls on C D B).
-    # Under it: Corsair's gallop (spiccato strings) and the timpani on the dotted quarters.
-    # Night: no gallop or drums - a dark harp, low flute and oboe, the theme on a far
-    # horn, celesta stars, the same swell and wind.
-    s = Song("music_sea_night" if night else "music_sea", 60 / 207, 6, 80,
-             "6/8, dotted quarter = 69, E minor / G major: " + ("the sea at night" if night else "under sail on the open sea"))
-    s.bus("horn", 0.5, verb=0.32)
-    s.bus("horn2", 0.3, verb=0.32)
-    s.bus("brass", 0.26, verb=0.26)
-    s.bus("strlead", 0.46, verb=0.3)
-    s.bus("lead", 0.46, verb=0.3, echo=0.08)
-    s.bus("str", 0.3, verb=0.36)
-    s.bus("low", 0.32, verb=0.2)
-    s.bus("harp", 0.36, verb=0.32)
-    s.bus("pizz", 0.36, verb=0.16)
-    s.bus("ost", 0.4, verb=0.1)
-    s.bus("choir", 0.18, verb=0.42)
-    s.bus("star", 0.18, verb=0.45, echo=0.2)
-    s.bus("timp", 0.44, verb=0.22)
-    s.bus("drum", 0.32, verb=0.15)
-    s.bus("crash", 0.12, verb=0.28)
-    s.bus("swell", 0.12, verb=0.2)
-    s.bus("wind", 0.08 if night else 0.06, verb=0.0)
-    intro = ["Em", "C", "Em", "D"]
-    A = ["Em", "C", "G", "D", "Em", "C", "Am", "B"]
-    B = ["G", "D", "Em", "C", "G", "D", "C", "D"]
-    T = ["G", "G", "C", "D", "G", "Em", "C D", "G"]
-    Br = ["Am", "Em", "F", "C", "Am", "Em", "F", "B"]
-    turn = ["C", "D", "B", "B"]
-    ch = split_chords(intro + A + B + A + T + Br + B + A + T + A + turn)
-    I, A1, B1, A2, T1, BR, B2, A3, T2, A4, TN = 0, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76
-    eh = scale("E", "harmonic")
-    gmaj = scale("G", "major")
-    allb = range(80)
-    # the swell: strings breathing a bar at a time, every other breath deeper
-    _chordpads(s, "str", "swellstr", ch, allb[0::2], 55, 0.45 if night else 0.65)
-    _chordpads(s, "str", "swellstr", ch, allb[1::2], 55, 0.32 if night else 0.45)
-    _roots(s, "low", "lowstr", ch, allb, nn("E2"), 0.55 if night else 0.65)
-    s.line("horn", "horn", "B4/6 | C5/6 | B4/6 | A4/3 F#4/3", I, vel=0.5 if night else 0.65)
-    s.line("horn", "horn", "E5/3 G5/3 | F#5/3 A5/3 | D#5/6 | F#5/3 B5/3", TN, vel=0.6 if night else 0.9)
-    s.line("horn2", "horn", "C5/3 E5/3 | D5/3 F#5/3 | B4/6 | D#5/3 F#5/3", TN, vel=0.4 if night else 0.6)
-    if not night:
-        arpeggio(s, "harp", "harp", ch, allb, [0, 1, 2, 3, 2, 1], 1, low=52, vel=0.45, dur=2)
-        sail = [b for b in range(A1, 76) if not BR <= b < B2]
-        _gallop(s, "ost", ch, sail, 0.85, nn("E2"), (0, 3))
-        _gallop(s, "ost", ch, _bars(A4, 8), 0.5, nn("E2"), (0, 3))
-        _timp(s, "timp", ch, [b for b in range(B1, 76) if not BR <= b < B2], [(0, 0.85), (3, 0.5)], "E2", "B2")
-        for b in (11, 27, 35, 51, 59, 79):
-            _roll(s, "timp", ch, b, 3, 3, 1, "E2", "B2", v0=0.45, dv=0.15)
-        full = list(_bars(A2, 16)) + list(_bars(B2, 24))
-        s.drums("drum", "tom", "X..x..", full, midi=nn("B2"), vel=0.7)
-        s.drums("drum", "snare", "...X..", list(_bars(T1, 8)) + list(_bars(B2, 24)), vel=0.5)
-        s.drums("crash", "crash", "X.....", [A2, T1, A3, T2])
-        for b in (3, 27, 43, 59):
-            s.note("swell", "swell", 0, b * 6, 6, 1.0, 1.0)
-        _chordpads(s, "choir", "choir", ch, _bars(B2, 24), 59, 0.45)
-        s.line("horn", "horn", WATERS_A, A1, vel=0.9)
-        s.line("strlead", "strings", WATERS_B, B1, vel=0.85, transpose=12)
-        s.line("horn2", "horn", WATERS_B, B1, vel=0.6)
-        s.line("horn", "horn", WATERS_A, A2, vel=0.95)
-        s.line("strlead", "strings", WATERS_A, A2, vel=0.65, transpose=12)
-        s.line("horn2", "horn", WATERS_A, A2, vel=0.55, transpose=-12, harmonize=(eh, -2))
-        s.line("horn", "horn", THEME_68, T1, vel=0.95)
-        s.line("horn2", "horn", THEME_68, T1, vel=0.55, harmonize=(gmaj, -2))
-        s.line("strlead", "strings", THEME_68, T1, vel=0.6, transpose=12)
-        s.line("lead", "oboe", SEA_BRIDGE, BR, vel=0.8)
-        bassline(s, "pizz", "pizz", ch, _bars(BR, 8), [(0, 3, "R"), (3, 3, "5")], octave_low=nn("E2"), vel=0.6)
-        s.line("strlead", "strings", WATERS_B, B2, vel=0.9, transpose=12)
-        s.line("horn", "horn", WATERS_B, B2, vel=0.7)
-        s.line("horn", "horn", WATERS_A, A3, vel=0.95)
-        s.line("strlead", "strings", WATERS_A, A3, vel=0.7, transpose=12)
-        s.line("horn2", "horn", WATERS_A, A3, vel=0.55, transpose=-12, harmonize=(eh, -2))
-        s.line("strlead", "strings", THEME_68, T2, vel=0.95, transpose=12)
-        s.line("horn", "horn", THEME_68, T2, vel=0.8)
-        s.line("horn2", "horn", THEME_68, T2, vel=0.5, harmonize=(gmaj, -2))
-        comp(s, "brass", "brass", ch, _bars(T2, 8), [(0, 2), (3, 2)], low=50, vel=0.5, gate=0.5)
-        s.line("strlead", "strings", WATERS_A, A4, vel=0.6)
-        s.line("lead", "oboe", WATERS_A, A4, vel=0.45, harmonize=(eh, -2))
-    else:
-        arpeggio(s, "harp", "harp_dark", ch, allb, [0, 2, 3, 2], 1.5, low=47, vel=0.45, dur=3)
-        bassline(s, "pizz", "pizz", ch, [b for b in range(A1, 80) if not BR <= b < B2], [(0, 3, "R"), (3, 3, "5")],
-                 octave_low=nn("E2"), vel=0.5)
-        _twinkle(s, "star", "celesta", ch, list(_bars(T1, 16)) + list(_bars(T2, 8)), 2, 76, 0.3, seed=207)
-        _chordpads(s, "choir", "choir", ch, _bars(B2, 8), 59, 0.25)
-        _roll(s, "timp", ch, 27, 0, 6, 1, "E2", "B2", v0=0.15, dv=0.04)
-        _roll(s, "timp", ch, 59, 0, 6, 1, "E2", "B2", v0=0.15, dv=0.04)
-        s.line("lead", "flute", WATERS_A, A1, vel=0.7, transpose=-12)
-        s.line("lead", "oboe", WATERS_B, B1, vel=0.6)
-        s.line("strlead", "strings", WATERS_A, A2, vel=0.55)
-        s.line("horn", "horn", THEME_68, T1, vel=0.6)
-        s.line("lead", "oboe", SEA_BRIDGE, BR, vel=0.6)
-        s.line("strlead", "strings", WATERS_B, B2, vel=0.55)
-        s.line("lead", "flute", WATERS_A, A3, vel=0.65, transpose=-12)
-        s.line("strlead", "strings", THEME_68, T2, vel=0.5, transpose=12)
-        s.line("horn2", "horn", THEME_68, T2, vel=0.35, harmonize=(gmaj, -2))
-        s.line("lead", "oboe", WATERS_A, A4, vel=0.5)
-    return s, dict(verb_t60=2.2 if night else 1.8, wind=True, wind_swells=40, target_lu=-18.0)
-
-
-# The harbour tunes (Zach's pick in the style round; the harbour samples play them).
-HARBOUR_A = ("A4/2 C5/1 E5/1 D5/2 C5/1 B4/1 | A4/3 F#4/1 A4/2 D5/2 | E5/2 G5/1 E5/1 D5/2 C5/1 D5/1 | "
-             "E5/3 D5/1 F#5/4 | G5/2 E5/1 C5/1 E5/2 G5/2 | D5/3 B4/1 G4/2 B4/2 | "
-             "C5/2 E5/2 A5/2 G5/1 E5/1 | B4/4 -/2 E4/1 G#4/1")
-HARBOUR_B = ("C6/4 A5/2 F5/2 | B5/4 G5/2 D5/2 | C6/2 B5/1 A5/1 E5/4 | A5/4 G5/2 E5/2 | "
-             "F5/2 A5/2 C6/2 A5/2 | G5/2 B5/2 D6/2 B5/2 | G#5/3 A5/1 B5/2 E5/2 | B5/4 G#5/2 E5/2")
-
-
-# The desert's wilds (G Hijaz over a drone, sixteenth ticks): a caravan tune that sways and
-# rests (A), the oud filling its rests, the dunes in C minor on strings (B), the game's theme
-# in Hijaz (T), a turn that settles onto the fifth.
-DES_CALL = "D5/8 Eb5/4 D5/4 | C5/8 B4/8 | Ab4/4 B4/4 D5/8 | G4/16"
-DES_A = ("D5/4 Eb5/2 D5/2 C5/4 B4/4 | Ab4/6 B4/2 C5/4 D5/4 | Eb5/4 D5/2 C5/2 B4/4 Ab4/4 | G4/12 -/4 | "
-         "D5/4 Eb5/2 F5/2 G5/4 F5/4 | Eb5/6 D5/2 C5/4 D5/4 | Eb5/2 D5/2 C5/2 B4/2 Ab4/4 B4/4 | G4/12 -/4")
-DES_ANSWER = ("-/16 | -/16 | -/16 | -/4 G4/2 Ab4/2 B4/2 D5/2 Eb5/4 | -/16 | -/16 | -/16 | "
-              "-/4 D5/2 C5/2 B4/2 Ab4/2 G4/4")
-DES_B = ("G5/8 Ab5/4 G5/4 | F5/6 Eb5/2 D5/8 | Eb5/8 F5/4 G5/4 | D5/12 -/4 | "
-         "C5/4 Eb5/4 G5/4 C6/4 | Bb5/6 Ab5/2 G5/8 | F5/4 G5/4 Ab5/4 B4/4 | B4/12 -/4")
-DES_THEME = ("G5/6 D5/2 G5/4 Ab5/4 | B5/6 C6/2 D6/8 | Eb6/4 D6/4 B5/4 G5/4 | Ab5/12 -/4 | "
-             "G5/6 D5/2 G5/4 Ab5/4 | B5/6 C6/2 D6/4 G6/4 | F6/6 Eb6/2 D6/4 C6/2 Ab5/2 | G5/12 -/4")
-DES_TURN = "Ab4/4 B4/4 D5/4 Eb5/4 | D5/8 C5/4 B4/4 | Ab4/4 G4/4 F4/4 Eb4/4 | D4/12 -/4"
 
 
 def track_desert(night=False):
@@ -2298,7 +2169,7 @@ def track_rival():
     return s, dict(verb_t60=2.0, target_rms=0.15, tail_sec=6.0)
 
 
-TRACKS = {"title": track_title, "sea": track_sea, "sea_night": lambda: track_sea(True),
+TRACKS = {"title": track_title,
           "island": track_island, "island_night": lambda: track_island(True),
           "village": track_village, "village_night": lambda: track_village(True),
           "desert": track_desert, "desert_night": lambda: track_desert(True),
@@ -2614,9 +2485,10 @@ def sample_harbour_calm():
     return s, dict(verb_t60=2.0)
 
 
-# --- the sea samples (2026-11-06): Zach wants the sea in the wonder sound's family, after Wind Waker,
-# Ghibli and BotW (all original tunes), a rotation of 8+ calm sea tracks and a storm's own. Four
-# directions to choose from before the rotation is written.
+# --- the sea (2026-11-06): the sea in the wonder sound's family, after Wind Waker, Ghibli and
+# BotW (all original tunes). Zach picked a mix of the four samples: eight calm tracks Music plays
+# at random under sail (never the same twice running; the hushed ones by night), and a storm's
+# own. Each calm one quotes THEME_A once (re-barred for its metre, in its key).
 BREEZE_A = ("D5/1 G5/1 A5/1 B5/2 A5/1 | G5/1 E5/1 G5/1 C6/3 | B5/1 A5/1 G5/1 D5/2 B4/1 | A4/3 D5/3 | "
             "D5/1 G5/1 A5/1 B5/2 D6/1 | E6/2 D6/1 C6/2 B5/1 | A5/1 G5/1 E5/1 F#5/2 A5/1 | G5/6")
 BREEZE_B = ("B5/2 G5/1 E5/2 F#5/1 | G5/2 E5/1 C6/3 | A5/2 F#5/1 D5/2 E5/1 | F#5/3 D5/3 | "
@@ -2624,11 +2496,11 @@ BREEZE_B = ("B5/2 G5/1 E5/2 F#5/1 | G5/2 E5/1 C6/3 | A5/2 F#5/1 D5/2 E5/1 | F#5/
 BREEZE_CALL = "D5/1 G5/1 A5/1 D6/3 | -/6 | D5/1 G5/1 A5/1 B5/3 | A5/3 -/3"
 
 
-def sample_sea_breeze():
+def track_sea_breeze():
     # 6/8, dotted quarter = 76, eighth ticks, G major; 52 bars (1:22). Bright and under way: the tin
     # whistle's tune, the fiddle answering, a guitar strumming, a bouncing bass, the frame drum light;
     # the strings and flute take B; the game's theme in 6/8 (THEME_68) on the fiddle.
-    s = Song("sample10_sea_breeze", 60 / 228, 6, 52,
+    s = Song("music_sea_breeze", 60 / 228, 6, 52,
              "6/8, dotted quarter = 76, G major: under sail, bright (whistle, fiddle, guitar, strings)")
     s.bus("lead", 0.46, verb=0.28, echo=0.06)
     s.bus("fid", 0.36, verb=0.3)
@@ -2636,7 +2508,8 @@ def sample_sea_breeze():
     s.bus("strlead", 0.38, verb=0.34)
     s.bus("gtr", 0.4, verb=0.2)
     s.bus("harp", 0.3, verb=0.3)
-    s.bus("bass", 0.42, verb=0.12)
+    s.bus("bass", 0.46, verb=0.12)
+    s.bus("low", 0.3, verb=0.2)
     s.bus("str", 0.22, verb=0.38)
     s.bus("perc", 0.24, verb=0.12)
     s.bus("tamb", 0.08, verb=0.12)
@@ -2651,7 +2524,8 @@ def sample_sea_breeze():
     allb = range(52)
     comp(s, "gtr", "guitar", ch, allb, [(0, 2), (3, 2)], low=55, vel=0.42, gate=0.6)
     arpeggio(s, "harp", "harp", ch, list(_bars(B1, 8)) + list(_bars(B2, 8)), [0, 1, 2, 3, 4, 3], 1, low=55, vel=0.3, dur=2)
-    bassline(s, "bass", "pizz", ch, range(A1, 52), [(0, 2, "R"), (3, 2, "5")], octave_low=nn("G2"), vel=0.6)
+    bassline(s, "bass", "pizz", ch, range(A1, 52), [(0, 2, "R"), (3, 2, "5")], octave_low=nn("G2"), vel=0.65)
+    _roots(s, "low", "lowstr", ch, range(B1, 52), nn("E2"), 0.32)
     s.drums("perc", "frame", "X..x..", range(A1, 52), midi=nn("D2"), vel=0.5)
     s.drums("tamb", "tamb", "...x..", list(_bars(A2, 8)) + list(_bars(A3, 8)))
     s.line("lead", "whistle", BREEZE_CALL, I, vel=0.6)
@@ -2673,15 +2547,18 @@ HORIZON_A = ("A4/2 D5/2 F#5/2 | B5/4 A5/2 | G5/2 F#5/2 E5/2 | C#5/4 E5/2 | "
              "F#5/2 B5/2 D6/2 | C#6/4 B5/2 | A5/2 G5/2 E5/2 | D5/6")
 HORIZON_B = ("D6/3 C#6/1 B5/2 | A5/4 F#5/2 | G5/3 F#5/1 E5/2 | F#5/4 D5/2 | "
              "B5/3 A5/1 G5/2 | F#5/2 A5/2 D6/2 | E6/4 D6/2 | D6/3 C#6/3")
+THEME_34 = ("D5/3 A4/1 D5/1 E5/1 | F#5/3 G5/1 A5/2 | B5/2 A5/2 F#5/2 | E5/6 | "
+            "D5/3 A4/1 D5/1 E5/1 | F#5/3 G5/1 A5/1 D6/1 | C#6/3 B5/1 A5/1 E5/1 | D5/6")  # THEME_A in 3/4
 
 
-def sample_sea_horizon():
-    # 3/4, 92 bpm, eighth ticks, D major; 40 bars (1:18). Lush and open, a waltz across the water: the
+def track_sea_horizon():
+    # 3/4, 92 bpm, eighth ticks, D major; 48 bars (1:34). Lush and open, a waltz across the water: the
     # piano's waltz under it (the low root, chords on two and three), a harp rolling, the flute's tune,
-    # the strings sweeping in with it, horns under, one swell with the choir.
-    s = Song("sample11_sea_horizon", 60 / 92 / 2, 6, 40,
+    # the strings sweeping in with it, the theme waltzed on the oboe, horns under, one swell with the choir.
+    s = Song("music_sea_horizon", 60 / 92 / 2, 6, 48,
              "3/4, 92 bpm, D major: the open horizon, a waltz (piano, harp, flute, sweeping strings, horns)")
     s.bus("lead", 0.44, verb=0.36)
+    s.bus("oboe", 0.42, verb=0.36)
     s.bus("strlead", 0.44, verb=0.4)
     s.bus("pno", 0.4, verb=0.34)
     s.bus("harp", 0.3, verb=0.34)
@@ -2694,10 +2571,11 @@ def sample_sea_horizon():
     intro = ["D", "Gmaj7", "D", "Asus4 A"]
     A = ["D", "Gmaj7", "Em7", "A", "Bm", "Gmaj7", "Em7 A", "D"]
     B = ["G", "D", "Em", "Bm", "G", "D", "Em7", "Asus4 A"]
-    ch = split_chords(intro + A + A + B + A + intro)
-    I, A1, A2, B1, A3, O = 0, 4, 12, 20, 28, 36
+    T = ["D", "D", "G", "A", "D", "D", "A", "D"]
+    ch = split_chords(intro + A + A + B + T + A + intro)
+    I, A1, A2, B1, T1, A3, O = 0, 4, 12, 20, 28, 36, 44
     dmaj = scale("D", "major")
-    allb = range(40)
+    allb = range(48)
     bassline(s, "pno", "piano", ch, allb, [(0, 2, "R")], octave_low=nn("D2"), vel=0.5, gate=1.0)
     comp(s, "pno", "piano", ch, range(A1, O), [(2, 2), (4, 2)], low=57, vel=0.34, gate=0.8)
     arpeggio(s, "harp", "harp", ch, allb, [0, 1, 2, 3, 4, 3], 1, low=50, vel=0.28, dur=3)
@@ -2707,6 +2585,8 @@ def sample_sea_horizon():
     _wide(s, "str", "strings", ch, range(A2, O), 50, 0.18)
     s.line("strlead", "strings", HORIZON_B, B1, vel=0.85)
     s.line("horn", "horn", HORIZON_B, B1, vel=0.42, transpose=-12, harmonize=(dmaj, -2))
+    s.line("oboe", "oboe", THEME_34, T1, vel=0.78)
+    s.line("lead", "flute", THEME_34, T1, vel=0.35, harmonize=(dmaj, 2))
     s.note("timp", "timpani", nn("A2"), (A3 - 1) * 6, 6, 0.5, 1.0)
     s.line("strlead", "strings", HORIZON_A, A3, vel=0.9)
     s.line("lead", "flute", HORIZON_A, A3, vel=0.45, transpose=12)
@@ -2722,28 +2602,272 @@ CALM_PIANO = ("D5/1 G5/1 A5/2 D6/4 | -/8 | -/4 B5/2 A5/2 | F#5/8 | "
               "-/8 | C6/2 B5/2 G5/4 | A5/8 | -/8")
 
 
-def sample_sea_calm():
-    # 4/4, 72 bpm, eighth ticks, G lydian (C# over G); 32 bars (1:47). Becalmed, the open-world quiet:
+def track_sea_calm():
+    # 4/4, 72 bpm, eighth ticks, G lydian (C# over G); 40 bars (2:13). Becalmed, the open-world quiet:
     # wind and the swell, a felt piano's phrases far apart, strings breathing with the swell, a harp
-    # now and then, a far horn holding a note.
-    s = Song("sample12_sea_calm", 60 / 72 / 2, 8, 32,
+    # now and then, a far horn holding a note; between the piano's two passes a lone flute drifts by
+    # with the theme in G.
+    s = Song("music_sea_calm", 60 / 72 / 2, 8, 40,
              "4/4, 72 bpm, G lydian: becalmed (sparse piano, breathing strings, wind and the swell)")
     s.bus("pno", 0.55, verb=0.42, echo=0.12)
     s.bus("lh", 0.36, verb=0.42)
+    s.bus("fl", 0.36, verb=0.46, echo=0.1)
     s.bus("str", 0.26, verb=0.48)
     s.bus("harp", 0.22, verb=0.45)
     s.bus("horn", 0.16, verb=0.5)
     s.bus("wind", 0.1, verb=0.0)
     seq = ["G", "G", "A", "A", "Em7", "Em7", "Cmaj7", "Cmaj7", "G", "G", "A", "D", "Em7", "Cmaj7", "Dsus4", "D"]
-    ch = split_chords(seq + seq)
+    T = ["Gadd9", "G", "Cmaj7", "D", "G", "Em", "Cmaj7 D", "G"]
+    ch = split_chords(seq + T + seq)
+    allb = range(40)
     s.line("pno", "piano", CALM_PIANO, 0, vel=0.62)
-    s.line("pno", "piano", CALM_PIANO, 16, vel=0.55, transpose=12)
-    _lh(s, "lh", ch, range(32), nn("G2"), 0.3, changes_only=True)
-    _wide(s, "str", "swellstr", ch, range(32), 50, 0.26)
-    arpeggio(s, "harp", "harp_dark", ch, [b for b in range(32) if b % 4 == 3], [0, 2, 4, 5], 2, low=55, vel=0.3, dur=6)
+    s.line("fl", "flute", THEME_A, 16, vel=0.5, transpose=-7)
+    s.line("pno", "piano", CALM_PIANO, 24, vel=0.55, transpose=12)
+    _lh(s, "lh", ch, allb, nn("G2"), 0.3, changes_only=True)
+    _wide(s, "str", "swellstr", ch, allb, 50, 0.26)
+    arpeggio(s, "harp", "harp_dark", ch, [b for b in allb if b % 4 == 3], [0, 2, 4, 5], 2, low=55, vel=0.3, dur=6)
     s.note("horn", "horn", nn("D4"), 8 * 8, 32, 0.4, 1.0)
-    s.note("horn", "horn", nn("E4"), 24 * 8, 32, 0.35, 1.0)
-    return s, dict(verb_t60=3.0, echo_sec=60 / 72 * 0.75, wind=True, wind_swells=9, target_lu=-18.0)
+    s.note("horn", "horn", nn("E4"), 32 * 8, 32, 0.35, 1.0)
+    return s, dict(verb_t60=3.0, echo_sec=60 / 72 * 0.75, wind=True, wind_swells=11, target_lu=-18.0)
+
+
+TRADE_A = ("C5/1 F5/1 A5/2 G5/1 F5/1 D5/2 | C5/2 A4/2 C5/4 | Bb4/1 D5/1 F5/2 E5/1 D5/1 C5/2 | G5/6 -/2 | "
+           "C5/1 F5/1 A5/2 G5/1 F5/1 D5/2 | C6/2 A5/2 F5/4 | G5/1 A5/1 Bb5/2 A5/1 G5/1 E5/2 | F5/6 -/2")
+TRADE_B = ("D5/3 E5/1 F5/2 A5/2 | G5/4 E5/4 | F5/3 E5/1 D5/2 C5/2 | A4/6 -/2 | "
+           "Bb4/2 D5/2 F5/2 Bb5/2 | A5/3 G5/1 F5/4 | E5/2 F5/2 G5/2 A5/2 | G5/8")
+
+
+def track_sea_trade():
+    # 4/4, 104 bpm, eighth ticks, F major; 44 bars (1:42). The trade winds, a light-footed jaunt: the
+    # concertina's tune over a guitar's offbeat chops, the pizzicato bass and the harp; the oboe takes
+    # B in the relative minor with the strings and a glockenspiel; the theme in F on the oboe.
+    s = Song("music_sea_trade", 60 / 104 / 2, 8, 44,
+             "4/4, 104 bpm, F major: the trade winds (concertina, guitar, pizzicato, oboe, harp)")
+    s.bus("lead", 0.42, verb=0.26, echo=0.06)
+    s.bus("fl", 0.28, verb=0.3)
+    s.bus("oboe", 0.42, verb=0.32)
+    s.bus("strlead", 0.34, verb=0.34)
+    s.bus("gtr", 0.34, verb=0.2)
+    s.bus("harp", 0.28, verb=0.3)
+    s.bus("bass", 0.46, verb=0.12)
+    s.bus("low", 0.28, verb=0.2)
+    s.bus("str", 0.2, verb=0.38)
+    s.bus("glock", 0.14, verb=0.36)
+    s.bus("perc", 0.22, verb=0.12)
+    s.bus("shaker", 0.07, verb=0.1)
+    s.bus("wind", 0.04, verb=0.0)
+    intro = ["F", "Bb", "F", "C"]
+    A = ["F", "F", "Bb", "C", "F", "F", "Bb C", "F"]
+    B = ["Dm", "C", "Bb", "Am", "Bb", "F", "Gm", "C"]
+    T = ["F", "F", "Bb", "C", "F", "Dm", "Bb C", "F"]
+    ch = split_chords(intro + A + A + B + T + A)
+    I, A1, A2, B1, T1, A3 = 0, 4, 12, 20, 28, 36
+    fmaj = scale("F", "major")
+    allb = range(44)
+    arpeggio(s, "harp", "harp", ch, allb, [0, 1, 2, 3], 2, low=53, vel=0.28, dur=3)
+    comp(s, "gtr", "guitar", ch, range(A1, 44), [(2, 2), (6, 2)], low=55, vel=0.36, gate=0.5)
+    bassline(s, "bass", "pizz", ch, range(A1, 44), [(0, 3, "R"), (4, 3, "5")], octave_low=nn("F2"), vel=0.68)
+    _roots(s, "low", "lowstr", ch, list(_bars(B1, 16)), nn("E2"), 0.3)
+    s.drums("perc", "frame", "X...x...", range(A1, 44), midi=nn("D2"), vel=0.5)
+    s.drums("shaker", "shaker", "..x...x.", list(_bars(A2, 8)) + list(_bars(T1, 16)))
+    s.line("lead", "concertina", TRADE_A, A1, vel=0.75)
+    s.line("lead", "concertina", TRADE_A, A2, vel=0.72)
+    s.line("fl", "flute", TRADE_A, A2, vel=0.4, harmonize=(fmaj, 2))
+    s.line("oboe", "oboe", TRADE_B, B1, vel=0.78)
+    _wide(s, "str", "strings", ch, _bars(B1, 16), 50, 0.15)
+    _twinkle(s, "glock", "glock", ch, _bars(B1, 8), 2, 72, 0.25, 41)
+    s.line("oboe", "oboe", THEME_A, T1, vel=0.75, transpose=3)
+    s.line("strlead", "strings", THEME_A, T1, vel=0.36, transpose=-9, harmonize=(fmaj, -2))
+    s.line("lead", "concertina", TRADE_A, A3, vel=0.75)
+    s.line("strlead", "strings", TRADE_A, A3, vel=0.38, transpose=-12)
+    return s, dict(verb_t60=1.5, echo_sec=60 / 104 * 0.75, wind=True, wind_swells=5, target_lu=-18.0)
+
+
+DAWN_A = ("E5/2 A5/2 B5/4 | C#6/3 B5/1 A5/4 | F#5/2 A5/2 E5/4 | -/8 | "
+          "E5/2 A5/2 B5/4 | D#6/3 C#6/1 B5/4 | A5/2 G#5/2 F#5/2 G#5/2 | A5/8")
+DAWN_B = ("F#5/3 E5/1 D5/4 | C#5/2 E5/2 A5/4 | B5/3 A5/1 G#5/2 E5/2 | F#5/8 | "
+          "D5/2 F#5/2 A5/4 | G#5/2 B5/2 E6/4 | D6/2 C#6/2 B5/2 G#5/2 | A5/4 E5/4")
+
+
+def track_sea_dawn():
+    # 4/4, 66 bpm, eighth ticks, A major with a lydian II (B major); 36 bars (2:11). First light on the
+    # water, hopeful and slow: a piano's left hand and a harp, the oboe's tune, the strings taking B
+    # with a horn under them, the theme on the horn in A, the strings and oboe together at the end.
+    s = Song("music_sea_dawn", 60 / 66 / 2, 8, 36,
+             "4/4, 66 bpm, A major: first light (oboe, harp, piano, strings, horn)")
+    s.bus("oboe", 0.44, verb=0.4)
+    s.bus("strlead", 0.42, verb=0.42)
+    s.bus("horn", 0.36, verb=0.44)
+    s.bus("horn2", 0.22, verb=0.44)
+    s.bus("harp", 0.28, verb=0.4)
+    s.bus("lh", 0.34, verb=0.4)
+    s.bus("str", 0.22, verb=0.46)
+    s.bus("low", 0.3, verb=0.3)
+    s.bus("wind", 0.07, verb=0.0)
+    intro = ["A", "Dmaj7", "A", "E"]
+    A = ["A", "A", "F#m", "E", "A", "B", "D E", "A"]
+    B = ["D", "A", "E", "F#m", "D", "E", "Bm7 E", "A"]
+    T = ["A", "A", "D", "E", "A", "F#m", "D E", "A"]
+    ch = split_chords(intro + A + B + T + A)
+    I, A1, B1, T1, A2 = 0, 4, 12, 20, 28
+    amaj = scale("A", "major")
+    allb = range(36)
+    _lh(s, "lh", ch, allb, nn("E2"), 0.3, changes_only=True)
+    arpeggio(s, "harp", "harp", ch, list(_bars(I, 12)) + list(_bars(A2, 8)), [0, 1, 2, 3, 4, 3, 2, 1], 1, low=57, vel=0.24, dur=2)
+    _wide(s, "str", "swellstr", ch, allb, 50, 0.2)
+    _roots(s, "low", "lowstr", ch, range(B1, 36), nn("E2"), 0.32)
+    s.line("oboe", "oboe", DAWN_A, A1, vel=0.75)
+    s.line("strlead", "strings", DAWN_B, B1, vel=0.8)
+    s.line("horn2", "horn", DAWN_B, B1, vel=0.3, transpose=-12, harmonize=(amaj, -2))
+    s.line("horn", "horn", THEME_A, T1, vel=0.72, transpose=-5)
+    s.line("strlead", "strings", THEME_A, T1, vel=0.42, transpose=7)
+    s.line("strlead", "strings", DAWN_A, A2, vel=0.75)
+    s.line("oboe", "oboe", DAWN_A, A2, vel=0.45, harmonize=(amaj, -2))
+    return s, dict(verb_t60=2.6, echo_sec=60 / 66 * 0.75, wind=True, wind_swells=7, target_lu=-18.0)
+
+
+WANDER_A = ("D5/2 E5/1 F5/1 A5/4 | G5/2 F5/1 E5/1 C5/4 | D5/2 F5/2 A5/2 B5/2 | A5/6 -/2 | "
+            "D5/2 E5/1 F5/1 A5/4 | C6/2 B5/1 A5/1 G5/4 | F5/2 E5/2 C5/2 E5/2 | D5/6 -/2")
+WANDER_B = ("F5/3 G5/1 A5/4 | C6/3 Bb5/1 A5/4 | G5/2 A5/2 Bb5/2 D6/2 | C6/8 | "
+            "A5/3 G5/1 F5/4 | E5/2 G5/2 C6/4 | B5/2 A5/2 G5/2 E5/2 | A5/8")
+
+
+def track_sea_wander():
+    # 4/4, 92 bpm, eighth ticks, D dorian; 44 bars (1:55). Far islands on the horizon, adventurous and
+    # warm: the ocarina's tune over a skipping pizzicato bass, harp and frame drum, the fiddle a third
+    # under it; B lifts to F on the flute; the theme breaks out in D major on the strings and horns.
+    s = Song("music_sea_wander", 60 / 92 / 2, 8, 44,
+             "4/4, 92 bpm, D dorian: far islands (ocarina, fiddle, flute, harp, pizzicato, strings)")
+    s.bus("oc", 0.44, verb=0.32, echo=0.08)
+    s.bus("fid", 0.3, verb=0.32)
+    s.bus("fl", 0.4, verb=0.34)
+    s.bus("strlead", 0.42, verb=0.36)
+    s.bus("horn", 0.26, verb=0.4)
+    s.bus("harp", 0.28, verb=0.32)
+    s.bus("bass", 0.44, verb=0.12)
+    s.bus("low", 0.3, verb=0.22)
+    s.bus("str", 0.2, verb=0.4)
+    s.bus("perc", 0.22, verb=0.12)
+    s.bus("tamb", 0.07, verb=0.12)
+    s.bus("wind", 0.05, verb=0.0)
+    intro = ["Dm", "C", "Dm", "Am"]
+    A = ["Dm", "C", "Dm G", "Am", "Dm", "C", "Bb C", "Dm"]
+    B = ["F", "F", "Gm", "C", "F", "C", "G", "Am"]
+    T = ["D", "D", "G", "A", "D", "Bm", "G A", "D"]
+    ch = split_chords(intro + A + A + B + T + A)
+    I, A1, A2, B1, T1, A3 = 0, 4, 12, 20, 28, 36
+    ddor = scale("D", "dorian")
+    dmaj = scale("D", "major")
+    allb = range(44)
+    arpeggio(s, "harp", "harp", ch, allb, [0, 2, 1, 3], 2, low=50, vel=0.28, dur=3)
+    bassline(s, "bass", "pizz", ch, range(A1, 44), [(0, 2, "R"), (3, 1, "R"), (4, 2, "5")], octave_low=nn("D2"), vel=0.66)
+    _roots(s, "low", "lowstr", ch, _bars(B1, 16), nn("E2"), 0.3)
+    s.drums("perc", "frame", "X..x..x.", range(A1, 44), midi=nn("D2"), vel=0.5)
+    s.drums("tamb", "tamb", "....x...", list(_bars(A2, 8)) + list(_bars(A3, 8)))
+    s.line("oc", "ocarina", WANDER_A, A1, vel=0.78)
+    s.line("oc", "ocarina", WANDER_A, A2, vel=0.75)
+    s.line("fid", "fiddle", WANDER_A, A2, vel=0.42, harmonize=(ddor, -2))
+    s.line("fl", "flute", WANDER_B, B1, vel=0.7)
+    s.line("strlead", "strings", WANDER_B, B1, vel=0.38, transpose=-12)
+    _wide(s, "str", "strings", ch, _bars(B1, 16), 50, 0.16)
+    s.line("strlead", "strings", THEME_A, T1, vel=0.8)
+    s.line("horn", "horn", THEME_A, T1, vel=0.34, transpose=-12, harmonize=(dmaj, -2))
+    s.line("oc", "ocarina", WANDER_A, A3, vel=0.78)
+    s.line("fid", "fiddle", WANDER_A, A3, vel=0.4, harmonize=(ddor, -2))
+    s.line("strlead", "strings", WANDER_A, A3, vel=0.36, transpose=-12)
+    return s, dict(verb_t60=1.8, echo_sec=60 / 92 * 0.75, wind=True, wind_swells=6, target_lu=-18.0)
+
+
+STARS_A = ("B4/3 E5/3 | F#5/2 G#5/1 B5/3 | A5/3 G#5/2 F#5/1 | E5/6 | "
+           "B4/3 E5/3 | F#5/2 G#5/1 C#6/3 | B5/2 A5/1 G#5/2 F#5/1 | G#5/6")
+STARS_B = ("C#6/3 B5/3 | A5/2 G#5/1 F#5/3 | G#5/3 E5/3 | B4/6 | "
+           "A5/3 G#5/3 | F#5/2 E5/1 D#5/3 | E5/2 F#5/1 G#5/2 A5/1 | B5/6")
+
+
+def track_sea_stars():
+    # 6/8, dotted quarter = 50, eighth ticks, E major; 40 bars (1:36). Starlight on a long swell, hushed:
+    # a celesta's tune over a piano's left hand and breathing strings, glints of glockenspiel, the flute
+    # in B, the theme in 6/8 (THEME_68, in E) on the strings, the flute and celesta together at the end.
+    s = Song("music_sea_stars", 60 / 150, 6, 40,
+             "6/8, dotted quarter = 50, E major: starlight on the swell (celesta, flute, piano, strings)")
+    s.bus("cel", 0.4, verb=0.44, echo=0.14)
+    s.bus("fl", 0.4, verb=0.44)
+    s.bus("strlead", 0.38, verb=0.44)
+    s.bus("harp", 0.26, verb=0.44)
+    s.bus("lh", 0.32, verb=0.42)
+    s.bus("str", 0.24, verb=0.48)
+    s.bus("glock", 0.1, verb=0.5)
+    s.bus("low", 0.28, verb=0.3)
+    s.bus("wind", 0.07, verb=0.0)
+    intro = ["E", "A", "E", "B"]
+    A = ["E", "E", "A", "E", "E", "C#m", "A B", "E"]
+    B = ["A", "F#m", "E", "G#m", "A", "B", "C#m A", "B"]
+    T = ["E", "E", "C#m", "B", "E", "E", "A B", "E"]
+    O = ["E", "C#m", "A", "B"]
+    ch = split_chords(intro + A + B + T + A + O)
+    I, A1, B1, T1, A2, O1 = 0, 4, 12, 20, 28, 36
+    allb = range(40)
+    _lh(s, "lh", ch, allb, nn("E2"), 0.28, changes_only=True)
+    arpeggio(s, "harp", "harp", ch, list(_bars(A1, 8)) + list(_bars(A2, 8)), [0, 1, 2, 3, 2, 1], 1, low=52, vel=0.22, dur=2)
+    _wide(s, "str", "swellstr", ch, allb, 52, 0.2)
+    _roots(s, "low", "lowstr", ch, range(A1, 40), nn("E2"), 0.28)
+    _twinkle(s, "glock", "glock", ch, allb, 2, 76, 0.2, 53)
+    s.line("cel", "celesta", STARS_A, A1, vel=0.72)
+    s.line("fl", "flute", STARS_B, B1, vel=0.62)
+    s.line("strlead", "strings", THEME_68, T1, vel=0.72, transpose=9)
+    s.line("fl", "flute", STARS_A, A2, vel=0.6)
+    s.line("cel", "celesta", STARS_A, A2, vel=0.35, transpose=12)
+    s.line("cel", "celesta", "B4/3 E5/3 | F#5/2 G#5/1 B5/3 | A5/3 G#5/3 | F#5/6", O1, vel=0.5)
+    return s, dict(verb_t60=3.0, echo_sec=60 / 50 * 0.5, wind=True, wind_swells=8, target_lu=-18.0)
+
+
+FAR_A = ("G4/2 C5/2 D5/2 G5/2 | E5/6 D5/2 | C5/2 D5/2 E5/2 A5/2 | G5/8 | "
+         "G4/2 C5/2 D5/2 G5/2 | A5/4 B5/2 C6/2 | D6/3 C6/1 B5/2 A5/2 | G5/8")
+FAR_B = ("E6/4 D6/2 C6/2 | B5/4 G5/4 | A5/3 B5/1 C6/2 E6/2 | D6/8 | "
+         "C6/4 B5/2 A5/2 | G5/4 E5/4 | F5/2 A5/2 C6/2 B5/2 | C6/8")
+
+
+def track_sea_far():
+    # 4/4, 76 bpm, eighth ticks, C major; 36 bars (1:54). The wide world, the big one: a piano alone
+    # with the tune, then the strings soar with it in B over horns, timpani and the choir; the horns
+    # sing the theme in C; the strings carry the tune home with the piano an octave up.
+    s = Song("music_sea_far", 60 / 76 / 2, 8, 36,
+             "4/4, 76 bpm, C major: the wide world (piano, soaring strings, horns, timpani, choir)")
+    s.bus("pno", 0.46, verb=0.38)
+    s.bus("strlead", 0.44, verb=0.4)
+    s.bus("horn", 0.42, verb=0.4)
+    s.bus("horn2", 0.24, verb=0.4)
+    s.bus("harp", 0.26, verb=0.36)
+    s.bus("str", 0.24, verb=0.44)
+    s.bus("low", 0.36, verb=0.28)
+    s.bus("timp", 0.26, verb=0.3)
+    s.bus("choir", 0.12, verb=0.5)
+    s.bus("crash", 0.06, verb=0.3)
+    s.bus("wind", 0.05, verb=0.0)
+    intro = ["C", "Fmaj7", "C", "G"]
+    A = ["C", "Am", "F", "C", "C", "F", "G", "G"]
+    B = ["Am", "Em", "F", "G", "Am", "Em", "F G", "C"]
+    T = ["C", "C", "F", "G", "C", "Am", "F G", "C"]
+    ch = split_chords(intro + A + B + T + A)
+    I, A1, B1, T1, A2 = 0, 4, 12, 20, 28
+    cmaj = scale("C", "major")
+    _lh(s, "pno", ch, _bars(I, 12), nn("C2"), 0.32)
+    s.line("pno", "piano", FAR_A, A1, vel=0.62)
+    _wide(s, "str", "strings", ch, range(A1, 36), 50, 0.15)
+    arpeggio(s, "harp", "harp", ch, range(B1, 36), [0, 1, 2, 3], 2, low=52, vel=0.26, dur=3)
+    _roots(s, "low", "lowstr", ch, range(B1, 36), nn("C2"), 0.45)
+    _timp(s, "timp", ch, range(B1, 36), [(0, 0.55)], "C2", "G2")
+    s.drums("crash", "crash", "X.......", [B1, T1])
+    s.line("strlead", "strings", FAR_B, B1, vel=0.85)
+    s.line("horn2", "horn", FAR_B, B1, vel=0.36, transpose=-12, harmonize=(cmaj, -2))
+    _chordpads(s, "choir", "choir", ch, _bars(B1, 8), 55, 0.25)
+    s.line("horn", "horn", THEME_A, T1, vel=0.85, transpose=-2)
+    s.line("strlead", "strings", THEME_A, T1, vel=0.48, transpose=10)
+    s.line("horn2", "horn", THEME_A, T1, vel=0.36, transpose=-14, harmonize=(cmaj, -2))
+    s.line("strlead", "strings", FAR_A, A2, vel=0.85)
+    s.line("pno", "piano", FAR_A, A2, vel=0.34, transpose=12)
+    s.line("horn", "horn", FAR_A, A2, vel=0.34, transpose=-12)
+    return s, dict(verb_t60=2.4, echo_sec=60 / 76 * 0.75, wind=True, wind_swells=5, target_lu=-18.0)
 
 
 STORM_A = ("D5/3 A4/2 D5/1 | F5/3 E5/2 D5/1 | E5/2 G5/1 C6/3 | A5/6 | "
@@ -2752,11 +2876,11 @@ STORM_B = ("F5/2 Bb5/1 D6/3 | C6/2 G5/1 E5/3 | A5/2 D6/1 F6/3 | E6/3 C#6/3 | "
            "D6/2 C6/1 Bb5/2 A5/1 | G5/2 Bb5/1 D6/3 | Eb6/3 D6/3 | C#6/3 A5/3")
 
 
-def sample_sea_storm():
+def track_sea_storm():
     # 6/8, dotted quarter = 68, eighth ticks, D minor; 40 bars (1:11). A storm at sea: the low strings
     # galloping through it, timpani on the swells, the horns' tune over the wind, the strings and choir
     # climbing in B (to the Neapolitan Eb), a crash on each big wave, a breath of gallop alone at the end.
-    s = Song("sample13_sea_storm", 60 / 204, 6, 40,
+    s = Song("music_sea_storm", 60 / 204, 6, 40,
              "6/8, dotted quarter = 68, D minor: a storm at sea (galloping strings, timpani, horns, choir, wind)")
     s.bus("horn", 0.5, verb=0.3)
     s.bus("horn2", 0.3, verb=0.3)
@@ -2797,10 +2921,13 @@ def sample_sea_storm():
     return s, dict(verb_t60=1.8, echo_sec=60 / 68 * 0.5, wind=True, wind_swells=10, target_lu=-18.0)
 
 
+SEA_TRACKS = {"sea_breeze": track_sea_breeze, "sea_horizon": track_sea_horizon, "sea_calm": track_sea_calm,
+              "sea_trade": track_sea_trade, "sea_dawn": track_sea_dawn, "sea_wander": track_sea_wander,
+              "sea_stars": track_sea_stars, "sea_far": track_sea_far, "sea_storm": track_sea_storm}
+TRACKS.update(SEA_TRACKS)
+
 SAMPLES = {"corsair": sample_corsair, "harbour": sample_harbour, "waters": sample_waters,
-           "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm,
-           "sea_breeze": sample_sea_breeze, "sea_horizon": sample_sea_horizon, "sea_calm": sample_sea_calm,
-           "sea_storm": sample_sea_storm}
+           "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm}
 SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 
 
