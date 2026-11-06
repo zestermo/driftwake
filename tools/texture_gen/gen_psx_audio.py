@@ -437,6 +437,23 @@ def shell_boom_sound(name="shell_boom", seed=409, far=False):
     _write_shot(name, out, -11.5, fade=0.5)
 
 
+def cannon_far_sound(name="cannon_far", seed=431):
+    """(2026-11-06) A ship's gun heard from far off (past ~45 m): no crack, a dull thudding boom with a little
+    mid body so it reads on small speakers, then its echo rolling back off the water twice."""
+    rng = np.random.default_rng(seed)
+    n = int(SR * 2.6)
+    t = np.arange(n) / SR
+    f = 70 - 28 * np.minimum(t / 0.5, 1.0) ** 0.7
+    boom = np.tanh(2.5 * np.sin(np.cumsum(2 * np.pi * f / SR))) * np.exp(-t * 3.2) * np.minimum(1, t / 0.02)
+    body = _noise(n, rng, 120, 480) * np.exp(-t * 6.0) * np.minimum(1, t / 0.015)
+    rumble = _noise(n, rng, 30, 220) * np.minimum(1, t / 0.06) * np.exp(-t * 1.6)
+    out = boom * 0.7 + body * 3.0 + rumble * 0.7
+    for delay, gain in ((0.42, 0.32), (1.05, 0.16)):
+        d = int(SR * (delay + rng.uniform(-0.05, 0.05)))
+        out[d:] += lpf(boom + body, 0.06)[: n - d] * gain
+    _write_shot(name, lpf(out, 0.4), -17.0, fade=0.5)
+
+
 def siren_loop(seconds=24.0):
     """(1.30, the Scouring) The Admiralty's air-raid siren over the fortress: a rotor siren's slow wail up and down
     (a 6 s cycle, four in the loop), two detuned rotors and a far echo off the rock; the loop's whole cycles keep
@@ -3021,6 +3038,7 @@ SOUNDS = [
     ("shell_whistle", lambda: [shell_whistle_sound(f"shell_whistle_{k + 1}", 401 + k * 3) for k in range(3)]),
     ("shell_boom", lambda: [shell_boom_sound(f"shell_boom_{k + 1}", 409 + k * 3) for k in range(3)]),
     ("shell_far", lambda: [shell_boom_sound(f"shell_far_{k + 1}", 415 + k * 3, True) for k in range(2)]),
+    ("cannon_far", lambda: [cannon_far_sound(f"cannon_far_{k + 1}", 431 + k * 7) for k in range(3)]),
     ("siren_loop", siren_loop),
     ("war_drums_loop", war_drums_loop),
 ]

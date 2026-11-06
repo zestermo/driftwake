@@ -9,7 +9,7 @@ const SLASH_SHADER := preload("res://shaders/psx/slash_trail.gdshader")
 const SOUNDS := [
 	"whoosh", "whoosh_big", "hit", "jump", "land", "chitter", "bug_hiss", "thud", "coin",
 	"splash", "blip", "blip_high", "blip_low", "gunshot", "parry", "fire_burst", "fire_blast", "crunch",
-	"howl", "haki", "edy_flash", "edy_sense", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "thunder", "rope",
+	"howl", "haki", "edy_flash", "edy_sense", "block", "peril", "bell", "cannon", "cannon_far", "cannon_hit", "horn", "roar", "thunder", "rope",
 	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke", "hull_wave", "wave_break", "rock_crash",
 	"gull_cry", "jungle_bird",
 	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water", "step_snow", "step_ice",

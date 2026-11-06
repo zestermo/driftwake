@@ -14,6 +14,8 @@ class_name ShipCannon
 
 signal fired
 
+## Past this far from the camera a gun is heard as cannon_far (2026-11-06).
+const FAR_GUN := 45.0
 const MUZZLE_SPEED := 46.0
 const YAW_LIMIT := 0.9
 const PITCH_MIN := -0.14
@@ -261,6 +263,10 @@ func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node, n: int, chain_sho
 	var dir := vel.normalized()
 	FX.cannon_fire(from, dir)
 	FX.sfx("cannon", from, 2.0, 0.06)
+	# (far off, 45-700 m: a dull boom and its echo off the water instead; FX.sfx isn't heard past ~60 m)
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(from) > FAR_GUN:
+		FX.far_sfx("cannon_far", from, 6.0, 700.0)
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me and me.global_position.distance_to(from) < 14.0:
 		CombatManager.apply_camera_shake(0.18 if aiming_locally else 0.1)
