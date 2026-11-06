@@ -2928,6 +2928,9 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var n := 4 if y_bot > -0.2 else 5
 	var sim := _sim(h.torso)
 	var facings: Array = []
+	# (1.30.3) the chains first, then each panel's mesh (sewn across the seams with cloth_sewn: _seam_weights)
+	var all_rows: Array = []
+	var all_bones: Array = []
 	for sec in DRAPE_SECTORS:
 		var a0 := deg_to_rad(float(sec[0]))
 		var a1 := deg_to_rad(float(sec[1]))
@@ -2948,6 +2951,14 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 		var bones := sim.add_chain(chain, 0.16, 0.08, 1.0, DRAPE_HIT)
 		var edge: Vector3 = (rows[n - 1] as PackedVector3Array)[3] - chain[n - 1]
 		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, edge * 0.8, -edge * 0.8]))
+		all_rows.append(rows)
+		all_bones.append(bones)
+	for si in range(DRAPE_SECTORS.size()):
+		var sec: Array = DRAPE_SECTORS[si]
+		var rows: Array = all_rows[si]
+		var bones: PackedInt32Array = all_bones[si]
+		if cloth_sewn:
+			sim.mb.weight_fn = _seam_weights(DRAPE_SECTORS, si, rows, all_bones, n, -1.0)
 		sim.mb.add_strip_grid(m_coat, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3.ZERO)
 		if trimmed:
 			var hem := PackedVector3Array()
@@ -2958,6 +2969,7 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 				hem2.append(p + o)
 			var hb := bones[n - 1]
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([hb, hb]), 3.0, Color.WHITE, Vector3.ZERO)
+		sim.mb.weight_fn = Callable()
 		# (the side edges faced: seen from beside, the coat's edge, not its inside)
 		if sec == DRAPE_SECTORS[0] or sec == DRAPE_SECTORS[DRAPE_SECTORS.size() - 1]:
 			var e := 0 if sec == DRAPE_SECTORS[0] else 3

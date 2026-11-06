@@ -18,7 +18,13 @@ const EVENTS := [[2.0, "walk"], [3.2, "run"], [4.4, "turn"], [5.3, "stop"], [7.3
 ## (env CL_FRONT: the moments from the front three-quarters and the side instead, where a draped coat meets the arms)
 const MOMENTS_FRONT := [["walk", 2.9, "f3"], ["walk2", 3.05, "side"], ["run", 4.0, "f3"], ["run2", 4.25, "side"], ["swing1", 9.45, "f3"],
 	["swing2", 9.9, "f3"], ["swing3", 10.5, "side"], ["spin", 10.8, "f3"]]
-var moments: Array = MOMENTS_FRONT if OS.get_environment("CL_FRONT") != "" else MOMENTS
+var moments: Array = MOMENTS_BACK if OS.get_environment("CL_BACK") != "" else (MOMENTS_FRONT if OS.get_environment("CL_FRONT") != "" else MOMENTS)
+## (1.30.3, env CL_BACK) backpedalling in the combat stance, Zach's "walking backwards is janky": the cutlass drawn,
+## backwards, a stop, backwards again
+const EVENTS_BACK := [[2.0, "draw"], [3.0, "back"], [6.0, "backstop"], [7.5, "back"], [9.5, "backstop"], [10.5, "end"]]
+const MOMENTS_BACK := [["back1", 3.6, "side"], ["back2", 4.1, "q3"], ["back3", 4.6, "f3"], ["back4", 5.2, "behind"],
+	["stop", 6.25, "side"], ["back5", 8.2, "f3"], ["back6", 8.7, "side"], ["back7", 9.2, "q3"]]
+var events: Array = EVENTS_BACK if OS.get_environment("CL_BACK") != "" else EVENTS
 const MOMENTS := [["run", 4.2, "behind"], ["turn1", 4.55, "q3"], ["turn2", 4.8, "behind"], ["stop1", 5.4, "side"],
 	["stop2", 5.8, "behind"], ["jump", 7.65, "side"], ["spin1", 10.6, "q3"], ["spin2", 10.85, "behind"]]
 const CAPS := ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips", "torso", "arm_l", "arm_r", "fore_l", "fore_r"]
@@ -109,9 +115,9 @@ func _process(_d: float) -> bool:
 		return false
 	var t := (Engine.get_physics_frames() - t0) / float(Engine.physics_ticks_per_second)
 	var cur := run
-	while ev < EVENTS.size() and t >= float(EVENTS[ev][0]) and run == cur:
+	while ev < events.size() and t >= float(events[ev][0]) and run == cur:
 		ev += 1
-		_event(str(EVENTS[ev - 1][1]))
+		_event(str(events[ev - 1][1]))
 	if run >= runs.size():
 		return true
 	if run != cur:
@@ -184,6 +190,10 @@ func _event(e: String) -> void:
 			p.draw_weapon(true)
 		"attack":
 			TK.act("light_attack")
+		"back":
+			TK.press("move_back")
+		"backstop":
+			TK.release("move_back")
 		"end":
 			TK.release("move_forward")
 			TK.release("move_back")
