@@ -2,7 +2,7 @@ extends Node3D
 ## The cloth stage (1.30.3): a playable test stage for judging clothing by hand. Open tools/dev/cloth_stage.tscn in the
 ## editor and press F6 (Run Current Scene). The light stage (flat ground, a dummy, a cutlass) with the captain in one
 ## outfit at a time and a mannequin in the same outfit turning back and forth beside the spawn.
-## Keys: L the connected sheet (BodyBuilder.cloth_lattice) on/off, PageDown / PageUp next / previous outfit, Insert the body (masc, fem, stout, slim), Home the cloth's weight
+## Keys: L cycles the cloth: chains, sewn chains (BodyBuilder.cloth_sewn), the connected sheet (cloth_lattice); PageDown / PageUp next / previous outfit, Insert the body (masc, fem, stout, slim), Home the cloth's weight
 ## (BodyBuilder.CLOTH_FEELS), End slow motion (x0.3), Delete the mannequin on/off. Shift+F1 still toggles every net.
 
 const OUTFITS := [
@@ -84,7 +84,14 @@ func _unhandled_key_input(e: InputEvent) -> void:
 			BodyBuilder.cloth_feel = (BodyBuilder.cloth_feel + 1) % BodyBuilder.CLOTH_FEELS.size()
 			_apply()
 		KEY_L:
-			BodyBuilder.cloth_lattice = not BodyBuilder.cloth_lattice
+			# chains -> sewn chains -> the connected sheet -> chains
+			if BodyBuilder.cloth_lattice:
+				BodyBuilder.cloth_lattice = false
+			elif BodyBuilder.cloth_sewn:
+				BodyBuilder.cloth_sewn = false
+				BodyBuilder.cloth_lattice = true
+			else:
+				BodyBuilder.cloth_sewn = true
 			_apply()
 		KEY_END:
 			slow = not slow
@@ -105,6 +112,7 @@ func _look() -> Dictionary:
 	# (a key of its own per cloth weight: Humanoid.make pools prebuilt bodies by look)
 	lk["_cloth_feel"] = BodyBuilder.cloth_feel
 	lk["_cloth_lattice"] = BodyBuilder.cloth_lattice
+	lk["_cloth_sewn"] = BodyBuilder.cloth_sewn
 	return lk
 
 
@@ -124,6 +132,6 @@ func _apply() -> void:
 func _show() -> void:
 	var feel: Array = BodyBuilder.CLOTH_FEELS[BodyBuilder.cloth_feel]
 	_label.text = "CLOTH STAGE   %d/%d %s   body: %s   weight: %s   cloth: %s%s\n" % [outfit + 1, OUTFITS.size(),
-		OUTFITS[outfit][0], BODIES[body][0], feel[0], "CONNECTED SHEET" if BodyBuilder.cloth_lattice else "chains",
+		OUTFITS[outfit][0], BODIES[body][0], feel[0], "CONNECTED SHEET" if BodyBuilder.cloth_lattice else ("SEWN CHAINS" if BodyBuilder.cloth_sewn else "chains"),
 		"   SLOW x0.3" if slow else ""] + \
-		"PgDn/PgUp outfit   Ins body   Home weight   L connected sheet   End slow-mo   Del mannequin   Shift+F1 nets"
+		"PgDn/PgUp outfit   Ins body   Home weight   L chains/sewn/sheet   End slow-mo   Del mannequin   Shift+F1 nets"

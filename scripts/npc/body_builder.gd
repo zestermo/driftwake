@@ -46,6 +46,9 @@ const CLOTH_FEELS := [["as built", null, 1.0], ["heavy", 0.18, 1.0], ["heavier",
 ## (1.30.3 piece 2) Hanging cloth round the hips (_cloth_sectors: skirts, hakama, coat tails, tunic hems) as one
 ## connected ClothSheet instead of a chain per panel. Off in the game until Zach's OK; the cloth stage toggles it (L).
 static var cloth_lattice := false
+## (1.30.3, Zach's idea after the sheet) The panels keep their chains (the weight, the net) but their meshes are sewn
+## across the seams (_seam_weights): no gaps, the chains' collisions. Off in the game until Zach's OK; the stage's L.
+static var cloth_sewn := false
 const CLOTH_FEEL_DRAPE := 4
 const CLOTH_FEEL_SKIRT := 2
 static var cloth_feel := 3
@@ -3025,6 +3028,10 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 		return
 	var sim := _sim(h.hips)
 	var rows_n := flare.size()
+	# (1.30.3) every panel's chain first, then the meshes: sewn (cloth_sewn), a panel's vertices blend toward the
+	# neighbouring panel's chain across the seam, both sides of a seam on the same mix, so the panels can't part
+	var all_rows: Array = []
+	var all_bones: Array = []
 	for sec in sectors:
 		var a0 := deg_to_rad(float(sec[0]))
 		var a1 := deg_to_rad(float(sec[1]))
@@ -3048,6 +3055,15 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 		# (the net's probes out to the panel's edges at the hem: a sector is wider than its chain)
 		var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[3] - chain[rows_n - 1]
 		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, edge * 0.8, -edge * 0.8]))
+		all_rows.append(rows)
+		all_bones.append(bones)
+	var ns := sectors.size()
+	for si in range(ns):
+		var rows: Array = all_rows[si]
+		var bones: PackedInt32Array = all_bones[si]
+		var sewn := cloth_sewn and ns > 1
+		if sewn:
+			sim.mb.weight_fn = _seam_weights(sectors, si, rows, all_bones, rows_n, vent)
 		sim.mb.add_strip_grid(m, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3.ZERO)
 		if m_trim:
 			var last: PackedVector3Array = rows[rows_n - 1]
@@ -3059,6 +3075,67 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 				hem2.append(p + Vector3(p.x, 0, p.z).normalized() * 0.004)
 			var hb := bones[rows_n - 1]
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([hb, hb]), 3.0, Color.WHITE, Vector3.ZERO)
+		sim.mb.weight_fn = Callable()
+
+
+## (1.30.3) Sewn panels: the weights for panel `si`'s vertices (its trim's too). A vertex k of 4 across the panel takes
+## its own chain and the neighbour's on its side, by how far it lies from its chain's middle towards the seam: half and
+## half on the seam, so both panels' edge vertices sit together. An open edge (a coat's front, and its back vent from
+## halfway down) keeps to its own chain. Rows by height (the trim hangs from the hem row).
+func _seam_weights(sectors: Array, si: int, rows: Array, all_bones: Array, rows_n: int, vent: float) -> Callable:
+	var ns := sectors.size()
+	var ys := PackedFloat32Array()
+	for r in rows:
+		ys.append((r as PackedVector3Array)[0].y)
+	var last: PackedVector3Array = rows[rows_n - 1]
+	var own: PackedInt32Array = all_bones[si]
+	var a0 := float(sectors[si][0])
+	var a1 := float(sectors[si][1])
+	# the neighbour on each side, -1 where the edge is open
+	var meets := func(x_deg: float, y_deg: float) -> bool:
+		return is_equal_approx(fposmod(x_deg, 360.0), fposmod(y_deg, 360.0))
+	var left := -1
+	var right := -1
+	for j in range(ns):
+		if j == si:
+			continue
+		if meets.call(float(sectors[j][1]), a0):
+			left = j
+		if meets.call(float(sectors[j][0]), a1):
+			right = j
+	var vent_row := rows_n / 2
+	var at_vent_l: bool = vent >= 0.0 and meets.call(a0, vent)
+	var at_vent_r: bool = vent >= 0.0 and meets.call(a1, vent)
+	return func(pos: Vector3) -> Array:
+		var row := 0
+		for i in range(1, rows_n):
+			if pos.y <= ys[i] + 0.0001:
+				row = i
+		# (the hem's trim, a band just over the hem row, hangs from it)
+		if absf(pos.y - ys[rows_n - 1]) <= 0.036:
+			row = rows_n - 1
+		# where across the panel: the nearest of its four columns on the hem row (the panel narrows above; the share
+		# across is the same on every row)
+		var k := 0
+		var best := INF
+		for c in range(4):
+			var d := Vector2(pos.x - last[c].x, pos.z - last[c].z).length_squared()
+			var rr: PackedVector3Array = rows[row]
+			var d2 := Vector2(pos.x - rr[c].x, pos.z - rr[c].z).length_squared()
+			d = minf(d, d2)
+			if d < best:
+				best = d
+				k = c
+		# -1 at the left edge, 0 the middle, 1 the right edge (columns at -1, -1/3, 1/3, 1)
+		var u := (k / 3.0) * 2.0 - 1.0
+		var nb := right if u > 0.0 else left
+		var vented: bool = (at_vent_r if u > 0.0 else at_vent_l) and row >= vent_row
+		if nb < 0 or vented or absf(u) < 1e-4:
+			return [PackedInt32Array([own[row], 0, 0, 0]), PackedFloat32Array([1.0, 0.0, 0.0, 0.0])]
+		# half way across to the next chain at the seam: own 1 - |u| / 2
+		var w := absf(u) * 0.5
+		var other: PackedInt32Array = all_bones[nb]
+		return [PackedInt32Array([own[row], other[row], 0, 0]), PackedFloat32Array([1.0 - w, w, 0.0, 0.0])]
 
 
 ## (1.30.3 piece 2) _cloth_sectors' panels as one ClothSheet on the hips: three columns a sector, a column shared where

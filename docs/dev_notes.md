@@ -10980,3 +10980,16 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   Measured on the 60 Hz points against a body moving every frame, everything looked like a pop: measure what's drawn.
 - **Cost (GDScript):** 3-4 ms a 60 Hz step a sheet (skirt 126 points, coats 98). Lab only; the C++ port follows
   Zach's OK on the feel. No hem trim yet (the captain's coat's gold hem).
+
+## 2026-11-05: 1.30.3 piece 2b: sewn chains (Zach: keep the strips, close the gaps)
+- The connected sheet (above) didn't feel or look good on the legs (Zach). His idea instead: keep every panel's chain
+  (the weight, the net, its collisions) and join the panels in the mesh. BodyBuilder.cloth_sewn (off until his OK):
+  `_cloth_sectors` builds all the chains first, then each panel's mesh with `_seam_weights` (MeshBuilder.weight_fn):
+  a vertex k of 4 across a panel takes its own chain and the neighbour's on its side, half and half on the seam (both
+  panels' edge vertices sit together), 1/6 at the inner columns; an open edge (a coat's front) and the back vent from
+  halfway down (long coats' `vent` 180) keep to their own chain; the hem trim hangs from the hem row. The cloak's
+  chains already blended this way.
+- The motion is the chains' exactly (clothlab numbers unchanged); only the seams close. Renders:
+  tools/dev/out/clothlab_sewn/ (CL_SEWN, CL_NEAR). The cloth stage's L cycles chains -> sewn -> sheet.
+- Gotcha: an untyped `meets.call()` result in an inferred `:=` was a parse error; the GUI clothlab run then hung for
+  20 minutes with no output (a headless build check shows the error at once).

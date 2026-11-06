@@ -68,6 +68,9 @@ func _initialize() -> void:
 			runs.append([lk, net])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	TK.seed_of(self)
+	if OS.get_environment("CL_SEWN") != "":
+		BodyBuilder.cloth_sewn = true
+		print("CLOTH SEWN on")
 	if OS.get_environment("CL_LATTICE") != "":
 		BodyBuilder.cloth_lattice = true
 		print("CLOTH LATTICE on")
