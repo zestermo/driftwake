@@ -77,6 +77,19 @@ var _gust_snd: AudioStreamPlayer
 ## How far under water the ears are (0 .. 1).
 var under := 0.0
 var _lowpass: Array = []
+## The room you're in (2026-11-06): one ray a mix tick from the camera, sweeping ROOM_DIRS, says how
+## enclosed it is (a roof over you and walls round you) and how big; the SFX bus's reverb follows it,
+## so a cabin, the tavern, a cave or the fort's halls ring the way they would. 0 out in the open.
+const ROOM_DIRS: Array[Vector3] = [Vector3.UP,
+	Vector3(1, 0, 0), Vector3(0.71, 0, 0.71), Vector3(0, 0, 1), Vector3(-0.71, 0, 0.71),
+	Vector3(-1, 0, 0), Vector3(-0.71, 0, -0.71), Vector3(0, 0, -1), Vector3(0.71, 0, -0.71),
+	Vector3(0.6, 0.8, 0), Vector3(-0.6, 0.8, 0), Vector3(0, 0.8, 0.6), Vector3(0, 0.8, -0.6)]
+const ROOM_REACH := 30.0
+var room := 0.0
+var room_size := 0.0
+var _room_hits: Array = []
+var _room_i := 0
+var _reverb: Array = []
 
 
 func _ready() -> void:
@@ -107,6 +120,24 @@ func _ready() -> void:
 			AudioServer.add_bus_effect(b, fx)
 			AudioServer.set_bus_effect_enabled(b, AudioServer.get_bus_effect_count(b) - 1, false)
 		_lowpass.append([b, fx])
+	_room_hits.resize(ROOM_DIRS.size())
+	_room_hits.fill(INF)
+	var sb := AudioServer.get_bus_index("SFX")
+	if sb >= 0:
+		var rv: AudioEffectReverb = null
+		for e in range(AudioServer.get_bus_effect_count(sb)):
+			if AudioServer.get_bus_effect(sb, e).resource_name == "room":
+				rv = AudioServer.get_bus_effect(sb, e)
+		if rv == null:
+			rv = AudioEffectReverb.new()
+			rv.resource_name = "room"
+			rv.dry = 1.0
+			rv.wet = 0.0
+			rv.spread = 0.6
+			rv.hipass = 0.12
+			AudioServer.add_bus_effect(sb, rv, 0)
+		_reverb = [sb, rv]
+		_set_room(0.0, 0.0)
 	var birds := SkyBirds.new()
 	birds.name = "SkyBirds"
 	add_child(birds)
@@ -114,6 +145,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_set_under(0.0)
+	_set_room(0.0, 0.0)
 
 
 func _bus() -> String:
@@ -161,6 +193,7 @@ func _process(frame_delta: float) -> void:
 			_bed = KitStyle.of(_zone[0])["ambience"]
 		_mix(me, want, delta)
 		_underwater(me, want, delta)
+		_room_probe(delta)
 	for k in want:
 		_level(k, want[k], delta)
 
@@ -251,6 +284,55 @@ func _underwater(me: Node3D, want: Dictionary, delta: float) -> void:
 		wet = wet or ((bm as Humanoid).head.global_position.y < float(me.call("water_surface")) - 0.05)
 	_set_under(move_toward(under, 1.0 if wet else 0.0, delta * (5.0 if wet else 2.5)))
 	want["under"] = under
+
+
+## The next of ROOM_DIRS from the camera, then how enclosed the room is: a roof (the ray up, or most of
+## the high diagonals) and the share of walls within 18 m round you; its size, the mean distance hit.
+func _room_probe(delta: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or _reverb.is_empty():
+		return
+	var d: Vector3 = ROOM_DIRS[_room_i]
+	var from := cam.global_position
+	var q := PhysicsRayQueryParameters3D.create(from, from + d.normalized() * ROOM_REACH, 1)
+	var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
+	_room_hits[_room_i] = INF if hit.is_empty() else from.distance_to(hit["position"])
+	_room_i = (_room_i + 1) % ROOM_DIRS.size()
+	var walls := 0
+	var sum := 0.0
+	var n := 0
+	for i in range(1, 9):
+		if float(_room_hits[i]) < 18.0:
+			walls += 1
+	var highs := 0
+	for i in range(9, 13):
+		if float(_room_hits[i]) < 20.0:
+			highs += 1
+	for h in _room_hits:
+		if float(h) < ROOM_REACH:
+			sum += float(h)
+			n += 1
+	var roof := float(_room_hits[0]) < 20.0 or highs >= 3
+	var want := pow(walls / 8.0, 1.5) if roof else 0.0
+	var size := sum / n if n > 0 else 0.0
+	_set_room(move_toward(room, want, delta * 1.5), lerpf(room_size, size, clampf(delta * 2.0, 0.0, 1.0)))
+
+
+func _set_room(k: float, size: float) -> void:
+	room = k
+	room_size = size
+	if _reverb.is_empty():
+		return
+	var b: int = _reverb[0]
+	var rv: AudioEffectReverb = _reverb[1]
+	# a cabin is small and close, a cave or a hall long and dark
+	rv.room_size = clampf(size / 18.0, 0.12, 0.9)
+	rv.damping = lerpf(0.65, 0.35, clampf(size / 18.0, 0.0, 1.0))
+	rv.predelay_msec = 12.0 + size * 2.5
+	rv.wet = 0.3 * k
+	for i in range(AudioServer.get_bus_effect_count(b)):
+		if AudioServer.get_bus_effect(b, i) == rv:
+			AudioServer.set_bus_effect_enabled(b, i, k > 0.01)
 
 
 func _set_under(k: float) -> void:
