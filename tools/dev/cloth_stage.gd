@@ -22,6 +22,10 @@ const OUTFITS := [
 	["cape", {"hair": "short", "coat": "none", "cape": true}],
 	["cloak", {"hair": "short", "coat": "none", "cloak": true}],
 	["draped long coat", {"hair": "short", "hat": "none", "coat": "longcoat", "coat_drape": true, "belt": "sash"}],
+	["long hair", {"body": "fem", "hair": "long", "hat": "none", "coat": "none"}],
+	["flowing hair", {"body": "fem", "hair": "cascade", "hat": "none", "coat": "none"}],
+	["ponytail", {"hair": "ponytail", "hat": "none", "coat": "none"}],
+	["dreadlocks", {"hair": "dreads", "hat": "none", "coat": "none"}],
 ]
 const BODIES := [["masc", {"body": "masc", "build": "average"}], ["fem", {"body": "fem", "build": "average"}],
 	["stout", {"body": "masc", "build": "stout"}], ["slim", {"body": "fem", "build": "slim"}]]
@@ -80,6 +84,9 @@ func _unhandled_key_input(e: InputEvent) -> void:
 		KEY_INSERT:
 			body = (body + 1) % BODIES.size()
 			_apply()
+		KEY_J:
+			BodyBuilder.hair_feel = (BodyBuilder.hair_feel + 1) % BodyBuilder.HAIR_FEELS.size()
+			_apply()
 		KEY_HOME:
 			BodyBuilder.cloth_feel = (BodyBuilder.cloth_feel + 1) % BodyBuilder.CLOTH_FEELS.size()
 			_apply()
@@ -113,6 +120,7 @@ func _look() -> Dictionary:
 	lk["_cloth_feel"] = BodyBuilder.cloth_feel
 	lk["_cloth_lattice"] = BodyBuilder.cloth_lattice
 	lk["_cloth_sewn"] = BodyBuilder.cloth_sewn
+	lk["_hair_feel"] = BodyBuilder.hair_feel
 	return lk
 
 
@@ -131,7 +139,8 @@ func _apply() -> void:
 
 func _show() -> void:
 	var feel: Array = BodyBuilder.CLOTH_FEELS[BodyBuilder.cloth_feel]
-	_label.text = "CLOTH STAGE   %d/%d %s   body: %s   weight: %s   cloth: %s%s\n" % [outfit + 1, OUTFITS.size(),
-		OUTFITS[outfit][0], BODIES[body][0], feel[0], "CONNECTED SHEET" if BodyBuilder.cloth_lattice else ("SEWN CHAINS" if BodyBuilder.cloth_sewn else "chains"),
+	_label.text = "CLOTH STAGE   %d/%d %s   body: %s   cloth weight: %s   hair weight: %s   cloth: %s%s\n" % [outfit + 1,
+		OUTFITS.size(), OUTFITS[outfit][0], BODIES[body][0], feel[0], BodyBuilder.HAIR_FEELS[BodyBuilder.hair_feel][0],
+		"CONNECTED SHEET" if BodyBuilder.cloth_lattice else ("SEWN CHAINS" if BodyBuilder.cloth_sewn else "chains"),
 		"   SLOW x0.3" if slow else ""] + \
-		"PgDn/PgUp outfit   Ins body   Home weight   L chains/sewn/sheet   End slow-mo   Del mannequin   Shift+F1 nets"
+		"PgDn/PgUp outfit   Ins body   Home cloth weight   J hair weight   L chains/sewn/sheet   End slow-mo   Del mannequin   Shift+F1 nets"

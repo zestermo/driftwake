@@ -38,9 +38,12 @@ func _process(_d: float) -> bool:
 	# (1.30.3: the net's clearing judged on the cloth as built; the heavier default weight lags into this script's
 	# backward leg kicks more (cape look: 91 frames, worst 6.3 cm; clothlab's real animation shows fewer) and is printed)
 	var feel := BodyBuilder.cloth_feel
+	# (1.30.3: hair's weight too: it's laid on in _nets, so the bare pass had none and the netted one the heavier)
+	var hfeel := BodyBuilder.hair_feel
 	for pass_ in [[false, 0], [true, 0], [true, feel]]:
 		var netted: bool = pass_[0]
 		BodyBuilder.cloth_feel = pass_[1]
+		BodyBuilder.hair_feel = 0 if pass_[1] == 0 else hfeel
 		BodyBuilder.cloth_net = netted
 		BodyBuilder.cape_net = netted
 		for lk in KIT.looks():
@@ -71,6 +74,7 @@ func _process(_d: float) -> bool:
 	BodyBuilder.cloth_net = true
 	BodyBuilder.cape_net = true
 	BodyBuilder.cloth_feel = feel
+	BodyBuilder.hair_feel = hfeel
 	return TK.done(fails)
 
 

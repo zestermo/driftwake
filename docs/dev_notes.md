@@ -11002,3 +11002,19 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   Backpedal, seams in the legs: skirt 685 -> 0, draped coat 318 -> 36; draped coat pops 23 -> 29 (133 unseased), its
   cloth in the body 392 -> 242. The draped coat's panels are sewn too. Still open: the sash knot shows through the
   draped coat's back in two backpedal frames.
+
+## 2026-11-05: 1.30.3: sewn chains on in the game, heavier hair (Zach: "yeah that looks better")
+- `BodyBuilder.cloth_sewn` true: every _cloth_sectors garment (skirts, hakama, coat tails, tunic hems) and the draped
+  coat are sewn, with the seam net. `SEW_CLEAR` -1 cm (inside the capsule, which stands ~3 cm off the skin): at +1.2 cm
+  the seam net pushed seams out standing still (coat_tails_hang: admiral and skirt splayed, 3.9 cm), at -2 cm it let
+  backpedalling through (197). At -1 cm: idle admiral 2.9 cm / skirt 2.7 cm mean; backpedal seams in the legs skirt
+  685 -> 110, draped coat 318 -> 111. Seam probes (`seam_probes`) off: they changed nothing.
+- **Hair** (Zach: "too springy and not heavy enough"): `HAIR_FEELS` / `hair_feel` 2 "heavier" (damping 0.28, the pull
+  to the styled shape x0.9), laid on the head's chains in _nets; the stage's J cycles it, clothlab CL_HAIRFEEL. Flowing
+  hair's mean jitter 12.2 -> 5.3 mm (worst 585 -> 345), twin tails 7.7 -> 3.8; segments in the body 5154 -> 3204 but
+  in more frames (679 -> 752): heavier hair rests on the back more often (chains_net_clear's cloak look: 101 -> 239
+  frames, shallower). The stage gained long, flowing, ponytail and dreadlocks outfits.
+- Tests: chains_net_clear judges the net with hair and cloth as built (the bare pass never had _nets' weights);
+  chains_native_same compares the solvers with the seam net off (a threshold after either: it turned sub-mm
+  differences into cm). Passing: the chains_*, coat_tails_hang, cloth_layers, hair_off_body, flow_hair, look_options,
+  t/gear/coat_drape, backpack, cliptest.

@@ -48,12 +48,15 @@ const CLOTH_FEELS := [["as built", null, 1.0], ["heavy", 0.18, 1.0], ["heavier",
 static var cloth_lattice := false
 ## (1.30.3, Zach's idea after the sheet) The panels keep their chains (the weight, the net) but their meshes are sewn
 ## across the seams (_seam_weights): no gaps, the chains' collisions. Off in the game until Zach's OK; the stage's L.
-static var cloth_sewn := false
+static var cloth_sewn := true
 ## Sewn panels' net probes out to the seams (_panel_probes); the lab turns it off to compare.
-static var seam_probes := true
+static var seam_probes := false
 ## Sewn, each panel split in this many narrower ones (more chains, closer together).
 static var sew_split := 1
 const CLOTH_FEEL_DRAPE := 4
+## (1.30.3) Hair's weight, as CLOTH_FEELS (damping, stiffness x); the stage's J cycles it.
+const HAIR_FEELS := [["as built", null, 1.0], ["heavy", 0.2, 1.0], ["heavier", 0.28, 0.9], ["cape-like", 0.34, 0.8]]
+static var hair_feel := 2
 const CLOTH_FEEL_SKIRT := 2
 static var cloth_feel := 3
 
@@ -300,6 +303,13 @@ func _nets() -> void:
 		if s.mode != "a0":
 			continue
 		if key == h.head:
+			# (1.30.3, Zach: hair "too springy and not heavy enough") more damping, the pull to its styled shape mostly kept
+			var hf: Array = HAIR_FEELS[hair_feel]
+			if hf[1] != null:
+				for ci in range(s.chain_count()):
+					var c := s.chain(ci)
+					c["d"] = maxf(float(c["d"]), float(hf[1]))
+					c["k"] = float(c["k"]) * float(hf[2])
 			s.use_net(["torso", "hair_sh"], [], 0.012, 1.4, 1.0)
 		else:
 			# (a draped coat's empty sleeves and tails on the torso: cape-like, unless the stage picked "as built")

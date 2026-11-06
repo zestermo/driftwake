@@ -18,6 +18,9 @@ var fails := 0
 
 func _initialize() -> void:
 	TK.seed_of(self)
+	# (1.30.3: the solvers compared alone: the seam net runs after either on the drawn bones, an on/off threshold that
+	# turned their sub-millimetre differences into centimetres; it's the same code for both)
+	SpringChains.sew_net = false
 	# (the library's sources aren't loaded as resources: a change to them must still make this pass stale)
 	for f in ["res://native/src/chain_solver.cpp", "res://native/src/chain_solver.h", "res://native/src/register_types.cpp"]:
 		preload("res://scripts/game/dep_record.gd").note_dep(f)

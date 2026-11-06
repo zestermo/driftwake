@@ -86,6 +86,8 @@ func _initialize() -> void:
 	if OS.get_environment("CL_LATTICE") != "":
 		BodyBuilder.cloth_lattice = true
 		print("CLOTH LATTICE on")
+	if OS.get_environment("CL_HAIRFEEL") != "":
+		BodyBuilder.hair_feel = int(OS.get_environment("CL_HAIRFEEL"))
 	if OS.get_environment("CL_FEEL") != "":
 		BodyBuilder.cloth_feel = int(OS.get_environment("CL_FEEL"))
 		print("CLOTH FEEL %s" % BodyBuilder.CLOTH_FEELS[BodyBuilder.cloth_feel][0])

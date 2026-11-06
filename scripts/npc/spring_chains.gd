@@ -81,7 +81,9 @@ var net := false:
 ## A seam is half each neighbouring chain, so with one chain each side of a leg it ran through the leg: after the
 ## pose, a seam point inside a leg pushes both chains' bones on that row out (the rows below go with them; drawn only).
 var sew_legs := PackedStringArray()
-const SEW_CLEAR := 0.012
+## Kept this far out from a leg's capsule: negative, since the capsules stand ~3 cm off the skin and the cloth is cut
+## inside them (at the capsule, every seam was pushed out standing still: the tails splayed, coat_tails_hang).
+const SEW_CLEAR := -0.01
 ## The lab turns the seam net off to compare.
 static var sew_net := true
 
