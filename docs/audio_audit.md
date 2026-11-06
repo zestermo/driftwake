@@ -253,8 +253,15 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | Track | Length | Key, tempo | LU | Notes |
 |---|---|---|---|---|
 | music_title | 137.1 s (40 bars) | D lydian/major, 4/4 70 | -18.0 | wonder (2026-11-06, BotW/TotK manner): the motif on a felt piano over wind, strings take B, the theme far off on a flute, A' tutti with one timpani swell, piano alone back to bar 1 |
-| music_sea | 139.1 s (80 bars) | E minor / G major, 6/8 dq 69 | -18.0 | Waters' tunes on Corsair's band (Zach's pick), the theme in G, a becalmed oboe bridge; strings swelling a bar at a time, wind |
-| music_sea_night | 139.1 s (80 bars) | same | -18.0 | same form: dark harp, low flute and oboe, the theme on a far horn, celesta, no gallop or drums |
+| music_sea_breeze | 82.1 s (52 bars) | G major, 6/8 dq 76 | -18.0 | sea rotation (2026-11-06, Wind Waker side): tin whistle tune, fiddle a third under, strummed guitar, pizzicato bass, frame drum; the theme in 6/8 on the fiddle |
+| music_sea_horizon | 93.9 s (48 bars) | D major, 3/4 92 | -18.0 | sea rotation, by night too: a waltz, piano and harp under the flute, strings sweep in, the theme waltzed on the oboe, choir on the last A |
+| music_sea_calm | 133.3 s (40 bars) | G lydian, 4/4 72 | -18.0 | sea rotation, by night too: becalmed, sparse felt piano over wind and swell, breathing strings; the theme on a lone flute in G |
+| music_sea_trade | 101.5 s (44 bars) | F major, 4/4 104 | -18.0 | sea rotation: the trade winds, concertina over offbeat guitar, pizzicato and harp; oboe in Dm for B with glockenspiel; the theme in F on the oboe |
+| music_sea_dawn | 130.9 s (36 bars) | A major (lydian II), 4/4 66 | -18.0 | sea rotation, by night too: first light, oboe over harp and a piano left hand, strings take B, the theme on the horn |
+| music_sea_wander | 114.8 s (44 bars) | D dorian, 4/4 92 | -18.0 | sea rotation: far islands, ocarina and fiddle over skipping pizzicato and frame drum, flute lifts to F, the theme breaks out in D major on strings and horns |
+| music_sea_stars | 96.0 s (40 bars) | E major, 6/8 dq 50 | -18.0 | sea rotation, by night too: hushed, celesta over a piano left hand and swelling strings, glockenspiel glints, flute in B, THEME_68 on the strings |
+| music_sea_far | 113.7 s (36 bars) | C major, 4/4 76 | -18.0 | sea rotation: the big one, a piano alone with the tune, then soaring strings over horns, timpani and choir; the theme on the horns in C |
+| music_sea_storm | 70.6 s (40 bars) | D minor, 6/8 dq 68 | -18.0 | the storm's own (Weather.storm > 0.55 at sea): galloping low strings, timpani rolls on the swells, horns' tune, strings and choir to the Neapolitan Eb, crashes, heavy wind |
 | music_island | 144.0 s (48 bars) | D lydian, 4/4 80 | -18.0 | the wilds, wonder (2026-11-06): short felt-piano phrases with whole bars of wind between, low notes held, strings breathing in twice, the theme far off on a flute, a thinning coda |
 | music_island_night | 144.0 s (48 bars) | same | -18.0 | same form: the piano an octave down and softer, celesta stars, the theme on a far horn, more wind |
 | music_village | 141.8 s (52 bars) | G major, 4/4 88 | -18.0 | the harbour town, wonder (2026-11-06): fingerpicked guitar throughout, piano tune, flute answer (the motif in G), strings, the theme in G on the piano; no drums |
