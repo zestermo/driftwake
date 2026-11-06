@@ -92,6 +92,8 @@ var _ray_mat: ShaderMaterial
 var _shafts: MultiMeshInstance3D
 var _shaft_mat: ShaderMaterial
 var _rain_snd: AudioStreamPlayer
+## (2026-11-06) the rain drumming on the roof over you (by _shelter)
+var _roof_snd: AudioStreamPlayer
 var _sand_snd: AudioStreamPlayer
 var _blizzard_snd: AudioStreamPlayer
 var _precip: PrecipFX
@@ -354,7 +356,7 @@ func _detach() -> void:
 	if _layer and is_instance_valid(_layer):
 		_layer.queue_free()
 	_layer = null
-	for snd in [_rain_snd, _sand_snd, _blizzard_snd]:
+	for snd in [_rain_snd, _roof_snd, _sand_snd, _blizzard_snd]:
 		if snd and is_instance_valid(snd):
 			snd.stop()
 	if _ambience and is_instance_valid(_ambience):
@@ -991,6 +993,7 @@ func FX_sfx(name_: String, db: float) -> void:
 func _build_audio() -> void:
 	if _rain_snd == null:
 		_rain_snd = _loop_player("res://assets/audio/rain_loop.wav")
+		_roof_snd = _loop_player("res://assets/audio/rain_roof_loop.wav")
 		_sand_snd = _loop_player("res://assets/audio/sandstorm_loop.wav")
 		_blizzard_snd = _loop_player("res://assets/audio/blizzard_loop.wav")
 	if _ambience == null:
@@ -1022,6 +1025,7 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 func _update_audio(delta: float) -> void:
 	var cover := 1.0 - _shelter * 0.5
 	_set_loop(_rain_snd, rain * cover, -6.0, delta)
+	_set_loop(_roof_snd, rain * _shelter, -7.0, delta)
 	_set_loop(_sand_snd, sand * cover, -6.0, delta)
 	# (a light fall is quiet: the bed is for a heavy one and the blizzard)
 	_set_loop(_blizzard_snd, smoothstep(SNOW_LIGHT, 1.0, snow) * cover, -6.0, delta)

@@ -910,6 +910,34 @@ def rain_loop_sound(seconds=17.0):
     _write_loop("rain_loop", out)
 
 
+def rain_roof_loop(seconds=23.0):
+    """(2026-11-06) Rain heard from under a roof, an awning or the deck above: drops drumming on boards
+    and canvas (short knocks through a few plank modes, thick and thin by turns), runoff dripping from
+    the eaves in fat plips at uneven gaps, and the rain outside muffled behind it all."""
+    rng = np.random.default_rng(1111)
+    n = int(SR * seconds)
+    out = _shape(n, rng, lambda f: _hp(f, 80) * _lp(f, 900, 2)) * 0.45 * (0.85 + 0.15 * _cenv(n, rng, 0.2))
+    drum = np.zeros(n)
+    L = int(0.05 * SR)
+    tt = np.arange(L) / SR
+    takes = [_modes(tt, rng, [(rng.uniform(170, 230), 1.0, 70), (rng.uniform(380, 520), 0.6, 110),
+                              (rng.uniform(900, 1300), 0.3, 160)]) for _ in range(6)]
+    dens = 0.5 + 0.5 * _cenv(n, rng, 0.25)
+    for _ in range(int(seconds * 220)):
+        at = int(rng.integers(0, n))
+        if rng.random() > dens[at]:
+            continue
+        _place(drum, takes[int(rng.integers(0, 6))] * rng.uniform(0.15, 0.6), at)
+    out += _norm(drum) * 0.55
+    for _ in range(int(seconds * 1.3)):
+        Ld = int(0.12 * SR)
+        td = np.arange(Ld) / SR
+        f = rng.uniform(700, 1100) * (1 + 0.6 * np.exp(-td / 0.01))
+        plip = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-td * 40) * np.minimum(1, td / 0.001)
+        _place(out, plip * rng.uniform(0.08, 0.2), rng.integers(0, n))
+    _write_loop("rain_roof_loop", _norm(out))
+
+
 # --------------------------------------------------------------------------
 # Ambience loops (Ambience mixes them by where you are). Built in the
 # frequency domain and placed circularly, so each loops with no seam.
@@ -2973,6 +3001,7 @@ SOUNDS = [
     ("splash_big", splash_big_sound),
     ("rope", rope_sound),
     ("rain_loop", rain_loop_sound),
+    ("rain_roof_loop", rain_roof_loop),
     ("wind_loop", wind_loop_sound),
     ("rigging_wind_loop", rigging_wind_loop),
     ("shore_surf_loop", shore_surf_loop),
