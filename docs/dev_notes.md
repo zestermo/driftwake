@@ -10993,3 +10993,12 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
   tools/dev/out/clothlab_sewn/ (CL_SEWN, CL_NEAR). The cloth stage's L cycles chains -> sewn -> sheet.
 - Gotcha: an untyped `meets.call()` result in an inferred `:=` was a parse error; the GUI clothlab run then hung for
   20 minutes with no output (a headless build check shows the error at once).
+- **Backpedalling (Zach: "walking backwards with the skirt and coat is janky"; clothlab CL_BACK):** the trailing leg came
+  through the back of the skirt at a sewn seam: a leg (~20 cm) fits between two chains (~30 cm apart at the hem), each
+  chain clears it on its own side and the stitch between runs through it. Probes out to the seams (`_panel_probes`)
+  and twice the panels (`sew_split`, kept at 1) didn't help. **The seam net** (SpringChains `_sew_clear`, `sew_legs`,
+  chain dict "sew" from `_mark_seams`): after the pose, each seam point inside a leg (+1.2 cm) pushes both chains' bones
+  on that row out (rows below follow; drawn only), eased in fast / out slower (`_sew_push`, SEW_IN 40, SEW_OUT 12).
+  Backpedal, seams in the legs: skirt 685 -> 0, draped coat 318 -> 36; draped coat pops 23 -> 29 (133 unseased), its
+  cloth in the body 392 -> 242. The draped coat's panels are sewn too. Still open: the sash knot shows through the
+  draped coat's back in two backpedal frames.

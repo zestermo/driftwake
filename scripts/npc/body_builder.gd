@@ -49,6 +49,10 @@ static var cloth_lattice := false
 ## (1.30.3, Zach's idea after the sheet) The panels keep their chains (the weight, the net) but their meshes are sewn
 ## across the seams (_seam_weights): no gaps, the chains' collisions. Off in the game until Zach's OK; the stage's L.
 static var cloth_sewn := false
+## Sewn panels' net probes out to the seams (_panel_probes); the lab turns it off to compare.
+static var seam_probes := true
+## Sewn, each panel split in this many narrower ones (more chains, closer together).
+static var sew_split := 1
 const CLOTH_FEEL_DRAPE := 4
 const CLOTH_FEEL_SKIRT := 2
 static var cloth_feel := 3
@@ -2928,10 +2932,11 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var n := 4 if y_bot > -0.2 else 5
 	var sim := _sim(h.torso)
 	var facings: Array = []
+	var secs_d: Array = _split_sectors(DRAPE_SECTORS, sew_split) if cloth_sewn and sew_split > 1 else DRAPE_SECTORS
 	# (1.30.3) the chains first, then each panel's mesh (sewn across the seams with cloth_sewn: _seam_weights)
 	var all_rows: Array = []
 	var all_bones: Array = []
-	for sec in DRAPE_SECTORS:
+	for sec in secs_d:
 		var a0 := deg_to_rad(float(sec[0]))
 		var a1 := deg_to_rad(float(sec[1]))
 		var am := (a0 + a1) * 0.5
@@ -2950,15 +2955,17 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 			chain.append(Vector3(sin(am) * s.x, y, -cos(am) * (s.y if cos(am) >= 0.0 else s.z)))
 		var bones := sim.add_chain(chain, 0.16, 0.08, 1.0, DRAPE_HIT)
 		var edge: Vector3 = (rows[n - 1] as PackedVector3Array)[3] - chain[n - 1]
-		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, edge * 0.8, -edge * 0.8]))
+		sim.set_probes(sim.chain_count() - 1, _panel_probes(edge))
 		all_rows.append(rows)
 		all_bones.append(bones)
-	for si in range(DRAPE_SECTORS.size()):
-		var sec: Array = DRAPE_SECTORS[si]
+	if cloth_sewn:
+		_mark_seams(sim, secs_d, all_rows, n)
+	for si in range(secs_d.size()):
+		var sec: Array = secs_d[si]
 		var rows: Array = all_rows[si]
 		var bones: PackedInt32Array = all_bones[si]
 		if cloth_sewn:
-			sim.mb.weight_fn = _seam_weights(DRAPE_SECTORS, si, rows, all_bones, n, -1.0)
+			sim.mb.weight_fn = _seam_weights(secs_d, si, rows, all_bones, n, -1.0)
 		sim.mb.add_strip_grid(m_coat, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3.ZERO)
 		if trimmed:
 			var hem := PackedVector3Array()
@@ -2971,8 +2978,8 @@ func _drape_coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([hb, hb]), 3.0, Color.WHITE, Vector3.ZERO)
 		sim.mb.weight_fn = Callable()
 		# (the side edges faced: seen from beside, the coat's edge, not its inside)
-		if sec == DRAPE_SECTORS[0] or sec == DRAPE_SECTORS[DRAPE_SECTORS.size() - 1]:
-			var e := 0 if sec == DRAPE_SECTORS[0] else 3
+		if sec == secs_d[0] or sec == secs_d[secs_d.size() - 1]:
+			var e := 0 if sec == secs_d[0] else 3
 			var w := 1 if e == 0 else 2
 			var strip := []
 			for row in rows:
@@ -3038,6 +3045,10 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 	if cloth_lattice and not sectors.is_empty():
 		_cloth_lattice(m, sectors, y_top, y_bot, flare, top_off, seat_gap, tails, vent, stiff)
 		return
+	# (1.30.3) sewn, each panel in `sew_split` narrower ones: no slits to show, and a leg can't sit between two chains
+	# (one chain each side of it, the stitch between them ran through the leg)
+	if cloth_sewn and sew_split > 1:
+		sectors = _split_sectors(sectors, sew_split)
 	var sim := _sim(h.hips)
 	var rows_n := flare.size()
 	# (1.30.3) every panel's chain first, then the meshes: sewn (cloth_sewn), a panel's vertices blend toward the
@@ -3066,10 +3077,12 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 		var bones := sim.add_chain(chain, stiff, 0.06, 1.0, ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"])
 		# (the net's probes out to the panel's edges at the hem: a sector is wider than its chain)
 		var edge: Vector3 = (rows[rows_n - 1] as PackedVector3Array)[3] - chain[rows_n - 1]
-		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, edge * 0.8, -edge * 0.8]))
+		sim.set_probes(sim.chain_count() - 1, _panel_probes(edge))
 		all_rows.append(rows)
 		all_bones.append(bones)
 	var ns := sectors.size()
+	if cloth_sewn:
+		_mark_seams(sim, sectors, all_rows, rows_n, vent)
 	for si in range(ns):
 		var rows: Array = all_rows[si]
 		var bones: PackedInt32Array = all_bones[si]
@@ -3088,6 +3101,41 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 			var hb := bones[rows_n - 1]
 			sim.mb.add_strip_grid(m_trim, Transform3D.IDENTITY, [hem, hem2], PackedInt32Array([hb, hb]), 3.0, Color.WHITE, Vector3.ZERO)
 		sim.mb.weight_fn = Callable()
+
+
+## Each [from, to] sector (degrees) in `k` equal narrower ones.
+static func _split_sectors(sectors: Array, k: int) -> Array:
+	var out: Array = []
+	for sec in sectors:
+		for i in range(k):
+			out.append([lerpf(float(sec[0]), float(sec[1]), float(i) / k), lerpf(float(sec[0]), float(sec[1]), float(i + 1) / k)])
+	return out
+
+
+## Each sewn panel chain's right-hand seam: its neighbour's chain index and the seam's points at rest, a row each (chain
+## dict "sew": [right chain index, PackedVector3Array]); SpringChains' seam net keeps them off the legs, the lab
+## measures them. The last `sectors.size()` chains of `sim` are the panels. `vent`: that seam open from halfway down.
+func _mark_seams(sim: SpringChains, sectors: Array, all_rows: Array, rows_n: int, vent: float = -1.0) -> void:
+	var ns := sectors.size()
+	var base := sim.chain_count() - ns
+	for si in range(ns):
+		for sj in range(ns):
+			if sj != si and is_equal_approx(fposmod(float(sectors[sj][0]), 360.0), fposmod(float(sectors[si][1]), 360.0)):
+				var at_vent := vent >= 0.0 and is_equal_approx(fposmod(float(sectors[si][1]), 360.0), fposmod(vent, 360.0))
+				var pts := PackedVector3Array()
+				for r in range(rows_n if not at_vent else rows_n / 2):
+					pts.append((all_rows[si][r] as PackedVector3Array)[3])
+				sim.chain(base + si)["sew"] = [base + sj, pts]
+	sim.sew_legs = PackedStringArray(["thigh_l", "thigh_r", "shin_l", "shin_r"])
+
+
+## A panel chain's net probes (offsets across it at the hem, `edge` its right edge's): out to 80% of the edges; sewn,
+## right out to the seams as well (the seam is the panel's edge then: probed short of it, a leg between two chains
+## came through the stitched cloth, backpedalling most of all).
+func _panel_probes(edge: Vector3) -> PackedVector3Array:
+	if cloth_sewn and seam_probes:
+		return PackedVector3Array([Vector3.ZERO, edge * 0.5, -edge * 0.5, edge, -edge])
+	return PackedVector3Array([Vector3.ZERO, edge * 0.8, -edge * 0.8])
 
 
 ## (1.30.3) Sewn panels: the weights for panel `si`'s vertices (its trim's too). A vertex k of 4 across the panel takes

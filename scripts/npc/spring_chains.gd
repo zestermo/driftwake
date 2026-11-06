@@ -77,6 +77,14 @@ var net := false:
 		net = v
 		_nat = null
 
+## (1.30.3) Sewn panels (BodyBuilder.cloth_sewn): the legs the seam net keeps the stitched seams off (empty: none).
+## A seam is half each neighbouring chain, so with one chain each side of a leg it ran through the leg: after the
+## pose, a seam point inside a leg pushes both chains' bones on that row out (the rows below go with them; drawn only).
+var sew_legs := PackedStringArray()
+const SEW_CLEAR := 0.012
+## The lab turns the seam net off to compare.
+static var sew_net := true
+
 var _chains: Array = []
 var _acc := 0.0
 var _last_origin := Vector3.INF
@@ -262,6 +270,7 @@ func simulate(delta: float) -> void:
 		_nat.simulate(self, skel, delta)
 		_acc = _nat.get_acc()
 		_net_acted = _nat.get_net_acted()
+		_sew_clear(delta)
 		return
 	if mode != "a0":
 		_simulate_tuned(delta)
@@ -282,6 +291,72 @@ func simulate(delta: float) -> void:
 		_g_step = g
 	# posed against the body as of the last step (against "now", a ship's speed snapped them back and forth between steps)
 	_write_pose(_g_step)
+	_sew_clear(delta)
+
+
+## Each seam row's push the frame before (chain index * 64 + row -> Vector3), eased toward the new one: snapped on and
+## off, a leg's kick jerked the hem (the draped coat's pops 23 -> 133).
+var _sew_push: Dictionary = {}
+const SEW_IN := 40.0
+const SEW_OUT := 12.0
+
+
+func _sew_clear(delta: float) -> void:
+	if sew_legs.is_empty() or not sew_net:
+		return
+	var gs := skel.get_global_transform_interpolated()
+	var inv := gs.affine_inverse()
+	# the legs in the skeleton's space
+	var caps: Array = []
+	for key in sew_legs:
+		if not colliders.has(key):
+			continue
+		var cd: Dictionary = colliders[key]
+		var tt: Transform3D = inv * (cd["node"] as Node3D).get_global_transform_interpolated()
+		caps.append([tt * (cd["a"] as Vector3), tt * (cd["b"] as Vector3), float(cd["r"]) * tt.basis.get_scale().x + SEW_CLEAR])
+	if caps.is_empty():
+		return
+	for ci in range(_chains.size()):
+		var c: Dictionary = _chains[ci]
+		if not c.has("sew"):
+			continue
+		var other: Dictionary = _chains[int(c["sew"][0])]
+		var pts: PackedVector3Array = c["sew"][1]
+		var ba: PackedInt32Array = c["bones"]
+		var bb: PackedInt32Array = other["bones"]
+		for r in range(1, pts.size()):
+			# (a row's vertices ride its point's bone: the segment it starts, the hem row the last segment's)
+			var ia := ba[mini(r, ba.size() - 1)]
+			var ib := bb[mini(r, bb.size() - 1)]
+			var pa := skel.get_bone_global_pose(ia)
+			var pb := skel.get_bone_global_pose(ib)
+			var seam := ((pa * skel.get_bone_global_rest(ia).affine_inverse() * pts[r])
+				+ (pb * skel.get_bone_global_rest(ib).affine_inverse() * pts[r])) * 0.5
+			var push := Vector3.ZERO
+			for cap in caps:
+				var a: Vector3 = cap[0]
+				var ab: Vector3 = cap[1] - a
+				var l2 := ab.length_squared()
+				var t := clampf((seam - a).dot(ab) / l2, 0.0, 1.0) if l2 > 1e-8 else 0.0
+				var off := seam + push - (a + ab * t)
+				var d := off.length()
+				var rr: float = cap[2]
+				if d < rr and d > 1e-5:
+					push += off / d * (rr - d)
+			# (eased: in fast, out slower)
+			var key := ci * 64 + r
+			var was: Vector3 = _sew_push.get(key, Vector3.ZERO)
+			var rate := SEW_IN if push.length_squared() > was.length_squared() else SEW_OUT
+			push = was.lerp(push, 1.0 - exp(-rate * delta))
+			if push.length_squared() < 1e-8:
+				_sew_push.erase(key)
+				continue
+			_sew_push[key] = push
+			if push != Vector3.ZERO:
+				pa.origin += push
+				pb.origin += push
+				skel.set_bone_global_pose(ia, pa)
+				skel.set_bone_global_pose(ib, pb)
 
 
 func _nat_build() -> void:

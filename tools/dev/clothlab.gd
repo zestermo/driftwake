@@ -74,6 +74,12 @@ func _initialize() -> void:
 			runs.append([lk, net])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	TK.seed_of(self)
+	if OS.get_environment("CL_SPLIT") != "":
+		BodyBuilder.sew_split = int(OS.get_environment("CL_SPLIT"))
+	if OS.get_environment("CL_OLDPROBE") != "":
+		BodyBuilder.seam_probes = false
+	if OS.get_environment("CL_NOSEWNET") != "":
+		SpringChains.sew_net = false
 	if OS.get_environment("CL_SEWN") != "":
 		BodyBuilder.cloth_sewn = true
 		print("CLOTH SEWN on")
@@ -208,6 +214,7 @@ func _event(e: String) -> void:
 				jl.append("%s mean %.2f mm, worst %.1f mm" % [k, jv[0] / maxf(1.0, jv[1]) * 1000.0, jv[2] * 1000.0])
 			report.append("      jitter (chain tips, body space, per frame): " + ", ".join(jl))
 			report.append("      cloth pops (a hem point jumping > 5 cm in a frame, hair aside): %d" % int(rec.get("pops", 0)))
+			report.append("      sewn seams in the legs at the hem (seam-frames): %d" % int(rec.get("seam", 0)))
 			_next()
 
 
@@ -289,6 +296,34 @@ func _measure() -> void:
 						var bk := "%s>%s" % [s.get_parent().name, cap[3]]
 						rec["by"][bk] = int(rec["by"].get(bk, 0)) + 1
 						rec["pen_worst"] = maxf(rec["pen_worst"], depth)
+	# (1.30.3) sewn seams at the hem, skinned as the mesh blends them (half each neighbour's last bone), in the legs
+	for s in hm._sims:
+		var sk2: Skeleton3D = s.skel
+		var gt2 := sk2.get_global_transform_interpolated()
+		for ci in range(s.chain_count()):
+			var c2: Dictionary = s.chain(ci)
+			if not c2.has("sew"):
+				continue
+			var other: Dictionary = s.chain(int(c2["sew"][0]))
+			var spts: PackedVector3Array = c2["sew"][1]
+			var ri := spts.size() - 1
+			var nb_a := (c2["bones"] as PackedInt32Array).size()
+			# (the hem's seam only: a vent's seam stops halfway)
+			if ri < nb_a:
+				continue
+			var rest_pt: Vector3 = spts[ri]
+			var ba: int = (c2["bones"] as PackedInt32Array)[nb_a - 1]
+			var bb: int = (other["bones"] as PackedInt32Array)[(other["bones"] as PackedInt32Array).size() - 1]
+			var pa := sk2.get_bone_global_pose(ba) * sk2.get_bone_global_rest(ba).affine_inverse() * rest_pt
+			var pb := sk2.get_bone_global_pose(bb) * sk2.get_bone_global_rest(bb).affine_inverse() * rest_pt
+			var wp := gt2 * ((pa + pb) * 0.5)
+			for cap in caps:
+				if not str(cap[3]).begins_with("thigh") and not str(cap[3]).begins_with("shin"):
+					continue
+				var ab: Vector3 = cap[1] - cap[0]
+				var t := clampf((wp - cap[0]).dot(ab) / ab.length_squared(), 0.0, 1.0)
+				if float(cap[2]) - wp.distance_to(cap[0] + ab * t) > 0.0:
+					rec["seam"] = int(rec.get("seam", 0)) + 1
 	# (1.30.3) the connected sheets: their points (below the pinned top row) inside the capsules, and their hem's jitter
 	for sh in hm._cloth:
 		# (what's drawn: the bones, in the sheet's space, and those in the world)
