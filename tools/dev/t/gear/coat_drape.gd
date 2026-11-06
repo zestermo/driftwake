@@ -65,7 +65,8 @@ func _process(_d: float) -> bool:
 			coat = gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": Color(0.9, 0.88, 0.8), "trim_color": Color(0.85, 0.68, 0.24)})
 			p.equipment.equip(coat)
 			p.refresh_look()
-			check("a long coat worn the usual way: not draped, no arm capsules", p.body_model.look.get("coat_drape") == false and not arm_pushed(p.body_model))
+			# (1.30.3: worn the usual way it hangs from the shoulders in sewn cloth: four panels on the torso, no forearm capsules)
+			check("a long coat worn the usual way: not draped, hung (its 4 panels on the torso, the captain's look may add one: %d)" % torso_chains(p.body_model), p.body_model.look.get("coat_drape") == false and not arm_pushed(p.body_model) and torso_chains(p.body_model) in [4, 5])
 			gm.open("inventory")
 			until = TK.wait_ticks(4)
 		1:
@@ -92,7 +93,7 @@ func _process(_d: float) -> bool:
 			check("a crewmate's screen drapes it too", pup.body_model.look.get("coat_drape") == true and torso_chains(pup.body_model) >= 6)
 			check("draped is saved", save.save(p))
 			p.drape_coat(false)
-			check("...untick: sleeves back on the arms", p.body_model.look.get("coat_drape") == false and not arm_pushed(p.body_model))
+			check("...untick: sleeves back on the arms (hung again: %d chains)" % torso_chains(p.body_model), p.body_model.look.get("coat_drape") == false and not arm_pushed(p.body_model) and torso_chains(p.body_model) in [4, 5])
 			check("...and the save loads it draped", save.load_into(p) and p.equipment.is_draped(coat) and p.body_model.look.get("coat_drape") == true)
 			var ok := []
 			for style in CharacterLook.COATS:

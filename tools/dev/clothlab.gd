@@ -35,6 +35,8 @@ const LOOKS := {
 	"duster": {"hair": "short", "coat": "duster", "belt": "wide_belt"},
 	"skirt": {"body": "fem", "hair": "short", "legs": "skirt", "coat": "none"},
 	"jacket": {"hair": "short", "hat": "none", "coat": "jacket", "coat_color": Color(0.36, 0.12, 0.1)},
+	"captain": {"hair": "short", "coat": "captain", "coat_color": Color(0.66, 0.14, 0.12)},
+	"great": {"hair": "short", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09)},
 	"ties": {"hair": "braid", "hat": "bandana", "apron": true, "coat": "none"},
 	"drape": {"hair": "short", "hat": "none", "coat": "longcoat", "coat_color": Color(0.9, 0.88, 0.8), "coat_drape": true, "belt": "sash"},
 	"drape_great": {"hair": "short", "hat": "none", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "coat_drape": true, "top": "bare"},

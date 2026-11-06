@@ -11038,3 +11038,21 @@ rigid yoke reaches lower); the jacket's tail profile below the waist nearly stra
 stiffer (0.34 / damping 0.1, was 0.16 / 0.08: at a run the hem lifts a little, no cape-like fly-out); a `jback`
 collider (jacket only): a capsule on the torso set forward so only its back face lies on the back, stopping the back
 panel swinging in through the shirt on a lean back or backpedal. Clothlab jacket: pops 88 -> 64 (run), 4 backpedalling.
+
+### 1.30.3 long coats hung from the shoulders (2026-11-06)
+Zach OK'd the jacket; the long coats (longcoat, captain, greatcoat, duster, admiral: `BodyBuilder.HUNG_COATS`, `_hung()`)
+now hang the same way. `_jacket_body` became `_hung_body(coat, m, m_trim, shell)`: the rigid yoke to JACKET_PIN_U, then
+one sewn piece on the torso's chains (JACKET_SECTORS) from the chest to the hem, 7 rows for a long coat (pin, chest, waist,
+then four to the hem), the back seam a vent from row 3 (a quarter of the way to the hem, below the seat); stiffer than
+the old tails (0.42 / 0.12; at 0.26 a sprint laid it flat behind like a cape). The captain's and admiral's braid is on
+the cloth now (hem band, and down both front edges), the old rigid front-edge trim and the hips-chain tails are gone.
+The frock (buttoned, a full skirt) and the haori are unchanged.
+- **The fitting pass** (`_clear_of`): every hung-cloth point below the pin is built clear of the hips' and legs' capsules
+  at rest (+1.2 cm). Built at the waist's width the cloth lay inside the hips' capsule (rounder than the body); the net
+  pushed the waist bone out at once and the chain levered it into the hem: a long coat stood 6-10 cm out standing idle.
+  With the fit, coat_tails_hang's means 2.3-3.4 cm; clothlab captain 1190 -> 542 segment-frames in the body, duster 811 -> 111.
+- **No arm capsules on hung coats** (the draped coat keeps them): the sleeve lies over the side seam, and idle arms held
+  the sides out. The long coats' tail profile narrower (thick + 2.5..7 cm, was 3..11), the duster keeps the wide one.
+- Straps (baldric, bandolier) stand 9 mm further out over a hung coat (cliptest).
+- Tests updated for the move (cloth_layers, coat_tails_hang over the torso's chains too, coat_drape: hung = no arm
+  capsules); clothlab looks `captain`, `great`.

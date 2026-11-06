@@ -35,7 +35,7 @@ func _process(_d: float) -> bool:
 				for s in h._sims:
 					if s.get_parent() == h.hips:
 						sim = s
-				var coat_n: int = {"longcoat": 4, "duster": 4, "frock": 6, "jacket": 0, "none": 0}[coat]  # (1.30.3: the jacket hangs on the torso)
+				var coat_n: int = {"longcoat": 0, "duster": 0, "frock": 6, "jacket": 0, "none": 0}[coat]  # (1.30.3: the jacket and the long coats hang on the torso)
 				var n_under: int = sim.chain_count() - coat_n if sim else 0
 				var want: int = {"frock": 0, "longcoat": 2, "duster": 2}.get(coat, 6)
 				check("%s: %d panels underneath (want %d)" % [tag, n_under, want], n_under == want)

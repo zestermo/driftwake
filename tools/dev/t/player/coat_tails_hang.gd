@@ -43,20 +43,20 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(2.5)
 		1:
 			var hm = p.body_model
-			var sim = null
-			for s in hm._sims:
-				if s.get_parent() == hm.hips:
-					sim = s
+			# (1.30.3: the long coats hang from the shoulders on the torso's chains; a skirt's panels are the hips')
 			var outs: Array = []
-			for ci in range(sim.chain_count()):
-				var c: Dictionary = sim.chain(ci)
-				var pts: PackedVector3Array = c["p"]
-				var bones: PackedInt32Array = c["bones"]
-				var last := bones.size() - 1
-				var bp: Transform3D = sim.skel.get_bone_global_pose(bones[last])
-				var hem: Vector3 = bp.origin + bp.basis * (pts[last + 1] - pts[last])
-				var rest: Vector3 = pts[pts.size() - 1]
-				outs.append(Vector2(hem.x, hem.z).length() - Vector2(rest.x, rest.z).length())
+			for sim in hm._sims:
+				if sim.get_parent() != hm.hips and sim.get_parent() != hm.torso:
+					continue
+				for ci in range(sim.chain_count()):
+					var c: Dictionary = sim.chain(ci)
+					var pts: PackedVector3Array = c["p"]
+					var bones: PackedInt32Array = c["bones"]
+					var last := bones.size() - 1
+					var bp: Transform3D = sim.skel.get_bone_global_pose(bones[last])
+					var hem: Vector3 = bp.origin + bp.basis * (pts[last + 1] - pts[last])
+					var rest: Vector3 = pts[pts.size() - 1]
+					outs.append(Vector2(hem.x, hem.z).length() - Vector2(rest.x, rest.z).length())
 			var mean := 0.0
 			var most := -INF
 			for o in outs:
