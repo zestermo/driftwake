@@ -34,6 +34,8 @@ const LOOPS := {
 	"forest": "forest_loop",
 	"volcanic": "volcanic_loop",
 	"atoll": "atoll_loop",
+	"grassland": "grassland_loop", "grassland_night": "grassland_night_loop",
+	"jungle_night": "jungle_night_loop", "forest_night": "forest_night_loop",
 }
 ## Each loop's level at full strength (the loops are all made about as loud as each other).
 const TOP_DB := {"shore": -8.5, "rock": -9.0, "far": -11.0, "lap": -13.0, "sea": -11.0, "deep": -9.0, "wash": -9.0,
@@ -43,7 +45,8 @@ const TOP_DB := {"shore": -8.5, "rock": -9.0, "far": -11.0, "lap": -13.0, "sea":
 	"desert": -13.0,
 	"forest": -13.0,
 	"volcanic": -13.0,
-	"atoll": -13.5}
+	"atoll": -13.5,
+	"grassland": -14.0, "grassland_night": -14.0, "jungle_night": -13.0, "forest_night": -13.0}
 const ZONE_EVERY := 0.5
 ## CoastProbe's next bearing every PROBE_EVERY s (a sweep of all 16 in ~1.1 s).
 const PROBE_EVERY := 0.07
@@ -209,7 +212,14 @@ func _mix(me: Node3D, want: Dictionary, delta: float) -> void:
 	(_players["wind"] as AudioStreamPlayer).pitch_scale = lerpf(0.9, 1.15, clampf(wind + storm * 0.5, 0.0, 1.0)) * (1.0 + 0.02 * _drift(5) + 0.07 * gust)
 	if _bed != "":
 		var night: float = float(wx.get("night")) if wx else 0.0
-		want[_bed] = clampf(float(_zone[1]) * (0.3 + 0.7 * _land_near) * (1.0 - 0.6 * storm) * (0.85 + 0.3 * night), 0.0, 1.0)
+		var bed := clampf(float(_zone[1]) * (0.3 + 0.7 * _land_near) * (1.0 - 0.6 * storm), 0.0, 1.0)
+		var nk := _bed + "_night"
+		if LOOPS.has(nk):
+			# a bed with a night of its own crossfades to it through dusk (equal power: no dip)
+			want[_bed] = bed * sqrt(1.0 - night)
+			want[nk] = bed * sqrt(night)
+		else:
+			want[_bed] = clampf(bed * (0.85 + 0.3 * night), 0.0, 1.0)
 
 
 ## Gusts come and go at random, more often and stronger the harder it blows; a

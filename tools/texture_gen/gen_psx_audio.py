@@ -1764,6 +1764,167 @@ def forest_loop(seconds=53.0):
     _write_loop("forest_loop", out)
 
 
+# --- the grassland and the night beds (2026-11-06, with the wonder music): Brinehollow and every
+# island without a theme of its own had no bed ashore; and every bed now has a night to crossfade to ---
+
+def _grass_wind(n, rng, gust_rate=0.08, level=1.0):
+    """Wind through tall grass: a soft swish that rises with each gust, the blades' rustle
+    riding on it, a low hush under."""
+    gust = 0.2 + 0.8 * _cenv(n, rng, gust_rate) ** 1.6
+    swish = _shape(n, rng, lambda f: _hp(f, 300) * _lp(f, 1900, 2) * (np.maximum(f, 300) / 700) ** -0.5)
+    rustle = _shape(n, rng, lambda f: _hp(f, 1100) * _lp(f, 3000, 2)) * (0.4 + 0.6 * _cenv(n, rng, 9.0)) ** 2
+    hush = _shape(n, rng, lambda f: _hp(f, 60) * _lp(f, 420, 2))
+    return (swish * 0.5 * gust ** 1.2 + rustle * 0.1 * gust ** 2.2 + hush * 0.35 * (0.5 + 0.5 * gust)) * level
+
+
+def _skylark(rng, secs):
+    """A skylark high over the meadow: a long, unbroken warble of quick notes."""
+    out = np.zeros(0)
+    f0 = rng.uniform(3000, 3600)
+    while len(out) < secs * SR:
+        L = rng.uniform(0.03, 0.08)
+        t = np.arange(int(L * SR)) / SR
+        f = f0 * (1 + rng.uniform(-0.3, 0.3) * t / L)
+        out = np.concatenate([out, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * t / L) ** 2,
+                              np.zeros(int(rng.uniform(0.005, 0.03) * SR))])
+        f0 = float(np.clip(f0 * rng.uniform(0.88, 1.13), 2400, 4300))
+    t = np.arange(len(out)) / SR
+    return out * np.minimum(1, t / 1.5) * np.minimum(1, (t[-1] - t) / 1.5)
+
+
+def _grasshopper(rng):
+    """A grasshopper's buzz: a burst of fast scraping pulses, high and dry."""
+    L = rng.uniform(0.6, 1.4)
+    t = np.arange(int(L * SR)) / SR
+    pulse = (0.5 + 0.5 * np.sin(2 * np.pi * rng.uniform(38, 55) * t)) ** 4
+    return _burst(rng, L, 3800, 4800) * pulse * np.sin(np.pi * t / L) ** 0.6
+
+
+def _bee_pass(rng):
+    """A bee drifting past: a buzz that swells and falls with a small doppler slide."""
+    L = rng.uniform(1.6, 2.8)
+    t = np.arange(int(L * SR)) / SR
+    near = np.sin(np.pi * t / L) ** 2
+    f = rng.uniform(200, 240) * (1 + 0.04 * (0.5 - t / L))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    buzz = np.tanh(2.5 * np.sin(ph)) + 0.3 * np.sin(2 * ph)
+    return lpf(buzz, 0.35) * near
+
+
+def _cricket(rng, n, f, rate, pulses, level):
+    """One cricket chirping all through the loop (fading in and out on its own): chirps of
+    `pulses` short tones at f, `rate` chirps a second, wandering a little."""
+    out = np.zeros(n)
+    at = rng.uniform(0, 1.0 / rate)
+    pl = int(0.018 * SR)
+    tt = np.arange(pl) / SR
+    tone = np.sin(2 * np.pi * f * tt) * np.sin(np.pi * tt / 0.018) ** 2
+    while at < n / SR:
+        for k in range(pulses):
+            _place(out, tone, int((at + k * 0.032) * SR))
+        at += (1.0 / rate) * rng.uniform(0.9, 1.1)
+    return out * (0.15 + 0.85 * _cenv(n, rng, 0.05) ** 1.5) * level
+
+
+def _frog(rng):
+    """A frog far off: a short run of low throaty croaks."""
+    out = np.zeros(0)
+    f = rng.uniform(280, 420)
+    for _ in range(int(rng.integers(2, 6))):
+        L = rng.uniform(0.09, 0.16)
+        t = np.arange(int(L * SR)) / SR
+        ph = 2 * np.pi * f * t
+        tone = np.tanh(2.0 * np.sin(ph)) * (0.5 + 0.5 * np.sin(2 * np.pi * 38 * t))
+        out = np.concatenate([out, tone * np.sin(np.pi * t / L), np.zeros(int(rng.uniform(0.12, 0.25) * SR))])
+    return out
+
+
+def _treefrog(rng):
+    """A tree frog's peep: a bright rising 'kweek', two or three times."""
+    out = np.zeros(0)
+    for _ in range(int(rng.integers(2, 4))):
+        L = 0.07
+        t = np.arange(int(L * SR)) / SR
+        f = rng.uniform(2100, 2600) * (1 + 0.25 * t / L)
+        out = np.concatenate([out, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * t / L) ** 2,
+                              np.zeros(int(rng.uniform(0.18, 0.3) * SR))])
+    return out
+
+
+def grassland_loop(seconds=57.0):
+    """The open grassland by day (Brinehollow, and any island without a theme's bed): wind
+    moving through tall grass in long gusts, a skylark far up, meadow birds near and far,
+    grasshoppers buzzing in the warm spells, a bee drifting by."""
+    rng = np.random.default_rng(1106)
+    n = int(SR * seconds)
+    out = _grass_wind(n, rng)
+    for _ in range(2):
+        _place(out, lpf(_skylark(rng, rng.uniform(7, 12)), 0.3) * rng.uniform(0.07, 0.1), rng.integers(0, n))
+    for _ in range(7):
+        far = rng.uniform(0.15, 0.5)
+        _place(out, lpf(_songbird(rng), 0.25 + 0.35 * far) * far * 0.35, rng.integers(0, n))
+    warm = _cenv(n, rng, 0.04)
+    hop = np.zeros(n)
+    for _ in range(14):
+        _place(hop, _grasshopper(rng) * rng.uniform(0.4, 1.0), rng.integers(0, n))
+    out += hop * 0.035 * warm
+    for _ in range(3):
+        _place(out, _bee_pass(rng) * rng.uniform(0.06, 0.1), rng.integers(0, n))
+    _write_loop("grassland_loop", out)
+
+
+def grassland_night_loop(seconds=61.0):
+    """The grassland at night: the wind softer through the grass, crickets in the field near
+    and far (four, each fading in and out), frogs from a wet hollow, an owl once or twice."""
+    rng = np.random.default_rng(1107)
+    n = int(SR * seconds)
+    out = _grass_wind(n, rng, 0.06, 0.6)
+    for f, rate, pulses, lvl in ((4400, 1.9, 3, 0.07), (4700, 2.6, 4, 0.05), (4100, 1.4, 3, 0.04), (4900, 3.1, 2, 0.03)):
+        out += lpf(_cricket(rng, n, f, rate, pulses, 1.0), 0.6) * lvl
+    for _ in range(6):
+        _place(out, lpf(_frog(rng), 0.3) * rng.uniform(0.06, 0.11), rng.integers(0, n))
+    for _ in range(2):
+        _place(out, lpf(_owl_hoot(rng), 0.2) * rng.uniform(0.1, 0.15), rng.integers(0, n))
+    _write_loop("grassland_night_loop", out)
+
+
+def jungle_night_loop(seconds=47.0):
+    """The jungle at night: the cicadas gone quiet, a dense layer of crickets, tree frogs
+    peeping all round, a low insect drone, a hoot now and then."""
+    rng = np.random.default_rng(1108)
+    n = int(SR * seconds)
+    out = _cband(n, rng, 120, 1800, tilt=0.6) * 0.12 * (0.6 + 0.4 * _cenv(n, rng, 0.08))
+    out += _cband(n, rng, 2900, 3300) * (0.5 + 0.5 * _cenv(n, rng, 0.2)) * 0.03
+    for f, rate, pulses, lvl in ((4300, 2.2, 3, 0.06), (4600, 3.4, 4, 0.05), (3900, 1.7, 3, 0.05),
+                                 (4800, 2.9, 2, 0.04), (4100, 4.0, 3, 0.03)):
+        out += lpf(_cricket(rng, n, f, rate, pulses, 1.0), 0.6) * lvl
+    for _ in range(18):
+        far = rng.uniform(0.2, 0.6)
+        _place(out, lpf(_treefrog(rng), 0.3 + 0.4 * far) * far * 0.22, rng.integers(0, n))
+    for _ in range(3):
+        _place(out, lpf(_bird_call(rng, "hoot"), 0.3) * rng.uniform(0.1, 0.16), rng.integers(0, n))
+    _write_loop("jungle_night_loop", out)
+
+
+def forest_night_loop(seconds=59.0):
+    """The woods at night: the leaves stirring softly, the stream, a few crickets in the
+    clearings, an owl calling and another answering, a trunk creaking."""
+    rng = np.random.default_rng(1109)
+    n = int(SR * seconds)
+    gust = 0.3 + 0.7 * _cenv(n, rng, 0.07) ** 1.5
+    out = _cband(n, rng, 80, 600, tilt=0.6) * 0.3 * gust
+    out += _cband(n, rng, 900, 2400) * (0.5 + 0.5 * _cenv(n, rng, 6.0)) * gust ** 1.8 * 0.1
+    out += _cband(n, rng, 200, 900) * (0.6 + 0.4 * _cenv(n, rng, 1.6)) * 0.12
+    for f, rate, pulses, lvl in ((4200, 1.6, 3, 0.04), (4500, 2.3, 3, 0.03)):
+        out += lpf(_cricket(rng, n, f, rate, pulses, 1.0), 0.6) * lvl
+    for _ in range(5):
+        _place(out, lpf(_owl_hoot(rng), 0.2) * rng.uniform(0.12, 0.2), rng.integers(0, n))
+    for _ in range(2):
+        c = _stick_slip(rng, rng.uniform(0.8, 1.6), 10, 40, [(220, 6, 1.0), (640, 9, 0.5), (1400, 12, 0.25)])
+        _place(out, c * rng.uniform(0.12, 0.22), rng.integers(0, n))
+    _write_loop("forest_night_loop", out)
+
+
 
 def sandstorm_loop(seconds=41.0):
     """A sandstorm: the wind never lets up - a deep roar, a thick breathy middle, sand hissing
@@ -2758,6 +2919,10 @@ SOUNDS = [
     ("desert_loop", desert_loop),
     ("snow_loop", snow_loop),
     ("forest_loop", forest_loop),
+    ("grassland_loop", grassland_loop),
+    ("grassland_night_loop", grassland_night_loop),
+    ("jungle_night_loop", jungle_night_loop),
+    ("forest_night_loop", forest_night_loop),
     ("sandstorm_loop", sandstorm_loop),
     ("blizzard_loop", blizzard_loop),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),

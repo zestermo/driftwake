@@ -90,7 +90,7 @@ const BRINEHOLLOW := {
 	# what you hear: Music's track on foot here and in its village's streets (Music.TRACKS), Ambience's bed (Ambience.LOOPS; "" none)
 	"music": "island",
 	"music_town": "village",
-	"ambience": "",
+	"ambience": "grassland",
 	# the ground's textures (PSXMat.terrain: a generated island's terrain by splat, slope and height; "cliff" its sea cliffs' rock, Coast.build)
 	"ground": {"grass": "grass", "sand": "sand", "wet_sand": "wet_sand", "dirt": "dirt", "rock": "rock", "seafloor": "seafloor", "cliff": "rock"},
 	# the boss's ground on a generated island (GenIsland): "canopy" (giants ring it, a roof of crowns) or "open"
