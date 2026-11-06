@@ -11030,3 +11030,11 @@ The crew's gun ships on the 1.29 layout system: bought at the canal city's arsen
 - clothlab look `jacket`, the cloth stage's "jacket" outfit. cloth_layers' chain count: the jacket has no hip chains now.
 - Numbers (clothlab, run script): 88 pops, 1306 segment-frames in the body (arms 565, thighs 524): the arms brush the
   jacket's sides. Backpedal: 17 pops. Judged by Zach on the stage next.
+
+### 1.30.3 jacket tuning (2026-11-05)
+Zach: too wide, pin lower, clips into the back, no rounded flared hem. `body_builder.gd`: JACKET_PIN_U 0.44 -> 0.36 (the
+rigid yoke reaches lower); the jacket's tail profile below the waist nearly straight (flare thick+0.02..0.024, was
+0.03..0.06; seat gap 0.015, was 0.06) and a constant 8 mm ease (was growing to 2 cm at the hem: the bell); chains
+stiffer (0.34 / damping 0.1, was 0.16 / 0.08: at a run the hem lifts a little, no cape-like fly-out); a `jback`
+collider (jacket only): a capsule on the torso set forward so only its back face lies on the back, stopping the back
+panel swinging in through the shirt on a lean back or backpedal. Clothlab jacket: pops 88 -> 64 (run), 4 backpedalling.

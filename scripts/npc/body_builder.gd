@@ -569,6 +569,12 @@ func _colliders() -> void:
 		for s in ["l", "r"]:
 			colliders["arm_" + s] = {"node": h.get("arm_" + s), "a": Vector3.ZERO, "b": Vector3(0, -0.3 * A, 0), "r": 0.075 * limb + 0.03}
 			colliders["fore_" + s] = {"node": h.get("fore_" + s), "a": Vector3.ZERO, "b": Vector3(0, -0.3 * A, 0), "r": 0.06 * limb + 0.025}
+	# (1.30.3) the jacket's back: a capsule set forward so only its back face lies on the back (a round one on the spine
+	# would push the jacket out into a hump); a backpedal or a lean back swung the panel in through the shirt
+	if str(lk.get("coat", "none")) == "jacket" and not _draped():
+		var rb := 0.09 * de
+		var zb := 0.104 * de + _coat_off() * 0.5 - rb
+		colliders["jback"] = {"node": h.torso, "a": Vector3(0, -0.06, zb), "b": Vector3(0, tu(JACKET_PIN_U), zb), "r": rb}
 
 
 # --------------------------------------------------------------------------
@@ -3053,7 +3059,7 @@ func _hakama(m: Material) -> void:
 
 
 ## (1.30.3) Where the jacket stops being rigid: the shell over the shoulders and the top of the chest ends here (in tu).
-const JACKET_PIN_U := 0.44
+const JACKET_PIN_U := 0.36
 ## How far the yoke laps down over the jacket's cloth.
 const JACKET_LAP := 0.045
 ## The jacket's panels (0 the front): open down the front between -30 and 30.
@@ -3080,7 +3086,7 @@ func _jacket_body(m: Material, shell: Array) -> void:
 			x = sin(a) * float(r[1])
 			z = _surf_z(r, x, cos(a) < 0.0)
 		else:
-			var sr := _sector_row(y, tj["top"], tj["bot"], tj["flare"], tj["top_off"], 0.06)
+			var sr := _sector_row(y, tj["top"], tj["bot"], tj["flare"], tj["top_off"], 0.015)
 			x = sin(a) * sr.x
 			z = -cos(a) * (sr.y if cos(a) >= 0.0 else sr.z)
 		# (eased off the body below the pin, more towards the hem)
@@ -3095,13 +3101,13 @@ func _jacket_body(m: Material, shell: Array) -> void:
 		for r in range(n):
 			var y: float = ys[r]
 			# (the top row a touch inside the yoke that laps over it)
-			var ease := -0.002 if r == 0 else 0.006 + 0.014 * float(r) / (n - 1)
+			var ease := -0.002 if r == 0 else 0.008
 			var row := PackedVector3Array()
 			for k in range(4):
 				row.append(row_at.call(y, lerpf(a0, a1, k / 3.0), ease))
 			rows.append(row)
 			chain.append(row_at.call(y, am, ease))
-		var bones := sim.add_chain(chain, 0.16, 0.08, 1.0, DRAPE_HIT)
+		var bones := sim.add_chain(chain, 0.34, 0.1, 1.0, DRAPE_HIT + ["jback"])
 		var edge: Vector3 = (rows[n - 1] as PackedVector3Array)[3] - chain[n - 1]
 		sim.set_probes(sim.chain_count() - 1, _panel_probes(edge))
 		all_rows.append(rows)
@@ -3368,7 +3374,7 @@ func _tails_of(coat: String) -> Dictionary:
 	var fl := [0.03 + thick, 0.05 + thick, 0.08 + thick, 0.11 + thick]
 	match coat:
 		"jacket":
-			return {"top": 0.04, "bot": -0.14, "flare": [0.03 + thick, 0.045 + thick, 0.06 + thick], "top_off": 0.035 + thick}
+			return {"top": 0.04, "bot": -0.14, "flare": [0.02 + thick, 0.022 + thick, 0.024 + thick], "top_off": 0.03 + thick}
 		"haori":
 			return {"top": 0.04, "bot": -0.02 - 0.42 * Ls * 0.55, "flare": [0.03 + thick, 0.045 + thick, 0.065 + thick], "top_off": 0.035 + thick}
 		"frock":
