@@ -759,6 +759,42 @@ def inst_sleigh(m, n):
     return normpeak(out * np.minimum(1, t / 0.001))
 
 
+# --- the wonder voice (2026-11-06): a soft felt piano for the open-world sound ---
+
+def inst_piano(m, n):
+    """Soft (felt) piano: slightly stretched partials, each decaying faster the higher it
+    is, in two stages (the prompt sound and the long aftersound), unison strings beating,
+    a little hammer noise, and the damper falling at the end of the gate. Long gates are
+    the sustain pedal; the note rings out on its own after t60."""
+    f = mtof(m)
+    rng = seeded("piano", m)
+    t60 = float(np.clip(8.0 * (110.0 / f) ** 0.55, 1.0, 8.0))
+    body = max(16, min(n, int(t60 * SR)))
+    rel = int(0.25 * SR)
+    L = body + rel
+    t = np.arange(L) / SR
+    B = 0.00012 * (f / 110.0) ** 1.2
+    out = np.zeros(L)
+    for k in range(1, 19):
+        fk = k * f * np.sqrt(1 + B * k * k)
+        if fk > NYQ_LIMIT:
+            break
+        a = (1.0 / k ** 1.1) / (1 + (fk / 1800.0) ** 2)
+        a *= 0.2 + 0.8 * abs(np.sin(np.pi * k / 8.3))  # struck an eighth of the way along
+        tk = t60 / (1 + 0.45 * (k - 1))
+        env = 0.65 * np.exp(-t * 6.9 / (tk * 0.35)) + 0.35 * np.exp(-t * 6.9 / tk)
+        ph0 = rng.uniform(0, 2 * np.pi)
+        det = 2 ** (rng.uniform(0.4, 1.4) / 1200.0)
+        out += a * env * (np.sin(2 * np.pi * fk * t + ph0) + 0.6 * np.sin(2 * np.pi * fk * det * t + ph0 * 1.3))
+    hn = min(L, int(0.05 * SR))
+    th = t[:hn]
+    out[:hn] += bandnoise(rng, hn, 300, 3500) * np.exp(-th / 0.006) * 0.12
+    out[:hn] += np.sin(2 * np.pi * 95 * th) * np.exp(-th / 0.02) * 0.08
+    out *= np.minimum(1, t / 0.0015)
+    out[body:] *= np.exp(-(t[body:] - t[body]) / 0.06) * np.linspace(1, 0, L - body)
+    return normpeak(out) * 0.8
+
+
 INSTRUMENTS = {
     "flute": inst_flute, "fiddle": inst_fiddle, "accordion": inst_accordion,
     "concertina": inst_concertina, "pluck": inst_pluck, "guitar": inst_guitar,
@@ -774,7 +810,7 @@ INSTRUMENTS = {
     "whistle": inst_whistle, "gurdy": inst_gurdy, "trompette": inst_trompette,
     "bodhran": inst_bodhran, "bodhran_rim": inst_bodhran_rim, "banjo": inst_banjo,
     "ney": inst_ney, "mizmar": inst_mizmar, "oud": inst_oud, "dum": inst_dum, "tek": inst_tek,
-    "zill": inst_zill, "sleigh": inst_sleigh,
+    "zill": inst_zill, "sleigh": inst_sleigh, "piano": inst_piano,
 }
 
 _cache = {}
@@ -796,6 +832,7 @@ def render_note(inst, midi, n_gate):
 QUALITIES = {
     "": (0, 4, 7), "m": (0, 3, 7), "7": (0, 4, 7, 10), "m7": (0, 3, 7, 10),
     "dim": (0, 3, 6), "sus4": (0, 5, 7), "5": (0, 7), "maj7": (0, 4, 7, 11),
+    "add9": (0, 4, 7, 14), "madd9": (0, 3, 7, 14), "sus2": (0, 2, 7),
 }
 CHORD_RE = re.compile(r"^([A-G])([#b]?)(.*)$")
 
@@ -1180,225 +1217,223 @@ THEME_C2 = ("Bb4/4 D5/2 Bb4/2 | C5/4 E5/2 C5/2 | D5/6 F#5/2 | F#5/8 | "
             "Bb5/4 A5/2 F5/2 | G5/4 G5/2 E5/2 | G5/4 F#5/2 E5/2 | E5/3 E5/1 D5/2 C#5/2")
 
 
+# --- the wonder sound (2026-11-06): the title, the wilds and the harbour town, after Zach's
+# "standing on a grassy hill in the wind, taking in a huge view; a small piece of a big
+# world" - open-world exploration in the BotW/TotK manner (a soft felt piano, silence and
+# wind, strings that come and go, lydian colour). All original tunes. One motif (WONDER_A's
+# head: up a fourth, a step, up a fifth) runs through all three; each quotes THEME_A once.
+WONDER_A = ("A4/1 D5/1 E5/2 A5/4 | G#5/2 F#5/2 E5/4 | F#5/2 D5/2 B4/4 | D5/3 E5/1 A4/4 | "
+            "A4/1 D5/1 E5/2 A5/4 | B5/3 A5/1 G#5/2 E5/2 | F#5/4 E5/2 D5/2 | E5/8")
+WONDER_B = ("F#5/3 E5/1 D5/2 F#5/2 | B5/6 A5/2 | A5/3 F#5/1 E5/2 D5/2 | E5/6 -/2 | "
+            "F#5/3 E5/1 D5/2 B5/2 | D6/4 C#6/2 B5/2 | A5/3 G5/1 F#5/2 E5/2 | E5/4 -/4")
+WONDER_HEAD = "A4/1 D5/1 E5/2 A5/4 | G#5/2 F#5/2 E5/4 | B4/1 D5/1 F#5/2 C#6/4 | -/8"
+THEME_CH = ["Dadd9", "D", "Gmaj7", "A", "D", "Bm", "Gmaj7 A", "D"]  # THEME_A, opened up
+
+
+def _wide(s, bus, inst, ch, bars, low, vel, gate=0.98):
+    """Open voicing: the root low, its fifth, the other chord tones an octave up."""
+    for b in bars:
+        for sym, a, z in ch[b % len(ch)]:
+            root, pcs = chord_pcs(sym)
+            r = low + ((root - low) % 12)
+            notes = [r, r + 7] + voice([p for p in pcs if p not in (root, (root + 7) % 12)], r + 12)
+            for m in notes:
+                s.note(bus, inst, m, b * s.tpb + a * s.tpb, (z - a) * s.tpb, vel, gate)
+
+
+def _lh(s, bus, ch, bars, low, vel, changes_only=False):
+    """Piano left hand: root, fifth and tenth rolled up an eighth apart, pedalled to the
+    chord's end (changes_only: only where the chord changes, held while it lasts)."""
+    bars = list(bars)
+    prev = None
+    for b in bars:
+        for sym, a, z in ch[b % len(ch)]:
+            if changes_only and sym == prev:
+                continue
+            prev = sym
+            root, pcs = chord_pcs(sym)
+            r = low + ((root - low) % 12)
+            third = r + 12 + ((pcs[1] - root) % 12)
+            t0 = b * s.tpb + a * s.tpb
+            span = (z - a) * s.tpb
+            if changes_only:
+                k = b + 1
+                while k in bars and len(ch[k % len(ch)]) == 1 and ch[k % len(ch)][0][0] == sym:
+                    span += s.tpb
+                    k += 1
+            for i, m in enumerate((r, r + 7, third)):
+                s.note(bus, "piano", m, t0 + i, max(1, span - i), vel * (1.0 - 0.15 * i), 1.0)
+
+
 def track_title():
-    # 4/4, 96 bpm, eighth ticks, D major; 56 bars (2:20). Intro (the horns call the
-    # motif's head over the harp) | A horns | A' strings, horns a third under, timpani |
-    # B oboe over pizzicato | B' strings, choir | C the bridge (Bb C D: brass, the gallop) |
-    # A'' everyone, a flute descant | a turn that settles back into the intro.
-    s = Song("music_title", 60 / 96 / 2, 8, 56,
-             "4/4, 96 bpm, D major: the Driftwake theme (intro-A-A'-B-B'-C-A''-turn)")
-    s.bus("horn", 0.5, verb=0.32)
-    s.bus("horn2", 0.3, verb=0.32)
-    s.bus("brass", 0.3, verb=0.28)
-    s.bus("strlead", 0.46, verb=0.3)
-    s.bus("oboe", 0.48, verb=0.3, echo=0.08)
-    s.bus("flute", 0.24, verb=0.36)
-    s.bus("str", 0.3, verb=0.36)
-    s.bus("low", 0.45, verb=0.2)
-    s.bus("harp", 0.38, verb=0.32)
-    s.bus("pizz", 0.42, verb=0.16)
-    s.bus("ost", 0.34, verb=0.1)
-    s.bus("choir", 0.18, verb=0.42)
-    s.bus("timp", 0.44, verb=0.22)
-    s.bus("drum", 0.3, verb=0.16)
-    s.bus("crash", 0.12, verb=0.28)
-    s.bus("swell", 0.12, verb=0.2)
-    intro = ["D", "G", "Em", "A"]
-    A = ["D", "D", "G", "A", "D", "Bm", "G A", "D"]
-    B = ["Bm", "G", "D", "A", "Bm", "G", "Em", "A"]
-    C = ["Bb", "C", "D", "D", "Bb", "C", "G", "A"]
-    turn = ["G", "D", "Em", "A"]
-    ch = split_chords(intro + A + A + B + B + C + A + turn)
-    I, A1, A2, B1, B2, C1, A3, T = 0, 4, 12, 20, 28, 36, 44, 52
+    # 4/4, 70 bpm, eighth ticks, D major with a lydian lift (E over D); 40 bars (2:17).
+    # Intro: the motif's head alone on the piano, wind | A the piano tune, strings creep in |
+    # B strings take the long line, the piano rolling under | T the game's theme, far off
+    # on a flute over the piano | A' everyone: strings, a flute an octave up, horns a third
+    # under, one timpani swell | the piano alone again, back to bar 1.
+    s = Song("music_title", 60 / 70 / 2, 8, 40,
+             "4/4, 70 bpm, D lydian/major: the Driftwake theme, wonder (felt piano, strings, flute, horns, wind)")
+    s.bus("pno", 0.55, verb=0.4, echo=0.06)
+    s.bus("lh", 0.4, verb=0.4)
+    s.bus("strlead", 0.42, verb=0.42)
+    s.bus("flute", 0.24, verb=0.45)
+    s.bus("horn", 0.24, verb=0.42)
+    s.bus("str", 0.26, verb=0.45)
+    s.bus("low", 0.3, verb=0.3)
+    s.bus("choir", 0.12, verb=0.5)
+    s.bus("timp", 0.3, verb=0.3)
+    s.bus("swell", 0.08, verb=0.3)
+    s.bus("wind", 0.06, verb=0.0)
+    intro = ["Dadd9", "E", "Gmaj7", "Asus4"]
+    A = ["D", "E", "Bm", "G", "D", "E", "Gmaj7", "Asus4 A"]
+    B = ["Bm", "Gmaj7", "D", "A", "Bm", "Gmaj7", "Em7", "Asus4"]
+    ch = split_chords(intro + A + B + THEME_CH + A + intro)
+    I, A1, B1, T, A2, O = 0, 4, 12, 20, 28, 36
     dmaj = scale("D", "major")
-    allb = range(56)
-    # the bed: harp rolling under everything, held strings, the roots low
-    arpeggio(s, "harp", "harp", ch, allb, [0, 1, 2, 3, 4, 3, 2, 1], 1, low=50, vel=0.42, dur=2)
-    _chordpads(s, "str", "strings", ch, allb, 55, 0.3)
-    _roots(s, "low", "lowstr", ch, allb, nn("D2"), 0.6)
-    # intro: the call
-    s.line("horn", "horn", "D5/3 A4/1 D5/2 E5/2 | F#5/8 | G5/3 F#5/1 E5/2 B4/2 | C#5/4 E5/4", I, vel=0.75, transpose=-12)
-    _roll(s, "timp", ch, I + 3, 4, 4, 1, "D2", "A2")
-    s.note("swell", "swell", 0, (I + 3) * 8, 8, 1.0, 1.0)
-    # A: the theme on the horns
-    s.line("horn", "horn", THEME_A, A1, vel=0.9, transpose=-12)
-    bassline(s, "pizz", "pizz", ch, _bars(A1, 8), [(0, 2, "R"), (2, 2, "5"), (4, 2, "8"), (6, 2, "5")],
-             octave_low=nn("D2"), vel=0.7)
-    s.drums("drum", "frame", "X...x.o.", _bars(A1, 8), midi=nn("D2"), vel=0.6)
-    # A': strings take it, horns a third under, the timpani on the beat
-    s.line("strlead", "strings", THEME_A, A2, vel=0.85)
-    s.line("horn2", "horn", THEME_A, A2, vel=0.55, transpose=-12, harmonize=(dmaj, -2))
-    _timp(s, "timp", ch, _bars(A2, 8), [(0, 0.8), (4, 0.5)], "D2", "A2")
-    s.drums("drum", "snare", "..o...x.", _bars(A2, 8), vel=0.5)
-    _roll(s, "timp", ch, A2 + 7, 4, 4, 1, "D2", "A2")
-    # B: the oboe over pizzicato, lighter
-    s.line("oboe", "oboe", THEME_B, B1, vel=0.85)
-    bassline(s, "pizz", "pizz", ch, _bars(B1, 8), [(0, 3, "R"), (4, 3, "5")], octave_low=nn("D2"), vel=0.65)
-    s.drums("drum", "frame", "X.......", _bars(B1, 8), midi=nn("D2"), vel=0.5)
-    # B': strings and choir, horns under, building to the bridge
-    s.line("strlead", "strings", THEME_B, B2, vel=0.9)
-    s.line("horn2", "horn", THEME_B, B2, vel=0.5, transpose=-12, harmonize=(dmaj, -2))
-    _chordpads(s, "choir", "choir", ch, _bars(B2, 8), 59, 0.45)
-    _timp(s, "timp", ch, _bars(B2, 8), [(0, 0.7)], "D2", "A2")
-    _roll(s, "timp", ch, B2 + 7, 0, 8, 1, "D2", "A2")
-    s.note("swell", "swell", 0, (B2 + 7) * 8, 8, 1.0, 1.0)
-    # C: the bridge, full sail
-    s.line("horn", "horn", THEME_C, C1, vel=0.95, transpose=-12)
-    s.line("brass", "brass", THEME_C, C1, vel=0.55, transpose=-12)
-    s.line("horn2", "horn", THEME_C2, C1, vel=0.6, transpose=-12)
-    s.line("strlead", "strings", THEME_C, C1, vel=0.7)
-    _gallop(s, "ost", ch, _bars(C1, 8), 0.85, nn("D2"), (0, 4))
-    _timp(s, "timp", ch, _bars(C1, 8), [(0, 0.9), (4, 0.6)], "D2", "A2")
-    s.drums("drum", "snare", "..x...x.", _bars(C1, 7), vel=0.6)
-    s.drums("drum", "snare", "x.x.x.x.xxxxXXXX", [C1 + 7], vel=0.55)
-    s.drums("crash", "crash", "X.......", [C1, A3])
-    s.note("swell", "swell", 0, (C1 + 7) * 8, 8, 1.0, 1.0)
-    # A'': everyone, the flute above
-    s.line("strlead", "strings", THEME_A, A3, vel=0.95)
-    s.line("horn", "horn", THEME_A, A3, vel=0.9, transpose=-12)
-    s.line("horn2", "horn", THEME_A, A3, vel=0.5, transpose=-12, harmonize=(dmaj, -2))
-    s.line("flute", "flute", "A5/8 | D6/8 | D6/4 B5/4 | C#6/8 | A5/8 | F#5/4 B5/4 | B5/4 C#6/4 | D6/8", A3,
-           vel=0.5, transpose=12)
-    _chordpads(s, "choir", "choir", ch, _bars(A3, 8), 59, 0.5)
-    _timp(s, "timp", ch, _bars(A3, 8), [(0, 0.85), (4, 0.55)], "D2", "A2")
-    s.drums("drum", "snare", "..o...x.", _bars(A3, 8), vel=0.55)
-    # the turn: settling back down
-    s.line("oboe", "oboe", "B5/6 A5/2 | F#5/6 E5/1 D5/1 | E5/4 G5/2 B4/2 | C#5/4 E5/4", T, vel=0.7)
-    s.line("horn2", "horn", "B3/8 | A3/8 | G3/8 | A3/8", T, vel=0.45)
-    return s, dict(verb_t60=1.8, echo_sec=60 / 96 * 0.75, target_lu=-18.0)
+    s.line("pno", "piano", "A4/1 D5/1 E5/2 A5/4 | -/8 | B4/1 D5/1 F#5/2 C#6/4 | -/8", I, vel=0.6)
+    _lh(s, "lh", ch, _bars(I, 4), nn("D2"), 0.35)
+    s.line("pno", "piano", WONDER_A, A1, vel=0.72)
+    _lh(s, "lh", ch, _bars(A1, 8), nn("D2"), 0.42)
+    _wide(s, "str", "strings", ch, _bars(A1 + 4, 4), 50, 0.16)
+    s.line("strlead", "strings", WONDER_B, B1, vel=0.72)
+    rolling = list(_bars(B1, 8)) + list(_bars(A2, 8))
+    arpeggio(s, "pno", "piano", ch, rolling, [0, 1, 2, 3, 4, 3, 2, 1], 1, low=55, vel=0.26, dur=4)
+    _roots(s, "low", "lowstr", ch, rolling, nn("D2"), 0.5)
+    _wide(s, "str", "strings", ch, _bars(B1, 8), 50, 0.2)
+    _wide(s, "horn", "horn", ch, _bars(B1 + 4, 4), 45, 0.3)
+    # T: the theme, remembered - a flute over the piano's slow rolls, strings very low
+    s.line("flute", "flute", THEME_A, T, vel=0.7)
+    arpeggio(s, "pno", "piano", ch, _bars(T, 8), [0, 2, 4, 2], 2, low=50, vel=0.3, dur=6)
+    _lh(s, "lh", ch, _bars(T, 8), nn("D2"), 0.3, changes_only=True)
+    _wide(s, "str", "swellstr", ch, _bars(T + 4, 4), 50, 0.22)
+    s.note("swell", "swell", 0, (A2 - 1) * 8, 8, 1.0, 1.0)
+    _roll(s, "timp", ch, A2 - 1, 0, 8, 1, "D2", "A2", v0=0.12, dv=0.05)
+    s.line("strlead", "strings", WONDER_A, A2, vel=0.85)
+    s.line("flute", "flute", WONDER_A, A2, vel=0.42, transpose=12)
+    s.line("horn", "horn", WONDER_A, A2, vel=0.4, transpose=-12, harmonize=(dmaj, -2))
+    _wide(s, "str", "strings", ch, _bars(A2, 8), 50, 0.22)
+    _chordpads(s, "choir", "choir", ch, _bars(A2, 8), 57, 0.3)
+    _timp(s, "timp", ch, [A2, A2 + 4], [(0, 0.45)], "D2", "A2")
+    s.line("pno", "piano", WONDER_HEAD, O, vel=0.55)
+    _lh(s, "lh", ch, _bars(O, 4), nn("D2"), 0.3)
+    _wide(s, "str", "strings", ch, _bars(O, 2), 50, 0.12)
+    return s, dict(verb_t60=2.6, echo_sec=60 / 70 * 0.75, wind=True, wind_swells=8, target_lu=-18.0)
 
 
-# The wilds (D dorian, sixteenth ticks): a tiptoeing tune with rests to peer round
-# corners (A), a wandering one in F (B), the theme in the minor through the trees (C),
-# a breakdown of calls and answers (D).
-EX_A = ("A4/2 D5/2 -/2 F5/1 G5/1 F5/2 E5/2 D5/2 A4/2 | B4/2 D5/2 -/2 G5/2 F5/1 G5/1 F5/2 E5/2 D5/2 | "
-        "A4/2 D5/2 -/2 F5/2 A5/2 G5/1 A5/1 G5/2 F5/2 | E5/2 D5/2 B4/4 -/8 | "
-        "C5/2 F5/2 -/2 A5/1 Bb5/1 A5/2 G5/2 F5/2 C5/2 | E5/2 G5/2 -/2 C6/2 B5/1 C6/1 B5/2 A5/2 G5/2 | "
-        "F5/2 D5/2 -/2 Bb4/2 C5/2 D5/2 F5/2 A5/2 | G5/2 F5/2 E5/2 C#5/2 E5/4 -/4")
-EX_ANSWER = ("-/16 | -/16 | -/16 | -/8 G5/2 A5/2 B5/2 D6/2 | -/16 | -/16 | -/16 | -/12 A5/2 E5/2")
-EX_B = ("A5/6 G5/2 F5/4 C5/4 | E5/6 F5/2 G5/4 A5/4 | Bb5/4 D6/4 C6/2 Bb5/2 A5/2 G5/2 | A5/8 -/4 C5/2 D5/2 | "
-        "Bb5/4 A5/4 G5/4 D5/4 | C6/6 Bb5/2 A5/4 G5/4 | A5/4 F5/4 D5/4 F5/4 | E5/8 G5/4 C5/4")
-EX_C = ("D5/6 A4/2 D5/4 E5/4 | F5/6 G5/2 A5/8 | Bb5/4 A5/4 F5/4 D5/4 | E5/12 -/4 | "
-        "D5/6 A4/2 D5/4 E5/4 | F5/6 G5/2 A5/4 D6/4 | C#6/6 Bb5/2 A5/4 G5/2 E5/2 | D5/12 -/4")
-EX_D_CALL = ("D5/2 F5/2 A5/2 F5/2 G5/2 A5/2 -/4 | -/16 | A5/2 C6/2 A5/2 F5/2 E5/2 D5/2 -/4 | -/16 | -/16 | -/16 | "
-             "A5/2 C#6/2 E6/2 C#6/2 -/8 | -/16")
-EX_D_ANSWER = ("-/16 | B5/2 A5/2 G5/2 D5/2 -/8 | -/16 | D6/2 B5/2 G5/2 B5/2 A5/4 -/4 | -/16 | -/16 | "
-               "-/8 A5/2 E5/2 C#5/2 E5/2 | A5/8 -/8")
-EX_D_LOW = ("-/16 | -/16 | -/16 | -/16 | Bb3/2 D4/2 F4/2 D4/2 Bb3/4 -/4 | C4/2 E4/2 G4/2 E4/2 C4/4 -/4 | -/16 | -/16")
-EX_TURN = "D5/4 F5/4 Bb5/4 A5/4 | G5/4 E5/4 C5/4 E5/4 | C#5/8 E5/8 | A4/12 -/4"
-EX_TURN_LOW = "Bb2/4 -/4 F3/4 -/4 | C3/4 -/4 G3/4 -/4 | A2/4 -/4 E3/4 -/4 | A2/4 C#3/4 E3/4 G3/4"
+# The wilds: phrases of three to six notes with whole bars of nothing between, the wind
+# carrying the gaps; the low notes held under, strings breathing in twice; the theme heard
+# far off (T); a last few phrases thinning back to bar 1.
+FIELD_PIANO = ("A4/1 D5/1 E5/2 A5/4 | -/8 | B4/1 D5/1 F#5/2 C#6/4 | -/8 | "
+               "F#5/2 D5/2 B4/4 | -/4 D5/2 E5/2 | G#5/8 | -/8 | "
+               "-/8 | A5/2 F#5/2 E5/2 D5/2 | B4/6 -/2 | E5/2 A4/2 -/4 | "
+               "-/8 | D6/2 B5/2 F#5/4 | G5/2 E5/2 B4/4 | -/8 | "
+               "A5/1 D6/1 E6/2 A6/4 | -/8 | G#5/2 F#5/2 E5/4 | -/8 | "
+               "B4/1 D5/1 F#5/1 A5/1 C#6/4 | -/8 | -/4 F#5/2 A5/2 | D5/8 | "
+               "-/8 | E5/2 C#5/2 A4/4 | -/2 B4/2 D5/2 F#5/2 | A5/8 | "
+               "G5/3 F#5/1 E5/4 | -/8 | -/8 | -/8")
+FIELD_CODA = "-/8 | A4/1 D5/1 E5/2 A5/4 | -/8 | G#5/2 F#5/2 E5/4 | -/8 | B4/1 D5/1 F#5/2 C#6/4 | -/8 | -/8"
 
 
 def track_island(night=False):
-    # The island's wilds: 4/4, 100 bpm, sixteenth ticks, D dorian; 64 bars (2:34).
-    # Intro (marimba, bongos, walking pizzicato) | A ocarina, the steel pan answering |
-    # A' flute, the marimba a third under, claves | B the wandering tune (oboe, strings) |
-    # C the theme in D minor on a soft horn | D calls and answers (marimba, steel pan,
-    # bassoon) | A'' steel pan lead | B' flute over strings | a bassoon turn.
-    # Night: the same piece by lantern light - a dark harp, a low flute, the ocarina
-    # alone, celesta stars, the pizzicato on one and three, no hand drums.
-    s = Song("music_island_night" if night else "music_island", 60 / 100 / 4, 16, 64,
-             "4/4, 100 bpm, D dorian / F major: " + ("the wilds at night" if night else "exploring the wilds"))
-    s.bus("lead", 0.5, verb=0.28, echo=0.1)
-    s.bus("lead2", 0.32, verb=0.28)
-    s.bus("steel", 0.36, verb=0.26, echo=0.08)
-    s.bus("horn", 0.42, verb=0.34)
-    s.bus("low", 0.42, verb=0.18)
-    s.bus("mar", 0.38, verb=0.2)
-    s.bus("gtr", 0.4, verb=0.2)
-    s.bus("harp", 0.38, verb=0.32)
-    s.bus("pizz", 0.46, verb=0.14)
-    s.bus("roots", 0.3, verb=0.2)
-    s.bus("str", 0.26, verb=0.36)
-    s.bus("star", 0.2, verb=0.45, echo=0.2)
-    s.bus("timp", 0.3, verb=0.25)
-    s.bus("bongo", 0.3, verb=0.1)
-    s.bus("conga", 0.32, verb=0.1)
-    s.bus("shk", 0.1, verb=0.08)
-    s.bus("clave", 0.12, verb=0.15)
-    intro = ["Dm", "G", "Dm", "G"]
-    A = ["Dm", "G", "Dm", "G", "F", "C", "Bb", "A"]
-    B = ["F", "Am", "Bb", "F", "Gm", "C", "Dm", "C"]
-    C = ["Dm", "Dm", "Bb", "A", "Dm", "Bb", "A", "Dm"]
-    D = ["Dm", "G", "Dm", "G", "Bb", "C", "A", "A"]
-    turn = ["Bb", "C", "A", "A"]
-    ch = split_chords(intro + A + A + B + C + D + A + B + turn)
-    I, A1, A2, B1, C1, D1, A3, B2, T = 0, 4, 12, 20, 28, 36, 44, 52, 60
-    dd = scale("D", "dorian")
-    fmaj = scale("F", "major")
-    allb = range(64)
-    a_secs = list(_bars(I, 4)) + list(_bars(A1, 16)) + list(_bars(D1, 16))
-    _roots(s, "roots", "lowstr", ch, list(_bars(B1, 16)) + list(_bars(B2, 8)), nn("D2"), 0.5 if night else 0.6)
-    if not night:
-        bassline(s, "pizz", "bass", ch, [b for b in allb if not C1 <= b < D1],
-                 [(0, 3, "R"), (4, 3, "5"), (8, 3, "8"), (12, 3, "5")], octave_low=nn("D2"), vel=0.75)
-        bassline(s, "pizz", "bass", ch, _bars(C1, 8), [(0, 6, "R"), (8, 6, "5")], octave_low=nn("D2"), vel=0.6)
-        arpeggio(s, "mar", "marimba", ch, a_secs, [0, 2, 1, 3, 2, 4, 3, 1], 2, low=62, vel=0.32, dur=2)
-        comp(s, "gtr", "guitar", ch, list(_bars(A1, 16)) + list(_bars(A3, 8)) + list(_bars(B2, 8)),
-             [(4, 2), (12, 2)], low=55, vel=0.45, gate=0.5)
-        arpeggio(s, "harp", "harp", ch, list(_bars(B1, 8)) + list(_bars(B2, 8)) + list(_bars(T, 4)),
-                 [0, 1, 2, 3, 4, 3, 2, 1], 2, low=50, vel=0.38, dur=4)
-        _chordpads(s, "str", "strings", ch, list(_bars(B1, 8)) + list(_bars(B2, 8)), 53, 0.3)
-        groove = [b for b in allb if not C1 <= b < D1]
-        s.drums("bongo", "conga", "x.ox..x.x.o.x..o", [b for b in groove if b != D1 + 7], midi=nn("G4"), vel=0.75)
-        s.drums("conga", "conga", "X.......X..x....", groove, midi=nn("C4"), vel=0.8)
-        s.drums("conga", "conga", "X.......x.......", _bars(C1, 8), midi=nn("C4"), vel=0.45)
-        s.drums("shk", "shaker", "o.x.o.x.o.x.o.x.", allb)
-        s.drums("clave", "clave", "x..x..x...x.x...", list(_bars(A2, 8)) + list(_bars(D1, 16)))
-        s.drums("bongo", "conga", "x.x.x.x.xxxxXXXX", [D1 + 7], midi=nn("G4"), vel=0.6)
-        # A: the ocarina, the steel pan answering in its rests
-        s.line("lead", "ocarina", EX_A, A1, vel=0.85)
-        s.line("steel", "steel", EX_ANSWER, A1, vel=0.7)
-        # A': the flute, the marimba a third under
-        s.line("lead", "flute", EX_A, A2, vel=0.8)
-        s.line("mar", "marimba", EX_A, A2, vel=0.35, gate=0.5, harmonize=(dd, -2))
-        s.line("steel", "steel", EX_ANSWER, A2, vel=0.7)
-        # B: the wandering tune
-        s.line("lead", "oboe", EX_B, B1, vel=0.8)
-        s.line("lead2", "strings", EX_B, B1, vel=0.45, transpose=-12, harmonize=(fmaj, -2))
-        # C: the theme in the minor, glimpsed through the trees
-        s.line("horn", "horn", EX_C, C1, vel=0.75, transpose=-12)
-        s.line("lead2", "strings", EX_C, C1, vel=0.35)
-        arpeggio(s, "harp", "harp", ch, _bars(C1, 8), [0, 1, 2, 3, 4, 5, 4, 3], 2, low=50, vel=0.4, dur=4)
-        _chordpads(s, "str", "strings", ch, _bars(C1, 8), 50, 0.3)
-        _roll(s, "timp", ch, C1 + 7, 8, 8, 1, "D2", "A2", v0=0.2, dv=0.05)
-        # D: calls and answers
-        s.line("mar", "marimba", EX_D_CALL, D1, vel=0.7)
-        s.line("steel", "steel", EX_D_ANSWER, D1, vel=0.75)
-        s.line("low", "bassoon", EX_D_LOW, D1, vel=0.8, gate=0.6)
-        s.line("lead", "ocarina", EX_D_LOW, D1, vel=0.5, transpose=24)
-        # A'': the steel pan takes the tune, the ocarina under it
-        s.line("steel", "steel", EX_A, A3, vel=0.85)
-        s.line("lead2", "ocarina", EX_A, A3, vel=0.5, harmonize=(dd, -2))
-        # B': the flute over strings
-        s.line("lead", "flute", EX_B, B2, vel=0.8)
-        s.line("lead2", "strings", EX_B, B2, vel=0.55, transpose=-12)
-        s.line("mar", "marimba", EX_B, B2, vel=0.3, gate=0.5, harmonize=(fmaj, -2))
-        # the turn
-        s.line("lead", "ocarina", EX_TURN, T, vel=0.75)
-        s.line("low", "bassoon", EX_TURN_LOW, T, vel=0.75, gate=0.7)
+    # The wilds: 4/4, 80 bpm, eighth ticks, D lydian; 48 bars (2:24). Mostly wind and space:
+    # the piano's phrases (32 bars) | T the theme far off over held strings | a thinning coda.
+    # Night: the same piano an octave down and softer, celesta stars in the gaps, the theme
+    # on a far horn, the strings fainter, more wind.
+    s = Song("music_island_night" if night else "music_island", 60 / 80 / 2, 8, 48,
+             "4/4, 80 bpm, D lydian: " + ("the wilds at night" if night else "the wilds (sparse piano, wind, strings)"))
+    s.bus("pno", 0.55, verb=0.42, echo=0.14)
+    s.bus("lh", 0.38, verb=0.42)
+    s.bus("str", 0.24, verb=0.48)
+    s.bus("high", 0.12, verb=0.55)
+    s.bus("lead", 0.3, verb=0.5, echo=0.1)
+    s.bus("star", 0.16, verb=0.5, echo=0.2)
+    s.bus("wind", 0.12 if night else 0.1, verb=0.0)
+    ch = split_chords(["D", "D", "Gmaj7", "Gmaj7", "Bm", "Bm", "E", "E",
+                       "D", "D", "Gmaj7", "A", "Bm", "Gmaj7", "Em7", "Asus4",
+                       "D", "D", "E", "E", "Gmaj7", "Gmaj7", "D", "D",
+                       "Bm", "A", "Gmaj7", "Gmaj7", "Em7", "Em7", "Asus4", "Asus4"]
+                      + THEME_CH + ["Bm", "D", "D", "E", "E", "Gmaj7", "Gmaj7", "Asus4"])
+    T, C = 32, 40
+    sv = 0.6 if night else 1.0
+    tr = -12 if night else 0
+    s.line("pno", "piano", FIELD_PIANO, 0, vel=0.65 * sv + 0.1 * night, transpose=tr)
+    s.line("pno", "piano", FIELD_CODA, C, vel=0.6 * sv + 0.1 * night, transpose=tr)
+    _lh(s, "lh", ch, list(range(0, 30)) + list(_bars(T, 15)), nn("D2"), 0.3 * sv, changes_only=True)
+    _wide(s, "str", "swellstr", ch, list(_bars(8, 8)) + list(_bars(20, 8)), 50, 0.3 * sv)
+    _wide(s, "str", "strings", ch, _bars(T, 8), 50, 0.2 * sv)
+    s.note("high", "strings", nn("A5"), 16 * 8, 32, 0.3 * sv, 1.0)
+    s.note("high", "strings", nn("C#6"), 24 * 8, 24, 0.25 * sv, 1.0)
+    if night:
+        s.line("lead", "horn", THEME_A, T, vel=0.55, transpose=-12)
+        _twinkle(s, "star", "celesta", ch, [b for b in range(48) if b % 2 == 1], 1, 76, 0.3, seed=80)
     else:
-        bassline(s, "pizz", "bass", ch, allb, [(0, 6, "R"), (8, 6, "5")], octave_low=nn("D2"), vel=0.55)
-        arpeggio(s, "harp", "harp_dark", ch, allb, [0, 2, 3, 2], 4, low=50, vel=0.45, dur=6)
-        arpeggio(s, "mar", "marimba", ch, a_secs, [2, 1, 3, 1], 4, low=62, vel=0.18, dur=4)
-        _chordpads(s, "str", "strings", ch, allb, 53, 0.22)
-        _twinkle(s, "star", "celesta", ch, a_secs, 2, 76, 0.35, seed=71)
-        s.drums("conga", "conga", "x...............", allb, midi=nn("C4"), vel=0.3)
-        s.line("lead", "flute", EX_A, A1, vel=0.7, transpose=-12)
-        s.line("lead", "ocarina", EX_A, A2, vel=0.6)
-        s.line("star", "celesta", EX_ANSWER, A2, vel=0.5)
-        s.line("lead", "oboe", EX_B, B1, vel=0.55)
-        s.line("horn", "horn", EX_C, C1, vel=0.5, transpose=-12)
-        s.line("lead2", "strings", EX_C, C1, vel=0.25)
-        s.line("mar", "marimba", EX_D_CALL, D1, vel=0.45)
-        s.line("star", "celesta", EX_D_ANSWER, D1, vel=0.55)
-        s.line("low", "bassoon", EX_D_LOW, D1, vel=0.5, gate=0.6)
-        s.line("star", "celesta", EX_A, A3, vel=0.55)
-        s.line("lead2", "ocarina", EX_A, A3, vel=0.35, harmonize=(dd, -2))
-        s.line("lead2", "strings", EX_B, B2, vel=0.5, transpose=-12)
-        s.line("lead", "oboe", EX_B, B2, vel=0.4)
-        s.line("lead", "ocarina", EX_TURN, T, vel=0.5)
-    return s, dict(verb_t60=2.0 if night else 1.5, echo_sec=60 / 100 * 0.75, target_lu=-18.0)
+        s.line("lead", "flute", THEME_A, T, vel=0.65)
+    return s, dict(verb_t60=3.0 if night else 2.8, echo_sec=60 / 80 * 0.75, wind=True,
+                   wind_swells=7, target_lu=-18.0)
+
+
+# The harbour town: a guitar picking under it all, the piano's tune, the flute's answer
+# (the motif's head in G); the theme warmly in G; no drums.
+TOWN_A = ("D5/2 G5/2 B5/3 A5/1 | G5/2 E5/2 B4/4 | D5/2 G5/2 A5/2 B5/2 | A5/6 -/2 | "
+          "B5/2 G5/2 E5/3 F#5/1 | G5/2 E5/2 C5/2 B4/2 | A4/2 C5/2 E5/2 G5/2 | F#5/6 -/2")
+TOWN_B = ("B4/1 E5/1 F#5/2 B5/4 | C6/2 B5/2 G5/4 | D5/1 G5/1 A5/2 D6/4 | C#6/2 A5/2 F#5/4 | "
+          "B5/3 A5/1 G5/2 E5/2 | E5/4 G5/2 B5/2 | A5/4 D5/4 | F#5/4 A4/4")
+
+
+def track_village(night=False):
+    # The harbour town: 4/4, 88 bpm, eighth ticks, G major; 52 bars (2:22). Intro guitar |
+    # A piano | B the flute, soft strings | A' strings, the flute a third over, horn pads |
+    # T the game's theme in G on the piano | B' strings, the piano rolling | A'' the piano
+    # again, quietly, to the intro.
+    # Night: the town by lamplight - the guitar softer, low strings for the bass, the tunes
+    # on piano, low strings and a far horn, celesta stars.
+    s = Song("music_village_night" if night else "music_village", 60 / 88 / 2, 8, 52,
+             "4/4, 88 bpm, G major: " + ("the harbour town at night" if night
+                                         else "the harbour town (fingerpicked guitar, piano, flute, strings)"))
+    s.bus("gtr", 0.42, verb=0.3)
+    s.bus("pno", 0.52, verb=0.36, echo=0.05)
+    s.bus("flute", 0.36, verb=0.4)
+    s.bus("strlead", 0.38, verb=0.4)
+    s.bus("str", 0.22, verb=0.42)
+    s.bus("horn", 0.18, verb=0.4)
+    s.bus("pizz", 0.36, verb=0.2)
+    s.bus("star", 0.16, verb=0.45, echo=0.2)
+    s.bus("wind", 0.04, verb=0.0)
+    intro = ["G", "Cmaj7", "G", "D"]
+    A = ["G", "Cmaj7", "G", "D", "Em", "Cmaj7", "Am7", "D"]
+    B = ["Em", "Cmaj7", "G", "D", "Em", "Cmaj7", "Asus4", "D"]
+    Tch = ["Gadd9", "G", "Cmaj7", "D", "G", "Em", "Cmaj7 D", "G"]  # THEME_CH in G
+    ch = split_chords(intro + A + B + A + Tch + B + A)
+    I, A1, B1, A2, T, B2, A3 = 0, 4, 12, 20, 28, 36, 44
+    gmaj = scale("G", "major")
+    allb = range(52)
+    arpeggio(s, "gtr", "guitar", ch, allb, [0, 2, 1, 3, 2, 4, 3, 2], 1, low=50, vel=0.26 if night else 0.36, dur=3)
+    if not night:
+        bassline(s, "pizz", "pizz", ch, range(A1, 52), [(0, 3, "R"), (4, 3, "5")], octave_low=nn("G2"), vel=0.5)
+        s.line("pno", "piano", TOWN_A, A1, vel=0.72)
+        s.line("flute", "flute", TOWN_B, B1, vel=0.62)
+        comp(s, "pno", "piano", ch, _bars(B1, 8), [(0, 8)], low=55, vel=0.32, gate=1.0)
+        _wide(s, "str", "strings", ch, list(_bars(B1, 8)) + list(_bars(A2, 24)), 43, 0.16)
+        s.line("strlead", "strings", TOWN_A, A2, vel=0.7)
+        s.line("flute", "flute", TOWN_A, A2, vel=0.3, harmonize=(gmaj, 2))
+        _wide(s, "horn", "horn", ch, _bars(A2, 8), 43, 0.22)
+        s.line("pno", "piano", THEME_A, T, vel=0.72, transpose=-7)
+        _wide(s, "horn", "horn", ch, _bars(T + 4, 4), 43, 0.2)
+        s.line("strlead", "strings", TOWN_B, B2, vel=0.72)
+        arpeggio(s, "pno", "piano", ch, _bars(B2, 8), [0, 2, 4, 2], 2, low=55, vel=0.24, dur=6)
+        s.line("pno", "piano", TOWN_A, A3, vel=0.6)
+    else:
+        _roots(s, "pizz", "lowstr", ch, range(A1, 52), nn("G2"), 0.28)
+        _wide(s, "str", "strings", ch, range(A1, 52), 50, 0.12)
+        s.line("pno", "piano", TOWN_A, A1, vel=0.55)
+        s.line("strlead", "strings", TOWN_B, B1, vel=0.5, transpose=-12)
+        s.line("pno", "piano", TOWN_A, A2, vel=0.5, transpose=-12)
+        s.line("horn", "horn", THEME_A, T, vel=0.5, transpose=-19)
+        s.line("flute", "flute", TOWN_B, B2, vel=0.45)
+        s.line("pno", "piano", TOWN_A, A3, vel=0.45)
+        _twinkle(s, "star", "celesta", ch, list(_bars(I, 4)) + list(_bars(A3, 8)), 1, 76, 0.3, seed=88)
+    return s, dict(verb_t60=2.4 if night else 2.0, echo_sec=60 / 88 * 0.75, wind=True, wind_swells=4,
+                   target_lu=-18.0)
 
 
 # The open sea (E minor / G major, 6/8 eighth ticks): Waters' two tunes (Zach's pick),
@@ -1517,105 +1552,12 @@ def track_sea(night=False):
     return s, dict(verb_t60=2.2 if night else 1.8, wind=True, wind_swells=40, target_lu=-18.0)
 
 
-# The harbour town (A dorian, eighth ticks): Harbour's two tunes (Zach's pick), a market
-# dance in C (C) and the game's theme warmly in C (D).
+# The harbour tunes (Zach's pick in the style round; the harbour samples play them).
 HARBOUR_A = ("A4/2 C5/1 E5/1 D5/2 C5/1 B4/1 | A4/3 F#4/1 A4/2 D5/2 | E5/2 G5/1 E5/1 D5/2 C5/1 D5/1 | "
              "E5/3 D5/1 F#5/4 | G5/2 E5/1 C5/1 E5/2 G5/2 | D5/3 B4/1 G4/2 B4/2 | "
              "C5/2 E5/2 A5/2 G5/1 E5/1 | B4/4 -/2 E4/1 G#4/1")
 HARBOUR_B = ("C6/4 A5/2 F5/2 | B5/4 G5/2 D5/2 | C6/2 B5/1 A5/1 E5/4 | A5/4 G5/2 E5/2 | "
              "F5/2 A5/2 C6/2 A5/2 | G5/2 B5/2 D6/2 B5/2 | G#5/3 A5/1 B5/2 E5/2 | B5/4 G#5/2 E5/2")
-VIL_DANCE = ("E5/1 F5/1 G5/2 C6/2 G5/2 | D5/1 E5/1 F5/2 B5/2 G5/2 | C6/2 B5/1 A5/1 E5/2 A5/2 | G5/4 E5/2 -/2 | "
-             "A5/1 G5/1 F5/2 A5/2 C6/2 | G5/1 F5/1 E5/2 G5/2 C6/2 | D6/2 C6/1 B5/1 A5/2 F5/2 | E5/4 G#5/2 B5/2")
-VIL_THEME = ("C5/3 G4/1 C5/2 D5/2 | E5/3 F5/1 G5/4 | A5/2 G5/2 E5/2 C5/2 | D5/6 -/2 | "
-             "C5/3 G4/1 C5/2 D5/2 | E5/3 F5/1 G5/2 C6/2 | B5/3 A5/1 G5/2 F5/1 D5/1 | C5/6 -/2")
-
-
-def track_village(night=False):
-    # The harbour town: 4/4, 88 bpm, eighth ticks, A dorian; 52 bars (2:22). Intro (accordion,
-    # guitar, tambourine) | A the oboe | B strings, a horn under them | A' accordion and oboe |
-    # C the market dance in C (accordion, marimba, claves) | D the game's theme, warm (oboe,
-    # strings, horn pads, half time) | A'' strings and oboe, glockenspiel.
-    # Night: the town by lamplight - low strings and oboe (harbour_calm's sound), a dark harp,
-    # a guitar picking in the tavern, soft accordion, the frame drum on one, celesta.
-    s = Song("music_village_night" if night else "music_village", 60 / 88 / 2, 8, 52,
-             "4/4, 88 bpm, A dorian / C major: " + ("the harbour town at night" if night else "the harbour town"))
-    s.bus("lead", 0.5, verb=0.28, echo=0.08)
-    s.bus("lead2", 0.32, verb=0.28)
-    s.bus("acc", 0.4, verb=0.2)
-    s.bus("accpad", 0.24, verb=0.28)
-    s.bus("horn", 0.28, verb=0.36)
-    s.bus("str", 0.28, verb=0.36)
-    s.bus("harp", 0.4, verb=0.32)
-    s.bus("gtr", 0.5, verb=0.2)
-    s.bus("pizz", 0.46, verb=0.16)
-    s.bus("mar", 0.3, verb=0.2)
-    s.bus("glock", 0.14, verb=0.35)
-    s.bus("star", 0.18, verb=0.45, echo=0.2)
-    s.bus("perc", 0.32, verb=0.12)
-    s.bus("tamb", 0.1, verb=0.12)
-    s.bus("shk", 0.09, verb=0.08)
-    s.bus("clave", 0.11, verb=0.14)
-    intro = ["Am", "D", "Am", "E"]
-    A = ["Am", "D", "Am", "D", "C", "G", "Am", "E"]
-    B = ["F", "G", "Am", "Am", "F", "G", "E", "E"]
-    C = ["C", "G", "Am", "Em", "F", "C", "Dm", "E"]
-    D = ["C", "C", "F", "G", "C", "Am", "F G", "C"]
-    ch = split_chords(intro + A + B + A + C + D + A)
-    I, A1, B1, A2, C1, D1, A3 = 0, 4, 12, 20, 28, 36, 44
-    ad = scale("A", "dorian")
-    allb = range(52)
-    if not night:
-        arpeggio(s, "harp", "harp", ch, [b for b in allb if not C1 <= b < D1], [0, 1, 2, 3, 4, 3, 2, 1], 1,
-                 low=52, vel=0.38, dur=2)
-        bassline(s, "pizz", "pizz", ch, [b for b in allb if not D1 <= b < A3],
-                 [(0, 2, "R"), (4, 2, "5"), (6, 1, "8")], octave_low=nn("A2"), vel=0.75)
-        bassline(s, "pizz", "pizz", ch, _bars(D1, 8), [(0, 4, "R"), (4, 4, "5")], octave_low=nn("A2"), vel=0.7)
-        lively = list(_bars(I, 12)) + list(_bars(A2, 16)) + list(_bars(A3, 8))
-        comp(s, "gtr", "guitar", ch, lively, [(2, 1), (6, 1)], low=55, vel=0.45, gate=0.5)
-        comp(s, "accpad", "accordion", ch, list(_bars(I, 4)) + list(_bars(A2, 8)) + list(_bars(A3, 8)),
-             [(0, 4), (4, 4)], low=57, vel=0.5, gate=0.95)
-        comp(s, "acc", "accordion", ch, _bars(C1, 8), [(0, 1), (2, 1), (3, 1), (4, 1), (6, 1)], low=55, vel=0.5, gate=0.6)
-        _chordpads(s, "str", "strings", ch, list(_bars(B1, 8)) + list(_bars(D1, 16)), 55, 0.32)
-        s.drums("perc", "frame", "X...x.o.", [b for b in allb if not D1 <= b < A3], midi=nn("D2"), vel=0.75)
-        s.drums("perc", "frame", "X.......", _bars(D1, 8), midi=nn("D2"), vel=0.6)
-        s.drums("tamb", "tamb", "..x...x.", lively)
-        s.drums("shk", "shaker", "o.x.o.x.", [b for b in allb if not D1 <= b < A3])
-        s.drums("clave", "clave", "x..x..x.", _bars(C1, 8))
-        s.line("lead", "oboe", HARBOUR_A, A1, vel=0.9)
-        s.line("lead", "strings", HARBOUR_B, B1, vel=0.85)
-        s.line("horn", "horn", HARBOUR_B, B1, vel=0.5, transpose=-12, harmonize=(ad, -2))
-        s.line("acc", "accordion", HARBOUR_A, A2, vel=0.8)
-        s.line("lead2", "oboe", HARBOUR_A, A2, vel=0.45, harmonize=(ad, -2))
-        s.line("acc", "accordion", VIL_DANCE, C1, vel=0.85)
-        s.line("mar", "marimba", VIL_DANCE, C1, vel=0.4, gate=0.5, transpose=12)
-        s.line("lead", "oboe", VIL_THEME, D1, vel=0.85)
-        s.line("lead2", "strings", VIL_THEME, D1, vel=0.5, transpose=-12)
-        _chordpads(s, "horn", "horn", ch, _bars(D1, 8), 48, 0.4)
-        s.line("lead", "strings", HARBOUR_A, A3, vel=0.9)
-        s.line("lead2", "oboe", HARBOUR_A, A3, vel=0.5, harmonize=(ad, 2))
-        for b in range(A3, A3 + 8, 2):
-            tones = voice(chord_pcs(chord_at(ch, b, 0))[1], 76)
-            for i, idx in enumerate([0, 1, 2, 1]):
-                s.note("glock", "glock", tones[idx], b * 8 + i * 2, 2, 0.5, 1.0)
-    else:
-        arpeggio(s, "harp", "harp_dark", ch, allb, [0, 2, 3, 2], 2, low=45, vel=0.45, dur=4)
-        bassline(s, "pizz", "pizz", ch, allb, [(0, 3, "R"), (4, 3, "5")], octave_low=nn("A2"), vel=0.6)
-        arpeggio(s, "gtr", "guitar", ch, list(_bars(A1, 8)) + list(_bars(C1, 8)) + list(_bars(A3, 8)),
-                 [0, 2, 3, 2, 4, 2, 3, 2], 1, low=50, vel=0.3, dur=2)
-        _chordpads(s, "str", "strings", ch, allb, 50, 0.28)
-        _chordpads(s, "accpad", "accordion", ch, list(_bars(A2, 24)) + list(_bars(A3, 8)), 57, 0.22)
-        s.drums("perc", "frame", "X.......", allb, midi=nn("D2"), vel=0.45)
-        _twinkle(s, "star", "celesta", ch, list(_bars(I, 4)) + list(_bars(A3, 8)), 2, 76, 0.3, seed=88)
-        s.line("lead", "strings", HARBOUR_A, A1, vel=0.75, transpose=-12)
-        s.line("lead", "oboe", HARBOUR_B, B1, vel=0.6, transpose=-12)
-        s.line("lead2", "strings", HARBOUR_B, B1, vel=0.35, transpose=-24, harmonize=(ad, -2))
-        s.line("acc", "accordion", HARBOUR_A, A2, vel=0.55)
-        s.line("gtr", "guitar", VIL_DANCE, C1, vel=0.7)
-        s.line("horn", "horn", VIL_THEME, D1, vel=0.6, transpose=-12)
-        s.line("lead2", "strings", VIL_THEME, D1, vel=0.35)
-        s.line("lead", "oboe", HARBOUR_A, A3, vel=0.6)
-        s.line("lead2", "strings", HARBOUR_A, A3, vel=0.35, transpose=-12, harmonize=(ad, -2))
-    return s, dict(verb_t60=2.0 if night else 1.7, echo_sec=60 / 88 * 0.75, target_lu=-18.0)
 
 
 # The desert's wilds (G Hijaz over a drone, sixteenth ticks): a caravan tune that sways and

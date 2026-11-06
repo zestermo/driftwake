@@ -16,11 +16,11 @@ extends Node
 
 ## [file, bars in the loop] (the bars give each track's bar length).
 const TRACKS := {
-	"title": ["res://assets/audio/music_title.ogg", 56],
+	"title": ["res://assets/audio/music_title.ogg", 40],
 	"village": ["res://assets/audio/music_village.ogg", 52],
 	"village_night": ["res://assets/audio/music_village_night.ogg", 52],
-	"island": ["res://assets/audio/music_island.ogg", 64],
-	"island_night": ["res://assets/audio/music_island_night.ogg", 64],
+	"island": ["res://assets/audio/music_island.ogg", 48],
+	"island_night": ["res://assets/audio/music_island_night.ogg", 48],
 	"sea": ["res://assets/audio/music_sea.ogg", 80],
 	"sea_night": ["res://assets/audio/music_sea_night.ogg", 80],
 	"combat": ["res://assets/audio/music_combat.ogg", 32],

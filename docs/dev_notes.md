@@ -11072,3 +11072,22 @@ Zach's two fit complaints from the plan, `body_builder.gd`:
   coat's stand-off (was 0.104 + half the coat), and the fitting pass includes it: a coat hangs straight down from the
   shoulder blades.
 Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
+
+## 2026-11-06: the wonder music: title, wilds, harbour town (Zach: "a small piece of a big world", like BotW/TotK)
+
+- Zach found the title, the wilds (`island`) and the town (`village`) generic, busy and forgettable ("less pirate steel
+  pan drum"). He picked three style samples, then the full tracks were built from them. All tunes are original.
+- `gen_psx_music.py`: new **`piano`** voice (`inst_piano`: a soft felt piano with slightly stretched partials that
+  decay faster the higher they are, two-stage decay, beating unison strings, hammer noise; a long gate is the
+  pedal, and a note rings out after t60). New chord qualities `add9`, `madd9`, `sus2`; helpers `_wide` (open
+  voicing) and `_lh` (rolled piano left hand, `changes_only` holds through repeated chords).
+- One motif (`WONDER_A`'s head) runs through all three; each quotes THEME_A once (`THEME_CH` reharmonises it: Dadd9,
+  Gmaj7). title 40 bars at 70 bpm D lydian/major; island 48 bars at 80 bpm D lydian: mostly wind and space, with
+  piano phrases (`FIELD_PIANO`, `FIELD_CODA`); village 52 bars at 88 bpm G major: fingerpicked guitar, piano,
+  flute, no drums. Nights use the same form: island an octave down with celesta and a far horn; village with a
+  softer guitar, low strings and celesta.
+- audio_report: all at -18.0 LU, peaks -1.8 to -3.4 dBFS, 2-5 kHz 1-3%. The seams' big +dB is bar 1's downbeat
+  after a rest bar. The old EX_*/VIL_* tunes are gone; HARBOUR_A/B stay for the harbour samples.
+- `Music.TRACKS`: title 56 -> 40 bars, island/island_night 64 -> 48 (village unchanged at 52). The island and
+  village tracks are the defaults for every theme that doesn't set its own, not just Brinehollow.
+- Render: `py tools/texture_gen/gen_psx_music.py title island island_night village village_night`.

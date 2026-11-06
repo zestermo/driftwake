@@ -252,13 +252,13 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 
 | Track | Length | Key, tempo | LU | Notes |
 |---|---|---|---|---|
-| music_title | 140.0 s (56 bars) | D major, 4/4 96 | -18.0 | the game's theme: intro call, A horns, A' strings, B oboe, B' choir, C bridge on Bb-C-D with the gallop, A'' tutti, turn |
+| music_title | 137.1 s (40 bars) | D lydian/major, 4/4 70 | -18.0 | wonder (2026-11-06, BotW/TotK manner): the motif on a felt piano over wind, strings take B, the theme far off on a flute, A' tutti with one timpani swell, piano alone back to bar 1 |
 | music_sea | 139.1 s (80 bars) | E minor / G major, 6/8 dq 69 | -18.0 | Waters' tunes on Corsair's band (Zach's pick), the theme in G, a becalmed oboe bridge; strings swelling a bar at a time, wind |
 | music_sea_night | 139.1 s (80 bars) | same | -18.0 | same form: dark harp, low flute and oboe, the theme on a far horn, celesta, no gallop or drums |
-| music_island | 153.6 s (64 bars) | D dorian / F, 4/4 100 | -18.0 | the wilds: ocarina and steel pan, marimba, walking upright bass, bongos, claves; the theme in D minor on a horn; a call-and-answer breakdown with bassoon |
-| music_island_night | 153.6 s (64 bars) | same | -18.0 | same form: low flute, lone ocarina, dark harp, celesta, bass on one and three, no hand drums |
-| music_village | 141.8 s (52 bars) | A dorian / C, 4/4 88 | -18.0 | the harbour town: Harbour's tunes (Zach's pick) on oboe, strings, accordion; a market dance in C; the theme warm in C |
-| music_village_night | 141.8 s (52 bars) | same | -18.0 | same form, harbour_calm's sound: low strings, dark harp, a tavern guitar, soft accordion |
+| music_island | 144.0 s (48 bars) | D lydian, 4/4 80 | -18.0 | the wilds, wonder (2026-11-06): short felt-piano phrases with whole bars of wind between, low notes held, strings breathing in twice, the theme far off on a flute, a thinning coda |
+| music_island_night | 144.0 s (48 bars) | same | -18.0 | same form: the piano an octave down and softer, celesta stars, the theme on a far horn, more wind |
+| music_village | 141.8 s (52 bars) | G major, 4/4 88 | -18.0 | the harbour town, wonder (2026-11-06): fingerpicked guitar throughout, piano tune, flute answer (the motif in G), strings, the theme in G on the piano; no drums |
+| music_village_night | 141.8 s (52 bars) | same | -18.0 | same form by lamplight: softer guitar, low strings for the bass, piano, low strings, a far horn, celesta |
 | music_desert | 160.0 s (48 bars) | G Hijaz over a G-D drone / C minor, 4/4 72 | -18.0 | 10-15, not wired yet: the desert's wilds. A caravan tune on the ney, the oud answering, the mizmar, the dunes in C minor on strings, the theme in Hijaz on the oud; darbuka maqsum, finger cymbals |
 | music_desert_night | 160.0 s (48 bars) | same | -18.0 | same form: the drone and strings, a lone ney, slow oud, celesta, one dum a bar |
 | music_desert_town | 137.1 s (64 bars) | C Hijaz / F minor, 4/4 112 | -18.0 | the souk and the royal city: a market dance on the mizmar, the city in F minor with a brass fanfare for the palace, the theme on the oud, a quick dance with zills |
