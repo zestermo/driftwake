@@ -11145,3 +11145,10 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   came through the cloak's yoke as two dark patches. `_capelet_g()` adds 2.5 cm to both (not on a draped
   greatcoat, already 5 cm out). cliptest's "coats and vests under the cloak" now includes the greatcoat.
 - Not changed: the cape's motion (mode "a", Zach's most polished cloth), the cloak's own wrap (9/3 cm), the mantle.
+
+## 2026-11-07: ClothSheet removed (1.30.3)
+
+- The connected-sheet experiment (scripts/npc/cloth_sheet.gd, `BodyBuilder.cloth_lattice` and `_cloth_lattice`,
+  `Humanoid._cloth`) is gone: it was off in the game, and the sewn chains with nets and the fitting passes won.
+  The cloth stage's L now toggles chains / sewn chains; clothlab lost CL_LATTICE and its sheet metrics. The plan
+  doc marks the lattice section as dropped. No behaviour change in the game (the paths were dead by default).

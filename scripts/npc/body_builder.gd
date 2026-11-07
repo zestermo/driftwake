@@ -43,9 +43,6 @@ static var cloth_net := true
 ## Per garment weights come with the pattern format (docs/v1_30_3_clothing_plan.md).
 const CLOTH_FEELS := [["as built", null, 1.0], ["heavy", 0.18, 1.0], ["heavier", 0.26, 0.85], ["between", 0.29, 0.78],
 	["cape-like", 0.32, 0.7]]
-## (1.30.3 piece 2) Hanging cloth round the hips (_cloth_sectors: skirts, hakama, coat tails, tunic hems) as one
-## connected ClothSheet instead of a chain per panel. Off in the game until Zach's OK; the cloth stage toggles it (L).
-static var cloth_lattice := false
 ## (1.30.3, Zach's idea after the sheet) The panels keep their chains (the weight, the net) but their meshes are sewn
 ## across the seams (_seam_weights): no gaps, the chains' collisions. Off in the game until Zach's OK; the stage's L.
 static var cloth_sewn := true
@@ -189,9 +186,6 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	for s in _sims.values():
 		(s as SpringChains).mb.fold_tints()
 		(s as SpringChains).finalize()
-	for c in h._cloth:
-		c.mb.fold_tints()
-		c.finalize()
 	var end := RANGE * float(lk.get("height", 1.0))
 	for g in h.find_children("*", "GeometryInstance3D", true, false):
 		(g as GeometryInstance3D).visibility_range_end = end
@@ -3079,7 +3073,7 @@ func _skirt(m: Material) -> void:
 ## Hakama: wide pleated trousers hanging in panels from the waist to mid-shin.
 func _hakama(m: Material) -> void:
 	# (1.30.3: split legs; under a long coat the old one-piece panels, kept inside its tails)
-	if not _long_coat() and not cloth_lattice:
+	if not _long_coat():
 		_hakama_split(m)
 		return
 	var secs := []
@@ -3306,9 +3300,6 @@ func _hung_body(coat: String, m: Material, m_trim: Material, shell: Array) -> vo
 ## cloth worn under it.
 func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float, y_bot: float, flare: Array, stiff: float,
 		top_off: float = 0.035, seat_gap: float = 0.06, tails: Dictionary = {}, vent: float = -1.0) -> void:
-	if cloth_lattice and not sectors.is_empty():
-		_cloth_lattice(m, sectors, y_top, y_bot, flare, top_off, seat_gap, tails, vent, stiff)
-		return
 	# (1.30.3) sewn, each panel in `sew_split` narrower ones: no slits to show, and a leg can't sit between two chains
 	# (one chain each side of it, the stitch between them ran through the leg)
 	if cloth_sewn and sew_split > 1:
@@ -3471,57 +3462,6 @@ func _seam_weights(sectors: Array, si: int, rows: Array, all_bones: Array, rows_
 		var w := absf(u) * 0.5
 		var other: PackedInt32Array = all_bones[nb]
 		return [PackedInt32Array([own[row], other[row], 0, 0]), PackedFloat32Array([1.0 - w, w, 0.0, 0.0])]
-
-
-## (1.30.3 piece 2) _cloth_sectors' panels as one ClothSheet on the hips: three columns a sector, a column shared where
-## two sectors meet (sewn), a ring when they go all the way round, twice the rows (the chains' rows halved). `vent`
-## (degrees, a sector boundary): the sheet split there from halfway down (a coat's back vent).
-func _cloth_lattice(m: Material, sectors: Array, y_top: float, y_bot: float, flare: Array, top_off: float, seat_gap: float,
-		tails: Dictionary, vent: float, stiff: float = 0.2) -> void:
-	var angs: Array = []
-	var cut_at := -1
-	for si in range(sectors.size()):
-		var a0 := float(sectors[si][0])
-		var a1 := float(sectors[si][1])
-		for k in range(3):
-			var a := lerpf(a0, a1, k / 3.0)
-			# (sewn to the last sector where they meet; at the vent the two edges stay apart, coincident)
-			if k == 0 and not angs.is_empty() and is_equal_approx(fposmod(float(angs[-1]), 360.0), fposmod(a, 360.0)):
-				if vent >= 0.0 and is_equal_approx(fposmod(a, 360.0), fposmod(vent, 360.0)):
-					cut_at = angs.size() - 1
-				else:
-					continue
-			angs.append(a)
-		angs.append(a1)
-	var span := float(sectors[-1][1]) - float(sectors[0][0])
-	var ring := span >= 359.9
-	if ring:
-		angs.pop_back()
-	var rows_n := (flare.size() - 1) * 2 + 1
-	var rows: Array = []
-	for r in range(rows_n):
-		var y := lerpf(y_top, y_bot, float(r) / (rows_n - 1))
-		var s := _sector_row(y, y_top, y_bot, flare, top_off, seat_gap)
-		if not tails.is_empty() and y >= float(tails["bot"]):
-			var o := _sector_row(y, tails["top"], tails["bot"], tails["flare"], tails["top_off"], 0.06) - Vector3.ONE * 0.025
-			s = Vector3(minf(s.x, o.x), minf(s.y, o.y), minf(s.z, o.z))
-		var row := PackedVector3Array()
-		for ad in angs:
-			var a := deg_to_rad(float(ad))
-			row.append(Vector3(sin(a) * s.x, y, -cos(a) * (s.y if cos(a) >= 0.0 else s.z)))
-		rows.append(row)
-	var sheet := ClothSheet.new()
-	var feel: Array = CLOTH_FEELS[cloth_feel]
-	if feel[1] != null:
-		sheet.damping = float(feel[1])
-	# (the pull back to the cut shape as the panels' chains have it: weaker, the sheet sagged in round the hips)
-	sheet.rest_k = stiff * float(feel[2])
-	sheet.colliders = colliders
-	sheet.collide = PackedStringArray(["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"])
-	sheet.setup(rows, ring, {cut_at: rows_n / 2} if cut_at >= 0 else {})
-	sheet.build_mesh(m, Vector3.ZERO)
-	h.hips.add_child(sheet)
-	h._cloth.append(sheet)
 
 
 ## A flat strap laid over the front of the body (or its `back`) from a to b (x, y), `lift` off the

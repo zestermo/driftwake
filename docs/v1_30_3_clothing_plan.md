@@ -108,6 +108,9 @@ cape's damping and passes, to see how much of their jitter is tuning alone.
 
 ## The cloth lattice (ChainSolver, C++)
 
+**Dropped (2026-11-07):** the connected sheet was tried in GDScript (ClothSheet, the cloth stage's L) and lost to
+sewn chains with nets and per-garment fitting; it is removed. The design below is kept for reference only.
+
 A new solver mode in native/src/chain_solver for a 2D grid of particles per garment, XPBD:
 
 - **links**: structural (along rows and columns), shear, bend; seams are links too, so sewn edges never part;
