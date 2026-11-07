@@ -1273,8 +1273,8 @@ func _arms() -> void:
 			amb_all.add_rings(m_sleeve, tube, 3.0, Color.WHITE, true, true, pick)
 	_skin_into[h.fore_l] = [arm_mbs[-1], ArmBody.FORE_L, h.arm_l.transform * h.fore_l.transform]
 	_skin_into[h.fore_r] = [arm_mbs[1], ArmBody.FORE_R, h.arm_r.transform * h.fore_r.transform]
-	if _one:
-		_arm_mbs = arm_mbs
+	# (always: a pauldron joins the arm's skin on the shoulder's half-bend helper, one skin or not)
+	_arm_mbs = arm_mbs
 	var ab := ArmBody.new() if not _one else null
 	if ab:
 		h.torso.add_child(ab)
@@ -4128,7 +4128,8 @@ func _accessories() -> void:
 		var k := limb * (1.0 + (sh - 1.0) * 0.4)
 		# worn over what's on the shoulder: a coat's sleeve, or a greatcoat's cape or a mantle (it sank into them)
 		var caped: bool = str(lk.get("coat", "none")) == "greatcoat" or lk.get("mantle", false) or _draped()
-		var g := 0.03 if caped else (0.014 if coated else 0.0)
+		# (+1.2 cm: a raised arm's sleeve bulges round the shoulder and swallowed the dome, its rim showing through)
+		var g := (0.03 if caped else (0.014 if coated else 0.0)) + 0.012
 		var lift := Vector3(0.01 * side, 0.045 if caped else 0.0, 0.0)
 		var tilt := Basis(Vector3.FORWARD, -0.3 * side)
 		pmb.add_loft(pm, Transform3D(tilt, lift),
@@ -4136,9 +4137,21 @@ func _accessories() -> void:
 			MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
 		pmb.add_loft(_leather("belt_color"), Transform3D(tilt, lift),
 			[[-0.1, 0.113 * k + g, 0.118 * k + g], [-0.085, 0.113 * k + g, 0.118 * k + g]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
-		_mesh(h.arm_l if side < 0 else h.arm_r, pmb)
+		# (on the shoulder chain's middle helper: it turns half the arm's bend about the shoulder, as a plate hinged on the
+		# shoulder rides; whole on the arm, a raised arm swung it up beside the jaw)
+		var arm: Node3D = h.arm_l if side < 0 else h.arm_r
+		if _arm_mbs.has(int(side)):
+			pmb.rebind(arm.transform, (ArmBody.SHOULDER_L_CHAIN if side < 0 else ArmBody.SHOULDER_R_CHAIN)[PAULDRON_FOLLOW])
+			(_arm_mbs[int(side)] as MeshBuilder).merge(pmb)
+		else:
+			_mesh(arm, pmb)
 	_mesh(h.torso, mb)
 	_mesh(h.head, hmb)
+
+
+## (1.30.3) How far a pauldron follows its arm's bend: the shoulder chain's helper it rides (of 0 the torso .. 8 the arm,
+## each helper k/8 of the bend).
+const PAULDRON_FOLLOW := 6
 
 
 ## Across the face, side to side (a mask's or a covering's shell: _face_shell, whose rings carry their own outlines;

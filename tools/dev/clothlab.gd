@@ -56,6 +56,9 @@ const LOOKS := {
 	"cape_skirt": {"body": "fem", "hair": "cascade", "legs": "skirt", "coat": "none", "cape": true, "cape_color": Color(0.2, 0.32, 0.62)},
 	"mantle": {"hair": "short", "coat": "longcoat", "mantle": true},
 	"cape_great": {"hair": "short", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "cape": true, "cape_color": Color(0.6, 0.12, 0.1)},
+	"pauldrons": {"hair": "short", "hat": "none", "coat": "none", "pauldron": true, "pauldron_r": true},
+	"pauld_coat": {"hair": "long", "coat": "longcoat", "pauldron": true, "pauldron_r": true},
+	"pauld_cloak": {"hair": "short", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "cloak": true, "pauldron": true, "pauldron_r": true},
 }
 
 var stage

@@ -29,11 +29,24 @@ func mk(kind: String, style: String, look: Dictionary):
 	return gear.make(kind, style, look)
 
 
-func arm_meshes(arm: Node3D) -> int:
+## (1.30.3) A pauldron rides its shoulder chain's helper in the arm's skin: the vertices bound wholly to that side's helper.
+func arm_meshes(side: String) -> int:
 	var n := 0
-	for c in arm.get_children():
-		if c is MeshInstance3D:
-			n += 1
+	for mi in p.body_model.find_children("*", "MeshInstance3D", true, false):
+		var skel := mi.get_node_or_null(mi.skeleton) as Skeleton3D if (mi as MeshInstance3D).skin else null
+		if skel == null:
+			continue
+		var bone := skel.find_bone("shoulder_%s_%d" % [side, BodyBuilder.PAULDRON_FOLLOW])
+		if bone < 0:
+			continue
+		var am := mi.mesh as ArrayMesh
+		for s in range(am.get_surface_count()):
+			var arr := am.surface_get_arrays(s)
+			var b: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+			var w: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+			for i in range(b.size()):
+				if b[i] == bone and w[i] > 0.99:
+					n += 1
 	return n
 
 
@@ -68,11 +81,11 @@ func _process(_d: float) -> bool:
 				var it = mk("shoulders", st, gear.PAULDRONS[st])
 				eq.equip(it)
 				p.refresh_look()
-				sides.append([arm_meshes(p.body_model.arm_l), arm_meshes(p.body_model.arm_r)])
+				sides.append([arm_meshes("l"), arm_meshes("r")])
 			eq.clear()
 			p.refresh_look()
-			var bare := [arm_meshes(p.body_model.arm_l), arm_meshes(p.body_model.arm_r)]
-			print("arm meshes (left, right): bare %s, left %s, right %s, pair %s" % [bare, sides[0], sides[1], sides[2]])
+			var bare := [arm_meshes("l"), arm_meshes("r")]
+			print("plate vertices on the shoulder helpers (left, right): bare %s, left %s, right %s, pair %s" % [bare, sides[0], sides[1], sides[2]])
 			check("the left pauldron on the left arm only", sides[0][0] > bare[0] and sides[0][1] == bare[1])
 			check("the right pauldron on the right arm only", sides[1][1] > bare[1] and sides[1][0] == bare[0])
 			check("the pair on both", sides[2][0] > bare[0] and sides[2][1] > bare[1])

@@ -11152,3 +11152,17 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   `Humanoid._cloth`) is gone: it was off in the game, and the sewn chains with nets and the fitting passes won.
   The cloth stage's L now toggles chains / sewn chains; clothlab lost CL_LATTICE and its sheet metrics. The plan
   doc marks the lattice section as dropped. No behaviour change in the game (the paths were dead by default).
+
+## 2026-11-07: pauldrons ride the shoulder (1.30.3)
+
+- **Whole on the arm**, a plate turned with every raise: in the cutlass combo's spin it rode up beside the jaw
+  (clothlab, new looks pauldrons, pauld_coat, pauld_cloak). Now each plate is skinned whole on its shoulder chain's
+  helper `PAULDRON_FOLLOW` (6 of 8: ArmBody / LowerBody turn helper i by i/8 of the arm's bend about the shoulder
+  pivot), merged into the arm's skin (`_arm_mbs`, now kept in both skin modes). No per-frame cost. Half (4) let the
+  raised sleeve swallow the dome; three quarters keeps it over the arm.
+- **+1.2 cm clearance** on every plate: an overhead raise bulges the sleeve round the shoulder and the dome's
+  leather rim showed through it as a dark line (it did at full follow too).
+- The cloak with pauldrons stays blocked by the slots (Gear's "The cloak covers the shoulders").
+- Test: t/gear/pauldron_follow (each plate's vertices bound wholly to its helper, on a shirt, over a coat and a
+  greatcoat). A "how high does the plate get through the combo" check was tried and dropped: 10.0 vs 10.2 cm between
+  6/8 and 7/8, it couldn't tell them apart; the renders judge the look.
