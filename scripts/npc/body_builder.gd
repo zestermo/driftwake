@@ -3824,7 +3824,7 @@ func _cape(tr: Array, coated: bool, cloak: bool) -> void:
 		for p in prof:
 			ky = maxf(ky, p.y)
 		back = maxf(back, float(r[3]) + float(r[2]) * ky)
-	var g := 0.04 + (0.03 if coated else 0.0) + (0.05 if _draped() else 0.0)
+	var g := 0.04 + (0.03 if coated else 0.0) + (0.05 if _draped() else 0.0) + _capelet_g()
 	var zb := back + g
 	# (over a backpack: a traveller's cloak)
 	if lk.get("backpack", false):
@@ -3837,15 +3837,15 @@ func _cape(tr: Array, coated: bool, cloak: bool) -> void:
 		_cloak(sim, tr, chain, hw, coated, mb)
 	else:
 		var bones := sim.add_chain(chain, 0.2, 0.08, 1.0, ["thigh_l", "thigh_r"])
-		var dr := _drape_rows(chain, hw * DRAPE_FLARE[0], hw * DRAPE_FLARE[1], 0.004, 0.024, 0.024, 9, float(lk.get("cape_tatter", 0.5)), "cape")
+		var dr := _drape_rows(chain, hw * DRAPE_FLARE[0], hw * DRAPE_FLARE[1], 0.004, CAPE_WRAP[0], CAPE_WRAP[1], 9, float(lk.get("cape_tatter", 0.5)), "cape")
 		var row_bones := PackedInt32Array()
 		for i in dr[1]:
 			row_bones.append(bones[i])
 		# (the columns' u evenly from edge to edge: the folds painted in the texture fan out to the hem)
 		sim.mb.add_strip_grid(_textured("drape_fabric", _col("cape_color")), Transform3D.IDENTITY, dr[0], row_bones, 3.0, Color.WHITE, Vector3(0, 0, -0.3), 2.0)
 		var we := hw * DRAPE_FLARE[1]
-		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, Vector3(-we * 0.5, 0, -0.002), Vector3(we * 0.5, 0, -0.002),
-			Vector3(-we, 0, -0.02), Vector3(we, 0, -0.02)]))
+		sim.set_probes(sim.chain_count() - 1, PackedVector3Array([Vector3.ZERO, Vector3(-we * 0.5, 0, -0.002 - CAPE_WRAP[1] * 0.25), Vector3(we * 0.5, 0, -0.002 - CAPE_WRAP[1] * 0.25),
+			Vector3(-we, 0, -0.004 - CAPE_WRAP[1]), Vector3(we, 0, -0.004 - CAPE_WRAP[1])]))
 	# the clasp at the collar
 	for s in [-1.0, 1.0]:
 		mb.add_box(PSXMat.flat(Color(0.88, 0.72, 0.3)), Transform3D(Basis(), Vector3(s * float(rt[1]) * 0.75, top, float(rt[3]))), Vector3(0.025, 0.025, 0.02), 3.0)
@@ -3907,6 +3907,9 @@ func _lantern_belt(tr: Array, coated: bool) -> Vector3:
 
 ## A cape's half width at the collar and at the hem (x the shoulders'): a trapezoid, flaring straight out.
 const DRAPE_FLARE := [0.78, 1.42]
+## (1.30.3) How far a cape's edges wrap forward round the back, at the collar and the hem (m): flat (2.4 cm) it read as a
+## ribbon from the side when it streamed out behind a run.
+const CAPE_WRAP := [0.065, 0.11]
 
 
 ## A drape's rows (anchor space, collar to hem, `cols` across) and the chain point each row's bone hangs from: a
@@ -3948,6 +3951,11 @@ func _drape_rows(chain: PackedVector3Array, w0: float, w1: float, z0: float, wra
 	return [rows, pts]
 
 
+## (1.30.3) Further out over a greatcoat's shoulder capelet (it stands ~2 cm proud of the coat a cape allows for)
+func _capelet_g() -> float:
+	return 0.025 if str(lk.get("coat", "none")) == "greatcoat" and not _draped() else 0.0
+
+
 ## A cape or cloak on chains of its own (mode "a0" shares the torso's with a sash's tail).
 func _cape_sim() -> SpringChains:
 	var s := SpringChains.new()
@@ -3964,7 +3972,7 @@ func _cape_sim() -> SpringChains:
 ## hem, in a heavier weave.
 func _cloak(sim: SpringChains, tr: Array, chain: PackedVector3Array, hw: float, coated: bool, mb: MeshBuilder) -> void:
 	var m := _textured("canvas", _col("cloak_color"))
-	var g := 0.03 + (0.03 if coated else 0.0) + (0.05 if _draped() else 0.0)
+	var g := 0.03 + (0.03 if coated else 0.0) + (0.05 if _draped() else 0.0) + _capelet_g()
 	var yoke: Array = []
 	for r in _clip(tr, tu(0.47), tu(0.63)):
 		var rr: Array = (r as Array).slice(0, 5)

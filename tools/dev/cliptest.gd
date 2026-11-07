@@ -60,11 +60,10 @@ func _process(_d: float) -> bool:
 		for vest in ["none", "scale", "cuirass", "harness"]:
 			straps.append({"coat": coat, "vest": vest, "belt": "none", "top": "shirt", "baldric": true})
 			straps.append({"coat": coat, "vest": vest, "belt": "none", "top": "shirt", "bandolier": true})
-	# the cloak's yoke and collar over coats and vests (not the greatcoat, whose own shoulder cape it sits beside)
+	# the cloak's yoke and collar over coats and vests (1.30.3: the greatcoat too, its yoke now out over the coat's own
+	# shoulder cape)
 	var cloaks := []
 	for coat in CharacterLook.COATS:
-		if coat == "greatcoat":
-			continue
 		for vest in ["none", "scale", "cuirass", "padded"]:
 			cloaks.append({"coat": coat, "vest": vest, "belt": "belt", "top": "shirt", "cloak": true})
 	# (fem: the coat's shell sits further out over the bust)

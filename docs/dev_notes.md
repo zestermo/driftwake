@@ -11129,3 +11129,19 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   (`Humanoid.lantern_swing` 0.3 rad, lean 0.12 -> BeltLantern `swing_max`/`lean`; swinging out up to 63 deg it came
   through the drape).
 - Cloth lab: drape, CL_NEAR (+ CL_BACK, CL_FRONT).
+
+## 2026-11-07: capes and cloaks: the cape wraps the back, both clear the greatcoat's capelet (1.30.3)
+
+- **Measured first** (clothlab, new looks cape, cloak, cape_coat, cloak_great, cape_drape, cloak_pack, cape_skirt,
+  cape_great, mantle; the cape's chain is now measured too, as "Cape>..."; env CL_ON runs only the net-on pass):
+  the cape and cloak themselves barely clip (Cape> 3-13 segment-frames in 1726, over coats, drapes, a pack, a
+  skirt). The big numbers in those looks are the coats' own tails and long hair (cascade hair alone: Head>torso
+  ~2900), not the cape.
+- **The cape read as a ribbon side on:** built nearly flat (2.4 cm wrap), streaming out behind a run it showed
+  its edge. `CAPE_WRAP` [0.065 collar, 0.11 hem]: the edges curve forward round the back (the hem's edges are
+  ~30 cm out, wide of the legs); the edge probes follow the wrap. Clipping unchanged; pops 21 -> 36 over the
+  lab's 12 s of turns, stops and spins.
+- **Over a greatcoat:** its shoulder capelet stands ~2 cm proud of the coat the cape and cloak allowed for, and
+  came through the cloak's yoke as two dark patches. `_capelet_g()` adds 2.5 cm to both (not on a draped
+  greatcoat, already 5 cm out). cliptest's "coats and vests under the cloak" now includes the greatcoat.
+- Not changed: the cape's motion (mode "a", Zach's most polished cloth), the cloak's own wrap (9/3 cm), the mantle.

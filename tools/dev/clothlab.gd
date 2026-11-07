@@ -5,9 +5,10 @@ extends SceneTree
 ## (BodyBuilder.cloth_net false: the plain chains) and on, filmed at the PSX pixel grid at the key moments. Run it at a
 ## fixed frame rate so the two runs line up frame for frame:
 ##   & $env:GODOT --path . --fixed-fps 144 --script res://tools/dev/clothlab.gd
-## Args: [out_dir=res://tools/dev/out/clothlab] [looks=hair,twin,coat,ties] (also duster, skirt, drape, drape_jacket:
+## Args: [out_dir=res://tools/dev/out/clothlab] [looks=hair,twin,coat,ties] (also duster, skirt, hakama, the cape_* and
+## cloak_* looks, mantle; drape, drape_jacket:
 ## coats worn over the shoulders, 1.29). Env CL_NEAR: a close
-## look; CL_GD: the GDScript solver instead of the native one.
+## look; CL_GD: the GDScript solver instead of the native one; CL_ON: the net-on run only.
 ## Writes sheet_<look>.png (net off on top, on below; a column a moment) and metrics.txt (also printed): for every
 ## frame drawn, the chains' segments (as the bones draw them) inside the legs', hips' and torso's capsules, and the
 ## most any segment swung off its rest direction.
@@ -46,6 +47,15 @@ const LOOKS := {
 	"pack": {"hair": "ponytail", "hat": "none", "coat": "none", "backpack": true, "backpack_color": Color(0.62, 0.52, 0.38)},
 	"pack_drape": {"hair": "short", "coat": "longcoat", "coat_color": Color(0.14, 0.18, 0.34), "coat_drape": true, "backpack": true},
 	"drape_jacket": {"body": "fem", "hair": "ponytail", "coat": "jacket", "coat_color": Color(0.2, 0.32, 0.62), "coat_drape": true},
+	"cape": {"hair": "short", "coat": "none", "cape": true, "cape_color": Color(0.6, 0.12, 0.1)},
+	"cloak": {"hair": "short", "coat": "none", "cloak": true, "cloak_color": Color(0.32, 0.28, 0.22)},
+	"cape_coat": {"hair": "long", "coat": "longcoat", "belt": "sash", "cape": true, "cape_color": Color(0.6, 0.12, 0.1)},
+	"cloak_great": {"hair": "short", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "cloak": true},
+	"cape_drape": {"hair": "short", "hat": "none", "coat": "longcoat", "coat_color": Color(0.9, 0.88, 0.8), "coat_drape": true, "cape": true, "cape_color": Color(0.6, 0.12, 0.1)},
+	"cloak_pack": {"hair": "ponytail", "coat": "none", "cloak": true, "backpack": true},
+	"cape_skirt": {"body": "fem", "hair": "cascade", "legs": "skirt", "coat": "none", "cape": true, "cape_color": Color(0.2, 0.32, 0.62)},
+	"mantle": {"hair": "short", "coat": "longcoat", "mantle": true},
+	"cape_great": {"hair": "short", "coat": "greatcoat", "coat_color": Color(0.1, 0.09, 0.09), "cape": true, "cape_color": Color(0.6, 0.12, 0.1)},
 }
 
 var stage
@@ -74,7 +84,7 @@ func _initialize() -> void:
 	if args.size() > 1:
 		looks = Array(args[1].split(","))
 	for lk in looks:
-		for net in [false, true]:
+		for net in ([true] if OS.get_environment("CL_ON") != "" else [false, true]):
 			runs.append([lk, net])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	TK.seed_of(self)
@@ -261,8 +271,6 @@ func _measure() -> void:
 		caps.append([tt * (cd["a"] as Vector3), tt * (cd["b"] as Vector3), float(cd["r"]) * tt.basis.get_scale().x - 0.03, key])
 	var n := 0
 	for s in hm._sims:
-		if s.name == "Cape":
-			continue
 		var sk: Skeleton3D = s.skel
 		var gt := sk.global_transform
 		for ci in range(s.chain_count()):
@@ -299,7 +307,7 @@ func _measure() -> void:
 					var depth: float = float(cap[2]) - (st[0] as Vector3).distance_to(st[1])
 					if depth > 0.0:
 						n += 1
-						var bk := "%s>%s" % [s.get_parent().name, cap[3]]
+						var bk := "%s>%s" % [("Cape" if s.name == "Cape" else s.get_parent().name), cap[3]]
 						rec["by"][bk] = int(rec["by"].get(bk, 0)) + 1
 						rec["pen_worst"] = maxf(rec["pen_worst"], depth)
 	# (1.30.3) sewn seams at the hem, skinned as the mesh blends them (half each neighbour's last bone), in the legs
