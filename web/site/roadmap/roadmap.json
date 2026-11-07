@@ -961,6 +961,22 @@
 			]
 		},
 		{
+			"v": "1.30.3",
+			"name": "Tailored",
+			"date": "2026-11-07",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "The clothing rework: coats, skirts and capes as sewn cloth that hangs right, new gear slots with pauldrons, and new music and sound at sea.",
+			"img": "preview_130",
+			"alt": "The floating restaurant's carved fish-head bow and timber hall, afloat on a blue sea",
+			"github": true,
+			"added": [
+				["Clothes that hang", "Coats, skirts and capes as sewn cloth, built clear of the legs."],
+				["Gear slots", "Shoulders, Back, Strap and Trinkets; pauldrons that ride the shoulder."],
+				["Music and sound", "Sea tracks at random, a storm's own, rooms that echo and rain on the roof."]
+			]
+		},
+		{
 			"v": "1.31",
 			"name": "The Voyage",
 			"status": "planned",

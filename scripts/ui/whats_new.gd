@@ -7,12 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Menus on a controller", "A ring cursor you steer with the left stick in every menu (A clicks, X right-clicks), the D-pad and A/B work in menus and conversations, and ending a talk with A no longer makes you jump."],
-	["Your keys", "Options > Controls lets you rebind every key and mouse button; prompts and the skill bar show your keys."],
-	["Cleaner skill maps", "Every branch in its own lane with nothing overlapping, over a drifting pixel sea; menus sized better at 1080p."],
-	["Slides and air", "Steep hills slide you on your own, stood up like surfing. Acrobatics now grows from jumps, air time, tall drops and blows struck mid-air."],
-	["Fists and slingshot", "Shockwave Palm, Rising Dragon and Hundred Fists hit with more weight; the Diving Fist can't be spammed and finds its foe. The slingshot is held left-handed, in line with the camera, with a heavier draw."],
-	["Fixes", "The lighthouse no longer leaves you stuck sideways, Bag of Tricks fires from the drawn band, and three axe moves play their own animations again."],
+	["Clothes that hang", "Coats, jackets and skirts hang from the shoulders and waist as sewn cloth: no gaps between panels, built clear of your legs, heavier and calmer, and so is long hair."],
+	["New gear slots", "Shoulders, Back, Strap and two Trinkets. Pauldrons come left, right or as a pair and ride the shoulder; your old accessories move to their new slots."],
+	["Hakama, capes, drapes", "The hakama splits into wide trouser legs, capes wrap round the back, and a coat worn over the shoulders no longer shows the sash or the lantern through it."],
+	["Music at sea", "Eight calm sea tracks at random under sail and a storm's own, plus new title, wilds and harbour music."],
+	["Sound", "Rooms echo, rain drums on roofs, far cannons boom over the water, pirates' footsteps, beast impacts, and coats rustle as you run."],
 ]
 
 
