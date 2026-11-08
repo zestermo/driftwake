@@ -21,8 +21,8 @@ const HITCH_LINES := 20
 ## Spikes kept for the F12 capture.
 const RECENT := 16
 ## Sections of the frame timed by the code that runs them (add_us).
-enum {ANIM, AI, BUILD, SPAWN, SLEEP, FX}
-const CATS := ["anim", "ai", "build", "spawn", "sleep", "fx"]
+enum {ANIM, AI, BUILD, SPAWN, SLEEP, FX, NET}
+const CATS := ["anim", "ai", "build", "spawn", "sleep", "fx", "net"]
 const STEPS_KEEP := 24
 const PIPES := [Performance.PIPELINE_COMPILATIONS_CANVAS, Performance.PIPELINE_COMPILATIONS_MESH,
 	Performance.PIPELINE_COMPILATIONS_SURFACE, Performance.PIPELINE_COMPILATIONS_DRAW, Performance.PIPELINE_COMPILATIONS_SPECIALIZATION]

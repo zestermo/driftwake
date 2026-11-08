@@ -64,6 +64,9 @@ var args := {}
 var label := "run"
 var t := 0.0
 var started := false
+## (coop) the headless guest's pid (netguest.gd), and when their captain came in.
+var guest_pid := -1
+var guest_t := -1.0
 var done := false
 var ready_at := -1.0
 var p
@@ -248,6 +251,8 @@ func _process(d: float) -> bool:
 				done = true
 				quit(1)
 			return false
+		if args.has("coop") and not _coop_in():
+			return false
 		if ready_at < 0.0:
 			ready_at = t
 			print("bench: chain islands ready at %.1f s" % t)
@@ -359,6 +364,39 @@ func _setup() -> void:
 	late.process_priority = 1000000
 	late.process_physics_priority = 1000000
 	root.add_child(late)
+	if args.has("coop"):
+		_coop_start()
+
+
+## (coop) Host in the running world, as the pause menu does, and start a headless guest (netguest.gd) who stands
+## beside our captain at every stop: the frames then carry one more captain's cost and nothing else.
+const COOP_PORT := 24700
+func _coop_start() -> void:
+	var net := root.get_node("Net")
+	var err: int = net.host_game(COOP_PORT)
+	if err != OK:
+		push_error("bench: coop: couldn't host on %d (%s)" % [COOP_PORT, error_string(err)])
+		quit(1)
+		return
+	var exe := OS.get_executable_path()
+	guest_pid = OS.create_process(exe, ["--headless", "--path", ProjectSettings.globalize_path("res://"),
+		"--script", "res://tools/dev/netguest.gd", "--", str(COOP_PORT), "1800"])
+	print("bench: coop: hosting on %d, guest pid %d" % [COOP_PORT, guest_pid])
+
+
+## (coop) The guest's captain is in our world (their world built and joined).
+func _coop_in() -> bool:
+	var net := root.get_node("Net")
+	if net.players.size() >= 2:
+		if guest_t < 0.0:
+			guest_t = t
+			print("bench: coop: the guest's captain is in at %.1f s" % t)
+		return true
+	if t > 300.0:
+		push_error("bench: coop: the guest never joined")
+		done = true
+		quit(1)
+	return false
 
 
 ## Timeline marks: the start of the scene's physics pass and process pass (this
@@ -1232,15 +1270,17 @@ func _enemy_line(at: Vector3) -> String:
 # --------------------------------------------------------------------------
 func _finish() -> void:
 	done = true
+	if guest_pid > 0:
+		OS.kill(guest_pid)
 	phase = ""
 	var L: Array = []
 	L.append("Driftwake Brinehollow bench  label %s  %s" % [label, Time.get_datetime_string_from_system()])
 	L.append("version %s  Godot %s  driver %s  %s  CPU %s (%d threads)" % [str(ProjectSettings.get_setting("application/config/version", "")),
 		Engine.get_version_info()["string"], RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_video_adapter_name(),
 		OS.get_processor_name(), OS.get_processor_count()])
-	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms  crowd %s  sleep %s  build %s" % [str(root.size), root.scaling_3d_scale,
+	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms  crowd %s  sleep %s  coop %s  build %s" % [str(root.size), root.scaling_3d_scale,
 		args.get("pix", "1"), args.get("hour", "13"), args.get("wx", "clear"), Engine.physics_ticks_per_second, calib_ms, "on" if args.has("crowd") else "off",
-		"off" if args.has("nosleep") else "on", ("export" if OS.has_feature("template") else "editor") + (" debug" if OS.is_debug_build() else " release")])
+		"off" if args.has("nosleep") else "on", "on" if args.has("coop") else "off", ("export" if OS.has_feature("template") else "editor") + (" debug" if OS.is_debug_build() else " release")])
 	L.append("")
 	L.append(census_text)
 	L.append("== summary")

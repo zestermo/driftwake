@@ -11166,3 +11166,24 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - Test: t/gear/pauldron_follow (each plate's vertices bound wholly to its helper, on a shirt, over a coat and a
   greatcoat). A "how high does the plate get through the combo" check was tried and dropped: 10.0 vs 10.2 cm between
   6/8 and 7/8, it couldn't tell them apart; the renders judge the look.
+
+## 2026-11-08: host lag from Zach's co-op session (1.30.3): the skills menu, and co-op measured
+- **What the session showed** (user://perf.log, crumbs.log, 93 min hosting one guest): the host was CPU-bound (GPU 3-10 ms,
+  process 20-50 ms). The longest low stretches with nothing timed (no AI, builds or rigs) lined up with the **skills menu**
+  open (14.5-16 min, 69.7-72.7 min: 28-36 fps); in co-op the world doesn't pause behind it. The rest: fights with ~20 awake
+  enemies, and island build steps (Meridian's `life #5` 380 ms, crowd 194 ms, colliders 144 ms).
+- **Skills menu, Captain page** (`skill_map_screen.gd`): the Edy tree's view redrew every frame, ~12 ms in the editor
+  (73 nodes: glyphs ~3 ms, names, rims and shapes ~5 ms, buy checks 0.5 ms; no single culprit). It now redraws only when
+  `_edy_key()` changes (pan, zoom, rect, tint, the inspected node, bought / edy_off / edy_uses, Edy points, the Edy read);
+  its two animated bits moved to thin clipped layers redrawn every frame: `_edy_back` (the buyable nodes' gold glow,
+  under them as before) and `_edy_front` (the core's breathing ring). The view's last draw leaves `_edy_glows` / `_edy_core`
+  for them. Captain page 20.4 -> 7.4 ms a frame (the other pages ~5 ms; still ~3.5). The main screen still redraws
+  every frame (~2-4 ms: its sky and pulses animate).
+- **Co-op measured:** `bench_brinehollow coop` hosts and starts a headless guest (`tools/dev/netguest.gd`) who stands
+  beside the captain at every stop. plaza/market/village/cplaza, gate mode, back to back: 18.8 -> 22.1 ms mean frame,
+  of which scripts ~1.5 ms (the guest's puppet body ~0.5, network_manager 0.35), the extra body's draw ~0.9, the rest
+  the guest's own process sharing the CPU (calib 25.9 vs 27.9). So a nearby guest isn't the 20 ms; a guest far away
+  (two places awake and built) wasn't measured yet. Perf now times Net's per-frame work (`net` in the spike lines).
+- Found on the way: `world_generator.gd` is the costliest script at a chain village (2.96 ms/frame, calls to 4.2 ms).
+- Tools: `skillmapcost.gd` (the menu's cost a frame per page). Tests: t/ui/skills_captain_forks, skills_map_view,
+  skills_buy_node, skills_tabs, t/input/pad_skills, t/story/shrine_reading.

@@ -575,11 +575,13 @@ func _process(delta: float) -> void:
 				_pings.rpc_id(id, pings)
 	if not world_ready:
 		return
+	var t0 := Time.get_ticks_usec()
 	_snap_t += delta
 	if _snap_t >= 1.0 / SNAP_RATE:
 		_snap_t = fmod(_snap_t, 1.0 / SNAP_RATE)
 		_send_snapshots()
 	_apply_events()
+	Perf.add_us(Perf.NET, Time.get_ticks_usec() - t0)
 
 
 @rpc("any_peer", "call_remote", "unreliable")

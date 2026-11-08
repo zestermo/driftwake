@@ -89,6 +89,14 @@ const EDY_ZOOMS := Vector2(0.35, 1.3)
 ## Names under the nodes from this zoom.
 const EDY_NAMES_FROM := 0.6
 var _edy_view: Control
+## (2026-11-08) Its two animated layers (behind and in front), what the view last drew (_edy_key), and what the
+## layers draw from it: the glows' [pos, half-size] and the core's [pos, radius]. Redrawing the whole tree every
+## frame cost ~12 ms (73 nodes, their glyphs, names and rims in script) while the menu was open.
+var _edy_back: Control
+var _edy_front: Control
+var _edy_drawn := 0
+var _edy_glows: Array = []
+var _edy_core := [Vector2.ZERO, 0.0]
 var _edy_rect := Rect2()
 var _edy_tint := Color.WHITE
 var _edy_k := EDY_ZOOM
@@ -115,13 +123,22 @@ func _init(owner_menu: Node) -> void:
 	focus_mode = Control.FOCUS_ALL
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_font = UIStyle.get_theme().default_font
-	_edy_view = Control.new()
-	_edy_view.clip_contents = true
-	_edy_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_edy_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_edy_view.visible = false
-	_edy_view.draw.connect(_draw_edy_view)
-	add_child(_edy_view)
+	# (behind the view: the glow under each node you can buy now; in front: the core's breathing ring. The view itself
+	# redraws only when what it shows changes, _edy_key; these two, a few shapes, every frame)
+	_edy_back = _edy_layer(_draw_edy_back)
+	_edy_view = _edy_layer(_draw_edy_view)
+	_edy_front = _edy_layer(_draw_edy_front)
+
+
+func _edy_layer(drawn: Callable) -> Control:
+	var c := Control.new()
+	c.clip_contents = true
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	c.visible = false
+	c.draw.connect(drawn)
+	add_child(c)
+	return c
 
 
 func _player() -> Player:
@@ -306,9 +323,18 @@ func _process(delta: float) -> void:
 	_t += delta
 	_msg_t = maxf(_msg_t - delta, 0.0)
 	_edy_view.visible = tab == "captain" and not perks_open
+	_edy_back.visible = _edy_view.visible
+	_edy_front.visible = _edy_view.visible
 	if _edy_view.visible:
 		_edy_follow(delta)
-		_edy_view.queue_redraw()
+		var key := _edy_key()
+		if key != _edy_drawn:
+			_edy_drawn = key
+			_edy_view.queue_redraw()
+		_edy_back.queue_redraw()
+		_edy_front.queue_redraw()
+	else:
+		_edy_drawn = 0
 	if _on_map():
 		_map_pad(delta)
 		_map_follow(delta)
@@ -1343,8 +1369,9 @@ func _draw_edy_tree(r: Rect2, tint: Color) -> void:
 	_box(r, Color(WILL_DARK, 0.85), tint.darkened(0.45))
 	_edy_rect = r.grow(-2.0)
 	_edy_tint = tint
-	_edy_view.position = _edy_rect.position
-	_edy_view.size = _edy_rect.size
+	for c in [_edy_back, _edy_view, _edy_front]:
+		(c as Control).position = _edy_rect.position
+		(c as Control).size = _edy_rect.size
 	# every node is a hit (the arrows can walk to one off the edge; a click only lands inside the view: _hit_at)
 	var s := _edy_s()
 	for id in EdyTree.cached().keys():
@@ -1397,7 +1424,9 @@ func _draw_edy_view() -> void:
 	var cr := 34.0 * k
 	v.draw_circle(c, cr, WILL_DARK)
 	v.draw_arc(c, cr, 0, TAU, 36, tint, 2.0)
-	v.draw_arc(c, cr - 4.0, 0, TAU, 36, Color(tint, 0.35 + 0.2 * sin(_t * 2.0)), 1.0)
+	# (its breathing inner ring: _draw_edy_front)
+	_edy_core = [c, cr]
+	_edy_glows.clear()
 	v.draw_string(SILK, c + Vector2(-40, 3), EdyTypes.name_of(p.will_color).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 80.0, 8, UIStyle.CREAM)
 	var s := _edy_s()
 	var vr := Rect2(Vector2.ZERO, v.size).grow(s * 3.0)
@@ -1427,8 +1456,8 @@ func _draw_edy_view() -> void:
 				for i in range(6):
 					shape.append(pos + Vector2.from_angle(TAU * i / 6.0 + PI / 6.0) * s * 1.25)
 		if can:
-			var a := 0.5 + 0.5 * sin(_t * 3.5)
-			v.draw_circle(pos, s * 1.9, Color(UIStyle.GILT, 0.12 + 0.12 * a))
+			# (its gold glow, breathing: _draw_edy_back, under it)
+			_edy_glows.append([pos, s])
 		v.draw_colored_polygon(shape, fill)
 		# the icon: an ability's own, else a glyph
 		var ic: Texture2D = Skills.icon(str(e["skill"])) if str(e["skill"]) != "" else null
@@ -1457,6 +1486,30 @@ func _draw_edy_view() -> void:
 	# how to move it, on a strip along the bottom
 	v.draw_rect(Rect2(0, v.size.y - 13.0, v.size.x, 13.0), Color(WILL_DARK, 0.85))
 	v.draw_string(SILK, Vector2(6, v.size.y - 4.0), "DRAG: MOVE   WHEEL: ZOOM   C: CENTRE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(UIStyle.CREAM, 0.6))
+
+
+## What the Edy view shows, as one number: it redraws when this changes (panned, zoomed, resized, another node
+## inspected, something bought, switched, ranked up or a point gained, the Edy read).
+func _edy_key() -> int:
+	var p := _pr()
+	if p == null:
+		return 1
+	return [_edy_pan, _edy_k, _edy_rect, _edy_tint, inspected(), p.bought.hash(), p.edy_off.hash(), p.edy_uses.hash(),
+		p.pool("will"), p.will_color].hash()
+
+
+## Behind the Edy view: the gold glow under each node you can buy now (the view's last draw listed them).
+func _draw_edy_back() -> void:
+	var a := 0.5 + 0.5 * sin(_t * 3.5)
+	for g in _edy_glows:
+		_edy_back.draw_circle(g[0], float(g[1]) * 1.9, Color(UIStyle.GILT, 0.12 + 0.12 * a))
+
+
+## In front of it: the core's breathing inner ring.
+func _draw_edy_front() -> void:
+	if float(_edy_core[1]) <= 4.0:
+		return
+	_edy_front.draw_arc(_edy_core[0], float(_edy_core[1]) - 4.0, 0, TAU, 36, Color(_edy_tint, 0.35 + 0.2 * sin(_t * 2.0)), 1.0)
 
 
 ## Which glyph a stat node gets, by what it raises.
