@@ -374,6 +374,17 @@ func _c(key: String, fallback: Color) -> Color:
 # ==========================================================================
 # Model
 # ==========================================================================
+## Workers and the main thread take turns at bodies (2026-11-08): bodies are built ahead on workers (prebuild, an
+## island's prepare stocking its villagers) while the main thread rebuilds the captain's (a gear change). Two at once
+## share the builders' caches and mesh commits: the release build crashed on it three times (a camp's next crew building
+## on a worker while the captain changed gear), the debug one reproduced "wrong RID" in body_builder._commit_parts
+## (2026-10-17). The main thread never waits on a worker (a worker mid-body can be waiting on the main thread: a lock
+## deadlocked): main_may_build() asks the workers to hold off before their next body and says whether one is mid-body;
+## the caller tries again next frame until none is, builds, and calls main_built().
+static var _worker_n := 0   # bodies being built on workers now (_pool_lock)
+static var _main_wants := -10   # the process frame the main thread last asked for a turn (workers wait 2 frames)
+
+
 func _build() -> void:
 	look = CharacterLook.normalize(look)
 	for c in get_children():
@@ -382,13 +393,55 @@ func _build() -> void:
 	_sims.clear()
 	var s: float = float(look.get("height", 1.0))
 	scale = Vector3(s, s, s)
+	var worker := OS.get_thread_caller_id() != OS.get_main_thread_id()
+	if worker:
+		_worker_enter()
 	if str(look.get("beast", "")) == "ape":
 		ApeBuilder.build(self, look)
 	else:
 		BodyBuilder.build(self, look)
+	if worker:
+		_pool_lock.lock()
+		_worker_n -= 1
+		_pool_lock.unlock()
 	# a ghost (the fog isle's dead, the drowned captain): the body glows the cold blue-white of the dead all over
 	if look.get("spirit", false):
 		spirit_glow(self)
+
+
+static func _main_waiting() -> bool:
+	return Engine.get_process_frames() - _main_wants <= 2
+
+
+static func _worker_enter() -> void:
+	# (at most ~0.5 s: a main thread that asked and then waits on the workers itself must not hang)
+	var n := 0
+	while true:
+		while _main_waiting() and n < 250:
+			OS.delay_msec(2)
+			n += 1
+		_pool_lock.lock()
+		if not _main_waiting() or n >= 250:
+			_worker_n += 1
+			_pool_lock.unlock()
+			return
+		_pool_lock.unlock()
+
+
+## (main thread) True when no worker is mid-body: build now, then main_built(). Either way the workers hold off before
+## their next body for two frames, so asking again next frame gets a turn within one body.
+static func main_may_build() -> bool:
+	_pool_lock.lock()
+	_main_wants = Engine.get_process_frames()
+	var ok := _worker_n == 0
+	_pool_lock.unlock()
+	return ok
+
+
+static func main_built() -> void:
+	_pool_lock.lock()
+	_main_wants = -10
+	_pool_lock.unlock()
 
 
 ## Every mesh under `n` the ghosts' pale cold blue-white, faintly glowing (one shared material), casting no shadow.
@@ -558,6 +611,7 @@ static func _reap() -> void:
 
 ## A new world: bodies built for the old one go.
 static func clear_prebuilt() -> void:
+	main_built()
 	for id in _tasks:
 		WorkerThreadPool.wait_for_task_completion(id)
 	_tasks.clear()

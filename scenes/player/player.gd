@@ -465,9 +465,23 @@ func _wear_outfit_of(lk: Dictionary) -> void:
 func refresh_look() -> void:
 	if body_model == null:
 		return
+	_rebuild_body()
+
+
+## The body rebuilt for the gear, when no worker is mid-body (Humanoid.main_may_build: two bodies built at once crashed
+## the release build); else next frame, within one worker body.
+func _rebuild_body() -> void:
+	if body_model == null:
+		return
+	if not Humanoid.main_may_build():
+		if not get_tree().process_frame.is_connected(_rebuild_body):
+			get_tree().process_frame.connect(_rebuild_body, CONNECT_ONE_SHOT)
+		_recalc_stats()
+		return
 	var lk := Gear.compose(appearance, equipment.look_slots(), equipment.hidden, equipment.draped)
 	lk["log_pose"] = has_log_pose() and not is_ai
 	body_model.apply_look(lk)
+	Humanoid.main_built()
 	if not is_ai:
 		CharacterLook.save_look(body_model.look)
 	if hybrid:

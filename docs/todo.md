@@ -270,6 +270,10 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   bodies on workers (Humanoid.prebuild) while the main thread built the island reproduced it at once ("Attempting to
   initialize the wrong RID" in MeshBuilder.to_instance from body_builder._commit_parts on the main thread); the
   prebuild was taken out again. A load-time speed-up for bodies needs their meshes committed on the main thread first.
+  2026-11-08: the release build crashed on it three times in co-op (a camp's next crew prebuilding while the captain
+  changed gear; dev_notes "the co-op crash"). Hardened: the gear rebuild and worker bodies take turns
+  (Humanoid.main_may_build). Still open: other main-thread builds during worker bodies; the real fix is bodies as data
+  on the worker, meshes committed on the main thread.
 - chartest / savetest race on the shared `user://character.cfg` when two sessions run them at once
   ("Cannot get keys from nonexistent section look"): give the suites their own config path (e.g. an env or
   test-kit override of CharacterLook's save path).

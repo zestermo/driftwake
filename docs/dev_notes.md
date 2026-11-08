@@ -11187,3 +11187,30 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - Found on the way: `world_generator.gd` is the costliest script at a chain village (2.96 ms/frame, calls to 4.2 ms).
 - Tools: `skillmapcost.gd` (the menu's cost a frame per page). Tests: t/ui/skills_captain_forks, skills_map_view,
   skills_buy_node, skills_tabs, t/input/pad_skills, t/story/shrine_reading.
+
+## 2026-11-08: the co-op crash (1.30.3 host): two bodies built at once
+- **What crashed:** Windows kept three dumps (`%LOCALAPPDATA%\CrashDumps\Driftwake.exe.*.dmp`: Nov 5 twice in 1.30, Nov 7
+  in 1.30.3). All three die at the same instruction, Driftwake.exe+0x2fbe1e3 (the 4.7.2 release template): a virtual call
+  through an object's vtable (`call [rax+0x50]`, `Object::get_class_name`) from the GDScript VM's native `is` test, with the
+  vtable overwritten by float data (0x3f8026fa = 1.0012): heap corruption, not a script mistake. The dumps hold no heap,
+  so no names. A scratch parser (stack scan + the error strings next to each return address) got this far; no
+  disassembler or symbols on the machine.
+- **When:** every crash came within a minute or two of wiping out the grunt camp at about (153, -245) (perf.log's Parry
+  and ragdoll marks). An emptied camp prebuilds its next crew's bodies on a worker (GruntCamp, Humanoid.prebuild). The
+  1.30.3 one was mid gear change in the inventory (crumbs: drape coat, mog coat, "drop bag onto doll"), i.e. the
+  captain's body rebuilt on the main thread while the worker built the crew. The same pair reproduced "wrong RID" in
+  body_builder._commit_parts on 2026-10-17 (docs/todo.md).
+- **Fix (hardening):** the main thread and workers take turns at bodies (humanoid.gd: `_build` counts worker bodies,
+  `main_may_build()` / `main_built()`). The captain's gear rebuild (`Player._rebuild_body`, from refresh_look) asks for a
+  turn; while a worker is mid-body it tries again next frame (stats apply at once), and workers hold off before their
+  next body until it's done (at most ~0.5 s, so a main thread that asks and then waits on the workers can't hang).
+  `clear_prebuilt` gives the turn back before waiting. **A plain mutex deadlocked** (racestress hung): a worker mid-body
+  can be waiting on the main thread (rendering server syncs), so the main thread must never block on a worker.
+- **Not covered:** other main-thread builds while a worker builds bodies (Humanoid.make's fallback, an island's mesh
+  commits during a neighbour's prepare, the wanted poster's portrait). A grunt body takes 56-226 ms in a debug
+  build, so building them on the main thread is out; the real fix is bodies as data on the worker with their meshes
+  committed on the main thread (as the beasts do).
+- **Also:** Hitbox.deactivate turns monitoring off deferred (from a hit's own signal it errored "blocked during in/out
+  signal"; `active` already stops hits at once).
+- **Tested by** tools/dev/racestress.gd (30 s in a real window: 28 crews, 164 rebuilds, no errors; the debug editor build
+  didn't crash without the fix either, so it shows the turns work, not the crash gone), t/gear, the hitbox tests.

@@ -21,10 +21,16 @@ func activate(data: HitData = null) -> void:
 	monitoring = true
 
 
+## (monitoring off at the frame's end, as `active` stands then: a hit's own signal can end the swing, where setting it
+## errors "blocked during in/out signal"; `active` already stops hits now, and a swing started again first keeps it on)
 func deactivate() -> void:
 	active = false
-	monitoring = false
 	hit_targets.clear()
+	_sync_monitoring.call_deferred()
+
+
+func _sync_monitoring() -> void:
+	monitoring = active
 
 
 func _ready() -> void:
