@@ -140,6 +140,9 @@ uniform float under_sea = 0.0;
 // sky it reaches. Toward the horizon the sea melts into the same colour the
 // sky does just above it, so there is no line where the sea stops.
 global uniform vec4 sky_haze;
+// Cel shading (PSX, the video setting "cel") turns the sea toon: Zach's pick of three looks, 2026-11-09
+global uniform float psx_cel;
+const float SEA_BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 // The scene's depth fog (Weather): begin, end in metres.
 global uniform vec2 fog_range;
 
@@ -195,7 +198,21 @@ void fragment() {
 	vec2 along = vec2(dot(wuv, wd), dot(wuv, vec2(-wd.y, wd.x)));
 	float streaks = cell_noise(floor(vec2(along.x * 0.3 - time_val * 0.9, along.y * 1.3)));
 	float caps = whitecaps * smoothstep(0.62 - whitecaps * 0.12, 0.92, crest_k) * step(0.72 - whitecaps * 0.22, streaks);
-	base_color = mix(base_color, foam_color.rgb, max(foam_factor * 0.35, caps * 0.65));
+	if (psx_cel < 0.5) {
+		base_color = mix(base_color, foam_color.rgb, max(foam_factor * 0.35, caps * 0.65));
+	} else {
+		// toon sea: the colour in three flat steps (dithered between on the PSX grid), hard white caps on
+		// the crests with a dithered edge, and white contour lines riding the wave faces up close
+		ivec2 bp = ivec2(mod(floor(FRAGCOORD.xy * (540.0 / VIEWPORT_SIZE.y)), 4.0));
+		float b = (SEA_BAYER[bp.y * 4 + bp.x] + 0.5) / 16.0 - 0.5;
+		float fs = (step(0.18 + b * 0.12, fresnel) + step(0.55 + b * 0.12, fresnel)) * 0.5;
+		base_color = mix(mix(deep_color.rgb * vec3(0.85, 1.0, 1.15), shallow_color.rgb, fs), tex, 0.18);
+		float cap = step(foam_threshold + 0.1 + b * 0.18, crest_k);
+		base_color = mix(base_color, foam_color.rgb, max(cap * 0.8, caps * 0.75));
+		float dcam = length(world_pos - CAMERA_POSITION_WORLD);
+		float lines = step(0.88, fract(crest_k * 3.0 + 0.15)) * smoothstep(0.1, 0.4, crest_k) * (1.0 - smoothstep(35.0, 110.0, dcam));
+		base_color = mix(base_color, foam_color.rgb, lines * 0.75);
+	}
 	vec2 wf = whirl_foam(wuv, time_val);
 	base_color = mix(base_color, foam_color.rgb, wf.x * 0.55);
 	base_color = mix(base_color, deep_color.rgb * 0.35, wf.y);

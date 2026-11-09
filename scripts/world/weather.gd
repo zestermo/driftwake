@@ -687,6 +687,9 @@ func _drift_sky(delta: float) -> void:
 	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud) * (1.0 - smoke)
 	cloud_shadow = Vector4(clampf(coverage * 0.75, 0.0, 0.85), strength if _env else 0.0, _shadow_drift.x, _shadow_drift.y)
 	RenderingServer.global_shader_parameter_set("cloud_shadow", cloud_shadow)
+	# the wind for foliage sway (psx_cutout): where it blows (x, z), how hard (0 calm .. ~1.4 a storm)
+	var wd1 := wind_dir()
+	RenderingServer.global_shader_parameter_set("wind_vec", Vector4(wd1.x, wd1.y, wind + storm * 0.6, 0.0))
 
 
 func _update_clouds() -> void:
