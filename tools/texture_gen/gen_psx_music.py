@@ -3166,6 +3166,20 @@ WAKE_C = ("A5/4 A5/2 C6/2 | D6/4 C6/2 A5/2 | G5/2 G5/1 A5/1 B5/2 G5/2 | A5/6 -/2
 WAKE_B = ("F5/2 F5/1 G5/1 A5/2 F5/2 | G5/3 F5/1 E5/2 C5/2 | D5/2 E5/1 F5/1 G5/2 A5/2 | B5/2 A5/2 G5/4 | "
           "A5/2 C6/2 A5/2 F5/2 | G5/2 E5/2 C5/4 | D5/2 F5/1 E5/1 D5/2 C5/2 | D5/6 -/2")
 
+# Over the Driftwake (2026-11-09): THEME_A and THEME_B as a session air, 4/4, D major, eighth ticks.
+DRIFT_B = ("F#5/4 B5/2 A5/2 | G5/3 F#5/1 E5/2 D5/2 | F#5/3 E5/1 D5/2 A4/2 | C#5/2 E5/2 A5/4 | "
+           "B5/3 C#6/1 D6/2 B5/2 | G5/3 A5/1 B5/2 D6/2 | E6/3 D6/1 B5/2 G5/2 | A5/4 G5/2 E5/2")
+# The Lantern Shore (2026-11-09): a slow warm ballad, 4/4, F major, eighth ticks.
+LANTERN_A = ("C5/3 D5/1 F5/4 | G5/3 F5/1 D5/4 | C5/2 A4/2 C5/2 F5/2 | E5/6 -/2 | "
+             "C5/3 D5/1 F5/4 | A5/3 G5/1 F5/2 D5/2 | C5/2 Bb4/2 A4/2 G4/2 | A4/2 C5/2 F5/4")
+LANTERN_B = ("D6/4 C6/2 A5/2 | Bb5/3 A5/1 G5/4 | A5/2 F5/2 C5/2 F5/2 | G5/6 -/2 | "
+             "D6/4 C6/2 A5/2 | Bb5/3 C6/1 D6/2 F6/2 | E6/3 D6/1 C6/2 Bb5/2 | A5/6 -/2")
+# The Deep Call (2026-11-09): an epic, mysterious battle tune, 4/4, E harmonic minor (the C-D# step), eighth ticks.
+DEEP_A = ("E5/1 E5/1 B4/1 E5/1 G5/2 F#5/2 | E5/1 D#5/1 E5/1 F#5/1 G5/2 B5/2 | C6/2 B5/1 A5/1 G5/2 E5/2 | F#5/1 G5/1 F#5/1 D#5/1 B4/4 | "
+          "E5/1 E5/1 B4/1 E5/1 G5/2 A5/2 | B5/1 C6/1 B5/1 A5/1 G5/2 E5/2 | F#5/2 G5/1 A5/1 G5/1 F#5/1 D#5/1 F#5/1 | E5/6 -/2")
+DEEP_B = ("B5/4 C6/2 B5/2 | A5/2 G5/1 A5/1 B5/4 | C6/3 B5/1 A5/2 F#5/2 | B5/8 | "
+          "E6/3 D#6/1 E6/2 B5/2 | C6/2 B5/1 A5/1 B5/2 G5/2 | A5/2 F#5/2 D#5/2 F#5/2 | E5/4 B4/2 E5/2")
+
 # Per tune: tick (s), ticks per bar and per beat, scale, parts {name: (melody, chords per bar)}, form,
 # the whistle's octave, the gurdy's drones, the concertina's left hand [(tick, dur, Bass root / Fifth / Chord)],
 # the bodhran's open strokes and rim, the trompette's strokes (a char per tick or per sub-tick).
@@ -3201,6 +3215,24 @@ JAM_TUNES = {
                  form="VCBC", whistle=0, drone=["D3", "A3"],
                  lh=[(0, 2, "B"), (2, 2, "C"), (4, 2, "F"), (6, 2, "C")],
                  lo="X...X.o.", rim="..x...x.", dog="..x...xx"),
+    "drift": dict(title="Over the Driftwake", tick=60 / 108 / 2, tpb=8, beat=2, scale=("D", "major"),
+                  parts={"A": (THEME_A, ["D", "D", "Gmaj7", "A", "D", "Bm", "A7", "D"]),
+                         "B": (DRIFT_B, ["Bm", "G", "D", "A", "Bm", "G", "Em", "A7"])},
+                  form="AABA", whistle=0, drone=["D3", "A3"],
+                  lh=[(0, 2, "B"), (2, 2, "C"), (4, 2, "F"), (6, 2, "C")],
+                  lo="X...X.o.", rim="..x...x.", dog="..x...x."),
+    "lantern": dict(title="The Lantern Shore", tick=60 / 66 / 2, tpb=8, beat=2, scale=("F", "major"),
+                    parts={"A": (LANTERN_A, ["F", "Bb", "F", "C", "F", "Dm", "Bb C", "F"]),
+                           "B": (LANTERN_B, ["Dm", "Gm", "F", "C", "Dm", "Bb", "C", "F"])},
+                    form="AABA", whistle=0, drone=["F2", "C3"],
+                    lh=[(0, 3, "B"), (3, 5, "C")],
+                    lo="X.......", rim="....o...", dog="........"),
+    "deep": dict(title="The Deep Call", tick=60 / 138 / 2, tpb=8, beat=2, scale=("E", "harmonic"),
+                 parts={"A": (DEEP_A, ["Em", "Em", "C", "B", "Em", "Am", "B", "Em"]),
+                        "B": (DEEP_B, ["Em", "G", "D7", "B", "Em", "C", "B", "Em"])},
+                 form="AABB", whistle=0, drone=["E2", "B2"],
+                 lh=[(0, 1, "B"), (1, 1, "C"), (2, 1, "F"), (3, 1, "C"), (4, 1, "B"), (5, 1, "C"), (6, 1, "F"), (7, 1, "C")],
+                 lo="X.xxX.xx", rim="..x...x.", dog="x.x.x.x."),
 }
 
 
