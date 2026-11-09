@@ -1,7 +1,7 @@
 extends Node
 ## (1.31) Melee targeting for the local captain (a child "Targeting" of the Player): the lock-on and the target
 ## chevron. No crosshair in melee (the HUD's reticle shows only for guns and aiming).
-## - Lock-on: middle mouse locks the foe nearest the view's centre within LOCK_RANGE m (again releases it); while
+## - Lock-on: middle mouse (the pad: R3) locks the foe nearest the view's centre within LOCK_RANGE m (again releases it); while
 ##   locked the camera keeps it ahead (camera_rig), attacks, techniques and skills aim at it (PlayerState
 ##   .get_camera_forward / attack_aim), and a flick of the mouse or right stick sideways switches to the next foe
 ##   on that side (`switch`). It lets go when the foe dies, or past LOCK_KEEP m.
@@ -45,6 +45,14 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# the pad: R3 (LB + R3 is the ping, on the skills layer)
+	if event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_RIGHT_STICK \
+			and not Pad.layer:
+		if player.input_locked or GameMenu.is_open():
+			return
+		toggle()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton and event.pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_MIDDLE:
 		if player.input_locked or GameMenu.is_open():
 			return

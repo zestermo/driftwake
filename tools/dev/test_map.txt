@@ -865,3 +865,4 @@ data/dialogue/brett.json   t/island/brett
 scripts/island/city_caches.gd   t/quests/cache_lead
 scripts/quests/line_quests.gd   t/quests/cache_lead
 scripts/combat/targeting.gd             t/combat/lock_on t/combat/omni_attack
+scripts/input/pad.gd                    t/input/pad_lock_crouch

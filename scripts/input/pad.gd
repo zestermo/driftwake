@@ -6,6 +6,7 @@ extends Node
 ## would press both; swapping the bindings keeps Input's own state right. On a swap, whatever a still-held
 ## swapped input was pressing is let go (its release would otherwise match the other layer's action).
 ## L3 is a sprint latch: click it and you sprint until the stick sits centred or your stamina runs out.
+## Holding B crouches (`_hold_crouch`); R3 locks on (Targeting), LB + R3 pings.
 ## Also here: which device you used last (Glyphs reads it) and the right stick's look, curved, at
 ## Settings' pad sensitivity. In menus the left stick drives a pointer instead (PadCursor, `cursor`).
 
@@ -122,6 +123,7 @@ func seen(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	_hold_crouch(delta)
 	# a real pad's LB, in case a screen ate its event (only on a change, so a pad lying idle leaves tests be)
 	var lb := false
 	for d in Input.get_connected_joypads():
@@ -277,3 +279,28 @@ static func _same(e: InputEvent, ev: InputEvent) -> bool:
 		var b := ev as InputEventJoypadMotion
 		return a.axis == b.axis and signf(a.axis_value) == signf(b.axis_value)
 	return false
+
+
+## (1.31) Crouch on the pad: hold B (dodge on the press, as ever) past CROUCH_HOLD s and it crouches (a "crouch"
+## press: C's toggle, or the weapon's crew technique in stance). R3 is the lock-on now (Targeting).
+const CROUCH_HOLD := 0.55
+var _b_t := 0.0
+var _b_fired := false
+
+
+func _hold_crouch(delta: float) -> void:
+	if not bool(_down.get(JOY_BUTTON_B, false)) or layer:
+		_b_t = 0.0
+		_b_fired = false
+		return
+	_b_t += delta / maxf(Engine.time_scale, 0.05)
+	if _b_t >= CROUCH_HOLD and not _b_fired:
+		_b_fired = true
+		var e := InputEventAction.new()
+		e.action = "crouch"
+		e.pressed = true
+		Input.parse_input_event(e)
+		var r := InputEventAction.new()
+		r.action = "crouch"
+		r.pressed = false
+		Input.parse_input_event(r)

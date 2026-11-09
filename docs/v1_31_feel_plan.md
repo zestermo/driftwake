@@ -68,5 +68,5 @@ cloth/hair numbers (clothlab, coat tests) now that wind pushes the chains, any g
   foe dies or past 32 m). The camera turns to keep it ahead (`camera_rig._follow_lock`, the fight framing off
   meanwhile), so movement circles it; everything aimed along the camera (`get_camera_forward`: techniques, skills,
   heavies) aims at it. A sideways mouse flick (140 px) or a push of the right stick switches to the next foe on
-  that side. **Open:** the pad has no lock button yet (R3 is the ping marker; Zach to pick one).
+  that side. The pad: R3 locks on (LB + R3 stays the ping); crouch moved off R3 to holding B past 0.55 s (B still dodges on the press; Zach's pick).
 - **Tests:** t/combat/omni_attack, t/combat/lock_on; attack_assist unchanged (no direction held: the camera's line).

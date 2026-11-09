@@ -19,7 +19,7 @@ const MOUSE := {MOUSE_BUTTON_LEFT: "Left click", MOUSE_BUTTON_RIGHT: "Right clic
 const SHORT_MOUSE := {MOUSE_BUTTON_LEFT: "LMB", MOUSE_BUTTON_RIGHT: "RMB", MOUSE_BUTTON_MIDDLE: "MMB",
 	MOUSE_BUTTON_XBUTTON1: "M4", MOUSE_BUTTON_XBUTTON2: "M5"}
 const KEYS_PSEUDO := {"move": "W A S D", "look": "Mouse"}
-const PAD_PSEUDO := {"move": "Left stick", "look": "Right stick", "sprint": "L3"}
+const PAD_PSEUDO := {"move": "Left stick", "look": "Right stick", "sprint": "L3", "crouch": "Hold B", "lock_on": "R3"}
 
 
 static func pad() -> bool:
