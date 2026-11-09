@@ -876,7 +876,7 @@ func _physics_process(delta: float) -> void:
 	if state == S.SWIM:
 		_swim_update(delta)
 		return
-	if _surface_depth() > SWIM_ENTER_DEPTH:
+	if _sea_near() and _surface_depth() > SWIM_ENTER_DEPTH:
 		_enter_swim(velocity.y)
 		_swim_update(delta)
 		return
@@ -1352,6 +1352,12 @@ func _think_skip(delta: float) -> bool:
 
 ## Every tick: on toward `want` (around what it walked into, out of the sea), moved, turned, the body fed.
 func _move_tail(want: Vector3, accel: float, turn: float, running: bool, hv: Vector3, delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_move_tail_on(want, accel, turn, running, hv, delta)
+	Perf.add_us(Perf.MOVE, Time.get_ticks_usec() - t0)
+
+
+func _move_tail_on(want: Vector3, accel: float, turn: float, running: bool, hv: Vector3, delta: float) -> void:
 	# walked into something (tent, crate, rock): sidestep around it for a bit
 	if _detour_t > 0.0:
 		_detour_t -= delta
@@ -1359,8 +1365,7 @@ func _move_tail(want: Vector3, accel: float, turn: float, running: bool, hv: Vec
 			want = (want.normalized() * 0.4 + _detour * 0.9).normalized() * want.length()
 	# stay out of the sea (a knockback can still put you in it)
 	if state not in [S.HITSTUN, S.STAGGER, S.LEAP, S.POUNCE]:
-		want = _avoid_water(want)
-		want *= 1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(get_tree(), global_position)
+		want = _ground_safe(want)
 	if state == S.DASH or (state == S.POUNCE and _jump_land < 0.0) or (state == S.SWING and ((_attack == "lunge" and st_t < 0.32) or (_attack == "rush" and _rush_stop < 0.0))):
 		hv = want
 	else:
@@ -1396,8 +1401,9 @@ func _feed_body(hv: Vector3, running: bool) -> void:
 	humanoid.vertical_speed = velocity.y
 	humanoid.armed = in_combat() and role != "rifle" and state != S.AIM
 	humanoid.sprinting = running
-	# (a fighting grunt's blade and aim follow its pose: full detail)
+	# (a fighting grunt's blade and aim follow its pose: full detail, but off screen or past 20 m every other frame)
 	humanoid.lod = not in_combat()
+	humanoid.fight_lod = not humanoid.lod
 
 
 ## How far from its post it follows a fight before going home (bosses: further, so a knockback can't send them home).
@@ -3175,6 +3181,20 @@ func _surface(at: Vector3 = Vector3.INF) -> float:
 	return float(_ocean.call("surface_at", global_position if at == Vector3.INF else at))
 
 
+## Could the sea be up to the feet this tick? Well above it (3 m+) the waves are asked again only every THINK_EVERY
+## ticks (2026-11-08: surface_at every tick of every grunt in a fight).
+var _sea_tick := -1000
+var _sea_high := false
+
+func _sea_near() -> bool:
+	var now := Engine.get_physics_frames()
+	if _sea_high and now - _sea_tick < THINK_EVERY and velocity.y > -12.0:
+		return false
+	_sea_tick = now
+	_sea_high = _surface_depth() < -3.0
+	return not _sea_high
+
+
 ## How far the feet are under the waves (negative on dry land).
 func _surface_depth() -> float:
 	return _surface() - global_position.y
@@ -3196,6 +3216,25 @@ func _calm_depth(at: Vector3) -> float:
 		if _ocean == null:
 			return -INF
 	return float(_ocean.call("depth_at", at, [get_rid()], true))
+
+
+## _avoid_water and the thicket's slowdown, asked again only every THINK_EVERY ticks or when the heading turns
+## (2026-11-08: every tick they were 3-18 rays and a walk of the chain's islands a grunt, ~30% of a fight's grunt ticks).
+var _ws_dir := Vector3.ZERO
+var _ws_out := Vector3.ZERO
+var _ws_tick := -1000
+
+func _ground_safe(want: Vector3) -> Vector3:
+	var spd := want.length()
+	if spd < 0.1:
+		return want
+	var d := want / spd
+	var now := Engine.get_physics_frames()
+	if now - _ws_tick >= THINK_EVERY or d.dot(_ws_dir) < 0.97:
+		_ws_tick = now
+		_ws_dir = d
+		_ws_out = _avoid_water(want) / spd * (1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(get_tree(), global_position))
+	return _ws_out * spd
 
 
 ## Steer around the water's edge (and burning ground): if the way ahead goes into the sea, turn

@@ -21,8 +21,8 @@ const HITCH_LINES := 20
 ## Spikes kept for the F12 capture.
 const RECENT := 16
 ## Sections of the frame timed by the code that runs them (add_us).
-enum {ANIM, AI, BUILD, SPAWN, SLEEP, FX, NET}
-const CATS := ["anim", "ai", "build", "spawn", "sleep", "fx", "net"]
+enum {ANIM, AI, BUILD, SPAWN, SLEEP, FX, NET, MOVE}
+const CATS := ["anim", "ai", "build", "spawn", "sleep", "fx", "net", "move"]
 const STEPS_KEEP := 24
 const PIPES := [Performance.PIPELINE_COMPILATIONS_CANVAS, Performance.PIPELINE_COMPILATIONS_MESH,
 	Performance.PIPELINE_COMPILATIONS_SURFACE, Performance.PIPELINE_COMPILATIONS_DRAW, Performance.PIPELINE_COMPILATIONS_SPECIALIZATION]
@@ -368,5 +368,5 @@ func _open_log() -> void:
 		str(get_tree().root.size), ("pixelated" if psx.pixelated() else "native") if psx else "?",
 		"debug" if OS.is_debug_build() else "release"])
 	_log.store_line("(spike lines, frames over %d ms: physics ticks in it, Godot's process / physics ms, render cpu / gpu, pipelines compiled canvas/mesh/surface/draw/specialization, nodes made;" % int(SPIKE_MS))
-	_log.store_line(" timed: section ms/calls (anim = rigs posed, ai, build = island steps and freeing, spawn, sleep, fx); slowest: named steps ms; spawned: nodes added (by script);")
+	_log.store_line(" timed: section ms/calls (anim = rigs posed, ai, build = island steps and freeing, spawn, sleep, fx, net, move = enemies moved a tick); slowest: named steps ms; spawned: nodes added (by script);")
 	_log.store_line(" awake: enemies awake/all, AI captains, ActorSleep's actors awake/all (hidden); co-op: host/guest, captains, worst ping; the captain's state and place; marks)")

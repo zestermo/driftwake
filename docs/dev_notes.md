@@ -11214,3 +11214,19 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   signal"; `active` already stops hits at once).
 - **Tested by** tools/dev/racestress.gd (30 s in a real window: 28 crews, 164 rebuilds, no errors; the debug editor build
   didn't crash without the fix either, so it shows the turns work, not the crash gone), t/gear, the hitbox tests.
+
+## 2026-11-08: fight lag (co-op 1.30.3): grunts' per-tick work
+- Zach's perf.log: the worst stretches (23-34 fps) were fights, 10-22 enemies awake, with 8-21 ms physics ticks run 2-3 a
+  frame; the timed sections (anim, ai) were only 1-5 ms, so the cost was untimed.
+- `tools/dev/fightbench.gd` (16 sword grunts on the light stage, phases switching parts off): a fighting grunt's tick
+  ~0.17 ms (movement 1.48 ms/tick for 16: water probes and the thicket ~half, move_and_slide most of the rest), its
+  posing ~0.28 ms a frame; ragdolls ~0.05 ms each a tick (not the problem).
+- PirateGrunt `_ground_safe`: `_avoid_water` (3-18 rays) and the thicket slowdown cached, asked again every THINK_EVERY
+  ticks or when the heading turns >14°: movement 1.48 -> 0.71 ms/tick for 16. `_sea_near`: the every-tick swim check
+  asks the waves only every 6 ticks while the feet are 3 m+ above them (unless falling fast).
+- Humanoid `fight_lod` (grunts in a fight): `lod` stays off (the blade follows the pose), but off screen or past 20 m
+  the rig poses every other frame.
+- Perf: a `move` section (enemies' movement ticks), so the next co-op log says what movement costs.
+- Not done: the rest of a grunt tick (~1.4 ms for 16 outside move/think: the Jolt step with the hitboxes and bodies),
+  the bodies' skinning (arm_body / lower_body set ~50 bone poses a frame each), and why the in-game ticks cost 2-4x the
+  bench's (island colliders, co-op, loot): the next log's `move` and `net` will say.

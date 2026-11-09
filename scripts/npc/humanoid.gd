@@ -36,6 +36,9 @@ var look: Dictionary = {}
 ## rigs pose every few frames, carrying the skipped time so they keep their
 ## timing. The player's own rig, and rigs built by tools, always pose.
 var lod: bool = false
+## In a fight (grunts): `lod` is off (the blade follows the pose), but a rig off screen or past 20 m still poses only
+## every other frame (2026-11-08: a 20-man fight posed every body every frame, ~0.28 ms each).
+var fight_lod: bool = false
 ## The process frame this rig last posed (the skinned limbs follow it).
 var pose_frame: int = -1
 var _lod_acc: float = 0.0
@@ -3102,17 +3105,18 @@ func _process(delta: float) -> void:
 		return
 	if _fig >= 0 and (ragdoll != null or not far_figure or not lod):
 		_figure_off()
-	if lod and ragdoll == null:
-		_shadow_lod(delta)
+	if (lod or fight_lod) and ragdoll == null:
+		if lod:
+			_shadow_lod(delta)
 		if _lod_phase < 0:
 			_lod_phase = get_instance_id() % 12
 		_lod_acc += delta
-		var every := _lod_every()
+		var every := _lod_every() if lod else mini(_lod_every(), 2)
 		if every > 1 and (Engine.get_process_frames() + _lod_phase) % every != 0:
 			return
 		delta = _lod_acc
 		_lod_acc = 0.0
-		if far_figure and _figure(delta):
+		if lod and far_figure and _figure(delta):
 			return
 	var t0 := Time.get_ticks_usec()
 	_pose(delta)
