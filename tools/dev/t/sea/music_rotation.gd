@@ -47,6 +47,17 @@ func _process(_d: float) -> bool:
 				if not m.TRACKS.has(t) or not ResourceLoader.exists(m.TRACKS[t][0]):
 					bad.append(t)
 			check("every sea track has its file (%s)" % [bad], bad.is_empty())
+			# the bosses by kind: a captain's duel, a beast's titan (an unadded node: no _ready)
+			var want := {"res://scripts/enemies/pirate_boss.gd": "boss_duel", "res://scripts/enemies/pirate_grunt.gd": "boss_duel",
+				"res://scripts/enemies/jungle_ape.gd": "boss_titan", "res://scripts/enemies/brood_queen.gd": "boss_titan",
+				"res://scripts/enemies/beasts/jungle_beast.gd": "boss_titan"}
+			for path in want:
+				var nb := CharacterBody3D.new()
+				nb.set_script(load(path))
+				check("boss music for %s: %s" % [path.get_file(), want[path]], m.boss_track(nb) == want[path])
+				nb.free()
+			for t in m.BOSSES:
+				check("%s has its file" % t, m.TRACKS.has(t) and ResourceLoader.exists(m.TRACKS[t][0]))
 			var a: String = m.sea_track()
 			check("the sea plays the pick (%s)" % a, a == m.sea_pick and a in m.SEA_DAY)
 			check("...and keeps it a while", m.sea_track() == a)

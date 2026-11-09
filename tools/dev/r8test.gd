@@ -330,7 +330,7 @@ func _process(d: float) -> bool:
 		13:
 			check("walking in: Morrow comes for you", boss.in_combat())
 			check("boss bar on the HUD", hud()._boss_box.visible)
-			check("music: the boss theme", music().current == "boss")
+			check("music: the captain's duel", music().current == "boss_duel")
 			# phase two
 			boss.health.current_health = boss.health.max_health * 0.55
 			wait = 0.5

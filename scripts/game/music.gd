@@ -8,7 +8,7 @@ extends Node
 ##             (by night SEA_NIGHT) at random, a new one each time a track has played through or
 ##             you put to sea again, never the same twice running; in a storm, SEA_STORM
 ##   combat  - enemies fighting you (or a pirate ship hunting you) nearby
-##   boss    - a boss fight close by
+##   boss    - a boss fight close by: boss_titan for a beast, boss_duel for a captain (boss_track)
 ## plus a short victory fanfare (victory()) that ducks the music for a moment.
 ## The calm tracks have "<name>_night" variants, the same piece arranged sparser
 ## with the same bars, played from DUSK to DAWN: the change crossfades slowly at
@@ -35,7 +35,8 @@ const TRACKS := {
 	"combat_sea": ["res://assets/audio/music_combat_sea.ogg", 32],
 	"combat_wild": ["res://assets/audio/music_combat_wild.ogg", 32],
 	"combat_town": ["res://assets/audio/music_combat_town.ogg", 48],
-	"boss": ["res://assets/audio/music_boss.ogg", 32],
+	"boss_titan": ["res://assets/audio/music_boss_titan.ogg", 32],
+	"boss_duel": ["res://assets/audio/music_boss_duel.ogg", 40],
 	"snow": ["res://assets/audio/music_snow.ogg", 56],
 	"snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
 	"snow_town": ["res://assets/audio/music_snow_town.ogg", 64],
@@ -57,7 +58,9 @@ const TRACKS := {
 }
 ## The fight by place (2026-11-09): at sea or aboard, ashore in the wilds, in a town's streets.
 const COMBATS := ["combat_sea", "combat_wild", "combat_town"]
-const FIGHTS := ["combat_sea", "combat_wild", "combat_town", "boss"]
+## The bosses by kind (2026-11-09): a beast or monster, a captain (a man with a blade).
+const BOSSES := ["boss_titan", "boss_duel"]
+const FIGHTS := ["combat_sea", "combat_wild", "combat_town", "boss_titan", "boss_duel"]
 ## The sea's rotation (2026-11-06): every calm sea track by day, the hushed ones by night.
 const SEA_DAY := ["sea_breeze", "sea_horizon", "sea_calm", "sea_trade", "sea_dawn", "sea_wander", "sea_stars", "sea_far"]
 const SEA_NIGHT := ["sea_calm", "sea_stars", "sea_dawn", "sea_horizon"]
@@ -290,6 +293,20 @@ func next_sea(pool: Array = SEA_DAY) -> String:
 	return sea_pick
 
 
+## A boss's track: the duel for a captain (a PirateGrunt kind, the ape aside), the titan for a beast.
+## (By script name, so Music holds no class reference to the enemies.)
+static func boss_track(b: Node) -> String:
+	var s: Script = b.get_script()
+	while s != null:
+		match s.get_global_name():
+			"JungleApe":
+				return "boss_titan"
+			"PirateGrunt":
+				return "boss_duel"
+		s = s.get_base_script()
+	return "boss_titan"
+
+
 static func is_sea(track: String) -> bool:
 	return track.begins_with("sea_")
 
@@ -307,7 +324,8 @@ func _pick(dt: float) -> String:
 	for b in tree.get_nodes_in_group("bosses"):
 		if is_instance_valid(b) and b.has_method("in_combat") and b.in_combat() and (b as Node3D).global_position.distance_to(pos) < 55.0:
 			_combat_hold = COMBAT_HOLD
-			return "boss"
+			# the boss fight keeps the track it started on
+			return current if current in BOSSES else boss_track(b)
 	var fighting := false
 	for e in tree.get_nodes_in_group("enemies"):
 		if is_instance_valid(e) and e.has_method("in_combat") and e.in_combat() and (e as Node3D).global_position.distance_to(pos) < 30.0:
