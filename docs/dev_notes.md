@@ -11305,3 +11305,9 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Gotchas:** the idle combat stance turns the captain back toward the camera within a second, so a test reading
   "the way the captain faces" reads it just before the attack. Middle mouse is free in play (the held map takes it
   only while out); R3 is the pad's ping marker.
+
+## 2026-11-09: the coat's rustle removed (Zach: an annoying airy woosh)
+
+- The 2026-11-06 cloth foley played `cloth_rustle` every other stride (a loop while walking) and on every sharp turn
+  (spammed when circling the stick). Both are gone (player.gd `_on_footstep`, `_foley_turn` removed) and so is
+  t/player/coat_foley. Footsteps and the sprint's gear jingle stay. The sound itself is still in FX.SOUNDS.
