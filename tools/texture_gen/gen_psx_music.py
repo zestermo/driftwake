@@ -3054,6 +3054,127 @@ def sample_fight_reel(name="sample22_fight_reel"):
     return s, dict(verb_t60=1.2, echo_sec=60 / 112 * 0.5)
 
 
+# --- the boss samples (2026-11-09): the boss fight in the fights' orchestral family, two
+# directions to pick from: a titan (choir, brass ostinato, taiko, phrygian) and a duel in 7/8
+# (piano, strings, horns). Each quotes THEME_A in the minor.
+TITAN_A = ("E4/6 F4/2 G4/4 B4/4 | A4/6 G4/2 F4/8 | E4/4 G4/4 B4/4 E5/4 | D5/12 -/4 | "
+           "E4/6 F4/2 G4/4 B4/4 | C5/6 B4/2 A4/4 F4/4 | G4/4 A4/4 B4/4 D5/4 | C5/8 B4/4 F4/4")
+TITAN_B = ("A5/8 C6/4 E6/4 | D6/8 B5/8 | C6/4 A5/4 F5/4 A5/4 | G5/4 B5/4 E6/8 | "
+           "A5/8 C6/4 E6/4 | D6/4 G6/4 F6/4 D6/4 | C6/4 A5/4 F5/4 C6/4 | B5/8 G#5/8")
+
+
+def sample_boss_titan(name="sample23_boss_titan"):
+    # 4/4, 138 bpm, sixteenth ticks, E phrygian (F natural, E major cadences); 32 bars (56 s).
+    # Something huge: a low brass and string ostinato in 3+3+2, taiko and timpani, the choir; the
+    # horns' tune (A), the strings soaring over the choir (B), the theme in E minor on full brass and
+    # choir (C), a break on the drums swelling back to bar 1.
+    s = Song(name, 60 / 138 / 4, 16, 32,
+             "4/4, 138 bpm, E phrygian: a titan (brass ostinato, choir, taiko, timpani, soaring strings)")
+    s.bus("ost", 0.3, verb=0.12)
+    s.bus("stab", 0.34, verb=0.2)
+    s.bus("horn", 0.5, verb=0.28)
+    s.bus("horn2", 0.28, verb=0.28)
+    s.bus("strlead", 0.44, verb=0.3)
+    s.bus("gal", 0.22, verb=0.12)
+    s.bus("low", 0.26, verb=0.16)
+    s.bus("choir", 0.2, verb=0.42)
+    s.bus("taiko", 0.34, verb=0.2)
+    s.bus("timp", 0.32, verb=0.22)
+    s.bus("crash", 0.12, verb=0.25)
+    I = ["Em", "F", "Em", "F"]
+    A = ["Em", "F", "Em", "D", "Em", "F", "G", "F"]
+    B = ["Am", "G", "F", "Em", "Am", "G", "F", "E"]
+    C = ["Em", "Em", "C", "B", "Em", "Em", "B", "Em"]
+    T = ["F", "Em", "F", "E"]
+    ch = split_chords(I + A + B + C + T)
+    I0, A1, B1, C1, T1 = 0, 4, 12, 20, 28
+    eh = scale("E", "harmonic")
+    allb = range(32)
+    bassline(s, "ost", "stacc", ch, allb, [(0, 2, "R"), (3, 2, "R"), (6, 2, "R"), (8, 2, "R"), (11, 2, "R"), (14, 2, "8")],
+             octave_low=nn("E2"), vel=0.85, gate=0.6)
+    comp(s, "stab", "brass", ch, range(I0, T1), [(0, 3), (6, 3), (12, 2)], low=48, vel=0.6, gate=0.55)
+    _roots(s, "low", "lowstr", ch, allb, nn("E2"), 0.55)
+    _gallop(s, "gal", ch, range(B1, T1), 0.55, nn("E3"), (0, 3, 6, 8, 11, 14))
+    s.drums("taiko", "taiko", "X.....X.X.....X.", range(I0, T1), midi=nn("D2"))
+    s.drums("taiko", "taiko", "X...X...X.X.XXXX", range(T1, 32), midi=nn("A2"))
+    _timp(s, "timp", ch, range(A1, T1), [(0, 0.85), (8, 0.55)], "E2", "B2")
+    _roll(s, "timp", ch, 31, 0, 16, 1, "E2", "B2", v0=0.25, dv=0.045)
+    s.drums("crash", "crash", "X...............", [A1, B1, C1])
+    _chordpads(s, "choir", "choir", ch, list(_bars(I0, 4)) + list(_bars(B1, 16)), 55, 0.4)
+    s.line("horn", "horn", TITAN_A, A1, vel=0.95)
+    s.line("horn2", "horn", TITAN_A, A1, vel=0.45, transpose=-12)
+    s.line("strlead", "strings", TITAN_B, B1, vel=0.88)
+    s.line("horn", "horn", TITAN_B, B1, vel=0.4, transpose=-12)
+    s.line("horn", "horn", THEME_MIN16, C1, vel=0.95, transpose=-10)
+    s.line("horn2", "horn", THEME_MIN16, C1, vel=0.45, transpose=-10, harmonize=(eh, -2))
+    s.line("strlead", "strings", THEME_MIN16, C1, vel=0.7, transpose=2)
+    return s, dict(verb_t60=1.6, echo_sec=60 / 138 * 0.75)
+
+
+DUEL_A = ("C5/2 Eb5/2 G5/3 | F5/2 D5/2 Bb4/3 | C5/2 Eb5/2 Ab5/3 | G5/7 | "
+          "C5/2 Eb5/2 G5/3 | Bb5/2 A5/2 F5/3 | Ab5/2 G5/2 F5/3 | D5/4 B4/3")
+DUEL_B = ("Eb6/2 C6/2 Ab5/3 | F6/2 D6/2 Bb5/3 | G6/2 Eb6/2 C6/3 | G5/7 | "
+          "Eb6/2 C6/2 Ab5/3 | F6/2 D6/2 Bb5/3 | D6/2 B5/2 G5/3 | F5/2 D5/2 B4/3")
+THEME_7 = ("C5/2 G4/2 C5/3 | D5/2 Eb5/2 F5/3 | G5/2 F5/2 Eb5/3 | D5/7 | "
+           "C5/2 G4/2 C5/3 | D5/2 Eb5/2 G5/3 | B5/2 Ab5/2 G5/3 | C6/7")  # THEME_A's head in C minor, 7/8
+
+
+def sample_boss_duel(name="sample24_boss_duel"):
+    # 7/8 (2+2+3), eighth = 300, eighth ticks, C minor; 40 bars (56 s). A duel with a rival captain,
+    # shonen-style: the limping 7/8 pushes it, a piano hammering the 2+2+3 with strings stabbing
+    # its accents, taiko and timpani; the strings' tune (A), the horns and choir high (B), the theme's
+    # head in C minor on the horns (C), A again with everything, a turn on the piano alone.
+    s = Song(name, 60 / 300, 7, 40,
+             "7/8 (2+2+3), eighth = 300, C minor: a duel (piano ostinato, strings, horns, choir, taiko)")
+    s.bus("pno", 0.42, verb=0.18)
+    s.bus("stab", 0.36, verb=0.16)
+    s.bus("strlead", 0.46, verb=0.26)
+    s.bus("horn", 0.48, verb=0.28)
+    s.bus("horn2", 0.26, verb=0.28)
+    s.bus("brass", 0.3, verb=0.22)
+    s.bus("low", 0.26, verb=0.16)
+    s.bus("choir", 0.16, verb=0.4)
+    s.bus("taiko", 0.32, verb=0.2)
+    s.bus("timp", 0.36, verb=0.22)
+    s.bus("crash", 0.1, verb=0.25)
+    I = ["Cm", "Cm", "Ab", "G"]
+    A = ["Cm", "Bb", "Ab", "G", "Cm", "Bb", "Fm", "G"]
+    B = ["Ab", "Bb", "Cm", "Cm", "Ab", "Bb", "G", "G"]
+    C = ["Cm", "Cm", "Ab", "G", "Cm", "Cm", "G", "Cm"]
+    O = ["Ab", "Fm", "G", "G"]
+    ch = split_chords(I + A + B + C + A + O)
+    I0, A1, B1, C1, A2, O1 = 0, 4, 12, 20, 28, 36
+    cm = scale("C", "harmonic")
+    allb = range(40)
+    cell, heads = [0, 1, 0, 1, 0, 1, 2], (0, 2, 4)
+    for b in allb:
+        for i in range(7):
+            root, pcs = chord_pcs(chord_at(ch, b, i / 7))
+            r = nn("G3") + ((root - nn("G3")) % 12)
+            tones = [r, r + 7, r + 12 + ((pcs[1] - root) % 12)]
+            v = 0.6 if i in heads else 0.34
+            s.note("pno", "piano", tones[cell[i]], b * 7 + i, 1, v, 0.9)
+            if i in heads:
+                s.note("pno", "piano", r - 12, b * 7 + i, 2 if i < 4 else 3, v * 0.5, 0.9)
+    comp(s, "stab", "stacc", ch, range(A1, O1), [(0, 1), (2, 1), (4, 1)], low=55, vel=0.7, gate=0.5)
+    bassline(s, "low", "lowstr", ch, range(A1, O1), [(0, 2, "R"), (2, 2, "R"), (4, 3, "R")], octave_low=nn("C2"), vel=0.6, gate=0.8)
+    s.drums("taiko", "taiko", "X.x.X..", range(A1, O1), midi=nn("D2"))
+    _timp(s, "timp", ch, range(B1, O1), [(0, 0.8)], "C2", "G2")
+    s.drums("crash", "crash", "X......", [A1, B1, C1, A2])
+    s.line("strlead", "strings", DUEL_A, A1, vel=0.88)
+    s.line("strlead", "strings", DUEL_B, B1, vel=0.85)
+    s.line("horn", "horn", DUEL_B, B1, vel=0.5, transpose=-12)
+    _chordpads(s, "choir", "choir", ch, _bars(B1, 8), 55, 0.35)
+    comp(s, "brass", "brass", ch, list(_bars(B1, 16)), [(0, 2), (4, 3)], low=50, vel=0.5, gate=0.5)
+    s.line("horn", "horn", THEME_7, C1, vel=0.95, transpose=-12)
+    s.line("horn2", "horn", THEME_7, C1, vel=0.45, transpose=-12, harmonize=(cm, -2))
+    s.line("strlead", "strings", THEME_7, C1, vel=0.6)
+    s.line("strlead", "strings", DUEL_A, A2, vel=0.9)
+    s.line("horn", "horn", DUEL_A, A2, vel=0.5, transpose=-12)
+    _chordpads(s, "choir", "choir", ch, _bars(A2, 8), 55, 0.3)
+    return s, dict(verb_t60=1.4, echo_sec=60 / 300 * 3)
+
+
 # The fights by place (Zach, 2026-11-09): brass at sea, the piano's skirmish in the wilds, the reel in town.
 TRACKS.update({"combat_sea": lambda: sample_fight_brass("music_combat_sea"),
                "combat_wild": lambda: sample_fight_wild("music_combat_wild"),
@@ -3061,7 +3182,8 @@ TRACKS.update({"combat_sea": lambda: sample_fight_brass("music_combat_sea"),
 
 SAMPLES = {"corsair": sample_corsair, "harbour": sample_harbour, "waters": sample_waters,
            "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm,
-           "fight_wild": sample_fight_wild, "fight_brass": sample_fight_brass, "fight_reel": sample_fight_reel}
+           "fight_wild": sample_fight_wild, "fight_brass": sample_fight_brass, "fight_reel": sample_fight_reel,
+           "boss_titan": sample_boss_titan, "boss_duel": sample_boss_duel}
 SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 
 
