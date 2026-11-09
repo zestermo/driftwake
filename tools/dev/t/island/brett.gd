@@ -46,7 +46,7 @@ func _process(_d: float) -> bool:
 				if e["cfg"]["name"] == "Brett":
 					plan = e["plan"]
 			check("he walks the town: %d stops by day" % plan.size(), plan.size() >= 10)
-			var shop: Dictionary = Shops.SHOPS.get("brett", {})
+			var shop: Dictionary = preload("res://scripts/game/shops.gd").SHOPS.get("brett", {})
 			var sells_blades := not shop.is_empty()
 			for s in shop.get("stock", []) + shop.get("pool", []):
 				var it: ItemData = ItemDB.get_item(str(s[0]).get_slice("@", 0))
