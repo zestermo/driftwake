@@ -33,7 +33,7 @@ download (co-op by hosted / forwarded address) is the way to play; nothing web o
   grapple point, an organic floppy swing, then a release. Decide: always the off hand, or either hand.
 - **Interact animations:** finish them all: pumping water aboard, patching holes, putting out fires, opening the
   inventory, etc.
-- **Screen feel for the player** (Zach, 2026-11-05): "feel like you're wooshing through the air if you got launched or
+- **Screen feel for the player** (**built 2026-11-09**: docs/v1_31_feel_plan.md) (Zach, 2026-11-05): "feel like you're wooshing through the air if you got launched or
   used a move". A red vignette at low health (pulsing harder near death); a brief dim / pass-out blink on a hit big
   enough to splat you (knockdown, a heavy launch, a big fall); speed blur and a depth-of-field shift when moving fast
   through the air (launched, a dash or leap technique), maybe a slight FOV widen; a light camera bob and kick on

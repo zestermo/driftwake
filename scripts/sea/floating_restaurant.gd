@@ -1188,6 +1188,7 @@ func _spot(nm: String, prompt: String, at: Vector3, fn: Callable) -> void:
 	it.collision_layer = 512
 	it.collision_mask = 0
 	it.prompt_text = prompt
+	it.gesture = "hand"  # (1.31)
 	it.reach = 1.1
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()

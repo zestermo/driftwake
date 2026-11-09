@@ -862,12 +862,15 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if power.buff("reinforce"):
 		# Reinforce: the blow doesn't rock you, and the aura flares where everyone can see it hold
 		Net.fx("edy_flash", [body_model])
+		body_model.jolt(dir, 0.7)
 		return
 	if progression.has_flag("steadfast"):
+		body_model.jolt(dir)
 		return  # Steadfast: light hits don't make you flinch
 	# heavy armour's poise (GearStats): now and then a blow doesn't rock you (rolled only when worn: the draws stay put)
 	var poise_k := progression.stat("poise_pct")
 	if poise_k > 0.0 and randf() < poise_k:
+		body_model.jolt(dir)
 		return
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
 		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.4, 2.5), "flinch": true})
@@ -960,6 +963,8 @@ func shoved(v: Vector3) -> void:
 func knock_down(throw_velocity: Vector3) -> void:
 	if context == Context.HELM:
 		return
+	if is_local:
+		CombatManager.apply_blink(0.55)
 	state_machine.force_state("Downed", {"velocity": throw_velocity})
 
 
@@ -968,6 +973,8 @@ func knock_down(throw_velocity: Vector3) -> void:
 func splat(dir: Vector3, up: bool, power: float = 1.0) -> void:
 	if context == Context.HELM:
 		return
+	if is_local:
+		CombatManager.apply_blink(0.5 + 0.4 * power)
 	state_machine.force_state("Downed", {"splat": dir, "up": up, "power": power})
 
 
@@ -1303,7 +1310,54 @@ func _update_head_look() -> void:
 	else:
 		var aim := -cam.global_basis.z + Vector3(0, 0.12, 0)
 		body_model.look_target = head_pos + aim.normalized() * 30.0
+	# (1.31) idle life: standing about with the camera still, now and then a glance at someone nearby
+	var glance := _idle_glance(cam)
+	if glance != Vector3.INF:
+		body_model.look_target = glance
 	body_model.look_weight = 1.0
+
+
+## (1.31) Idle glances: after GLANCE_AFTER s idle with the view still, every few seconds the captain looks at the
+## nearest person within GLANCE_R m for GLANCE_SECS (INF: no glance now).
+const GLANCE_AFTER := 3.0
+const GLANCE_R := 8.0
+const GLANCE_SECS := 1.6
+var _glance_idle := 0.0
+var _glance_t := 0.0
+var _glance_at: Node3D = null
+var _glance_cam := Basis()
+
+
+func _idle_glance(cam: Camera3D) -> Vector3:
+	var dt := get_physics_process_delta_time()
+	var still := cam.global_basis.z.dot(_glance_cam.z) > 0.9995
+	_glance_cam = cam.global_basis
+	if current_state_name() != "Idle" or armed or not still:
+		_glance_idle = 0.0
+		_glance_t = 0.0
+		return Vector3.INF
+	_glance_idle += dt
+	if _glance_t > 0.0:
+		_glance_t -= dt
+		if is_instance_valid(_glance_at):
+			return _glance_at.global_position + Vector3(0, 1.55, 0)
+		return Vector3.INF
+	if _glance_idle < GLANCE_AFTER:
+		return Vector3.INF
+	_glance_idle = GLANCE_AFTER - 3.5  # (the next one in ~3.5 s)
+	var best: Node3D = null
+	var bd := GLANCE_R
+	for n in get_tree().get_nodes_in_group("npcs") + get_tree().get_nodes_in_group("players"):
+		if n == self or not (n is Node3D) or not (n as Node3D).is_visible_in_tree():
+			continue
+		var d := (n as Node3D).global_position.distance_to(global_position)
+		if d < bd:
+			bd = d
+			best = n
+	if best:
+		_glance_at = best
+		_glance_t = GLANCE_SECS
+	return Vector3.INF
 
 
 # --------------------------------------------------------------------------
@@ -1692,6 +1746,12 @@ func _on_landed(impact_vy: float) -> void:
 	if k < 0.15:
 		return
 	squash(-2.0 - 5.0 * k)
+	if is_local:
+		CombatManager.apply_land(k)
+	# (1.31) a hard landing at a run rolls out of it (the knees take a softer one: Humanoid's own landing)
+	var run_v := Vector2(velocity.x, velocity.z).length()
+	if k > 0.6 and run_v > 6.0 and current_state_name() in ["Move", "Fall", "Jump"] and not body_model.is_busy():
+		body_model.play("dodge_roll", 0.42)
 	var surf := ground_surface()
 	if GroundLayer.soft(surf):
 		Net.fx("puff_ring", [global_position, surf, int(5 + 5 * k), 0.3, 0.8 + 0.6 * k, 0.8, GroundLayer.PUFF[surf], 3.0 + 4.0 * k])
@@ -1716,6 +1776,8 @@ func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
 		health_component.take_damage(dmg)
 	if health_component.current_health > 0.0:
 		progression.add_life("acrobatics", Progression.ACRO_XP["fall"])
+	if is_local:
+		CombatManager.apply_blink(clampf(dmg / maxf(health_component.max_health, 1.0) * 2.5, 0.25, 0.8))
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	cam_shake(clampf(dmg / 60.0, 0.1, 0.4))

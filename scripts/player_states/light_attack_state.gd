@@ -286,11 +286,18 @@ func enter(data: Dictionary) -> void:
 	hitbox_deactivated = false
 	chained = false
 
-	var forward := get_camera_forward()
+	# (1.31) attack assist: onto the foe you meant, stepping in to reach them
+	var lunge := assist_lunge(get_camera_forward(), float(cfg["impulses"][combo_index]))
+	# (a hook drags them in from where they stand: it turns onto them but doesn't step in)
+	if cfg.has("hooks") and bool(cfg["hooks"][combo_index]):
+		lunge[1] = float(cfg["impulses"][combo_index])
+	var forward: Vector3 = lunge[0]
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
 	_rush = TraitMoves.rush_k(player) if cfg.get("breaker", false) else 1.0
-	player.velocity.x = forward.x * float(cfg["impulses"][combo_index]) * _rush
-	player.velocity.z = forward.z * float(cfg["impulses"][combo_index]) * _rush
+	player.velocity.x = forward.x * float(lunge[1]) * _rush
+	player.velocity.z = forward.z * float(lunge[1]) * _rush
+	if float(lunge[1]) > float(cfg["impulses"][combo_index]) + 2.0 and player.is_on_floor():
+		Net.fx("dust", [player.global_position - forward * 0.3 + Vector3(0, 0.05, 0), 4, 0.45])
 	var anim := str(cfg["anims"][combo_index])
 	_spd = 1.0
 	if cfg.get("pole", false):

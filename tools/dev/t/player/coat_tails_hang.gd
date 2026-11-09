@@ -40,6 +40,9 @@ func _process(_d: float) -> bool:
 			var lk: Dictionary = CharacterLook.default_look()
 			lk.merge(LOOKS[li], true)
 			p.body_model.apply_look(lk)
+			# (1.31: the idle weight shift is a pose of its own; this measures the plain stance)
+			p.body_model._idle_next = 1e9
+			p.body_model._fidget_hold = 0.0
 			until = TK.wait_secs(2.5)
 		1:
 			var hm = p.body_model

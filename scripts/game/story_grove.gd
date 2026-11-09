@@ -240,6 +240,7 @@ static func _tree(i: int, seed_value: int, fall_yaw: float) -> StaticBody3D:
 	it.collision_layer = 512
 	it.collision_mask = 0
 	it.prompt_text = "Fell the marked ironwood"
+	it.gesture = "push"  # (1.31)
 	it.reach = 2.6
 	var ics := CollisionShape3D.new()
 	var sph := SphereShape3D.new()

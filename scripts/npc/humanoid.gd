@@ -814,6 +814,12 @@ const IK_R := 40.0
 const IK_R_LOD := 25.0
 
 
+## (1.31) Wind on hair and cloth: m/s/s per unit of the weather's wind (Weather.wind_now).
+const WIND_ACCEL := 6.0
+const WIND_CALM := 0.35
+var _weather: Node = null
+
+
 func _update_physics(delta: float) -> void:
 	if _sims.is_empty():
 		return
@@ -828,7 +834,20 @@ func _update_physics(delta: float) -> void:
 	if not near and not _sims_near:
 		return
 	_sims_near = near
+	var wv := Vector3.ZERO
+	if near:
+		if _weather == null or not is_instance_valid(_weather):
+			_weather = get_node_or_null("/root/Weather")
+		if _weather:
+			# (1.31) the weather's wind on hair and cloth, gusting
+			var g := 0.55 + 0.45 * sin(_t * 1.7 + global_position.x * 0.11 + global_position.z * 0.07)
+			# (a breeze barely stirs them: the push grows past WIND_CALM, a storm streams them out)
+			var wn: Vector3 = _weather.wind_now
+			var ws := wn.length()
+			if ws > WIND_CALM:
+				wv = wn / ws * (ws - WIND_CALM) * WIND_ACCEL * g
 	for s in _sims:
+		(s as SpringChains).wind = wv
 		if near:
 			(s as SpringChains).simulate(delta)
 		else:
@@ -2833,6 +2852,9 @@ func _locomotion(delta: float) -> Dictionary:
 		else:
 			_casual_moves(p, delta, spd, true)
 			lift.y -= _casual_dip()
+		_turn_moves(p, delta, spd)
+		_idle_life(p, delta, spd)
+
 		if stance == "katana" and current_action() in ["guard_block", "guard_block_hit"]:
 			p["leg_l"] += Vector3(0, 0, -KATANA_SPREAD)
 			p["leg_r"] += Vector3(0, 0, KATANA_SPREAD)
@@ -3213,22 +3235,24 @@ func _pose(delta: float) -> void:
 	_scale = _scale.lerp(target["_scale"], k)
 	_smear = lerpf(_smear, (target["_smear"] as Vector3).x, k)
 
+	var jp: Dictionary = JOLT_NONE if _jolt <= 0.0 else {"torso": Vector3.ZERO, "head": Vector3.ZERO, "arm_l": Vector3.ZERO, "arm_r": Vector3.ZERO}
+	_apply_jolt(jp, delta)
 	pivot.rotation = _cur["pivot"]
 	# (squash/stretch about the feet: the hips ride down with the shortened legs)
 	pivot.scale = _scale
 	pivot.position = Vector3(0, hip_y * _scale.y, 0) + _lift * (hip_y / PIVOT_Y)
 	hips.rotation = _cur["hips"]
-	torso.rotation = _cur["torso"]
+	torso.rotation = _cur["torso"] + jp["torso"]
 	_update_look(delta)
 	# the posed head turn is shared by the neck and the head, the look layer on top
-	var hp: Vector3 = _cur["head"]
+	var hp: Vector3 = _cur["head"] + jp["head"]
 	if neck:
 		neck.rotation = hp * 0.4 + _look_total * 0.45
 		head.rotation = hp * 0.6 + _look_total * 0.55
 	else:
 		head.rotation = hp + _look_total
-	arm_l.rotation = _cur["arm_l"]
-	arm_r.rotation = _cur["arm_r"]
+	arm_l.rotation = _cur["arm_l"] + jp["arm_l"]
+	arm_r.rotation = _cur["arm_r"] + jp["arm_r"]
 	fore_l.rotation = _cur["fore_l"]
 	fore_r.rotation = _cur["fore_r"]
 	leg_l.rotation = _cur["leg_l"]
@@ -3827,6 +3851,11 @@ func _casual_moves(p: Dictionary, delta: float, spd: float, casual: bool) -> voi
 		_skid = 0.0
 	elif spd > 2.5 and _prev_spd < 0.5 and _slow_t > 0.15:
 		_start = 1.0
+		# (1.31) breaking into a run kicks up the ground behind you
+		if spd > 4.0 and is_inside_tree() and not lod:
+			var fx0 := get_node_or_null("/root/FX")
+			if fx0 and wdir != Vector3.ZERO:
+				fx0.call("dust", global_position - wdir.normalized() * 0.35, 4, 0.4)
 	# (the player brakes over a few ticks, and a reversal often passes through a
 	# moment of no input, so both look back over a short window, not one frame)
 	if casual and spd < 0.5 and _prev_spd >= 0.5 and _peak_spd > 4.0:
@@ -4338,6 +4367,11 @@ func net_event(what: String, args: Array) -> void:
 			play(str(args[0]), float(args[1]))
 		"hold":
 			hold(str(args[0]), float(args[1]))
+		"jolt":
+			var was := net_sync
+			net_sync = false
+			jolt(args[0], float(args[1]))
+			net_sync = was
 		"react":
 			_react_dir = args[2]
 			_react_var = float(args[3])
@@ -4435,3 +4469,130 @@ static func toe_mesh(bear: bool, fur: Color, k: float, ankle: float) -> MeshInst
 		var pts := PackedVector3Array([toe + Vector3(0, 0.0, -0.02 * k), toe + Vector3(0, -0.005, -0.02 * k - lg * 0.6), toe + Vector3(0, -0.03, -0.02 * k - lg)])
 		b.add_tube(cl, pts, r0, r0 * 0.15, 4)
 	return b.to_instance("ToeClaws")
+
+
+# ==========================================================================
+# (1.31) Turning
+# ==========================================================================
+## Running round a curve banks the whole figure into it from the feet (more the faster and tighter); turning on
+## the spot steps the feet round, a step every TURN_STEP radians, toward the turn.
+const BANK_GAIN := 0.012
+const BANK_MAX := 0.2
+const TURN_STEP := 0.55
+const TURN_STEP_SECS := 0.24
+var _yaw_prev := NAN
+var _yaw_rate := 0.0
+var _turned := 0.0
+var _shuffle := 0.0
+var _shuffle_side := 1.0
+
+
+func _turn_moves(p: Dictionary, delta: float, spd: float) -> void:
+	var yaw := global_rotation.y
+	if is_nan(_yaw_prev):
+		_yaw_prev = yaw
+	var dy := wrapf(yaw - _yaw_prev, -PI, PI)
+	_yaw_prev = yaw
+	if delta > 0.0:
+		_yaw_rate = lerpf(_yaw_rate, dy / delta, clampf(delta * 10.0, 0.0, 1.0))
+	if swimming or climbing or seated or at_helm:
+		_turned = 0.0
+		return
+	if spd > 3.0:
+		var bank := clampf(_yaw_rate * spd * BANK_GAIN, -BANK_MAX, BANK_MAX) * smoothstep(3.0, 7.0, spd)
+		p["pivot"] += Vector3(0, 0, bank)
+		p["head"] += Vector3(0, 0, -bank * 0.6)
+		_turned = 0.0
+	elif spd < 0.6 and _action.is_empty():
+		_turned += dy
+		if absf(_turned) > TURN_STEP and _shuffle <= 0.0:
+			_shuffle = 1.0
+			_shuffle_side = signf(_turned)
+			_turned = 0.0
+	else:
+		_turned = 0.0
+	if absf(dy) < 0.0005:
+		_turned = move_toward(_turned, 0.0, delta * 0.5)
+	if _shuffle > 0.0:
+		_shuffle = maxf(_shuffle - delta / TURN_STEP_SECS, 0.0)
+		var e := sin(_shuffle * PI)
+		# the leg on the side of the turn steps round first (left turn: the left foot)
+		var s := "l" if _shuffle_side > 0.0 else "r"
+		p["leg_" + s] += Vector3(0.3 * e, -0.25 * e * _shuffle_side, 0)
+		p["shin_" + s] += Vector3(-0.55 * e, 0, 0)
+
+
+# ==========================================================================
+# (1.31) Hit jolts
+# ==========================================================================
+## A blow that lands without staggering (Steadfast, poise, a shrugging foe): the upper body jolts away from it on
+## top of whatever the body is doing (legs, attack and all), and settles back in JOLT_SECS. `push`: the blow's way
+## (world). Mirrored to co-op peers.
+const JOLT_SECS := 0.2
+const JOLT_NONE := {"torso": Vector3.ZERO, "head": Vector3.ZERO, "arm_l": Vector3.ZERO, "arm_r": Vector3.ZERO}
+var _jolt := 0.0
+var _jolt_dir := Vector2.ZERO
+
+
+func jolt(push: Vector3, strength: float = 1.0) -> void:
+	var l := global_basis.orthonormalized().inverse() * push
+	var d := Vector2(l.x, l.z)
+	if d.length() < 0.01:
+		d = Vector2(0, 1)
+	_jolt_dir = d.normalized() * clampf(strength, 0.0, 1.5)
+	_jolt = 1.0
+	if net_sync:
+		_net_send("jolt", [push, strength])
+
+
+func _apply_jolt(p: Dictionary, delta: float) -> void:
+	if _jolt <= 0.0:
+		return
+	_jolt = maxf(_jolt - delta / JOLT_SECS, 0.0)
+	# snaps in fast, eases back: the peak a quarter of the way in
+	var u := 1.0 - _jolt
+	var e := (u / 0.25 if u < 0.25 else 1.0 - smoothstep(0.25, 1.0, u))
+	# +y local = pushed backward (the blow came from the front): the chest bends back, the head snaps
+	p["torso"] += Vector3(0.28 * _jolt_dir.y * e, 0.12 * _jolt_dir.x * e, -0.22 * _jolt_dir.x * e)
+	p["head"] += Vector3(0.22 * _jolt_dir.y * e, 0, -0.18 * _jolt_dir.x * e)
+	p["arm_l"] += Vector3(-0.2 * e, 0, -0.15 * e)
+	p["arm_r"] += Vector3(-0.2 * e, 0, 0.15 * e)
+
+
+# ==========================================================================
+# (1.31) Idle life
+# ==========================================================================
+## Standing about (not moving, no action, weapon away): every few seconds the weight shifts onto the other
+## leg, the hip dropping over it and the free knee easing.
+const FIDGET_SECS := 1.1
+var _idle_t := 0.0
+var _idle_next := 4.0
+var _fidget := 0.0
+var _fidget_side := 1.0
+var _fidget_hold := 0.0
+
+
+func _idle_life(p: Dictionary, delta: float, spd: float) -> void:
+	if spd > 0.3 or not _action.is_empty() or armed or swimming or climbing or seated or at_helm or crouching:
+		_idle_t = 0.0
+		_fidget_hold = move_toward(_fidget_hold, 0.0, delta * 3.0)
+	else:
+		_idle_t += delta
+		if _idle_t > _idle_next:
+			_idle_t = 0.0
+			_idle_next = 4.0 + fmod(absf(global_position.x * 7.3 + global_position.z * 3.1 + _t), 4.0)
+			_fidget = 1.0
+			_fidget_side = -_fidget_side
+	if _fidget > 0.0:
+		_fidget = maxf(_fidget - delta / FIDGET_SECS, 0.0)
+		_fidget_hold = lerpf(_fidget_hold, _fidget_side, 1.0 - exp(-4.0 * delta))
+	var e := _fidget_hold
+	if absf(e) < 0.001:
+		return
+	# weight on the `side` leg: that hip rises a touch, the other knee eases, the chest counters
+	var s := "r" if e > 0.0 else "l"
+	var a := absf(e)
+	p["hips"] += Vector3(0, 0, 0.04 * e)
+	p["torso"] += Vector3(0, 0, -0.03 * e)
+	p["shin_" + s] += Vector3(-0.16 * a, 0, 0)
+	p["leg_" + s] += Vector3(0.07 * a, 0, 0)

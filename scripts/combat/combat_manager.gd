@@ -64,6 +64,19 @@ func apply_camera_kick(amount: float, secs: float = 0.5) -> void:
 		rig.kick(amount, secs)
 
 
+## (1.31) This screen's knockout blink (0..1) and landing dip (0..1): the local camera rig's screen feel.
+func apply_blink(amount: float) -> void:
+	var rig := _rig()
+	if rig and rig.has_method("blink"):
+		rig.blink(amount)
+
+
+func apply_land(k: float) -> void:
+	var rig := _rig()
+	if rig and rig.has_method("land"):
+		rig.land(k)
+
+
 func _rig() -> Node:
 	var camera := get_viewport().get_camera_3d()
 	return camera.get_parent().get_parent() if camera else null  # Camera3D -> SpringArm3D -> CameraRig

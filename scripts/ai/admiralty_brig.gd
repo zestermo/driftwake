@@ -130,6 +130,7 @@ func _interact(n: String, at: Vector3, prompt: String, cb: Callable) -> Interact
 	var a := Interactable.new()
 	a.name = n
 	a.prompt_text = prompt
+	a.gesture = "reach"  # (1.31)
 	a.collision_layer = 512
 	a.collision_mask = 0
 	a.position = at

@@ -43,6 +43,9 @@ var coverage: float = 0.22
 var rain: float = 0.0
 var storm: float = 0.0
 var wind: float = 0.3
+## (1.31) The wind this frame as a vector (x/z the way it blows, length its strength: wind + a storm's share), for
+## hair and cloth (Humanoid) and the foliage's wind_vec.
+var wind_now := Vector3(0.3, 0.0, 0.0)
 var waves: float = 1.0
 var fog: float = 0.0
 ## How near the camera is to a lit lantern on a fog isle (0 none .. 1 in its glow; FogPlaces.FogClear sets it), and how
@@ -690,6 +693,7 @@ func _drift_sky(delta: float) -> void:
 	# the wind for foliage sway (psx_cutout): where it blows (x, z), how hard (0 calm .. ~1.4 a storm)
 	var wd1 := wind_dir()
 	RenderingServer.global_shader_parameter_set("wind_vec", Vector4(wd1.x, wd1.y, wind + storm * 0.6, 0.0))
+	wind_now = Vector3(wd1.x, 0.0, wd1.y) * (wind + storm * 0.6)
 
 
 func _update_clouds() -> void:

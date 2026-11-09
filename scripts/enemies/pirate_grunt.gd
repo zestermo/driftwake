@@ -2659,10 +2659,12 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if elite_trait == "berserk" and health.current_health < health.max_health * EliteTraits.BERSERK_BELOW:
 		took = Poise.NONE
 	if took == Poise.NONE:
+		humanoid.jolt(dir, 0.8)
 		return  # it shrugs it off and keeps coming
 	bark(BARK_HURT, 0.3)
 	if hit.ranged and not hit.breaker and state != S.STAGGER:
 		if _shot_flinch_t > 0.0:
+			humanoid.jolt(dir, 0.6)
 			return  # it takes the ball and keeps coming
 		_shot_flinch_t = SHOT_FLINCH_EVERY
 	_release_token()

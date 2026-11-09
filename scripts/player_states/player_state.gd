@@ -390,3 +390,51 @@ func wants_jump() -> bool:
 ## Horizontal air speed keeps your running momentum (Air Control: faster steering in the air).
 func air_speed() -> float:
 	return maxf(player.move_speed * (1.0 + player.progression.stat("air_control_pct")), player.air_speed)
+
+
+## (1.31) Attack assist: the foe an attack aimed along `aim` (the camera's forward) means to hit: within
+## ASSIST_RANGE m and ASSIST_CONE of the aim, not far above or below, scored by distance and angle (nearer
+## and straighter wins); null when there's none, and the attack goes where the camera looks.
+const ASSIST_RANGE := 6.5
+const ASSIST_CONE := 0.5  # cos 60 degrees
+const ASSIST_REACH := 1.7  # (a strike's own reach: no step in closer than this)
+const ASSIST_GAP_MAX := 3.2
+
+
+func assist_target(aim: Vector3) -> Node3D:
+	var best: Node3D = null
+	var best_s := INF
+	var at := player.global_position
+	for e in get_tree().get_nodes_in_group("enemies") + get_tree().get_nodes_in_group("training_dummies"):
+		var n := e as Node3D
+		if n == null or not n.is_inside_tree() or not n.is_visible_in_tree():
+			continue
+		if n.has_method("is_dead") and n.is_dead():
+			continue
+		var d := n.global_position - at
+		if absf(d.y) > 2.5:
+			continue
+		d.y = 0.0
+		var l := d.length()
+		if l > ASSIST_RANGE or l < 0.05:
+			continue
+		var c := d.dot(aim) / l
+		if c < ASSIST_CONE:
+			continue
+		var s := l * (2.0 - c)
+		if s < best_s:
+			best_s = s
+			best = n
+	return best
+
+
+## The attack's direction and lunge: turns `aim` onto the assisted foe and grows `impulse` (m/s, the lunge that
+## decays at `decel` m/s/s) to close the gap to striking reach. [direction, impulse].
+func assist_lunge(aim: Vector3, impulse: float, decel: float = 15.0) -> Array:
+	var t := assist_target(aim)
+	if t == null:
+		return [aim, impulse]
+	var d := t.global_position - player.global_position
+	d.y = 0.0
+	var gap := clampf(d.length() - ASSIST_REACH - impulse * impulse / (2.0 * decel), 0.0, ASSIST_GAP_MAX)
+	return [d.normalized(), sqrt(impulse * impulse + 2.0 * decel * gap)]

@@ -99,6 +99,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var sens := mouse_sensitivity * float(Settings.get_value("controls", "mouse_sensitivity"))
 		var inv_y := -1.0 if Settings.get_value("controls", "invert_y") else 1.0
 		rotate_y(-event.screen_relative.x * sens)
+		if event.screen_relative.length() > 2.0:
+			_look_hold = FRAME_HOLD
 		spring_arm.rotate_x(-event.screen_relative.y * sens * inv_y)
 		spring_arm.rotation.x = clamp(
 			spring_arm.rotation.x,
@@ -209,6 +211,103 @@ func _process(delta: float) -> void:
 		camera.v_offset += SHAKE_OFFSET.y * s * (0.6 * sin(t * 43.0 + 2.1) + 0.4 * sin(t * 71.0 + 0.4))
 		camera.rotation.z = SHAKE_ROLL * s * sin(t * 29.0 + 0.7)
 		trauma = maxf(trauma - SHAKE_DECAY * rd, 0.0)
+	_screen_feel(delta, me)
+	_frame_fight(delta)
+
+
+## (1.31) Fight framing: with the weapon out, the foe you last hit (or the nearest one ahead) drifting off the side
+## of the view turns the camera gently after it, so you and it stay in frame. The mouse or stick always wins:
+## looking around holds the framing off for FRAME_HOLD s.
+const FRAME_ANGLE := 0.42  # radians off the view's centre before it turns
+const FRAME_RATE := 1.6
+const FRAME_RANGE := 9.0
+const FRAME_HOLD := 1.2
+const FRAME_NEAR := 1.5
+const FRAME_BEHIND := 1.75  # ~100 degrees
+## Only between moves (a technique, skill or dash aims along the camera: turning it mid-move would turn the move).
+const FRAME_STATES := ["Move", "Idle", "LightAttack", "Block"]
+var _look_hold := 0.0
+
+
+func _frame_fight(delta: float) -> void:
+	_look_hold = maxf(_look_hold - delta, 0.0)
+	if _combat_blend < 0.5 or _look_hold > 0.0 or _show_target != 0.0 or _map_on or not (target is Player):
+		return
+	var p := target as Player
+	var f = p.get_meta("fight_focus") if p.has_meta("fight_focus") else null
+	if f == null or not is_instance_valid(f) or not (f is Node3D) or (f.has_method("is_dead") and f.is_dead()):
+		f = null
+	var at := p.global_position
+	if f == null or p.current_state_name() not in FRAME_STATES:
+		return
+	var d: Vector3 = (f as Node3D).global_position - at
+	d.y = 0.0
+	# (too close the angle is noise; past FRAME_RANGE it's not your fight)
+	if d.length() < FRAME_NEAR or d.length() > FRAME_RANGE:
+		return
+	var want := atan2(d.x, d.z) + PI  # the rig's yaw that looks along d (the arm's +Z holds the camera behind)
+	var off := wrapf(want - rotation.y, -PI, PI)
+	# (a foe behind you was passed or turned from: that's yours to look back at, never a swing round)
+	if absf(off) <= FRAME_ANGLE or absf(off) > FRAME_BEHIND:
+		return
+	var turn := (absf(off) - FRAME_ANGLE) * signf(off)
+	rotation.y += turn * clampf(FRAME_RATE * delta, 0.0, 1.0)
+
+
+## (1.31) Screen feel, this captain's screen only (never through Net), scaled by the "Screen effects" setting:
+## a red vignette at low health pulsing harder near death, a dim blink on a knockdown or a big fall (`blink`),
+## the speed smear and a wider FOV when flying fast (launched, a dash, a long fall), a light bob at a sprint and a
+## dip on landing (`land`).
+const FEEL_LOW_HP := 0.35
+const FEEL_FOV := 9.0
+const FEEL_BOB := 0.035
+var _blink := 0.0
+var _dip := 0.0
+var _bob_t := 0.0
+var _speed_k := 0.0
+var _feel_t := 0.0
+
+
+func blink(amount: float) -> void:
+	_blink = maxf(_blink, clampf(amount, 0.0, 1.0))
+
+
+func land(k: float) -> void:
+	_dip = maxf(_dip, clampf(k, 0.0, 1.0))
+
+
+func _screen_feel(delta: float, map_k: float) -> void:
+	var fx := float(Settings.get_value("gameplay", "screen_fx"))
+	var rd := delta / maxf(Engine.time_scale, 0.01)
+	_feel_t += rd
+	var p := target as Player
+	var vig := 0.0
+	var spd := 0.0
+	if p and is_instance_valid(p):
+		var hc = p.health_component
+		if hc and hc.max_health > 0.0 and hc.current_health > 0.0:
+			var low := 1.0 - clampf(hc.current_health / hc.max_health / FEEL_LOW_HP, 0.0, 1.0)
+			if low > 0.0:
+				var rate := lerpf(3.0, 9.0, low)
+				vig = low * (0.45 + 0.3 * (0.5 + 0.5 * sin(_feel_t * rate)))
+		# fast through the air (launched, falling) or a dash
+		var v: Vector3 = p.velocity
+		var fast := v.length() if not p.is_on_floor() else Vector2(v.x, v.z).length() * 0.8
+		spd = smoothstep(11.0, 24.0, fast)
+		if p.sprinting and p.is_on_floor():
+			_bob_t += rd * Vector2(v.x, v.z).length() * 1.15
+			camera.v_offset += sin(_bob_t) * FEEL_BOB * fx * (1.0 - map_k)
+			camera.h_offset += cos(_bob_t * 0.5) * FEEL_BOB * 0.6 * fx * (1.0 - map_k)
+	_speed_k = lerpf(_speed_k, spd, clampf(rd * 6.0, 0.0, 1.0))
+	camera.fov += FEEL_FOV * _speed_k * fx * (1.0 - map_k)
+	if _dip > 0.0:
+		camera.v_offset -= 0.22 * fx * sin(_dip * PI * 0.5) * _dip
+		_dip = maxf(_dip - rd * 3.5, 0.0)
+	var dim := _blink * fx
+	_blink = maxf(_blink - rd * 1.6, 0.0)
+	var psx := get_node_or_null("/root/PSX")
+	if psx and psx.has_method("set_feel"):
+		psx.set_feel(vig * fx, smoothstep(0.0, 1.0, dim) * 0.85, _speed_k * fx)
 
 
 ## Weapon out, not sprinting: the over-the-shoulder stance.
@@ -308,6 +407,7 @@ func _pad_look(delta: float) -> void:
 	if l == Vector2.ZERO:
 		return
 	var inv_y := -1.0 if Settings.get_value("controls", "invert_y") else 1.0
+	_look_hold = FRAME_HOLD
 	rotate_y(-l.x)
 	spring_arm.rotate_x(-l.y * inv_y)
 	spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(min_pitch), deg_to_rad(max_pitch))

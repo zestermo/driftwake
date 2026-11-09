@@ -45,6 +45,10 @@ var gravity := Vector3(0, -9.8, 0):
 	set(v):
 		gravity = v
 		_nat = null
+## (1.31) The weather's wind on hair and cloth (world m/s/s, on top of gravity): Humanoid sets it from the
+## wind_vec global, gusting.
+var wind := Vector3.ZERO
+var _nat_wind := Vector3.ZERO
 var enabled := true
 var native := native_ok:
 	set(v):
@@ -269,6 +273,9 @@ func simulate(delta: float) -> void:
 	if native:
 		if _nat == null or _nat_cols != colliders.size():
 			_nat_build()
+		if _nat_wind != wind:
+			_nat_wind = wind
+			_nat.set_gravity(gravity + wind)
 		_nat.simulate(self, skel, delta)
 		_acc = _nat.get_acc()
 		_net_acted = _nat.get_net_acted()
@@ -376,7 +383,8 @@ func _nat_build() -> void:
 		cb.append(cd["b"])
 		cr.append(cd["r"])
 	_nat.set_colliders(nodes, ca, cb, cr)
-	_nat.set_gravity(gravity)
+	_nat.set_gravity(gravity + wind)
+	_nat_wind = wind
 	for ci in range(_chains.size()):
 		var c: Dictionary = _chains[ci]
 		var col := PackedInt32Array()
@@ -419,7 +427,7 @@ func _world_colliders() -> void:
 
 func _step(g: Transform3D) -> void:
 	_world_colliders()
-	var grav := gravity * STEP * STEP
+	var grav := (gravity + wind) * STEP * STEP
 	for c in _chains:
 		var p: PackedVector3Array = c["p"]
 		var x: Array = c["x"]
@@ -544,7 +552,7 @@ func _simulate_tuned(delta: float) -> void:
 func _step_tuned(g: Transform3D) -> void:
 	_world_colliders()
 	var inv := g.affine_inverse()
-	var grav := gravity * STEP * STEP
+	var grav := (gravity + wind) * STEP * STEP
 	for c in _chains:
 		var p: PackedVector3Array = c["p"]
 		var x: Array = c["x"]

@@ -11272,3 +11272,26 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Cost:** no CPU or draw-call change but one (the ink quad); GPU a few ALU per directional light per pixel and 5 depth
   taps per pixel at 960x540 (~0.1 ms). No normal buffer. The sea isn't cel-lit (its own shader).
 - **Tests:** t/fx/cel_switch. Renders: `celshot` (tools/dev/out/cel).
+
+## 1.31 game feel: screen feel and the animation audit's ten (2026-11-09)
+
+- **Plan and status per item:** docs/v1_31_feel_plan.md. Zach: "do 1-10 automatically", tied to the 1.31 screen-feel
+  candidate. Toon sea with cel (`psx_cel` in ocean.gdshader), clouds unchanged, foliage on the weather's wind (`wind_vec`).
+- **Screen feel** (camera_rig `_screen_feel`, PSX.set_feel -> psx_post.gdshader `vignette` / `dim` / `speed`; Settings
+  gameplay `screen_fx`, menu "Screen effects"): local only. CombatManager.apply_blink / apply_land are the hooks
+  (knock_down, splat, _fall_damage, _on_landed, local captains only). A felled foe punches the camera in
+  (PowerComponent.on_sword_hit).
+- **Attack assist** (`PlayerState.assist_target/assist_lunge`, light + heavy attacks): enemies and training dummies
+  within 6.5 m / 60 degrees; lunge sqrt(v^2 + 30 gap) against the light state's 15 m/s/s decel. **Fight framing**
+  (`camera_rig._frame_fight`) follows the `fight_focus` meta PowerComponent sets on a hit (freed foes: check
+  is_instance_valid before `is`).
+- **Humanoid:** `_turn_moves` (bank on pivot z by yaw rate x speed; a step round every 0.55 rad turning on the spot),
+  `_idle_life` (weight shift every 4-8 s standing unarmed; tests measuring the plain stance set `_idle_next = 1e9`,
+  as coat_tails_hang does), `jolt(push, k)` (an additive upper-body hit jolt applied after the joint easing, net
+  event "jolt"; JOLT_NONE avoids a per-frame dictionary), sprint-start dust (non-LOD rigs).
+- **Wind on chains:** SpringChains.wind (added to gravity in both solvers; the native one gets set_gravity when it
+  changes), from Weather.wind_now past WIND_CALM 0.35 (calm days don't stir coats; a storm ~8 m/s/s), gusting.
+- **Gotchas:** Humanoid already had `_land` (the landing pose): don't reuse the name. `get_meta(name, null)` errors
+  when missing in 4.7: use has_meta.
+- **Tests:** t/combat/attack_assist, t/combat/hit_jolt, t/player/screen_feel, t/player/turn_land; t/combat and
+  t/player groups pass (poise_knockdown and rival_personality failed once each, passed on rerun).

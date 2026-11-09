@@ -855,3 +855,9 @@ scripts/game/music.gd                   t/sea/music_rotation
 shaders/psx/psx_cel.gdshaderinc         t/fx/cel_switch
 shaders/psx/psx_ink.gdshader            t/fx/cel_switch
 scripts/psx/psx_settings.gd            t/fx/cel_switch
+scenes/player/camera_rig.gd             t/player/screen_feel
+shaders/psx/psx_post.gdshader           t/player/screen_feel
+scripts/player_states/player_state.gd   t/combat/attack_assist
+scripts/player_states/light_attack_state.gd t/combat/attack_assist
+scripts/npc/humanoid.gd                 t/combat/hit_jolt t/player/turn_land t/player/coat_tails_hang
+scripts/npc/spring_chains.gd            t/player/coat_tails_hang

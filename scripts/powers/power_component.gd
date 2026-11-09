@@ -998,6 +998,12 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	var thc = target.get("health")
 	if thc is HealthComponent and (thc as HealthComponent).current_health <= 0.0 and not hit.has_meta("echo"):
 		auto_moment("kill", target)
+		# (1.31) a felled foe: this screen punches in on it
+		if player.is_local:
+			CombatManager.apply_camera_kick(0.22, 0.4)
+	# (1.31) the foe you're fighting, for the camera's framing
+	if player.is_local and target is Node3D:
+		player.set_meta("fight_focus", target)
 	player.crew_tech.on_hit(target, hit)
 	if player.is_local:
 		pr.on_hit(target, hit)

@@ -39,6 +39,7 @@ const DEFAULTS := {
 	},
 	"gameplay": {
 		"camera_shake": 1.0,    # 0..1 (was a toggle: saved true/false load as 1/0)
+		"screen_fx": 1.0,       # (1.31) 0..1: the low-health vignette, knockout blink, speed smear, FOV widen, camera bob
 		"name_tags": true,
 		"reticle": true,
 		"pad_skills": true,    # on a pad: which skill is on which LB button, bottom left

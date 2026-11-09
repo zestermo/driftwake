@@ -725,6 +725,7 @@ func _grove(mb: MeshBuilder, n: int) -> void:
 	if n >= 1:
 		var z := Interactable.new()
 		z.name = "Grove"
+		z.gesture = "pickup"  # (1.31)
 		z.collision_layer = 512
 		z.collision_mask = 0
 		z.reach = 1.2

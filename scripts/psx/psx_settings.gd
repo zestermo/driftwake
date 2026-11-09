@@ -241,3 +241,19 @@ func _ink_grid() -> void:
 		return
 	var g: Vector2 = pixel_res() if pixelated() else Vector2(get_viewport().get_visible_rect().size)
 	(_ink.mesh.material as ShaderMaterial).set_shader_parameter("grid", g)
+
+
+## (1.31) Screen feel on the post pass (the local camera rig drives it every frame): `vignette` 0..1 red at the
+## edges (low health), `dim` 0..1 toward black (a knockout blink), `speed` 0..1 the smear out from the middle.
+var _feel := Vector3(-1, -1, -1)
+
+
+func set_feel(vignette: float, dim: float, speed: float) -> void:
+	var f := Vector3(snappedf(vignette, 0.01), snappedf(dim, 0.01), snappedf(speed, 0.01))
+	if f == _feel:
+		return
+	_feel = f
+	var m := _post_rect.material as ShaderMaterial
+	m.set_shader_parameter("vignette", f.x)
+	m.set_shader_parameter("dim", f.y)
+	m.set_shader_parameter("speed", f.z)

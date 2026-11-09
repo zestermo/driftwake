@@ -201,6 +201,7 @@ func _hatches(city: Node3D, calli: Array, seed: int) -> void:
 		var down := Interactable.new()
 		down.name = "Down"
 		down.prompt_text = "Climb down into the cellars"
+		down.gesture = "reach"  # (1.31)
 		down.collision_layer = 512
 		down.collision_mask = 0
 		down.position = Vector3(0, 0.8, 0)
@@ -217,6 +218,7 @@ func _interact(n: String, at: Vector3, prompt: String) -> Interactable:
 	var a := Interactable.new()
 	a.name = n
 	a.prompt_text = prompt
+	a.gesture = "reach"  # (1.31)
 	a.collision_layer = 512
 	a.collision_mask = 0
 	a.position = at

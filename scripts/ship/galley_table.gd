@@ -26,6 +26,7 @@ static func of(tree: SceneTree) -> GalleyTable:
 func _ready() -> void:
 	_use = Interactable.new()
 	_use.name = "Eat"
+	_use.gesture = "reach"  # (1.31)
 	_use.collision_layer = 512
 	_use.collision_mask = 0
 	var cs := CollisionShape3D.new()
