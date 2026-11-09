@@ -11230,3 +11230,17 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - Not done: the rest of a grunt tick (~1.4 ms for 16 outside move/think: the Jolt step with the hitboxes and bodies),
   the bodies' skinning (arm_body / lower_body set ~50 bone poses a frame each), and why the in-game ticks cost 2-4x the
   bench's (island colliders, co-op, loot): the next log's `move` and `net` will say.
+
+## 2026-11-09: the body race, every main-thread build (follow-up to 2026-11-08's crash fix)
+- **What:** prepush showed "wrong RID" / "mem is null" (mesh_builder.commit from body_builder._commit_parts) and one
+  segfault in world tests that prepare an island on the main thread while camps prebuild crews on workers. The 11-08 fix
+  only made the captain's gear rebuild take turns; any main-thread body (Humanoid.make with no prebuilt body, a co-op
+  guest's puppet, a live spawn, a tool's prepare) could still overlap a worker body.
+- **Proof:** racestress gained a `two` mode (two crews on workers at once, no main builds): 40 s clean, so workers
+  together are safe. `raw` (main builds every frame regardless) reproduced the errors and died; with the fix, 93 crews +
+  601 main rebuilds in 40 s, clean.
+- **Fix:** Humanoid._build on the main thread always calls main_take_turn() (announce, then wait at most ~0.5 s for a
+  worker mid-body; bounded since a worker can wait on the main thread) and main_built() after. Workers hold off before
+  their next body while the main thread asks. Player._rebuild_body still retries next frame instead of waiting.
+- Also: Hitbox.activate re-scans its overlaps when monitoring was still on (the deferred off of a swing ended the same
+  frame), else a hurtbox already inside never re-entered; chaintest takes the turn before the log pose.

@@ -399,6 +399,10 @@ func _build() -> void:
 	var worker := OS.get_thread_caller_id() != OS.get_main_thread_id()
 	if worker:
 		_worker_enter()
+	else:
+		# (a body on the main thread with a worker mid-body crashed: wrong RID, heap corruption; 2026-11-09 racestress raw.
+		# Workers built at once are fine (racestress two). Waits at most one worker body, bounded: main_take_turn)
+		main_take_turn()   # (announces this body first, so no worker starts one meanwhile; the hold lapses after two frames, so a run of main bodies waits once)
 	if str(look.get("beast", "")) == "ape":
 		ApeBuilder.build(self, look)
 	else:
@@ -439,6 +443,16 @@ static func main_may_build() -> bool:
 	var ok := _worker_n == 0
 	_pool_lock.unlock()
 	return ok
+
+
+## (main thread) Waits up to `max_ms` for main_may_build(), for a caller that must build now (an island prepared on the
+## main thread: tools and tests). Bounded, since a worker mid-body can be waiting on the main thread; builds go ahead
+## after it either way. Call main_built() once done.
+static func main_take_turn(max_ms := 500) -> void:
+	var n := 0
+	while not main_may_build() and n < max_ms / 2:
+		OS.delay_msec(2)
+		n += 1
 
 
 static func main_built() -> void:

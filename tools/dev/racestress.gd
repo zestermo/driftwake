@@ -2,7 +2,7 @@ extends SceneTree
 ## The worker-body race (2026-11-08, Zach's co-op crashes): a grunt camp prebuilds its next crew's bodies on a worker
 ## (Humanoid.prebuild) while the main thread rebuilds the captain's body (an equip: apply_look). Keeps both going for
 ## `secs` seconds (fresh looks every round, the ready bodies freed) and prints how many of each it did; a crash or a
-## script error is the race. Args: [secs] [main: "look" (apply_look each frame when Humanoid.main_may_build, as the gear does; default), "raw" (every frame regardless), "none"]
+## script error is the race. Args: [secs] [main: "look" (apply_look each frame when Humanoid.main_may_build, as the gear does; default), "raw" (every frame regardless), "none", "two" (two crews building on workers at once, no main builds)]
 const TK := preload("res://tools/dev/test_kit.gd")
 const COATS := ["longcoat", "none", "greatcoat", "none"]
 var stage
@@ -46,6 +46,12 @@ func _process(delta: float) -> bool:
 			seed_n += 1
 			crew.append(load("res://scripts/enemies/pirate_grunt.gd").look_for({"seed": seed_n}))
 		Humanoid.prebuild(crew)
+		if main_mode == "two":
+			var crew2: Array = []
+			for i in range(6):
+				seed_n += 1
+				crew2.append(load("res://scripts/enemies/pirate_grunt.gd").look_for({"seed": seed_n}))
+			Humanoid.prebuild(crew2)
 		rounds += 1
 	# the main thread: the captain's body rebuilt (an equip)
 	if main_mode == "look":

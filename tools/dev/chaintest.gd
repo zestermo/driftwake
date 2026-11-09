@@ -134,10 +134,7 @@ func _process(d: float) -> bool:
 			check("a new captain has no log pose", not p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") == null)
 			# (the world's villagers may be building on a worker: the gear's rebuild waits its turn, Humanoid.main_may_build,
 			# so the test takes the turn first, at most ~0.5 s, and the body rebuilds now)
-			var wn := 0
-			while not Humanoid.main_may_build() and wn < 250:
-				OS.delay_msec(2)
-				wn += 1
+			Humanoid.main_take_turn()
 			p.give_log_pose()
 			check("given, it's on the left wrist", p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") != null)
 			check("under level %d it hasn't set" % gm.LOG_POSE_LEVEL, gm.log_pose_targets().is_empty())
