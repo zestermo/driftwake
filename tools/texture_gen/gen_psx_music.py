@@ -2926,8 +2926,197 @@ SEA_TRACKS = {"sea_breeze": track_sea_breeze, "sea_horizon": track_sea_horizon, 
               "sea_stars": track_sea_stars, "sea_far": track_sea_far, "sea_storm": track_sea_storm}
 TRACKS.update(SEA_TRACKS)
 
+# --- the fight samples (2026-11-09): the combat music in the wonder/sea family (orchestral, no
+# drum kit), three directions for Zach to pick from: BotW's piano-led skirmish, Wind Waker's brass
+# and spiccato strings, a folk reel at a gallop. All original; each quotes THEME_A in the minor.
+THEME_MIN16 = ("D5/6 A4/2 D5/4 E5/4 | F5/6 G5/2 A5/8 | Bb5/4 A5/4 F5/4 D5/4 | E5/12 -/4 | "
+               "D5/6 A4/2 D5/4 E5/4 | F5/6 G5/2 A5/4 D6/4 | C#6/6 Bb5/2 A5/4 G5/2 E5/2 | D5/12 -/4")
+THEME_MIN_CH = ["Dm", "Dm", "Bb", "A", "Dm", "Dm", "A", "Dm"]
+WILD_A = ("D5/6 E5/2 F5/4 A5/4 | G5/6 F5/2 E5/8 | F5/4 D5/4 Bb4/4 D5/4 | C5/12 -/4 | "
+          "D5/6 E5/2 F5/4 A5/4 | Bb5/6 A5/2 G5/4 F5/4 | E5/4 G5/4 A5/4 C#6/4 | D6/12 -/4")
+WILD_B = ("F4/4 A4/4 C5/8 | Bb4/4 D5/4 F5/8 | E5/4 C5/4 G4/4 C5/4 | A4/16 | "
+          "F4/4 A4/4 C5/8 | D5/4 F5/4 Bb5/8 | A5/4 G5/4 E5/4 C#5/4 | D5/16")
+
+
+def _ostinato(s, bus, ch, bars, low, vel):
+    """Piano sixteenths in 3+3+2 groups up the chord (root, fifth, the tenth), the root an octave
+    under each group's first note."""
+    cell = [0, 1, 2, 0, 1, 2, 0, 1] * 2
+    heads = (0, 3, 6, 8, 11, 14)
+    for b in bars:
+        for i in range(s.tpb):
+            root, pcs = chord_pcs(chord_at(ch, b, i / s.tpb))
+            r = low + ((root - low) % 12)
+            tones = [r, r + 7, r + 12 + ((pcs[1] - root) % 12)]
+            v = vel if i in heads else vel * 0.55
+            s.note(bus, "piano", tones[cell[i]], b * s.tpb + i, 1, v, 0.9)
+            if i in heads:
+                s.note(bus, "piano", r - 12, b * s.tpb + i, 2, v * 0.8, 0.9)
+
+
+def sample_fight_wild():
+    # 4/4, 156 bpm, sixteenth ticks, D minor; 32 bars (49 s). A skirmish in the wilds, BotW's way:
+    # the piano's 3+3+2 ostinato drives it, taiko under; the strings' tune (A), the horns answer in
+    # F (B), the theme in D minor on horns and strings over timpani (C), a break on the piano alone
+    # building back to bar 1.
+    s = Song("sample20_fight_wild", 60 / 156 / 4, 16, 32,
+             "4/4, 156 bpm, D minor: a skirmish, piano ostinato, strings, horns, taiko")
+    s.bus("pno", 0.42, verb=0.18)
+    s.bus("strlead", 0.46, verb=0.26)
+    s.bus("horn", 0.46, verb=0.28)
+    s.bus("horn2", 0.26, verb=0.28)
+    s.bus("low", 0.4, verb=0.14)
+    s.bus("str", 0.2, verb=0.3)
+    s.bus("taiko", 0.42, verb=0.2)
+    s.bus("timp", 0.36, verb=0.22)
+    s.bus("snare", 0.22, verb=0.18)
+    s.bus("crash", 0.1, verb=0.25)
+    I = ["Dm", "Dm", "Bb", "A"]
+    A = ["Dm", "C", "Bb", "C", "Dm", "Gm", "A", "Dm"]
+    B = ["F", "Bb", "C", "F", "F", "Bb", "A", "Dm"]
+    T = ["Dm", "Bb", "Gm", "A"]
+    ch = split_chords(I + A + B + THEME_MIN_CH + T)
+    I0, A1, B1, C1, T1 = 0, 4, 12, 20, 28
+    dm = scale("D", "harmonic")
+    allb = range(32)
+    _ostinato(s, "pno", ch, allb, nn("A3"), 0.6)
+    bassline(s, "low", "stacc", ch, range(A1, T1), [(0, 2, "R"), (6, 2, "R"), (12, 2, "R")], octave_low=nn("D2"), vel=0.8, gate=0.6)
+    s.drums("taiko", "taiko", "X.....X...X.....", range(A1, T1), midi=nn("D2"))
+    s.drums("taiko", "taiko", "X...............", range(I0, A1), midi=nn("D2"))
+    for b in (A1 + 3, A1 + 7, B1 + 3, B1 + 7, C1 + 7):
+        s.drums("taiko", "taiko", "........x.x.X.X.", [b], midi=nn("A2"))
+    s.drums("crash", "crash", "X...............", [A1, B1, C1])
+    s.line("strlead", "strings", WILD_A, A1, vel=0.85)
+    _wide(s, "str", "strings", ch, range(A1, T1), 50, 0.14)
+    s.line("horn", "horn", WILD_B, B1, vel=0.85)
+    s.line("horn2", "horn", WILD_B, B1, vel=0.4, harmonize=(scale("F", "major"), -2))
+    s.line("strlead", "strings", WILD_B, B1, vel=0.4, transpose=12)
+    s.line("horn", "horn", THEME_MIN16, C1, vel=0.9, transpose=-12)
+    s.line("strlead", "strings", THEME_MIN16, C1, vel=0.75)
+    s.line("horn2", "horn", THEME_MIN16, C1, vel=0.4, transpose=-12, harmonize=(dm, -2))
+    _timp(s, "timp", ch, range(C1, T1), [(0, 0.8), (8, 0.5)], "D2", "A2")
+    _roll(s, "timp", ch, T1 + 3, 0, 16, 1, "D2", "A2", v0=0.25, dv=0.04)
+    s.drums("snare", "snare", "........x.x.xxxx", [T1 + 3], vel=0.6)
+    return s, dict(verb_t60=1.3, echo_sec=60 / 156 * 0.75)
+
+
+BRASS_A = ("G4/4 Bb4/4 D5/6 C5/2 | Bb4/4 A4/4 G4/8 | Eb5/6 D5/2 C5/4 Bb4/4 | A4/12 -/4 | "
+           "G4/4 Bb4/4 D5/6 G5/2 | F5/4 Eb5/4 C5/8 | D5/4 F#5/4 A5/4 C6/4 | D6/12 -/4")
+BRASS_B = ("G5/2 Bb5/2 Eb6/4 D6/2 C6/2 Bb5/4 | A5/2 C6/2 F6/4 Eb6/2 D6/2 C6/4 | "
+           "D6/2 Bb5/2 G5/4 Bb5/2 D6/2 G6/4 | F6/4 D6/4 Bb5/8 | "
+           "G5/2 Bb5/2 Eb6/4 D6/2 C6/2 Bb5/4 | A5/2 C6/2 F6/4 Eb6/2 D6/2 C6/4 | "
+           "A5/2 C6/2 D6/4 F#6/2 D6/2 C6/4 | D6/16")
+
+
+def sample_fight_brass():
+    # 4/4, 144 bpm, sixteenth ticks, G minor; 32 bars (53 s). A sea-battle charge, Wind Waker's way:
+    # spiccato strings on every sixteenth, the horns' tune (A), the fiddle and violins racing (B), the
+    # theme in G minor on full brass with timpani (C), a march snare and tambourine, a crash a phrase.
+    s = Song("sample21_fight_brass", 60 / 144 / 4, 16, 32,
+             "4/4, 144 bpm, G minor: a charge, spiccato strings, horns, brass, fiddle, timpani, snare")
+    s.bus("ost", 0.36, verb=0.1)
+    s.bus("horn", 0.5, verb=0.26)
+    s.bus("horn2", 0.28, verb=0.26)
+    s.bus("brass", 0.32, verb=0.22)
+    s.bus("fid", 0.42, verb=0.22, echo=0.06)
+    s.bus("strlead", 0.36, verb=0.26)
+    s.bus("low", 0.4, verb=0.14)
+    s.bus("timp", 0.4, verb=0.2)
+    s.bus("snare", 0.28, verb=0.16)
+    s.bus("tamb", 0.08, verb=0.12)
+    s.bus("crash", 0.1, verb=0.25)
+    I = ["Gm", "Eb", "Cm", "D"]
+    A = ["Gm", "Gm", "Eb", "F", "Gm", "Cm", "D", "D"]
+    B = ["Eb", "F", "Gm", "Gm", "Eb", "F", "D", "D"]
+    C = ["Gm", "Gm", "Eb", "D", "Gm", "Gm", "D", "Gm"]
+    T = ["Eb", "F", "D", "D"]
+    ch = split_chords(I + A + B + C + T)
+    I0, A1, B1, C1, T1 = 0, 4, 12, 20, 28
+    gm = scale("G", "harmonic")
+    allb = range(32)
+    _gallop(s, "ost", ch, allb, 0.7, nn("G2"), (0, 4, 8, 12))
+    _roots(s, "low", "lowstr", ch, allb, nn("D2"), 0.5)
+    _timp(s, "timp", ch, allb, [(0, 0.8), (8, 0.5)], "D2", "A2")
+    _roll(s, "timp", ch, T1 + 3, 8, 8, 1, "D2", "A2", v0=0.3, dv=0.07)
+    s.drums("snare", "snare", "X...x.x.X...x.xx", range(A1, 32), vel=0.7)
+    s.drums("tamb", "tamb", "....x.......x...", range(B1, C1))
+    s.drums("crash", "crash", "X...............", [A1, B1, C1, T1])
+    comp(s, "brass", "brass", ch, range(I0, A1), [(0, 3), (6, 3), (12, 2)], low=50, vel=0.7, gate=0.5)
+    s.line("horn", "horn", BRASS_A, A1, vel=0.9)
+    s.line("horn2", "horn", BRASS_A, A1, vel=0.4, harmonize=(gm, -2))
+    comp(s, "brass", "brass", ch, _bars(A1, 8), [(0, 2), (12, 2)], low=50, vel=0.45, gate=0.5)
+    s.line("fid", "fiddle", BRASS_B, B1, vel=0.8)
+    s.line("strlead", "strings", BRASS_B, B1, vel=0.4, transpose=-12)
+    comp(s, "brass", "brass", ch, _bars(B1, 8), [(0, 3), (6, 3), (12, 2)], low=50, vel=0.5, gate=0.5)
+    s.line("horn", "horn", THEME_MIN16, C1, vel=0.95, transpose=-7)
+    s.line("brass", "brass", THEME_MIN16, C1, vel=0.55, transpose=-7, harmonize=(gm, -2))
+    s.line("strlead", "strings", THEME_MIN16, C1, vel=0.6, transpose=5)
+    comp(s, "brass", "brass", ch, _bars(T1, 4), [(0, 3), (6, 3), (12, 2)], low=50, vel=0.75, gate=0.5)
+    s.line("fid", "fiddle", "D5/2 G5/2 Bb5/2 D6/2 G6/8 | F6/2 Eb6/2 D6/2 C6/2 Bb5/8 | "
+           "A5/2 Bb5/2 C6/2 D6/2 Eb6/4 F#6/4 | G6/4 F#6/4 D6/4 A5/4", T1, vel=0.7)
+    return s, dict(verb_t60=1.3, echo_sec=60 / 144 * 0.75)
+
+
+REEL_A = ("A4/1 B4/1 C5/1 E5/2 A4/1 | G4/1 A4/1 B4/1 D5/3 | C5/1 B4/1 A4/1 E5/2 G5/1 | F#5/1 E5/1 D5/1 E5/3 | "
+          "A5/2 G5/1 E5/2 D5/1 | G5/2 E5/1 D5/2 B4/1 | C5/1 E5/1 A5/1 G5/1 E5/1 D5/1 | E5/3 A4/3")
+REEL_B = ("C6/2 B5/1 A5/2 G5/1 | F#5/2 E5/1 D5/3 | E5/2 G5/1 B5/2 G5/1 | A5/6 | "
+          "C6/2 B5/1 A5/2 E5/1 | G5/2 F#5/1 G5/2 B5/1 | A5/1 G5/1 E5/1 D5/1 B4/1 G4/1 | A4/6")
+
+
+def sample_fight_reel():
+    # 6/8, dotted quarter = 112, eighth ticks, A dorian; 48 bars (51 s). A brawl at a gallop, the
+    # folk side: the fiddle's reel over the low strings galloping and a driving bodhran, the whistle
+    # doubling it, the concertina's chords; B on the concertina with brass hits; the theme in 6/8
+    # breaking out in A major on the horns and fiddle.
+    s = Song("sample22_fight_reel", 60 / 336, 6, 48,
+             "6/8, dotted quarter = 112, A dorian: a brawl, fiddle reel, galloping strings, bodhran, horns")
+    s.bus("fid", 0.46, verb=0.2, echo=0.05)
+    s.bus("whis", 0.3, verb=0.22)
+    s.bus("conc", 0.4, verb=0.2)
+    s.bus("horn", 0.46, verb=0.26)
+    s.bus("brass", 0.3, verb=0.22)
+    s.bus("ost", 0.36, verb=0.1)
+    s.bus("low", 0.38, verb=0.14)
+    s.bus("bod", 0.4, verb=0.14)
+    s.bus("rim", 0.14, verb=0.1)
+    s.bus("timp", 0.34, verb=0.2)
+    s.bus("crash", 0.1, verb=0.25)
+    I = ["Am", "G", "Am", "E"]
+    A = ["Am", "G", "Am", "D", "Am", "G", "C", "Am"]
+    B = ["Am", "D", "Em", "Am", "Am", "G", "Em", "Am"]
+    T = ["A", "A", "F#m", "E", "A", "A", "D E", "A"]
+    O = ["Am", "G", "Em", "E"]
+    ch = split_chords(I + A + A + B + T + A + O)
+    I0, A1, A2, B1, T1, A3, O1 = 0, 4, 12, 20, 28, 36, 44
+    ador = scale("A", "dorian")
+    allb = range(48)
+    _gallop(s, "ost", ch, range(A1, 48), 0.7, nn("A2"), (0, 3))
+    _roots(s, "low", "lowstr", ch, allb, nn("E2"), 0.5)
+    s.drums("bod", "bodhran", "X.xX.x", allb, midi=nn("D2"))
+    s.drums("rim", "bodhran_rim", ".x..x.", range(A1, 48))
+    comp(s, "conc", "concertina", ch, range(A1, T1), [(0, 2), (3, 2)], low=57, vel=0.5, gate=0.55)
+    _timp(s, "timp", ch, range(T1, A3), [(0, 0.7), (3, 0.4)], "D2", "A2")
+    s.drums("crash", "crash", "X.....", [A1, B1, T1, A3])
+    s.line("fid", "fiddle", "A4/3 E5/3 | G5/3 E5/3 | A5/3 E5/3 | G#5/6", I0, vel=0.6)
+    s.line("fid", "fiddle", REEL_A, A1, vel=0.85)
+    s.line("fid", "fiddle", REEL_A, A2, vel=0.82)
+    s.line("whis", "whistle", REEL_A, A2, vel=0.5, transpose=12)
+    s.line("conc", "concertina", REEL_B, B1, vel=0.8)
+    s.line("fid", "fiddle", REEL_B, B1, vel=0.4, harmonize=(ador, -2))
+    comp(s, "brass", "brass", ch, _bars(B1, 8), [(0, 2)], low=50, vel=0.6, gate=0.5)
+    s.line("horn", "horn", THEME_68, T1, vel=0.9, transpose=2)
+    s.line("fid", "fiddle", THEME_68, T1, vel=0.6, transpose=14)
+    comp(s, "brass", "brass", ch, _bars(T1, 8), [(0, 2), (3, 2)], low=50, vel=0.5, gate=0.5)
+    s.line("fid", "fiddle", REEL_A, A3, vel=0.85)
+    s.line("whis", "whistle", REEL_A, A3, vel=0.5, transpose=12)
+    s.line("horn", "horn", REEL_A, A3, vel=0.35, transpose=-12)
+    s.line("fid", "fiddle", "A5/1 G5/1 E5/1 A5/1 G5/1 E5/1 | D5/1 E5/1 G5/1 B5/3 | E5/1 G5/1 B5/1 E6/3 | G#5/3 B5/3", O1, vel=0.75)
+    return s, dict(verb_t60=1.2, echo_sec=60 / 112 * 0.5)
+
+
 SAMPLES = {"corsair": sample_corsair, "harbour": sample_harbour, "waters": sample_waters,
-           "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm}
+           "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm,
+           "fight_wild": sample_fight_wild, "fight_brass": sample_fight_brass, "fight_reel": sample_fight_reel}
 SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 
 
