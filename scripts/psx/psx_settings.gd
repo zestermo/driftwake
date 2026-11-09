@@ -4,7 +4,7 @@ extends Node
 ## - Drives the global vertex-snap / affine-warp shader uniforms.
 ## - Adds the full-screen 15-bit color + dither pass underneath the HUD.
 ## Values live in the Settings autoload (video section). Hotkeys:
-## F2 toggles pixelation, F3 toggles dithering, F11 / Alt+Enter fullscreen.
+## F2 toggles pixelation, F3 toggles dithering, Ctrl+F3 cel shading, F11 / Alt+Enter fullscreen.
 
 ## The UI's canvas (2x at 1080p, 4x at 4K: whole screen pixels): menus and the HUD are laid out on at
 ## least this many pixels (PixelCanvas); the 3D's pixel grid is GRID's, laid on by the post pass.
@@ -21,6 +21,7 @@ var _toast_tween: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process(false)  # (only while cel shading's ink pass is on: it follows the camera)
 	_build_post_pass()
 	_build_toast()
 	get_tree().root.size_changed.connect(_update_snap)
@@ -47,12 +48,51 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_F2:
 			Settings.set_value("video", "pixelate", not pixelated())
 			_show_toast("Pixelation: %s" % ("On" if pixelated() else "Off"))
+		elif event.keycode == KEY_F3 and event.ctrl_pressed:
+			Settings.set_value("video", "cel", not cel)
+			_show_toast("Cel shading: %s" % ("On" if cel else "Off"))
 		elif event.keycode == KEY_F3:
 			Settings.set_value("video", "dither", not Settings.get_value("video", "dither"))
 			_show_toast("Dither: %s" % ("On" if Settings.get_value("video", "dither") else "Off"))
 		elif event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed):
 			toggle_fullscreen()
 			get_viewport().set_input_as_handled()
+
+
+## Cel shading (the video setting "cel", on by default; Zach's pick of four looks, 2026-11-09):
+## the `psx_cel` shader global (shaders/psx/psx_cel.gdshaderinc: dithered two-step sun and moon
+## light) and the ink pass (psx_ink.gdshader: silhouettes, a full-screen quad kept at the camera).
+var cel := false
+var _ink: MeshInstance3D
+
+
+func set_cel(on: bool) -> void:
+	cel = on
+	RenderingServer.global_shader_parameter_set("psx_cel", 1.0 if on else 0.0)
+	if on and _ink == null:
+		_ink = MeshInstance3D.new()
+		_ink.name = "CelInk"
+		var q := QuadMesh.new()
+		q.size = Vector2(2, 2)
+		var m := ShaderMaterial.new()
+		m.shader = load("res://shaders/psx/psx_ink.gdshader")
+		q.material = m
+		_ink.mesh = q
+		_ink.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_ink.extra_cull_margin = 16384.0
+		_ink.ignore_occlusion_culling = true
+		_ink.sorting_offset = -100000.0  # drawn before the sea and particles, which go over it
+		add_child(_ink)
+	if _ink:
+		_ink.visible = on
+		_ink_grid()
+	set_process(on)
+
+
+func _process(_delta: float) -> void:
+	var c := get_viewport().get_camera_3d()
+	if _ink and c:
+		_ink.global_position = c.global_position
 
 
 func pixelated() -> bool:
@@ -73,7 +113,7 @@ func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
 	match key:
 		"fullscreen":
 			_apply_window_mode()
-		"pixelate", "dither", "wobble", "warp":
+		"pixelate", "dither", "wobble", "warp", "cel":
 			_apply_preset()
 		"vsync", "max_fps":
 			_apply_frames()
@@ -109,6 +149,7 @@ func _apply_preset() -> void:
 	win.content_scale_size = UI_SIZE
 	_post_rect.material.set_shader_parameter("enabled", bool(Settings.get_value("video", "dither")) and pixelated())
 	_update_pixelate()
+	set_cel(bool(Settings.get_value("video", "cel")))
 	var warp := float(Settings.get_value("video", "warp"))
 	RenderingServer.global_shader_parameter_set("psx_affine", warp if pixelated() else 0.0)
 	_update_snap()
@@ -127,6 +168,7 @@ func _update_pixelate() -> void:
 		return
 	_post_rect.material.set_shader_parameter("pixelate", pixelated())
 	_post_rect.material.set_shader_parameter("pixel_res", pixel_res())
+	_ink_grid()
 	# render the 3D at the grid's own size: the post pass samples one texel
 	# per cell, so every pixel past that was drawn and thrown away
 	var win := get_tree().root
@@ -191,3 +233,11 @@ func _apply_frames() -> void:
 		return
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if Settings.get_value("video", "vsync") else DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = int(Settings.get_value("video", "max_fps"))
+
+
+## The ink pass finds its edges cell to cell on the 3D's pixel grid (whole-cell lines).
+func _ink_grid() -> void:
+	if _ink == null:
+		return
+	var g: Vector2 = pixel_res() if pixelated() else Vector2(get_viewport().get_visible_rect().size)
+	(_ink.mesh.material as ShaderMaterial).set_shader_parameter("grid", g)

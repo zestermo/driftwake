@@ -14,6 +14,7 @@ const DEFAULTS := {
 		"fullscreen": false,
 		"pixelate": true,       # the 3D on PSX.GRID (960x540); off = native resolution
 		"dither": true,
+		"cel": true,            # cel shading: dithered two-step sun light + ink silhouettes (psx_cel)
 		"wobble": 1.0,          # vertex snapping strength 0..1
 		"warp": 0.0,            # affine texture warp 0..1 (off by default since v3)
 		"fov": 75.0,

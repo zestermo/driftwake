@@ -11252,3 +11252,23 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   level: 127 / 215 / 304 / 392 for 1-4 captains (was 143 / 265 / 386 / 507). Every hp_scale user follows (bosses, beasts,
   bugs, sea kings, enemy ships, stronghold bosses).
 - Tests: t/combat/coop_scaling (the new numbers), t/stronghold, t/boss. Nettest modes see it (prepush).
+
+## Cel shading (2026-11-09)
+
+- **What:** Zach picked "dithered cel" from four looks (bands, bands + ink, anime ramp + rim, dithered cel; renders by
+  `tools/dev/celshot.gd`). The sun and moon light in two steps (0.12 / 1.0 of the light) whose terminator is the PS1's
+  4x4 ordered dither on the PSX grid (FRAGCOORD scaled to 540 cells tall: the cells the post pass keeps), warm on the
+  lit side, cool in shadow. Lamps (omni/spot) keep plain lambert: thresholded, a lamp's whole range went full bright
+  with blocky pool edges. Ink: warm dark-brown silhouettes from the depth buffer only.
+- **Where:** `shaders/psx/psx_cel.gdshaderinc` is a `light()` included by psx_lit_body (not under PSX_WET: the Sea King
+  keeps its specular), psx_cutout and terrain.gdshader; `psx_cel` shader global (0 = lambert, matching diffuse_lambert:
+  LIGHT_COLOR / PI). `shaders/psx/psx_ink.gdshader` is a full-screen quad (POSITION = VERTEX.xy, 1, 1) PSX keeps at the
+  camera (`PSX.set_cel`, `_process` only while on), sorting_offset -100000 so the sea and particles draw over it.
+  Video setting "cel" (default on, menu "Cel shading", Ctrl+F3).
+- **Gotchas:** the ink finds edges cell to cell on the PSX grid (`grid` = PSX.pixel_res): at native 1 px lines the post
+  pass's cell sampling dropped most of them. Edges use the second difference of 1/z (planes are affine in it, so
+  grazing ground stays clean) on its negative side (the line sits on the nearer object), fading 35-70 m.
+  `global_shader_parameter_get` returns null in the test runner: test PSX.cel instead.
+- **Cost:** no CPU or draw-call change but one (the ink quad); GPU a few ALU per directional light per pixel and 5 depth
+  taps per pixel at 960x540 (~0.1 ms). No normal buffer. The sea isn't cel-lit (its own shader).
+- **Tests:** t/fx/cel_switch. Renders: `celshot` (tools/dev/out/cel).

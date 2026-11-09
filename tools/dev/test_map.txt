@@ -852,3 +852,6 @@ scripts/dialogue/dialogue_box.gd        t/input/pad_dialogue
 scripts/ui/pixel_canvas.gd              t/input/pad_cursor t/ui/canvas_960
 scripts/quests/journal.gd               t/ui/captains_log
 scripts/game/music.gd                   t/sea/music_rotation
+shaders/psx/psx_cel.gdshaderinc         t/fx/cel_switch
+shaders/psx/psx_ink.gdshader            t/fx/cel_switch
+scripts/psx/psx_settings.gd            t/fx/cel_switch

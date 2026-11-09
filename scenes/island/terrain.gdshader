@@ -137,3 +137,5 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 }
+
+#include "res://shaders/psx/psx_cel.gdshaderinc"

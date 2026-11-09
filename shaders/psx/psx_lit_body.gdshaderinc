@@ -103,3 +103,7 @@ void fragment() {
 	EMISSION += rim_color.rgb * rim * rim_energy * tint_mul.rgb;
 #endif
 }
+
+#ifndef PSX_WET
+#include "res://shaders/psx/psx_cel.gdshaderinc"
+#endif
