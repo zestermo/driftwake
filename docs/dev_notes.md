@@ -11322,3 +11322,10 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Inventory:** opening it plays `gesture_bag` (EmotePoses: a hand back to the satchel, a rummage, up to look).
 - **Tests:** t/ship/deck_work (pump and douse poses, facing, let go). Renders: posebench with
   PB_SET="work=\"patch\"" etc. (tools/dev/out/work/).
+
+## 2026-11-09: reviving takes F first (Zach)
+
+- With a downed crewmate within REVIVE_RANGE (`Player.reviving()`: the revive tick's target), the
+  InteractionComponent offers nothing (no prompt, the press not taken, no fishing cast) and the ship's deck jobs
+  stand aside (ship.gd's job tick returns before choosing one; burns still apply). Test: t/coop/revive_first (a chest
+  right there: F gets the crewmate up; once they're up the chest is F's again).

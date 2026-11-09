@@ -19,6 +19,9 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if Dialogue.is_blocking():
 		return
+	# (1.31) reviving a crewmate takes F over everything
+	if player and player.reviving():
+		return
 	if event.is_action_pressed("interact") and current_interactable == null and _cast:
 		get_viewport().set_input_as_handled()
 		player.fish()
@@ -62,6 +65,8 @@ func _physics_process(_delta: float) -> void:
 	# would otherwise grab every press. On a ladder or the rigging F lets go.
 	var ship := get_tree().get_first_node_in_group("ship")
 	var busy: bool = (ship != null and str(ship.get("local_job")) != "") or player.current_state_name() == "Climb"
+	# (1.31) a downed crewmate in reach: F is the revive's
+	busy = busy or player.reviving()
 	var fwd := -player.player_model.global_basis.z
 	var airborne := player.current_state_name() in ["Jump", "Fall"]
 	for inter in ([] if busy else nearby_interactables):

@@ -867,3 +867,4 @@ scripts/quests/line_quests.gd   t/quests/cache_lead
 scripts/combat/targeting.gd             t/combat/lock_on t/combat/omni_attack
 scripts/input/pad.gd                    t/input/pad_lock_crouch
 scripts/ship/ship.gd                    t/ship/deck_work
+scripts/interaction/interaction_component.gd t/coop/revive_first

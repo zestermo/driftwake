@@ -847,6 +847,12 @@ func _damage_view(delta: float) -> void:
 			hd.dot = true
 			hd.damage = 4.0
 			me.hurtbox.take_hit(hd, self)
+	# (1.31) a downed crewmate in reach: F is for getting them up (Player._revive_tick), not the deck's jobs
+	if me.reviving():
+		local_job = ""
+		me.body_model.work = ""
+		_prompting = false
+		return
 	# the nearest job within reach
 	var job := ""
 	var id := 0

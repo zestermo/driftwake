@@ -3524,6 +3524,12 @@ func place_marker() -> void:
 	Net.mark(pos, target)
 
 
+## (1.31) A knocked-out crewmate is in reach: F is for getting them up, over every other interaction (the
+## InteractionComponent and the ship's deck jobs stand aside meanwhile).
+func reviving() -> bool:
+	return _revive_target != null and is_instance_valid(_revive_target)
+
+
 ## Hold F next to a knocked-out crewmate to get them up.
 func _revive_tick(delta: float) -> void:
 	var target: Node = null
