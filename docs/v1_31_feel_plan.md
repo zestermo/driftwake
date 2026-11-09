@@ -23,8 +23,8 @@ before the 15-bit quantize, so they step and dither like everything else.
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Attack assist | **Built.** Light and heavy attacks turn onto the foe within 6.5 m and 60 degrees of the camera's line (nearer and straighter wins; training dummies count) and the light's lunge grows to reach it (impulse sqrt(v^2 + 2 * 15 * gap), gap <= 3.2 m). Nobody in the cone: the camera's line, as before. `PlayerState.assist_target / assist_lunge`. |
-| 2 | Fight framing | **Built.** Weapon out, the foe you last hit drifting more than 24 degrees off the view's centre turns the camera gently after it (within 9 m); the mouse or stick holds it off for 1.2 s. `camera_rig._frame_fight`. |
+| 1 | Attack assist | **Built.** Light attacks turn onto the foe within 6.5 m and 60 degrees of the camera's line (nearer and straighter wins; training dummies count) and the light's lunge grows to reach it (impulse sqrt(v^2 + 2 * 15 * gap), gap <= 3.2 m). Nobody in the cone: the camera's line, as before. Heavies keep the camera's line (their launchers and plus moves have their own travel), and a hook (the twin axes' third) turns without stepping in. `PlayerState.assist_target / assist_lunge`. |
+| 2 | Fight framing | **Built.** Weapon out, the foe you last hit drifting more than 24 degrees off the view's centre turns the camera gently after it (within 9 m); the mouse or stick holds it off for 1.2 s; only while moving, idle, light-attacking or blocking, never for a foe closer than 1.5 m or more than 100 degrees off (a dash through a foe mustn't swing the view round). `camera_rig._frame_fight`. |
 | 3 | Turns | **Built.** Running round a curve banks the body into it from the feet (yaw rate x speed, up to 0.2 rad); turning on the spot steps the feet round (a step every 0.55 rad). Starts, stops and reversal skids already existed. `Humanoid._turn_moves`. |
 | 4 | Landings | **Mostly there already** (the landing pose: the lower foot first, knees and chest by fall speed). Added: a hard landing at a run (k > 0.6, > 6 m/s) rolls out of it (`dodge_roll`). |
 | 5 | Light hits | **Built, as a visual layer.** Light hits still stagger you (Steadfast removes that: a balance choice kept). A blow that lands without staggering (Steadfast, armour poise, Reinforce; a grunt shrugging off a hit or a ball) jolts the upper body away from it over the pose, legs untouched, 0.2 s, mirrored in co-op. `Humanoid.jolt`. |
@@ -47,3 +47,10 @@ before the 15-bit quantize, so they step and dither like everything else.
 t/combat/attack_assist, t/combat/hit_jolt, t/player/screen_feel, t/player/turn_land (with t/fx/cel_switch from the
 cel pass). Suites expected to notice (prepush): combat suites that aim attacks at foes off the camera's line, the
 cloth/hair numbers (clothlab, coat tests) now that wind pushes the chains, any golden render.
+
+## Known issues
+
+- t/weapons/rapier_tree: "balestra lands on the dummy (0 damage)" fails on main before this work too (checked in a
+  clean worktree of cc3224ac); not from 1.31 feel.
+- t/combat/poise_knockdown and t/combat/rival_personality each failed once and passed on rerun (timing).
+- Not checked in renders or in play: how the bank, the weight shift and the screen effects look. Zach plays it.
