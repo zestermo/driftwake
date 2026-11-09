@@ -23,6 +23,8 @@ const NUDGE := 0.012
 const PITCH_K := 0.012
 const SLIP := 0.15
 const IK_IN := 0.3
+## Played at the mouth: placed in head space (and worn in the belt, clear of an axe on the back).
+const HEAD_HELD := ["whistle", "ocarina"]
 
 ## Carried, in torso space: [position, basis] per kind (pushed out past an axe on the back).
 const BACK := {
@@ -32,6 +34,8 @@ const BACK := {
 	"bodhran": [Vector3(0.0, 0.34, 0.185), Basis(Vector3.BACK, 0.2)],
 	"gurdy": [Vector3(0.02, 0.24, 0.185), Basis(Vector3.BACK, 0.5) * Basis(Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0))],
 	"banjo": [Vector3(0.06, 0.12, 0.21), Basis(Vector3.BACK, -0.45) * Basis(Vector3.RIGHT, PI * 0.5)],
+	"ocarina": [Vector3(-0.1, 0.1, -0.135), Basis(Vector3.BACK, -0.15) * Basis(Vector3.RIGHT, -PI * 0.5)],
+	"guitar": [Vector3(0.06, 0.1, 0.23), Basis(Vector3.BACK, -0.45) * Basis(Vector3.RIGHT, PI * 0.5)],
 }
 
 var player
@@ -299,12 +303,13 @@ func _models(b: Humanoid, k: String) -> void:
 	_back.mesh = Instruments.mesh(k)
 	b.torso.add_child(_back)
 	var names: Dictionary = {"concertina": {"end_r": "end", "end_l": "end", "bellows": "bellows"}, "fiddle": {"body": "", "bow": "bow"},
-		"whistle": {"body": ""}, "bodhran": {"body": "", "tipper": "tipper"}, "gurdy": {"body": "body", "crank": "crank"}, "banjo": {"body": ""}}[k]
+		"whistle": {"body": ""}, "bodhran": {"body": "", "tipper": "tipper"}, "gurdy": {"body": "body", "crank": "crank"}, "banjo": {"body": ""},
+		"ocarina": {"body": ""}, "guitar": {"body": ""}}[k]
 	for pn in names.keys():
 		var mi := MeshInstance3D.new()
 		mi.name = "Played_" + pn
 		mi.mesh = Instruments.mesh(k, names[pn])
-		(b.head if k == "whistle" else b.torso).add_child(mi)
+		(b.head if k in HEAD_HELD else b.torso).add_child(mi)
 		_parts[pn] = mi
 	_show(playing)
 
@@ -321,7 +326,7 @@ func _place_back(b: Humanoid) -> void:
 	var e: Array = BACK[_built]
 	var at: Vector3 = e[0]
 	# an axe rides on the back too: hang it out over the axe's haft
-	if _built != "whistle" and b.weapon and is_instance_valid(b.weapon) and b.weapon.get_parent() and b.weapon.get_parent().name == "BackSocket":
+	if _built not in HEAD_HELD and b.weapon and is_instance_valid(b.weapon) and b.weapon.get_parent() and b.weapon.get_parent().name == "BackSocket":
 		at.z += 0.05
 	_back.transform = Transform3D(e[1], at)
 
@@ -401,6 +406,25 @@ func _play_pose(b: Humanoid) -> void:
 			_reach(b, true, tg * (nx * (Instruments.BANJO_PICK + pick)), pole_r)
 			var shift := 0.05 * sin(PI * floorf(bt * sub * 0.5) * 1.3)
 			_reach(b, false, tg * (nx * (Instruments.BANJO_STOP + Vector3(0, 0, shift))), pole_l)
+		"ocarina":
+			# at the lips, the egg out in front and a little right, cupped in both hands, its holes up
+			var ox := Transform3D(Basis.looking_at(Vector3(0.3, -0.3, -0.9).normalized(), Vector3(0, 0.95, -0.3)), Vector3(0, 0.055, -0.14))
+			_put("body", ox)
+			var hg := b.head.global_transform
+			var lift := 0.004 * sin(PI * floorf(bt * sub) * 2.3)
+			_reach(b, false, hg * (ox * Vector3(-0.055, -0.03 + lift, -0.1)), pole_l)
+			_reach(b, true, hg * (ox * Vector3(0.055, -0.03 - lift, -0.13)), pole_r)
+		"guitar":
+			# slung across the belly like the banjo, a little lower for the bigger body
+			var gb := Basis.looking_at(Vector3(-0.82, 0.45, -0.35).normalized(), Vector3(0.1, 0.25, -1.0))
+			var gx := Transform3D(gb, Vector3(0.1, 0.06, -0.24))
+			_put("body", gx)
+			# down on the beat, up between: the hand sweeps across the strings over the soundhole
+			var sweep := cos(TAU * bt)
+			_reach(b, true, tg * (gx * (Instruments.GUITAR_STRUM + Vector3(0.05 * sweep, 0.012 * (1.0 - absf(sweep)), 0.0))), pole_r)
+			# a new chord shape each bar, up or down the neck
+			var shape := 0.04 * sin(PI * floorf(bt / float(tune_info()[2])) * 1.3)
+			_reach(b, false, tg * (gx * (Instruments.GUITAR_STOP + Vector3(0, 0, shape))), pole_l)
 
 
 func _put(part: String, xf: Transform3D) -> void:

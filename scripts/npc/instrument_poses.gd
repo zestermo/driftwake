@@ -38,6 +38,14 @@ static func pose(h, n: String, u: float) -> Array:
 			# a little hunched over the pot, eyes down the neck to the left
 			up = {"torso": Vector3(-0.08, 0.1, 0.04 * sw), "head": Vector3(-0.28, 0.25, 0.0),
 				"arm_l": Vector3(1.0, 0.3, -0.35), "fore_l": Vector3(1.2, 0, 0), "arm_r": Vector3(0.45, -0.1, 0.35), "fore_r": Vector3(1.55, 0, 0)}
+		"music_ocarina":
+			# the head down a touch over the egg, both elbows out round it
+			up = {"torso": Vector3(0.08, 0.0, 0.04 * sw), "head": Vector3(-0.12, -0.05, -0.04 * sw),
+				"arm_l": Vector3(1.2, 0.3, -0.35), "fore_l": Vector3(1.8, 0, 0), "arm_r": Vector3(1.15, -0.3, 0.35), "fore_r": Vector3(1.8, 0, 0)}
+		"music_guitar":
+			# hunched a little over the body, eyes on the chord hand
+			up = {"torso": Vector3(-0.08, 0.1, 0.04 * sw), "head": Vector3(-0.26, 0.28, 0.0),
+				"arm_l": Vector3(0.95, 0.3, -0.35), "fore_l": Vector3(1.25, 0, 0), "arm_r": Vector3(0.4, -0.1, 0.4), "fore_r": Vector3(1.45, 0, 0)}
 	for k in up.keys():
 		p[k] = up[k]
 	return [h._keys(minf(u, 1.0), [[0.0, {}], [1.0, p]]), "full", Vector3.ZERO]

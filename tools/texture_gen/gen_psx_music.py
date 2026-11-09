@@ -3133,9 +3133,9 @@ SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 # bridge), banjo (the tune picked, its long notes rolled); the bodhran keeps time, its open strokes tuned to the chord.
 # --------------------------------------------------------------------------
 JAM_OUT = os.path.join(OUT, "jam")
-JAM_INSTRUMENTS = ("concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo")
+JAM_INSTRUMENTS = ("concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo", "ocarina", "guitar")
 # the stems' level (integrated); the picked and struck ones sit lower, their attacks carry
-JAM_LU = {"bodhran": -22.0, "banjo": -21.0}
+JAM_LU = {"bodhran": -22.0, "banjo": -21.0, "guitar": -21.0}
 
 # The Brinehollow Lass: a jig, 6/8, G major, eighth ticks.
 LASS_A = ("G4/1 B4/1 D5/1 G5/2 D5/1 | E5/1 G5/1 E5/1 D5/1 B4/1 G4/1 | A4/2 B4/1 C5/2 E5/1 | D5/1 C5/1 B4/1 A4/3 | "
@@ -3199,7 +3199,7 @@ JAM_TUNES = {
     "bell": dict(title="The Drowned Bell", tick=0.25, tpb=6, beat=2, scale=("E", "minor"),
                  parts={"A": (BELL_A, ["Em", "Em", "Am", "D", "C", "G", "D", "Em"]),
                         "B": (BELL_B, ["C", "G", "D", "D", "Em", "G", "D", "Em"])},
-                 form="ABAB", whistle=0, drone=["E3", "B3"],
+                 form="ABAB", whistle=0, drone=["E3", "B3"], guitar="pick",
                  lh=[(0, 2, "B"), (2, 2, "C"), (4, 2, "C")],
                  lo="X.....", rim="..x.o.", dog="..x.x."),
     "rum": dict(title="Rum and Rigging", tick=60 / 116 / 2, tpb=4, beat=2, scale=("A", "major"),
@@ -3224,7 +3224,7 @@ JAM_TUNES = {
     "lantern": dict(title="The Lantern Shore", tick=60 / 66 / 2, tpb=8, beat=2, scale=("F", "major"),
                     parts={"A": (LANTERN_A, ["F", "Bb", "F", "C", "F", "Dm", "Bb C", "F"]),
                            "B": (LANTERN_B, ["Dm", "Gm", "F", "C", "Dm", "Bb", "C", "F"])},
-                    form="AABA", whistle=0, drone=["F2", "C3"],
+                    form="AABA", whistle=0, drone=["F2", "C3"], guitar="pick",
                     lh=[(0, 3, "B"), (3, 5, "C")],
                     lo="X.......", rim="....o...", dog="........"),
     "deep": dict(title="The Deep Call", tick=60 / 138 / 2, tpb=8, beat=2, scale=("E", "harmonic"),
@@ -3273,7 +3273,8 @@ def jam_song(key):
     for b, g, v in (("whistle", 1.0, 0.14), ("fiddle", 1.0, 0.16), ("concertina", 1.0, 0.12), ("concertina:lh", 0.42, 0.1),
                     ("gurdy", 1.0, 0.12), ("gurdy:drone", 0.24, 0.12), ("gurdy:dog", 0.26, 0.08),
                     ("bodhran", 1.0, 0.08), ("bodhran:rim", 0.55, 0.08),
-                    ("banjo", 1.0, 0.1), ("banjo:roll", 0.55, 0.1)):
+                    ("banjo", 1.0, 0.1), ("banjo:roll", 0.55, 0.1), ("ocarina", 1.0, 0.18), ("guitar", 1.0, 0.12),
+                    ("guitar:bass", 0.6, 0.1)):
         s.bus(b, g, verb=v)
     ch = split_chords(chords)
     sc = scale(*spec["scale"])
@@ -3337,6 +3338,8 @@ def jam_song(key):
             if c in levels:
                 s.note("gurdy:dog", "trompette", nn(spec["drone"][0]) + 12, b * tpb + i * step, step, levels[c], 1.0, human=0.1)
     _jam_banjo(s, spec, melody, ch)
+    _jam_ocarina(s, spec, melody)
+    _jam_guitar(s, spec, ch, bars)
     return s, spec
 
 
@@ -3359,6 +3362,53 @@ def _jam_banjo(s, spec, melody, ch):
                     s.note("banjo:roll", "banjo", m, tick + i, 1, 0.5 if m == fifth else 0.6, 1.0, human=0.12)
             tick += dur
         bar += len(text.split("|"))
+
+
+def _jam_ocarina(s, spec, melody):
+    """The ocarina (2026-11-09): the tune at pitch, round and breathy, its long notes leant into (a soft
+    start, the swell carried by the voice's own vibrato). After the banjo, so the older stems keep their notes."""
+    tpb = s.tpb
+    bar = 0
+    for text in melody:
+        tick = bar * tpb
+        for midi, dur in parse_line(text):
+            if midi is not None:
+                s.note("ocarina", "ocarina", midi, tick, dur, 0.8 if dur >= spec["beat"] else 0.72, 0.94)
+            tick += dur
+        bar += len(text.split("|"))
+
+
+def _jam_guitar(s, spec, ch, bars):
+    """The guitar (2026-11-09), the band's only chords-first part: strummed (down on the beat, a lighter up
+    stroke between, the strings spread ~12 ms) or, for the slow tunes (spec guitar="pick"), fingerpicked:
+    the bass on the beat, the chord's tones rolled up and back a tick at a time. The bass on its own bus."""
+    tpb, beat = s.tpb, spec["beat"]
+    spread = 0.012 / spec["tick"]
+    lo, mid = nn("E2"), nn("G3")
+    for b in range(bars):
+        if spec.get("guitar", "strum") == "pick":
+            for tk in range(tpb):
+                root, pcs = chord_pcs(chord_at(ch, b, tk / tpb))
+                r = lo + ((root - lo) % 12)
+                up = voice(pcs, mid)
+                if tk % beat == 0 and tk // beat % 2 == 0:
+                    s.note("guitar:bass", "guitar", r if tk == 0 else r + 7, b * tpb + tk, beat * 2, 0.8, 1.0, human=0.1)
+                    continue
+                # up the chord and back: its low, top, middle tones
+                s.note("guitar", "guitar", up[(0, 0, 2, 1)[tk % 4] % len(up)], b * tpb + tk, 2, 0.55, 1.0, human=0.12)
+            continue
+        for tk in range(0, tpb, beat):
+            for down, at, vel in ((True, tk, 0.75), (False, tk + max(1, beat - 1), 0.45)):
+                if at >= tpb:
+                    continue
+                root, pcs = chord_pcs(chord_at(ch, b, at / tpb))
+                r = lo + ((root - lo) % 12)
+                strings = [r, r + 7] + voice(pcs, mid) if down else voice(pcs, mid)
+                if not down:
+                    strings = strings[::-1]
+                nxt = (tk + beat if down else tk + beat) - at
+                for i, m in enumerate(strings):
+                    s.note("guitar" if i or not down else "guitar:bass", "guitar", m, b * tpb + at + i * spread, nxt - i * spread, vel, 0.85, human=0.1)
 
 
 class _Stem:

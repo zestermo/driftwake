@@ -13,8 +13,10 @@ const ITEMS := {
 	"bodhran": ["bodhran", "Bodhran", 60, 24, "A goatskin frame drum and its tipper. Keeps the crew in time at the capstan."],
 	"gurdy": ["hurdy_gurdy", "Hurdy-Gurdy", 175, 70, "A wheel, a crank, a box of keys and strings that drone like a hive. Nobody sleeps through it."],
 	"banjo": ["banjo", "Banjo", 120, 48, "Five steel strings over a drum head. Bright enough to cut through a crowded deck, quick enough to keep up with the fiddle."],
+	"ocarina": ["ocarina", "Ocarina", 45, 18, "A glazed clay egg the blue of deep water, ten holes and a lanyard. Soft as a breath, and it carries over still water."],
+	"guitar": ["guitar", "Guitar", 130, 52, "A small-bodied guitar, six strings, the top gone honey-gold with salt and years. Strums the chords the rest of the band hangs the tune on."],
 }
-const KINDS := ["concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo"]
+const KINDS := ["concertina", "fiddle", "whistle", "bodhran", "gurdy", "banjo", "ocarina", "guitar"]
 ## [id, title, beats in a bar, bars, sub-beats (strokes a beat)]: the stems res://assets/audio/jam/<id>_<kind>.ogg.
 const TUNES := [["lass", "The Brinehollow Lass", 2, 32, 3], ["haul", "Haul Away the Morrow", 4, 16, 2],
 	["bell", "The Drowned Bell", 3, 32, 2], ["rum", "Rum and Rigging", 2, 32, 2], ["wake", "Roll the Wake Down", 4, 32, 2],
@@ -87,6 +89,8 @@ static func tune_path(tune: int, kind: String) -> String:
 #   bodhran: centred, the skin facing +Z; "tipper": its middle at the origin, along Z
 #   gurdy: the body centred, length along X (crank +X), keybox up, keys out on -Z; "crank": axle along +X
 #   banjo: the pot centred at the origin, its head facing +Y, the neck along -Z
+#   ocarina: mouthpiece at the origin, the body along -Z, holes up (+Y)
+#   guitar: the body centred at the origin, its top facing +Y, the neck along -Z
 # --------------------------------------------------------------------------
 ## The instrument whole (the icon; carried on the back), or one of its moving parts.
 static func mesh(kind: String, part: String = "") -> ArrayMesh:
@@ -126,6 +130,10 @@ static func mesh(kind: String, part: String = "") -> ArrayMesh:
 			_crank(mb, o)
 		"banjo:":
 			_banjo(mb, o)
+		"ocarina:":
+			_ocarina(mb, o)
+		"guitar:":
+			_guitar(mb, o)
 		_:
 			push_error("Instruments.mesh: no model \"%s\"" % key)
 	var m := mb.commit()
@@ -142,6 +150,8 @@ const ICON_VIEW := {
 	"bodhran": [Vector3(0, PI * 0.5, 0), 0.0],
 	"gurdy": [Vector3(0, 0, -PI * 0.5), PI * 0.2],
 	"banjo": [Vector3(0, 0, -PI * 0.5), -PI * 0.25],
+	"ocarina": [Vector3(0.3, 0, 0), -PI * 0.25],
+	"guitar": [Vector3(0, 0, -PI * 0.5), -PI * 0.25],
 }
 static var _icons: Dictionary = {}
 
@@ -443,3 +453,89 @@ static func _banjo(mb: MeshBuilder, xf: Transform3D) -> void:
 		var nut := NUT_Z if i > 0 else -0.42
 		_bar(mb, pale, xf, Vector3(x * 1.4, POT_H + 0.017, BRIDGE_Z), Vector3(x if i > 0 else 0.018, 0.041, nut), 0.0016, 0.0016)
 		_bar(mb, pale, xf, Vector3(x * 1.4, POT_H + 0.017, BRIDGE_Z), Vector3(x * 0.6, POT_H + 0.007, 0.1), 0.0016, 0.0016)
+
+
+# ---- ocarina ----
+const OCARINA_LEN := 0.15
+## Built at this scale (a hand-filling egg; the sizes below are a small one's).
+const OCARINA_K := 1.35
+
+
+## A sweet-potato ocarina: the mouthpiece's short tube, the egg swelling behind it, eight finger holes on top,
+## two thumb holes on its sides, a pale band and the lanyard's loop at the tail.
+static func _ocarina(mb: MeshBuilder, xf: Transform3D) -> void:
+	xf = Transform3D(xf.basis * Basis.from_scale(Vector3.ONE * OCARINA_K), xf.origin)
+	var glaze := PSXMat.flat(Color(0.22, 0.42, 0.58))
+	var band := PSXMat.flat(Color(0.86, 0.8, 0.64))
+	var hole := PSXMat.flat(Color(0.04, 0.03, 0.03))
+	var cord := PSXMat.flat(Color(0.62, 0.16, 0.1))
+	var b := xf.basis * ALONG_NZ
+	var rings := [[0.0, 0.009, 0.006], [0.022, 0.0095, 0.0065], [0.036, 0.02, 0.016], [0.06, 0.034, 0.026],
+		[0.095, 0.037, 0.028], [0.125, 0.03, 0.024], [0.143, 0.017, 0.014], [OCARINA_LEN, 0.004, 0.004]]
+	mb.add_loft(glaze, Transform3D(b, xf.origin), rings, MeshBuilder.profile_circle(8), 2.0, Color.WHITE, true, true)
+	mb.add_loft(band, Transform3D(b, xf.origin), [[0.074, 0.0362, 0.0277], [0.082, 0.0367, 0.028]], MeshBuilder.profile_circle(8), 2.0)
+	# the windway's window on top, behind the mouthpiece
+	mb.add_box(hole, Transform3D(xf.basis, xf * Vector3(0, 0.0105, -0.03)), Vector3(0.008, 0.002, 0.007), 2.0)
+	for h in [[-0.018, 0.05], [-0.024, 0.07], [-0.022, 0.092], [-0.014, 0.11], [0.016, 0.055], [0.022, 0.075], [0.02, 0.097], [0.012, 0.116]]:
+		var x: float = h[0]
+		var top := 0.027 * sqrt(maxf(0.0, 1.0 - pow(x / 0.037, 2.0)))
+		mb.add_cylinder(hole, Transform3D(xf.basis, xf * Vector3(x, top + 0.001, -float(h[1]))), 0.0042, 0.0042, 0.002, 5, 2.0, Color.WHITE, true, false, false)
+	for s in [-1.0, 1.0]:
+		mb.add_cylinder(hole, Transform3D(xf.basis * Basis(Vector3.BACK, s * PI * 0.5), xf * Vector3(s * 0.036, -0.004, -0.085)), 0.0035, 0.0035, 0.002, 5, 2.0, Color.WHITE, true, false, false)
+	mb.add_cylinder(cord, Transform3D(xf.basis * ALONG_X, xf * Vector3(-0.006, 0, -OCARINA_LEN - 0.002)), 0.006, 0.006, 0.012, 6, 2.0, Color.WHITE, true, true, false)
+
+
+# ---- guitar ----
+## The body's outline, the right half from the tail (y 0) to the neck (y 0.46); x across.
+const GUITAR_HALF := [Vector2(0.0, 0.0), Vector2(0.09, 0.006), Vector2(0.148, 0.032), Vector2(0.17, 0.08), Vector2(0.166, 0.14),
+	Vector2(0.142, 0.198), Vector2(0.116, 0.24), Vector2(0.12, 0.28), Vector2(0.132, 0.33), Vector2(0.122, 0.388),
+	Vector2(0.092, 0.43), Vector2(0.05, 0.455), Vector2(0.0, 0.46)]
+const GUITAR_D := 0.09
+const GUITAR_NUT_Z := -0.58
+const GUITAR_BRIDGE_Z := 0.1
+## Where the right hand strums (over the soundhole) and the left hand stops the strings (guitar frame).
+const GUITAR_STRUM := Vector3(0, 0.075, -0.04)
+const GUITAR_STOP := Vector3(0, -0.005, -0.44)
+
+
+static func _guitar(mb: MeshBuilder, xf: Transform3D) -> void:
+	var body := _wood(Color(0.62, 0.32, 0.16))
+	var top := PSXMat.flat(Color(0.86, 0.62, 0.32))
+	var neck := _wood(Color(0.55, 0.3, 0.15))
+	var ebony := PSXMat.flat(Color(0.08, 0.07, 0.07))
+	var pale := PSXMat.flat(Color(0.86, 0.84, 0.78))
+	var inlay := PSXMat.flat(Color(0.32, 0.18, 0.1))
+	var h := GUITAR_D * 0.5
+	# the outline is drawn (x across, y along from the tail); along the guitar is -Z, the extrusion's depth is up
+	var flat := Transform3D(xf.basis * Basis(Vector3.RIGHT, -PI * 0.5), xf * Vector3(0, 0, 0.23))
+	var outline := MeshBuilder.profile_mirror(PackedVector2Array(GUITAR_HALF))
+	mb.add_extrude(body, flat, outline, GUITAR_D, 3.0, Color(0.85, 0.85, 0.85))
+	var inner := PackedVector2Array()
+	for p in outline:
+		inner.append(Vector2(p.x * 0.97, 0.23 + (p.y - 0.23) * 0.97))
+	mb.add_extrude(top, Transform3D(flat.basis, xf * Vector3(0, h + 0.002, 0.23)), inner, 0.004, 3.0)
+	# the soundhole and its rosette, the bridge and its saddle
+	mb.add_cylinder(inlay, Transform3D(xf.basis, xf * Vector3(0, h + 0.004, -0.09)), 0.05, 0.05, 0.001, 10, 2.0, Color.WHITE, true, false, false)
+	mb.add_cylinder(ebony, Transform3D(xf.basis, xf * Vector3(0, h + 0.0045, -0.09)), 0.04, 0.04, 0.0012, 10, 2.0, Color.WHITE, true, false, false)
+	mb.add_box(ebony, Transform3D(xf.basis, xf * Vector3(0, h + 0.008, GUITAR_BRIDGE_Z + 0.006)), Vector3(0.1, 0.008, 0.024), 2.0, Color.WHITE, false)
+	mb.add_box(pale, Transform3D(xf.basis, xf * Vector3(0, h + 0.014, GUITAR_BRIDGE_Z)), Vector3(0.07, 0.004, 0.003), 2.0)
+	# the neck, fingerboard and frets, the nut
+	_bar(mb, neck, xf, Vector3(0, h - 0.018, -0.2), Vector3(0, h - 0.018, GUITAR_NUT_Z - 0.01), 0.048, 0.03)
+	_bar(mb, ebony, xf, Vector3(0, h + 0.006, -0.06), Vector3(0, h + 0.002, GUITAR_NUT_Z), 0.052, 0.006)
+	var scale_len := GUITAR_BRIDGE_Z - GUITAR_NUT_Z
+	for f in range(1, 13):
+		var z := GUITAR_NUT_Z + scale_len * (1.0 - pow(2.0, -f / 12.0))
+		if z < -0.06:
+			mb.add_box(pale, Transform3D(xf.basis, xf * Vector3(0, h + 0.0065, z)), Vector3(0.052, 0.002, 0.003), 2.0, Color.WHITE)
+	mb.add_box(pale, Transform3D(xf.basis, xf * Vector3(0, h + 0.008, GUITAR_NUT_Z)), Vector3(0.054, 0.008, 0.006), 2.0, Color.WHITE, false)
+	# the headstock tipped back, three pegs a side
+	var head := Transform3D(xf.basis * Basis(Vector3.RIGHT, 0.25), xf * Vector3(0, h - 0.01, GUITAR_NUT_Z - 0.075))
+	mb.add_box(neck, head, Vector3(0.07, 0.018, 0.15), 2.0, Color(0.85, 0.85, 0.85), false)
+	for i in range(6):
+		var s := -1.0 if i < 3 else 1.0
+		var z := -0.045 + (i % 3) * 0.045
+		mb.add_cylinder(ebony, Transform3D(head.basis * Basis(Vector3.BACK, -s * PI * 0.5), head * Vector3(s * 0.035, 0, z)), 0.005, 0.005, 0.028, 5, 2.0, Color.WHITE, true, false)
+	# the six strings, nut to bridge
+	for i in range(6):
+		var x := (i - 2.5) * 0.0085
+		_bar(mb, pale, xf, Vector3(x * 1.25, h + 0.016, GUITAR_BRIDGE_Z), Vector3(x, h + 0.011, GUITAR_NUT_Z), 0.0016, 0.0016)
