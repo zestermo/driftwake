@@ -8,6 +8,7 @@ var p
 var step := 0
 var until := 0
 var fails := 0
+var CC
 const KEY := "test_cache_7"
 const AT := Vector3(420.0, 12.0, -380.0)
 
@@ -32,14 +33,15 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
-			CityCaches._journal(self, KEY, AT, "Port Regal", -1)
+			CC = load("res://scripts/island/city_caches.gd")
+			CC._journal(self, KEY, AT, "Port Regal", -1)
 			until = TK.wait_ticks(4)
 		1:
 			check("the lead is a quest in the journal", j.has(id) and not j.is_done(id))
 			check("...followed at once", j.tracked == id)
 			check("its marker on the strongbox (%s)" % j.target(id), j.target(id).distance_to(AT) < 0.01)
 			check("its goal names the city: %s" % j.goal(id), "Port Regal" in j.goal(id))
-			CityCaches._journal(self, KEY, AT, "Port Regal", -1)
+			CC._journal(self, KEY, AT, "Port Regal", -1)
 			until = TK.wait_ticks(4)
 		2:
 			check("a second lead adds nothing (%d)" % j.active().filter(func(e): return e["id"] == id).size(),
@@ -48,9 +50,9 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(2.5)
 		3:
 			check("the strongbox opened: the quest's done", j.is_done(id))
-			CityCaches._journal(self, "test_cache_8", AT, "", -1)
+			CC._journal(self, "test_cache_8", AT, "", -1)
 			gm.opened["test_cache_9"] = true
-			CityCaches._journal(self, "test_cache_9", AT, "", -1)
+			CC._journal(self, "test_cache_9", AT, "", -1)
 			until = TK.wait_ticks(4)
 		4:
 			check("a lead with no city still reads (%s)" % j.goal("cache_lead_test_cache_8"), j.has("cache_lead_test_cache_8"))

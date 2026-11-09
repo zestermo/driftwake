@@ -8,6 +8,8 @@ var p
 var step := 0
 var until := 0
 var fails := 0
+## (loaded at run time: BrinehollowCast reaches the autoloads, which a --script suite doesn't have at compile time)
+var BC
 
 
 func _initialize() -> void:
@@ -23,7 +25,7 @@ func check(what: String, cond: bool) -> void:
 
 func _blades() -> int:
 	var n := 0
-	for id in BrinehollowCast.BRETT_GIFTS:
+	for id in BC.BRETT_GIFTS:
 		n += p.inventory_component.count(id)
 	return n
 
@@ -34,7 +36,8 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
-			var b: Dictionary = BrinehollowCast.brett()
+			BC = load("res://scripts/island/brinehollow_cast.gd")
+			var b: Dictionary = BC.brett()
 			var lk: Dictionary = b["look"]
 			check("his look: slim, pale, shoulder-length brown hair, stubble, brown eyes",
 				lk["build"] == "slim" and lk["skin"] == CharacterLook.SKIN_TONES[0] and lk["hair"] == "lob"
@@ -42,7 +45,7 @@ func _process(_d: float) -> bool:
 			check("a black long coat and brown boots", lk["coat"] == "longcoat" and lk["coat_color"] == CharacterLook.CLOTH[5]
 				and lk["feet"] == "boots" and lk["feet_color"] == CharacterLook.LEATHER[2])
 			var plan: Array = []
-			for e in BrinehollowCast.townsfolk():
+			for e in BC.townsfolk():
 				if e["cfg"]["name"] == "Brett":
 					plan = e["plan"]
 			check("he walks the town: %d stops by day" % plan.size(), plan.size() >= 10)
@@ -58,13 +61,13 @@ func _process(_d: float) -> bool:
 			check("the first meeting gives the gift", nodes[data["start"]].get("event", "") == "gift_brett")
 			check("a fishing tip, the boots, the shop", "dawn" in str(nodes["fishing"]["text"]).to_lower()
 				and "boots will last you a long time" in str(nodes["boots"]["text"]) and nodes["shop"]["event"] == "shop:brett")
-			for id in BrinehollowCast.BRETT_GIFTS:
+			for id in BC.BRETT_GIFTS:
 				var it: ItemData = ItemDB.get_item(id)
 				check("%s is a cheap blade (%d gold)" % [id, Economy.price(it) if it else -1], it != null and it.item_type == ItemData.ItemType.WEAPON and Economy.price(it) <= 60)
 			dlg.flags.erase("brett_gift")
 			var before := _blades()
-			BrinehollowCast.brett_gift(p)
-			BrinehollowCast.brett_gift(p)
+			BC.brett_gift(p)
+			BC.brett_gift(p)
 			var after := _blades()
 			check("the first meeting: a dagger in the bag (%d -> %d)" % [before, after], after == before + 1)
 			check("...and only once", dlg.has_flag("brett_gift"))
