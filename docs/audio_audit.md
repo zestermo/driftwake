@@ -276,7 +276,9 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | music_forest_night | 140.0 s (56 bars) | same | -18.0 | NOT IN THE GAME YET (rendered as .wav, no ffmpeg on this PC: rerun `py tools/texture_gen/gen_psx_music.py forest forest_night` with ffmpeg, add the Music.TRACKS lines, set the forest style's music): same form, the whistle alone far off, dark harp, celesta stars, no drums |
 | music_snow_town | 147.7 s (64 bars) | Bb major / G minor, 4/4 104 | -18.0 | the round-house village: a fiddle reel, accordion, a fireside song on the concertina, the theme warm in Bb; bodhran, sleigh bells |
 | music_snow_town_night | 147.7 s (64 bars) | same | -18.0 | same form: the inn by the fire, guitar, soft concertina, quiet fiddle |
-| music_combat | 54.9 s (32 bars, 140 bpm, E minor) | | -18.3 | unchanged |
+| music_combat_sea | 53.3 s (32 bars) | G minor, 4/4 144 | -18.1 | fights at sea, aboard, swimming, a ship hunting you (2026-11-09, Wind Waker side): spiccato strings every sixteenth, the horns' tune, the fiddle racing, the theme in G minor on full brass, timpani, march snare |
+| music_combat_wild | 49.2 s (32 bars) | D minor, 4/4 156 | -17.7 | fights ashore in the wilds (BotW side): the piano's 3+3+2 ostinato, taiko, strings' tune, horns in F, the theme in D minor over timpani, a piano break |
+| music_combat_town | 51.4 s (48 bars) | A dorian, 6/8 dq 112 | -18.0 | fights in a town's streets: a fiddle reel over galloping low strings and bodhran, whistle and concertina, the theme in 6/8 bursting into A major on the horns |
 | music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | | -18.2 | unchanged; 10% at 2-5k (hats, brass): brightest track, fine |
 | music_victory | 5.4 s sting | | -13.9 | unchanged |
 | music_rival | 6.0 s sting (2 bars, 96 bpm, D phrygian brass call, low strings, timpani roll) | | -16.9 | new 1.30 (peak -2.9) |
