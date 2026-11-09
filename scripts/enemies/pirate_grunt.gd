@@ -102,7 +102,7 @@ var captain: bool = false
 var title: String = ""
 var _overhead: OverheadBar
 const CAPTAIN_HP := 3.2
-const CREW_HP_K := 1.3
+const CREW_HP_K := 1.15   # (1.31: was 1.3; with 1.30's per-captain scaling co-op crews ran 2.4x at two)
 const CAPTAIN_DMG := 1.35
 ## Came over the side from a pirate ship: no post to go back to, fights on
 ## wherever it lands.

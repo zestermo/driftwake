@@ -158,13 +158,13 @@ func nearest_player(pos: Vector3, ok: Callable = Callable(), keep: Node = null) 
 	return best
 
 
-## Enemies get tougher with more captains around: x1, x1.85, x2.7, x3.55 (1.30; was +0.6 a captain).
+## Enemies get tougher with more captains around: x1, x1.7, x2.4, x3.1 (1.31; 1.30 was +0.85, before it +0.6).
 func hp_scale() -> float:
 	return hp_scale_for(crew_size())
 
 
 static func hp_scale_for(n: int) -> float:
-	return 1.0 + 0.85 * float(n - 1)
+	return 1.0 + 0.7 * float(n - 1)
 
 
 ## (1.30) Every enemy's blows land harder with more captains: +10% a captain past the first (x1.3 at four).
@@ -176,13 +176,13 @@ static func dmg_scale_for(n: int) -> float:
 	return 1.0 + 0.1 * float(n - 1)
 
 
-## (1.30) Enemies' poise grows with more captains (Poise.cap): x1, x1.5, x2, x2.5.
+## Enemies' poise grows with more captains (Poise.cap): x1, x1.3, x1.6, x1.9 (1.31; 1.30 was +0.5).
 func poise_scale() -> float:
 	return poise_scale_for(crew_size())
 
 
 static func poise_scale_for(n: int) -> float:
-	return 1.0 + 0.5 * float(n - 1)
+	return 1.0 + 0.3 * float(n - 1)
 
 
 func crew_size() -> int:

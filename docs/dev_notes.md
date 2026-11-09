@@ -11244,3 +11244,11 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   their next body while the main thread asks. Player._rebuild_body still retries next frame instead of waiting.
 - Also: Hitbox.activate re-scans its overlaps when monitoring was still on (the deferred off of a swing ended the same
   frame), else a hurtbox already inside never re-entered; chaintest takes the turn before the log pose.
+
+## 2026-11-09: co-op toughness eased (1.31, Zach's pick "B" after the 1.30.3 co-op session)
+- Grunts felt spongy in co-op: 1.30 stacked CREW_HP_K 1.3 on +0.85 health a captain (x2.4 at two) and +0.5 poise.
+- Now: `PirateGrunt.CREW_HP_K` 1.15; `Net.hp_scale_for` 1 + 0.7 a captain past the first (x1, 1.7, 2.4, 3.1);
+  `Net.poise_scale_for` 1 + 0.3 (x1, 1.3, 1.6, 1.9). Damage scaling (+10% a captain) unchanged. A grunt at the reference
+  level: 127 / 215 / 304 / 392 for 1-4 captains (was 143 / 265 / 386 / 507). Every hp_scale user follows (bosses, beasts,
+  bugs, sea kings, enemy ships, stronghold bosses).
+- Tests: t/combat/coop_scaling (the new numbers), t/stronghold, t/boss. Nettest modes see it (prepush).

@@ -1,7 +1,7 @@
 extends SceneTree
-## 1.30 enemy toughness (docs/v1_30_plan.md "Boss scaling", "Enemy toughness"): health x(1 + 0.85 per extra captain),
-## foes' poise x(1 + 0.5), their blows +10% a captain past the first; a captain's own poise never scales. Pirate crews
-## (and marines) carry +30% health solo too; the drowned don't. A stronghold boss's health follows the crew mid-fight.
+## 1.30 enemy toughness (docs/v1_30_plan.md "Boss scaling", "Enemy toughness"): health x(1 + 0.7 per extra captain, 1.31),
+## foes' poise x(1 + 0.3), their blows +10% a captain past the first; a captain's own poise never scales. Pirate crews
+## (and marines) carry +15% health solo too; the drowned don't. A stronghold boss's health follows the crew mid-fight.
 const TK := preload("res://tools/dev/test_kit.gd")
 const NET := "res://scripts/net/network_manager.gd"
 var stage
@@ -39,13 +39,13 @@ func _process(_d: float) -> bool:
 			var hp: Array = [1, 2, 3, 4].map(func(n): return N.hp_scale_for(n))
 			var dm: Array = [1, 2, 3, 4].map(func(n): return N.dmg_scale_for(n))
 			var po: Array = [1, 2, 3, 4].map(func(n): return N.poise_scale_for(n))
-			check("health by crew %s" % [hp], _near(hp, [1.0, 1.85, 2.7, 3.55]))
+			check("health by crew %s" % [hp], _near(hp, [1.0, 1.7, 2.4, 3.1]))
 			check("foes' damage by crew %s" % [dm], _near(dm, [1.0, 1.1, 1.2, 1.3]))
-			check("foes' poise by crew %s" % [po], _near(po, [1.0, 1.5, 2.0, 2.5]))
+			check("foes' poise by crew %s" % [po], _near(po, [1.0, 1.3, 1.6, 1.9]))
 			var g = stage.camp.grunts[0]
 			var G = load("res://scripts/enemies/pirate_grunt.gd")
-			var want: float = G.MAX_HP * 1.3 * Levels.hp_k(g.level, g._lv_ref())
-			check("a pirate has +30%% health solo (%.0f, want %.0f)" % [g.health.max_health, want], is_equal_approx(g.health.max_health, want))
+			var want: float = G.MAX_HP * 1.15 * Levels.hp_k(g.level, g._lv_ref())
+			check("a pirate has +15%% health solo (%.0f, want %.0f)" % [g.health.max_health, want], is_equal_approx(g.health.max_health, want))
 			var dr = load("res://scripts/enemies/drowned.gd").new()
 			check("...the drowned don't", is_equal_approx(dr._crew_k(), 1.0))
 			dr.free()
@@ -64,9 +64,9 @@ func _process(_d: float) -> bool:
 			var c2 := foe.cap()
 			net.active = false
 			net.roster = was
-			check("four captains: its poise x2.5 (%.0f), their blows x1.3 (%.2f), health x3.55 (%.2f)" % [c4, d4, h4],
-				is_equal_approx(c4, 125.0) and is_equal_approx(d4, 1.3) and is_equal_approx(h4, 3.55))
-			check("...two: poise x1.5 (%.0f)" % c2, is_equal_approx(c2, 75.0))
+			check("four captains: its poise x1.9 (%.0f), their blows x1.3 (%.2f), health x3.1 (%.2f)" % [c4, d4, h4],
+				is_equal_approx(c4, 95.0) and is_equal_approx(d4, 1.3) and is_equal_approx(h4, 3.1))
+			check("...two: poise x1.3 (%.0f)" % c2, is_equal_approx(c2, 65.0))
 			check("...a captain's own poise doesn't scale (%.0f)" % m4, is_equal_approx(m4, 60.0))
 			return TK.done(fails)
 	step += 1
