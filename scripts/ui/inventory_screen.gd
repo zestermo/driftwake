@@ -23,7 +23,8 @@ const SHOOT := preload("res://scripts/player_states/shoot_state.gd")
 const DOLL := [["head", "face", "torso", "vest", "coat", "belt", "legs"], ["shoulders", "back", "strap", "hands", "feet", "trinket1", "trinket2"]]
 const TAGS := {"head": "HEAD", "face": "FACE", "back": "BACK", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
 	"legs": "LEGS", "feet": "FEET", "shoulders": "SHLD", "strap": "STRAP", "trinket1": "TRNK", "trinket2": "TRNK", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
-const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake", "cleave": "Charged cleave", "lunge": "The lunge"}
+const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake", "cleave": "Charged cleave", "lunge": "The lunge",
+	"reap": "Harvest whirl", "cyclone": "Cyclone"}
 ## Item cards from these places compare with what you hold or wear.
 const COMPARE := ["bag", "loot", "shop"]
 const UP := Color(0.45, 0.95, 0.4)
@@ -937,7 +938,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		if ws["gun"]:
 			_stat(grid, "RANGE", "%d M" % int(ws.get("range", SHOOT.RANGE)), 0, false)
 		else:
-			fx.append(["Heavy: " + HEAVY_NAMES[HEAVY.style_for(it.weapon_model)], UIStyle.TEXT])
+			fx.append(["Heavy: " + str(HEAVY_NAMES.get(HEAVY.style_for(it.weapon_model), "Heavy attack")), UIStyle.TEXT])
 		if it.poison > 0.0:
 			fx.append(["Venom: %d a second for 4 s" % int(it.poison), Color(0.55, 0.95, 0.35)])
 		match it.weapon_model:

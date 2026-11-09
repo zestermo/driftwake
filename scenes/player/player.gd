@@ -1747,6 +1747,15 @@ func _on_landed(impact_vy: float) -> void:
 	elif speed > state_machine.states["fall"].CRASH_SPEED and progression.has_flag("crash_landing") and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
 		state_machine.states["fall"].crash(speed)
 		return
+	elif speed > SAFE_FALL_SPEED and progression.has_flag("land_roll") and context == Context.ON_FOOT and current_state_name() in ["Fall", "Jump", "Move", "Idle"]:
+		# (1.31) Roll Out: a drop that would hurt is rolled out of, far, unhurt up to Feather Fall's height (half past it)
+		if speed > FEATHER_SAFE_SPEED:
+			_fall_damage(speed, 0.5, false)
+		if is_local:
+			CombatManager.apply_land(1.0)
+		Net.fx("sfx", ["land", global_position, -4.0])
+		state_machine.force_state("Dodge", {"land_roll": true})
+		return
 	elif speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
 		_fall_damage(speed)
 	if k < 0.15:
@@ -1754,10 +1763,6 @@ func _on_landed(impact_vy: float) -> void:
 	squash(-2.0 - 5.0 * k)
 	if is_local:
 		CombatManager.apply_land(k)
-	# (1.31) a hard landing at a run rolls out of it (the knees take a softer one: Humanoid's own landing)
-	var run_v := Vector2(velocity.x, velocity.z).length()
-	if k > 0.6 and run_v > 6.0 and current_state_name() in ["Move", "Fall", "Jump"] and not body_model.is_busy():
-		body_model.play("dodge_roll", 0.42)
 	var surf := ground_surface()
 	if GroundLayer.soft(surf):
 		Net.fx("puff_ring", [global_position, surf, int(5 + 5 * k), 0.3, 0.8 + 0.6 * k, 0.8, GroundLayer.PUFF[surf], 3.0 + 4.0 * k])

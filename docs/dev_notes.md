@@ -11341,3 +11341,14 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   points it at their hand, hanging it again after. Test: t/coop/puppet_traversal (the ropes need kit "ropes" 1).
 - **Gotcha:** a test naming a project class that touches autoloads (`is SwingRope`) fails to compile ("CombatManager
   not found"): compare `get_script()` with a load() instead. find_children's type argument takes engine classes only.
+
+## 2026-11-09: a crash and Roll Out (Zach's playtest)
+
+- **Crash:** hovering a chain sickle (or a staff) in the inventory: `HEAVY_NAMES` had no "reap" / "cyclone" (the
+  heavies' styles since 1.30's audit). Both named, and the lookup falls back to "Heavy attack".
+- **Roll Out** (Zach: not on ordinary landings, longer, behind a skill): the landing variant's third version
+  (Acrobatics `ac_rollout`, flag `land_roll`, beside Feather Fall and Crash Landing; picked at the bunk). A drop past
+  SAFE_FALL_SPEED (one that would hurt) forces the Dodge state with `land_roll`: always a roll, the way you move or
+  face, LAND_ROLL_K 1.8x a dodge roll's distance (~8.6 m); unhurt under Feather Fall's height, half past it, no
+  stumble. Without it a tall drop hurts and staggers as before. The ordinary-landing roll from earlier today is gone.
+  Test: t/player/roll_out.

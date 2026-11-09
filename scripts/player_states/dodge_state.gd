@@ -18,6 +18,9 @@ extends PlayerState
 const ROLL_DUR := 0.5
 const ROLL_DIST := 4.6
 const ROLL_IFRAMES := 0.34
+## (1.31) Roll Out: how much further than a dodge roll a landing roll carries you.
+const LAND_ROLL_K := 1.8
+var _land_roll := false
 const SIDE_DUR := 0.22
 const SIDE_DIST := 2.1
 const SIDE_IFRAMES := 0.18
@@ -78,10 +81,14 @@ func enter(data: Dictionary) -> void:
 	_perfect = false
 	var pr := player.progression
 	_air = bool(data.get("air", false))
+	# (1.31) Roll Out (the landing variant): a hard landing rolled out of, further than a dodge, the way you move or face
+	_land_roll = bool(data.get("land_roll", false))
 	_up = false
 	_logia = player.power.fruit_type() == "logia" and not player.power.suppressed()
 	mode = "dash"
-	if not _air and not _logia:
+	if _land_roll:
+		mode = "roll"
+	elif not _air and not _logia:
 		if pr.has_flag("dodge_roll"):
 			mode = "roll"
 		elif pr.has_flag("dodge_sidestep"):
@@ -89,7 +96,7 @@ func enter(data: Dictionary) -> void:
 	# what you wear (GearStats): all cloth rolls long, plate hops short; an Acrobatics style keeps its own, longer or shorter
 	var wt: int = player.gear_load()
 	_wk = float(GearStats.LOAD_DODGE_K[wt])
-	if mode == "dash" and not _air and not _logia:
+	if mode == "dash" and not _air and not _logia and not _land_roll:
 		mode = str(GearStats.LOAD_DODGE[wt])
 	_speed = dodge_speed * (1.0 + pr.stat("dodge_dist_pct"))
 	_dur = dodge_duration
@@ -103,6 +110,9 @@ func enter(data: Dictionary) -> void:
 	var move_input := get_movement_input()
 	if move_input.length() > 0.1:
 		dodge_direction = get_camera_relative_direction(move_input)
+	elif _land_roll:
+		dodge_direction = -player.player_model.global_basis.z.normalized()
+		dodge_direction.y = 0.0
 	elif _air:
 		dodge_direction = get_camera_forward()
 	elif mode == "sidestep":
@@ -164,6 +174,8 @@ func _roll() -> void:
 	_dur = ROLL_DUR
 	_iframes = ROLL_IFRAMES * (1.0 + pr.stat("dodge_iframe_pct"))
 	_speed = ROLL_DIST * _wk * (1.0 + pr.stat("dodge_dist_pct")) / (0.75 * ROLL_DUR)
+	if _land_roll:
+		_speed *= LAND_ROLL_K
 	face_direction(dodge_direction, 1.0)
 	player.body_model.dash_dir = Vector2(0, 1)
 	player.body_model.play("dodge_roll", ROLL_DUR)

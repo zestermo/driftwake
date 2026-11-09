@@ -569,8 +569,10 @@ static func _build_acrobatics() -> void:
 	_variant("ac_feather", "Feather Fall", 0, [
 		["ac_featherfall", "Feather Fall", 6, {"featherfall": 1}, "Falls under 12 m don't hurt, and a longer one lands soft: half the hurt, no stumble."],
 		["ac_crash", "Crash Landing", 6, {"crash_landing": 1},
-			"Come down hard from a long drop and you land on one knee and a fist: the ground cracks and the foes round you are thrown off their feet. The fall hurts you half as much, with no stumble."]],
-		"Two ways to come down. Both are yours; pick the one you carry at the ship's bunk.")
+			"Come down hard from a long drop and you land on one knee and a fist: the ground cracks and the foes round you are thrown off their feet. The fall hurts you half as much, with no stumble."],
+		["ac_rollout", "Roll Out", 6, {"land_roll": 1},
+			"A drop tall enough to hurt you lands in a long roll the way you're going, back on your feet and running: unhurt under 12 m, half the hurt past it, no stumble."]],
+		"Three ways to come down. All are yours; pick the one you carry at the ship's bunk.")
 	_nodes["ac_feather"].merge({"links": ["ac_aircontrol"], "cost": 1, "shape": "passive"})
 	_icon("ac_crash", "move_crash")
 	_at("ac_skydash", "Skyward Dash", "move", 0, 18, 2, {"skyward_dash": 1},
