@@ -24,7 +24,7 @@ before the 15-bit quantize, so they step and dither like everything else.
 | # | Item | Status |
 |---|------|--------|
 | 1 | Attack assist | **Built.** Light attacks turn onto the foe within 6.5 m and 60 degrees of the camera's line (nearer and straighter wins; training dummies count) and the light's lunge grows to reach it (impulse sqrt(v^2 + 2 * 15 * gap), gap <= 3.2 m). Nobody in the cone: the camera's line, as before. Heavies keep the camera's line (their launchers and plus moves have their own travel), and a hook (the twin axes' third) turns without stepping in. `PlayerState.assist_target / assist_lunge`. |
-| 2 | Fight framing | **Built.** Weapon out, the foe you last hit drifting more than 24 degrees off the view's centre turns the camera gently after it (within 9 m); the mouse or stick holds it off for 1.2 s; only while moving, idle, light-attacking or blocking, never for a foe closer than 1.5 m or more than 100 degrees off (a dash through a foe mustn't swing the view round). `camera_rig._frame_fight`. |
+| 2 | Fight framing | **Replaced by the lock-on** (below). The automatic version turned the view toward the last foe hit, fighting your own aim (it broke weapon tests that aim at another foe); the lock is the explicit way to keep a foe in frame. |
 | 3 | Turns | **Built.** Running round a curve banks the body into it from the feet (yaw rate x speed, up to 0.2 rad); turning on the spot steps the feet round (a step every 0.55 rad). Starts, stops and reversal skids already existed. `Humanoid._turn_moves`. |
 | 4 | Landings | **Mostly there already** (the landing pose: the lower foot first, knees and chest by fall speed). Added: a hard landing at a run (k > 0.6, > 6 m/s) rolls out of it (`dodge_roll`). |
 | 5 | Light hits | **Built, as a visual layer.** Light hits still stagger you (Steadfast removes that: a balance choice kept). A blow that lands without staggering (Steadfast, armour poise, Reinforce; a grunt shrugging off a hit or a ball) jolts the upper body away from it over the pose, legs untouched, 0.2 s, mirrored in co-op. `Humanoid.jolt`. |
@@ -54,3 +54,19 @@ cloth/hair numbers (clothlab, coat tests) now that wind pushes the chains, any g
   clean worktree of cc3224ac); not from 1.31 feel.
 - t/combat/poise_knockdown and t/combat/rival_personality each failed once and passed on rerun (timing).
 - Not checked in renders or in play: how the bank, the weight shift and the screen effects look. Zach plays it.
+
+## Melee targeting: omni attacks and lock-on (Zach, 2026-11-09: "build both", after tools/dev/aimmock.gd's mock)
+
+- **No crosshair in melee.** The HUD's reticle shows only with a gun out or in an aiming state (Shoot, Gadget);
+  the Reticle setting still turns it off entirely.
+- **Omni attacks** (`PlayerState.attack_aim`): a swing goes to the locked foe; else the way you're pushing
+  (camera-relative); else where the camera looks. The attack assist then snaps onto a foe near that line (light attacks
+  step in to reach it). Heavies take the same direction (no assist lunge).
+- **Target chevron** (`scripts/combat/targeting.gd`, a "Targeting" child of the local captain): amber over the foe
+  your next swing would hit (weapon out, refreshed every 4 frames), red over the locked foe. This screen only.
+- **Lock-on:** middle mouse locks the foe nearest the view's centre within 25 m (again releases; it lets go when the
+  foe dies or past 32 m). The camera turns to keep it ahead (`camera_rig._follow_lock`, the fight framing off
+  meanwhile), so movement circles it; everything aimed along the camera (`get_camera_forward`: techniques, skills,
+  heavies) aims at it. A sideways mouse flick (140 px) or a push of the right stick switches to the next foe on
+  that side. **Open:** the pad has no lock button yet (R3 is the ping marker; Zach to pick one).
+- **Tests:** t/combat/omni_attack, t/combat/lock_on; attack_assist unchanged (no direction held: the camera's line).

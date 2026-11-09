@@ -347,6 +347,10 @@ func _ready() -> void:
 	gadget_wheel = _wheel("res://scripts/ui/gadget_wheel.gd", "GadgetWheel")
 	if is_local:
 		chat_box = _wheel("res://scripts/ui/chat_box.gd", "ChatBox")
+		# (1.31) the lock-on and the target chevron (this screen only)
+		var tg: Node = load("res://scripts/combat/targeting.gd").new()
+		tg.name = "Targeting"
+		add_child(tg)
 	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
 	menu.name = "PlayerMenu"
 	menu.player = self

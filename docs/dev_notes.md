@@ -11295,3 +11295,13 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   when missing in 4.7: use has_meta.
 - **Tests:** t/combat/attack_assist, t/combat/hit_jolt, t/player/screen_feel, t/player/turn_land; t/combat and
   t/player groups pass (poise_knockdown and rival_personality failed once each, passed on rerun).
+
+## 1.31 melee targeting: omni attacks, the chevron, lock-on (2026-11-09)
+
+- docs/v1_31_feel_plan.md "Melee targeting" has the rules. Code: `scripts/combat/targeting.gd` (lock, switch, the
+  chevron, `best_in_cone` shared with PlayerState.assist_target), `PlayerState.attack_aim / locked_target`, the
+  lock branch in `get_camera_forward`, `camera_rig._follow_lock` and the flick in its mouse / pad look, the HUD's
+  AIM_STATES for the reticle.
+- **Gotchas:** the idle combat stance turns the captain back toward the camera within a second, so a test reading
+  "the way the captain faces" reads it just before the attack. Middle mouse is free in play (the held map takes it
+  only while out); R3 is the pad's ping marker.

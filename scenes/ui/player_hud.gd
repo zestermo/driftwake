@@ -701,9 +701,14 @@ func _build_skill_bar() -> void:
 
 
 # ---- Reticle ----
+## (1.31) The crosshair only shows to aim: a gun out, or a state that aims (melee needs none: the target chevron).
+const AIM_STATES := ["Shoot", "Gadget"]
+
+
 func _update_reticle() -> void:
 	var visible_now: bool = player != null and player.context == Player.Context.ON_FOOT and not _in_dialogue \
-		and Settings.get_value("gameplay", "reticle")
+		and Settings.get_value("gameplay", "reticle") \
+		and (player.weapon_class() == "gun" or player.current_state_name() in AIM_STATES)
 	_reticle.visible = visible_now
 	if not visible_now:
 		return

@@ -251,8 +251,8 @@ func enter(data: Dictionary) -> void:
 	_glinted = false
 	_quaked = false
 
-	# Snap to camera forward
-	var forward := get_camera_forward()
+	# (1.31) omni: the way you push, the lock, or the way you face (PlayerState.attack_aim)
+	var forward := attack_aim()
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
 	var anim := str(cfg["anim"])
 	_spd = 1.0

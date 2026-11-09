@@ -98,9 +98,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		# stays the same at every PSX resolution preset.
 		var sens := mouse_sensitivity * float(Settings.get_value("controls", "mouse_sensitivity"))
 		var inv_y := -1.0 if Settings.get_value("controls", "invert_y") else 1.0
-		rotate_y(-event.screen_relative.x * sens)
-		if event.screen_relative.length() > 2.0:
-			_look_hold = FRAME_HOLD
+		var tg := _targeting()
+		if tg and tg.locked():
+			# locked on: the camera holds the foe ahead; a sideways flick switches to the next one that way
+			_flick += event.screen_relative.x
+			if absf(_flick) > FLICK_PX:
+				tg.switch(1 if _flick > 0.0 else -1)
+				_flick = 0.0
+		else:
+			rotate_y(-event.screen_relative.x * sens)
 		spring_arm.rotate_x(-event.screen_relative.y * sens * inv_y)
 		spring_arm.rotation.x = clamp(
 			spring_arm.rotation.x,
@@ -212,46 +218,33 @@ func _process(delta: float) -> void:
 		camera.rotation.z = SHAKE_ROLL * s * sin(t * 29.0 + 0.7)
 		trauma = maxf(trauma - SHAKE_DECAY * rd, 0.0)
 	_screen_feel(delta, me)
-	_frame_fight(delta)
+	_follow_lock(delta)
 
 
-## (1.31) Fight framing: with the weapon out, the foe you last hit (or the nearest one ahead) drifting off the side
-## of the view turns the camera gently after it, so you and it stay in frame. The mouse or stick always wins:
-## looking around holds the framing off for FRAME_HOLD s.
-const FRAME_ANGLE := 0.42  # radians off the view's centre before it turns
-const FRAME_RATE := 1.6
-const FRAME_RANGE := 9.0
-const FRAME_HOLD := 1.2
-const FRAME_NEAR := 1.5
-const FRAME_BEHIND := 1.75  # ~100 degrees
-## Only between moves (a technique, skill or dash aims along the camera: turning it mid-move would turn the move).
-const FRAME_STATES := ["Move", "Idle", "LightAttack", "Block"]
-var _look_hold := 0.0
+## (1.31) Lock-on: the camera turns to keep the locked foe ahead of the captain (Targeting). The automatic fight
+## framing that came before it is gone: it turned the view while you were aiming at another foe; the lock is the
+## explicit version. A sideways flick switches (the accumulator drains, so slow drifts never switch).
+const LOCK_TURN := 7.0
+const FLICK_PX := 140.0
+var _flick := 0.0
+var _stick_flick := false
 
 
-func _frame_fight(delta: float) -> void:
-	_look_hold = maxf(_look_hold - delta, 0.0)
-	if _combat_blend < 0.5 or _look_hold > 0.0 or _show_target != 0.0 or _map_on or not (target is Player):
+func _targeting() -> Node:
+	return target.get_node_or_null("Targeting") if target is Player else null
+
+
+func _follow_lock(delta: float) -> void:
+	_flick = move_toward(_flick, 0.0, delta * FLICK_PX * 2.5)
+	var tg := _targeting()
+	if tg == null or not tg.locked() or _show_target != 0.0 or _map_on:
 		return
-	var p := target as Player
-	var f = p.get_meta("fight_focus") if p.has_meta("fight_focus") else null
-	if f == null or not is_instance_valid(f) or not (f is Node3D) or (f.has_method("is_dead") and f.is_dead()):
-		f = null
-	var at := p.global_position
-	if f == null or p.current_state_name() not in FRAME_STATES:
-		return
-	var d: Vector3 = (f as Node3D).global_position - at
+	var d: Vector3 = tg.lock.global_position - target.global_position
 	d.y = 0.0
-	# (too close the angle is noise; past FRAME_RANGE it's not your fight)
-	if d.length() < FRAME_NEAR or d.length() > FRAME_RANGE:
+	if d.length() < 0.6:
 		return
 	var want := atan2(d.x, d.z) + PI  # the rig's yaw that looks along d (the arm's +Z holds the camera behind)
-	var off := wrapf(want - rotation.y, -PI, PI)
-	# (a foe behind you was passed or turned from: that's yours to look back at, never a swing round)
-	if absf(off) <= FRAME_ANGLE or absf(off) > FRAME_BEHIND:
-		return
-	var turn := (absf(off) - FRAME_ANGLE) * signf(off)
-	rotation.y += turn * clampf(FRAME_RATE * delta, 0.0, 1.0)
+	rotation.y = lerp_angle(rotation.y, want, clampf(LOCK_TURN * delta, 0.0, 1.0))
 
 
 ## (1.31) Screen feel, this captain's screen only (never through Net), scaled by the "Screen effects" setting:
@@ -404,10 +397,18 @@ func _pad_look(delta: float) -> void:
 	if target is Player and (target as Player).input_locked:
 		return
 	var l: Vector2 = Pad.look(delta / maxf(Engine.time_scale, 0.01))
+	if absf(l.x) < 0.01:
+		_stick_flick = false
 	if l == Vector2.ZERO:
 		return
 	var inv_y := -1.0 if Settings.get_value("controls", "invert_y") else 1.0
-	_look_hold = FRAME_HOLD
-	rotate_y(-l.x)
+	var tg := _targeting()
+	if tg and tg.locked():
+		# locked on: a push of the stick sideways switches (once per push)
+		if absf(l.x) > 0.04 and not _stick_flick:
+			_stick_flick = true
+			tg.switch(1 if l.x > 0.0 else -1)
+	else:
+		rotate_y(-l.x)
 	spring_arm.rotate_x(-l.y * inv_y)
 	spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(min_pitch), deg_to_rad(max_pitch))

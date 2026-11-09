@@ -286,8 +286,8 @@ func enter(data: Dictionary) -> void:
 	hitbox_deactivated = false
 	chained = false
 
-	# (1.31) attack assist: onto the foe you meant, stepping in to reach them
-	var lunge := assist_lunge(get_camera_forward(), float(cfg["impulses"][combo_index]))
+	# (1.31) omni attacks + assist: the way you push (or the lock), onto the foe there, stepping in to reach them
+	var lunge := assist_lunge(attack_aim(), float(cfg["impulses"][combo_index]))
 	# (a hook drags them in from where they stand: it turns onto them but doesn't step in)
 	if cfg.has("hooks") and bool(cfg["hooks"][combo_index]):
 		lunge[1] = float(cfg["impulses"][combo_index])
