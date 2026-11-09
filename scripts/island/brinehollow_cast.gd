@@ -319,6 +319,42 @@ static func corin() -> Dictionary:
 	}
 
 
+## Brett (2026-11-09), who sells knives and walks the whole town doing it: friendly, a fishing tip, a word on
+## boots, and a dagger for every captain the first time they meet (brett_gift).
+static func brett() -> Dictionary:
+	return {
+		"name": "Brett", "voice": 0.96, "dialogue": "brett",
+		"barks": [
+			"Knives! Good knives! Friendly prices!",
+			"Morning, Captain! Or afternoon. I lose track, walking.",
+			"Dawn and dusk, that's when they bite. Tell nobody. Well, tell everybody.",
+			"A good pair of boots will last you a long time. Mine have seen this stair a thousand times.",
+		],
+		"look": {"body": "masc", "build": "slim", "height": 1.03, "skin": L.SKIN_TONES[0],
+			"head": "long", "nose": "straight", "eyes": 1, "brows": 1, "mouth": 1, "eye_color": L.EYE_COLORS[0],
+			"hair": "lob", "hair_color": L.HAIR_COLORS[2], "facial_hair": "stubble", "hat": "none",
+			"top": "shirt", "top_color": L.CLOTH[6], "sleeves": "long", "coat": "longcoat", "coat_color": L.CLOTH[5],
+			"trim_color": L.CLOTH[6], "legs": "trousers", "legs_color": L.CLOTH[4], "feet": "boots", "feet_color": L.LEATHER[2],
+			"belt": "belt"},
+	}
+
+
+## The cheap blades Brett gives away, one at random; once per captain (the Dialogue flag "brett_gift").
+const BRETT_GIFTS := ["dagger", "marlinspike", "sharktooth_knife", "stiletto"]
+
+
+static func brett_gift(p) -> void:
+	if p == null:
+		return
+	var dlg: Node = p.get_node("/root/Dialogue")
+	if dlg.has_flag("brett_gift"):
+		return
+	dlg.set_flag("brett_gift")
+	var it: ItemData = ItemDB.get_item(BRETT_GIFTS.pick_random())
+	p.inventory_component.add_item(it, 1)
+	p.get_tree().call_group("hud", "show_toast", "Brett gave you a %s" % it.display_name)
+
+
 ## The townsfolk on routines (BrinehollowLife, in this order): `cfg` for NPC.setup, `plan` [[hour, spot id
 ## (BrinehollowLife._spot), act (optional: the spot's own otherwise)]...] by hour, the day wrapping, `speed`,
 ## `carry` (a load on the shoulder walking to a stay marked "carry"). Shopkeepers keep the market street's
@@ -328,6 +364,14 @@ static func townsfolk() -> Array:
 	var out: Array = []
 	out.append({"cfg": corin(), "plan": [[7.4, "vendor:Shop4"], [12.6, "bench:0"], [13.3, "vendor:Shop4"],
 		[19.0, "tavern:fire:0"], [23.6, "home:UpperHouse4"]]})
+	# Brett walks the town all day: the market, the plaza, the quay, the stair, and round again
+	var walk := ["front:market0", "plaza:10", "quay:1", "front:Shop1", "stair:1", "plaza:4", "front:market2", "quay:2",
+		"front:Shop5", "stair:2", "plaza:13", "front:market3"]
+	var bplan: Array = []
+	for i in range(walk.size()):
+		bplan.append([7.2 + i * 1.05, walk[i], "stand" if walk[i].begins_with("quay") else "talk"])
+	bplan.append([20.4, "home:UpperHouse5"])
+	out.append({"cfg": brett(), "plan": bplan})
 	var keepers := [
 		["Hester Quill", "Shop0", 1.12, "UpperHouse0", [
 			"Rope, tar, lamp oil, nails by the pound. If it's on a ship and it isn't the crew, I sell it.",

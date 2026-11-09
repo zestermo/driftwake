@@ -236,6 +236,8 @@ func _on_dialogue_event(ev: String) -> void:
 		# (Tackett: the home lines only; a harbour vendor: their own, no paint; a city's yard: everything)
 		var lines: Array = Array(spec[1].split(",")) if spec.size() > 1 else (ShipLines.HOME_LINES if ev == "shipwright" else [])
 		_after_talk = ["yard", spec[0], lines, spec.size() < 2]
+	elif ev == "gift_brett":
+		BrinehollowCast.brett_gift(_player())
 	elif ev == "learn_black_leg":
 		var pl := _player()
 		if pl:

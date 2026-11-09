@@ -58,6 +58,9 @@ func _initialize():
 	if OS.get_environment("PB_FEM") != "":
 		lk0["body"] = "fem"
 		lk0["hair"] = "long"
+	# PB_CAST=brett: a Brinehollow person's look (BrinehollowCast.<name>()["look"])
+	if OS.get_environment("PB_CAST") != "":
+		lk0 = CharacterLook.default_look().merged(Callable(BrinehollowCast, OS.get_environment("PB_CAST")).call()["look"], true)
 	# look overrides, e.g. PB_KV="legs=shorts;build=broad;top=tube"
 	for kv in OS.get_environment("PB_KV").split(";", false):
 		var p := kv.split("=")

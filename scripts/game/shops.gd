@@ -29,6 +29,12 @@ const SHOPS := {
 		"stock": [["tin_whistle", 35], ["ocarina", 45], ["bodhran", 60], ["concertina", 110], ["banjo", 120], ["guitar", 130], ["fiddle", 140], ["hurdy_gurdy", 175]],
 		"buys": {},
 	},
+	"brett": {
+		"name": "Brett's Blades", "line": "Daggers, dirks, the odd stiletto. All sharp, all honest.", "trade": "smith",
+		"stock": [["dagger"], ["marlinspike"], ["stiletto"]],
+		"pool": [["sharktooth_knife"], ["main_gauche"], ["kukri"], ["kris"], ["dagger@1"], ["stiletto@1"], ["jewelled_dirk"]], "size": 2,
+		"buys": {"weapon": 0.5},
+	},
 	"haldor": {
 		"name": "Haldor's Forge", "line": "Every blade on the rack came out of that fire. I'll buy your spares, too.", "trade": "smith",
 		"stock": [["cutlass", 45], ["dagger", 28], ["pistol", 90], ["hatchet", 30]],

@@ -1,0 +1,49 @@
+{
+	"speaker": "Brett",
+	"voice": 0.96,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Oh, hello! New face. I like new faces. Brett. I sell knives, and I walk this whole town twice a day selling them.",
+				"Here, you look like you could use one. Go on, take it. Nobody on Brinehollow should walk about without a blade, and this one's on me."
+			],
+			"event": "gift_brett",
+			"set_flag": "met_brett",
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What can I do for you, friend?",
+			"choices": [
+				{ "text": "Show me your blades.", "next": "shop" },
+				{ "text": "Any tips for fishing?", "next": "fishing" },
+				{ "text": "Those are good boots.", "next": "boots" },
+				{ "text": "Take care, Brett.", "next": "bye" }
+			]
+		},
+		"shop": {
+			"text": "Daggers, dirks, the odd stiletto. All sharp, all honest. Have a look.",
+			"event": "shop:brett",
+			"next": "end"
+		},
+		"fishing": {
+			"text": [
+				"Here's one Hesk won't tell you, because he thinks of it as his: the fish bite best when the light's changing. Dawn and dusk.",
+				"And keep a knife on you when you fish. Cut your own bait from a crab or a bit of fish on the action wheel and you'll never come home empty-handed."
+			],
+			"next": "menu"
+		},
+		"boots": {
+			"text": [
+				"Thank you! Same pair for eleven years. Up and down that stair, across every plank on this island, and they've never once let the sea in.",
+				"A good pair of boots will last you a long time, friend. Spend on your boots and your blade. Everything else is just weather."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "You too! I'll be about. I'm always about.",
+			"next": "end"
+		}
+	}
+}

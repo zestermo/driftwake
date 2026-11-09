@@ -88,7 +88,7 @@ scripts/game/story_rack.gd              t/story/rack_keeps_one
 scripts/game/story_grove.gd             t/story/island_steps t/story/ironwood_grove
 scripts/props/shrine_terrace.gd         t/story/tomo_terrace t/island/brinehollow_outskirts
 scripts/island/starter_island.gd        t/story/tomo_terrace t/story/island_steps t/story/ironwood_grove t/island/brinehollow_rooms t/island/brinehollow_lighthouse
-scripts/island/brinehollow_cast.gd      t/story/tomo_terrace t/island/brinehollow_rooms t/island/brinehollow_lighthouse
+scripts/island/brinehollow_cast.gd      t/island/brett t/story/tomo_terrace t/island/brinehollow_rooms t/island/brinehollow_lighthouse
 scripts/island/brinehollow_rooms.gd     t/island/brinehollow_rooms t/island/brinehollow_lighthouse
 scripts/island/brinehollow_lighthouse.gd t/island/brinehollow_lighthouse
 scripts/quests/journal.gd               t/quests
@@ -861,3 +861,4 @@ scripts/player_states/player_state.gd   t/combat/attack_assist
 scripts/player_states/light_attack_state.gd t/combat/attack_assist
 scripts/npc/humanoid.gd                 t/combat/hit_jolt t/player/turn_land t/player/coat_tails_hang
 scripts/npc/spring_chains.gd            t/player/coat_tails_hang
+data/dialogue/brett.json   t/island/brett
