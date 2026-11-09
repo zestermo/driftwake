@@ -34,9 +34,10 @@ static func on_back(w: MeshInstance3D) -> Transform3D:
 	# (a polearm slung across the back, its head up over the right shoulder and the butt by the left calf)
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "polearm":
 		return Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0, -0.55))
-	# (a staff across the back the same way, slung by its middle)
+	# (a staff across the back the same way, slung by its middle: the low end by the left calf, the top a hand over
+	# the right shoulder; was 0.1 down and stood a metre over the head)
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "staff":
-		return Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0, -0.1))
+		return Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0, -0.8))
 	# (a hammer the same way up, its head behind the right shoulder turned flat across the back)
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "hammer":
 		var haft := WeaponDesigns.hammer_haft(str(w.mesh.get_meta("model", "")).get_slice(":", 1))

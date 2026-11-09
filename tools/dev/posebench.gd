@@ -76,7 +76,7 @@ func _initialize():
 		# PB_OFF=pistol|axe|...: a different weapon in the off hand (sword and pistol, mixed pairs)
 		elif OS.get_environment("PB_OFF") != "":
 			h.set_offhand(Props.weapon_mesh(OS.get_environment("PB_OFF")))
-		h._attach_weapon(true)
+		h._attach_weapon(OS.get_environment("PB_REST") == "")
 		h.auto_point_guns = true
 	h.armed = OS.get_environment("PB_REST") == ""
 	if OS.get_environment("PB_BEAST") != "":
