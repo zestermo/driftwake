@@ -43,9 +43,12 @@ static func place(parent: Node3D, caches: Array) -> void:
 			mi.scale = Vector3.ONE
 		bag.transform = e["xf"]
 		parent.add_child(bag)
-		# (a lead bought from the Hooded Stranger: an X on the map until it's opened)
+		# (a lead bought from the Hooded Stranger: an X on the map until it's opened, and its quest in the journal: a
+		# lead bought before 2026-11-09 gets its quest the next time the city's built)
 		if gm and gm.world_flags.has(LEAD + str(e["key"])):
 			_mark(bag, str(e["key"]))
+			if parent.get_node("/root/Net").is_host():
+				_journal(parent.get_tree(), str(e["key"]), bag.global_position, _isle_of(parent), 0)
 
 
 # --------------------------------------------------------------------------
@@ -91,6 +94,8 @@ static func sell_lead(ev: String, city: String, isl: Node) -> void:
 	var bag := (isl.get("city") as Node).get_node_or_null("Cache_" + key) as Node3D
 	if bag:
 		_mark(bag, key)
+	var at: Vector3 = bag.global_position if bag else (isl as Node3D).global_position
+	_journal(isl.get_tree(), key, at, str(isl.get("island_name")), -1)
 	isl.get_tree().call_group("hud", "show_toast", "A cache marked on your map (%d gold)" % LEAD_GOLD)
 
 
@@ -108,4 +113,35 @@ static func _unled(isl: Node) -> Array:
 
 static func _mark(bag: Node3D, key: String) -> void:
 	MapMarks.put("cache_" + key, bag.global_position, "x", "A cache")
-	bag.tree_exited.connect(func(): MapMarks.clear("cache_" + key))
+	# (gone once it's opened; sailing away unloads the city but the X stays: it cleared on any unload before 2026-11-09)
+	var gm := bag.get_node_or_null("/root/GameManager")
+	bag.tree_exited.connect(func():
+		if gm == null or gm.opened.has(key):
+			MapMarks.clear("cache_" + key))
+
+
+## A lead's quest (2026-11-09): the crew's to track (the buyer follows it), its marker at the strongbox wherever you
+## sail, done when the strongbox is opened. `by` as Journal.take (-1: this captain, 0: the crew's).
+static func lead_quest(key: String, at: Vector3, isle: String) -> Dictionary:
+	return {"id": "cache_lead_" + key, "title": "The Stranger's Secret", "giver": "The Hooded Stranger", "isle": isle, "pos": at, "src": "line",
+		"reward": {"xp": 0.0, "note": "whatever the strongbox holds"},
+		"steps": [{"goal": "Find the strongbox the Hooded Stranger sold you" + (" in " + isle if isle != "" else ""), "until": ["opened", key], "at": ["pos", at]}]}
+
+
+static func _journal(tree: SceneTree, key: String, at: Vector3, isle: String, by: int) -> void:
+	var j: Node = tree.root.get_node_or_null("Journal")
+	var gm: Node = tree.root.get_node_or_null("GameManager")
+	var q := lead_quest(key, at, isle)
+	if j == null or j.has(q["id"]) or (gm and gm.opened.has(key)):
+		return
+	j.register(q, null)
+	j.take(q["id"], by)
+
+
+## The island a city node belongs to (its island_name), or "".
+static func _isle_of(n: Node) -> String:
+	while n != null:
+		if "island_name" in n:
+			return str(n.get("island_name"))
+		n = n.get_parent()
+	return ""

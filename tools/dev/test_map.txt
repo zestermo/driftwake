@@ -862,3 +862,5 @@ scripts/player_states/light_attack_state.gd t/combat/attack_assist
 scripts/npc/humanoid.gd                 t/combat/hit_jolt t/player/turn_land t/player/coat_tails_hang
 scripts/npc/spring_chains.gd            t/player/coat_tails_hang
 data/dialogue/brett.json   t/island/brett
+scripts/island/city_caches.gd   t/quests/cache_lead
+scripts/quests/line_quests.gd   t/quests/cache_lead

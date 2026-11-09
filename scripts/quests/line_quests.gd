@@ -87,6 +87,8 @@ static func where(tree: SceneTree, at: Array) -> Vector3:
 		return Vector3.INF
 	var j: Node = tree.root.get_node("Journal")
 	match str(at[0]):
+		"pos":
+			return at[1]
 		"npc":
 			return npc(tree, str(at[1]))
 		"quest":
