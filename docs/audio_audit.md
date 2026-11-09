@@ -279,7 +279,8 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | music_combat_sea | 53.3 s (32 bars) | G minor, 4/4 144 | -18.1 | fights at sea, aboard, swimming, a ship hunting you (2026-11-09, Wind Waker side): spiccato strings every sixteenth, the horns' tune, the fiddle racing, the theme in G minor on full brass, timpani, march snare |
 | music_combat_wild | 49.2 s (32 bars) | D minor, 4/4 156 | -17.7 | fights ashore in the wilds (BotW side): the piano's 3+3+2 ostinato, taiko, strings' tune, horns in F, the theme in D minor over timpani, a piano break |
 | music_combat_town | 51.4 s (48 bars) | A dorian, 6/8 dq 112 | -18.0 | fights in a town's streets: a fiddle reel over galloping low strings and bodhran, whistle and concertina, the theme in 6/8 bursting into A major on the horns |
-| music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | | -18.2 | unchanged; 10% at 2-5k (hats, brass): brightest track, fine |
+| music_boss_titan | 55.7 s (32 bars, 138 bpm, E phrygian) | | -18.5 | new 2026-11-09 for beast and monster bosses: brass and string ostinato in 3+3+2, taiko, timpani, choir; the theme in E minor on brass |
+| music_boss_duel | 56.0 s (40 bars of 7/8, eighth 300, C minor) | | -17.6 | new 2026-11-09 for captain bosses: piano hammering 2+2+3, string stabs, horns, choir; the theme's head on the horns. Music.boss_track picks by the boss's script; the old music_boss is gone |
 | music_victory | 5.4 s sting | | -13.9 | unchanged |
 | music_rival | 6.0 s sting (2 bars, 96 bpm, D phrygian brass call, low strings, timpani roll) | | -16.9 | new 1.30 (peak -2.9) |
 
