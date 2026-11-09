@@ -31,7 +31,7 @@ download (co-op by hosted / forwarded address) is the way to play; nothing web o
   right, back to pull it toward you and turn left. A wake and splashy spray off it, like Wind Waker's boat.
 - **Swinging and grappling, one look for all of them:** one-handed, with a phase where you're pulled toward the
   grapple point, an organic floppy swing, then a release. Decide: always the off hand, or either hand.
-- **Interact animations:** finish them all: pumping water aboard, patching holes, putting out fires, opening the
+- **Interact animations** (**built 2026-11-09**: deck jobs, the inventory, gestures; docs/v1_31_feel_plan.md): finish them all: pumping water aboard, patching holes, putting out fires, opening the
   inventory, etc.
 - **Screen feel for the player** (**built 2026-11-09**: docs/v1_31_feel_plan.md) (Zach, 2026-11-05): "feel like you're wooshing through the air if you got launched or
   used a move". A red vignette at low health (pulsing harder near death); a brief dim / pass-out blink on a hit big
