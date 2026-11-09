@@ -32,7 +32,9 @@ const TRACKS := {
 	"sea_stars": ["res://assets/audio/music_sea_stars.ogg", 40],
 	"sea_far": ["res://assets/audio/music_sea_far.ogg", 36],
 	"sea_storm": ["res://assets/audio/music_sea_storm.ogg", 40],
-	"combat": ["res://assets/audio/music_combat.ogg", 32],
+	"combat_sea": ["res://assets/audio/music_combat_sea.ogg", 32],
+	"combat_wild": ["res://assets/audio/music_combat_wild.ogg", 32],
+	"combat_town": ["res://assets/audio/music_combat_town.ogg", 48],
 	"boss": ["res://assets/audio/music_boss.ogg", 32],
 	"snow": ["res://assets/audio/music_snow.ogg", 56],
 	"snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
@@ -53,7 +55,9 @@ const TRACKS := {
 	"atoll_town": ["res://assets/audio/music_atoll_town.ogg", 32],
 	"atoll_town_night": ["res://assets/audio/music_atoll_town_night.ogg", 32],
 }
-const FIGHTS := ["combat", "boss"]
+## The fight by place (2026-11-09): at sea or aboard, ashore in the wilds, in a town's streets.
+const COMBATS := ["combat_sea", "combat_wild", "combat_town"]
+const FIGHTS := ["combat_sea", "combat_wild", "combat_town", "boss"]
 ## The sea's rotation (2026-11-06): every calm sea track by day, the hushed ones by night.
 const SEA_DAY := ["sea_breeze", "sea_horizon", "sea_calm", "sea_trade", "sea_dawn", "sea_wander", "sea_stars", "sea_far"]
 const SEA_NIGHT := ["sea_calm", "sea_stars", "sea_dawn", "sea_horizon"]
@@ -314,13 +318,17 @@ func _pick(dt: float) -> String:
 		for s in tree.get_nodes_in_group("enemy_ships"):
 			if is_instance_valid(s) and s.in_combat() and (s as Node3D).global_position.distance_to(pos) < 170.0:
 				fighting = true
+				if current not in COMBATS:
+					_combat_hold = COMBAT_HOLD
+					return "combat_sea"
 				break
 	if fighting:
 		_combat_hold = COMBAT_HOLD
-		return "combat"
+		# a fight keeps the track it started on, wherever it goes
+		return current if current in COMBATS else fight_track(tree, me, pos)
 	_combat_hold -= dt
-	if _combat_hold > 0.0 and current == "combat":
-		return "combat"
+	if _combat_hold > 0.0 and current in COMBATS:
+		return current
 	var ctx = me.get("context")
 	if ctx != null and int(ctx) != 0:
 		return "sea"
@@ -348,6 +356,20 @@ func _pick(dt: float) -> String:
 				near_fort = true
 		return "island" if near_fort else "sea"
 	return "island"
+
+
+## Which fight fits where you are: aboard, on deck, swimming or at the helm the sea's; in a town's
+## streets the reel; anywhere else ashore the wilds'.
+static func fight_track(tree: SceneTree, me: Node3D, pos: Vector3) -> String:
+	var ctx = me.get("context")
+	if ctx != null and int(ctx) != 0:
+		return "combat_sea"
+	var ship := tree.get_first_node_in_group("ship") as Node3D
+	if ship and pos.distance_to(ship.global_position) < 9.0:
+		return "combat_sea"
+	if me.has_method("is_swimming") and me.is_swimming():
+		return "combat_sea"
+	return "combat_town" if in_village(tree, pos) else "combat_wild"
 
 
 ## In a town's streets at world `pos`: Brinehollow's square and its harbour front

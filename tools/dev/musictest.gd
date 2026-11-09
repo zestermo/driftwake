@@ -101,6 +101,7 @@ func _process(d: float) -> bool:
 			wait(3.0)
 		3:
 			check("Brinehollow's square: the village theme (%s)" % m.current, m.current == "village")
+			check("...a fight here: the town's reel (%s)" % m.fight_track(self, p, p.global_position), m.fight_track(self, p, p.global_position) == "combat_town")
 			var home = w.starter_island
 			var dp: Vector2 = home._dock_point(home.DOCK_LENGTH)
 			put(home.to_global(Vector3(dp.x, home.DOCK_DECK_Y, dp.y)))
@@ -113,6 +114,7 @@ func _process(d: float) -> bool:
 			wait(4.0)
 		5:
 			check("Brinehollow's wilds: the island theme (%s)" % m.current, m.current == "island")
+			check("...a fight here: the wilds' skirmish (%s)" % m.fight_track(self, p, p.global_position), m.fight_track(self, p, p.global_position) == "combat_wild")
 			keep["left"] = float(m._left["village"][0])
 			check("the village theme was playing a while before we left (%.1f s in)" % keep["left"], keep["left"] > 5.0)
 			keep["day_pos"] = pos()
@@ -183,6 +185,7 @@ func _process(d: float) -> bool:
 				if s.in_combat():
 					print("   ship in combat: %s %.0f m" % [s.get_path(), (s as Node3D).global_position.distance_to(p.global_position)])
 			check("aboard under sail out at sea: the sea theme (%s, %.1f m/s)" % [m.current, ship.speed], m.current in m.SEA_DAY and m.current == m.sea_pick)
+			check("...a fight here: the sea's charge (%s)" % m.fight_track(self, p, p.global_position), m.fight_track(self, p, p.global_position) == "combat_sea")
 			set_hour(22.0)
 			wait(5.0)
 		13:

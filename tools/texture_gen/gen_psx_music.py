@@ -1986,66 +1986,6 @@ def track_forest(night=False):
 
 
 
-def track_combat():
-    # 4/4, 140 bpm, sixteenth ticks. E minor. 32 bars: A, B (fiddle), A' (fiddle motif), C (brass build).
-    s = Song("music_combat", 60 / 140 / 4, 16, 32, "4/4, 140 bpm, E minor (harmonic), driving tense fight")
-    s.bus("ost", 0.42, verb=0.08)
-    s.bus("stab", 0.55, verb=0.2)
-    s.bus("lead", 0.55, verb=0.22, echo=0.1)
-    s.bus("brass", 0.42, verb=0.25)
-    s.bus("pad", 0.24, verb=0.3)
-    s.bus("kick", 0.45, verb=0.05)
-    s.bus("snare", 0.5, verb=0.2)
-    s.bus("tom", 0.42, verb=0.15)
-    s.bus("hat", 0.12, verb=0.05)
-    A_ch = ["Em", "Em", "C", "D", "Em", "Em", "C", "B"]
-    B_ch = ["Am", "Am", "Em", "Em", "C", "D", "B", "B"]
-    C_ch = ["Am", "B", "Em", "C", "Am", "B", "C", "B"]
-    ch = split_chords(A_ch + B_ch + A_ch + C_ch)
-    allb = range(32)
-    gallop = [(0, 1, "R"), (2, 1, "R"), (3, 1, "R"), (4, 1, "8"), (6, 1, "R"), (7, 1, "R"),
-              (8, 1, "R"), (10, 1, "R"), (11, 1, "R"), (12, 1, "8"), (14, 1, "5"), (15, 1, "R")]
-    bassline(s, "ost", "stacc", ch, allb, gallop, octave_low=nn("E2"), vel=0.85, gate=0.6)
-    stab_odd = [(0, 2), (6, 2)]
-    stab_even = [(4, 2), (10, 2)]
-    for b in list(range(0, 8)) + list(range(16, 24)):
-        comp(s, "stab", "stacc", ch, [b], stab_odd if b % 2 == 0 else stab_even, low=59, vel=0.8, gate=0.5)
-        comp(s, "stab", "brass", ch, [b], [(0, 2)] if b % 2 == 0 else [(10, 2)], low=52, vel=0.5, gate=0.5)
-    B_mel = ("E5/4 A5/4 C6/6 B5/2  A5/4 G5/2 A5/2 E5/8  G5/4 B5/4 E6/6 D6/2  B5/4 A5/2 B5/2 G5/8  "
-             "G5/4 E5/4 C6/4 B5/4  A5/4 F#5/4 D6/4 C6/4  B5/6 A5/2 G5/4 F#5/4  D#5/8 F#5/4 B5/4")
-    s.line("lead", "fiddle", B_mel, 8, vel=0.8)
-    for b in range(8, 16):
-        sym = chord_at(ch, b, 0)
-        for m in voice(chord_pcs(sym)[1], 52):
-            s.note("pad", "lowstr", m, b * 16, 16, 0.4, 0.98)
-    A2_mel = ("B5/2 -/2 B5/2 -/2 E6/4 D6/2 B5/2  G5/8 -/8  C6/2 -/2 C6/2 -/2 E6/4 D6/2 C6/2  "
-              "A5/8 F#5/4 D5/4  B5/2 -/2 B5/2 -/2 E6/4 F#6/2 G6/2  F#6/4 E6/4 B5/8  "
-              "C6/4 B5/4 G5/4 E5/4  D#5/4 F#5/4 B5/8")
-    s.line("lead", "fiddle", A2_mel, 16, vel=0.7, gate=0.85, transpose=-12)
-    C_mel = ("A3/12 C4/4  B3/12 D#4/4  E4/8 G4/8  G4/8 E4/8  A4/8 C5/4 B4/4  B4/8 A4/4 F#4/4  "
-             "G4/8 E4/8  F#4/8 D#4/8")
-    s.line("brass", "brass", C_mel, 24, vel=0.85, gate=0.9)
-    s.line("brass", "brass", C_mel, 24, vel=0.5, gate=0.9, transpose=-12)
-    for b in range(24, 32):
-        sym = chord_at(ch, b, 0)
-        for m in voice(chord_pcs(sym)[1], 52):
-            s.note("pad", "lowstr", m, b * 16, 16, 0.45, 0.98)
-    main_beat = [b for b in allb if b < 24]
-    s.drums("kick", "kick", "X.......X.x.....", main_beat)
-    s.drums("snare", "snare", "....X.......X...", main_beat, vel=0.9)
-    s.drums("hat", "hat", "x.o.x.o.x.o.x.o.", allb)
-    for b in (3, 7, 11, 15, 19, 23):  # tom fills on the last half of each 4-bar phrase
-        for i, tm in enumerate(["A3", "A3", "E3", "E3", "C3", "C3", "A2", "A2"]):
-            s.note("tom", "tom", nn(tm), b * 16 + 8 + i, 1, 0.55 + i * 0.05, 1.0)
-    # C section: half-time toms, then a snare build into the loop
-    s.drums("kick", "kick", "X.......X.......", range(24, 32))
-    s.drums("tom", "tom", "....x.......x.x.", range(24, 30), midi=nn("D3"))
-    s.drums("snare", "snare", "........x.......", range(24, 30), vel=0.7)
-    s.drums("snare", "snare", "x.x.x.x.x.x.x.x.", [30], vel=0.6)
-    s.drums("snare", "snare", "xxxxxxxxxxxxXXXX", [31], vel=0.7)
-    return s, dict(verb_t60=1.2, echo_sec=60 / 140 * 0.75)
-
-
 def track_boss():
     # 4/4, 150 bpm, sixteenth ticks. E phrygian (F natural, E major cadences). 32 bars.
     s = Song("music_boss", 60 / 150 / 4, 16, 32, "4/4, 150 bpm, E phrygian / phrygian dominant, heavy boss")
@@ -2177,7 +2117,7 @@ TRACKS = {"title": track_title,
           "snow": track_snow, "snow_night": lambda: track_snow(True),
           "snow_town": track_snow_town, "snow_town_night": lambda: track_snow_town(True),
           "forest": track_forest, "forest_night": lambda: track_forest(True),
-          "combat": track_combat, "boss": track_boss, "victory": track_victory, "rival": track_rival}
+          "boss": track_boss, "victory": track_victory, "rival": track_rival}
 
 
 # --------------------------------------------------------------------------
@@ -2954,12 +2894,12 @@ def _ostinato(s, bus, ch, bars, low, vel):
                 s.note(bus, "piano", r - 12, b * s.tpb + i, 2, v * 0.8, 0.9)
 
 
-def sample_fight_wild():
+def sample_fight_wild(name="sample20_fight_wild"):
     # 4/4, 156 bpm, sixteenth ticks, D minor; 32 bars (49 s). A skirmish in the wilds, BotW's way:
     # the piano's 3+3+2 ostinato drives it, taiko under; the strings' tune (A), the horns answer in
     # F (B), the theme in D minor on horns and strings over timpani (C), a break on the piano alone
     # building back to bar 1.
-    s = Song("sample20_fight_wild", 60 / 156 / 4, 16, 32,
+    s = Song(name, 60 / 156 / 4, 16, 32,
              "4/4, 156 bpm, D minor: a skirmish, piano ostinato, strings, horns, taiko")
     s.bus("pno", 0.42, verb=0.18)
     s.bus("strlead", 0.46, verb=0.26)
@@ -3008,11 +2948,11 @@ BRASS_B = ("G5/2 Bb5/2 Eb6/4 D6/2 C6/2 Bb5/4 | A5/2 C6/2 F6/4 Eb6/2 D6/2 C6/4 | 
            "A5/2 C6/2 D6/4 F#6/2 D6/2 C6/4 | D6/16")
 
 
-def sample_fight_brass():
+def sample_fight_brass(name="sample21_fight_brass"):
     # 4/4, 144 bpm, sixteenth ticks, G minor; 32 bars (53 s). A sea-battle charge, Wind Waker's way:
     # spiccato strings on every sixteenth, the horns' tune (A), the fiddle and violins racing (B), the
     # theme in G minor on full brass with timpani (C), a march snare and tambourine, a crash a phrase.
-    s = Song("sample21_fight_brass", 60 / 144 / 4, 16, 32,
+    s = Song(name, 60 / 144 / 4, 16, 32,
              "4/4, 144 bpm, G minor: a charge, spiccato strings, horns, brass, fiddle, timpani, snare")
     s.bus("ost", 0.36, verb=0.1)
     s.bus("horn", 0.5, verb=0.26)
@@ -3063,12 +3003,12 @@ REEL_B = ("C6/2 B5/1 A5/2 G5/1 | F#5/2 E5/1 D5/3 | E5/2 G5/1 B5/2 G5/1 | A5/6 | 
           "C6/2 B5/1 A5/2 E5/1 | G5/2 F#5/1 G5/2 B5/1 | A5/1 G5/1 E5/1 D5/1 B4/1 G4/1 | A4/6")
 
 
-def sample_fight_reel():
+def sample_fight_reel(name="sample22_fight_reel"):
     # 6/8, dotted quarter = 112, eighth ticks, A dorian; 48 bars (51 s). A brawl at a gallop, the
     # folk side: the fiddle's reel over the low strings galloping and a driving bodhran, the whistle
     # doubling it, the concertina's chords; B on the concertina with brass hits; the theme in 6/8
     # breaking out in A major on the horns and fiddle.
-    s = Song("sample22_fight_reel", 60 / 336, 6, 48,
+    s = Song(name, 60 / 336, 6, 48,
              "6/8, dotted quarter = 112, A dorian: a brawl, fiddle reel, galloping strings, bodhran, horns")
     s.bus("fid", 0.46, verb=0.2, echo=0.05)
     s.bus("whis", 0.3, verb=0.22)
@@ -3113,6 +3053,11 @@ def sample_fight_reel():
     s.line("fid", "fiddle", "A5/1 G5/1 E5/1 A5/1 G5/1 E5/1 | D5/1 E5/1 G5/1 B5/3 | E5/1 G5/1 B5/1 E6/3 | G#5/3 B5/3", O1, vel=0.75)
     return s, dict(verb_t60=1.2, echo_sec=60 / 112 * 0.5)
 
+
+# The fights by place (Zach, 2026-11-09): brass at sea, the piano's skirmish in the wilds, the reel in town.
+TRACKS.update({"combat_sea": lambda: sample_fight_brass("music_combat_sea"),
+               "combat_wild": lambda: sample_fight_wild("music_combat_wild"),
+               "combat_town": lambda: sample_fight_reel("music_combat_town")})
 
 SAMPLES = {"corsair": sample_corsair, "harbour": sample_harbour, "waters": sample_waters,
            "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm,

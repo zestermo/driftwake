@@ -242,7 +242,7 @@ func _process(d: float) -> bool:
 				return false
 			check("a pirate ship spots the crew's ship and gives chase", saw.has("hunt"))
 			check("...and fires a broadside", int(saw["balls_enemy"]) > 0)
-			check("music: combat while a ship hunts you", music().current == "combat")
+			check("music: combat while a ship hunts you", music().current == "combat_sea")
 			# (no ram or boarding of her own while the crew checks set up: she'd do both by now)
 			es._ram_cd = 999.0
 			es._board_cd = 999.0
