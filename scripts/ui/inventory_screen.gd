@@ -599,6 +599,8 @@ func on_open() -> void:
 		body.grounded = true
 		_body_was_mode = body.process_mode
 		body.process_mode = Node.PROCESS_MODE_ALWAYS  # keeps breathing / looking while paused
+		# (1.31) the captain digs into the satchel as it opens
+		body.play("gesture_bag", ActionSpecs.length("gesture_bag"))
 	var rig := _rig()
 	if rig:
 		rig.set_showcase(true, pl.player_model.global_rotation.y, doll_center_x())

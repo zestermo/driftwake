@@ -851,32 +851,40 @@ func _damage_view(delta: float) -> void:
 	var job := ""
 	var id := 0
 	var best := WORK_REACH
+	var spot := Vector3.INF
 	for b in breaches:
 		var d := Vector2(local.x - b[1].x, local.z - b[1].z).length()
 		if d < best:
-			best = d; job = "patch"; id = int(b[0])
+			best = d; job = "patch"; id = int(b[0]); spot = b[1]
 	for f in fires:
 		var d := Vector2(local.x - f[1].x, local.z - f[1].z).length()
 		if d < best:
-			best = d; job = "douse"; id = int(f[0])
+			best = d; job = "douse"; id = int(f[0]); spot = f[1]
 	for t in torn:
-		var spot: Vector3 = layout.mend_at[int(t[1])]
-		var d := Vector2(local.x - spot.x, local.z - spot.z).length()
+		var spot_m: Vector3 = layout.mend_at[int(t[1])]
+		var d := Vector2(local.x - spot_m.x, local.z - spot_m.z).length()
 		if d < best:
-			best = d; job = "mend"; id = int(t[0])
+			best = d; job = "mend"; id = int(t[0]); spot = spot_m
 	for l in lines:
 		var d := Vector2(local.x - l[1].x, local.z - l[1].z).length()
 		if d < best:
-			best = d; job = "cut"; id = int(l[0])
+			best = d; job = "cut"; id = int(l[0]); spot = l[1]
 	if flood > 0.0 and Vector2(local.x - layout.pump_at.x, local.z - layout.pump_at.z).length() < best:
-		job = "bail"; id = 0
+		job = "bail"; id = 0; spot = layout.pump_at
 	elif job == "" and Vector2(local.x - layout.capstan_at.x, local.z - layout.capstan_at.z).length() < WORK_REACH:
-		job = "anchor"; id = 1 if anchored else 0
+		job = "anchor"; id = 1 if anchored else 0; spot = layout.capstan_at
 	local_job = job
 	if job == "":
 		_set_work("", 0.0)
 		return
 	var holding := Input.is_action_pressed("interact") and not me.input_locked
+	# (1.31) the body at the job: its own working pose, turned to face it
+	me.body_model.work = ({"bail": "pump"}.get(job, job) if holding else "")
+	if holding and spot != Vector3.INF:
+		var to: Vector3 = global_transform * spot - me.global_position
+		to.y = 0.0
+		if to.length() > 0.15:
+			me.player_model.rotation.y = lerp_angle(me.player_model.rotation.y, atan2(-to.x, -to.z), clampf(delta * 10.0, 0.0, 1.0))
 	var key := "%s%d" % [job, id]
 	if key != _work_key:
 		_work_key = key
@@ -893,10 +901,10 @@ func _damage_view(delta: float) -> void:
 		"anchor":
 			var need := job_time("anchor")
 			_work_t = _work_t + delta if holding else 0.0
-			me.body_model.kneeling = holding
+
 			if _work_t >= need:
 				_work_t = 0.0
-				me.body_model.kneeling = false
+				me.body_model.work = ""
 				Net.ship_anchor(not anchored)
 				FX.sfx("rope", global_transform * layout.capstan_at, -2.0, 0.05, 0.75)
 				Seamanship.xp(get_tree(), Seamanship.CAPSTAN)
@@ -904,10 +912,10 @@ func _damage_view(delta: float) -> void:
 		_:
 			var need := job_time(job)
 			_work_t = _work_t + delta if holding else 0.0
-			me.body_model.kneeling = holding
+
 			if _work_t >= need:
 				_work_t = 0.0
-				me.body_model.kneeling = false
+				me.body_model.work = ""
 				Net.ship_work(job, id, 0.0)
 				Seamanship.xp(get_tree(), Seamanship.PATCH)
 				FX.sfx({"patch": "wood_crack", "douse": "splash", "mend": "whoosh", "cut": "parry"}[job], me.global_position, -6.0, 0.05, 1.3)
@@ -936,7 +944,7 @@ func _set_work(text: String, progress: float) -> void:
 			get_tree().call_group("hud", "show_prompt", "", -1.0)
 			var me := get_tree().get_first_node_in_group("player") as Player
 			if me:
-				me.body_model.kneeling = false
+				me.body_model.work = ""
 		return
 	_prompting = true
 	get_tree().call_group("hud", "show_prompt", text, progress)

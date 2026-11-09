@@ -143,6 +143,13 @@ static func pose(h, n: String, u: float) -> Array:
 			var heave := low.merged({"torso": Vector3(-0.4, 0, 0), "head": Vector3(0.2, 0, 0), "arm_l": Vector3(1.65, 0, -0.15), "fore_l": Vector3(0.6, 0, 0),
 				"arm_r": Vector3(1.65, 0, 0.15), "fore_r": Vector3(0.6, 0, 0), "_lift": Vector3(0, -0.18, 0)}, true)
 			return [h._keys(u, [[0.0, {}], [0.3, low, "out"], [0.45, low], [0.7, heave, "out"], [0.85, heave], [1.0, {}]]), "full", Vector3.ZERO]
+		"gesture_bag":
+			# (1.31, the inventory opening) a hand back to the satchel on the hip, a rummage, then up to look over what it
+			# found, the head following the hand
+			var dig := {"arm_r": Vector3(-0.35, 0.25, 0.3), "fore_r": Vector3(0.9, 0, 0), "torso": Vector3(-0.12, -0.25, 0), "head": Vector3(0.35, -0.45, 0)}
+			var dig2 := dig.merged({"fore_r": Vector3(1.15, 0, 0), "arm_r": Vector3(-0.3, 0.3, 0.38)}, true)
+			var look := {"arm_r": Vector3(0.75, -0.2, 0.15), "fore_r": Vector3(1.55, 0, 0), "torso": Vector3(-0.08, 0, 0), "head": Vector3(0.3, -0.1, 0)}
+			return [h._keys(u, [[0.0, {}], [0.28, dig, "out"], [0.42, dig2], [0.52, dig], [0.78, look, "out"], [1.0, look]]), "upper", Vector3.ZERO]
 		"gesture_pickup":
 			var dip := {"torso": Vector3(-0.85, 0, 0), "head": Vector3(0.4, 0, 0), "hips": Vector3.ZERO,
 				"arm_r": Vector3(1.0, 0, 0.1), "fore_r": Vector3(0.2, 0, 0), "arm_l": Vector3(0.3, 0, -0.2), "fore_l": Vector3(0.6, 0, 0),

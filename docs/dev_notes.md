@@ -11311,3 +11311,14 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - The 2026-11-06 cloth foley played `cloth_rustle` every other stride (a loop while walking) and on every sharp turn
   (spammed when circling the stick). Both are gone (player.gd `_on_footstep`, `_foley_turn` removed) and so is
   t/player/coat_foley. Footsteps and the sprint's gear jingle stay. The sound itself is still in FX.SOUNDS.
+
+## 2026-11-09: deck job and inventory animations (1.31 "Interact animations")
+
+- **Deck jobs** (ship.gd's job tick): `Humanoid.work` = "pump" (bailing), "patch", "douse", "mend", "cut", "anchor"
+  while F is held, in place of the one static kneel they all shared (pumping had none); `_work_pose` loops each on
+  the body's clock (the pump's heave, the hammer up slow and down fast, the beating, the stitching, the saw, walking
+  the capstan round). The ship turns the captain to the job's spot. `work` rides HumanoidSync's FIELDS (co-op).
+  Like `kneeling`, it keeps foot IK and the far-figure swap off (the IK lifted the hips off the knee).
+- **Inventory:** opening it plays `gesture_bag` (EmotePoses: a hand back to the satchel, a rummage, up to look).
+- **Tests:** t/ship/deck_work (pump and douse poses, facing, let go). Renders: posebench with
+  PB_SET="work=\"patch\"" etc. (tools/dev/out/work/).

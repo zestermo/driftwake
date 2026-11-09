@@ -90,6 +90,9 @@ var helm_steer: float = 0.0
 ## Down on one knee, hands reaching to someone on the ground (reviving a
 ## crewmate).
 var kneeling: bool = false
+## (1.31) A deck job in hand (Ship: "pump", "patch", "douse", "mend", "cut", "anchor"; "" none): a looping
+## working pose of its own (`_work_pose`), over the plain kneel.
+var work: String = ""
 ## Working a ship's cannon: crouched behind it, hands on the carriage.
 var manning: bool = false
 ## Sneaking (the player's CrouchState): low on bent knees, chest forward.
@@ -698,7 +701,7 @@ func _figure(dt: float) -> bool:
 	if cam == null:
 		return false
 	var r := FarFigures.OFF_R if _fig >= 0 else FarFigures.ON_R
-	var want := cam.global_position.distance_squared_to(global_position) > r * r and _action.is_empty() and not kneeling \
+	var want := cam.global_position.distance_squared_to(global_position) > r * r and _action.is_empty() and not kneeling and work == "" \
 		and is_inside_tree()
 	if not want:
 		if _fig >= 0:
@@ -3037,7 +3040,9 @@ func _locomotion(delta: float) -> Dictionary:
 			p["fore_l"] = Vector3(1.35, 0, 0)
 			p["fore_r"] = Vector3(1.35, 0, 0)
 		lift.y -= 0.25
-	if kneeling and grounded and not swimming:
+	if work != "" and grounded and not swimming:
+		lift = _work_pose(p)
+	elif kneeling and grounded and not swimming:
 		# right knee on the ground, left foot planted ahead, both hands pressing
 		# down on the crewmate in front (pumping)
 		var pump := sin(_t * 9.0)
@@ -3686,7 +3691,7 @@ func _keep_gaze(target: Dictionary) -> void:
 ## its ankle lands that far above the real ground. On flat ground nothing
 ## changes.
 func _foot_ik(delta: float) -> void:
-	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm and not kneeling and not manning \
+	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm and not kneeling and work == "" and not manning \
 		and ragdoll == null and current_action() not in ["getup", "wake"] and not (current_action() in BlackLegMoves.INVERTED) and is_inside_tree()
 	_ik_w = move_toward(_ik_w, 1.0 if want else 0.0, delta * 6.0)
 	if _ik_w <= 0.0:
@@ -4596,3 +4601,96 @@ func _idle_life(p: Dictionary, delta: float, spd: float) -> void:
 	p["torso"] += Vector3(0, 0, -0.03 * e)
 	p["shin_" + s] += Vector3(-0.16 * a, 0, 0)
 	p["leg_" + s] += Vector3(0.07 * a, 0, 0)
+
+
+# ==========================================================================
+# (1.31) Deck jobs
+# ==========================================================================
+## The pose for `work`, looping on the body's clock; returns the hips' lift. Facing the job is the Ship's doing.
+func _work_pose(p: Dictionary) -> Vector3:
+	p["pivot"] = Vector3.ZERO
+	p["hips"] = Vector3.ZERO
+	match work:
+		"pump":
+			# both hands on the handle, heaved down with the shoulders and the knees, then let up
+			var c := sin(_t * 5.5)
+			var dn := 0.5 - 0.5 * c
+			p["leg_l"] = Vector3(0.35, 0, -0.12)
+			p["leg_r"] = Vector3(-0.1 + 0.25 * dn, 0, 0.12)
+			p["shin_l"] = Vector3(-0.35 - 0.35 * dn, 0, 0)
+			p["shin_r"] = Vector3(-0.25 - 0.4 * dn, 0, 0)
+			p["torso"] = Vector3(-0.2 - 0.3 * dn, 0, 0)
+			p["head"] = Vector3(0.15 + 0.15 * dn, 0, 0)
+			p["arm_l"] = Vector3(1.45 - 0.55 * dn, 0.1, -0.1)
+			p["arm_r"] = Vector3(1.45 - 0.55 * dn, -0.1, 0.1)
+			p["fore_l"] = Vector3(0.9 - 0.5 * dn, 0, 0)
+			p["fore_r"] = Vector3(0.9 - 0.5 * dn, 0, 0)
+			return Vector3(0, -0.06 - 0.12 * dn, 0)
+		"patch", "mend":
+			# down on the right knee over it
+			p["leg_l"] = Vector3(1.45, 0, -0.14)
+			p["shin_l"] = Vector3(-1.5, 0, 0)
+			p["leg_r"] = Vector3(-0.05, 0, 0.12)
+			p["shin_r"] = Vector3(-1.6, 0, 0)
+			p["torso"] = Vector3(-0.45, 0, 0)
+			p["head"] = Vector3(0.35, 0, 0)
+			if work == "patch":
+				# the left hand holds the plank to the hole, the right drives the nails home: up slow, down fast
+				var ph := fmod(_t * 2.2, 1.0)
+				var up := smoothstep(0.0, 0.7, ph) * (1.0 - smoothstep(0.78, 0.9, ph))
+				p["arm_l"] = Vector3(0.95, 0.1, -0.1)
+				p["fore_l"] = Vector3(0.35, 0, 0)
+				p["arm_r"] = Vector3(0.9 + 1.0 * up, -0.1, 0.25)
+				p["fore_r"] = Vector3(0.4 + 1.0 * up, 0, 0)
+				p["torso"] += Vector3(0.06 * up, 0, 0)
+			else:
+				# needle and palm through the canvas: small quick draws of the thread
+				var s := sin(_t * 8.0)
+				p["arm_l"] = Vector3(0.95, 0.15, -0.15)
+				p["fore_l"] = Vector3(1.3, 0, 0)
+				p["arm_r"] = Vector3(0.8 + 0.15 * s, -0.2, 0.2 + 0.1 * s)
+				p["fore_r"] = Vector3(1.2 + 0.35 * sin(_t * 8.0 + 1.2), 0, 0)
+			return Vector3(0, -0.42, 0)
+		"douse":
+			# crouched over the flames, beating them out overhead to the deck
+			var c := sin(_t * 9.5)
+			p["leg_l"] = Vector3(0.85, 0, -0.18)
+			p["leg_r"] = Vector3(0.7, 0, 0.18)
+			p["shin_l"] = Vector3(-1.3, 0, 0)
+			p["shin_r"] = Vector3(-1.2, 0, 0)
+			p["torso"] = Vector3(-0.55 + 0.15 * c, 0, 0)
+			p["head"] = Vector3(0.3, 0, 0)
+			p["arm_l"] = Vector3(1.4 + 0.9 * c, 0, -0.2)
+			p["arm_r"] = Vector3(1.4 + 0.9 * c, 0, 0.2)
+			p["fore_l"] = Vector3(0.35, 0, 0)
+			p["fore_r"] = Vector3(0.35, 0, 0)
+			return Vector3(0, -0.32, 0)
+		"cut":
+			# a hand on the rail, the blade sawing through the grapple line
+			var s := sin(_t * 15.0)
+			p["leg_l"] = Vector3(0.35, 0, -0.12)
+			p["leg_r"] = Vector3(-0.15, 0, 0.12)
+			p["shin_l"] = Vector3(-0.35, 0, 0)
+			p["shin_r"] = Vector3(-0.2, 0, 0)
+			p["torso"] = Vector3(-0.25, 0.1 * s, 0)
+			p["head"] = Vector3(0.25, 0, 0)
+			p["arm_l"] = Vector3(1.15, 0.2, -0.15)
+			p["fore_l"] = Vector3(0.3, 0, 0)
+			p["arm_r"] = Vector3(1.25 + 0.2 * s, -0.15, 0.2)
+			p["fore_r"] = Vector3(0.6 + 0.45 * s, 0, 0)
+			return Vector3(0, -0.05, 0)
+		"anchor":
+			# leaning into the capstan bar, chest to it, walking it round
+			var w := _t * 4.0
+			p["torso"] = Vector3(-0.6, 0, 0)
+			p["head"] = Vector3(0.45, 0, 0)
+			p["arm_l"] = Vector3(1.5, 0.1, -0.1)
+			p["arm_r"] = Vector3(1.5, -0.1, 0.1)
+			p["fore_l"] = Vector3(0.5, 0, 0)
+			p["fore_r"] = Vector3(0.5, 0, 0)
+			p["leg_l"] = Vector3(0.25 + 0.45 * sin(w), 0, -0.1)
+			p["leg_r"] = Vector3(0.25 - 0.45 * sin(w), 0, 0.1)
+			p["shin_l"] = Vector3(-0.35 - 0.45 * maxf(cos(w), 0.0), 0, 0)
+			p["shin_r"] = Vector3(-0.35 - 0.45 * maxf(-cos(w), 0.0), 0, 0)
+			return Vector3(0, -0.1 - 0.03 * absf(sin(w)), 0)
+	return Vector3.ZERO

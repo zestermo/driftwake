@@ -614,6 +614,7 @@ const SPECS := {
 	"gesture_reach": {"len": 1.0, "stance": "sword", "weapon": ""},
 	"gesture_chop": {"len": 1.3, "stance": "sword", "weapon": ""},
 	"gesture_hand": {"len": 1.3, "stance": "sword", "weapon": ""},
+	"gesture_bag": {"len": 0.9, "stance": "sword", "weapon": ""},
 	# --- healing (quick-slot food, rum, tonics: Player.use_item) ---
 	"bite": {"len": 0.7, "stance": "sword", "weapon": "cutlass"},
 	"swig": {"len": 0.75, "stance": "sword", "weapon": "cutlass"},
