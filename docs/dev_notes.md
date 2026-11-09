@@ -11329,3 +11329,15 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   InteractionComponent offers nothing (no prompt, the press not taken, no fishing cast) and the ship's deck jobs
   stand aside (ship.gd's job tick returns before choosing one; burns still apply). Test: t/coop/revive_first (a chest
   right there: F gets the crewmate up; once they're up the chest is F's again).
+
+## 2026-11-09: co-op visibility, part 1 (1.31 candidate)
+
+- **Audit:** jungle vines and grapple / skill ropes already reach crewmates (the snapshot's rope end, `_rope_end`);
+  throws, the diving helmet and the decoy go through Net events. Missing: the **glider's wing** (attached on our
+  screen only) and the **ship's swing ropes** (SwingRope.point_to ran only for the swinger: crewmates saw them fly
+  while the rope hung straight).
+- **Fix:** NF_GLIDE (flag bits 17-18: tier + 1) -> `_puppet_glider` puts the wing on the crewmate's torso and takes
+  it off; the snapshot's new last field [13] is the SwingRope's Net key (`_swing_rope_key`) -> `_puppet_swing_rope`
+  points it at their hand, hanging it again after. Test: t/coop/puppet_traversal (the ropes need kit "ropes" 1).
+- **Gotcha:** a test naming a project class that touches autoloads (`is SwingRope`) fails to compile ("CombatManager
+  not found"): compare `get_script()` with a load() instead. find_children's type argument takes engine classes only.

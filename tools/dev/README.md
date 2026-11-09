@@ -65,6 +65,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `t/input/pad_lock_crouch` (1.31): R3 locks on and lets go, LB + R3 still pings (no lock), holding B crouches.
 - `t/ship/deck_work` (1.31): holding F at the pump heaves it (Humanoid.work "pump"), turned to it; beating out a fire is its own pose; letting go stands up.
 - `t/coop/revive_first` (1.31): a downed crewmate in reach takes F over a chest beside them; once they're up the chest is F's again.
+- `t/coop/puppet_traversal` (1.31): a crewmate's open glider shows on their back and folds away; a ship rope they swing on follows their hand and hangs after; our snapshot names the rope.
 - `t/combat/hit_jolt` (1.31): Humanoid.jolt bends the upper body away from a blow (against the idle baseline), legs untouched, and settles.
 - `t/player/screen_feel` (1.31): low health draws the vignette, a knockdown blinks the screen, flying fast smears it and widens the FOV, Screen effects 0 turns it off.
 - `t/player/turn_land` (1.31): a drop lands with the knees taking it; turning on the spot steps the feet round.

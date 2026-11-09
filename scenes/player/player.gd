@@ -287,6 +287,9 @@ const NF_SKIM_SHIFT := 11
 const NF_BAG := 8192 | 16384 | 32768
 const NF_BAG_SHIFT := 13
 const NF_BAG_OPEN := 65536
+## (1.31) The glider open (its tier + 1; 0 shut): crewmates see the wing on our back.
+const NF_GLIDE := 131072 | 262144
+const NF_GLIDE_SHIFT := 17
 ## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
 var parry_tap := -10.0
 
@@ -3249,9 +3252,51 @@ func net_pack() -> Array:
 	flags |= (GadgetBag.ORDER.find(body_model.bag_colour) + 1) << NF_BAG_SHIFT
 	if body_model.bag_open:
 		flags |= NF_BAG_OPEN
+	if current_state_name() == "Gadget" and str(state_machine.current_state.get("id")) == "glider":
+		flags |= (int(state_machine.current_state.get("tier")) + 1) << NF_GLIDE_SHIFT
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
-		body_model.ragdoll.net_pack() if body_model.ragdoll else [], bounty]
+		body_model.ragdoll.net_pack() if body_model.ragdoll else [], bounty, _swing_rope_key()]
+
+
+## (1.31) The ship's rope we're swinging on (SwingRope: its Net key), or "": crewmates point it at our hand.
+func _swing_rope_key() -> String:
+	var st = state_machine.states.get("swing")
+	if st != null and st == state_machine.current_state:
+		var r = st.get("_rope")
+		if r != null and is_instance_valid(r):
+			return Net.key_of(r)
+	return ""
+
+
+var _net_swing: Node = null
+var _net_wing: MeshInstance3D = null
+
+
+## A crewmate's ship rope follows their hand while they swing on it, and hangs again after.
+func _puppet_swing_rope(key: String) -> void:
+	var r: Node = Net.node_of(key) if key != "" else null
+	if r != _net_swing and _net_swing != null and is_instance_valid(_net_swing):
+		_net_swing.call("hang")
+	_net_swing = r
+	if r != null and is_instance_valid(r) and body_model.hand_r:
+		r.call("point_to", body_model.hand_r.global_position)
+
+
+## A crewmate's glider: the wing on their back while it's open (tier from the flags), gone when it folds.
+func _puppet_glider(tier: int) -> void:
+	if tier < 0:
+		if _net_wing and is_instance_valid(_net_wing):
+			_net_wing.queue_free()
+		_net_wing = null
+		return
+	if _net_wing and is_instance_valid(_net_wing):
+		return
+	_net_wing = MeshInstance3D.new()
+	_net_wing.name = "GliderWing"
+	_net_wing.mesh = GadgetModels.glider_wing(tier)
+	_net_wing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body_model.torso.add_child(_net_wing)
 
 
 ## Where our vine (swing / grapple) is stretched to, or INF.
@@ -3322,6 +3367,8 @@ func _puppet_process(delta: float) -> void:
 			body_model.lantern.set_lit(bool(flags & NF_LANTERN))
 		if changed & NF_POUCH:
 			GadgetBelt.wear(body_model, ((flags & NF_POUCH) >> NF_POUCH_SHIFT) - 1)
+		if changed & NF_GLIDE:
+			_puppet_glider(((flags & NF_GLIDE) >> NF_GLIDE_SHIFT) - 1)
 		if changed & NF_SKIM:
 			SkimmerModel.ride(self, ((flags & NF_SKIM) >> NF_SKIM_SHIFT) - 1)
 		if changed & NF_BAG:
@@ -3345,6 +3392,8 @@ func _puppet_process(delta: float) -> void:
 	for w in [body_model.weapon, body_model.offhand]:
 		if w and is_instance_valid(w):
 			(w as Node3D).visible = not hybrid
+	# (1.31) the ship's rope they swing on follows their hand
+	_puppet_swing_rope(str(b[13]) if b.size() > 13 else "")
 	# their vine, from the hand to wherever it's stretched
 	var rope_end: Vector3 = b[10]
 	if rope_end != Vector3.INF:
