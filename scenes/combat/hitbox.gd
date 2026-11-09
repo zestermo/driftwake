@@ -18,7 +18,17 @@ func activate(data: HitData = null) -> void:
 	active = true
 	activations += 1
 	hit_targets.clear()
+	if monitoring:
+		# (still on from a swing ended this frame, its off deferred: a hurtbox already inside won't enter again, so
+		# this swing looks for what it overlaps itself, after the frame's signals)
+		_hit_overlaps.call_deferred(activations)
 	monitoring = true
+
+
+func _hit_overlaps(act: int) -> void:
+	if active and act == activations and monitoring:
+		for a in get_overlapping_areas():
+			_on_area_entered(a)
 
 
 ## (monitoring off at the frame's end, as `active` stands then: a hit's own signal can end the swing, where setting it
