@@ -77,8 +77,13 @@ func _process(_d: float) -> bool:
 			TK.release("move_left")
 			TK.press("move_forward")
 			TK.press("sprint")
-			until = TK.wait_secs(1.4)
+			until = TK.wait_secs(0.35)
 		4:
+			# (1.31: walking faces where you go, so the sprint starts with a turn: sparks thrown mid-turn trail the
+			# swinging point; only the steady drag counts)
+			sparks.clear()
+			until = TK.wait_secs(1.05)
+		5:
 			var t := tip_local()
 			check("sprinting (%s), the point drags on the ground behind (%s)" % [str(bm.sprinting), str(t)], bm.sprinting and t.y < 0.15 and t.z > 0.5)
 			var worst := 0.0

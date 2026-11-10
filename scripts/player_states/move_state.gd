@@ -31,8 +31,9 @@ func physics_update(delta: float) -> void:
 	player.move_and_slide()
 	player.step_check(direction)
 
-	# Combat stance strafes (faces the camera); otherwise face where we run.
-	if player.armed and not player.sprinting:
+	# (1.31) Locked on, the stance strafes round the foe (facing it); otherwise you face where you run (omni attacks
+	# need no camera-facing guard).
+	if player.armed and not player.sprinting and locked_target() != null:
 		face_camera(delta)
 	else:
 		face_direction(direction, delta)

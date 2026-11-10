@@ -75,7 +75,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.0)
 		3:
 			check("walking diagonally (%.1f m/s, travel %.2f rad): no carry (%.2f)" % [b.ground_speed, b._travel_ang, b.carry_w],
-				absf(b._travel_ang) > 0.5 and b.carry_w < 0.02)
+				b.carry_w < 0.02)  # (1.31: walking faces where you go, so a diagonal is no longer a strafe: travel ~0)
 			var d := arms()
 			var dh: float = ((d[0] as Vector3) - (fwd_pose[0] as Vector3)).length()
 			var dl: float = ((d[1] as Vector3) - (fwd_pose[1] as Vector3)).length()

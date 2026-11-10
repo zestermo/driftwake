@@ -26,7 +26,8 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, "SkyLeap" if leap else "Jump", {})
 		return
 
-	if player.armed:
+	# (1.31) with omni attacks the stance keeps whatever way you last faced; locked on, it turns to the foe
+	if player.armed and locked_target() != null:
 		face_camera(delta)
 
 	if wants_dodge():

@@ -11397,3 +11397,12 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   still pull the spring arm in. Setting gameplay "combat_camera" (menu "Combat camera", on by default).
 - Test: t/combat/combat_camera (draws back, leans toward the foes, yaw untouched, the setting off settles back).
   Renders: tools/dev/fightcam.gd (off / on side by side).
+
+## 2026-11-10: the stance stops facing the camera (Zach: no reason to, with omni attacks)
+
+- Idle keeps whatever way you last faced (it turned you back to the camera every frame); Move faces where you run.
+  Locked on, both still face the foe (face_camera -> get_camera_forward, lock-aware): the strafe is the lock's now.
+  Blocking still faces the camera (the guard's aim).
+- Tests updated (stale, not bugs): cutlass_carry's diagonal is no longer a strafe (travel ~0); greatsword_carry lets
+  the sprint's starting turn settle before reading the sparks. rival_personality and raiders_haul flaked once each
+  (pass on rerun, as earlier today).
