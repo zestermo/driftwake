@@ -577,6 +577,7 @@ func _build_options() -> Control:
 	_section(list, "Gameplay")
 	_slider_row(list, "Camera shake", "gameplay", "camera_shake", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Screen effects", "gameplay", "screen_fx", 0.0, 1.0, 0.05, "%d%%", 100.0)
+	_toggle_row(list, "Combat camera", "gameplay", "combat_camera")
 	_toggle_row(list, "NPC name tags", "gameplay", "name_tags")
 	_toggle_row(list, "Reticle", "gameplay", "reticle")
 	_toggle_row(list, "Reduce flashing", "gameplay", "reduce_flashing")

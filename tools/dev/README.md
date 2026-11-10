@@ -69,6 +69,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `t/player/roll_out` (1.31): Roll Out picked, a tall drop rolls out far and unhurt, a short one doesn't roll; without it a tall drop hurts.
 - `t/player/rope_hand` (1.31): the rope in the hand on the anchor's side, the other when a weapon fills it; the hang mirrored on the left.
 - `t/gadgets/skimmer_moves` (1.31): fired in a jump over water the skimmer comes out under you; the rider leans forward turning right, back turning left; Space jumps off.
+- `t/combat/combat_camera` (1.31): foes about draw the camera back to fit them and lean its centre toward them, the view's direction untouched; the setting off settles back.
 - `t/combat/hit_jolt` (1.31): Humanoid.jolt bends the upper body away from a blow (against the idle baseline), legs untouched, and settles.
 - `t/player/screen_feel` (1.31): low health draws the vignette, a knockdown blinks the screen, flying fast smears it and widens the FOV, Screen effects 0 turns it off.
 - `t/player/turn_land` (1.31): a drop lands with the knees taking it; turning on the spot steps the feet round.
@@ -450,6 +451,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `celshot`: Cel shading off and on (PSX.set_cel) from the same views: Brinehollow by day and night, a fight close-up (frozen, both styles see one frame), the ship at sea; `<out>/<view>_<style>.png` and `<out>/sheet.png`. Run with `--resolution 1920x1080`. Args: <out_dir> [styles "0,1"] [views "day,night,fight,sea"]
 - `feelshot` (1.31): the game-feel features filmed on the light stage, a row of five frames each: attack assist, hit jolt, bank, landing roll, screen (normal, low health, blink, launched), idle weight shift, a greatcoat in a storm wind; `<out>/feel_sheet.png`. Args: <out_dir>
 - `aimmock` (1.31 mock): melee targeting without the crosshair, staged by hand: the omni swing at the grunt you push toward (the amber target chevron) and the lock-on camera (red chevron, strafing, switching); `<out>/aim_sheet.png`. Args: <out_dir>
+- `fightcam` (1.31): the combat camera off and on over the same flanked fight, side by side. Args: <out_dir>
 - `weathershot`: Sky + weather renders. Args: <out_prefix>
 - `themewxshot`: The weather on a themed chain island (a snow island's light fall, heavy snow, blizzard; a desert's sandstorms): the same two views (eye height with the captain on the way into the village, from 14 m up) per weather, Weather's numbers printed, a contact sheet; `steps` presses a trail of boot prints toward the village and looks along it. Args: <out_prefix> <chain seed> [node id | -] [clear,heavy,worst,night,dusk,steps] (seed 1 node 1 is Hoarfell Atoll, snow; seed 2 opens on a desert).
 - `outfitgrid`: Combination sheets to find clipping: `hats` (each hat over every hair style, 4 heads a sheet), `hair` (every style, no hat), `clothes` (each coat over every top x vest), `extras` (belts, apron, scarf, pauldron, pouch over coats). Args: <out_prefix> <mode> [yaw_deg] [fem]

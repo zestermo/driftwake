@@ -11387,3 +11387,13 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Combos commit:** a chained blow keeps the opener's way (meta "attack_dir") unless you push clearly against it
   (dot < -0.2) or are locked on.
 - Tests: omni_attack waits 8 ticks for the turn; attack_assist, lock_on and the aim-sensitive weapon tests pass.
+
+## 2026-11-10: the combat camera (Zach: "pull out a little and focus the other targets")
+
+- `camera_rig._fight_frame`: weapon out, foes within FIGHT_R 12 m (Targeting.candidates, every 6 frames): the arm
+  draws back to fit them (combat_zoom + far x 0.3 + 0.35 a foe past the first, up to FIGHT_ZOOM_MAX 7 m) and the
+  look point leans FIGHT_LEAN 1/3 of the way to their weighted middle (nearer foes count more, the locked one 4x; at
+  most 2.5 m). Never turns the view (the removed fight framing turned it and fought the aim). Eased ~0.5 s; walls
+  still pull the spring arm in. Setting gameplay "combat_camera" (menu "Combat camera", on by default).
+- Test: t/combat/combat_camera (draws back, leans toward the foes, yaw untouched, the setting off settles back).
+  Renders: tools/dev/fightcam.gd (off / on side by side).

@@ -147,6 +147,9 @@ func _process(delta: float) -> void:
 				room = maxf(room, float(b.camera_room(target.global_position)))
 	_room = move_toward(_room, room, delta * 1.2)
 	zoom = lerpf(zoom, maxf(zoom, ROOM_ZOOM), _room)
+	# (1.31) a fight around you: the arm draws back to fit it, the view's centre leans toward it (_fight_frame)
+	_fight_frame(delta)
+	zoom = maxf(zoom, lerpf(zoom, _fight_zoom, _fight_k))
 	_show = move_toward(_show, _show_target, delta * 2.6)
 	var e := smoothstep(0.0, 1.0, _show)
 	if _show > 0.0 or _show_target > 0.0:
@@ -186,6 +189,7 @@ func _process(delta: float) -> void:
 		# (60 Hz), the camera at the display rate. Reading the raw position here
 		# makes everything judder on high-refresh monitors.
 		var target_pos := target.get_global_transform_interpolated().origin + Vector3(0, lerpf(1.2, 0.88, e) + ROOM_LIFT * _room * (1.0 - e), 0)
+		target_pos += _fight_shift * _fight_k * (1.0 - e) * (1.0 - me)
 		if me > 0.0 and is_instance_valid(_map_focus):
 			target_pos = target_pos.lerp(_map_focus.get_global_transform_interpolated().origin, me)
 		# exponential weight: the same follow at 30 fps and at 165 fps (on the map, held to it)
@@ -412,3 +416,57 @@ func _pad_look(delta: float) -> void:
 		rotate_y(-l.x)
 	spring_arm.rotate_x(-l.y * inv_y)
 	spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(min_pitch), deg_to_rad(max_pitch))
+
+
+## (1.31) The combat camera (Zach: "pull out a little and focus the other targets"): weapon out with foes within
+## FIGHT_R m, the arm draws back just far enough to fit them (up to FIGHT_ZOOM_MAX) and the point it looks at leans
+## toward the fight's middle (FIGHT_LEAN of the way, at most FIGHT_SHIFT_MAX m; nearer foes count more, the locked one
+## most). It never turns the view: the mouse keeps the aim. Eased in and out over ~0.5 s; walls still pull the arm
+## in (the spring arm). Off with the "Combat camera" setting.
+const FIGHT_R := 12.0
+const FIGHT_ZOOM_MAX := 7.0
+const FIGHT_LEAN := 0.33
+const FIGHT_SHIFT_MAX := 2.5
+const FIGHT_EVERY := 6
+var _fight_k := 0.0
+var _fight_zoom := 0.0
+var _fight_shift := Vector3.ZERO
+var _fight_want_zoom := 0.0
+var _fight_want_shift := Vector3.ZERO
+var _fight_on := false
+var _fight_n := 0
+
+
+func _fight_frame(delta: float) -> void:
+	var p := target as Player
+	_fight_n += 1
+	if _fight_n % FIGHT_EVERY == 0:
+		_fight_on = false
+		var tg := _targeting()
+		if p and tg and _combat_blend > 0.5 and bool(Settings.get_value("gameplay", "combat_camera")):
+			var at: Vector3 = p.global_position
+			var foes: Array = tg.candidates(FIGHT_R)
+			if not foes.is_empty():
+				var mid := Vector3.ZERO
+				var wsum := 0.0
+				var far := 0.0
+				for f in foes:
+					var d: Vector3 = (f as Node3D).global_position - at
+					d.y = 0.0
+					var w := 1.0 / (1.0 + d.length())
+					if tg.locked() and f == tg.lock:
+						w *= 4.0
+					mid += d * w
+					wsum += w
+					far = maxf(far, d.length())
+				mid /= maxf(wsum, 0.001)
+				_fight_want_shift = (mid * FIGHT_LEAN).limit_length(FIGHT_SHIFT_MAX)
+				# one close foe barely moves it; a ring of them round you draws it back to fit
+				var spread := far * 0.3 + 0.35 * minf(float(foes.size() - 1), 3.0)
+				_fight_want_zoom = clampf(combat_zoom + spread, combat_zoom, FIGHT_ZOOM_MAX)
+				_fight_on = true
+	var k := 1.0 - exp(-2.2 * delta)
+	_fight_k = move_toward(_fight_k, 1.0 if _fight_on else 0.0, delta * 2.0)
+	if _fight_on:
+		_fight_zoom = lerpf(_fight_zoom if _fight_zoom > 0.0 else combat_zoom, _fight_want_zoom, k)
+		_fight_shift = _fight_shift.lerp(_fight_want_shift, k)
