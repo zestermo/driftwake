@@ -249,6 +249,11 @@ var _shot_done := false
 var _off: Array = OFFHAND["sword"]
 ## The running cut's reach with a Rushing weapon (TraitMoves.rush_k; 1: plain).
 var _rush := 1.0
+## (1.31) The blow's facing, turned into over the first ticks (TURN_IN rad/s) instead of snapped.
+var _face_yaw := 0.0
+const TURN_IN := 28.0
+## How long after a blow the stance keeps its facing (no whip back to the camera between hits).
+const FACE_HOLD := 0.45
 ## A polearm, hammer or axe pair's speed (its moves play that much faster; 1: other weapons).
 var _spd := 1.0
 ## When a hammer's head thuds into the ground (s; < 0: it doesn't).
@@ -287,12 +292,23 @@ func enter(data: Dictionary) -> void:
 	chained = false
 
 	# (1.31) omni attacks + assist: the way you push (or the lock), onto the foe there, stepping in to reach them
-	var lunge := assist_lunge(attack_aim(), float(cfg["impulses"][combo_index]))
-	# (a hook drags them in from where they stand: it turns onto them but doesn't step in)
-	if cfg.has("hooks") and bool(cfg["hooks"][combo_index]):
+	# A combo commits to its first blow's way: the later blows keep it unless you push clearly the other way (or lock).
+	var aim := attack_aim()
+	var was: Vector3 = player.get_meta("attack_dir", Vector3.ZERO)
+	var commit: bool = data.get("chain", false) and was != Vector3.ZERO and locked_target() == null
+	if commit and (get_movement_input().length() < 0.2 or aim.dot(was) > -0.2):
+		aim = was
+	var lunge := assist_lunge(aim, float(cfg["impulses"][combo_index]))
+	# (a hook drags them in from where they stand: it turns onto them but doesn't step in; a chained blow doesn't
+	# stretch its lunge either: only the opener closes the gap)
+	if (cfg.has("hooks") and bool(cfg["hooks"][combo_index])) or data.get("chain", false):
 		lunge[1] = float(cfg["impulses"][combo_index])
 	var forward: Vector3 = lunge[0]
-	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
+	player.set_meta("attack_dir", forward)
+	# turned into the blow quickly rather than snapped (TURN_IN), the lunge already going that way
+	_face_yaw = atan2(-forward.x, -forward.z)
+	if absf(angle_difference(player.player_model.rotation.y, _face_yaw)) < 0.35:
+		player.player_model.rotation.y = _face_yaw
 	_rush = TraitMoves.rush_k(player) if cfg.get("breaker", false) else 1.0
 	player.velocity.x = forward.x * float(lunge[1]) * _rush
 	player.velocity.z = forward.z * float(lunge[1]) * _rush
@@ -338,6 +354,7 @@ func enter(data: Dictionary) -> void:
 
 
 func physics_update(delta: float) -> void:
+	player.player_model.rotation.y = rotate_toward(player.player_model.rotation.y, _face_yaw, TURN_IN * delta)
 	apply_gravity(delta)
 	var steer := Vector3.ZERO
 	if cfg.has("steers") and float(cfg["steers"][combo_index]) > 0.0 and not can_combo:
@@ -559,6 +576,7 @@ func _punch_wind(w: Array, col: Color) -> void:
 
 
 func exit() -> void:
+	player.set_meta("face_hold", now_s() + FACE_HOLD)
 	player.sword_hitbox.deactivate()
 	player.sword_pivot.rotation_degrees.z = 0.0
 	if not chained:

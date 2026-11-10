@@ -11377,3 +11377,13 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Spray and wake:** a bigger bow sheet, a rooster tail behind past ~45% speed, a stronger wake (ride_fx).
 - **Tests:** t/gadgets/skimmer_moves (the mount, the lean both ways, the jump off); skimmer_ride and skimmer_parts
   pass. Renders: posebench PB_SET="skim_lean=1.0" (tools/dev/out/skim).
+
+## 2026-11-10: omni attacks smoothed (Zach: "janky": snapping, sliding, combos wandering)
+
+- **No snap:** a light attack turns into its blow at TURN_IN 28 rad/s (a quarter turn in ~3 ticks) instead of
+  setting the yaw; under 0.35 rad it still sets it. **No whip back:** for FACE_HOLD 0.45 s after a blow
+  `face_camera` holds (meta "face_hold"), so the stance doesn't spin back to the camera between hits.
+- **No slide:** ASSIST_GAP_MAX 3.2 -> 1.4 m, and only a combo's opener stretches its lunge.
+- **Combos commit:** a chained blow keeps the opener's way (meta "attack_dir") unless you push clearly against it
+  (dot < -0.2) or are locked on.
+- Tests: omni_attack waits 8 ticks for the turn; attack_assist, lock_on and the aim-sensitive weapon tests pass.

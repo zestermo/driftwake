@@ -377,6 +377,9 @@ func wants_dodge() -> bool:
 
 ## Combat stance keeps the character facing where the camera looks.
 func face_camera(delta: float) -> void:
+	# (1.31) for a beat after a swing the body keeps the way it struck (no whip back to the camera between hits)
+	if now_s() < float(player.get_meta("face_hold", 0.0)):
+		return
 	face_direction(get_camera_forward(), delta)
 
 
@@ -406,7 +409,7 @@ const TARGETING := preload("res://scripts/combat/targeting.gd")
 const ASSIST_RANGE := 6.5
 const ASSIST_CONE := 0.5  # cos 60 degrees
 const ASSIST_REACH := 1.7  # (a strike's own reach: no step in closer than this)
-const ASSIST_GAP_MAX := 3.2
+const ASSIST_GAP_MAX := 1.4  # (Zach: 3.2 slid across the ground)
 
 
 func assist_target(aim: Vector3) -> Node3D:

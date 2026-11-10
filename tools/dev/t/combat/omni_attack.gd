@@ -34,7 +34,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(2)
 		2:
 			TK.act("light_attack")
-			until = TK.wait_ticks(4)
+			until = TK.wait_ticks(8)  # (the blow turns in over ~0.1 s, TURN_IN)
 		3:
 			TK.release("move_left")
 			var d: Vector3 = stage.dummy.global_position - p.global_position
