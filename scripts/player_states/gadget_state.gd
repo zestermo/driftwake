@@ -147,6 +147,9 @@ func enter(data: Dictionary) -> void:
 	var h := player.body_model
 	match id:
 		"grapple":
+			# (1.31) turned to the point first, then the rope in the hand on its side (Humanoid.pick_rope_hand)
+			_face(_at - player.global_position)
+			h.pick_rope_hand(_at)
 			var hand := _hand()
 			_rope = GadgetRope.make(player.get_tree().current_scene, hand, _at, tier)
 			_rope.shoot_time = clampf(hand.distance_to(_at) / 70.0, 0.08, 0.3)
@@ -348,6 +351,8 @@ func _to_air() -> void:
 
 
 func _hand() -> Vector3:
+	if id == "grapple" and player.body_model and player.body_model.rope_hand():
+		return player.body_model.rope_hand().global_position
 	return player.global_position + Vector3.UP * 1.5 - player.player_model.global_basis.z * 0.3
 
 

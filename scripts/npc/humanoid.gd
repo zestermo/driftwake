@@ -2547,10 +2547,11 @@ func _action_pose(n: String, u: float) -> Array:
 				"torso": Vector3(0.2, 0, 0), "head": Vector3(0.2, 0, 0)}
 			return [_keys(u, [[0.0, rel], [0.55, rel], [1.0, {}]]), "full", lift]
 		"vine_zip":
-			# reeled along the vine toward a big target: vine arm ahead, knees up
-			var zp := {"arm_r": Vector3(1.9, 0.0, 0.1), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(0.4, 0, -0.9), "fore_l": Vector3(0.9, 0, 0),
-				"leg_l": Vector3(1.3, 0, -0.12), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(0.9, 0, 0.12), "shin_r": Vector3(-1.6, 0, 0),
-				"torso": Vector3(-0.3, 0, 0), "head": Vector3(0.35, 0, 0)}
+			# (1.31) reeled along the vine toward a big target: the vine arm reaching ahead and drawing in, the chest
+			# leaning after it, the free arm back, the legs trailing (mirrored on the left hand)
+			var zp := {"arm_r": Vector3(2.1, 0.0, 0.1), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(-0.6, 0, -0.5), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(-0.35, 0, -0.08), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.1, 0, 0.08), "shin_r": Vector3(-0.3, 0, 0),
+				"torso": Vector3(-0.45, 0.12, 0), "head": Vector3(0.1, -0.1, 0)}
 			return [_keys(u, [[0.0, {}], [0.15, zp, "out"], [1.0, zp]]), "full", lift]
 		"vine_pull":
 			# shoot the vine at them, then haul it back hand over fist
@@ -3189,6 +3190,8 @@ func _pose(delta: float) -> void:
 		var u := _sample_u(float(_action["t"]), sp)
 		_base = target
 		var res := _action_pose(n, u)
+		if rope_left and n in ROPE_ACTIONS:
+			res[0] = _mirror_pose(res[0])
 		var pose: Dictionary = res[0]
 		var mask: String = res[1]
 		if mask == "full":
@@ -4694,3 +4697,48 @@ func _work_pose(p: Dictionary) -> Vector3:
 			p["shin_r"] = Vector3(-0.35 - 0.45 * maxf(-cos(w), 0.0), 0, 0)
 			return Vector3(0, -0.1 - 0.03 * absf(sin(w)), 0)
 	return Vector3.ZERO
+
+
+# ==========================================================================
+# (1.31) Rope work in either hand
+# ==========================================================================
+## Swings, grapples and zips are one-handed in the hand on the anchor's side (`pick_rope_hand`); on the left the
+## rope actions play mirrored. Synced (HumanoidSync), so crewmates see the same hand on the line.
+const ROPE_ACTIONS := ["vine_throw", "vine_pull", "vine_zip", "vine_hang", "vine_release", "vine_shoot", "gd_grapple"]
+var rope_left: bool = false
+
+
+## The hand on the rope.
+func rope_hand() -> Node3D:
+	return hand_l if rope_left and hand_l else hand_r
+
+
+## Take the rope in the hand on `anchor`'s side, or the other if a weapon fills that one.
+func pick_rope_hand(anchor: Vector3) -> void:
+	var l := global_basis.orthonormalized().inverse() * (anchor - global_position)
+	var left := l.x < -0.05
+	var right_busy := weapon_in_hand and weapon != null and is_instance_valid(weapon) and weapon.visible
+	var left_busy := offhand != null and is_instance_valid(offhand) and offhand.visible and weapon_in_hand
+	if left and left_busy and not right_busy:
+		left = false
+	elif not left and right_busy and not left_busy:
+		left = true
+	rope_left = left
+
+
+## A pose seen in a mirror: left and right swap, the turns about up and forward flip (the "_" keys, `_scale` and
+## the rest, kept as they are: _mirror would flip a scale).
+static func _mirror_pose(pose: Dictionary) -> Dictionary:
+	var out := {}
+	for k in pose.keys():
+		var key: String = k
+		var v = pose[k]
+		if key.begins_with("_"):
+			out[key] = v
+			continue
+		if key.ends_with("_l"):
+			key = key.trim_suffix("_l") + "_r"
+		elif key.ends_with("_r"):
+			key = key.trim_suffix("_r") + "_l"
+		out[key] = Vector3(v.x, -v.y, -v.z) if v is Vector3 else v
+	return out

@@ -3285,7 +3285,7 @@ func _puppet_swing_rope(key: String) -> void:
 		_net_swing.call("hang")
 	_net_swing = r
 	if r != null and is_instance_valid(r) and body_model.hand_r:
-		r.call("point_to", body_model.hand_r.global_position)
+		r.call("point_to", body_model.rope_hand().global_position)
 
 
 ## A crewmate's glider: the wing on their back while it's open (tier from the flags), gone when it folds.
@@ -3403,8 +3403,8 @@ func _puppet_process(delta: float) -> void:
 	var rope_end: Vector3 = b[10]
 	if rope_end != Vector3.INF:
 		if _net_rope == null or not is_instance_valid(_net_rope):
-			_net_rope = VineRope.make(get_tree().current_scene, body_model.hand_r.global_position, rope_end, 0.1)
-		_net_rope.set_ends(body_model.hand_r.global_position, rope_end)
+			_net_rope = VineRope.make(get_tree().current_scene, body_model.rope_hand().global_position, rope_end, 0.1)
+		_net_rope.set_ends(body_model.rope_hand().global_position, rope_end)
 	elif _net_rope != null:
 		if is_instance_valid(_net_rope):
 			_net_rope.call("retract")

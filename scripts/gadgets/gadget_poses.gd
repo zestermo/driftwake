@@ -19,10 +19,11 @@ static func pose(h, n: String, u: float) -> Array:
 			var follow := whip.merged({"arm_l": Vector3(1.2, 0.0, 0.05), "hand_l": Vector3(0.9, 0, 0), "_scale": Vector3.ONE}, true)
 			return [h._keys(u, [[0.0, {}], [0.36, cock, "out"], [0.46, cock], [0.56, whip, "out"], [0.78, follow], [1.0, {}]]), "upper", lift]
 		"gd_grapple":
-			# hauled up the line: both arms up it, the body stretched after them, legs trailing
-			var haul := {"arm_l": Vector3(2.7, 0.15, -0.15), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(2.6, -0.1, 0.2), "fore_r": Vector3(0.5, 0, 0),
-				"torso": Vector3(0.15, 0.1, 0), "head": Vector3(0.25, 0, 0), "hips": Vector3.ZERO,
-				"leg_l": Vector3(-0.3, 0, -0.1), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(0.2, 0, 0.1), "shin_r": Vector3(-0.9, 0, 0),
+			# (1.31) hauled up the line one-handed: the rope arm reaching up it and drawing in, the chest leaning after it,
+			# the free arm out behind for balance, the legs trailing loose (mirrored for the left hand: Humanoid.rope_left)
+			var haul := {"arm_l": Vector3(-0.6, 0.0, -0.55), "fore_l": Vector3(0.5, 0, 0), "arm_r": Vector3(2.5, -0.1, 0.15), "fore_r": Vector3(1.1 + 0.25 * sin(u * T * 9.0), 0, 0),
+				"torso": Vector3(-0.2, 0.15, 0.05), "head": Vector3(-0.15, -0.1, 0), "hips": Vector3.ZERO,
+				"leg_l": Vector3(-0.4, 0, -0.08), "shin_l": Vector3(-0.55, 0, 0), "leg_r": Vector3(-0.1, 0, 0.08), "shin_r": Vector3(-0.3, 0, 0),
 				"_scale": Vector3(0.97, 1.04, 1.0)}
 			return [h._keys(minf(u * T / 0.25, 1.0), [[0.0, {}], [1.0, haul, "out"]]), "full", lift]
 		"gd_glide":

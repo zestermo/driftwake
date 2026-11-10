@@ -11352,3 +11352,16 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   face, LAND_ROLL_K 1.8x a dodge roll's distance (~8.6 m); unhurt under Feather Fall's height, half past it, no
   stumble. Without it a tall drop hurts and staggers as before. The ordinary-landing roll from earlier today is gone.
   Test: t/player/roll_out.
+
+## 2026-11-09: swinging and grappling, one look (1.31 candidate; Zach: either hand)
+
+- **Either hand:** `Humanoid.rope_left` (synced, HumanoidSync) mirrors every rope action (ROPE_ACTIONS: vine throw,
+  pull, zip, hang, release, shoot and the grapple gadget's gd_grapple) with `_mirror_pose` (not the old `_mirror`,
+  which would flip `_scale`). `pick_rope_hand(anchor)` takes the hand on the anchor's side, the other if a weapon
+  fills that one; `rope_hand()` is where every rope is drawn from (SwingState, the grapple gadget turned to its
+  point first, the Vine Swing skill, crewmates' ropes on our screen).
+- **The pull:** the grapple's two-handed haul and the vine zip are one-arm pulls now: the rope arm reaching up the
+  line and drawing in, the chest leaning after it, the free arm out behind, the legs trailing. The hang already
+  dangles its free limbs with the swing (DANGLE_LIMBS).
+- **Tests:** t/player/rope_hand (the hand chosen by side and by weapon, the mirrored hang); t/gadgets,
+  t/coop/puppet_traversal, t/ship/yard_ropes pass. Renders: posebench PB_SET="rope_left=true" (tools/dev/out/swing).

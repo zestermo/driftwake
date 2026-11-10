@@ -40,10 +40,13 @@ func enter(data: Dictionary) -> void:
 	_rope = data.get("rope", null)
 	player.sprinting = false
 	var h := player.body_model
+	# (1.31) the rope in the hand on its side (Humanoid.pick_rope_hand: either hand, a weapon's hand left free)
+	var to_anchor: Vector3 = _rope.global_position if _rope else (_zip_target() if _zip else data.get("anchor", player.global_position + Vector3.UP * 6.0))
+	h.pick_rope_hand(to_anchor)
 	if _rope:
 		_enter_rope(h)
 		return
-	_wraps = Net.fx("arm_vines", [h, "r"])
+	_wraps = Net.fx("arm_vines", [h, "l" if h.rope_left else "r"])
 	if _zip:
 		anchor = _zip_target()
 		_vine = VineRope.make(player.get_tree().current_scene, _hand(), anchor, 0.08)
@@ -109,7 +112,7 @@ func _clearance() -> float:
 
 
 func _hand() -> Vector3:
-	var h: Node3D = player.body_model.hand_r if player.body_model else null
+	var h: Node3D = player.body_model.rope_hand() if player.body_model else null
 	return h.global_position if h else player.global_position + Vector3(0, 1.9, 0)
 
 

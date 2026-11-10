@@ -237,8 +237,9 @@ func enter(data: Dictionary) -> void:
 						flat.y = 0.0
 						if flat.length() > 0.1:
 							face_direction(flat.normalized(), 1.0)
+						player.body_model.pick_rope_hand(_enemy_chest(e))
 						player.body_model.play("vine_pull", dur)
-						_wraps = Net.fx("arm_vines", [player.body_model, "r", dur])
+						_wraps = Net.fx("arm_vines", [player.body_model, "l" if player.body_model.rope_left else "r", dur])
 						_rope = VineRope.make(player.get_tree().current_scene, _vine_hand(), _enemy_chest(e), 0.1)
 						Net.fx("sfx", ["whoosh", player.global_position, -5.0, 0.1, 1.2])
 					else:
@@ -445,7 +446,7 @@ func _vine_target() -> Dictionary:
 
 
 func _vine_hand() -> Vector3:
-	var hr: Node3D = player.body_model.hand_r if player.body_model else null
+	var hr: Node3D = player.body_model.rope_hand() if player.body_model else null
 	return hr.global_position if hr else player.global_position + Vector3(0, 1.4, 0)
 
 
