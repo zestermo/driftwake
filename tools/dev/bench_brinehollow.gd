@@ -29,16 +29,23 @@ const NEW := ["terrace", "farm", "fight", "sea", "storm", "village", "cplaza", "
 ## sprint, a brawl at the smugglers' camp, a broadside duel at sea that ends in a boarding and her sinking.
 ## isles: standing in Brinehollow's plaza while a chain island ahead is let go and built again (what a captain
 ## plays through when the log pose sets: the build's steps a frame each, the old island freed).
-const ACT := ["bwalk", "brawl", "naval", "isles", "cwalk"]
+## melee (2026-11-10): the big fight the play sessions fall over in (20 enemies awake: 50 ms frames at 3 ticks a frame
+## on the host). A crew of MELEE_N sword grunts of the bench's own by the smugglers' camp, all alerted on the captain,
+## six swinging at once, kept alive (topped up under half health) so the load holds for the whole sample. With `coop`
+## a guest stands in it, as in those sessions.
+const ACT := ["bwalk", "brawl", "melee", "naval", "isles", "cwalk"]
 ## (the village late: standing on a chain island makes the crew arrive there, which frees the other one ahead)
 const ROUTE := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard", "terrace", "farm", "bwalk", "fight",
-	"brawl", "sea", "storm", "naval", "isles", "village", "cplaza", "cmarket", "cwalk"]
+	"brawl", "melee", "sea", "storm", "naval", "isles", "village", "cplaza", "cmarket", "cwalk"]
 const GROUPS := {"old": OLD, "new": NEW, "act": ACT, "all": ROUTE, "town": ["terrace", "farm", "village", "cplaza", "cmarket"],
-	"atsea": ["sea", "storm"], "capital": ["cplaza", "cmarket", "cwalk"], "walk": ["bwalk", "cwalk"], "fights": ["brawl", "naval"]}
+	"atsea": ["sea", "storm"], "capital": ["cplaza", "cmarket", "cwalk"], "walk": ["bwalk", "cwalk"], "fights": ["brawl", "melee", "naval"]}
 ## The isles stop ends this long after the island is standing again (at most ISLES_MAX s).
 const ISLES_MAX := 45.0
 const CAPITAL := ["cplaza", "cmarket", "cwalk"]
-const ACT_DUR := {"brawl": 20.0, "naval": 26.0}
+const ACT_DUR := {"brawl": 20.0, "melee": 20.0, "naval": 26.0}
+const MELEE_N := 20
+## The melee's settle waits this long at most for the crew's bodies (built on a worker, as a camp's are).
+const MELEE_WAIT := 40.0
 const WALK_V := 9.0
 ## The walks, in each island's frame: Brinehollow's (beach, plaza, market, up to the terrace, back down to the quay)
 ## and the capital's (city frame: along the quay, through the sea gate, up the market street, the plaza, the arena
@@ -106,6 +113,10 @@ var _cast_slot := -1
 var _cast_until := 0.0
 ## The isles stop: when (act_t) the island stood again (-1 not yet).
 var isles_done := -1.0
+## The melee stop's crew (a GruntCamp of the bench's own), freed when the stop ends; when in its settle every
+## grunt stood (-1 not yet).
+var melee_camp
+var melee_up := -1.0
 ## Hitches (base frames over HITCH_MS): each with its split, pipelines compiled and Perf's marks.
 var hitches: Array = []
 var pipes_at := PackedInt64Array()
@@ -496,6 +507,23 @@ func _spot(s: String) -> Vector3:
 				if is_instance_valid(g) and not g.is_dead():
 					g.alert(randf_range(0.1, 0.4))
 			return _g(isl, isl.SMUGGLERS - Vector2(1, 0.15).normalized() * 6.0)
+		"melee":
+			_arm()
+			# (inland of the smugglers' fire, clear of the brawl's ground; the crew in two rings round the captain)
+			var cq: Vector2 = isl.SMUGGLERS - Vector2(1, 0.15).normalized() * 22.0
+			var c3 := _g(isl, cq)
+			melee_camp = load("res://scripts/enemies/grunt_camp.gd").new()
+			melee_camp.name = "BenchCrew"
+			melee_camp.max_attackers = 6
+			melee_camp.warm_start = true
+			for i in range(MELEE_N):
+				var a := TAU * float(i) / float(MELEE_N)
+				var q := cq + Vector2(cos(a), sin(a)) * (7.0 + float(i % 2) * 3.5)
+				melee_camp.add_grunt({"post": _g(isl, q) - c3, "role": "sword", "seed": 700 + i})
+			root.get_node("World").add_child(melee_camp)
+			melee_camp.global_position = c3
+			melee_up = -1.0
+			return c3
 		"isles":
 			isles_done = -1.0
 			return _g(isl, v + to_dock * 10.0)
@@ -575,6 +603,9 @@ func _find_sea() -> void:
 
 
 func _next_stop() -> void:
+	if is_instance_valid(melee_camp):
+		melee_camp.queue_free()
+	melee_camp = null
 	si += 1
 	if si >= stops.size():
 		_finish()
@@ -648,7 +679,7 @@ func _step(d: float) -> void:
 		_act(d)
 	else:
 		rig.rotation.y = TAU * clampf(e / dur, 0.0, 1.0)
-	if stops[si] in ["fight", "brawl", "naval"]:
+	if stops[si] in ["fight", "brawl", "melee", "naval"]:
 		var hc = p.health_component
 		if hc.current_health < hc.max_health:
 			hc.current_health = hc.max_health
@@ -701,6 +732,9 @@ func _dur() -> float:
 	if not s in ACT:
 		return DUR[phase]
 	if phase == "settle":
+		# (the melee's crew turns up once its bodies are built: the settle holds until every grunt stands, then 3 s)
+		if s == "melee":
+			return melee_up + 3.0 if melee_up >= 0.0 else MELEE_WAIT
 		return 3.0
 	if phase == "probe":
 		return DUR["probe"]
@@ -715,6 +749,8 @@ func _act(d: float) -> void:
 	if phase == "settle":
 		if s == "naval":
 			_beside()
+		elif s == "melee" and melee_up < 0.0 and is_instance_valid(melee_camp) and melee_camp.grunts.size() >= MELEE_N:
+			melee_up = t - t0
 		return
 	var was := act_t
 	act_t += d
@@ -735,6 +771,18 @@ func _act(d: float) -> void:
 				p.player_model.global_rotation.y = yaw
 		"brawl":
 			_fight(root.get_node("World/Islands/Brinehollow").smugglers.grunts, was, d)
+		"melee":
+			var crew: Array = melee_camp.grunts if is_instance_valid(melee_camp) else []
+			if was == 0.0:
+				for g in crew:
+					if is_instance_valid(g):
+						g.alert(randf_range(0.1, 0.4))
+				results[s]["enemies"] = _enemy_line(p.global_position)
+				print("bench: melee: %d of %d grunts up" % [crew.size(), MELEE_N])
+			for g in crew:
+				if is_instance_valid(g) and not g.is_dead() and g.health.current_health < g.health.max_health * 0.5:
+					g.health.current_health = g.health.max_health
+			_fight(crew, was, d)
 		"naval":
 			_naval(was, d)
 		"isles":

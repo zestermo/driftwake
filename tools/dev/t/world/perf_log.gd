@@ -42,6 +42,12 @@ func _process(_d: float) -> bool:
 			check("the sessions before moved down one", FileAccess.get_file_as_string(perf.log_path(1)) == "session 0"
 				and FileAccess.get_file_as_string(perf.log_path(4)) == "session 3")
 			check("...and the oldest went", not FileAccess.file_exists(DIR + "perf_5.log"))
+			# (the frame's split, 2026-11-10: what a slow frame was made of)
+			check("the spike and the half-minute line say how the frame split", txt.contains("| split phys ") and txt.contains("| mean split phys "))
+			var sp: PackedFloat32Array = perf.split
+			var whole: float = sp[0] + sp[1] + sp[2] + sp[3] + sp[4]
+			print("   split phys %.2f proc %.2f tail %.2f draw %.2f wait %.2f" % [sp[0], sp[1], sp[2], sp[3], sp[4]])
+			check("a frame was split: scripts ran and the parts are a frame's worth (%.2f ms)" % whole, sp[1] > 0.0 and whole > 0.0 and whole < 2000.0)
 			return TK.done(fails)
 	step += 1
 	return false

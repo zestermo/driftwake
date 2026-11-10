@@ -11434,3 +11434,26 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Tested by** the three suites (pass and exit), t/island/quit_prebuild (ends with a crew of ten mid-build),
   t/island/free_busy_beasts, t/island/beast_prebuild, t/stronghold/place, t/ship/admiralty_warm. Not run: racestress,
   the world suites and nettest (prepush).
+
+## 2026-11-10: perf phase 0: the melee stop, the frame's split in perf.log, a draw-count gate (docs/review_2026_11_10.md)
+- **Why:** the play sessions' slow frames (25-50 ms) had 1-5 ms of timed sections, and no bench stop had more than five
+  enemies awake, so the fights that drop the host under 30 fps couldn't be measured or attributed.
+- **Bench `melee` stop** (`bench_brinehollow.gd`; groups `act`, `fights`): a GruntCamp of the bench's own, 20 sword
+  grunts (warm start: bodies on a worker; the settle waits until all stand), by the smugglers' camp, all alerted, six
+  swinging at once (`max_attackers` 6), topped up under half health so the load holds 20 s; the captain fights as in
+  `brawl`. Freed when the stop ends. `bench.ps1 label=x quick coop stops=melee` puts the guest in it. First numbers
+  (v1.31, 5600G + 3080, editor build, quick): solo 29.0 ms mean, p95 34.7, 79 frames over 33 ms, ticks 1.74, tick_scr
+  3.65 ms, proc_scr 9.1, tail 4.7, draw 6.6, draws 1242 + 1037; with a guest 34.5 ms, p95 43.4, 324 over 33 ms, ticks
+  2.07, phys_scr 8.5 a frame, proc_scr 11.5. frame1t 25.5 / 28.9: a one-tick frame is already slow.
+- **perf.log's split** (`perf_monitor.gd`): every spike line has `| split phys / proc / tail / draw / wait` and the
+  half-minute line their means. Stamps: Perf's own `_physics_process` (first of each tick), its `_process` (first of
+  the pass), a `Late` child (last of the pass), RenderingServer's frame_pre_draw / frame_post_draw. A frame with no
+  draw (headless, minimised) puts the tail in wait. Cost: five timestamps a frame.
+- **Gate** (`perf_gate.ps1`): also fails when the gated stops' mean draws + shadow draws is >10% over the baseline's
+  (a count: no machine noise). The printed target is 12 ms (the bench runs on the min-spec PC now), was the laptop's 10.
+- **bench.ps1:** the log is written through a 64 MB cap (UTF-8 now, was UTF-16); past it the bench's Godot is stopped
+  and the run exits 3 (a render-thread experiment's error flood wrote 4.8 GB and filled C:).
+- **Not done:** the baseline is still 10-24's; a stronghold stop; `melee` in the gate's baseline (it's printed, not
+  judged, until `-Update`).
+- **Tested by** t/world/perf_log (the split in both lines, a frame split with no draw); the melee stop run twice
+  (solo, coop: 20 of 20 up, no script errors). perftest also reads the perf log (prepush).

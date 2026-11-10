@@ -60,11 +60,37 @@ var _cat_n := PackedInt32Array()
 var _steps: Array = []
 var _added := 0
 var _added_by := {}
+## The frame's split (2026-11-10: the play logs' slow frames had 1-5 ms of 25-50 timed): when (us) this frame's first
+## physics tick began, its process pass ended and its draw began and ended; 0 = not this frame. `split` is the last
+## whole frame's [phys, proc, tail, draw, wait] ms; _split_sum adds them up for the half-minute line.
+const SPLIT := ["phys", "proc", "tail", "draw", "wait"]
+var _t_phys := 0
+var _t_late := 0
+var _t_pre := 0
+var _t_post := 0
+var split := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0])
+var _split_sum := PackedFloat64Array([0.0, 0.0, 0.0, 0.0, 0.0])
+
+
+## The last node of the process pass: stamps where the scripts end and the tail (timers, tweens, transform
+## notifications, deferred calls) begins.
+class Late extends Node:
+	var perf: Node
+	func _process(_d: float) -> void:
+		perf._t_late = Time.get_ticks_usec()
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_priority = -1000000
+	process_physics_priority = -1000000
+	var late := Late.new()
+	late.perf = self
+	late.name = "Late"
+	late.process_priority = 1000000
+	add_child(late)
+	RenderingServer.frame_pre_draw.connect(func(): _t_pre = Time.get_ticks_usec())
+	RenderingServer.frame_post_draw.connect(func(): _t_post = Time.get_ticks_usec())
 	if Settings.tool_run():
 		log_dir = ""
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
@@ -148,10 +174,36 @@ func _on_added(n: Node) -> void:
 		_added_by[s] = int(_added_by.get(s, 0)) + 1
 
 
+## The first node of every physics tick: stamps where the frame's physics (scripts and Jolt, every tick) began.
+func _physics_process(_d: float) -> void:
+	if _t_phys == 0:
+		_t_phys = Time.get_ticks_usec()
+
+
+## The frame that just ended, from its process pass to this one: its scripts (to Late), the tail (to the draw), the
+## draw, the wait after it (present, vsync, the OS), then this frame's physics ticks, which run before its process.
+func _take_split(from: int, now: int) -> void:
+	if from <= 0 or _t_late < from:
+		return
+	# (no draw this frame: headless, or the window minimised; the tail then counts as wait)
+	var drew := _t_pre >= _t_late and _t_post >= _t_pre
+	var after := _t_post if drew else _t_late
+	var phys0 := _t_phys if _t_phys >= after else now
+	split[0] = (now - phys0) / 1000.0
+	split[1] = (_t_late - from) / 1000.0
+	split[2] = (_t_pre - _t_late) / 1000.0 if drew else 0.0
+	split[3] = (_t_post - _t_pre) / 1000.0 if drew else 0.0
+	split[4] = (phys0 - after) / 1000.0
+	for i in range(5):
+		_split_sum[i] += split[i]
+
+
 func _process(delta: float) -> void:
 	# (real time: delta runs at Engine.time_scale, 0.05 in a hit-stop)
 	var now := Time.get_ticks_usec()
 	var ms := (now - _last_us) / 1000.0 if _last_us > 0 else delta * 1000.0
+	_take_split(_last_us, now)
+	_t_phys = 0
 	_last_us = now
 	_frames.append(ms)
 	var pipes := _pipe_counts()
@@ -218,6 +270,7 @@ func spike_line(ms: float, pipes: PackedInt64Array, nodes: int, ticks: int) -> S
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		RenderingServer.viewport_get_measured_render_time_cpu(get_viewport().get_viewport_rid()), gpu_ms(),
 		"/".join(pd), nodes - _nodes_at]
+	L += "  | split phys %.1f  proc %.1f  tail %.1f  draw %.1f  wait %.1f" % [split[0], split[1], split[2], split[3], split[4]]
 	var secs := []
 	for i in range(CATS.size()):
 		if _cat_n[i] > 0:
@@ -331,11 +384,13 @@ func _write_line() -> void:
 	var s := frame_stats()
 	var c := counts()
 	var p := get_tree().get_first_node_in_group("player") as Node3D
-	_log.store_line("%6.1f min  fps %5.1f  1%%low %5.1f  worst %5.1f ms  hitches %d  spikes %d  process %.1f  physics %.1f  gpu %.1f  draws %d  nodes %d  enemies %d (%d awake)  swimming %d  loot %d  at %s" % [
+	var n := maxf(float(_frames.size()), 1.0)
+	_log.store_line("%6.1f min  fps %5.1f  1%%low %5.1f  worst %5.1f ms  hitches %d  spikes %d  process %.1f  physics %.1f  gpu %.1f  draws %d  nodes %d  enemies %d (%d awake)  swimming %d  loot %d  at %s  | mean split phys %.1f  proc %.1f  tail %.1f  draw %.1f  wait %.1f" % [
 		_session_t / 60.0, s[0], s[1], s[2], _hitches, _spikes,
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		gpu_ms(), c["draws"], c["nodes"], c["enemies"], c["awake"], c["swimming"], c["loot"],
-		"(%.0f, %.0f)" % [p.global_position.x, p.global_position.z] if p else "-"])
+		"(%.0f, %.0f)" % [p.global_position.x, p.global_position.z] if p else "-",
+		_split_sum[0] / n, _split_sum[1] / n, _split_sum[2] / n, _split_sum[3] / n, _split_sum[4] / n])
 	for l in _hitch_lines:
 		_log.store_line(l)
 	_log.flush()
@@ -348,6 +403,7 @@ func _reset_window() -> void:
 	_spikes = 0
 	_worst = 0.0
 	_hitch_lines = []
+	_split_sum.fill(0.0)
 
 
 func log_path(k: int = 0) -> String:
@@ -367,6 +423,7 @@ func _open_log() -> void:
 		OS.get_name(), RenderingServer.get_video_adapter_name(), RenderingServer.get_current_rendering_driver_name(),
 		str(get_tree().root.size), ("pixelated" if psx.pixelated() else "native") if psx else "?",
 		"debug" if OS.is_debug_build() else "release"])
+	_log.store_line("(split, ms: phys = every physics tick of the frame, scripts and Jolt; proc = the process pass's scripts; tail = timers, tweens, transform notifications, deferred calls; draw = the draw on the main thread; wait = present, vsync, the OS)")
 	_log.store_line("(spike lines, frames over %d ms: physics ticks in it, Godot's process / physics ms, render cpu / gpu, pipelines compiled canvas/mesh/surface/draw/specialization, nodes made;" % int(SPIKE_MS))
 	_log.store_line(" timed: section ms/calls (anim = rigs posed, ai, build = island steps and freeing, spawn, sleep, fx, net, move = enemies moved a tick); slowest: named steps ms; spawned: nodes added (by script);")
 	_log.store_line(" awake: enemies awake/all, AI captains, ActorSleep's actors awake/all (hidden); co-op: host/guest, captains, worst ping; the captain's state and place; marks)")

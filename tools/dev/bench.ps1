@@ -63,8 +63,30 @@ try {
     $label = if ($label) { $label.Substring(6) } else { "run" }
     $log = Join-Path $outDir "brinehollow_$label.log"
     Write-Host "bench: the whole Godot log goes to $log"
-    & $Godot @a 2>&1 | Tee-Object -FilePath $log | Select-String -Pattern "SCRIPT ERROR|bench:"
-    $code = $LASTEXITCODE
+    # (the log is capped like the test runner's: an engine error flood wrote 4.8 GB and filled the disk, 2026-11-10.
+    # Past the cap the bench's Godot is stopped: a run that prints that much measured nothing)
+    $cap = 64MB
+    $bytes = 0L
+    $flooded = $false
+    $began = Get-Date
+    $w = [System.IO.StreamWriter]::new($log, $false, [System.Text.UTF8Encoding]::new($false))
+    try {
+        & $Godot @a 2>&1 | ForEach-Object {
+            if ($flooded) { return }
+            $line = "$_"
+            $w.WriteLine($line)
+            $bytes += $line.Length + 2
+            if ($bytes -gt $cap) {
+                $flooded = $true
+                Write-Host "bench: the log passed $([int]($cap / 1MB)) MB (an error flood): stopping Godot. Its start is in $log" -ForegroundColor Red
+                Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $Godot -and $_.StartTime -ge $began } | Stop-Process -Force -ErrorAction SilentlyContinue
+            } elseif ($line -match "SCRIPT ERROR|bench:") { $line }
+        }
+        $code = $LASTEXITCODE
+    } finally {
+        $w.Close()
+    }
+    if ($flooded) { $code = 3 }
 } finally {
     foreach ($s in $slots) { Exit-Slot $s }
     if ($ColdShaders -and (Test-Path $aside)) {

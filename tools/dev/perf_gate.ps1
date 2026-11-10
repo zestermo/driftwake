@@ -16,12 +16,14 @@
 #   - the mean of the stops' frame or frame1t is more than 15% worse, or
 #   - one stop's frame1t is more than 35% worse (a regression in one place, diluted in the mean; a single stop
 #     swung up to 22% between two passing runs of the same code, even as the best of 2), or
-#   - physics ticks per frame (the mean) rise above 0.8 (the spiral that made v1.13 slow).
+#   - physics ticks per frame (the mean) rise above 0.8 (the spiral that made v1.13 slow), or
+#   - the stops' mean draws + shadow draws is more than 10% up (2026-11-10: a count, so it doesn't swing with the
+#     machine; the draw on the main thread is a third of the frame and grew unnoticed while the ms were noise).
 # Every bench run also times a fixed script workload (calib). When the gate would fail, or this machine's
 # calib is more than 15% off the baseline's (a different power plan or heat: the numbers aren't comparable),
 # it benches the baseline's commit back to back in a temporary worktree and judges against that instead
-# (-NoConfirm skips it). Target: the laptop bench (i7-14700HX, RTX 4060) at <= ~10 ms mean frame keeps the
-# min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow.
+# (-NoConfirm skips it). Target (2026-11-10: the bench runs on the min-spec PC itself now, Ryzen 5 5600G + RTX 3080;
+# it was the laptop's ~10 ms): <= ~12 ms mean frame, which keeps ticks under 0.8 and leaves room for a fight and a guest.
 param(
 	[switch]$Update,
 	[int[]]$Hours = @(),
@@ -38,7 +40,8 @@ $FRAME_PCT = 15.0
 $STOP_PCT = 35.0
 $MAX_TICKS = 0.8
 $CALIB_PCT = 15.0
-$TARGET_MS = 10.0
+$TARGET_MS = 12.0
+$DRAWS_PCT = 10.0
 $COLS = @("frame", "frame1t", "ticks", "draws", "sh_draws")
 
 ## Runs one bench in checkout $dir; the result file's path.
@@ -121,7 +124,7 @@ function Write-Baseline($res, [string]$commit) {
 	$L = @(
 		"# Driftwake performance baseline: tools/dev/perf_gate.ps1 compares a release with it, -Update rewrites it.",
 		"# Brinehollow bench (bench_brinehollow.gd gate: base + probe), per stop the best of $Runs runs; ms; ALL = the mean of the stops.",
-		"# Target: ALL frame <= ~$TARGET_MS ms on this laptop keeps the min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow.",
+		"# Target: ALL frame <= ~$TARGET_MS ms on the min-spec PC (Ryzen 5 5600G + RTX 3080): 60 fps in Brinehollow with room for a fight and a guest.",
 		"commit $commit",
 		("taken {0:yyyy-MM-dd HH:mm}  runs {1}" -f (Get-Date), $Runs),
 		"machine $($first.machine)",
@@ -206,6 +209,13 @@ function Compare-Light([int]$h, $base, $now, [string]$what) {
 		if ($badf) { $fails += ("{0}:00 mean frame {1:N2} -> {2:N2} ms ({3:+0}%)" -f $h, $a.frame, $b.frame, $df) }
 		if ($bad1) { $fails += ("{0}:00 {1} frame1t {2:N2} -> {3:N2} ms ({4:+0}%)" -f $h, $(if ($s -eq "ALL") { "mean" } else { $s }), $a.frame1t, $b.frame1t, $d1) }
 		if ($badt) { $fails += ("{0}:00 physics ticks per frame {1:N2} (over {2})" -f $h, $b.ticks, $MAX_TICKS) }
+	}
+	$da = $baseAll.draws + $baseAll.sh_draws
+	$db = $nowAll.draws + $nowAll.sh_draws
+	$dd = Pct $da $db
+	if ($dd -gt $DRAWS_PCT) {
+		Write-Host ("  draws + shadow draws {0:N0} -> {1:N0} ({2:+0}%, over {3}%)" -f $da, $db, $dd, $DRAWS_PCT) -ForegroundColor Red
+		$fails += ("{0}:00 mean draws + shadow draws {1:N0} -> {2:N0} ({3:+0}%)" -f $h, $da, $db, $dd)
 	}
 	if ($nowAll.frame -gt $TARGET_MS) { Write-Host ("  (mean frame {0:N2} ms is over the ~{1} ms target for the min-spec PC's 60 fps)" -f $nowAll.frame, $TARGET_MS) -ForegroundColor Yellow }
 	$extra = @($now.stops.Keys | Where-Object { -not $base.stops.Contains($_) })

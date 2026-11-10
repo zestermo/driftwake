@@ -25,7 +25,10 @@ are the history: v1.13 ran 42 ms a frame in Brinehollow, v1.14 9.2 ms.
 ## The target
 
 - The min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow = the laptop's Brinehollow bench
-  (i7-14700HX + RTX 4060, d3d12) at **<= ~10 ms mean frame** (CLAUDE.md, Performance rules).
+  (i7-14700HX + RTX 4060, d3d12) at **<= ~10 ms mean frame** (CLAUDE.md, Performance rules). **Since late October
+  the benches run on the min-spec PC itself** (the result's header names the CPU): there the bar is **<= ~12 ms**
+  at the town stops (ticks under 0.8, room for a fight and a guest). It read 17 ms at v1.31; the plan to get back
+  is docs/review_2026_11_10.md.
 - The game is **CPU-bound**: driver (d3d12 vs Vulkan) and pixelation made no difference; GPU is ~2 ms.
   Costs are scripts, Jolt, transform notifications ("tail") and main-thread draw submission.
 - **The physics spiral:** each physics tick costs its ms once per tick, and a slow frame runs more ticks
@@ -64,7 +67,11 @@ are the history: v1.13 ran 42 ms a frame in Brinehollow, v1.14 9.2 ms.
   makes Alt+F10's jump (`Player.debug_to_capital`), which frees the chain islands round Brinehollow, and waits
   until the capital and its neighbours are up and manned plus `cwarm`. Other groups: `town` (terrace farm
   village cplaza cmarket), `atsea` (sea storm), `capital` (cplaza cmarket), `all` (the default).
-  The camera pans a full turn per phase at each.
+  The camera pans a full turn per phase at each. Action stops (group `act`, no pan): `bwalk` / `cwalk` (sprints
+  through Brinehollow and the capital), `brawl` (the smugglers' five), **`melee`** (2026-11-10: the bench's own crew
+  of 20 sword grunts, six swinging at once, kept alive for the whole sample: the fight the play sessions fall over
+  in; `quick coop stops=melee` puts a guest in it), `naval`, `isles` (a chain island let go and built again).
+- The log is capped at 64 MB: past it the bench's Godot is stopped (an engine error flood once wrote 4.8 GB).
 - Output in `tools/dev/out/bench/`: `brinehollow_<label>.txt` (results), `.log` (the whole Godot log),
   `brinehollow_<label>_<stop>.png` (one screenshot per stop, taken after its base sample so the save never
   lands in a measured frame: check the world looked right).
@@ -135,7 +142,8 @@ as the flipbook and ultimate rounds did.
 - Benches each light in `tools/dev/perf_baseline.txt` (13:00 and 21:00 clear) in `gate` mode, `-Runs` 2
   times, keeps each stop's best (interference only adds). ~10 min a light.
 - **Fails** (exit 1) when, against the baseline: the mean of the stops' `frame` or `frame1t` is >15% worse;
-  one stop's `frame1t` is >35% worse; or mean ticks/frame > 0.8. Only the baseline's stops are judged (today's
+  one stop's `frame1t` is >35% worse; mean ticks/frame > 0.8; or the stops' mean draws + shadow draws is >10% up
+  (a count: it doesn't swing with the machine). Only the baseline's stops are judged (today's
   baseline has the old eight; ALL = their mean); the route's other stops are printed under them, not gated,
   until `-Update` writes a baseline with them. The scripts it compares are the old route's (`== scripts_old`)
   when the run has more stops. A confirm benches the baseline's commit on the baseline's stops only. Prints each stop (base, now, d%, ticks,
@@ -196,7 +204,10 @@ as the flipbook and ultimate rounds did.
   awake / asleep). Its PROCESS is the worst of the last second and includes the draw, so ~frame time says
   little about scripts: use the bench to attribute. In the world, `user://perf.log` gets a line every 30 s
   (fps, 1% low, worst ms, hitches > 50 ms, process, physics, gpu, draws, nodes, enemies (awake), loot,
-  position); the previous session is `perf_prev.log`. Ask Zach for it when he reports a slowdown.
+  position); the previous session is `perf_prev.log`. Ask Zach for it when he reports a slowdown. Since 2026-11-10
+  every spike line has `| split phys / proc / tail / draw / wait` (ms: all the frame's physics ticks, the process
+  pass's scripts, the tail, the draw on the main thread, the wait after it) and the half-minute line their means:
+  read those first to see whether a slow stretch was physics, scripts or the draw.
 - **perftest** (heavy suite): swimmers drown, left-behind boarders go, drops expire, rig LOD (a far villager
   poses only some frames), 3D at the grid's scale, prebuilt bodies, shared weapon meshes, far FX skipped,
   the perf log, chunked terrain. **t/world/actor_sleep**: sleep at 650 m, frozen, the 120/160 hysteresis,
