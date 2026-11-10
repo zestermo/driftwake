@@ -11406,3 +11406,13 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - Tests updated (stale, not bugs): cutlass_carry's diagonal is no longer a strafe (travel ~0); greatsword_carry lets
   the sprint's starting turn settle before reading the sparks. rival_personality and raiders_haul flaked once each
   (pass on rerun, as earlier today).
+
+## 2026-11-10: saves lost the bounty, the personal chest and the arena rank (fixed)
+- **What:** `SaveGame.load_into` restored `bounty`, `bounty_log`, GameManager's `sea_chest`, `arena_rank` and
+  `arena_defended_day` inside the `else` of `if w: player.equip_weapon(w, false)`, so only a save with an empty main
+  hand got them back; with a weapon out they loaded as nothing and the next save wrote that. Since v1.19 (0041d22e);
+  found by the 2026-11-10 review (docs/review_2026_11_10.md). Now restored whatever is in the hand; `kicks` and
+  `unequip_weapon()` stay in the `else`.
+- **Not recoverable:** a slot already saved after such a load has the zeroes; its `.bak1-3` may hold older values.
+- **Tested by** t/items/bounty_save (weapon out and empty hand, 15 checks); t/items/quick_save, t/gear/mog_save and
+  t/player/loadout_swap still pass. savetest and progtest load this file: expect them at prepush.

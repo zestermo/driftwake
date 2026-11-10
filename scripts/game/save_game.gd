@@ -458,21 +458,23 @@ static func load_into(player: Player) -> bool:
 		player.equip_weapon(w, false)
 	else:
 		player.kicks = bool(data.get("kicks", false)) and player.knows_black_leg()
-		player.bounty = int(data.get("bounty", 0))
-		player.bounty_log = (data.get("bounty_log", []) as Array).duplicate(true)
-		var gmc := player.get_node_or_null("/root/GameManager")
-		if gmc:
-			gmc.sea_chest.clear()
-			for e in data.get("sea_chest", []):
-				var it := item_from(e[0])
-				if it:
-					var st := ItemStack.new()
-					st.item = it
-					st.quantity = int(e[1])
-					gmc.sea_chest.append(st)
-		player.arena_rank = int(data.get("arena_rank", 0))
-		player.arena_defended_day = int(data.get("arena_defended_day", -1))
 		player.unequip_weapon()
+	# (whatever is in the hand: these sat in the empty-hand branch from v1.19 to 1.31, so a save with a weapon
+	# out loaded with no bounty, an empty personal chest and arena rank 0, and the next save wrote that)
+	player.bounty = int(data.get("bounty", 0))
+	player.bounty_log = (data.get("bounty_log", []) as Array).duplicate(true)
+	var gmc := player.get_node_or_null("/root/GameManager")
+	if gmc:
+		gmc.sea_chest.clear()
+		for e in data.get("sea_chest", []):
+			var it := item_from(e[0])
+			if it:
+				var st := ItemStack.new()
+				st.item = it
+				st.quantity = int(e[1])
+				gmc.sea_chest.append(st)
+	player.arena_rank = int(data.get("arena_rank", 0))
+	player.arena_defended_day = int(data.get("arena_defended_day", -1))
 	var off := item_from(data.get("offhand", []))
 	if off:
 		player.set_offhand(off)
