@@ -9,7 +9,7 @@ const GROUPS := [
 		["crouch", "Sneak / crew technique"]]],
 	["Combat", [["ready_weapon", "Ready / sheathe"], ["light_attack", "Light attack"],
 		["heavy_attack", "Heavy attack"], ["parry", "Parry / block"], ["loadout", "Swap loadout"],
-		["quick_item", "Eat / drink"]]],
+		["quick_item", "Eat / drink (hold: food and gadgets)"]]],
 	["Abilities", [["skill_1", "Skill 1"], ["skill_2", "Skill 2"], ["skill_3", "Skill 3"], ["skill_4", "Skill 4"],
 		["skill_5", "Skill 5"], ["ultimate", "Ultimate"], ["transform", "Zoan: shift form"],
 		["gadget_fire", "Use gadget"], ["gadget_cycle", "Next gadget"]]],

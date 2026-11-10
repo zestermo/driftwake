@@ -2303,7 +2303,7 @@ const LOADOUTS := 3
 const LOADOUTS_FREE := 2
 signal loadout_changed
 var loadout_wheel
-## (1.28.1) O: a tap the next gadget, held the gadget wheel (GadgetWheel).
+## (1.28.1) O: the next gadget (GadgetWheel; 1.31: held too; picking one is on the E wheel, ItemWheel).
 var gadget_wheel
 ## Each slot: [main hand id ("" = fists, BLACK_LEG = kicks), off hand id ("" = none)], or [] never set up. The slot in
 ## use (loadout_at) is whatever you put in your hands meanwhile (the bag, I).

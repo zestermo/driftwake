@@ -3,7 +3,7 @@ extends Node
 ## A captain's gadget belt (1.28): the blueprints they know, the gadgets they've built (each at a tier, with its
 ## charges), and the slots they carry: one on the belt alone, GadgetData.BAG_SLOTS with a gadget bag (GadgetBag, an
 ## item in the bag; 1.28.1). U fires the selected slot's gadget (whatever weapon is held, on foot and free, mid-jump
-## too); O (GadgetWheel) taps to the next filled slot, held opens the wheel to pick one; without a bag it says a bag
+## too); O (GadgetWheel) takes up the next filled slot, and held E (ItemWheel, 1.31) shows them to pick one; without a bag it says a bag
 ## carries more. Gadgets off the slots stay built (the workbench lists them; a bag gained takes them up).
 ## Charges are spent per use and refilled at a workbench or camp;
 ## a short cooldown (game time: PlayerState.now_s) follows every use. Saved with the captain (SaveGame "gadgets").

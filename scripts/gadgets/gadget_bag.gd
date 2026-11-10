@@ -44,7 +44,7 @@ static func make_items(items: Dictionary) -> void:
 		it.display_name = "Gadget Bag (%s)" % c.capitalize()
 		it.value = VALUE
 		it.rarity = ItemData.Rarity.RARE
-		it.description = "A round, slouchy cloth satchel on a strap, its flap clasped shut. Carry it and you carry %d gadgets instead of one: tap O for the next, hold O to pick from the wheel." % GadgetData.BAG_SLOTS
+		it.description = "A round, slouchy cloth satchel on a strap, its flap clasped shut. Carry it and you carry %d gadgets instead of one: tap O for the next, or hold E to pick one from the wheel with your provisions." % GadgetData.BAG_SLOTS
 		it.item_type = ItemData.ItemType.LOOT
 		it.max_stack = 1
 		it.icon_kind = "part"
