@@ -71,7 +71,7 @@ func sync_chain_islands() -> void:
 		for id in chain_islands.keys():
 			_free_chain_island(id)
 		for e in _pending.values():
-			WorkerThreadPool.wait_for_task_completion(e[1])
+			Humanoid.wait_task(e[1])
 			(e[0] as Node).free()
 		_pending.clear()
 		for e in _finishing.values():
@@ -587,7 +587,7 @@ func _exit_tree() -> void:
 	for key in Ocean.shores.keys():
 		Ocean.set_shore(key, null)
 	for e in _pending.values():
-		WorkerThreadPool.wait_for_task_completion(e[1])
+		Humanoid.wait_task(e[1])
 		(e[0] as Node).free()
 	_pending.clear()
 	Humanoid.clear_prebuilt()

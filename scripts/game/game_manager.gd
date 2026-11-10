@@ -157,6 +157,12 @@ func _notification(what: int) -> void:
 		_save_on_exit()
 
 
+## The game (or a test) is closing: crews still being built ahead on workers finish here, while the main thread can
+## still flush the rendering server for them. Left to the engine's own shutdown they hang it (Humanoid.wait_task).
+func _exit_tree() -> void:
+	Humanoid.clear_prebuilt()
+
+
 func _save_on_exit() -> void:
 	if player and is_instance_valid(player):
 		SaveGame.save(player)

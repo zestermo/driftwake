@@ -48,5 +48,6 @@ Still blocking prepush (not started: perf_gate -Update, prepush -Release, tag):
   the captain ~0.8 m past the dummy by the 0.36 s cone, which skips foes behind (>0.6 m). Move the cone earlier
   or let it hit what the dash passed through.
 - net-board "the boarder's swing hits us here" failed once; rerun alone to tell flake from bug.
-- The three island suites still hang on quit after RESULT OK (reproduced). Not yet tried on f8903659~1.
+- ~~The three island suites still hang on quit after RESULT OK~~ **Fixed 2026-11-10** (dev_notes "quitting while
+  bodies build on a worker"): all three pass and exit.
 - A detached v1.30.3 worktree is at C:\GD\dw_v1303 (for the perf baseline; remove with unwork/git worktree remove).

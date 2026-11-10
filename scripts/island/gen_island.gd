@@ -203,7 +203,7 @@ func beasts_idle() -> bool:
 
 func _beasts_built() -> void:
 	if _beast_task >= 0:
-		WorkerThreadPool.wait_for_task_completion(_beast_task)
+		Humanoid.wait_task(_beast_task)
 		_beast_task = -1
 
 

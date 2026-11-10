@@ -558,6 +558,9 @@ static func prebuild(looks: Array) -> void:
 		return
 	_tasks.append(WorkerThreadPool.add_task(func():
 		for lk in todo:
+			# (the world or the game is going: clear_prebuilt is waiting for this task and would free the rest unused)
+			if Humanoid._quit:
+				break
 			var h := Humanoid.new()
 			h.setup(lk)
 			var k := Humanoid._look_key(lk)
@@ -629,17 +632,35 @@ static func _reap() -> void:
 			_tasks.erase(id)
 
 
-## A new world: bodies built for the old one go.
+static var _quit := false   # clear_prebuilt is waiting: queued crews stop after the body in hand
+
+
+## (main thread) Waits for a pool task that may be building bodies, flushing the rendering server's queue meanwhile.
+## A worker mid-body can be waiting on the main thread for that flush, so a bare wait_for_task_completion deadlocks:
+## three island tests hung on quit this way (2026-11-10), and the game could quitting mid-prepare.
+static func wait_task(id: int) -> void:
+	while not WorkerThreadPool.is_task_completed(id):
+		RenderingServer.force_sync()
+		OS.delay_msec(1)
+	WorkerThreadPool.wait_for_task_completion(id)
+
+
+## A new world, or the game closing (GameManager's _exit_tree): bodies built for the old one go.
 static func clear_prebuilt() -> void:
+	_quit = true
 	main_built()
 	for id in _tasks:
-		WorkerThreadPool.wait_for_task_completion(id)
+		wait_task(id)
 	_tasks.clear()
-	for list in _ready_bodies.values():
-		for h in list:
-			(h as Node).free()
+	_quit = false
+	_pool_lock.lock()
+	var lists := _ready_bodies.values()
 	_ready_bodies.clear()
 	_queued.clear()
+	_pool_lock.unlock()
+	for list in lists:
+		for h in list:
+			(h as Node).free()
 
 
 ## The rig a body part belongs to.

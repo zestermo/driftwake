@@ -11416,3 +11416,21 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Not recoverable:** a slot already saved after such a load has the zeroes; its `.bak1-3` may hold older values.
 - **Tested by** t/items/bounty_save (weapon out and empty hand, 15 checks); t/items/quick_save, t/gear/mog_save and
   t/player/loadout_swap still pass. savetest and progtest load this file: expect them at prepush.
+
+## 2026-11-10: quitting while bodies build on a worker hung the exit (fixed)
+- **What hung:** t/island/volcanic_town, t/island/crowd_size and t/quests/island_tracker passed and then never exited
+  (the runner's 150 s stall); t/stronghold/place did the same on 2026-10-30. Each ends a few ticks after building an
+  island whose camps prebuild their crews on a worker (Humanoid.prebuild). A worker mid-body can be waiting on the
+  main thread to flush the rendering server's queue; after quit nothing flushed it and the engine's shutdown waited on
+  the pool task. Since f8903659 a main-thread body holds the workers ~0.5 s a body within one long frame, so the tasks
+  were reliably still running at quit. The stage has no WorldGenerator, so nothing called clear_prebuilt either.
+- **Fix:** `Humanoid.wait_task(id)` waits for a pool task while calling `RenderingServer.force_sync()` (use it for any
+  main-thread wait on a task that may build bodies or meshes: a bare `wait_for_task_completion` there can deadlock).
+  `clear_prebuilt` uses it, sets `_quit` so a queued crew stops after the body in hand, and is now also called from
+  GameManager's `_exit_tree` (the game closing, a test ending). WorldGenerator's two waits on a pending island's
+  prepare and GenIsland's `_beasts_built` use it too. The turn logic (main_take_turn / _worker_enter) is unchanged.
+- **Left:** quitting mid-prepare still waits out that island's prepare (20-40 s at worst, no hang): prepare has no
+  abort flag. starter_island's path and group tasks still use the bare wait (data only, as far as read).
+- **Tested by** the three suites (pass and exit), t/island/quit_prebuild (ends with a crew of ten mid-build),
+  t/island/free_busy_beasts, t/island/beast_prebuild, t/stronghold/place, t/ship/admiralty_warm. Not run: racestress,
+  the world suites and nettest (prepush).
