@@ -76,6 +76,8 @@ func _process(_d: float) -> bool:
 				set_meta("led", str(led[0]["key"]))
 				var bag = cap.city.get_node_or_null("Cache_" + str(led[0]["key"]))
 				if bag:
+					# (opened, then gone: since 02af4e24 the X stays when the city just unloads)
+					root.get_node("GameManager").mark_opened(str(led[0]["key"]))
 					bag.queue_free()
 			until = TK.wait_ticks(3)
 		4:

@@ -217,7 +217,8 @@ func _initialize():
 		h.free()
 	check("60 random looks build (max %d mesh instances each, every one ending at BodyBuilder.RANGE x height)" % max_meshes, ok and max_meshes <= 12)
 	# draw calls: shins and forearms ride the skinned meshes, tints fold into vertex colours (v1.14: 23.3 -> 14.9)
-	check("a body is at most 24 draws, the traveller's pack's six included (mean %.1f, worst %d)" % [all_surf / 60.0, max_surf], max_surf <= 24 and all_surf / 60.0 <= 16.5)
+	# (25 since 1.30.3: the split hakama's third lower-body surface with the pack; the same on the v1.30.3 tag)
+	check("a body is at most 25 draws, the traveller's pack's six included (mean %.1f, worst %d)" % [all_surf / 60.0, max_surf], max_surf <= 25 and all_surf / 60.0 <= 16.5)
 	# 1b. the skinned lower body: one surface, thighs without meshes of their own,
 	# nothing inside-out, and the thigh bones follow the leg joints
 	var lb_ok := true
@@ -366,6 +367,12 @@ func _process(d: float) -> bool:
 			check("Appearance no longer edits clothes (no Outfit/Extras tabs)", not cc2._tab_buttons.has("Outfit") and not cc2._tab_buttons.has("Extras"))
 			cc2.look["hair"] = "ponytail"; cc2.look["coat"] = "captain" if coat_before != "captain" else "jacket"; cc2.look["name"] = "Ada Black"
 			cc2._finish(true)
+			set_meta("coat_before", coat_before)
+			step = 3; t = 0
+		3:
+			# (a frame on: the captain's rebuild, and its save, wait a frame while a worker is mid-body, f96ee258)
+			if t < 0.2: return false
+			var coat_before = get_meta("coat_before")
 			check("Done applies + saves body/hair, keeps worn gear", p.body_model.look["hair"] == "ponytail" and p.body_model.look["coat"] == coat_before and CharacterLook.load_look()["name"] == "Ada Black")
 			check("weapon survives the rebuild", p.body_model.weapon != null and p.body_model.weapon.get_parent() != null)
 			print("RESULT fails=", fails)

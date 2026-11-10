@@ -89,6 +89,8 @@ func _process(_d: float) -> bool:
 			if not la.hitbox_deactivated:
 				return false
 			check("Cancel: the blow's hit is done, its recovery not", not la.can_combo)
+			# (again: the swing's first mastery finds the weapon's tree, and a found tree clears the stats cache give() wrote)
+			give("dash_cancel")
 			TK.act("dodge")
 			until = TK.wait_ticks(3)
 		3:

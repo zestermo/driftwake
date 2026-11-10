@@ -22,6 +22,12 @@ func bag_index(it) -> int:
 	for i in range(items.size()):
 		if items[i].item == it: return i
 	return -1
+## The look the body has, or gets next frame: the captain's rebuild waits a frame while a worker is mid-body
+## (Player._rebuild_body / Humanoid.main_may_build, f96ee258), so a check right after a click reads the composed look.
+func worn_look() -> Dictionary:
+	if p.get_tree().process_frame.is_connected(p._rebuild_body):
+		return Gear.compose(p.appearance, p.equipment.look_slots(), p.equipment.hidden, p.equipment.draped)
+	return p.body_model.look
 func _process(d: float) -> bool:
 	t += d
 	if wait > 0.0:
@@ -67,18 +73,18 @@ func _process(d: float) -> bool:
 			var gloves = get_meta("gloves")
 			var d0: float = p.defense()
 			gm._inventory._use(bag_index(gloves))
-			check("click wears gloves", p.equipment.get_item("hands") == gloves and bool(p.body_model.look.get("gloves")))
+			check("click wears gloves", p.equipment.get_item("hands") == gloves and bool(worn_look().get("gloves")))
 			check("worn gloves leave the bag", bag_index(gloves) == -1)
 			check("defense goes up (%.0f -> %.0f)" % [d0, p.defense()], p.defense() > d0)
 			var old_hat = p.equipment.get_item("head")
 			var band = get_meta("band")
 			var bi := bag_index(band)
 			gm._inventory._use(bi)
-			check("bandana replaces the hat", p.equipment.get_item("head") == band and p.body_model.look.get("hat") == "bandana")
+			check("bandana replaces the hat", p.equipment.get_item("head") == band and worn_look().get("hat") == "bandana")
 			if old_hat:
 				check("old hat goes back into the bag slot", bag_index(old_hat) == bi)
 			gm._inventory._on_doll_pressed("hands")
-			check("click a worn slot to take it off", p.equipment.get_item("hands") == null and not bool(p.body_model.look.get("gloves")) and bag_index(gloves) >= 0)
+			check("click a worn slot to take it off", p.equipment.get_item("hands") == null and not bool(worn_look().get("gloves")) and bag_index(gloves) >= 0)
 			var scr = gm._inventory
 			var shown := func(it) -> bool: return scr._bag.any(func(s): return s.item == it)
 			check("worn gloves back in the bag grid", shown.call(gloves))
@@ -246,7 +252,8 @@ func _process(d: float) -> bool:
 			# --- the wolf: low crouch with the claws out
 			p.set_hybrid(true)
 			p.velocity = Vector3.ZERO
-			wait = 0.6
+			# (past the chest's 0.9 s gesture_bag, 1.31: opening the inventory digs into the satchel)
+			wait = 1.0
 			step += 1
 		25:
 			var h = p.body_model

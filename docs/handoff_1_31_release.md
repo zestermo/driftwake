@@ -30,3 +30,23 @@ t/quests/arc_hidden. Still to do, in order:
    the v1.30.3 tag (a detached worktree) first, then `prepush.ps1 -Release` on main.
 5. **Tag v1.31 and push** (prepush pushes main when green; the tag publishes the pre-release build). Check the
    releases page after the build (node tools/dev/build_feeds.mjs parses it).
+
+## Update (2026-11-10, second release session; stopped for usage)
+
+Fixed (stale tests, committed): invtest (gloves/bandana: the captain's rebuild waits a frame while a worker is
+mid-body since f96ee258, so the check reads the composed look; the wolf check waits past the chest's 0.9 s
+gesture_bag), chartest (draw budget 25: the 1.30.3 hakama + pack, same on the v1.30.3 tag; creator Done checked a
+frame later, same rebuild deferral), t/capital/caches (marks the cache opened: since 02af4e24 the X only clears
+when opened), t/will/tempo (the swing's first mastery finds the tree and clears the stats cache give() wrote).
+Passed: leveltest, invtest, t/capital/caches, t/will/tempo; nettest net, net-jam, and two later modes OK.
+chartest's rerun with the creator fix was stopped unfinished.
+
+Still blocking prepush (not started: perf_gate -Update, prepush -Release, tag):
+- decktest "thrown over the rail": fails the same on the v1.30.3 tag (pre-1.31). The blast's ragdoll stops at
+  the rail (from 1.5 m) or barely moves (from 2.5 m); not found in ~20 min. Game or test: undecided.
+- t/weapons/rapier_tree balestra 0 damage: fails on v1.30.3 too. Likely: the dash (17 m/s from 0.16 s) carries
+  the captain ~0.8 m past the dummy by the 0.36 s cone, which skips foes behind (>0.6 m). Move the cone earlier
+  or let it hit what the dash passed through.
+- net-board "the boarder's swing hits us here" failed once; rerun alone to tell flake from bug.
+- The three island suites still hang on quit after RESULT OK (reproduced). Not yet tried on f8903659~1.
+- A detached v1.30.3 worktree is at C:\GD\dw_v1303 (for the perf baseline; remove with unwork/git worktree remove).
