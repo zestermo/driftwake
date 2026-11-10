@@ -147,12 +147,12 @@ func _process(d: float) -> bool:
 			t0 = t
 			step = 4
 		4:
-			if p.body_model.kneeling:
+			if p.body_model.kneeling or p.body_model.work == "anchor":  # (1.31: the capstan has its own working pose)
 				set_meta("knelt", true)
 			if t - t0 < ship.ANCHOR_TIME + 0.5:
 				return false
 			Input.action_release("interact")
-			check("kneeling at the capstan", bool(get_meta("knelt", false)))
+			check("working the capstan", bool(get_meta("knelt", false)))
 			check("holding F there lets the anchor go", ship.anchored)
 			wait = 6.0
 			step = 5

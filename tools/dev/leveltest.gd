@@ -71,11 +71,11 @@ func _process(d: float) -> bool:
 			var smug = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			var same: bool = smug.level == 0 and smug.grunts.size() > 0
 			for g in smug.grunts:
-				var hp: float = 110.0 * 1.3 * (3.2 if g.captain else 1.0)
+				var hp: float = 110.0 * 1.15 * (3.2 if g.captain else 1.0)  # (CREW_HP_K 1.15 since 1bb8d0b9)
 				var dm: float = 12.0 * (1.35 if g.captain else 1.0)
 				if g.level != 0 or not near(g.health.max_health, hp) or not near(g._hit_light.damage, dm) or not near(g._hit_peril.damage, 24.0 * (1.35 if g.captain else 1.0)):
 					same = false
-			check("Brinehollow's smugglers unchanged (143 hp, the crew's +30%, 12 a cut)", same)
+			check("Brinehollow's smugglers unchanged (127 hp, the crew's +15%, 12 a cut)", same)
 			var bugs_same := true
 			var nb := 0
 			for n in root.get_node("World/Islands/Brinehollow").find_children("*", "ScuttlebugNest", true, false):
@@ -133,15 +133,15 @@ func _process(d: float) -> bool:
 			var cap = camp.grunts[1]
 			print("   Lv 12 grunt: %.1f hp, %.2f a cut; captain %.1f hp, %.2f a cut" % [g.health.max_health, g._hit_light.damage, cap.health.max_health, cap._hit_light.damage])
 			check("the camp's men are level 12", g.level == 12 and cap.level == 12)
-			check("a level-12 grunt: 110 x %.3f health" % L.hp_k(12), near(g.health.max_health, 110.0 * 1.3 * L.hp_k(12)) and near(g.health.current_health, g.health.max_health))
+			check("a level-12 grunt: 110 x %.3f health" % L.hp_k(12), near(g.health.max_health, 110.0 * 1.15 * L.hp_k(12)) and near(g.health.current_health, g.health.max_health))
 			check("...and 12 / 16 / 24 x %.2f damage" % L.dmg_k(12), near(g._hit_light.damage, 12.0 * L.dmg_k(12)) and near(g._hit_heavy.damage, 16.0 * L.dmg_k(12)) and near(g._hit_peril.damage, 24.0 * L.dmg_k(12)) and near(g._dmg(15.0), 15.0 * L.dmg_k(12)))
-			check("its captain: 352 x %.3f health, his blows x1.35 on top" % L.hp_k(12), near(cap.health.max_health, 352.0 * 1.3 * L.hp_k(12)) and near(cap._hit_light.damage, 12.0 * 1.35 * L.dmg_k(12)))
+			check("its captain: 352 x %.3f health, his blows x1.35 on top" % L.hp_k(12), near(cap.health.max_health, 352.0 * 1.15 * L.hp_k(12)) and near(cap._hit_light.damage, 12.0 * 1.35 * L.dmg_k(12)))
 			# co-op: hp_scale multiplies on top, keeping the share left
 			cap.health.current_health = cap.health.max_health * 0.5
 			cap.net_rescale(1.6)
-			check("co-op (x1.6) on top of the level (%.1f)" % cap.health.max_health, near(cap.health.max_health, 352.0 * 1.3 * L.hp_k(12) * 1.6) and near(cap.health.current_health, cap.health.max_health * 0.5))
+			check("co-op (x1.6) on top of the level (%.1f)" % cap.health.max_health, near(cap.health.max_health, 352.0 * 1.15 * L.hp_k(12) * 1.6) and near(cap.health.current_health, cap.health.max_health * 0.5))
 			cap.net_rescale(1.0)
-			check("...and back", near(cap.health.max_health, 352.0 * 1.3 * L.hp_k(12)))
+			check("...and back", near(cap.health.max_health, 352.0 * 1.15 * L.hp_k(12)))
 			var x0 := total_xp()
 			g.health.take_damage(99999.0)
 			var gain := total_xp() - x0
@@ -183,7 +183,7 @@ func _process(d: float) -> bool:
 			s12._crew_to_deck()
 			var ok: bool = s12.deck_crew.size() > 0
 			for m in s12.deck_crew:
-				if m.level != 12 or not near(m.health.max_health, 110.0 * 1.3 * L.hp_k(12)) or not near(m._hit_light.damage, 12.0 * L.dmg_k(12)):
+				if m.level != 12 or not near(m.health.max_health, 110.0 * 1.15 * L.hp_k(12)) or not near(m._hit_light.damage, 12.0 * L.dmg_k(12)):
 					ok = false
 			check("her deck crew are level 12 too (%d men)" % s12.deck_crew.size(), ok)
 			x0 = total_xp()

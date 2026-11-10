@@ -7,11 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Clothes that hang", "Coats, jackets and skirts hang from the shoulders and waist as sewn cloth: no gaps between panels, built clear of your legs, heavier and calmer, and so is long hair."],
-	["New gear slots", "Shoulders, Back, Strap and two Trinkets. Pauldrons come left, right or as a pair and ride the shoulder; your old accessories move to their new slots."],
-	["Hakama, capes, drapes", "The hakama splits into wide trouser legs, capes wrap round the back, and a coat worn over the shoulders no longer shows the sash or the lantern through it."],
-	["Music at sea", "Eight calm sea tracks at random under sail and a storm's own, plus new title, wilds and harbour music."],
-	["Sound", "Rooms echo, rain drums on roofs, far cannons boom over the water, pirates' footsteps, beast impacts, and coats rustle as you run."],
+	["A new look", "Dithered cel shading (Video > Cel shading) and a toon sea with white crest lines; foliage, hair and coats move with the weather's wind."],
+	["Fight where you push", "Attacks go the way you push and snap onto the foe there; no crosshair in melee, a chevron marks your next target. Middle mouse / R3 locks on."],
+	["A camera for fights", "With your blade out the camera draws back to fit the fight and leans toward it, never turning your view (Gameplay > Combat camera)."],
+	["Screen feel", "A red edge at low health, a blink when you're knocked flat, speed streaks when you fly, a bob at a sprint (Gameplay > Screen effects)."],
+	["Moves and work", "Ropes in either hand, one-arm grapple pulls, a skimmer you mount mid-air and jump off, Roll Out for tall drops, and every deck job animated."],
 ]
 
 

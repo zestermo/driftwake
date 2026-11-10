@@ -194,13 +194,13 @@ func _process(d: float) -> bool:
 			var g_hp_scale: float = 0.0
 			for k in r["enemies"].keys():
 				if "SmugglersCamp" in k:
-					g_hp_scale = float(r["enemies"][k][3]) / (110.0 * 1.3)
+					g_hp_scale = float(r["enemies"][k][3]) / (110.0 * 1.15)  # (the crew's CREW_HP_K)
 					break
-			var want_k := 1.0 + 0.85 * float(int(r["roster"]) - 1)
+			var want_k := 1.0 + 0.7 * float(int(r["roster"]) - 1)  # (Net.hp_scale_for: +0.7 a captain since 1bb8d0b9)
 			# (a captain in the roster counts once their world's loaded: with late joiners still loading, a step behind)
-			var steps := (g_hp_scale - 1.0) / 0.85
+			var steps := (g_hp_scale - 1.0) / 0.7
 			check("grunts get tougher with more captains (x%.2f for %d)" % [g_hp_scale, int(r["roster"])],
-				g_hp_scale > 1.84 and g_hp_scale < want_k + 0.01 and absf(steps - roundf(steps)) < 0.02)
+				g_hp_scale > 1.69 and g_hp_scale < want_k + 0.01 and absf(steps - roundf(steps)) < 0.02)
 			if mode == "water":
 				var ship = net._ship()
 				p.global_position = ship.global_transform * Vector3(7.0, 2.0, 0.6)
