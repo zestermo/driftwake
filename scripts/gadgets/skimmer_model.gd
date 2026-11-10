@@ -177,8 +177,12 @@ static func ride_fx(p: CharacterBody3D, spd: float) -> void:
 	var at := p.global_position
 	var k := clampf(spd / 13.0, 0.0, 1.0)
 	var s := 1.0 if randf() < 0.5 else -1.0
-	p.get_node("/root/FX").spray(at + fwd * 0.9 + side * 0.32 * s, (side * s + Vector3.UP * 0.9 - fwd * 0.3).normalized(), 3 + int(5 * k), Color(0.9, 0.96, 1.0), 2.0 + 3.0 * k)
-	p.get_node("/root/Ocean").wake(p, at - fwd * 1.1, 0.25 + 0.5 * k)
+	# (1.31) splashier: a bigger sheet off the bow, and at speed a rooster tail kicked up behind (Wind Waker's boat)
+	var fx := p.get_node("/root/FX")
+	fx.spray(at + fwd * 0.9 + side * 0.32 * s, (side * s + Vector3.UP * 1.1 - fwd * 0.3).normalized(), 5 + int(8 * k), Color(0.9, 0.96, 1.0), 2.5 + 4.0 * k)
+	if k > 0.45:
+		fx.spray(at - fwd * 1.0, (Vector3.UP * 1.4 - fwd).normalized(), 3 + int(6 * k), Color(0.92, 0.97, 1.0), 3.0 + 4.0 * k)
+	p.get_node("/root/Ocean").wake(p, at - fwd * 1.1, 0.4 + 0.6 * k)
 
 
 static func puppet_fx(p: CharacterBody3D, delta: float) -> void:

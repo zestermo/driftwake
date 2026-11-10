@@ -11365,3 +11365,15 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   dangles its free limbs with the swing (DANGLE_LIMBS).
 - **Tests:** t/player/rope_hand (the hand chosen by side and by weapon, the mirrored hang); t/gadgets,
   t/coop/puppet_traversal, t/ship/yard_ropes pass. Renders: posebench PB_SET="rope_left=true" (tools/dev/out/swing).
+
+## 2026-11-09: the skimmer's moves (1.31 candidate)
+
+- **Mount in the air:** SkimmerState.launch_point takes a captain jumping or falling over open water (AIR_MOUNT_H
+  12 m at most, LAUNCH_DEPTH under) and puts the board right below: the launch arc drops you onto it.
+- **Jump off:** Space on Mk I/II, and Space during Mk III's hop: the board stowed, JUMP_OFF_UP 8.5 up and
+  JUMP_OFF_CARRY 0.8 of the ride's speed on, into Fall (`last_end` "jump").
+- **The lean** (`Humanoid.skim_lean`, synced and blended): -_turn x 0.75; gd_skim leans the body forward over the
+  toes turning right, back on the heels with deep knees pulling it round left.
+- **Spray and wake:** a bigger bow sheet, a rooster tail behind past ~45% speed, a stronger wake (ride_fx).
+- **Tests:** t/gadgets/skimmer_moves (the mount, the lean both ways, the jump off); skimmer_ride and skimmer_parts
+  pass. Renders: posebench PB_SET="skim_lean=1.0" (tools/dev/out/skim).

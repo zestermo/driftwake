@@ -64,5 +64,17 @@ static func pose(h, n: String, u: float) -> Array:
 				"pivot": Vector3(0.2, 0, 0), "torso": Vector3(-0.05, 0.15, 0), "head": Vector3(-0.1, 0.55, 0),
 				"leg_l": Vector3(0.3 + flex, 0, -0.32), "shin_l": Vector3(-0.55 - flex * 2.0, 0, 0),
 				"leg_r": Vector3(0.25 + flex, 0, 0.32), "shin_r": Vector3(-0.5 - flex * 2.0, 0, 0)}
+			# (1.31) the lean that steers it: forward over the toes to turn right, back on the heels to pull it round left
+			var ln: float = h.skim_lean
+			var back := maxf(-ln, 0.0)
+			ride["pivot"] = Vector3(0.2 - 0.45 * ln, 0, 0)
+			ride["torso"] = Vector3(-0.05 - 0.2 * ln, 0.15, 0)
+			ride["head"] = Vector3(-0.1 + 0.15 * ln, 0.55, 0)
+			ride["shin_l"] = (ride["shin_l"] as Vector3) + Vector3(-0.35 * back, 0, 0)
+			ride["shin_r"] = (ride["shin_r"] as Vector3) + Vector3(-0.35 * back, 0, 0)
+			ride["leg_l"] = (ride["leg_l"] as Vector3) + Vector3(0.2 * back, 0, 0)
+			ride["leg_r"] = (ride["leg_r"] as Vector3) + Vector3(0.2 * back, 0, 0)
+			ride["arm_l"] = (ride["arm_l"] as Vector3) + Vector3(0.25 * ln, 0, 0)
+			ride["arm_r"] = (ride["arm_r"] as Vector3) + Vector3(0.25 * ln, 0, 0)
 			return [h._keys(minf(u * T / 0.25, 1.0), [[0.0, {}], [1.0, ride, "out"]]), "full", Vector3(0, -0.06 - flex * 0.3, 0)]
 	return []

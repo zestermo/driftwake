@@ -27,6 +27,11 @@ const CRASH_SPEED := 2.5
 const AGROUND := 0.3
 ## Launching needs water at least this deep.
 const LAUNCH_DEPTH := 0.8
+## (1.31) Out of a jump or a fall, the skimmer comes out under you over water this far below or nearer.
+const AIR_MOUNT_H := 12.0
+## (1.31) Jumping off: up this fast, carrying this share of the ride's speed.
+const JUMP_OFF_UP := 8.5
+const JUMP_OFF_CARRY := 0.8
 const BANK_MAX := 0.42
 const BANK_K := 0.045
 const FX_EVERY := 0.08
@@ -54,6 +59,11 @@ func _ready() -> void:
 
 ## Where `p` would put the skimmer on the water now (["", point]) or why not ([reason, ZERO]).
 static func launch_point(p: Player) -> Array:
+	# (1.31) in the air over open water: down onto it right below you, carrying the jump on
+	if p.current_state_name() in ["Jump", "Fall"] and not p.is_on_floor():
+		var below := Vector3(p.global_position.x, p.water_surface(), p.global_position.z)
+		if p.global_position.y > below.y + 0.4 and p.global_position.y < below.y + AIR_MOUNT_H and p.water_depth_at(below) >= LAUNCH_DEPTH:
+			return ["", below]
 	if p.current_state_name() == "Swim":
 		var here := Vector3(p.global_position.x, p.water_surface(), p.global_position.z)
 		if p.water_depth_at(here) < LAUNCH_DEPTH:
@@ -138,6 +148,7 @@ func enter(data: Dictionary) -> void:
 
 
 func exit() -> void:
+	player.body_model.skim_lean = 0.0
 	if _board and is_instance_valid(_board):
 		_board.queue_free()
 	_board = null
@@ -165,12 +176,19 @@ func physics_update(delta: float) -> void:
 	speed = move_toward(speed, target, (ACCEL if target > speed else DECEL) * delta)
 	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
 	var surf := player.water_surface() + RIDE_H
+	if _air and tier == 2 and player.inp.just_pressed("jump"):
+		# (1.31) Mk III: Space in the hop leaps off the board
+		_jump_off()
+		return
 	if _air:
 		_vy -= HOP_GRAVITY * delta
 		if _vy < 0.0 and player.global_position.y <= surf:
 			_air = false
 			_splash_down(0.9)
 			player.squash(5.0)
+	elif tier < 2 and player.inp.just_pressed("jump"):
+		_jump_off()
+		return
 	elif tier == 2 and player.inp.just_pressed("jump"):
 		_air = true
 		_vy = float(GadgetData.tier_val("skimmer", "hop", tier)) + maxf(player.velocity.y, 0.0) * 0.5
@@ -199,6 +217,8 @@ func physics_update(delta: float) -> void:
 	var n_up := Vector3.UP if _air else (player.get_node("/root/Ocean").get_wave_normal(player.global_position) as Vector3).slerp(Vector3.UP, 0.4)
 	var bank := clampf(-_turn * speed * BANK_K, -BANK_MAX, BANK_MAX)
 	player.align_up = n_up.rotated(fwd, bank).normalized()
+	# (1.31) the rider leans into the turn: forward over the toes turning right, back on the heels pulling it round left
+	player.body_model.skim_lean = lerpf(player.body_model.skim_lean, clampf(-_turn * 0.75, -1.0, 1.0), clampf(10.0 * delta, 0.0, 1.0))
 	if _board and is_instance_valid(_board):
 		(_board.get_node("Rig") as Node3D).rotation = Vector3(0.0, 0.0, clampf(_turn * 0.12, -0.25, 0.25))
 	player.freefall_from = now_s()
@@ -255,3 +275,17 @@ func _end(why: String, thrown: bool) -> void:
 		transitioned.emit(self, "Swim", {"entry_vy": -7.0 if thrown else 0.0, "quiet": not thrown})
 	else:
 		transitioned.emit(self, "Idle", {})
+
+
+## (1.31) Jump off: the board stowed under you, up and on with the ride's way.
+func _jump_off() -> void:
+	last_end = "jump"
+	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
+	var at := Vector3(player.global_position.x, player.water_surface(), player.global_position.z)
+	Net.fx("spray", [at, (Vector3.UP - fwd * 0.4).normalized(), 12, Color(0.9, 0.96, 1.0), 4.5])
+	Net.fx("sfx", ["splash", at, -6.0, 0.08, 1.3])
+	Net.fx("sfx", ["jump", player.global_position, -4.0, 0.05, 1.0])
+	player.squash(-4.0)
+	player.velocity = fwd * speed * JUMP_OFF_CARRY + Vector3.UP * JUMP_OFF_UP
+	player.body_model.skim_lean = 0.0
+	transitioned.emit(self, "Fall", {})

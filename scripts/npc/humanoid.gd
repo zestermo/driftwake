@@ -4706,6 +4706,8 @@ func _work_pose(p: Dictionary) -> Vector3:
 ## rope actions play mirrored. Synced (HumanoidSync), so crewmates see the same hand on the line.
 const ROPE_ACTIONS := ["vine_throw", "vine_pull", "vine_zip", "vine_hang", "vine_release", "vine_shoot", "gd_grapple"]
 var rope_left: bool = false
+## (1.31) On the skimmer: -1 leaning back on the heels (pulling it round left) .. 1 forward over the toes (turning right).
+var skim_lean: float = 0.0
 
 
 ## The hand on the rope.

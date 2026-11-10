@@ -871,3 +871,4 @@ scripts/interaction/interaction_component.gd t/coop/revive_first
 scripts/ship/swing_rope.gd              t/coop/puppet_traversal
 scripts/player_states/dodge_state.gd    t/player/roll_out
 scripts/player_states/swing_state.gd    t/player/rope_hand
+scripts/player_states/skimmer_state.gd  t/gadgets/skimmer_moves

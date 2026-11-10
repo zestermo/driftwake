@@ -7,9 +7,9 @@ extends RefCounted
 
 const FIELDS := ["ground_speed", "local_move", "grounded", "vertical_speed", "armed", "sprinting",
 	"stance", "seated", "seat_y", "at_helm", "helm_steer", "swimming", "carry", "aim_pitch", "diving", "swim_style",
-	"climbing", "climb_phase", "climb_hold", "dash_dir", "look_target", "look_weight", "dangle", "talking", "kneeling", "work", "rope_left", "manning", "crouching", "pole_planted", "kick_pockets", "planted", "guard2"]
+	"climbing", "climb_phase", "climb_hold", "dash_dir", "look_target", "look_weight", "dangle", "talking", "kneeling", "work", "rope_left", "skim_lean", "manning", "crouching", "pole_planted", "kick_pockets", "planted", "guard2"]
 ## Fields blended between snapshots (the rest snap to the newer one).
-const BLEND := ["ground_speed", "vertical_speed", "helm_steer", "aim_pitch", "look_target", "look_weight", "seat_y"]
+const BLEND := ["ground_speed", "vertical_speed", "helm_steer", "skim_lean", "aim_pitch", "look_target", "look_weight", "seat_y"]
 
 
 static func model_of(mi: Node) -> String:
