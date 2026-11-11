@@ -283,29 +283,65 @@ def arc(c, r, a0, a1, squash=1.0, steps=10):
         for i in range(steps + 1)]
 
 
-def katana(ic, hilt, tip, bend=0.05, w=0.075):
-    """A katana from the end of its hilt to its point: a slim, gently curved blade, a small gold guard, a wrapped grip."""
+def katana(ic, hilt, tip, bend=0.11, w=0.07, sheathed=False, drawn=0.0, cord=None):
+    """A katana from the end of its grip to its point (or its sheath's end): a slim blade with a real curve, bowed
+    `bend` to its right-hand side (negative: its left) with the edge on the outside of the curve, a single edge
+    running up to a slanted point on the back, a round guard (the tsuba) seen at an angle, a small collar, and a long
+    wrapped grip with a flat cap, no pommel. `sheathed`: in its curved lacquered sheath (gold mouth and end, a cord in
+    `cord`'s colours), with `drawn` of the blade's length showing between guard and mouth."""
+    mx, my = (hilt[0] + tip[0]) / 2, (hilt[1] + tip[1]) / 2
     dx, dy = tip[0] - hilt[0], tip[1] - hilt[1]
     ln = math.hypot(dx, dy)
-    ux, uy = dx / ln, dy / ln
-    px, py = -uy, ux
-    b0 = (hilt[0] + ux * ln * 0.27, hilt[1] + uy * ln * 0.27)
-    ctrl = ((b0[0] + tip[0]) / 2 + px * bend, (b0[1] + tip[1]) / 2 + py * bend)
-    left, right = [], []
-    for t in np.linspace(0.0, 1.0, 12):
-        cx = (1 - t) ** 2 * b0[0] + 2 * (1 - t) * t * ctrl[0] + t * t * tip[0]
-        cy = (1 - t) ** 2 * b0[1] + 2 * (1 - t) * t * ctrl[1] + t * t * tip[1]
-        tx = 2 * (1 - t) * (ctrl[0] - b0[0]) + 2 * t * (tip[0] - ctrl[0])
-        ty = 2 * (1 - t) * (ctrl[1] - b0[1]) + 2 * t * (tip[1] - ctrl[1])
+    ctrl = (mx - dy / ln * bend * 2.0, my + dx / ln * bend * 2.0)
+    sgn = 1.0 if bend >= 0 else -1.0
+
+    def at(t):
+        c = ((1 - t) ** 2 * hilt[0] + 2 * (1 - t) * t * ctrl[0] + t * t * tip[0], (1 - t) ** 2 * hilt[1] + 2 * (1 - t) * t * ctrl[1] + t * t * tip[1])
+        tx = 2 * (1 - t) * (ctrl[0] - hilt[0]) + 2 * t * (tip[0] - ctrl[0])
+        ty = 2 * (1 - t) * (ctrl[1] - hilt[1]) + 2 * t * (tip[1] - ctrl[1])
         tl = math.hypot(tx, ty)
-        nx, ny = -ty / tl, tx / tl
-        ww = w * (1.0 if t < 0.88 else max(0.0, (1.0 - t) / 0.12))
-        left.append((cx + nx * ww * 0.5, cy + ny * ww * 0.5))
-        right.append((cx - nx * ww * 0.5, cy - ny * ww * 0.5))
-    ic.part(ic.poly(left + right[::-1]), STEEL, metal=True, shadow=0.03)
-    ic.part(ic.capsule(hilt, b0, w * 0.95), WRAP, shadow=0.035)
-    ic.part(ic.capsule((b0[0] - px * w * 1.15, b0[1] - py * w * 1.15), (b0[0] + px * w * 1.15, b0[1] + py * w * 1.15), w * 0.8), GOLD, metal=True, shadow=0.03)
-    ic.part(ic.circle(hilt, w * 0.6), GOLD, metal=True, shadow=0.03)
+        return c, (tx / tl, ty / tl), (-ty / tl * sgn, tx / tl * sgn)   # the point, along, toward the edge
+
+    def strip(t0, t1, edge_w, back_w, point=False, steps=12):
+        e, b = [], []
+        for k in range(steps + 1):
+            t = t0 + (t1 - t0) * k / steps
+            c, _al, n = at(t)
+            ew = edge_w
+            if point and k / steps > 0.84:
+                ew = edge_w - (edge_w + back_w) * (k / steps - 0.84) / 0.16
+            e.append((c[0] + n[0] * ew, c[1] + n[1] * ew))
+            b.append((c[0] - n[0] * back_w, c[1] - n[1] * back_w))
+        return e + b[::-1]
+
+    def band(t, half, thick, mat, metal=True):
+        c, _al, n = at(t)
+        ic.part(ic.capsule((c[0] - n[0] * half, c[1] - n[1] * half), (c[0] + n[0] * half, c[1] + n[1] * half), thick), mat, metal=metal, shadow=0.025)
+
+    tg = 0.30   # where the grip ends and the guard sits
+    if sheathed:
+        ts = tg + 0.035 + drawn
+        if drawn > 0.0:
+            ic.part(ic.poly(strip(tg, ts + 0.02, w * 0.5, w * 0.5)), STEEL, metal=True, shadow=0.03)
+        ic.part(ic.poly(strip(ts, 1.0, w * 0.78, w * 0.78)) | ic.circle(at(1.0)[0], w * 0.78), SHADE, metal=True, shadow=0.04)
+        band(ts + 0.012, w * 0.80, w * 0.5, IRON)   # (the mouth: dark, so it isn't read as a second guard)
+        ic.part(ic.circle(at(1.0)[0], w * 0.84) | ic.poly(strip(0.95, 1.0, w * 0.84, w * 0.84, steps=3)), GOLD, metal=True, shadow=0.03)
+        band(ts + 0.16, w * 0.86, w * 0.72, cord if cord is not None else CLOTH, metal=False)
+    else:
+        ic.part(ic.poly(strip(tg, 1.0, w * 0.5, w * 0.5, point=True)), STEEL, metal=True, shadow=0.03)
+        band(tg + 0.045, w * 0.5, w * 0.6, GOLD)
+    # the grip: dark wrap with the pale diamonds of the ray skin showing through, a flat cap on its end
+    ic.part(ic.poly(strip(0.0, tg, w * 0.6, w * 0.6, steps=6)), WRAP, shadow=0.03)
+    for t in (0.055, 0.125, 0.195, 0.265):
+        c, al, n = at(t)
+        d = w * 0.34
+        ic.flat(ic.poly([(c[0] - al[0] * d, c[1] - al[1] * d), (c[0] + n[0] * d, c[1] + n[1] * d), (c[0] + al[0] * d, c[1] + al[1] * d), (c[0] - n[0] * d, c[1] - n[1] * d)]), hx("efe2c4"))
+    band(0.0, w * 0.52, w * 0.55, GOLD)
+    # the guard: a disc seen at an angle, so an oval across the blade (not a bar)
+    c, al, n = at(tg)
+    ic.part(ic.poly([(c[0] + n[0] * math.cos(a) * w * 1.75 + al[0] * math.sin(a) * w * 0.72, c[1] + n[1] * math.cos(a) * w * 1.75 + al[1] * math.sin(a) * w * 0.72)
+        for a in np.linspace(0, 2 * math.pi, 16, endpoint=False)]), GOLD, metal=True, shadow=0.035)
+    ic.flat(ic.circle(c, w * 0.42), GOLD[1])
 
 
 def axe(ic, butt, angle, size, flip=False, mat=STEEL):
@@ -352,19 +388,16 @@ def tiger_rush(ic):
     for y, x1 in ((0.20, 0.50), (0.32, 0.36), (0.74, 0.40), (0.86, 0.56)):
         ic.glow(ic.lens((0.03, y), (x1, y), 0.045), MOON, depth=0.03)
     ic.glow(ic.lens((0.02, 0.56), (0.99, 0.44), 0.20), MOON, depth=0.07)
-    katana(ic, (0.10, 0.74), (0.90, 0.30), bend=-0.04)
+    katana(ic, (0.06, 0.80), (0.94, 0.30), bend=-0.10)
 
 
 def iai_counter(ic):
-    # "Slip the blade home and wait, hand on the hilt": the sheathed sword, the hand on it, the first glint of steel
-    ic.part(ic.capsule((0.46, 0.48), (0.93, 0.83), 0.125), SHADE, shadow=0.04)
-    ic.part(ic.capsule((0.88, 0.79), (0.93, 0.83), 0.135), GOLD, metal=True, shadow=0.03)
-    ic.part(ic.capsule((0.58, 0.57), (0.63, 0.61), 0.135), GOLD, metal=True, shadow=0.03)
-    ic.part(ic.capsule((0.38, 0.42), (0.45, 0.47), 0.07), STEEL, metal=True, shadow=0.02)
-    ic.part(ic.capsule((0.06, 0.18), (0.36, 0.40), 0.085), WRAP, shadow=0.035)
-    ic.part(ic.capsule((0.31, 0.47), (0.43, 0.31), 0.07), GOLD, metal=True, shadow=0.03)
-    ic.part(ic.poly([(0.10, 0.34), (0.22, 0.14), (0.36, 0.20), (0.34, 0.40), (0.20, 0.46)]), SKIN, shadow=0.06)
-    ic.glow(ic.star((0.47, 0.37), 0.20, 4, 0.22, 0.0), MOON, depth=0.05, ink=True)
+    # "Slip the blade home and wait, hand on the hilt": the sheathed sword, the hand on its grip, the first glint of steel
+    katana(ic, (0.05, 0.36), (0.96, 0.74), bend=-0.13, w=0.085, sheathed=True, drawn=0.05, cord=PETAL)
+    ic.part(ic.poly([(0.07, 0.38), (0.13, 0.18), (0.30, 0.14), (0.36, 0.30), (0.30, 0.46), (0.14, 0.50)]), SKIN, shadow=0.06)
+    for x in (0.17, 0.235, 0.30):
+        ic.flat(ic.capsule((x, 0.20), (x - 0.02, 0.31), 0.022), hx("8a4a3a"))
+    ic.glow(ic.star((0.47, 0.30), 0.19, 4, 0.22, 0.0), MOON, depth=0.05, ink=True)
 
 
 def wind_sever(ic):
@@ -373,7 +406,7 @@ def wind_sever(ic):
     wind_blade(ic, 0.62, 1.0, h=0.90, depth=0.085)
     for pts in ([(0.10, 0.90), (0.18, 0.74), (0.26, 0.90)], [(0.80, 0.90), (0.90, 0.78), (0.95, 0.90)]):
         ic.part(ic.poly(pts), STONE, shadow=0.04)
-    katana(ic, (0.04, 0.70), (0.44, 0.34), bend=0.03, w=0.06)
+    katana(ic, (0.03, 0.74), (0.46, 0.30), bend=0.07, w=0.06)
 
 
 def twin_waves(ic):
@@ -388,7 +421,7 @@ def side_step(ic):
     # "meets empty air. You're already out at their side, drawing across them": where you stood, the step round, the cut
     bust(ic, (0.27, 0.42), 0.40, [hx(c) for c in ("2a2a5a", "3c3c7c", "5454a0", "7474c4", "9a9ae0")])
     ic.glow(ic.path(arc((0.42, 0.50), 0.42, 150.0, 20.0, 0.72), 0.03, 0.11), MOON, depth=0.045)
-    katana(ic, (0.56, 0.94), (0.96, 0.30), bend=0.04, w=0.07)
+    katana(ic, (0.52, 0.96), (0.96, 0.26), bend=0.09, w=0.065)
     ic.glow(ic.lens((0.52, 0.30), (0.98, 0.62), 0.10), PETAL, depth=0.04)
 
 
@@ -396,7 +429,7 @@ def phantom_step(ic):
     # "Blink behind the nearest enemy and cut them down from behind": them, dark, and the cut opening behind them
     ic.glow(ic.lens((0.98, 0.04), (0.20, 0.90), 0.26), PETAL, depth=0.08)
     bust(ic, (0.40, 0.52), 0.52, SHADE)
-    katana(ic, (0.97, 0.52), (0.62, 0.10), bend=-0.03, w=0.065)
+    katana(ic, (0.98, 0.60), (0.60, 0.06), bend=-0.08, w=0.065)
     for x, y in ((0.08, 0.16), (0.16, 0.30), (0.05, 0.40)):
         ic.glow(ic.star((x, y), 0.055, 4, 0.4, 0.78), MOON, depth=0.03)
 
@@ -406,7 +439,7 @@ def petal_storm(ic):
     for ang in (20.0, 80.0, 140.0):
         a = math.radians(ang)
         ic.glow(ic.lens((0.5 - math.cos(a) * 0.48, 0.5 - math.sin(a) * 0.48), (0.5 + math.cos(a) * 0.48, 0.5 + math.sin(a) * 0.48), 0.07), MOON, depth=0.03)
-    katana(ic, (0.20, 0.84), (0.80, 0.16), bend=0.04)
+    katana(ic, (0.16, 0.88), (0.84, 0.12), bend=0.10)
     for i in range(7):
         a = math.radians(i * 360.0 / 7.0 + 10.0)
         c = (0.5 + math.cos(a) * 0.36, 0.5 + math.sin(a) * 0.36)
@@ -422,7 +455,7 @@ def moonlit_severance(ic):
     ic.glow(ic.circle(cut.pt(0.09, -0.035), 0.33) & upper, MOON, depth=0.15, ink=True)
     ic.glow(ic.circle(cut.pt(-0.09, 0.035), 0.33) & lower, MOON, depth=0.15, ink=True)
     ic.glow(ic.lens(cut.pt(-0.52, 0.0), cut.pt(0.52, 0.0), 0.075), PETAL, depth=0.03)
-    katana(ic, (0.06, 0.96), (0.40, 0.72), bend=0.02, w=0.06)
+    katana(ic, (0.03, 0.97), (0.46, 0.70), bend=0.06, w=0.06)
 
 
 # ----------------------------------------------------------------------------------------------------------------
