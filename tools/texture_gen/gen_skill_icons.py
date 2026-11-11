@@ -167,11 +167,21 @@ def plate(n, tree, ult=False):
     out = np.zeros((n, n, 4), np.uint8)
     out[..., 3] = 255
     out[..., :3] = np.clip(np.where(ray[..., None], deep * 1.25 + mid * 0.12, deep * 0.85), 0, 255)
+    return Image.fromarray(out, "RGBA")
+
+
+def frame(n, tree, ult=False):
+    """The plate's edge, drawn over the art (a close-up runs off the tile): ink with a bright inner line, gold for an ult."""
+    mid = hx(TREES[tree][1])
+    out = np.zeros((n, n, 4), np.uint8)
     line = hx("f8d660") if ult else mid
-    out[[0, -1], :, :3] = hx("7a4c14") if ult else INK
-    out[:, [0, -1], :3] = hx("7a4c14") if ult else INK
+    edge = hx("7a4c14") if ult else INK
+    for sl in ((0, slice(None)), (n - 1, slice(None)), (slice(None), 0), (slice(None), n - 1)):
+        out[sl + (slice(0, 3),)] = edge
+        out[sl + (3,)] = 255
     out[1, 1:-1, :3] = out[1:-1, 1, :3] = np.clip(line, 0, 255)
     out[-2, 1:-1, :3] = out[1:-1, -2, :3] = np.clip(line * (0.8 if ult else 0.45), 0, 255)
+    out[1, 1:-1, 3] = out[1:-1, 1, 3] = out[-2, 1:-1, 3] = out[1:-1, -2, 3] = 255
     return Image.fromarray(out, "RGBA")
 
 
@@ -366,6 +376,17 @@ def pistol(ic, at, angle, size, flip=False):
     ic.part(ic.circle(f.pt(0.0, 0.52), 0.075 * size), GOLD, metal=True, shadow=0.03)
 
 
+def grip_hand(ic, at, angle, size, thumb=True):
+    """A hand closed round a grip that runs along `angle` through `at`: the four fingers wrapped over it, the thumb
+    laid along it toward +u (pressing a guard, say)."""
+    f = Frame(at, angle, size)
+    ic.part(ic.poly(f.pts([(-0.50, -0.34), (-0.36, -0.46), (0.36, -0.46), (0.50, -0.34), (0.52, 0.30), (0.40, 0.46), (-0.40, 0.46), (-0.52, 0.30)])), SKIN, shadow=0.05)
+    for u in (-0.25, 0.0, 0.25):
+        ic.flat(ic.capsule(f.pt(u, -0.40), f.pt(u, 0.16), 0.035 * size / 0.4), hx("8a4a3a"))
+    if thumb:
+        ic.part(ic.capsule(f.pt(0.20, -0.50), f.pt(0.78, -0.42), 0.20 * size), SKIN, shadow=0.04)
+
+
 def bust(ic, c, s, mat):
     """Someone seen from the shoulders up."""
     ic.part(ic.poly([(c[0] - s * 0.62, c[1] + s * 0.95), (c[0] - s * 0.50, c[1] + s * 0.30), (c[0], c[1] + s * 0.12), (c[0] + s * 0.50, c[1] + s * 0.30),
@@ -384,29 +405,27 @@ def wind_blade(ic, foot, lean, mat=MOON, h=0.86, depth=0.07):
 # Katana
 # ----------------------------------------------------------------------------------------------------------------
 def tiger_rush(ic):
-    # "Dash straight through the enemy line with a single drawing cut": one long cut across, the dash's streaks behind
-    for y, x1 in ((0.20, 0.50), (0.32, 0.36), (0.74, 0.40), (0.86, 0.56)):
-        ic.glow(ic.lens((0.03, y), (x1, y), 0.045), MOON, depth=0.03)
-    ic.glow(ic.lens((0.02, 0.56), (0.99, 0.44), 0.20), MOON, depth=0.07)
-    katana(ic, (0.06, 0.80), (0.94, 0.30), bend=-0.10)
+    # "Dash straight through the enemy line with a single drawing cut": the blade itself streaking across, close
+    for y, x1 in ((0.14, 0.52), (0.27, 0.34), (0.80, 0.44), (0.92, 0.66)):
+        ic.glow(ic.lens((0.03, y), (x1, y), 0.05), MOON, depth=0.03)
+    ic.glow(ic.lens((-0.05, 0.60), (1.05, 0.30), 0.17), MOON, depth=0.06)
+    katana(ic, (-0.22, 1.00), (0.97, 0.26), bend=-0.13, w=0.12)
 
 
 def iai_counter(ic):
-    # "Slip the blade home and wait, hand on the hilt": the sheathed sword, the hand on its grip, the first glint of steel
-    katana(ic, (0.05, 0.36), (0.96, 0.74), bend=-0.13, w=0.085, sheathed=True, drawn=0.05, cord=PETAL)
-    ic.part(ic.poly([(0.07, 0.38), (0.13, 0.18), (0.30, 0.14), (0.36, 0.30), (0.30, 0.46), (0.14, 0.50)]), SKIN, shadow=0.06)
-    for x in (0.17, 0.235, 0.30):
-        ic.flat(ic.capsule((x, 0.20), (x - 0.02, 0.31), 0.022), hx("8a4a3a"))
-    ic.glow(ic.star((0.47, 0.30), 0.19, 4, 0.22, 0.0), MOON, depth=0.05, ink=True)
+    # "Slip the blade home and wait, hand on the hilt": close on the hand, the guard thumbed off the sheath's mouth,
+    # the first sliver of steel catching the light
+    katana(ic, (-0.36, 0.26), (2.10, 1.36), bend=-0.20, w=0.18, sheathed=True, drawn=0.085, cord=PETAL)
+    grip_hand(ic, (0.07, 0.41), 24.0, 0.44)
+    ic.glow(ic.star((0.70, 0.50), 0.17, 4, 0.2, 0.0), MOON, depth=0.045, ink=True)
 
 
 def wind_sever(ic):
     # "a towering blade of wind tearing along the ground": the blade of wind standing over the ground it tears up
     ic.part(ic.poly([(0.0, 1.0), (0.0, 0.90), (1.0, 0.90), (1.0, 1.0)]), STONE, shadow=0.03)
-    wind_blade(ic, 0.62, 1.0, h=0.90, depth=0.085)
-    for pts in ([(0.10, 0.90), (0.18, 0.74), (0.26, 0.90)], [(0.80, 0.90), (0.90, 0.78), (0.95, 0.90)]):
+    wind_blade(ic, 0.56, 1.0, h=0.90, depth=0.10)
+    for pts in ([(0.06, 0.90), (0.16, 0.70), (0.26, 0.90)], [(0.24, 0.90), (0.31, 0.78), (0.38, 0.90)], [(0.80, 0.90), (0.90, 0.74), (0.96, 0.90)]):
         ic.part(ic.poly(pts), STONE, shadow=0.04)
-    katana(ic, (0.03, 0.74), (0.46, 0.30), bend=0.07, w=0.06)
 
 
 def twin_waves(ic):
@@ -418,44 +437,38 @@ def twin_waves(ic):
 
 
 def side_step(ic):
-    # "meets empty air. You're already out at their side, drawing across them": where you stood, the step round, the cut
-    bust(ic, (0.27, 0.42), 0.40, [hx(c) for c in ("2a2a5a", "3c3c7c", "5454a0", "7474c4", "9a9ae0")])
-    ic.glow(ic.path(arc((0.42, 0.50), 0.42, 150.0, 20.0, 0.72), 0.03, 0.11), MOON, depth=0.045)
-    katana(ic, (0.52, 0.96), (0.96, 0.26), bend=0.09, w=0.065)
-    ic.glow(ic.lens((0.52, 0.30), (0.98, 0.62), 0.10), PETAL, depth=0.04)
+    # "meets empty air. You're already out at their side, drawing across them": where you stood, and the cut from the side
+    bust(ic, (0.30, 0.46), 0.50, [hx(c) for c in ("2a2a5a", "3c3c7c", "5454a0", "7474c4", "9a9ae0")])
+    ic.glow(ic.lens((0.30, 0.20), (1.04, 0.74), 0.16), PETAL, depth=0.05)
+    katana(ic, (1.30, 1.42), (0.56, 0.26), bend=0.12, w=0.115)
 
 
 def phantom_step(ic):
-    # "Blink behind the nearest enemy and cut them down from behind": them, dark, and the cut opening behind them
-    ic.glow(ic.lens((0.98, 0.04), (0.20, 0.90), 0.26), PETAL, depth=0.08)
-    bust(ic, (0.40, 0.52), 0.52, SHADE)
-    katana(ic, (0.98, 0.60), (0.60, 0.06), bend=-0.08, w=0.065)
-    for x, y in ((0.08, 0.16), (0.16, 0.30), (0.05, 0.40)):
-        ic.glow(ic.star((x, y), 0.055, 4, 0.4, 0.78), MOON, depth=0.03)
+    # "Blink behind the nearest enemy and cut them down from behind": their back, and the blade already through
+    ic.glow(ic.lens((1.02, 0.02), (0.16, 0.92), 0.28), PETAL, depth=0.08)
+    bust(ic, (0.38, 0.54), 0.56, SHADE)
+    katana(ic, (1.55, 0.78), (0.46, 0.05), bend=-0.12, w=0.115)
 
 
 def petal_storm(ic):
-    # "Draw and sheathe in a single motion ... cut a dozen times at once": the cuts, the blade, the petals falling round it
-    for ang in (20.0, 80.0, 140.0):
+    # "Draw and sheathe in a single motion ... cut a dozen times at once": close on the guard clicking home on the
+    # sheath, the cuts behind it, the petals falling across
+    for ang in (150.0, 105.0):
         a = math.radians(ang)
-        ic.glow(ic.lens((0.5 - math.cos(a) * 0.48, 0.5 - math.sin(a) * 0.48), (0.5 + math.cos(a) * 0.48, 0.5 + math.sin(a) * 0.48), 0.07), MOON, depth=0.03)
-    katana(ic, (0.16, 0.88), (0.84, 0.12), bend=0.10)
-    for i in range(7):
-        a = math.radians(i * 360.0 / 7.0 + 10.0)
-        c = (0.5 + math.cos(a) * 0.36, 0.5 + math.sin(a) * 0.36)
-        t = a + 1.1
-        ic.glow(ic.lens((c[0] - math.cos(t) * 0.10, c[1] - math.sin(t) * 0.10), (c[0] + math.cos(t) * 0.10, c[1] + math.sin(t) * 0.10), 0.11), PETAL, depth=0.05, ink=True)
+        ic.glow(ic.lens((0.56 - math.cos(a) * 0.62, 0.42 - math.sin(a) * 0.62), (0.56 + math.cos(a) * 0.62, 0.42 + math.sin(a) * 0.62), 0.07), MOON, depth=0.03)
+    katana(ic, (-0.40, 1.22), (2.10, -0.62), bend=0.20, w=0.18, sheathed=True, cord=PETAL)
+    for (x, y), turn in (((0.20, 0.20), 0.6), ((0.56, 0.14), 2.2), ((0.86, 0.40), 1.2), ((0.70, 0.80), 2.8), ((0.34, 0.90), 0.2), ((0.90, 0.88), 1.9)):
+        ic.glow(ic.lens((x - math.cos(turn) * 0.12, y - math.sin(turn) * 0.12), (x + math.cos(turn) * 0.12, y + math.sin(turn) * 0.12), 0.14), PETAL, depth=0.06, ink=True)
 
 
 def moonlit_severance(ic):
     # "one draw along a 14 m line: the world goes pale ... everything on the line splits": the moon itself cut in two
     cut = Frame((0.5, 0.5), -24.0, 1.0)
-    upper = ic.poly(cut.pts([(-1, -1), (1, -1), (1, -0.035), (-1, -0.035)]))
-    lower = ic.poly(cut.pts([(-1, 0.035), (1, 0.035), (1, 1), (-1, 1)]))
-    ic.glow(ic.circle(cut.pt(0.09, -0.035), 0.33) & upper, MOON, depth=0.15, ink=True)
-    ic.glow(ic.circle(cut.pt(-0.09, 0.035), 0.33) & lower, MOON, depth=0.15, ink=True)
-    ic.glow(ic.lens(cut.pt(-0.52, 0.0), cut.pt(0.52, 0.0), 0.075), PETAL, depth=0.03)
-    katana(ic, (0.03, 0.97), (0.46, 0.70), bend=0.06, w=0.06)
+    upper = ic.poly(cut.pts([(-1, -1), (1, -1), (1, -0.04), (-1, -0.04)]))
+    lower = ic.poly(cut.pts([(-1, 0.04), (1, 0.04), (1, 1), (-1, 1)]))
+    ic.glow(ic.circle(cut.pt(0.10, -0.04), 0.40) & upper, MOON, depth=0.17, ink=True)
+    ic.glow(ic.circle(cut.pt(-0.10, 0.04), 0.40) & lower, MOON, depth=0.17, ink=True)
+    ic.glow(ic.lens(cut.pt(-0.62, 0.0), cut.pt(0.62, 0.0), 0.085), PETAL, depth=0.03)
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -589,6 +602,7 @@ def render(fn, n, tree, ult):
     fn(ic)
     base = plate(n, tree, ult)
     base.alpha_composite(ic.finish())
+    base.alpha_composite(frame(n, tree, ult))
     return base
 
 
