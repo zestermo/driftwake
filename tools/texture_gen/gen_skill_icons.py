@@ -52,11 +52,20 @@ SMOKE = ramp("2a2a34", "55566a", "8a8c9e", "bdbfcc", "e8e9f0")
 STONE = ramp("282427", "4d4743", "7a7065", "ab9e8c", "d6cab6")
 WRAP = ramp("1a1024", "3a2452", "5c3c80", "8a66b0", "b89ad8")
 SHADE = ramp("0c0a12", "1a1826", "2c2a3c", "46445c", "6a6884")
+CYAN = ramp("0c3a48", "1a8ea0", "52dcea", "b8f6fb", "ffffff")
+VIOLET = ramp("2c1458", "6a34b8", "b274ff", "dcc0ff", "ffffff")
+BLOOD = ramp("3a0612", "8a1030", "e0244e", "ff8aa0", "ffe0e6")
+VENOM = ramp("1d5a12", "3fa01e", "8fdc2c", "dcff6a", "fbffd0")
+SNAKE = ramp("0f3312", "1f6a24", "3fa23a", "86d24a", "d8f58a")
 TREES = {
     "sword": ("123262", "4db8ff"),
     "katana": ("3a1c48", "ff9ecc"),
     "axe": ("4a1c0a", "ff8026"),
     "pistol": ("3e2c10", "ffbf40"),
+    "dual": ("0f3a44", "5ae6f2"),
+    "corsair": ("4a1210", "ff5742"),
+    "dagger": ("3a0c22", "f22660"),
+    "dual_dagger": ("163a10", "72f24c"),
 }
 
 
@@ -579,6 +588,234 @@ def golden_ricochet(ic):
     ic.part(ic.circle((0.70, 0.46), 0.19), GOLD, metal=True, shadow=0.07)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Pieces for the dagger trees
+# ----------------------------------------------------------------------------------------------------------------
+def dagger(ic, hilt, tip, w=0.13, guard=True):
+    """A dagger from its pommel to its point: a short straight double-edged blade with a little belly, a stub of a
+    guard, a leather grip."""
+    dx, dy = tip[0] - hilt[0], tip[1] - hilt[1]
+    ln = math.hypot(dx, dy)
+    ux, uy = dx / ln, dy / ln
+    px, py = -uy, ux
+    b0 = (hilt[0] + ux * ln * 0.32, hilt[1] + uy * ln * 0.32)
+    bl = ln * 0.68
+    belly = (b0[0] + ux * bl * 0.45, b0[1] + uy * bl * 0.45)
+    ic.part(ic.poly([(b0[0] + px * w * 0.40, b0[1] + py * w * 0.40), (belly[0] + px * w * 0.5, belly[1] + py * w * 0.5), tip,
+        (belly[0] - px * w * 0.5, belly[1] - py * w * 0.5), (b0[0] - px * w * 0.40, b0[1] - py * w * 0.40)]), STEEL, metal=True, shadow=0.04)
+    ic.part(ic.capsule(hilt, b0, w * 0.58), LEATHER, shadow=0.035)
+    if guard:
+        ic.part(ic.capsule((b0[0] - px * w * 0.9, b0[1] - py * w * 0.9), (b0[0] + px * w * 0.9, b0[1] + py * w * 0.9), w * 0.42), GOLD, metal=True, shadow=0.03)
+    ic.part(ic.circle(hilt, w * 0.38), GOLD, metal=True, shadow=0.03)
+
+
+def knife(ic, a, b, w=0.07):
+    """A throwing knife from its ring to its point."""
+    m = (a[0] + (b[0] - a[0]) * 0.30, a[1] + (b[1] - a[1]) * 0.30)
+    ic.part(ic.lens(m, b, w * 1.5), STEEL, metal=True, shadow=0.03)
+    ic.part(ic.capsule(a, m, w * 0.6), SHADE, shadow=0.02)
+
+
+def oval(c, rx, ry, steps=20):
+    return [(c[0] + math.cos(2 * math.pi * k / steps) * rx, c[1] + math.sin(2 * math.pi * k / steps) * ry) for k in range(steps)]
+
+
+def drop(ic, c, r, mat):
+    ic.glow(ic.circle(c, r) | ic.poly([(c[0] - r * 0.8, c[1] - r * 0.3), (c[0], c[1] - r * 2.4), (c[0] + r * 0.8, c[1] - r * 0.3)]), mat, depth=r / 1.2, ink=True)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Dual (two cutlasses)
+# ----------------------------------------------------------------------------------------------------------------
+def cross_counter(ic):
+    # "Cross both blades in front of you: the first melee blow ... is caught in the X"
+    ic.glow(ic.star((0.50, 0.50), 0.62, 4, 0.34, math.radians(45.0)), CYAN, depth=0.12)
+    cutlass(ic, (-0.34, 1.32), (0.88, 0.02), bend=0.07, w=0.17)
+    cutlass(ic, (1.34, 1.32), (0.12, 0.02), bend=-0.07, w=0.17)
+    ic.glow(ic.star((0.50, 0.52), 0.17, 4, 0.3, 0.0), SPARK, depth=0.06, ink=True)
+
+
+def blade_dance(ic):
+    # "Dance forward through the enemy line in six spinning cuts": the two blades wheeling, each dragging its cut
+    ic.glow(ic.path(arc((0.50, 0.50), 0.44, 205.0, 385.0), 0.03, 0.16), CYAN, depth=0.06)
+    ic.glow(ic.path(arc((0.50, 0.50), 0.44, 25.0, 205.0), 0.03, 0.16), VIOLET, depth=0.06)
+    cutlass(ic, (0.50, 0.50), (0.94, 0.16), bend=0.06, w=0.13, guard=False)
+    cutlass(ic, (0.50, 0.50), (0.06, 0.84), bend=0.06, w=0.13, guard=False)
+    ic.part(ic.circle((0.50, 0.50), 0.08), GOLD, metal=True, shadow=0.03)
+
+
+def cross_fang(ic):
+    # "crash down with both blades crossed, knocking down everything in front of you": the two cuts driven into the ground
+    ic.part(ic.poly([(0.0, 1.0), (0.0, 0.84), (0.30, 0.80), (0.50, 0.86), (0.72, 0.80), (1.0, 0.84), (1.0, 1.0)]), STONE, shadow=0.04)
+    ic.glow(ic.lens((0.06, -0.04), (0.74, 0.90), 0.24), CYAN, depth=0.08)
+    ic.glow(ic.lens((0.94, -0.04), (0.26, 0.90), 0.24), VIOLET, depth=0.08)
+    for pts in ([(0.08, 0.82), (0.16, 0.62), (0.24, 0.82)], [(0.78, 0.82), (0.88, 0.64), (0.94, 0.84)]):
+        ic.part(ic.poly(pts), STONE, shadow=0.04)
+    ic.glow(ic.star((0.50, 0.80), 0.20, 6, 0.4, 0.5), SPARK, depth=0.07, ink=True)
+
+
+def steel_tempest(ic):
+    # "spin in place with them out: a storm of cuts drags in everything around you"
+    for k in range(6):
+        a = math.radians(k * 60.0)
+        c = (0.5 + math.cos(a) * 0.36, 0.5 + math.sin(a) * 0.36)
+        t = a + math.radians(70.0)
+        ic.glow(ic.lens((c[0] - math.cos(t) * 0.26, c[1] - math.sin(t) * 0.26), (c[0] + math.cos(t) * 0.26, c[1] + math.sin(t) * 0.26), 0.12), CYAN if k % 2 == 0 else VIOLET, depth=0.045)
+    cutlass(ic, (0.50, 0.50), (0.82, 0.22), bend=0.05, w=0.12, guard=False)
+    cutlass(ic, (0.50, 0.50), (0.18, 0.78), bend=0.05, w=0.12, guard=False)
+    ic.part(ic.circle((0.50, 0.50), 0.075), GOLD, metal=True, shadow=0.03)
+
+
+def twin_comet(ic):
+    # "a dive onto the foe you face: the ground bursts round you, an X of light tears ten paces on"
+    # (two comets side by side, still falling: Cross Fang is the pair already landed)
+    for (hx_, hy), mat in (((0.44, 0.74), CYAN), ((0.76, 0.52), VIOLET)):
+        ic.glow(ic.path([(hx_ - 0.62, hy - 0.86), (hx_ - 0.30, hy - 0.42), (hx_, hy)], 0.03, 0.26), mat, depth=0.07)
+        ic.glow(ic.circle((hx_, hy), 0.17), mat, depth=0.10, ink=True)
+    for x, y, r in ((0.84, 0.12, 0.07), (0.14, 0.80, 0.06), (0.90, 0.86, 0.08)):
+        ic.glow(ic.star((x, y), r, 4, 0.3, 0.0), SPARK, depth=r / 2.5)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Corsair (cutlass and pistol)
+# ----------------------------------------------------------------------------------------------------------------
+def parley(ic):
+    # "turned aside on the blade, and the pistol is put to their chest and fired": the raised blade, the pistol under it going off
+    ic.glow(ic.star((0.80, 0.30), 0.30, 8, 0.45, 0.2), FIRE, depth=0.10)
+    pistol(ic, (0.10, 0.94), -40.0, 0.78)
+    cutlass(ic, (-0.10, 1.34), (0.30, 0.02), bend=-0.07, w=0.17)
+
+
+def grapeshot(ic):
+    # "A pistol packed with shot: one blast tears across everything in a wide cone"
+    ic.glow(ic.poly([(0.32, 0.50), (1.06, -0.06), (1.06, 1.06)]), FIRE, depth=0.16)
+    for x, y in ((0.60, 0.36), (0.66, 0.60), (0.80, 0.22), (0.84, 0.48), (0.84, 0.76), (0.96, 0.34), (0.96, 0.62)):
+        ic.part(ic.circle((x, y), 0.055), SHADE, metal=True, shadow=0.03)
+    pistol(ic, (-0.62, 0.60), -4.0, 1.0)
+
+
+def crossfire(ic):
+    # "a cut that breaks their guard, turn, and shoot them in the back": the cut one way, the shot back across it
+    ic.glow(ic.lens((0.00, 0.06), (1.00, 0.86), 0.24), FIRE, depth=0.08)
+    ic.glow(ic.path([(1.02, 0.14), (0.62, 0.50), (0.24, 0.84)], 0.03, 0.12), SPARK, depth=0.045)
+    ic.part(ic.circle((0.22, 0.86), 0.10), GOLD, metal=True, shadow=0.05)
+    ic.glow(ic.star((0.52, 0.50), 0.15, 4, 0.3, 0.0), SPARK, depth=0.05, ink=True)
+
+
+def broadside(ic):
+    # "Raise your cutlass and call the broadside ... cannon fire lands on every one of them"
+    for (x, y), r in (((0.56, 0.30), 0.13), ((0.80, 0.56), 0.12), ((0.52, 0.76), 0.11)):
+        ic.glow(ic.path([(x + 0.50, y - 0.50), (x + 0.20, y - 0.20), (x, y)], 0.03, r * 1.7), FIRE, depth=0.05)
+        ic.part(ic.circle((x, y), r), SHADE, metal=True, shadow=0.05)
+    cutlass(ic, (0.02, 1.40), (0.20, 0.03), bend=-0.05, w=0.17)
+
+
+def powder_trail(ic):
+    # "the powder laid round them as you go; then the ring goes up under all of them at once"
+    ring = ic.poly(oval((0.50, 0.66), 0.50, 0.26)) & ~ic.poly(oval((0.50, 0.66), 0.34, 0.15))
+    flames = np.zeros_like(ring)
+    for x, top in ((0.08, 0.30), (0.26, 0.10), (0.50, 0.00), (0.74, 0.12), (0.92, 0.30)):
+        flames |= ic.poly([(x - 0.10, 0.66), (x - 0.05, top + 0.22), (x, top), (x + 0.06, top + 0.24), (x + 0.10, 0.66)])
+    ic.glow(ring | flames, FIRE, depth=0.07)
+    ic.part(ic.poly([(0.38, 0.52), (0.62, 0.52), (0.66, 0.78), (0.34, 0.78)]), WOOD, shadow=0.05)
+    ic.part(ic.poly([(0.36, 0.56), (0.64, 0.56), (0.645, 0.61), (0.355, 0.61)]) | ic.poly([(0.345, 0.69), (0.655, 0.69), (0.66, 0.74), (0.34, 0.74)]), IRON, metal=True, shadow=0.02)
+    ic.glow(ic.star((0.50, 0.46), 0.11, 6, 0.4, 0.2), SPARK, depth=0.04, ink=True)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Dagger
+# ----------------------------------------------------------------------------------------------------------------
+def slip(ic):
+    # "you're behind them with the blade in their back": their back, the dagger in it
+    bust(ic, (0.42, 0.56), 0.60, SHADE)
+    ic.glow(ic.star((0.50, 0.60), 0.20, 6, 0.4, 0.3), BLOOD, depth=0.07, ink=True)
+    dagger(ic, (1.08, -0.06), (0.50, 0.60), w=0.15)
+
+
+def cutthroat(ic):
+    # "open their throat before they can turn": the blade drawn across, the red line it leaves
+    ic.glow(ic.lens((-0.04, 0.70), (1.04, 0.48), 0.20), BLOOD, depth=0.07)
+    drop(ic, (0.30, 0.90), 0.045, BLOOD)
+    drop(ic, (0.60, 0.88), 0.055, BLOOD)
+    dagger(ic, (-0.34, 0.22), (0.92, 0.46), w=0.17)
+
+
+def knife_fan(ic):
+    # "Flick five throwing knives out in a fan"
+    o = (0.06, 0.96)
+    ic.glow(ic.path(arc(o, 0.50, -88.0, -2.0), 0.04, 0.10), BLOOD, depth=0.04)
+    for ang in (-82.0, -62.0, -44.0, -26.0, -8.0):
+        a = math.radians(ang)
+        knife(ic, (o[0] + math.cos(a) * 0.52, o[1] + math.sin(a) * 0.52), (o[0] + math.cos(a) * 1.02, o[1] + math.sin(a) * 1.02), w=0.085)
+
+
+def red_eclipse(ic):
+    # "Melt into the dark and cut every enemy around you ... every wound opens at once": the eclipse, the blade in it
+    ic.glow(ic.circle((0.50, 0.50), 0.47), BLOOD, depth=0.10)
+    ic.part(ic.circle((0.54, 0.46), 0.36), SHADE, shadow=0.08)
+    dagger(ic, (0.42, 0.10), (0.58, 0.86), w=0.13)
+
+
+def blood_moon_mark(ic):
+    # "each cut and bleeding; then every wound opens at once": the blood moon, the mark cut across it
+    ic.glow(ic.circle((0.50, 0.46), 0.42), BLOOD, depth=0.20, ink=True)
+    ic.flat(ic.lens((0.16, 0.14), (0.80, 0.80), 0.10) | ic.lens((0.84, 0.14), (0.20, 0.80), 0.10), SHADE[0])
+    drop(ic, (0.34, 0.94), 0.045, BLOOD)
+    drop(ic, (0.62, 0.96), 0.04, BLOOD)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Twin daggers
+# ----------------------------------------------------------------------------------------------------------------
+def viper_flurry(ic):
+    # "the blades striking in turn like a snake": the viper itself, mouth open, fangs out
+    ic.flat(ic.poly([(-0.05, 0.44), (0.70, 0.44), (0.92, 0.60), (0.60, 0.80), (-0.05, 0.74)]), hx("3a0612"))
+    ic.part(ic.poly([(-0.05, 0.60), (0.30, 0.66), (0.64, 0.74), (0.90, 0.86), (0.56, 1.02), (-0.05, 0.98)]), SNAKE, shadow=0.06)
+    ic.part(ic.poly([(-0.05, 0.10), (0.44, 0.04), (0.84, 0.22), (1.00, 0.42), (0.66, 0.50), (0.30, 0.46), (-0.05, 0.50)]), SNAKE, shadow=0.07)
+    ic.flat(ic.poly([(0.58, 0.48), (0.69, 0.49), (0.64, 0.74)]) | ic.poly([(0.80, 0.46), (0.91, 0.45), (0.87, 0.68)]), hx("fbffe8"))
+    ic.flat(ic.circle((0.56, 0.25), 0.075), hx("ffd23a"))
+    ic.flat(ic.capsule((0.56, 0.19), (0.56, 0.31), 0.035), INK)
+    drop(ic, (0.645, 0.86), 0.04, VENOM)
+
+
+def scissor_leap(ic):
+    # "scissor both blades through them as you land": the two daggers closing like shears, the cuts they leave
+    ic.glow(ic.lens((0.02, 0.30), (0.98, 0.52), 0.16), VENOM, depth=0.055)
+    ic.glow(ic.lens((0.02, 0.70), (0.98, 0.48), 0.16), VENOM, depth=0.055)
+    dagger(ic, (-0.20, 1.20), (0.82, 0.10), w=0.15)
+    dagger(ic, (1.20, 1.20), (0.18, 0.10), w=0.15)
+    ic.glow(ic.star((0.50, 0.52), 0.14, 4, 0.3, 0.0), SPARK, depth=0.05, ink=True)
+
+
+def bleeding_edge(ic):
+    # "Whet the blades against each other": edge on edge, the sparks, the edges running
+    ic.part(ic.poly([(-0.06, 0.80), (0.06, 0.96), (1.06, 0.30), (0.98, 0.10), (0.40, 0.42)]), STEEL, metal=True, shadow=0.05)
+    ic.part(ic.poly([(-0.06, 0.20), (0.04, 0.04), (0.62, 0.36), (1.06, 0.72), (0.98, 0.90)]), STEEL, metal=True, shadow=0.05)
+    for (x, y), r in (((0.56, 0.44), 0.20), ((0.30, 0.20), 0.08), ((0.78, 0.28), 0.07), ((0.70, 0.70), 0.07)):
+        ic.glow(ic.star((x, y), r, 4, 0.3, 0.3), SPARK, depth=r / 3.0, ink=True)
+    drop(ic, (0.22, 0.84), 0.05, VENOM)
+    drop(ic, (0.88, 0.96), 0.045, VENOM)
+
+
+def hundred_fangs(ic):
+    # "cutting everyone close each time until your path draws a star; then the star bursts"
+    pts = [(0.5 + math.cos(math.radians(-90.0 + k * 144.0)) * 0.50, 0.52 + math.sin(math.radians(-90.0 + k * 144.0)) * 0.50) for k in range(5)]
+    for k in range(5):
+        ic.glow(ic.lens(pts[k], pts[(k + 1) % 5], 0.11), VENOM, depth=0.04)
+    ic.glow(ic.star((0.50, 0.54), 0.17, 5, 0.45, math.radians(-90.0)), SPARK, depth=0.06, ink=True)
+
+
+def serpents_nest(ic):
+    # "Venom pools out 7 m round you; you dart between everyone in it": the pool, the serpents rising out of it
+    ic.glow(ic.poly(oval((0.50, 0.82), 0.52, 0.20)), VENOM, depth=0.07)
+    for x, lean, top in ((0.22, -0.10, 0.34), (0.52, 0.08, 0.14), (0.80, -0.06, 0.40)):
+        body = [(x, 0.84), (x + lean, 0.66), (x - lean * 0.8, top + 0.20), (x + lean * 0.6, top + 0.06)]
+        ic.part(ic.path(body, 0.13, 0.10), SNAKE, shadow=0.045)
+        head = (x + lean * 0.6 + (0.06 if lean > 0 else -0.06), top + 0.02)
+        ic.part(ic.poly(oval(head, 0.10, 0.065)), SNAKE, shadow=0.04)
+        ic.flat(ic.circle((head[0] + (0.03 if lean > 0 else -0.03), head[1] - 0.01), 0.022), hx("ffd23a"))
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -593,6 +830,16 @@ SKILLS = {
     "pistol": [("bullet_storm", "Bullet Storm", False, bullet_storm), ("deadeye", "Deadeye", False, deadeye),
         ("smoke_bomb", "Smoke Bomb", False, smoke_bomb), ("point_blank", "Point Blank", False, point_blank),
         ("deaths_waltz", "Death's Waltz  (ult)", True, deaths_waltz), ("golden_ricochet", "Golden Ricochet  (ult)", True, golden_ricochet)],
+    "dual": [("cross_counter", "Crossed Counter", False, cross_counter), ("blade_dance", "Blade Dance", False, blade_dance),
+        ("cross_fang", "Cross Fang", False, cross_fang), ("steel_tempest", "Tempest of Steel  (ult)", True, steel_tempest),
+        ("twin_comet", "Twin Comet  (ult)", True, twin_comet)],
+    "corsair": [("parley", "Parley", False, parley), ("grapeshot", "Grapeshot", False, grapeshot), ("crossfire", "Crossfire", False, crossfire),
+        ("broadside", "Broadside  (ult)", True, broadside), ("powder_trail", "Powder Trail  (ult)", True, powder_trail)],
+    "dagger": [("slip", "Slip", False, slip), ("cutthroat", "Cutthroat", False, cutthroat), ("knife_fan", "Knife Fan", False, knife_fan),
+        ("red_eclipse", "Red Eclipse  (ult)", True, red_eclipse), ("blood_moon_mark", "Blood Moon Mark  (ult)", True, blood_moon_mark)],
+    "dual_dagger": [("viper_flurry", "Viper Flurry", False, viper_flurry), ("scissor_leap", "Scissor Leap", False, scissor_leap),
+        ("bleeding_edge", "Bleeding Edge", False, bleeding_edge), ("hundred_fangs", "Hundred Fangs  (ult)", True, hundred_fangs),
+        ("serpents_nest", "Serpent's Nest  (ult)", True, serpents_nest)],
 }
 
 
