@@ -62,6 +62,9 @@ DUST = ramp("4a3a26", "8a7050", "c8ac80", "ecd8b0", "fff6e0")
 GALE = ramp("0f4a3a", "28b08a", "7af0c0", "d0ffec", "ffffff")
 ICE = ramp("1b3572", "3a70c2", "78b9ee", "c2ecff", "ffffff")
 BONE = ramp("5a4a3a", "a8987c", "e8dcc0", "fbf4e0", "ffffff")
+HEAT = ramp("5a0810", "c41828", "ff4a3a", "ffb08a", "fff0e0")
+IMPACT = ramp("6a4a1a", "d89a3a", "ffd27a", "fff2c8", "ffffff")
+SILVER = ramp("2a3a58", "6a82a8", "b0c4e0", "e4eefa", "ffffff")
 TREES = {
     "sword": ("123262", "4db8ff"),
     "katana": ("3a1c48", "ff9ecc"),
@@ -75,6 +78,9 @@ TREES = {
     "hammer": ("3a3026", "ebcc94"),
     "greatsword": ("0f3a30", "bcffe0"),
     "dual_axe": ("14285c", "aee6ff"),
+    "black_leg": ("4a0c12", "ff2c29"),
+    "unarmed": ("5a3a1a", "fff2d9"),
+    "rapier": ("2a3344", "c8d6ea"),
 }
 
 
@@ -1149,6 +1155,255 @@ def avalanche(ic):
         shard(ic, x, 1.0, h, 0.08, 0.0, ICE)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Pieces for the bare-handed trees and the rapier
+# ----------------------------------------------------------------------------------------------------------------
+def leg(ic, hip, knee, ankle, toe, w=0.15, hot=False):
+    """A kicking leg in dark trousers and a polished shoe, from the hip; `hot`: the shin and foot glowing red-hot."""
+    if hot:
+        ic.glow(ic.path([knee, ankle, toe], w * 2.3, w * 2.0), HEAT, depth=w * 0.55)
+    ic.part(ic.capsule(hip, knee, w), SHADE, shadow=0.04)
+    ic.part(ic.capsule(knee, ankle, w * 0.86), SHADE, shadow=0.04)
+    ic.part(ic.path([ankle, toe], w * 1.0, w * 0.72), IRON, metal=True, shadow=0.035)
+    ic.part(ic.circle((ankle[0] + (toe[0] - ankle[0]) * 0.35, ankle[1] + (toe[1] - ankle[1]) * 0.35), w * 0.2), GOLD, metal=True, shadow=0.02)
+
+
+def fist(ic, at, angle, size, arm=True, wrap=True):
+    """A fist driven along `angle`, knuckles first, seen from the side: the forearm behind it, the wrist bound."""
+    f = Frame(at, angle, size)
+    if arm:
+        ic.part(ic.capsule(f.pt(-1.7, 0.0), f.pt(-0.45, 0.0), 0.58 * size), SKIN, shadow=0.05)
+    if wrap:
+        ic.part(ic.poly(f.pts([(-0.74, -0.33), (-0.42, -0.33), (-0.42, 0.33), (-0.74, 0.33)])), BONE, shadow=0.03)
+    ic.part(ic.poly(f.pts([(-0.48, -0.42), (0.28, -0.46), (0.50, -0.30), (0.52, 0.28), (0.34, 0.46), (-0.48, 0.42)])), SKIN, shadow=0.07)
+    for v in (-0.20, 0.02, 0.24):
+        ic.flat(ic.capsule(f.pt(0.08, v), f.pt(0.50, v), 0.035 * size), hx("8a4a3a"))
+    ic.part(ic.capsule(f.pt(-0.12, 0.40), f.pt(0.30, 0.36), 0.20 * size), SKIN, shadow=0.04)
+
+
+def palm(ic, at, angle, size):
+    """An open hand thrust along `angle`, fingers leading."""
+    f = Frame(at, angle, size)
+    ic.part(ic.capsule(f.pt(-1.6, 0.0), f.pt(-0.45, 0.0), 0.50 * size), SKIN, shadow=0.05)
+    ic.part(ic.poly(f.pts([(-0.74, -0.30), (-0.44, -0.30), (-0.44, 0.30), (-0.74, 0.30)])), BONE, shadow=0.03)
+    ic.part(ic.capsule(f.pt(-0.34, 0.36), f.pt(-0.02, 0.62), 0.18 * size), SKIN, shadow=0.03)
+    ic.part(ic.poly(f.pts([(-0.46, -0.40), (0.06, -0.42), (0.06, 0.42), (-0.46, 0.38)])), SKIN, shadow=0.06)
+    for v in (-0.31, -0.10, 0.11, 0.32):
+        ic.part(ic.capsule(f.pt(0.02, v), f.pt(0.52 - abs(v) * 0.35, v), 0.18 * size), SKIN, shadow=0.03)
+
+
+def rapier(ic, hilt, tip, w=0.05):
+    """A rapier from its pommel to its point: a needle of a blade, a gold cup and knuckle bow."""
+    dx, dy = tip[0] - hilt[0], tip[1] - hilt[1]
+    ln = math.hypot(dx, dy)
+    ux, uy = dx / ln, dy / ln
+    px, py = -uy, ux
+    b0 = (hilt[0] + ux * ln * 0.20, hilt[1] + uy * ln * 0.20)
+    ic.part(ic.poly([(b0[0] + px * w * 0.5, b0[1] + py * w * 0.5), tip, (b0[0] - px * w * 0.5, b0[1] - py * w * 0.5)]), STEEL, metal=True, shadow=0.02)
+    ic.part(ic.capsule(hilt, b0, w * 0.9), LEATHER, shadow=0.03)
+    ic.part(ic.path([(b0[0] + px * w * 2.2, b0[1] + py * w * 2.2), ((hilt[0] + b0[0]) / 2 + px * w * 2.7, (hilt[1] + b0[1]) / 2 + py * w * 2.7),
+        (hilt[0] + px * w * 0.9, hilt[1] + py * w * 0.9)], w * 0.7), GOLD, metal=True, shadow=0.025)
+    c = (b0[0] + ux * w * 0.5, b0[1] + uy * w * 0.5)
+    ic.part(ic.poly([(c[0] + px * math.cos(a) * w * 2.5 + ux * math.sin(a) * w * 1.3, c[1] + py * math.cos(a) * w * 2.5 + uy * math.sin(a) * w * 1.3)
+        for a in np.linspace(0, 2 * math.pi, 16, endpoint=False)]), GOLD, metal=True, shadow=0.035)
+    ic.part(ic.circle(hilt, w * 0.9), GOLD, metal=True, shadow=0.03)
+
+
+def ghost_bust(ic, c, s, mat):
+    """Someone's image: a flat glowing shape of them."""
+    m = ic.poly([(c[0] - s * 0.62, c[1] + s * 0.95), (c[0] - s * 0.50, c[1] + s * 0.30), (c[0], c[1] + s * 0.12), (c[0] + s * 0.50, c[1] + s * 0.30),
+        (c[0] + s * 0.62, c[1] + s * 0.95)]) | ic.circle((c[0], c[1] - s * 0.18), s * 0.36)
+    ic.glow(m, mat, depth=s * 0.22, ink=True)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Black-leg (heat)
+# ----------------------------------------------------------------------------------------------------------------
+def rising_heel(ic):
+    # "swing your heel straight up under their chin": the leg straight up, the arc it came through
+    ic.glow(ic.path(arc((0.30, 0.86), 0.66, -5.0, -85.0), 0.03, 0.16), HEAT, depth=0.06)
+    leg(ic, (0.10, 1.30), (0.30, 0.74), (0.50, 0.26), (0.68, 0.08), w=0.17)
+    ic.glow(ic.star((0.74, 0.12), 0.14, 6, 0.4, 0.3), SPARK, depth=0.05, ink=True)
+
+
+def hailstorm_heels(ic):
+    # "a hail of snapping kicks at every height": the foot, and where it has just been
+    for (x, y), dy in (((0.60, 0.16), -0.05), ((0.72, 0.44), 0.0), ((0.60, 0.74), 0.05)):
+        ic.glow(ic.lens((0.10, y - dy * 2.0), (x - 0.12, y), 0.10), HEAT, depth=0.04)
+        ic.part(ic.path([(x - 0.14, y - dy), (x + 0.20, y + dy)], 0.17, 0.12), IRON, metal=True, shadow=0.04)
+        ic.glow(ic.star((x + 0.26, y + dy), 0.09, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def sky_chase(ic):
+    # "Stamp on the air up to a foe you've launched": the shoe on a step of air, the steps below it
+    for y, rx in ((0.92, 0.26), (0.72, 0.34)):
+        ic.glow(ic.poly(oval((0.44, y), rx, rx * 0.30)) & ~ic.poly(oval((0.44, y), rx * 0.62, rx * 0.15)), HEAT, depth=0.03)
+    ic.glow(ic.poly(oval((0.50, 0.50), 0.44, 0.14)) & ~ic.poly(oval((0.50, 0.50), 0.28, 0.07)), SPARK, depth=0.04, ink=True)
+    leg(ic, (0.96, -0.36), (0.70, 0.06), (0.52, 0.36), (0.30, 0.42), w=0.18)
+
+
+def cleaver_kick(ic):
+    # "A high crescent kick so fast it cuts the air: a blade of it shoots off your foot"
+    ic.glow(ic.circle((0.56, 0.46), 0.48) & ~ic.circle((0.36, 0.56), 0.50), HEAT, depth=0.09)
+    leg(ic, (-0.30, 1.10), (0.06, 0.66), (0.36, 0.36), (0.56, 0.22), w=0.16)
+
+
+def flambe_dash(ic):
+    # "A hop as the leg heats, then a flying side kick that streaks five paces through the line"
+    ic.glow(ic.poly([(-0.04, 0.30), (0.20, 0.36), (0.10, 0.50), (0.30, 0.52), (0.16, 0.68), (0.40, 0.70), (-0.04, 0.92)]), FIRE, depth=0.10)
+    for y in (0.16, 0.90):
+        ic.glow(ic.lens((0.04, y), (0.60, y), 0.05), HEAT, depth=0.025)
+    leg(ic, (-0.40, 0.50), (0.20, 0.52), (0.62, 0.50), (0.92, 0.44), w=0.20, hot=True)
+
+
+def last_course(ic):
+    # "Spin on one foot until your leg glows red-hot ... and the heel brought down": the heel coming down, burning
+    ic.glow(ic.poly([(0.30, 0.94), (0.14, 0.60), (0.30, 0.66), (0.26, 0.34), (0.44, 0.48), (0.50, 0.10), (0.62, 0.40), (0.82, 0.22), (0.78, 0.56),
+        (0.96, 0.52), (0.84, 0.94)]), FIRE, depth=0.13)
+    leg(ic, (1.20, -0.30), (0.90, 0.14), (0.62, 0.50), (0.44, 0.74), w=0.19, hot=True)
+    ic.glow(ic.star((0.42, 0.80), 0.20, 8, 0.4, 0.2), SPARK, depth=0.07, ink=True)
+
+
+def volcano_course(ic):
+    # "Stamp the ground five times: it erupts under up to five foes"
+    ground(ic, 0.84)
+    for x, top, w in ((0.20, 0.34, 0.11), (0.50, 0.06, 0.15), (0.80, 0.30, 0.11)):
+        ic.glow(ic.poly([(x - w, 0.86), (x - w * 0.7, top + 0.30), (x - w * 1.1, top + 0.18), (x - w * 0.3, top + 0.16), (x, top), (x + w * 0.4, top + 0.18),
+            (x + w * 1.1, top + 0.14), (x + w * 0.7, top + 0.32), (x + w, 0.86)]), FIRE, depth=w * 0.75, ink=True)
+        shard(ic, x - w * 1.5, 0.86, 0.12, 0.06, -0.02)
+        shard(ic, x + w * 1.5, 0.86, 0.10, 0.05, 0.02)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Unarmed
+# ----------------------------------------------------------------------------------------------------------------
+def hip_toss(ic):
+    # "whoever threw it goes over your shoulder": them, upside down at the top of the throw
+    ic.glow(ic.path(arc((0.50, 0.92), 0.66, 190.0, 350.0), 0.04, 0.15), IMPACT, depth=0.055)
+    c, sz = (0.52, 0.34), 0.46
+    ic.part(ic.poly([(c[0] - sz * 0.62, c[1] - sz * 0.80), (c[0] - sz * 0.50, c[1] - sz * 0.15), (c[0], c[1] + sz * 0.03), (c[0] + sz * 0.50, c[1] - sz * 0.15),
+        (c[0] + sz * 0.62, c[1] - sz * 0.80)]), SHADE, shadow=0.05)
+    ic.part(ic.circle((c[0], c[1] + sz * 0.33), sz * 0.36), SHADE, shadow=0.05)
+    ground(ic, 0.90)
+    ic.glow(ic.star((0.86, 0.84), 0.13, 6, 0.4, 0.2), SPARK, depth=0.05, ink=True)
+
+
+def cannonball_fist(ic):
+    # "drive a straight right through the enemy in front: they're launched down the line like a cannonball"
+    ic.glow(ic.poly(oval((0.36, 0.50), 0.16, 0.46)) & ~ic.poly(oval((0.36, 0.50), 0.09, 0.34)), IMPACT, depth=0.04)
+    for y in (0.14, 0.86):
+        ic.glow(ic.lens((0.02, y), (0.50, y), 0.06), IMPACT, depth=0.03)
+    fist(ic, (0.66, 0.50), 0.0, 0.62)
+
+
+def meteor_fist(ic):
+    # "a burning overhand driven into the ground: the earth cracks"
+    ic.glow(ic.poly([(0.16, 0.60), (0.10, 0.20), (0.28, 0.36), (0.36, 0.00), (0.50, 0.26), (0.64, 0.00), (0.72, 0.36), (0.90, 0.20), (0.84, 0.60)]), FIRE, depth=0.12)
+    ground(ic, 0.86)
+    ic.flat(ic.path([(0.50, 0.84), (0.40, 0.92), (0.46, 1.0)], 0.035) | ic.path([(0.52, 0.84), (0.66, 0.90), (0.62, 1.0)], 0.03), INK)
+    fist(ic, (0.50, 0.58), 90.0, 0.56)
+    for x in (0.14, 0.86):
+        shard(ic, x, 0.86, 0.16, 0.07, 0.03 if x > 0.5 else -0.03)
+
+
+def hundred_fists(ic):
+    # "A blur of punches for a second": the fist, and the fists before it still in the air
+    for x, y in ((0.30, 0.16), (0.50, 0.30), (0.50, 0.74), (0.30, 0.88)):
+        ic.glow(ic.poly([(x - 0.30, y - 0.07), (x + 0.10, y - 0.11), (x + 0.20, y), (x + 0.10, y + 0.11), (x - 0.30, y + 0.07)]), IMPACT, depth=0.05)
+    fist(ic, (0.70, 0.52), 0.0, 0.52)
+
+
+def rising_dragon(ic):
+    # "A leaping uppercut that launches you and everyone in front of you into the air"
+    pts = []
+    for k in range(13):
+        t = k / 12.0
+        a = math.radians(140.0 + 420.0 * t)
+        pts.append((0.50 + math.cos(a) * (0.44 - 0.20 * t), 0.94 - 0.84 * t + math.sin(a) * 0.05))
+    ic.glow(ic.path(pts, 0.14, 0.04), IMPACT, depth=0.05)
+    fist(ic, (0.50, 0.34), -90.0, 0.54)
+    ic.glow(ic.star((0.50, 0.06), 0.12, 6, 0.4, 0.5), SPARK, depth=0.04, ink=True)
+
+
+def palm_strike(ic):
+    # "Drive an open palm forward: a burst of air hurls everything in a cone"
+    for r, w0 in ((0.26, 0.06), (0.44, 0.08), (0.62, 0.10)):
+        ic.glow(ic.path(arc((0.34, 0.50), r, -52.0, 52.0), w0 * 0.6, w0), IMPACT, depth=0.03, ink=True)
+    palm(ic, (0.30, 0.50), 0.0, 0.52)
+
+
+def sea_king_fist(ic):
+    # "Your fist takes the power and glows": the fist, the sea's power burning round it
+    ic.glow(ic.poly([(0.10, 0.96), (0.02, 0.56), (0.16, 0.62), (0.12, 0.26), (0.30, 0.40), (0.38, 0.04), (0.54, 0.26), (0.70, 0.02), (0.76, 0.38),
+        (0.96, 0.24), (0.90, 0.62), (1.0, 0.60), (0.92, 0.96)]), WATER, depth=0.13)
+    fist(ic, (0.52, 0.48), -62.0, 0.60)
+    for x, y, r in ((0.14, 0.14, 0.05), (0.90, 0.10, 0.04), (0.08, 0.40, 0.035)):
+        ic.glow(ic.circle((x, y), r), WATER, depth=r, ink=True)
+
+
+def typhoon_rush(ic):
+    # "Walk into them under a storm of fists in a ring of wind"
+    for turn in (0.0, 120.0, 240.0):
+        ic.glow(ic.path(arc((0.50, 0.50), 0.47, turn, turn + 95.0), 0.03, 0.13), IMPACT, depth=0.05)
+    for ang in (150.0, 270.0):
+        a = math.radians(ang)
+        fist(ic, (0.5 + math.cos(a) * 0.22, 0.5 + math.sin(a) * 0.22), ang, 0.26, arm=False, wrap=False)
+    fist(ic, (0.58, 0.54), 20.0, 0.40, arm=False)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Rapier (silver and glass)
+# ----------------------------------------------------------------------------------------------------------------
+def needle_rain(ic):
+    # "Eight thrusts in under a second, the point everywhere at once"
+    for k, (x, y) in enumerate(((0.30, 0.04), (0.56, 0.02), (0.80, 0.10), (0.94, 0.34), (0.98, 0.60))):
+        ic.glow(ic.lens((x - 0.44, y + 0.50), (x, y), 0.045), SILVER, depth=0.02)
+        ic.glow(ic.star((x, y), 0.06, 4, 0.3, 0.0), SPARK, depth=0.025)
+    rapier(ic, (-0.06, 1.06), (0.78, 0.22), w=0.07)
+
+
+def glass_step(ic):
+    # "a silver image of you stays standing where you were ... while you thrust": the image, the thrust from beside it
+    ghost_bust(ic, (0.38, 0.50), 0.60, SILVER)
+    ic.flat(ic.lens((0.22, 0.30), (0.34, 0.14), 0.035) | ic.lens((0.46, 0.84), (0.56, 0.70), 0.03), hx("ffffff"))
+    rapier(ic, (1.30, 0.98), (0.46, 0.50), w=0.07)
+
+
+def glass_feint(ic):
+    # "your mirror image is behind them; out of it you come with the real thrust": the looking-glass, the point out of it
+    ic.part(ic.poly(oval((0.42, 0.46), 0.38, 0.44)), GOLD, metal=True, shadow=0.05)
+    ic.glow(ic.poly(oval((0.42, 0.46), 0.30, 0.36)), SILVER, depth=0.14, ink=True)
+    ic.flat(ic.lens((0.24, 0.40), (0.40, 0.18), 0.04), hx("ffffff"))
+    ic.part(ic.capsule((0.42, 0.90), (0.42, 1.06), 0.12), GOLD, metal=True, shadow=0.03)
+    ic.part(ic.poly([(0.40, 0.42), (0.48, 0.50), (0.99, 0.80)]), STEEL, metal=True, shadow=0.02)
+    ic.glow(ic.star((0.45, 0.46), 0.11, 4, 0.3, 0.3), SPARK, depth=0.04, ink=True)
+
+
+def balestra(ic):
+    # "a hop forward and a lunge that covers seven paces in a blink"
+    ic.glow(ic.lens((-0.05, 0.62), (0.90, 0.40), 0.18), SILVER, depth=0.06)
+    for y, x1 in ((0.20, 0.50), (0.88, 0.60)):
+        ic.glow(ic.lens((0.02, y), (x1, y - 0.03), 0.05), SILVER, depth=0.025)
+    rapier(ic, (-0.26, 0.70), (0.97, 0.38), w=0.075)
+    ic.glow(ic.star((0.95, 0.38), 0.09, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def hall_of_mirrors(ic):
+    # "you are everywhere at once: a mirror image of you thrusts at each": the mirrors, a thrust out of each
+    for x, top, lean in ((0.18, 0.14, -0.06), (0.50, 0.04, 0.0), (0.82, 0.14, 0.06)):
+        ic.part(ic.poly([(x - 0.15 + lean, top), (x + 0.15 + lean, top), (x + 0.15, top + 0.74), (x - 0.15, top + 0.74)]), GOLD, metal=True, shadow=0.04)
+        ic.glow(ic.poly([(x - 0.10 + lean, top + 0.05), (x + 0.10 + lean, top + 0.05), (x + 0.10, top + 0.69), (x - 0.10, top + 0.69)]), SILVER, depth=0.07, ink=True)
+        ic.part(ic.poly([(x - 0.02 + lean * 0.5, top + 0.34), (x + 0.03 + lean * 0.5, top + 0.36), (0.50 + (x - 0.5) * 0.25, 1.02)]), STEEL, metal=True, shadow=0.02)
+
+
+def silver_meridian(ic):
+    # "hold the point on the line, still as glass; then one perfect lunge fourteen paces through everything on it"
+    ic.glow(ic.circle((0.50, 0.50), 0.44) & ~ic.circle((0.50, 0.50), 0.36), SILVER, depth=0.03)
+    ic.glow(ic.lens((-0.10, 0.50), (1.10, 0.50), 0.16), SILVER, depth=0.06)
+    rapier(ic, (-0.30, 0.50), (0.96, 0.50), w=0.075)
+    ic.glow(ic.star((0.94, 0.50), 0.10, 4, 0.25, 0.0), SPARK, depth=0.035, ink=True)
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -1188,6 +1443,16 @@ SKILLS = {
         ("axestorm", "Axestorm", False, axestorm), ("ravens_return", "Ravens' Return", False, ravens_return),
         ("raiders_haul", "Raider's Haul", False, raiders_haul), ("fimbulwinter", "Fimbulwinter  (ult)", True, fimbulwinter),
         ("avalanche", "Avalanche  (ult)", True, avalanche)],
+    "black_leg": [("rising_heel", "Rising Heel", False, rising_heel), ("hailstorm_heels", "Hailstorm Heels", False, hailstorm_heels),
+        ("sky_chase", "Sky Chase", False, sky_chase), ("cleaver_kick", "Cleaver Kick", False, cleaver_kick), ("flambe_dash", "Flambe Dash", False, flambe_dash),
+        ("last_course", "Last Course  (ult)", True, last_course), ("volcano_course", "Volcano Course  (ult)", True, volcano_course)],
+    "unarmed": [("hip_toss", "Shoulder Throw", False, hip_toss), ("cannonball_fist", "Cannonball Fist", False, cannonball_fist),
+        ("meteor_fist", "Meteor Fist", False, meteor_fist), ("hundred_fists", "Hundred Fists", False, hundred_fists),
+        ("rising_dragon", "Rising Dragon", False, rising_dragon), ("palm_strike", "Shockwave Palm", False, palm_strike),
+        ("sea_king_fist", "Leviathan Fist  (ult)", True, sea_king_fist), ("typhoon_rush", "Typhoon Rush  (ult)", True, typhoon_rush)],
+    "rapier": [("needle_rain", "Needle Rain", False, needle_rain), ("glass_step", "Glass Step", False, glass_step),
+        ("glass_feint", "Looking-Glass Feint", False, glass_feint), ("balestra", "Balestra", False, balestra),
+        ("hall_of_mirrors", "Hall of Mirrors  (ult)", True, hall_of_mirrors), ("silver_meridian", "Silver Meridian  (ult)", True, silver_meridian)],
 }
 
 
