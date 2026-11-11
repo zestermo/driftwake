@@ -72,6 +72,10 @@ SOUL = ramp("0c3a30", "1ea078", "5ef0b8", "c8ffe8", "ffffff")
 PINK = ramp("5a1040", "c8308a", "ff78c0", "ffc8e4", "ffffff")
 WHITE = ramp("5a6478", "a8b4c8", "e8eef6", "ffffff", "ffffff")
 TEAL = ramp("0c3a3a", "1e8a86", "65c9c0", "c0f2ec", "ffffff")
+FUR = ramp("2a2c3a", "565a70", "8a90a8", "c0c6d8", "f0f2fa")
+GLASS = ramp("0e3a22", "1e7a44", "46b46a", "a0e8b4", "e8fff0")
+MEAT = ramp("4a1c0c", "8a3a1a", "c0602a", "e89a5a", "ffd0a0")
+DRAGON = ramp("5a3a08", "b07a14", "e8b030", "ffe07a", "fff6c8")
 TREES = {
     "sword": ("123262", "4db8ff"),
     "katana": ("3a1c48", "ff9ecc"),
@@ -94,6 +98,10 @@ TREES = {
     "long_gun": ("1c1e5a", "b8d6ff"),
     "cannon": ("3a1a58", "ffcc38"),
     "base": ("1a343c", "65c9c0"),
+    "ember": ("5a2206", "ffa02a"),
+    "wolf": ("2e2440", "b8a8e8"),
+    "vine": ("143a1e", "5fd06a"),
+    "perk": ("22263e", "f2c94c"),
 }
 
 
@@ -225,7 +233,7 @@ def frame(n, tree, ult=False):
 # ----------------------------------------------------------------------------------------------------------------
 # Shared pieces
 # ----------------------------------------------------------------------------------------------------------------
-def cutlass(ic, hilt, tip, bend=0.09, w=0.12, guard=True):
+def cutlass(ic, hilt, tip, bend=0.09, w=0.12, guard=True, steel=None):
     """A cutlass from the pommel end `hilt` to its `tip`: a curved single-edged blade widening toward the point, a brass
     crossguard and knuckle bow, a leather grip. `bend` bows the blade to its right-hand side (negative: the other)."""
     dx, dy = tip[0] - hilt[0], tip[1] - hilt[1]
@@ -245,7 +253,7 @@ def cutlass(ic, hilt, tip, bend=0.09, w=0.12, guard=True):
         ww = w * (0.78 + 0.42 * t) * (1.0 if t < 0.78 else max(0.0, (1.0 - t) / 0.22) ** 0.7)
         left.append((cx + nx * ww * 0.5, cy + ny * ww * 0.5))
         right.append((cx - nx * ww * 0.5, cy - ny * ww * 0.5))
-    ic.part(ic.poly(left + right[::-1]), STEEL, metal=True, shadow=0.045)
+    ic.part(ic.poly(left + right[::-1]), STEEL if steel is None else steel, metal=True, shadow=0.045)
     ic.part(ic.capsule(hilt, b0, w * 0.62), LEATHER, shadow=0.04)
     if guard:
         g = w * 1.25
@@ -1181,29 +1189,44 @@ def leg(ic, hip, knee, ankle, toe, w=0.15, hot=False):
     ic.part(ic.circle((ankle[0] + (toe[0] - ankle[0]) * 0.35, ankle[1] + (toe[1] - ankle[1]) * 0.35), w * 0.2), GOLD, metal=True, shadow=0.02)
 
 
-def fist(ic, at, angle, size, arm=True, wrap=True, skin=None):
-    """A fist driven along `angle`, knuckles first, seen from the side: the forearm behind it, the wrist bound."""
-    f = Frame(at, angle, size)
+def fist_front(ic, c, size, wrist=True, skin=None):
+    """A fist seen knuckles-on: four fingers folded in a row, the thumb laid across under them, the wrist bound."""
+    x, y = c
     sk = SKIN if skin is None else skin
-    if arm:
-        ic.part(ic.capsule(f.pt(-1.7, 0.0), f.pt(-0.45, 0.0), 0.58 * size), sk, metal=skin is not None, shadow=0.05)
-    if wrap:
-        ic.part(ic.poly(f.pts([(-0.74, -0.33), (-0.42, -0.33), (-0.42, 0.33), (-0.74, 0.33)])), BONE, shadow=0.03)
-    ic.part(ic.poly(f.pts([(-0.48, -0.42), (0.28, -0.46), (0.50, -0.30), (0.52, 0.28), (0.34, 0.46), (-0.48, 0.42)])), sk, metal=skin is not None, shadow=0.07)
-    for v in (-0.20, 0.02, 0.24):
-        ic.flat(ic.capsule(f.pt(0.08, v), f.pt(0.50, v), 0.035 * size), hx("8a4a3a") if skin is None else sk[0])
-    ic.part(ic.capsule(f.pt(-0.12, 0.40), f.pt(0.30, 0.36), 0.20 * size), sk, metal=skin is not None, shadow=0.04)
+    if wrist:
+        ic.part(ic.poly([(x - 0.30 * size, y + 0.42 * size), (x + 0.30 * size, y + 0.42 * size), (x + 0.26 * size, y + 0.84 * size), (x - 0.26 * size, y + 0.84 * size)]), BONE, shadow=0.03)
+    ic.part(ic.poly([(x - 0.46 * size, y - 0.04 * size), (x + 0.46 * size, y - 0.04 * size), (x + 0.46 * size, y + 0.38 * size), (x + 0.34 * size, y + 0.50 * size),
+        (x - 0.34 * size, y + 0.50 * size), (x - 0.46 * size, y + 0.38 * size)]), sk, shadow=0.05)
+    for dx in (-0.345, -0.115, 0.115, 0.345):
+        ic.part(ic.capsule((x + dx * size, y - 0.26 * size), (x + dx * size, y + 0.06 * size), 0.215 * size), sk, shadow=0.04)
+    ic.part(ic.capsule((x - 0.40 * size, y + 0.22 * size), (x + 0.14 * size, y + 0.30 * size), 0.21 * size), sk, shadow=0.04)
 
 
-def palm(ic, at, angle, size):
-    """An open hand thrust along `angle`, fingers leading."""
+def palm_front(ic, c, size):
+    """An open hand held up, palm out."""
+    x, y = c
+    ic.part(ic.poly([(x - 0.26 * size, y + 0.44 * size), (x + 0.26 * size, y + 0.44 * size), (x + 0.24 * size, y + 0.84 * size), (x - 0.24 * size, y + 0.84 * size)]), BONE, shadow=0.03)
+    ic.part(ic.capsule((x - 0.38 * size, y + 0.22 * size), (x - 0.66 * size, y - 0.10 * size), 0.18 * size), SKIN, shadow=0.04)
+    for dx, top in ((-0.30, -0.52), (-0.10, -0.66), (0.10, -0.62), (0.30, -0.44)):
+        ic.part(ic.capsule((x + dx * size, y), (x + dx * size, y + top * size), 0.185 * size), SKIN, shadow=0.04)
+    ic.part(ic.poly([(x - 0.42 * size, y - 0.06 * size), (x + 0.42 * size, y - 0.06 * size), (x + 0.40 * size, y + 0.40 * size), (x + 0.28 * size, y + 0.50 * size),
+        (x - 0.28 * size, y + 0.50 * size), (x - 0.40 * size, y + 0.40 * size)]), SKIN, shadow=0.06)
+    ic.flat(ic.path(arc((x + 0.02 * size, y + 0.10 * size), 0.22 * size, 30.0, 150.0), 0.03 * size), hx("a25c46"))
+
+
+def dragon_head(ic, at, angle, size, mat, mane):
+    """A dragon's head in profile, jaws open along `angle`: horned, maned, whiskered."""
     f = Frame(at, angle, size)
-    ic.part(ic.capsule(f.pt(-1.6, 0.0), f.pt(-0.45, 0.0), 0.50 * size), SKIN, shadow=0.05)
-    ic.part(ic.poly(f.pts([(-0.74, -0.30), (-0.44, -0.30), (-0.44, 0.30), (-0.74, 0.30)])), BONE, shadow=0.03)
-    ic.part(ic.capsule(f.pt(-0.34, 0.36), f.pt(-0.02, 0.62), 0.18 * size), SKIN, shadow=0.03)
-    ic.part(ic.poly(f.pts([(-0.46, -0.40), (0.06, -0.42), (0.06, 0.42), (-0.46, 0.38)])), SKIN, shadow=0.06)
-    for v in (-0.31, -0.10, 0.11, 0.32):
-        ic.part(ic.capsule(f.pt(0.02, v), f.pt(0.52 - abs(v) * 0.35, v), 0.18 * size), SKIN, shadow=0.03)
+    ic.part(ic.poly(f.pts([(-0.40, 0.34), (-0.92, 0.36), (-0.66, 0.14), (-0.98, -0.06), (-0.64, -0.12), (-0.86, -0.44), (-0.50, -0.30), (-0.30, -0.20)])), mane, shadow=0.05)
+    ic.part(ic.poly(f.pts([(-0.34, -0.28), (-0.66, -0.80), (-0.12, -0.34)])), BONE, shadow=0.03)
+    ic.flat(ic.poly(f.pts([(-0.04, 0.16), (0.62, 0.08), (0.64, 0.24), (0.06, 0.30)])), hx("5a0c14"))
+    ic.part(ic.poly(f.pts([(-0.30, 0.30), (0.14, 0.24), (0.60, 0.24), (0.74, 0.36), (0.30, 0.50), (-0.22, 0.56)])), mat, shadow=0.05)
+    ic.part(ic.poly(f.pts([(-0.56, 0.24), (-0.52, -0.24), (-0.12, -0.34), (0.28, -0.24), (0.68, -0.18), (0.88, 0.00), (0.62, 0.10), (0.20, 0.14), (-0.10, 0.32)])), mat, shadow=0.07)
+    ic.flat(ic.poly(f.pts([(0.44, 0.11), (0.53, 0.10), (0.49, 0.24)])) | ic.poly(f.pts([(0.24, 0.13), (0.32, 0.13), (0.29, 0.25)])), hx("ffffff"))
+    ic.flat(ic.lens(f.pt(-0.02, -0.12), f.pt(0.20, -0.06), 0.09 * size), hx("ffffff"))
+    ic.flat(ic.circle(f.pt(0.10, -0.085), 0.03 * size), INK)
+    ic.flat(ic.circle(f.pt(0.76, -0.04), 0.03 * size), INK)
+    ic.flat(ic.path(f.pts([(0.82, 0.06), (1.02, 0.14), (1.06, 0.36)]), 0.035 * size), mat[3])
 
 
 def rapier(ic, hilt, tip, w=0.05):
@@ -1292,77 +1315,88 @@ def volcano_course(ic):
 # Unarmed
 # ----------------------------------------------------------------------------------------------------------------
 def hip_toss(ic):
-    # "whoever threw it goes over your shoulder": them, upside down at the top of the throw
-    ic.glow(ic.path(arc((0.50, 0.92), 0.66, 190.0, 350.0), 0.04, 0.15), IMPACT, depth=0.055)
-    c, sz = (0.52, 0.34), 0.46
+    # "whoever threw it goes over your shoulder": your arms up, them upside down over you
+    ic.glow(ic.path(arc((0.50, 0.96), 0.70, 195.0, 345.0), 0.04, 0.16), IMPACT, depth=0.06)
+    c, sz = (0.52, 0.30), 0.44
     ic.part(ic.poly([(c[0] - sz * 0.62, c[1] - sz * 0.80), (c[0] - sz * 0.50, c[1] - sz * 0.15), (c[0], c[1] + sz * 0.03), (c[0] + sz * 0.50, c[1] - sz * 0.15),
         (c[0] + sz * 0.62, c[1] - sz * 0.80)]), SHADE, shadow=0.05)
     ic.part(ic.circle((c[0], c[1] + sz * 0.33), sz * 0.36), SHADE, shadow=0.05)
-    ground(ic, 0.90)
-    ic.glow(ic.star((0.86, 0.84), 0.13, 6, 0.4, 0.2), SPARK, depth=0.05, ink=True)
+    for x0, x1 in ((0.26, 0.40), (0.76, 0.62)):
+        ic.part(ic.capsule((x0, 1.10), (x1, 0.66), 0.13), SKIN, shadow=0.04)
+        ic.part(ic.circle((x1, 0.62), 0.085), SKIN, shadow=0.03)
+    ic.glow(ic.star((0.90, 0.80), 0.11, 6, 0.4, 0.2), SPARK, depth=0.04, ink=True)
 
 
 def cannonball_fist(ic):
-    # "drive a straight right through the enemy in front: they're launched down the line like a cannonball"
-    ic.glow(ic.poly(oval((0.36, 0.50), 0.16, 0.46)) & ~ic.poly(oval((0.36, 0.50), 0.09, 0.34)), IMPACT, depth=0.04)
-    for y in (0.14, 0.86):
-        ic.glow(ic.lens((0.02, y), (0.50, y), 0.06), IMPACT, depth=0.03)
-    fist(ic, (0.66, 0.50), 0.0, 0.62)
+    # "they're launched down the line like a cannonball": the blow's ring, what it sent flying
+    ic.glow(ic.poly(oval((0.20, 0.50), 0.15, 0.44)) & ~ic.poly(oval((0.20, 0.50), 0.08, 0.32)), IMPACT, depth=0.04)
+    ic.glow(ic.lens((0.10, 0.50), (0.78, 0.50), 0.34), IMPACT, depth=0.09)
+    for y, x0 in ((0.14, 0.34), (0.86, 0.34)):
+        ic.glow(ic.lens((x0, y), (0.98, y), 0.055), IMPACT, depth=0.03)
+    ic.part(ic.circle((0.72, 0.50), 0.22), SHADE, metal=True, shadow=0.08)
 
 
 def meteor_fist(ic):
-    # "a burning overhand driven into the ground: the earth cracks"
-    ic.glow(ic.poly([(0.16, 0.60), (0.10, 0.20), (0.28, 0.36), (0.36, 0.00), (0.50, 0.26), (0.64, 0.00), (0.72, 0.36), (0.90, 0.20), (0.84, 0.60)]), FIRE, depth=0.12)
+    # "a burning overhand driven into the ground: the earth cracks": the meteor it lands like
+    ic.glow(ic.path([(1.06, -0.06), (0.78, 0.22), (0.46, 0.58)], 0.06, 0.40), FIRE, depth=0.10)
     ground(ic, 0.86)
-    ic.flat(ic.path([(0.50, 0.84), (0.40, 0.92), (0.46, 1.0)], 0.035) | ic.path([(0.52, 0.84), (0.66, 0.90), (0.62, 1.0)], 0.03), INK)
-    fist(ic, (0.50, 0.58), 90.0, 0.56)
-    for x in (0.14, 0.86):
-        shard(ic, x, 0.86, 0.16, 0.07, 0.03 if x > 0.5 else -0.03)
+    ic.flat(ic.path([(0.44, 0.84), (0.34, 0.92), (0.40, 1.0)], 0.035) | ic.path([(0.46, 0.84), (0.60, 0.90), (0.56, 1.0)], 0.03), INK)
+    ic.part(ic.poly([(0.26, 0.60), (0.36, 0.44), (0.54, 0.42), (0.64, 0.56), (0.60, 0.76), (0.42, 0.82), (0.28, 0.74)]), STONE, shadow=0.07)
+    for x, lean in ((0.12, -0.03), (0.84, 0.03)):
+        shard(ic, x, 0.86, 0.18, 0.07, lean)
+    ic.glow(ic.star((0.44, 0.84), 0.13, 6, 0.4, 0.2), SPARK, depth=0.05, ink=True)
 
 
 def hundred_fists(ic):
-    # "A blur of punches for a second": the fist, and the fists before it still in the air
-    for x, y in ((0.30, 0.16), (0.50, 0.30), (0.50, 0.74), (0.30, 0.88)):
-        ic.glow(ic.poly([(x - 0.30, y - 0.07), (x + 0.10, y - 0.11), (x + 0.20, y), (x + 0.10, y + 0.11), (x - 0.30, y + 0.07)]), IMPACT, depth=0.05)
-    fist(ic, (0.70, 0.52), 0.0, 0.52)
+    # "A blur of punches": fists, everywhere at once
+    ic.glow(ic.star((0.50, 0.50), 0.56, 12, 0.6, 0.1), IMPACT, depth=0.09)
+    for (x, y), sz in (((0.18, 0.22), 0.27), ((0.82, 0.20), 0.27), ((0.15, 0.76), 0.25), ((0.85, 0.76), 0.25)):
+        fist_front(ic, (x, y), sz, wrist=False)
+    fist_front(ic, (0.50, 0.46), 0.50)
 
 
 def rising_dragon(ic):
-    # "A leaping uppercut that launches you and everyone in front of you into the air"
+    # "A leaping uppercut that launches you and everyone in front of you into the air": the dragon, rising
     pts = []
     for k in range(13):
         t = k / 12.0
-        a = math.radians(140.0 + 420.0 * t)
-        pts.append((0.50 + math.cos(a) * (0.44 - 0.20 * t), 0.94 - 0.84 * t + math.sin(a) * 0.05))
-    ic.glow(ic.path(pts, 0.14, 0.04), IMPACT, depth=0.05)
-    fist(ic, (0.50, 0.34), -90.0, 0.54)
-    ic.glow(ic.star((0.50, 0.06), 0.12, 6, 0.4, 0.5), SPARK, depth=0.04, ink=True)
+        a = math.radians(160.0 + 400.0 * t)
+        pts.append((0.46 + math.cos(a) * (0.42 - 0.22 * t), 0.98 - 0.70 * t + math.sin(a) * 0.05))
+    ic.glow(ic.path(pts, 0.17, 0.07), IMPACT, depth=0.06)
+    dragon_head(ic, (0.52, 0.46), -30.0, 0.56, DRAGON, CLOTH)
 
 
 def palm_strike(ic):
     # "Drive an open palm forward: a burst of air hurls everything in a cone"
-    for r, w0 in ((0.26, 0.06), (0.44, 0.08), (0.62, 0.10)):
-        ic.glow(ic.path(arc((0.34, 0.50), r, -52.0, 52.0), w0 * 0.6, w0), IMPACT, depth=0.03, ink=True)
-    palm(ic, (0.30, 0.50), 0.0, 0.52)
+    for r, w0 in ((0.30, 0.06), (0.48, 0.08), (0.66, 0.10)):
+        ic.glow(ic.path(arc((0.30, 0.46), r, -50.0, 50.0), w0 * 0.6, w0), IMPACT, depth=0.03, ink=True)
+    palm_front(ic, (0.30, 0.52), 0.50)
 
 
 def sea_king_fist(ic):
-    # "Your fist takes the power and glows": the fist, the sea's power burning round it
-    ic.glow(ic.poly([(0.10, 0.96), (0.02, 0.56), (0.16, 0.62), (0.12, 0.26), (0.30, 0.40), (0.38, 0.04), (0.54, 0.26), (0.70, 0.02), (0.76, 0.38),
-        (0.96, 0.24), (0.90, 0.62), (1.0, 0.60), (0.92, 0.96)]), WATER, depth=0.13)
-    fist(ic, (0.52, 0.48), -62.0, 0.60)
-    for x, y, r in ((0.14, 0.14, 0.05), (0.90, 0.10, 0.04), (0.08, 0.40, 0.035)):
+    # "Your fist takes the power and glows": the leviathan in it
+    ic.glow(ic.poly([(-0.04, 1.04), (-0.04, 0.72), (0.14, 0.60), (0.30, 0.74), (0.50, 0.62), (0.70, 0.76), (0.88, 0.62), (1.04, 0.72), (1.04, 1.04)]), WATER, depth=0.09)
+    ic.part(ic.path([(0.10, 1.04), (0.30, 0.78), (0.14, 0.50), (0.34, 0.30)], 0.24, 0.20), WATER, shadow=0.06)
+    for x, y in ((0.16, 0.66), (0.20, 0.40)):
+        ic.part(ic.poly([(x - 0.02, y - 0.06), (x - 0.16, y - 0.02), (x - 0.02, y + 0.06)]), CYAN, shadow=0.02)
+    dragon_head(ic, (0.56, 0.34), 14.0, 0.60, WATER, CYAN)
+    for x, y, r in ((0.90, 0.14, 0.04), (0.80, 0.58, 0.035)):
         ic.glow(ic.circle((x, y), r), WATER, depth=r, ink=True)
 
 
 def typhoon_rush(ic):
     # "Walk into them under a storm of fists in a ring of wind"
-    for turn in (0.0, 120.0, 240.0):
-        ic.glow(ic.path(arc((0.50, 0.50), 0.47, turn, turn + 95.0), 0.03, 0.13), IMPACT, depth=0.05)
-    for ang in (150.0, 270.0):
+    for turn in (0.0, 90.0, 180.0, 270.0):
+        pts = []
+        for k in range(9):
+            t = k / 8.0
+            a = math.radians(turn + 190.0 * t)
+            r = 0.56 * (1.0 - 0.50 * t)
+            pts.append((0.5 + math.cos(a) * r, 0.5 + math.sin(a) * r))
+        ic.glow(ic.path(pts, 0.03, 0.13), IMPACT, depth=0.05)
+    for ang in (90.0, 210.0, 330.0):
         a = math.radians(ang)
-        fist(ic, (0.5 + math.cos(a) * 0.22, 0.5 + math.sin(a) * 0.22), ang, 0.26, arm=False, wrap=False)
-    fist(ic, (0.58, 0.54), 20.0, 0.40, arm=False)
+        fist_front(ic, (0.5 + math.cos(a) * 0.25, 0.5 + math.sin(a) * 0.25), 0.26, wrist=False)
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -1876,11 +1910,11 @@ def edy_reinforce(ic):
 
 
 def armament_coat(ic):
-    # "Pour your Edy into your weapon (or fists)": the fist gone black with it
-    ic.glow(ic.star((0.62, 0.42), 0.46, 8, 0.5, 0.2), VIOLET, depth=0.12)
-    fist(ic, (0.56, 0.48), -30.0, 0.60, wrap=False, skin=SHADE)
-    for x, y in ((0.86, 0.14), (0.92, 0.62)):
-        ic.glow(ic.star((x, y), 0.08, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+    # "Pour your Edy into your weapon": the blade gone black with it
+    ic.glow(ic.lens((-0.10, 1.10), (0.96, 0.02), 0.50), VIOLET, depth=0.10)
+    cutlass(ic, (-0.30, 1.30), (0.86, 0.08), bend=0.08, w=0.19, steel=SHADE)
+    for x, y, r in ((0.86, 0.10, 0.10), (0.30, 0.34, 0.07), (0.78, 0.60, 0.07)):
+        ic.glow(ic.star((x, y), r, 4, 0.3, 0.0), SPARK, depth=0.035, ink=True)
 
 
 def foresight(ic):
@@ -1973,6 +2007,295 @@ def conquerors_haki(ic):
     crown(ic, (0.50, 0.52), 0.62)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Fruit powers that have a picture of their own (the rest show their fruit: Skills.icon)
+# ----------------------------------------------------------------------------------------------------------------
+def flames(ic, pts, depth=0.12, mat=FIRE):
+    ic.glow(ic.poly(pts), mat, depth=depth)
+
+
+def wolf_head(ic, at, angle, size):
+    """A wolf's head in profile, muzzle along `angle`: tall ears, a long narrow muzzle, a ruff."""
+    f = Frame(at, angle, size)
+    ic.part(ic.poly(f.pts([(-0.40, 0.50), (-0.96, 0.62), (-0.74, 0.34), (-1.02, 0.18), (-0.72, 0.08), (-0.94, -0.16), (-0.56, -0.12)])), FUR, shadow=0.05)
+    ic.part(ic.poly(f.pts([(-0.62, -0.10), (-0.70, -0.66), (-0.40, -0.24)])), FUR, shadow=0.03)
+    ic.flat(ic.poly(f.pts([(0.02, 0.26), (0.72, 0.20), (0.74, 0.32), (0.10, 0.40)])), hx("3a0612"))
+    ic.part(ic.poly(f.pts([(-0.04, 0.36), (0.34, 0.30), (0.72, 0.30), (0.78, 0.38), (0.40, 0.48), (0.04, 0.56), (-0.30, 0.72), (-0.24, 0.50)])), FUR, shadow=0.04)
+    ic.part(ic.poly(f.pts([(-0.64, 0.42), (-0.62, -0.12), (-0.32, -0.30), (0.02, -0.22), (0.28, -0.10), (0.82, 0.02), (0.92, 0.14), (0.80, 0.22), (0.30, 0.24),
+        (0.02, 0.40), (-0.26, 0.56)])), FUR, shadow=0.07)
+    ic.part(ic.poly(f.pts([(-0.46, -0.20), (-0.40, -0.86), (-0.12, -0.28)])), FUR, shadow=0.04)
+    ic.flat(ic.poly(f.pts([(-0.40, -0.30), (-0.38, -0.66), (-0.24, -0.32)])), hx("5a3a4a"))
+    ic.flat(ic.poly(f.pts([(0.58, 0.22), (0.66, 0.21), (0.63, 0.34)])) | ic.poly(f.pts([(0.40, 0.24), (0.47, 0.23), (0.44, 0.34)])), hx("ffffff"))
+    ic.flat(ic.poly(f.pts([(-0.06, -0.10), (0.18, -0.02), (0.12, 0.04), (-0.04, -0.02)])), hx("ffd23a"))
+    ic.flat(ic.circle(f.pt(0.07, -0.02), 0.025 * size), INK)
+    ic.flat(ic.capsule(f.pt(-0.12, -0.14), f.pt(0.20, -0.07), 0.03 * size), INK)
+    ic.flat(ic.circle(f.pt(0.88, 0.10), 0.055 * size), INK)
+
+
+def fire_fist(ic):
+    # "Hurl a ball of fire where you aim. It bursts on impact": the ball of fire, thrown
+    flames(ic, [(-0.04, 1.04), (0.06, 0.70), (0.00, 0.50), (0.22, 0.58), (0.20, 0.34), (0.40, 0.44), (0.44, 0.14), (0.62, 0.20), (0.90, 0.10), (0.96, 0.40),
+        (0.88, 0.62), (0.62, 0.72), (0.52, 0.94), (0.36, 0.84), (0.24, 1.04)], 0.14)
+    ic.glow(ic.circle((0.66, 0.38), 0.24), SPARK, depth=0.13)
+    for x, y in ((0.14, 0.18), (0.92, 0.84)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03)
+
+
+def fire_ring(ic):
+    # "A ring of fire explodes out around you"
+    ring = ic.poly(oval((0.50, 0.56), 0.50, 0.34)) & ~ic.poly(oval((0.50, 0.56), 0.30, 0.17))
+    for k in range(9):
+        a = math.radians(200.0 + k * 17.5)
+        c = (0.5 + math.cos(a) * 0.44, 0.56 + math.sin(a) * 0.30)
+        ring |= ic.poly([(c[0] - 0.07, c[1]), (c[0] + math.cos(a) * 0.04, c[1] - 0.30 - 0.06 * (k % 2)), (c[0] + 0.07, c[1])])
+    ic.glow(ring, FIRE, depth=0.07)
+    ic.glow(ic.star((0.50, 0.58), 0.10, 4, 0.3, 0.0), SPARK, depth=0.04)
+
+
+def flame_dash(ic):
+    # "Burst forward in a streak of fire"
+    flames(ic, [(-0.04, 0.44), (0.20, 0.30), (0.12, 0.44), (0.42, 0.22), (0.36, 0.40), (0.72, 0.24), (0.98, 0.50), (0.72, 0.76), (0.36, 0.60), (0.42, 0.80),
+        (0.12, 0.58), (0.20, 0.72), (-0.04, 0.60)], 0.13)
+    for y in (0.10, 0.90):
+        ic.glow(ic.lens((0.10, y), (0.80, y), 0.05), FIRE, depth=0.025)
+    ic.glow(ic.circle((0.78, 0.50), 0.13), SPARK, depth=0.08)
+
+
+def ember_field(ic):
+    # "Set the ground ahead ablaze"
+    ic.part(ic.poly([(0.0, 1.0), (0.0, 0.52), (1.0, 0.44), (1.0, 1.0)]), SHADE, shadow=0.04)
+    for x, y, h in ((0.20, 0.62, 0.34), (0.56, 0.56, 0.42), (0.86, 0.60, 0.30), (0.36, 0.84, 0.36), (0.74, 0.88, 0.40), (0.08, 0.92, 0.26)):
+        w = h * 0.36
+        ic.glow(ic.poly([(x - w, y), (x - w * 0.6, y - h * 0.5), (x - w * 0.9, y - h * 0.7), (x, y - h), (x + w * 0.5, y - h * 0.55), (x + w, y - h * 0.75), (x + w, y)]), FIRE, depth=w * 0.7, ink=True)
+
+
+def inferno(ic):
+    # "a pillar of fire floors everything around you"
+    ic.glow(ic.poly(oval((0.50, 0.86), 0.52, 0.16)) & ~ic.poly(oval((0.50, 0.86), 0.36, 0.08)), FIRE, depth=0.04)
+    flames(ic, [(0.26, 0.90), (0.20, 0.56), (0.30, 0.64), (0.26, 0.28), (0.38, 0.40), (0.42, 0.06), (0.52, 0.22), (0.60, -0.04), (0.66, 0.34), (0.76, 0.20),
+        (0.72, 0.60), (0.82, 0.54), (0.74, 0.90)], 0.14)
+    ground(ic, 0.92)
+
+
+def rending_fang(ic):
+    # "Lunge at the nearest enemy and rake it three times"
+    for k, dx in enumerate((-0.26, 0.0, 0.26)):
+        ic.glow(ic.lens((0.34 + dx, 0.00), (0.66 + dx, 1.00), 0.17), BLOOD if k != 1 else MOON, depth=0.055, ink=True)
+    for x, y in ((0.16, 0.86), (0.88, 0.14)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03)
+
+
+def pounce(ic):
+    # "A huge bounding leap toward where you aim"
+    ic.glow(ic.path(arc((0.30, 0.96), 0.70, -120.0, -30.0), 0.03, 0.14), MOON, depth=0.05)
+    wolf_head(ic, (0.54, 0.50), 16.0, 0.48)
+
+
+def howl(ic):
+    # "Howl: for 8 s you hit 25% harder and run faster"
+    ic.glow(ic.circle((0.70, 0.28), 0.30), MOON, depth=0.14)
+    wolf_head(ic, (0.50, 0.66), -48.0, 0.48)
+
+
+def vine_snare(ic):
+    # "a seed that bursts into grasping vines, rooting enemies where they stand"
+    ic.part(ic.poly([(0.06, 1.0), (0.22, 0.86), (0.50, 0.82), (0.78, 0.86), (0.94, 1.0)]), STONE, shadow=0.04)
+    ic.glow(ic.circle((0.50, 0.46), 0.16), VENOM, depth=0.10)
+    for sgn in (-1, 1):
+        cx = 0.5 + sgn * 0.02
+        pts = [(cx + sgn * 0.10, 0.92), (cx + sgn * 0.32, 0.74), (cx + sgn * 0.42, 0.46), (cx + sgn * 0.30, 0.20), (cx + sgn * 0.08, 0.12), (cx - sgn * 0.02, 0.26)]
+        ic.part(ic.path(pts, 0.14, 0.055), LEAF, shadow=0.045)
+        for (x, y), (ox, oy) in (((cx + sgn * 0.41, 0.58), (sgn * 0.12, -0.03)), ((cx + sgn * 0.34, 0.28), (sgn * 0.10, -0.09))):
+            ic.part(ic.poly([(x, y - 0.045), (x + ox, y + oy), (x, y + 0.045)]), LEAF, shadow=0.02)
+    ic.part(ic.path([(0.50, 0.96), (0.46, 0.78), (0.56, 0.64), (0.50, 0.52)], 0.12, 0.055), LEAF, shadow=0.04)
+
+
+def vine_swing(ic):
+    # "Shoot a vine at whatever you aim at and swing from it": the vine round its branch, the swing under it
+    ic.glow(ic.path(arc((0.30, 0.10), 0.84, 28.0, 80.0), 0.03, 0.14), LEAFWIND, depth=0.05)
+    ic.part(ic.capsule((-0.06, 0.16), (1.06, 0.08), 0.13), WOOD, shadow=0.04)
+    ic.part(ic.circle((0.30, 0.13), 0.115) & ~ic.circle((0.30, 0.13), 0.05), LEAF, shadow=0.03)
+    ic.part(ic.path([(0.32, 0.22), (0.38, 0.44), (0.54, 0.66), (0.80, 0.86)], 0.085, 0.075), LEAF, shadow=0.03)
+    for (x, y), ang in (((0.46, 0.44), 20.0), ((0.60, 0.80), 150.0), ((0.16, 0.30), 100.0)):
+        leaf(ic, (x, y), ang, 0.10)
+    ic.glow(ic.star((0.84, 0.88), 0.09, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def thorn_whip(ic):
+    # "Lash a thorned vine through everything in a line in front of you"
+    pts = [(-0.04, 0.84), (0.16, 0.58), (0.36, 0.70), (0.56, 0.40), (0.76, 0.50), (0.94, 0.18)]
+    ic.glow(ic.path(pts, 0.16, 0.10), LEAFWIND, depth=0.04)
+    ic.part(ic.path(pts, 0.085, 0.05), LEAF, shadow=0.03)
+    for k in range(len(pts) - 1):
+        (x0, y0), (x1, y1) = pts[k], pts[k + 1]
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        nx, ny = -(y1 - y0), (x1 - x0)
+        ln = math.hypot(nx, ny)
+        sgn = 1.0 if k % 2 == 0 else -1.0
+        ic.part(ic.poly([(mx - (x1 - x0) * 0.16, my - (y1 - y0) * 0.16), (mx + nx / ln * 0.10 * sgn, my + ny / ln * 0.10 * sgn), (mx + (x1 - x0) * 0.16, my + (y1 - y0) * 0.16)]), LEAF, shadow=0.02)
+    ic.glow(ic.star((0.94, 0.16), 0.10, 6, 0.4, 0.2), SPARK, depth=0.04, ink=True)
+
+
+def falling_moon(ic):
+    # "one turn over forward with it held out (the point draws a full moon), a dive"
+    ic.glow(ic.circle((0.50, 0.46), 0.45) & ~ic.circle((0.50, 0.46), 0.33), MOON, depth=0.045)
+    ic.glow(ic.lens((0.50, 0.10), (0.50, 1.04), 0.16), PETAL, depth=0.05)
+    katana(ic, (0.44, -0.46), (0.52, 0.94), bend=0.05, w=0.10)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Perks
+# ----------------------------------------------------------------------------------------------------------------
+def perk_c_focus(ic):
+    # "Your ultimate charges 15% faster, and you win 10% more experience": a cut gem, catching the light
+    ic.part(ic.poly([(0.50, 0.08), (0.84, 0.36), (0.50, 0.94), (0.16, 0.36)]), CYAN, metal=True, shadow=0.10)
+    ic.flat(ic.capsule((0.16, 0.36), (0.84, 0.36), 0.03) | ic.capsule((0.36, 0.36), (0.50, 0.08), 0.025) | ic.capsule((0.64, 0.36), (0.50, 0.08), 0.025)
+        | ic.capsule((0.36, 0.36), (0.50, 0.94), 0.025) | ic.capsule((0.64, 0.36), (0.50, 0.94), 0.025), CYAN[0])
+    ic.glow(ic.star((0.76, 0.18), 0.12, 4, 0.25, 0.0), SPARK, depth=0.04, ink=True)
+
+
+def perk_t_bounty(ic):
+    # "+15% damage to elites and bosses": the wanted poster
+    ic.part(ic.poly([(0.16, 0.06), (0.86, 0.10), (0.82, 0.96), (0.14, 0.92)]), BONE, shadow=0.06)
+    ic.flat(ic.poly([(0.24, 0.14), (0.78, 0.17), (0.78, 0.26), (0.24, 0.23)]), hx("8a1c1c"))
+    ic.part(ic.circle((0.50, 0.50), 0.17) | ic.poly([(0.40, 0.58), (0.60, 0.58), (0.58, 0.74), (0.42, 0.74)]), SHADE, shadow=0.04)
+    ic.flat(ic.circle((0.44, 0.50), 0.04) | ic.circle((0.57, 0.50), 0.04), BONE[2])
+    ic.flat(ic.poly([(0.26, 0.82), (0.74, 0.84), (0.74, 0.88), (0.26, 0.86)]), BONE[0])
+
+
+def perk_t_hands(ic):
+    # "You eat and drink 35% faster": the bottle, snatched up
+    for y in (0.26, 0.50, 0.74):
+        ic.glow(ic.lens((0.02, y + 0.10), (0.40, y), 0.06), SPARK, depth=0.03)
+    f = Frame((0.40, 0.92), -66.0, 0.86)
+    ic.part(ic.poly(f.pts([(0.0, -0.20), (0.52, -0.20), (0.66, -0.08), (0.92, -0.08), (0.92, 0.08), (0.66, 0.08), (0.52, 0.20), (0.0, 0.20)])), GLASS, metal=True, shadow=0.06)
+    ic.part(ic.poly(f.pts([(0.12, -0.21), (0.40, -0.21), (0.40, 0.21), (0.12, 0.21)])), BONE, shadow=0.03)
+    ic.part(ic.poly(f.pts([(0.90, -0.10), (1.02, -0.10), (1.02, 0.10), (0.90, 0.10)])), WOOD, shadow=0.02)
+
+
+def perk_t_hide(ic):
+    # "+10 defense and +30 max health": a hide shield, studded
+    ic.part(ic.poly([(0.14, 0.10), (0.86, 0.10), (0.86, 0.52), (0.50, 0.96), (0.14, 0.52)]), LEATHER, shadow=0.09)
+    ic.part(ic.poly([(0.14, 0.10), (0.86, 0.10), (0.86, 0.52), (0.50, 0.96), (0.14, 0.52)]) & ~ic.poly([(0.22, 0.18), (0.78, 0.18), (0.78, 0.50), (0.50, 0.84), (0.22, 0.50)]), IRON, metal=True, shadow=0.03)
+    for x, y in ((0.36, 0.32), (0.64, 0.32), (0.50, 0.50), (0.38, 0.62), (0.62, 0.62)):
+        ic.part(ic.circle((x, y), 0.045), GOLD, metal=True, shadow=0.02)
+
+
+def perk_t_learner(ic):
+    # "15% more experience, and every tree learns 15% faster": the open book
+    ic.part(ic.poly([(0.04, 0.34), (0.50, 0.44), (0.96, 0.34), (0.96, 0.84), (0.50, 0.94), (0.04, 0.84)]), LEATHER, shadow=0.05)
+    ic.part(ic.poly([(0.10, 0.30), (0.50, 0.40), (0.50, 0.86), (0.10, 0.78)]), BONE, shadow=0.05)
+    ic.part(ic.poly([(0.90, 0.30), (0.50, 0.40), (0.50, 0.86), (0.90, 0.78)]), BONE, shadow=0.05)
+    for y in (0.48, 0.58, 0.68):
+        ic.flat(ic.capsule((0.18, y - 0.04), (0.42, y + 0.02), 0.022) | ic.capsule((0.58, y + 0.02), (0.82, y - 0.04), 0.022), BONE[0])
+    ic.glow(ic.star((0.50, 0.18), 0.15, 4, 0.25, 0.0), SPARK, depth=0.05, ink=True)
+
+
+def perk_t_legend(ic):
+    # "+60 max health, +8 defense, and ...": the star in its laurels
+    for sgn in (-1.0, 1.0):
+        for k in range(5):
+            a = math.radians(100.0 + k * 34.0)
+            c = (0.5 + sgn * math.cos(a) * -0.38, 0.54 + math.sin(a) * 0.38)
+            leaf(ic, c, (math.degrees(a) - 60.0) * sgn + (0.0 if sgn > 0 else 180.0), 0.10, LEAF)
+    ic.part(ic.star((0.50, 0.48), 0.30, 5, 0.42, math.radians(-90.0)), GOLD, metal=True, shadow=0.06)
+
+
+def perk_t_presence(ic):
+    # "Common foes' blows hit you 25% softer": the captain's hat
+    ic.glow(ic.star((0.50, 0.46), 0.50, 10, 0.6, 0.1), IMPACT, depth=0.08)
+    ic.part(ic.poly([(0.04, 0.70), (0.20, 0.52), (0.50, 0.60), (0.80, 0.52), (0.96, 0.70), (0.50, 0.84)]), SHADE, shadow=0.06)
+    ic.part(ic.poly([(0.24, 0.56), (0.32, 0.24), (0.50, 0.16), (0.68, 0.24), (0.76, 0.56), (0.50, 0.64)]), SHADE, shadow=0.07)
+    ic.part(ic.poly([(0.26, 0.50), (0.50, 0.58), (0.74, 0.50), (0.75, 0.57), (0.50, 0.65), (0.25, 0.57)]), GOLD, metal=True, shadow=0.02)
+    ic.part(ic.circle((0.50, 0.38), 0.085), BONE, shadow=0.03)
+    ic.flat(ic.circle((0.47, 0.38), 0.022) | ic.circle((0.53, 0.38), 0.022), INK)
+
+
+def perk_t_rally(ic):
+    # "You get a crewmate up 50% faster": the horn
+    f = Frame((0.14, 0.74), -30.0, 0.80)
+    ic.part(ic.poly(f.pts([(0.0, -0.05), (0.60, -0.12), (0.96, -0.36), (1.02, 0.34), (0.60, 0.12), (0.0, 0.05)])), GOLD, metal=True, shadow=0.07)
+    ic.part(ic.poly(f.pts([(0.92, -0.40), (1.04, -0.40), (1.08, 0.38), (0.96, 0.38)])), GOLD, metal=True, shadow=0.03)
+    ic.part(ic.capsule(f.pt(-0.08, 0.0), f.pt(0.04, 0.0), 0.10), IRON, metal=True, shadow=0.02)
+    for r in (0.20, 0.34):
+        ic.glow(ic.path(arc((0.80, 0.26), r, -80.0, 20.0), 0.04, 0.04), IMPACT, depth=0.03, ink=True)
+
+
+def perk_t_seadog(ic):
+    # "Aboard a ship your stamina refills twice as fast": the anchor
+    ic.part(ic.circle((0.50, 0.16), 0.11) & ~ic.circle((0.50, 0.16), 0.05), IRON, metal=True, shadow=0.03)
+    ic.part(ic.capsule((0.50, 0.26), (0.50, 0.86), 0.10), IRON, metal=True, shadow=0.04)
+    ic.part(ic.capsule((0.28, 0.36), (0.72, 0.36), 0.08), IRON, metal=True, shadow=0.03)
+    ic.part(ic.path(arc((0.50, 0.56), 0.34, 20.0, 160.0), 0.10, 0.10), IRON, metal=True, shadow=0.04)
+    for sgn in (-1.0, 1.0):
+        ic.part(ic.poly([(0.5 + sgn * 0.40, 0.56), (0.5 + sgn * 0.24, 0.62), (0.5 + sgn * 0.34, 0.78)]), IRON, metal=True, shadow=0.03)
+    ic.glow(ic.lens((0.02, 0.94), (0.98, 0.94), 0.10), WATER, depth=0.04)
+
+
+def perk_t_treasure(ic):
+    # "Closed chests within 60 m show on your compass": the chest, shining
+    ic.glow(ic.star((0.50, 0.40), 0.52, 10, 0.55, 0.1), SPARK, depth=0.07)
+    ic.part(ic.poly([(0.12, 0.50), (0.88, 0.50), (0.88, 0.92), (0.12, 0.92)]), WOOD, shadow=0.07)
+    ic.part(ic.poly([(0.12, 0.50), (0.20, 0.30), (0.80, 0.30), (0.88, 0.50)]), WOOD, shadow=0.05)
+    for x in (0.24, 0.72):
+        ic.part(ic.poly([(x, 0.30), (x + 0.07, 0.30), (x + 0.07, 0.92), (x, 0.92)]), GOLD, metal=True, shadow=0.02)
+    ic.part(ic.poly([(0.10, 0.47), (0.90, 0.47), (0.90, 0.54), (0.10, 0.54)]), GOLD, metal=True, shadow=0.02)
+    ic.part(ic.poly([(0.44, 0.48), (0.56, 0.48), (0.56, 0.66), (0.44, 0.66)]), GOLD, metal=True, shadow=0.03)
+    ic.flat(ic.circle((0.50, 0.57), 0.028), INK)
+
+
+def perk_t_warlord(ic):
+    # "+12% damage with everything": crossed blades under a red star
+    cutlass(ic, (0.02, 1.08), (0.82, 0.14), bend=0.06, w=0.14)
+    cutlass(ic, (0.98, 1.08), (0.18, 0.14), bend=-0.06, w=0.14)
+    ic.part(ic.star((0.50, 0.30), 0.22, 5, 0.45, math.radians(-90.0)), CLOTH, shadow=0.05)
+
+
+def perk_t_wind(ic):
+    # "Once a fight, dropping below 30% health refills your stamina and energy": breath coming back
+    for turn in (0.0, 180.0):
+        pts = []
+        for k in range(9):
+            t = k / 8.0
+            a = math.radians(turn + 250.0 * t)
+            r = 0.50 * (1.0 - 0.55 * t)
+            pts.append((0.5 + math.cos(a) * r, 0.5 + math.sin(a) * r))
+        ic.glow(ic.path(pts, 0.035, 0.13), WIND, depth=0.05)
+    heart(ic, (0.50, 0.50), 0.36, VENOM)
+
+
+def perk_v_adren(ic):
+    # "Below 35% health you hit 25% harder": the heart, struck by lightning
+    heart(ic, (0.50, 0.52), 0.78, HEAT)
+    ic.glow(ic.poly([(0.60, 0.06), (0.34, 0.50), (0.50, 0.52), (0.40, 0.94), (0.70, 0.42), (0.52, 0.40)]), BOLT, depth=0.05, ink=True)
+
+
+def perk_v_last(ic):
+    # "a blow that would kill you leaves you at 1 health instead": the heart, bound up and still beating
+    heart(ic, (0.50, 0.52), 0.78, HEAT)
+    ic.flat(ic.path([(0.50, 0.30), (0.42, 0.48), (0.54, 0.58), (0.46, 0.86)], 0.035), INK)
+    ic.part(ic.poly([(0.12, 0.50), (0.88, 0.36), (0.90, 0.48), (0.14, 0.62)]), BONE, shadow=0.03)
+    ic.part(ic.poly([(0.18, 0.30), (0.84, 0.60), (0.80, 0.70), (0.14, 0.40)]), BONE, shadow=0.03)
+
+
+def perk_v_mend(ic):
+    # "Out of combat you heal 2.5 health a second": the green cross
+    ic.glow(ic.circle((0.50, 0.50), 0.46), VENOM, depth=0.20)
+    ic.part(ic.poly([(0.38, 0.14), (0.62, 0.14), (0.62, 0.38), (0.86, 0.38), (0.86, 0.62), (0.62, 0.62), (0.62, 0.86), (0.38, 0.86), (0.38, 0.62), (0.14, 0.62),
+        (0.14, 0.38), (0.38, 0.38)]), WHITE, shadow=0.06)
+    leaf(ic, (0.80, 0.18), -40.0, 0.11)
+
+
+def perk_v_stomach(ic):
+    # "Food and drink heal you 40% more": the joint of meat
+    ic.part(ic.capsule((0.20, 0.82), (0.44, 0.58), 0.10), BONE, shadow=0.03)
+    ic.part(ic.circle((0.14, 0.82), 0.075) | ic.circle((0.20, 0.90), 0.075), BONE, shadow=0.03)
+    ic.part(ic.poly(oval((0.60, 0.42), 0.32, 0.28)), MEAT, shadow=0.10)
+    ic.flat(ic.lens((0.48, 0.30), (0.66, 0.24), 0.05), MEAT[4])
+    for x, y in ((0.86, 0.14), (0.90, 0.72)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -1980,7 +2303,8 @@ SKILLS = {
     "katana": [("tiger_rush", "Tiger Rush", False, tiger_rush), ("iai_counter", "Iai Counter", False, iai_counter),
         ("wind_sever", "Wind Severer", False, wind_sever), ("twin_waves", "Twin Waves", False, twin_waves),
         ("side_step", "Side Step", False, side_step), ("phantom_step", "Phantom Step", False, phantom_step),
-        ("petal_storm", "Thousand Petals  (ult)", True, petal_storm), ("moonlit_severance", "Moonlit Severance  (ult)", True, moonlit_severance)],
+        ("petal_storm", "Thousand Petals  (ult)", True, petal_storm), ("moonlit_severance", "Moonlit Severance  (ult)", True, moonlit_severance),
+        ("falling_moon", "Falling Moon (air move)", False, falling_moon)],
     "axe": [("axe_throw", "Hatchet Throw", False, axe_throw), ("earthsplitter", "Earthsplitter", False, earthsplitter),
         ("berserk", "Berserk", False, berserk), ("maelstrom", "Maelstrom  (ult)", True, maelstrom),
         ("executioners_moon", "Executioner's Moon  (ult)", True, executioners_moon)],
@@ -2042,6 +2366,16 @@ SKILLS = {
         ("will_wind", "Call the Wind", False, will_wind), ("will_twin", "Twin Finisher", False, will_twin), ("will_glimpse", "Glimpse", False, will_glimpse),
         ("will_flag", "Plant the Flag", False, will_flag), ("will_still_point", "Still Point", False, will_still_point),
         ("will_berserk", "Berserk (Fury Will)", False, will_berserk), ("conquerors_haki", "Captain's Will  (ult)", True, conquerors_haki)],
+    "ember": [("fire_fist", "Cinder Fist", False, fire_fist), ("fire_ring", "Blazing Ring", False, fire_ring), ("flame_dash", "Flame Dash", False, flame_dash),
+        ("ember_field", "Ember Field", False, ember_field), ("inferno", "Great Inferno  (ult)", True, inferno)],
+    "wolf": [("rending_fang", "Rending Fang", False, rending_fang), ("pounce", "Pounce", False, pounce), ("howl", "Alpha Howl", False, howl)],
+    "vine": [("vine_snare", "Vine Snare", False, vine_snare), ("vine_swing", "Vine Swing", False, vine_swing), ("thorn_whip", "Thorn Whip", False, thorn_whip)],
+    "perk": [("perk_c_focus", "Focus", False, perk_c_focus), ("perk_t_bounty", "Bounty Hunter", False, perk_t_bounty), ("perk_t_hands", "Quick Hands", False, perk_t_hands),
+        ("perk_t_hide", "Thick Hide", False, perk_t_hide), ("perk_t_learner", "Quick Learner", False, perk_t_learner), ("perk_t_legend", "Living Legend", False, perk_t_legend),
+        ("perk_t_presence", "Captain's Presence", False, perk_t_presence), ("perk_t_rally", "Rallying Cry", False, perk_t_rally),
+        ("perk_t_seadog", "Sea Dog", False, perk_t_seadog), ("perk_t_treasure", "Treasure Sense", False, perk_t_treasure),
+        ("perk_t_warlord", "Warlord", False, perk_t_warlord), ("perk_t_wind", "Second Wind", False, perk_t_wind), ("perk_v_adren", "Adrenaline", False, perk_v_adren),
+        ("perk_v_last", "Last Stand", False, perk_v_last), ("perk_v_mend", "Mend", False, perk_v_mend), ("perk_v_stomach", "Iron Stomach", False, perk_v_stomach)],
 }
 
 
