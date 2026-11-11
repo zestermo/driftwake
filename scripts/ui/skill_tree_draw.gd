@@ -2,7 +2,7 @@ class_name SkillTreeDraw
 extends RefCounted
 ## Draws the skills menu's trees (1.30, docs/v1_30_previews.md section 5, the approved SkillMap mock): every tree one
 ## branching map from its root (SkillTrees' map layout), drawn into the screen's map panel at its zoom and pan, clipped
-## to it. Abilities (moves you press) are round, gold-rimmed, with their icon; passives (always on) diamonds, blue-rimmed;
+## to it. Abilities (moves you press) are square tiles showing their picture, gold-rimmed; passives (always on) diamonds, blue-rimmed;
 ## stat steps a row of small square pips labelled with the stat; a bridge's links dashed coral. Yours: filled and lit;
 ## buyable now: a pulsing glow; past your level: dashed and dim with the level it opens at. Every node registers a hit
 ## ("n:<id>", a variant's halves "v:<id>:<i>") on the screen.
@@ -22,11 +22,19 @@ const STAT_ON := Color("9be08a")
 const BRIDGE := Color("f17c62")
 const ELEM := Color("f0b0d0")
 const SILK := preload("res://assets/fonts/Silkscreen-Regular.woff2")
-## Sizes at zoom 1 (the menus' 800x450 canvas): an ability's radius (an ultimate's, the root's), a passive's half
-## diagonal, a stat pip's side.
-const ABILITY_R := 12.0
-const ULT_R := 15.0
-const ROOT_R := 16.0
+## (2026-11-11, the icon redo) An ability is a square tile: its picture at the size it was drawn at, never stretched
+## (TILE px, an ultimate's ULT_TILE; zoomed out past BIG_FROM the small renderings, so the art stays whole pixels),
+## inside a RIM that says whose it is. Sizes at zoom 1 (the menus' 960x540 canvas): the root's radius, a passive's
+## half diagonal, a stat pip's side.
+const TILE := 32.0
+const ULT_TILE := 48.0
+const TILE_FAR := 16.0
+const ULT_TILE_FAR := 32.0
+const RIM := 2.0
+## The node size (size_k) the big tiles show from: one wheel notch out from zoom 1 (rings 59 px apart; a tile and its
+## name are 56 tall, so any further out they'd run into each other).
+const BIG_FROM := 0.93
+const ROOT_R := 20.0
 const PASSIVE_R := 10.0
 const PIP := 7.0
 ## Names show from this zoom (and always on the picked node).
@@ -118,8 +126,16 @@ static func node_rect(id: String, c: Vector2, z: float) -> Rect2:
 		"root":
 			r = ROOT_R * z
 		_:
-			r = (ULT_R if str(n["kind"]) == "ult" else ABILITY_R) * z
+			r = tile_px(str(n["kind"]) == "ult", z) * 0.5 + RIM
 	return Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0)
+
+
+## An ability's picture's side at node size `z`: 32 px (an ultimate's 48) while the map's close enough for names,
+## the 16 px rendering (32) further out.
+static func tile_px(ult: bool, z: float) -> float:
+	if z < BIG_FROM:
+		return ULT_TILE_FAR if ult else TILE_FAR
+	return ULT_TILE if ult else TILE
 
 
 ## The map's map parents of a node with how they join it: [[parent id, bridge?]].
@@ -315,8 +331,12 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, z: float, col: 
 	var locked := _locked_at(id, pr) > 0
 	if can:
 		var a := 0.5 + 0.5 * sin(t * 4.0)
-		var gr := maxf(r.size.x, r.size.y) * 0.5 + 5.0 * z
-		s.draw_circle(r.get_center(), gr, Color(UIStyle.GILT, 0.1 + 0.12 * a))
+		if shape == "ability":
+			s.draw_rect(r.grow(5.0), Color(UIStyle.GILT, 0.1 + 0.12 * a))
+			s.draw_rect(r.grow(3.0), Color(UIStyle.GILT, 0.12 + 0.14 * a))
+		else:
+			var gr := maxf(r.size.x, r.size.y) * 0.5 + 5.0 * z
+			s.draw_circle(r.get_center(), gr, Color(UIStyle.GILT, 0.1 + 0.12 * a))
 	match shape:
 		"stat":
 			_pips(s, id, n, r, z, pr, can, t)
@@ -328,12 +348,12 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, z: float, col: 
 			s.draw_circle(c, ROOT_R * z - 3.0, ROOT_BG)
 			var ic := tree_icon(str(n["tree"]))
 			if ic:
-				s.draw_texture_rect(ic, Rect2(c - Vector2(12, 12) * z, Vector2(24, 24) * z), false)
+				s.draw_texture_rect(ic, Rect2((c - Vector2(12, 12) * z).round(), (Vector2(24, 24) * z).round()), false)
 			else:
 				s.draw_string(SILK, Vector2(c.x - 15.0, c.y + 3.0), glyph(str(n["name"])), HORIZONTAL_ALIGNMENT_CENTER, 30.0, 8, col)
 		_:
-			var rr := (ULT_R if str(n["kind"]) == "ult" else ABILITY_R) * z
-			_round(s, c, rr, on, locked, _icon(n, rr * 1.34), str(n["name"]), str(n["kind"]) == "ult")
+			var px := tile_px(str(n["kind"]) == "ult", z)
+			_tile(s, c, px, on, can, locked, _icon(n, px), str(n["name"]), t, col)
 	if str(n["kind"]) in ["variant", "talent"]:
 		# (each half its own click: the version on that side)
 		var vs: Array = n["versions"]
@@ -357,21 +377,39 @@ static func _icon(n: Dictionary, px: float = 16.0) -> Texture2D:
 	return Skills.icon(p, px) if p != "" else null
 
 
-## An ability: a round node, gold-rimmed, its icon inside (an ultimate a double rim).
-static func _round(s: Control, c: Vector2, r: float, on: bool, locked: bool, ic: Texture2D, name_: String, ult: bool) -> void:
-	s.draw_circle(c, r + 1.5, UIChrome.INK)
-	s.draw_circle(c, r, OWN_FILL if on else DIM_FILL)
-	if locked:
-		_dashed_ring(s, c, r, Color(UIStyle.GILT, 0.55))
+## An ability: a square tile, its picture `px` across at the size it was drawn (the picture has its own frame: an
+## ultimate's is gold), in a rim that says where it stands. Yours: a solid gold rim, the picture in full colour; one
+## you can buy now: the rim pulsing; one you could reach: a thin dull rim, the picture dulled; past your level: a
+## dashed rim, the picture dark.
+static func _tile(s: Control, c: Vector2, px: float, on: bool, can: bool, locked: bool, ic: Texture2D, name_: String, t: float, col: Color) -> void:
+	var h := px * 0.5
+	var box := Rect2(c - Vector2(h, h), Vector2(px, px))
+	var rim := box.grow(RIM)
+	s.draw_rect(rim.grow(1.0), UIChrome.INK)
+	if on:
+		s.draw_rect(rim, UIStyle.GILT)
+	elif can:
+		s.draw_rect(rim, UIStyle.GILT.lerp(Color.WHITE, 0.25 + 0.25 * sin(t * 4.0)))
 	else:
-		s.draw_arc(c, r - 1.0, 0.0, TAU, 28, UIStyle.GILT if on or not locked else DIM_RIM, 2.5 if on else 1.5)
-		if ult:
-			s.draw_arc(c, r - 4.0, 0.0, TAU, 28, Color(UIStyle.GILT, 0.7), 1.0)
-	var isz := roundf(r * 1.34)
+		s.draw_rect(rim, NODE_BG)
+		if locked:
+			var q := rim.grow(-1.0)
+			for e in [[q.position, Vector2(q.end.x, q.position.y)], [Vector2(q.end.x, q.position.y), q.end], [q.end, Vector2(q.position.x, q.end.y)], [Vector2(q.position.x, q.end.y), q.position]]:
+				s.draw_dashed_line(e[0], e[1], Color(UIStyle.GILT, 0.5), 1.0, 3.0)
+		else:
+			s.draw_rect(rim.grow(-0.5), UIStyle.GILT.darkened(0.3), false, 1.0)
+	s.draw_rect(box, OWN_FILL if on else DIM_FILL)
 	if ic:
-		s.draw_texture_rect(ic, Rect2((c - Vector2(isz, isz) * 0.5).round(), Vector2(isz, isz)), false, Color.WHITE if on else Color(0.75, 0.82, 0.82, 0.4 if locked else 0.75))
+		# (a smaller picture, a fruit power's 24 px fruit, sits in the middle at its own size: twice it in an ultimate's tile)
+		var w := float(ic.get_width())
+		var isz := px if w >= px else w * floorf(px / w)
+		var tint := Color.WHITE if on else (Color(0.92, 0.95, 0.95) if can else (Color(0.5, 0.58, 0.62) if locked else Color(0.68, 0.76, 0.78)))
+		s.draw_texture_rect(ic, Rect2((c - Vector2(isz, isz) * 0.5).round(), Vector2(isz, isz)), false, tint)
 	else:
-		s.draw_string(SILK, Vector2(c.x - r, c.y + 3.0), glyph(name_), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 8, UIStyle.CREAM if on else TAG_OFF)
+		# (no picture yet: its two letters inside a line of the tree's colour, so it still reads as a tile of this tree)
+		if px >= TILE:
+			s.draw_rect(box.grow(-2.5), Color(col, 0.6 if on else 0.3), false, 1.0)
+		s.draw_string(SILK, Vector2(c.x - h, c.y + 3.0), glyph(name_), HORIZONTAL_ALIGNMENT_CENTER, px, 8, UIStyle.CREAM if on else TAG_OFF)
 
 
 ## A passive: a diamond, blue-rimmed (its icon small inside when it has one).
@@ -404,9 +442,3 @@ static func _pips(s: Control, id: String, n: Dictionary, r: Rect2, z: float, pr:
 		var lit := i < have
 		var next := i == have and can
 		s.draw_rect(q, STAT_ON if lit else (Color(STAT_ON, 0.35 + 0.3 * sin(t * 4.0)) if next else DIM_RIM))
-
-
-static func _dashed_ring(s: Control, c: Vector2, r: float, col: Color) -> void:
-	for i in range(12):
-		var a := TAU * i / 12.0
-		s.draw_arc(c, r - 1.0, a, a + TAU / 24.0, 3, col, 2.0)

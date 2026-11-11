@@ -310,12 +310,15 @@ static func _big(id: String, name_: String, kind: String, branch: int, level: in
 ## of its depth, in the middle of its own wedge, its children sharing that wedge, so no two wedges overlap and no link
 ## crosses another. A wedge is as wide as its outermost nodes need (MAP_SPACE of arc each, a name's width); a tree too
 ## big for one turn pushes every ring out. A node's parent on the map is its first link (or need).
-const MAP_R := 96.0
-const MAP_RING := 56.0
+const MAP_R := 108.0
+const MAP_RING := 68.0
 const MAP_SPACE := 90.0
 const MAP_GAP := 0.6
-## A node and its name's height on the map.
-const MAP_TALL := 52.0
+## A node and its name's height on the map (2026-11-11: an ability is a 36 px tile, was a 24 px ring; an ultimate's
+## tile is MAP_ULT taller and at least MAP_ULT_W wide).
+const MAP_TALL := 64.0
+const MAP_ULT := 16.0
+const MAP_ULT_W := 64.0
 const MAP_START := -2.36
 ## The open layout's ring radii by depth (only while _map_layout runs).
 static var _rings: Array = []
@@ -385,10 +388,16 @@ static func _map_layout(t: String) -> void:
 static func _map_room(k: String, ang: Dictionary) -> float:
 	var n: Dictionary = _nodes[k]
 	var w := maxf(str(n["name"]).length() * 5.6 +(20.0 if n["kind"] == "step" else 0.0), float(n["max_steps"]) * 9.0) + 12.0
+	if n["kind"] == "ult":
+		w = maxf(w, MAP_ULT_W)
 	if not ang.has(k):
 		return maxf(w, MAP_SPACE * 0.5)
 	var t := Vector2.from_angle(float(ang[k]) + PI * 0.5)
-	return maxf(absf(t.x) * w + absf(t.y) * MAP_TALL, MAP_SPACE * 0.5)
+	return maxf(absf(t.x) * w + absf(t.y) * _map_tall(k), MAP_SPACE * 0.5)
+
+
+static func _map_tall(k: String) -> float:
+	return MAP_TALL + (MAP_ULT if _nodes[k]["kind"] == "ult" else 0.0)
 
 
 static func _map_order(k: String) -> Array:
@@ -420,12 +429,12 @@ static func _map_need(k: String, kids: Dictionary, depth: Dictionary, need: Dict
 
 
 ## `k` in the middle of its wedge [a0, a0 + da] on its ring, its children's wedges (need x `k_`) centred inside it.
-static func _map_place(k: String, kids: Dictionary, depth: Dictionary, need: Dictionary, a0: float, da: float, grow: float, k_: float, pr: float = 0.0, pw: float = 0.0) -> void:
+static func _map_place(k: String, kids: Dictionary, depth: Dictionary, need: Dictionary, a0: float, da: float, grow: float, k_: float, pr: float = 0.0, pw: float = 0.0, pt: float = MAP_TALL) -> void:
 	var dir := Vector2.from_angle(a0 + da * 0.5)
 	# (out past its parent: far enough along `dir` that the two (node + name) boxes clear side by side or one above
 	# the other, whichever comes first)
 	var w := _map_room(k, {})
-	var clear := minf((pw + w) * 0.5 / maxf(absf(dir.x), 0.01), MAP_TALL / maxf(absf(dir.y), 0.01))
+	var clear := minf((pw + w) * 0.5 / maxf(absf(dir.x), 0.01), (_map_tall(k) + pt) * 0.5 / maxf(absf(dir.y), 0.01))
 	var r := maxf(_map_ring(int(depth[k]), grow), pr + maxf(MAP_RING, clear))
 	_park(k, dir * r)
 	var ks: Array = kids.get(k, [])
@@ -435,7 +444,7 @@ static func _map_place(k: String, kids: Dictionary, depth: Dictionary, need: Dic
 	var a: float = a0 + (da - inner) * 0.5
 	for c in ks:
 		var cd: float = need[c] * k_
-		_map_place(c, kids, depth, need, a, cd, grow, k_, r, w)
+		_map_place(c, kids, depth, need, a, cd, grow, k_, r, w, _map_tall(k))
 		a += cd
 
 

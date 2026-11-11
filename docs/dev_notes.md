@@ -11653,3 +11653,27 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   powers' fallback, the bar's slot sizes), the eleven t/ui/skills_* tests, t/ui/chrome_kit, t/ui/enemy_bars,
   t/will/upgrades; uishots hud / skills_sword / skills_tip at 1920x1080. Not run: techtest (checks every skill has
   an icon: the atomic test covers it), hudshot, the world suites.
+
+## 2026-11-11: the skill tree's abilities are tiles; docs/design_language.md
+- **Tiles** (`skill_tree_draw.gd`): an ability on a tree's map is a square tile showing its picture at the size
+  it was drawn, never stretched: 32 px (an ultimate's 48) inside a 2 px rim, was a 24 px ring with a 16 px marker.
+  `tile_px(ult, z)` steps instead of scaling: the big tiles from `BIG_FROM` (node size 0.93 = one wheel notch out
+  from zoom 1), the 16 px renderings (an ultimate's 32) further out, so the art is always whole pixels. The rim
+  says where it stands (`_tile`): yours a solid gold rim and full colour; buyable now a pulsing rim and a square
+  glow; reachable a thin dull rim and a dulled picture; past your level a dashed rim and a dark picture. A smaller
+  picture (a fruit power's 24 px fruit) sits centred at its own size (twice it in an ultimate's tile). A node with
+  no picture (the weapons' own moves: Running Cut, Quick Draw, Air Cut...) shows its two letters inside a line of
+  the tree's colour. Passives (diamonds) and stat pips are as they were; the root's circle is 40 px (was 32).
+  `_round`, `_dashed_ring`, `ABILITY_R`, `ULT_R` are gone.
+- **The rings follow** (`skill_trees.gd`): `MAP_RING` 56 -> 68, `MAP_R` 96 -> 108, `MAP_TALL` 52 -> 64, an ultimate
+  16 taller and at least 64 wide (`_map_tall`, `MAP_ULT`, `MAP_ULT_W`); the widest tree (polearm) now reaches
+  1033 px from its root (t/ui/skills_map_tidy's bound 960 -> 1100).
+- **Why BIG_FROM isn't the zoom names show from (0.8):** the tidy test measures zoom 1 only; at 0.8 the rings are
+  54 px apart and a tile and its name need 56. At 0.87 they are 59.
+- **Left:** the weapons' move nodes have no pictures (two letters); `skillmapshot` at 1920x1080 gets a 1061 px
+  window and so a 1x canvas (tiles half their 1080p size): `uishots ... skills_sword` is the true 1080p view.
+- **docs/design_language.md:** the game's look as a brief for other tools and models (world, rules, every palette
+  taken from the code, 3D, characters, interface, the icon rules, effects, prompts, tokens); two reference sheets
+  in `docs/media/design/`.
+- **Tested by** the eleven t/ui/skills_* tests and t/ui/skill_icons; uishots skills_sword and skillmapshot at
+  1920x1080. Not run: the world suites.

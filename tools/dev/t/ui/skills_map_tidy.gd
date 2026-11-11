@@ -107,6 +107,8 @@ func _process(_d: float) -> bool:
 	check("no two links cross (%s)" % ", ".join(bad["cross"]), bad["cross"].is_empty())
 	check("no link runs through a node (%s)" % ", ".join(bad["through"]), bad["through"].is_empty())
 	check("the root in the middle, each node further out than its parent (%s)" % ", ".join(bad["outward"]), bad["outward"].is_empty())
-	check("no tree reaches past 960 px from its root (%d)" % int(far), far <= 960.0)
+	# (2026-11-11: an ability is a 36 px tile, was a 24 px ring, so the rings stand 68 px apart, were 56: the widest
+	# tree, the polearm's, reaches 1033)
+	check("no tree reaches past 1100 px from its root (%d)" % int(far), far <= 1100.0)
 	check("every converted tree checked (%d)" % trees, trees >= 10)
 	return TK.done(fails)
