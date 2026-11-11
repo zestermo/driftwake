@@ -652,6 +652,17 @@ func _begin(i: int) -> void:
 	toggled = []
 	print("bench: %s %s (t %.1f s)" % [stops[si], phase, t])
 	base_pipes = 0
+	# (norigs / rigs=N, 2026-11-10: what the rigs cost in all, before sizing a fix by it. norigs stops every body's
+	# posing for the base sample (they freeze as they stand: no pose, skinning, cloth or moved parts); rigs=N keeps
+	# only the N nearest the captain posing. An ablation: the frame then has no animation in it)
+	if phase == "base" and (args.has("norigs") or args.has("rigs")):
+		var keep := int(args.get("rigs", "0"))
+		var bodies: Array = root.find_children("*", "", true, false).filter(func(n): return is_instance_of(n, humanoid_gd) and n.is_processing())
+		var at: Vector3 = p.global_position
+		bodies.sort_custom(func(a, b): return (a as Node3D).global_position.distance_squared_to(at) < (b as Node3D).global_position.distance_squared_to(at))
+		for i2 in range(keep, bodies.size()):
+			bodies[i2].set_process(false)
+		print("bench: rigs: %d of %d bodies left posing" % [mini(keep, bodies.size()), bodies.size()])
 	if phase == "probe":
 		_probe_begin()
 	elif phase == "far":

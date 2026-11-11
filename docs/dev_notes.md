@@ -11471,3 +11471,28 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Found:** seven 960x540 SubViewports render every frame (UPDATE_ALWAYS): the HUD and six that are closed (the
   emote, item, action, loadout and gadget wheels, the chat box). ~0.2 ms together; they could update only when open.
 - The plan's order by what's measured is in docs/review_2026_11_10.md "What the draw is made of".
+
+## 2026-11-10: perf phase 1, rigs: what a pose costs, the fight's springs, standing rigs (docs/review_2026_11_10.md)
+- **Bounded first** (bench `norigs`: every body's posing off for the base sample; `rigs=N` keeps the N nearest):
+  process scripts -2.3 ms at the plaza (6.1 -> 3.8), -1.5 at the market, -4.4 in the melee (9.3 -> 4.9). Tail and
+  draw moved ~0.2 ms: **the rigs are not the tail or the draw.** That is the most any rig work can return.
+- **Where a pose goes** (a temporary timer in `_pose`, 20 sword grunts on the light stage, editor build, headless;
+  us a pose, fighting): springs and cloth 80 (31%), locomotion 42 (16%), arm + leg skinning 24 + 18 (16.5%), foot IK
+  30 (12%), applying the joints + the look 23 (9%), the stance helpers 15 (6%), the joint lerp 8, the rest ~15. 255 in all.
+- **The fight's springs (a regression found by it):** `_update_physics` ranked hair and cloth to the SIMS_N 4 nearest
+  only `if lod`. Since 2026-11-08 a grunt in a fight is `fight_lod`, not `lod`, so every fighting grunt inside 30 m
+  swung its springs again. Now `lod or fight_lod` is ranked (and uses SIMS_R_LOD). 255 -> 204 us a pose; the melee
+  stop's grunt rigs 3.89 -> 2.99 ms a frame (probe, back to back).
+- **Standing rigs:** a `lod` rig at rest (no action, ground_speed < 0.05, not talking) past `REST_R` 6 m poses one step
+  less often (`_lod_every`: 2 where it was 1, 3 where 2, 4 where 3); walking, acting, talking and close ones keep
+  their rates. `REST_LOD` false turns it off. Plaza: 12.5 -> 9.9 rigs posed a frame, market 9.0 -> 6.6; the town's
+  rig scripts ~-0.3 ms. **Zach to look at:** townsfolk standing 6-20 m off animate at 30 Hz.
+- **Tried and dropped:** one foot's ground ray a frame in turn: 30 -> 25 us; the rays aren't the IK's cost (the
+  transforms read and the leg solve are). Taken out.
+- **Whole-frame numbers in the back-to-back pair were noise** (Jolt's unchanged step read 25% apart; another app was
+  using the GPU in some runs today: a screen share or remote desktop). Read the probe's per-script ms and the counts.
+- **Left, by size:** skinning to the native library (~42 us a pose); `_locomotion`'s dictionary of string keys
+  (~42); foot IK's transform reads (~25); the look layer.
+- **Tested by** t/world/rig_rest_lod (the rates standing, walking, talking, close, far, not lod; 4 of 10 fighting
+  grunts swing their cloth), t/combat/rival_rig_lod, t/world/body_shadow_lod, t/stronghold/fodder_crowd,
+  t/world/actor_sleep. Expect at prepush: perftest's rig LOD check, clothlab / coat tests that read a fighting grunt's chains.

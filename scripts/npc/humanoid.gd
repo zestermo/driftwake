@@ -681,6 +681,11 @@ func _camera() -> Camera3D:
 	return _cam
 
 
+## A lod rig at rest poses one step less often from this far off the camera (m); REST_LOD false turns that off.
+const REST_LOD := true
+const REST_R := 6.0
+
+
 ## Pose every Nth frame: near and on screen every frame, then less often with
 ## distance; off screen (shadows only) rarely.
 func _lod_every() -> int:
@@ -694,15 +699,18 @@ func _lod_every() -> int:
 		if not cam.is_position_in_frustum(global_position + Vector3.UP):
 			return 8
 		return 3 if d2 < 12.0 * 12.0 else 4
+	# (2026-11-10) someone standing about (no action, not walking, not talking) past REST_R poses one step less
+	# often: breathing and glances are slow, and half the town stands. Walking, acting and talking keep their rates.
+	var rest := 1 if (REST_LOD and lod and d2 >= REST_R * REST_R and _action.is_empty() and ground_speed < 0.05 and not talking) else 0
 	if d2 < 12.0 * 12.0:
-		return 1
+		return 1 + rest
 	if not cam.is_position_in_frustum(global_position + Vector3.UP):
 		return 6 if d2 < 60.0 * 60.0 else 12
 	if d2 < 20.0 * 20.0:
-		return 1
+		return 1 + rest
 	if d2 < 40.0 * 40.0:
-		return 2
-	return 3 if d2 < 80.0 * 80.0 else 6
+		return 2 + rest
+	return 3 + rest if d2 < 80.0 * 80.0 else 6
 
 
 ## Far off, drawn as a FarFigures instance instead of its body (owners that allow it: NPCs, villagers, folk). Past
@@ -850,10 +858,13 @@ func _update_physics(delta: float) -> void:
 	# Physics only near the camera; far characters keep their last pose and
 	# snap to rest (once) when they leave range.
 	var cam := _camera()
-	var r := SIMS_R_LOD if lod else SIMS_R
+	# (a grunt in a fight is fight_lod, not lod, since 2026-11-08: it had dropped out of the nearest-few rule and
+	# every fighting grunt swung its hair and cloth again, a third of its pose: 80 of 255 us, 2026-11-10)
+	var ranked := lod or fight_lod
+	var r := SIMS_R_LOD if ranked else SIMS_R
 	var d2 := cam.global_position.distance_squared_to(global_position) if cam else 0.0
 	var near := (cam == null or d2 < r * r) and not crowd
-	if near and lod:
+	if near and ranked:
 		near = _sims_rank(d2)
 	if not near and not _sims_near:
 		return
