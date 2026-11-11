@@ -224,49 +224,48 @@ def cutlass(ic, hilt, tip, bend=0.09, w=0.12, guard=True):
 # Sword (the cutlass)
 # ----------------------------------------------------------------------------------------------------------------
 def flying_slash(ic):
-    # "A cut so fast it flies: a crescent of wind": the crescent leaving the blade that threw it, two wisps behind it
-    ic.glow(ic.circle((0.57, 0.43), 0.43) & ~ic.circle((0.39, 0.61), 0.45), WIND, depth=0.085)
-    ic.glow(ic.lens((0.60, 0.95), (0.76, 0.84), 0.05), WIND, depth=0.03)
-    ic.glow(ic.lens((0.80, 0.86), (0.94, 0.72), 0.05), WIND, depth=0.03)
-    cutlass(ic, (0.10, 0.90), (0.60, 0.40), bend=0.07)
+    # "A cut so fast it flies: a crescent of wind": the crescent leaving the blade that threw it
+    ic.glow(ic.circle((0.58, 0.42), 0.50) & ~ic.circle((0.36, 0.64), 0.52), WIND, depth=0.10)
+    ic.glow(ic.lens((0.66, 0.97), (0.84, 0.84), 0.06), WIND, depth=0.03)
+    cutlass(ic, (-0.32, 1.30), (0.56, 0.44), bend=0.09, w=0.17)
 
 
 def riposte(ic):
-    # "the first blow is turned aside and answered": their dark blade stopped on yours, the spark where they meet
-    ic.part(ic.poly([(0.97, 0.06), (0.99, 0.18), (0.50, 0.56), (0.42, 0.50)]), IRON, metal=True, shadow=0.04)
-    cutlass(ic, (0.14, 0.93), (0.56, 0.08), bend=-0.045, w=0.105)
-    ic.glow(ic.star((0.50, 0.47), 0.25, 8, 0.36, 0.2), SPARK, depth=0.07, ink=True)
+    # "the first blow is turned aside and answered": close on their dark blade stopped on yours, the spark between
+    ic.part(ic.poly([(-0.10, 0.02), (0.06, -0.08), (0.70, 0.62), (0.58, 0.74)]), IRON, metal=True, shadow=0.05)
+    cutlass(ic, (-0.34, 1.26), (0.92, 0.02), bend=-0.07, w=0.19)
+    ic.glow(ic.star((0.42, 0.46), 0.33, 8, 0.36, 0.2), SPARK, depth=0.09, ink=True)
 
 
 def swordfish(ic):
-    # "Five lightning thrusts driving forward": the blade thrust home, four after-images of the point beside it
-    for y, x0, x1 in ((0.16, 0.34, 0.80), (0.31, 0.44, 0.92), (0.69, 0.44, 0.92), (0.84, 0.34, 0.80)):
-        ic.glow(ic.poly([(x0, y - 0.035), (x1, y), (x0, y + 0.035)]), WIND, depth=0.035)
-    ic.glow(ic.star((0.90, 0.50), 0.13, 6, 0.4, 0.0), SPARK, depth=0.05)
-    cutlass(ic, (0.07, 0.50), (0.88, 0.50), bend=-0.035, w=0.125)
+    # "Five lightning thrusts driving forward": the point driven home, the thrusts before it still hanging in the air
+    for y, x0, x1 in ((0.12, 0.30, 0.80), (0.28, 0.46, 0.96), (0.72, 0.46, 0.96), (0.88, 0.30, 0.80)):
+        ic.glow(ic.poly([(x0, y - 0.055), (x1, y), (x0, y + 0.055)]), WIND, depth=0.045)
+    cutlass(ic, (-1.10, 0.50), (0.86, 0.50), bend=-0.05, w=0.20, guard=False)
+    ic.glow(ic.star((0.88, 0.50), 0.16, 6, 0.4, 0.0), SPARK, depth=0.06, ink=True)
 
 
 def kraken_wake(ic):
     # "Flash between up to six enemies ... every one of them is torn open at once": six cuts through one point
     for ang in (0.0, 60.0, 120.0):
         a = math.radians(ang + 15.0)
-        ic.glow(ic.lens((0.5 - math.cos(a) * 0.47, 0.5 - math.sin(a) * 0.47), (0.5 + math.cos(a) * 0.47, 0.5 + math.sin(a) * 0.47), 0.13), WIND, depth=0.05)
-    ic.glow(ic.star((0.50, 0.50), 0.17, 6, 0.45, math.radians(45.0)), SPARK, depth=0.06)
-    cutlass(ic, (0.20, 0.86), (0.74, 0.20), bend=0.06, w=0.10)
+        ic.glow(ic.lens((0.5 - math.cos(a) * 0.60, 0.5 - math.sin(a) * 0.60), (0.5 + math.cos(a) * 0.60, 0.5 + math.sin(a) * 0.60), 0.17), WIND, depth=0.06)
+    cutlass(ic, (-0.22, 1.22), (0.80, 0.14), bend=0.07, w=0.14)
+    ic.glow(ic.star((0.50, 0.50), 0.20, 6, 0.45, math.radians(45.0)), SPARK, depth=0.07, ink=True)
 
 
 def undertow(ic):
-    # "Plant the blade: a whirlpool drags every foe in": the whirlpool's arms winding in to the blade stood in its eye
+    # "Plant the blade: a whirlpool drags every foe in": the whirlpool winding in to the blade stood in its eye
     for turn in (0.0, 120.0, 240.0):
         pts = []
-        for i in range(9):
-            t = i / 8.0
+        for k in range(9):
+            t = k / 8.0
             a = math.radians(turn + 250.0 * t)
-            r = 0.46 * (1.0 - 0.72 * t)
-            pts.append((0.5 + math.cos(a) * r, 0.58 + math.sin(a) * r * 0.62))
-        ic.glow(ic.path(pts, 0.035, 0.12), WATER, depth=0.05)
-    ic.glow(ic.circle((0.50, 0.60), 0.085), WATER, depth=0.05)
-    cutlass(ic, (0.50, 0.04), (0.50, 0.66), bend=0.035, w=0.115)
+            r = 0.60 * (1.0 - 0.74 * t)
+            pts.append((0.5 + math.cos(a) * r, 0.64 + math.sin(a) * r * 0.62))
+        ic.glow(ic.path(pts, 0.045, 0.15), WATER, depth=0.06)
+    ic.glow(ic.circle((0.50, 0.66), 0.11), WATER, depth=0.06)
+    cutlass(ic, (0.50, -0.50), (0.50, 0.72), bend=0.04, w=0.17)
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -476,108 +475,108 @@ def moonlit_severance(ic):
 # ----------------------------------------------------------------------------------------------------------------
 def axe_throw(ic):
     # "Hurl your axe spinning ahead ... and comes back to your hand": the axe mid-spin, the rings it cuts in the air
-    ic.glow(ic.path(arc((0.50, 0.50), 0.44, 200.0, 330.0), 0.03, 0.10), FIRE, depth=0.04)
-    ic.glow(ic.path(arc((0.50, 0.50), 0.44, 20.0, 150.0), 0.03, 0.10), FIRE, depth=0.04)
-    axe(ic, (0.22, 0.80), -48.0, 0.74)
+    ic.glow(ic.path(arc((0.52, 0.48), 0.52, 195.0, 330.0), 0.03, 0.13), FIRE, depth=0.05)
+    ic.glow(ic.path(arc((0.52, 0.48), 0.52, 15.0, 150.0), 0.03, 0.13), FIRE, depth=0.05)
+    axe(ic, (-0.06, 1.08), -47.0, 1.12)
 
 
 def earthsplitter(ic):
-    # "drive the axe into the ground: a crack tears 9 m ahead": the axe buried, the crack running on, glowing
-    ic.part(ic.poly([(0.0, 1.0), (0.0, 0.70), (0.30, 0.66), (0.44, 0.72), (0.60, 0.64), (1.0, 0.70), (1.0, 1.0)]), STONE, shadow=0.05)
-    crack = [(0.40, 0.70), (0.52, 0.80), (0.62, 0.76), (0.74, 0.88), (0.86, 0.84), (0.99, 0.94)]
-    ic.glow(ic.path(crack, 0.10, 0.05), FIRE, depth=0.035)
-    ic.flat(ic.path(crack, 0.03, 0.015), INK)
-    for pts in ([(0.66, 0.60), (0.74, 0.42), (0.82, 0.60)], [(0.86, 0.62), (0.94, 0.50), (0.97, 0.66)], [(0.52, 0.56), (0.57, 0.44), (0.62, 0.58)]):
-        ic.part(ic.poly(pts), STONE, shadow=0.04)
-    axe(ic, (0.06, 0.08), 52.0, 0.74)
+    # "drive the axe into the ground: a crack tears 9 m ahead": the head buried, the crack running on, glowing
+    ic.part(ic.poly([(0.0, 1.0), (0.0, 0.66), (0.30, 0.62), (0.46, 0.70), (0.62, 0.60), (1.0, 0.66), (1.0, 1.0)]), STONE, shadow=0.05)
+    crack = [(0.42, 0.68), (0.54, 0.80), (0.66, 0.74), (0.78, 0.88), (0.90, 0.82), (1.02, 0.94)]
+    ic.glow(ic.path(crack, 0.15, 0.07), FIRE, depth=0.05)
+    ic.flat(ic.path(crack, 0.04, 0.02), INK)
+    for pts in ([(0.66, 0.56), (0.76, 0.32), (0.86, 0.58)], [(0.88, 0.60), (0.96, 0.44), (1.0, 0.62)], [(0.52, 0.54), (0.58, 0.40), (0.64, 0.56)]):
+        ic.part(ic.poly(pts), STONE, shadow=0.045)
+    axe(ic, (-0.14, -0.30), 54.0, 1.05)
 
 
 def berserk(ic):
     # "Roar": the roaring face, the rage burning off it
-    ic.glow(ic.poly([(0.06, 0.96), (0.02, 0.60), (0.14, 0.66), (0.10, 0.34), (0.26, 0.44), (0.30, 0.12), (0.44, 0.28), (0.52, 0.02), (0.60, 0.28),
-        (0.74, 0.10), (0.76, 0.42), (0.92, 0.32), (0.88, 0.64), (0.98, 0.60), (0.94, 0.96)]), FIRE, depth=0.13)
-    ic.part(ic.poly([(0.26, 0.50), (0.34, 0.34), (0.66, 0.34), (0.74, 0.50), (0.72, 0.80), (0.60, 0.96), (0.40, 0.96), (0.28, 0.80)]), SKIN, shadow=0.07)
-    ic.flat(ic.poly([(0.30, 0.44), (0.47, 0.54), (0.46, 0.60), (0.30, 0.52)]) | ic.poly([(0.70, 0.44), (0.53, 0.54), (0.54, 0.60), (0.70, 0.52)]), INK)
-    ic.flat(ic.poly([(0.36, 0.52), (0.44, 0.565), (0.36, 0.56)]) | ic.poly([(0.64, 0.52), (0.56, 0.565), (0.64, 0.56)]), hx("fff4b4"))
-    ic.flat(ic.poly([(0.38, 0.70), (0.62, 0.70), (0.66, 0.90), (0.34, 0.90)]), INK)
-    ic.flat(ic.poly([(0.40, 0.71), (0.60, 0.71), (0.59, 0.76), (0.41, 0.76)]) | ic.poly([(0.38, 0.85), (0.62, 0.85), (0.63, 0.89), (0.37, 0.89)]), hx("fff8e8"))
+    ic.glow(ic.poly([(0.0, 1.0), (-0.02, 0.56), (0.10, 0.64), (0.06, 0.28), (0.22, 0.40), (0.26, 0.06), (0.42, 0.24), (0.52, -0.04), (0.62, 0.24),
+        (0.78, 0.04), (0.80, 0.40), (0.96, 0.28), (0.92, 0.62), (1.02, 0.58), (1.0, 1.0)]), FIRE, depth=0.14)
+    ic.part(ic.poly([(0.20, 0.50), (0.30, 0.30), (0.70, 0.30), (0.80, 0.50), (0.78, 0.86), (0.64, 1.06), (0.36, 1.06), (0.22, 0.86)]), SKIN, shadow=0.08)
+    ic.flat(ic.poly([(0.25, 0.42), (0.47, 0.55), (0.46, 0.63), (0.25, 0.52)]) | ic.poly([(0.75, 0.42), (0.53, 0.55), (0.54, 0.63), (0.75, 0.52)]), INK)
+    ic.flat(ic.poly([(0.32, 0.52), (0.44, 0.59), (0.33, 0.58)]) | ic.poly([(0.68, 0.52), (0.56, 0.59), (0.67, 0.58)]), hx("fff4b4"))
+    ic.flat(ic.poly([(0.34, 0.72), (0.66, 0.72), (0.70, 0.98), (0.30, 0.98)]), INK)
+    ic.flat(ic.poly([(0.37, 0.73), (0.63, 0.73), (0.62, 0.79), (0.38, 0.79)]) | ic.poly([(0.34, 0.92), (0.66, 0.92), (0.67, 0.97), (0.33, 0.97)]), hx("fff8e8"))
 
 
 def maelstrom(ic):
     # "Become a whirlwind of steel": two axes wheeling round one point, the wind they drag with them
     for turn in (0.0, 180.0):
-        ic.glow(ic.path(arc((0.50, 0.50), 0.45, turn + 100.0, turn + 250.0), 0.025, 0.12), FIRE, depth=0.045)
-    axe(ic, (0.50, 0.50), -40.0, 0.46)
-    axe(ic, (0.50, 0.50), 140.0, 0.46)
-    ic.part(ic.circle((0.50, 0.50), 0.07), GOLD, metal=True, shadow=0.03)
+        ic.glow(ic.path(arc((0.50, 0.50), 0.50, turn + 95.0, turn + 250.0), 0.03, 0.15), FIRE, depth=0.055)
+    axe(ic, (0.50, 0.50), -42.0, 0.50)
+    axe(ic, (0.50, 0.50), 138.0, 0.50)
+    ic.part(ic.circle((0.50, 0.50), 0.085), GOLD, metal=True, shadow=0.035)
 
 
 def executioners_moon(ic):
-    # "one chop: a huge blow ... and a fissure of fire ten paces down the line": the axe against its moon, the fire below
-    ic.glow(ic.circle((0.58, 0.40), 0.36) & ~ic.circle((0.74, 0.30), 0.32), MOON, depth=0.08)
-    ic.glow(ic.poly([(0.0, 1.0), (0.04, 0.86), (0.14, 0.92), (0.22, 0.78), (0.34, 0.90), (0.46, 0.74), (0.56, 0.90), (0.68, 0.78), (0.78, 0.92),
-        (0.88, 0.80), (1.0, 0.90), (1.0, 1.0)]), FIRE, depth=0.07)
-    axe(ic, (0.92, 0.08), 132.0, 0.80, flip=True)
+    # "one chop: a huge blow ... and a fissure of fire ten paces down the line": the head against its moon, the fire below
+    ic.glow(ic.circle((0.50, 0.40), 0.46) & ~ic.circle((0.70, 0.28), 0.42), MOON, depth=0.10)
+    ic.glow(ic.poly([(0.0, 1.0), (0.04, 0.82), (0.14, 0.90), (0.22, 0.72), (0.34, 0.88), (0.46, 0.68), (0.56, 0.88), (0.68, 0.74), (0.78, 0.90),
+        (0.88, 0.76), (1.0, 0.88), (1.0, 1.0)]), FIRE, depth=0.08)
+    axe(ic, (1.22, -0.22), 134.0, 1.18, flip=True)
 
 
 # ----------------------------------------------------------------------------------------------------------------
 # Pistol
 # ----------------------------------------------------------------------------------------------------------------
 def bullet_storm(ic):
-    # "Fan the hammer: seven shots swept across everything in front of you"
-    m = (0.60, 0.50)
-    for ang in (-52.0, -34.0, -17.0, 0.0, 17.0, 34.0, 52.0):
+    # "Fan the hammer: seven shots swept across everything in front of you": close on the muzzle and the fan of shot
+    m = (0.56, 0.47)
+    for ang in (-54.0, -36.0, -18.0, 0.0, 18.0, 36.0, 54.0):
         a = math.radians(ang)
-        ic.glow(ic.lens((m[0] + math.cos(a) * 0.10, m[1] + math.sin(a) * 0.10), (m[0] + math.cos(a) * 0.42, m[1] + math.sin(a) * 0.42), 0.06), SPARK, depth=0.03)
-    ic.glow(ic.star(m, 0.17, 7, 0.45, 0.2), FIRE, depth=0.06)
-    pistol(ic, (0.06, 0.56), -6.0, 0.52)
+        ic.glow(ic.lens((m[0] + math.cos(a) * 0.14, m[1] + math.sin(a) * 0.14), (m[0] + math.cos(a) * 0.62, m[1] + math.sin(a) * 0.62), 0.09), SPARK, depth=0.04)
+    ic.glow(ic.star(m, 0.23, 7, 0.45, 0.2), FIRE, depth=0.08)
+    pistol(ic, (-0.40, 0.56), -4.0, 0.95)
 
 
 def deadeye(ic):
-    # "one shot that punches through every enemy in a line": the sights, the shot gone clean through them
-    ring = ic.circle((0.52, 0.50), 0.36) & ~ic.circle((0.52, 0.50), 0.27)
-    ticks = ic.capsule((0.52, 0.06), (0.52, 0.26), 0.06) | ic.capsule((0.52, 0.74), (0.52, 0.94), 0.06) | ic.capsule((0.08, 0.50), (0.26, 0.50), 0.06)
-    ic.part(ring | ticks, GOLD, metal=True, shadow=0.035)
-    ic.glow(ic.lens((0.02, 0.50), (0.90, 0.50), 0.12), SPARK, depth=0.045)
-    ic.part(ic.poly([(0.80, 0.42), (0.92, 0.42), (0.99, 0.50), (0.92, 0.58), (0.80, 0.58)]), STEEL, metal=True, shadow=0.04)
-    ic.flat(ic.circle((0.52, 0.50), 0.045), hx("c9331a"))
+    # "one shot that punches through every enemy in a line": the sights, the ball gone clean through them
+    ring = ic.circle((0.50, 0.50), 0.47) & ~ic.circle((0.50, 0.50), 0.36)
+    ticks = ic.capsule((0.50, -0.05), (0.50, 0.22), 0.075) | ic.capsule((0.50, 0.78), (0.50, 1.05), 0.075) | ic.capsule((-0.05, 0.50), (0.14, 0.50), 0.075)
+    ic.part(ring | ticks, GOLD, metal=True, shadow=0.045)
+    ic.glow(ic.lens((-0.10, 0.50), (0.84, 0.50), 0.17), SPARK, depth=0.06)
+    ic.part(ic.poly([(0.66, 0.38), (0.86, 0.38), (1.00, 0.50), (0.86, 0.62), (0.66, 0.62)]), STEEL, metal=True, shadow=0.05)
+    ic.flat(ic.circle((0.50, 0.50), 0.05), hx("c9331a"))
 
 
 def smoke_bomb(ic):
     # "Throw down a smoke bomb": the bomb, its fuse lit, the smoke already rolling off it
-    cloud = ic.circle((0.26, 0.56), 0.22) | ic.circle((0.50, 0.40), 0.26) | ic.circle((0.76, 0.54), 0.22) | ic.circle((0.36, 0.76), 0.20) | ic.circle((0.66, 0.78), 0.20)
-    ic.part(cloud, SMOKE, shadow=0.09)
-    ic.part(ic.circle((0.50, 0.66), 0.21), SHADE, metal=True, shadow=0.07)
-    ic.part(ic.capsule((0.50, 0.44), (0.50, 0.48), 0.10), IRON, metal=True, shadow=0.03)
-    ic.part(ic.path([(0.50, 0.42), (0.54, 0.32), (0.64, 0.26)], 0.035), WOOD, shadow=0.02)
-    ic.glow(ic.star((0.68, 0.22), 0.14, 6, 0.4, 0.3), SPARK, depth=0.05, ink=True)
+    cloud = ic.circle((0.20, 0.56), 0.28) | ic.circle((0.50, 0.34), 0.32) | ic.circle((0.82, 0.54), 0.28) | ic.circle((0.30, 0.86), 0.26) | ic.circle((0.72, 0.88), 0.26)
+    ic.part(cloud, SMOKE, shadow=0.10)
+    ic.part(ic.circle((0.50, 0.68), 0.27), SHADE, metal=True, shadow=0.08)
+    ic.part(ic.capsule((0.50, 0.40), (0.50, 0.45), 0.13), IRON, metal=True, shadow=0.03)
+    ic.part(ic.path([(0.50, 0.38), (0.56, 0.26), (0.68, 0.20)], 0.045), WOOD, shadow=0.02)
+    ic.glow(ic.star((0.73, 0.17), 0.17, 6, 0.4, 0.3), SPARK, depth=0.06, ink=True)
 
 
 def point_blank(ic):
-    # "Shove the barrel into the nearest enemy and fire: a blast that throws them off their feet"
-    ic.glow(ic.star((0.66, 0.42), 0.40, 9, 0.5, 0.15), FIRE, depth=0.13)
-    ic.glow(ic.star((0.66, 0.42), 0.17, 9, 0.5, 0.5), SPARK, depth=0.08)
-    pistol(ic, (0.04, 0.70), -24.0, 0.56)
+    # "Shove the barrel into the nearest enemy and fire": the muzzle, and nothing but the blast in front of it
+    ic.glow(ic.star((0.66, 0.38), 0.52, 9, 0.5, 0.15), FIRE, depth=0.16)
+    ic.glow(ic.star((0.66, 0.38), 0.22, 9, 0.5, 0.5), SPARK, depth=0.10)
+    pistol(ic, (-0.52, 0.92), -24.0, 1.05)
 
 
 def deaths_waltz(ic):
     # "Turn through a deadly waltz, shooting every enemy": the pistol, the turn, shots flying out all round
-    for i in range(8):
-        a = math.radians(i * 45.0 + 22.5)
-        ic.glow(ic.lens((0.5 + math.cos(a) * 0.33, 0.5 + math.sin(a) * 0.33), (0.5 + math.cos(a) * 0.49, 0.5 + math.sin(a) * 0.49), 0.07), SPARK, depth=0.03)
-    ic.glow(ic.path(arc((0.50, 0.50), 0.30, 120.0, 250.0), 0.02, 0.07), FIRE, depth=0.03)
-    ic.glow(ic.path(arc((0.50, 0.50), 0.30, 300.0, 430.0), 0.02, 0.07), FIRE, depth=0.03)
-    pistol(ic, (0.27, 0.62), -32.0, 0.50)
+    for k in range(8):
+        a = math.radians(k * 45.0 + 22.5)
+        ic.glow(ic.lens((0.5 + math.cos(a) * 0.36, 0.5 + math.sin(a) * 0.36), (0.5 + math.cos(a) * 0.60, 0.5 + math.sin(a) * 0.60), 0.10), SPARK, depth=0.04)
+    ic.glow(ic.path(arc((0.50, 0.50), 0.34, 110.0, 250.0), 0.025, 0.09), FIRE, depth=0.04)
+    ic.glow(ic.path(arc((0.50, 0.50), 0.34, 290.0, 430.0), 0.025, 0.09), FIRE, depth=0.04)
+    pistol(ic, (0.16, 0.72), -34.0, 0.72)
 
 
 def golden_ricochet(ic):
     # "one gilded ball bounces between every foe ... and ends in a gold burst"
-    trail = [(0.03, 0.40), (0.16, 0.84), (0.34, 0.20), (0.50, 0.80), (0.70, 0.46)]
-    ic.glow(ic.path(trail, 0.03, 0.075), SPARK, depth=0.03)
-    for x, y in ((0.16, 0.84), (0.34, 0.20), (0.50, 0.80)):
-        ic.glow(ic.star((x, y), 0.10, 4, 0.35, 0.0), FIRE, depth=0.04, ink=True)
-    ic.glow(ic.star((0.72, 0.46), 0.27, 8, 0.5, 0.2), FIRE, depth=0.08)
-    ic.part(ic.circle((0.72, 0.46), 0.15), GOLD, metal=True, shadow=0.06)
+    trail = [(-0.04, 0.34), (0.12, 0.86), (0.30, 0.16), (0.46, 0.82), (0.66, 0.46)]
+    ic.glow(ic.path(trail, 0.04, 0.10), SPARK, depth=0.04)
+    for x, y in ((0.12, 0.86), (0.30, 0.16), (0.46, 0.82)):
+        ic.glow(ic.star((x, y), 0.12, 4, 0.35, 0.0), FIRE, depth=0.05, ink=True)
+    ic.glow(ic.star((0.70, 0.46), 0.36, 8, 0.5, 0.2), FIRE, depth=0.10)
+    ic.part(ic.circle((0.70, 0.46), 0.19), GOLD, metal=True, shadow=0.07)
 
 
 SKILLS = {
