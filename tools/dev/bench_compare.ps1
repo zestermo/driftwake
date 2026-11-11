@@ -43,7 +43,7 @@ Write-Host ""
 $sa = Read-Section $la 'summary'
 $sb = Read-Section $lb 'summary'
 # (h33 / h50: base frames over 33 / 50 ms, a count; a result from before v1.19 has none: shown as -)
-$cols = @('frame', 'frame1t', 'p95', 'worst', 'h33', 'h50', 'phys_scr', 'phys_eng', 'proc_scr', 'tail', 'draw', 'rcpu', 'gpu', 'tot_draws', 'nodes')
+$cols = @('frame', 'frame1t', 'p95', 'worst', 'h33', 'h50', 'phys_scr', 'phys_eng', 'proc_scr', 'tail', 'draw', 'setup', 'rcpu', 'gpu', 'tot_draws', 'nodes')
 $line = '{0,-8} {1,-3}' -f 'stop', ''
 foreach ($c in $cols) { $line += ' {0,9}' -f $c }
 Write-Host $line

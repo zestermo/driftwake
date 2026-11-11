@@ -63,7 +63,7 @@ const BANDS := [30.0, 60.0, 120.0, 250.0]
 const BAND_NAMES := ["<30", "30-60", "60-120", "120-250", ">250"]
 const PITCH := -0.25
 const COLS := ["frame", "p95", "worst", "h33", "h50", "frame1t", "phys_scr", "phys_eng", "proc_scr", "tail", "draw", "present", "ticks", "tick_scr", "tick_eng",
-	"rcpu", "gpu", "procmax", "physmax", "draws", "objects", "prims_k", "sh_draws", "sh_objects", "tot_draws", "tot_prims_k", "nodes", "active", "pairs"]
+	"rcpu", "setup", "gpu", "procmax", "physmax", "draws", "objects", "prims_k", "sh_draws", "sh_objects", "tot_draws", "tot_prims_k", "nodes", "active", "pairs"]
 const SPLIT := ["frame", "frame1t", "tick_scr", "tick_eng", "proc_scr", "tail", "draw", "present", "rcpu", "gpu", "draws", "sh_draws"]
 const TK := preload("res://tools/dev/test_kit.gd")
 
@@ -701,6 +701,7 @@ func _step(d: float) -> void:
 		"base":
 			r["base"] = _summarise()
 			r["frames"] = rec["frame"].duplicate()
+			_viewports_line()
 			r["pipes"] = base_pipes
 			base_pipes = 0
 			# (after the sample: its save was ~65 ms in the base's first frame; the next phase's LEAD or settle skips it)
@@ -935,6 +936,8 @@ func _sample(d: float) -> void:
 	_rec("tot_prims_k", Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000.0)
 	_rec("ticks", ticks)
 	_rec("rcpu", RenderingServer.viewport_get_measured_render_time_cpu(vp))
+	# (2026-11-10: the draw is setup + rcpu + what is left: particles, the frame's end)
+	_rec("setup", RenderingServer.get_frame_setup_time_cpu())
 	_rec("gpu", RenderingServer.viewport_get_measured_render_time_gpu(vp))
 	_rec("draws", RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME))
 	_rec("objects", RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, RenderingServer.VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME))
@@ -944,6 +947,26 @@ func _sample(d: float) -> void:
 	_rec("nodes", Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	_rec("active", Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))
 	_rec("pairs", Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS))
+
+
+## The other viewports drawn this frame (2026-11-10: the root's rcpu is only part of the draw): each SubViewport's
+## size, update mode and last measured render CPU / GPU ms, printed at the end of a stop's base. Measuring is
+## switched on for each as it's first seen, so a viewport made since the last stop reads 0 once.
+var _vp_seen := {}
+func _viewports_line() -> void:
+	var parts: Array = []
+	for v in root.find_children("*", "SubViewport", true, false):
+		var sv := v as SubViewport
+		var rid := sv.get_viewport_rid()
+		if not _vp_seen.has(rid):
+			_vp_seen[rid] = true
+			RenderingServer.viewport_set_measure_render_time(rid, true)
+			continue
+		if sv.render_target_update_mode == SubViewport.UPDATE_DISABLED:
+			continue
+		parts.append("%s %dx%d mode %d cpu %.2f gpu %.2f" % [str(sv.get_path()).trim_prefix("/root/"), sv.size.x, sv.size.y,
+			sv.render_target_update_mode, RenderingServer.viewport_get_measured_render_time_cpu(rid), RenderingServer.viewport_get_measured_render_time_gpu(rid)])
+	print("bench: viewports at %s: %s" % [stops[si], "; ".join(parts) if not parts.is_empty() else "(none measured yet)"])
 
 
 func _mean(a: PackedFloat32Array) -> float:
@@ -1348,6 +1371,7 @@ func _finish() -> void:
 	L.append(" (the scene's physics pass, all ticks: scripts, move_and_slide), ALL_OLD = v1.14's eight stops, ALL_NEW the rest;")
 	L.append(" phys_eng (Jolt's step + sync, all ticks), proc_scr (the scene's process pass), tail (timers, tweens, transform")
 	L.append(" notifications, deferred calls, until the draw), draw (RenderingServer.draw on the main thread), present (after it);")
+	L.append(" setup = inside the draw, before any viewport renders: moved and changed instances and canvas items brought up to date (rcpu is the viewport's own render after it);")
 	L.append(" frame1t = the frame with exactly one physics tick; tick_scr / tick_eng = phys_scr / phys_eng per tick;")
 	L.append(" ticks = physics ticks per frame; rcpu/gpu = the viewport's measured render CPU/GPU; procmax/physmax = Godot's")
 	L.append(" TIME_PROCESS / TIME_PHYSICS_PROCESS (the F8 overlay's numbers: the worst in the last second, process including the draw);")

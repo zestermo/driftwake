@@ -11457,3 +11457,17 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
   judged, until `-Update`).
 - **Tested by** t/world/perf_log (the split in both lines, a frame split with no draw); the melee stop run twice
   (solo, coop: 20 of 20 up, no script errors). perftest also reads the perf log (prepush).
+
+## 2026-11-10: perf phase 1, shadows: measured and dropped; the bench's `setup` column and viewport line
+- **Shadows are not a CPU cost worth cutting.** One cascade instead of two (`directional_shadow_mode` 0, 80 m): shadow
+  draws 822 -> 524 at the plaza, 706 -> 483 at the market, frame and draw unchanged within noise (draw 5.56 -> 5.24 and
+  5.29 -> 5.55), and the characters' ground shadows went (shadow_normal_bias 1.5 on the bigger texels). Reverted. The
+  v1.29 full bench's `sun` ablation says the same: every sun shadow off, 736 -> 0 shadow draws, draw -0.55 ms. Building
+  shadow proxies would have bought ~0.2 ms. Don't size a draw fix by draw counts: measure with the ablation first.
+- **bench:** a `setup` column (the rendering server's frame setup: dirty instances and canvas items, inside the draw
+  before the viewports; bench_compare shows it) and a `bench: viewports at <stop>` line (each SubViewport's size, mode,
+  render CPU/GPU). Plaza: draw 5.27 = setup 0.83 + root rcpu 2.34 + SubViewports ~0.2 + ~1.9 not attributable from
+  scripts (`RenderingServer.get_frame_profile` / `set_frame_profiling_enabled` aren't exposed in 4.7).
+- **Found:** seven 960x540 SubViewports render every frame (UPDATE_ALWAYS): the HUD and six that are closed (the
+  emote, item, action, loadout and gadget wheels, the chat box). ~0.2 ms together; they could update only when open.
+- The plan's order by what's measured is in docs/review_2026_11_10.md "What the draw is made of".
