@@ -11573,3 +11573,25 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
 - **Tested by** t/ship/moored_hulls (every 3rd tick at 60 m, every tick with the captain 20 m off), t/beast/ape_phases,
   bear_king, roamers, t/boss/captain_phase_reset, brood_phase_reset, morrow_phase_reset, t/fauna/thorn_boar,
   bog_hound, grunt_steps, t/combat/rival_rig_lod.
+
+## 2026-11-11: skill icon redo, ink and cel: the generator and the first four trees (not wired into the game yet)
+- **Why:** Zach reviewed every icon (tools/dev/out/iconreview/) and wants the skill icons bigger and more defined,
+  shaded, without going busy. He picked "ink and cel" from five mocked styles (soft bevel, ink and cel, PS1 facets and
+  dither, parchment emblem, brass relief), on tree-coloured plates.
+- **The style** (`tools/texture_gen/gen_skill_icons.py`): an icon is a list of parts in 0..1 coordinates, so one
+  description renders at 32 px (the HUD's bar) and 48 px (skill map, loadout, tooltips). A part is flat colour from a
+  five-step ramp (dark, shadow, base, light, glint): base, its lower-right rim in shadow, a one-pixel light edge up and
+  left, black ink round it and where it overlaps what's behind. What glows (wind, fire, water, sparks) is three hard
+  bands, brightest at the core, un-inked unless asked. The plate is an 18-ray burst in the tree's colour (TREES:
+  [deep, bright], from FX.TREE_FX), inked edge with a bright inner line; an ultimate's is gold-framed.
+- **Shared pieces** keep a tree coherent: `cutlass`, `katana`, `axe`, `pistol` (drawn once, posed per icon with
+  `Frame`), `bust`, `wind_blade`, `arc`, `Icon.lens` (a cut mark), `Icon.star` (sparks, blasts).
+- **Drawn:** sword 5, katana 8, axe 5, pistol 6 (24 of 171). Three skills that borrowed another's icon get their
+  own: undertow, moonlit_severance, executioners_moon, golden_ricochet (four, with golden_ricochet).
+- **Run:** `py tools/texture_gen/gen_skill_icons.py` writes a review sheet a tree (today's icons, the new ones at 48
+  px, and at 32 px in skill-bar slots as on a 1080p screen); `--write` also writes
+  `assets/textures/icons/skill_<id>_32.png` / `_48.png`. **Nothing reads those yet**: the HUD bar's slots (24 -> 32 px),
+  the loadout and the skill map (-> 48 px) and `Skills.icon` still use the 24 px PNGs. Old icons can stay crisp in
+  the bigger slots meanwhile (24 px centred in a 32 slot, 2x in a 48 one).
+- **Left:** 17 trees and the base, movement, will and perk icons (147); the UI's slot sizes; then the old
+  `gen_skill_icons()` in gen_psx_textures.py and the staff / sickle icon scripts can go.
