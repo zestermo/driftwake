@@ -65,6 +65,12 @@ BONE = ramp("5a4a3a", "a8987c", "e8dcc0", "fbf4e0", "ffffff")
 HEAT = ramp("5a0810", "c41828", "ff4a3a", "ffb08a", "fff0e0")
 IMPACT = ramp("6a4a1a", "d89a3a", "ffd27a", "fff2c8", "ffffff")
 SILVER = ramp("2a3a58", "6a82a8", "b0c4e0", "e4eefa", "ffffff")
+LEAFWIND = ramp("1c4a1a", "4aa83a", "a6e070", "e2f8c0", "ffffff")
+LEAF = ramp("0f331c", "1c6229", "3a9a38", "86cc48", "d8f288")
+AUTUMN = ramp("5a2a08", "b85a14", "f0a030", "ffd670", "fff2c0")
+SOUL = ramp("0c3a30", "1ea078", "5ef0b8", "c8ffe8", "ffffff")
+PINK = ramp("5a1040", "c8308a", "ff78c0", "ffc8e4", "ffffff")
+WHITE = ramp("5a6478", "a8b4c8", "e8eef6", "ffffff", "ffffff")
 TREES = {
     "sword": ("123262", "4db8ff"),
     "katana": ("3a1c48", "ff9ecc"),
@@ -81,6 +87,9 @@ TREES = {
     "black_leg": ("4a0c12", "ff2c29"),
     "unarmed": ("5a3a1a", "fff2d9"),
     "rapier": ("2a3344", "c8d6ea"),
+    "staff": ("2c3a12", "c8e04a"),
+    "sickle": ("0e2e36", "8affd0"),
+    "slingshot": ("4a1236", "ff61b8"),
 }
 
 
@@ -1404,6 +1413,277 @@ def silver_meridian(ic):
     ic.glow(ic.star((0.94, 0.50), 0.10, 4, 0.25, 0.0), SPARK, depth=0.035, ink=True)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Pieces for the staff, the chain sickle and the slingshot
+# ----------------------------------------------------------------------------------------------------------------
+def staff(ic, a, b, w=0.075):
+    """A bo staff: wood, gold-capped, bound at the middle."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    ic.part(ic.capsule(a, b, w), WOOD, shadow=0.03)
+    for t0, t1, mat in ((0.0, 0.07, GOLD), (0.93, 1.0, GOLD), (0.44, 0.56, CLOTH)):
+        ic.part(ic.capsule((a[0] + dx * t0, a[1] + dy * t0), (a[0] + dx * t1, a[1] + dy * t1), w * 1.2), mat, metal=(mat is GOLD), shadow=0.025)
+
+
+def leaf(ic, c, ang, size, mat=LEAF):
+    a = math.radians(ang)
+    e0 = (c[0] - math.cos(a) * size, c[1] - math.sin(a) * size)
+    e1 = (c[0] + math.cos(a) * size, c[1] + math.sin(a) * size)
+    ic.part(ic.lens(e0, e1, size * 1.05), mat, shadow=0.03)
+    ic.flat(ic.capsule((c[0] - math.cos(a) * size * 0.6, c[1] - math.sin(a) * size * 0.6), (c[0] + math.cos(a) * size * 0.6, c[1] + math.sin(a) * size * 0.6), size * 0.12), mat[0])
+
+
+def chain(ic, pts, link=0.05, mat=IRON):
+    """A chain along the points: a link every `link`."""
+    run = 0.0
+    nxt = 0.0
+    for k in range(len(pts) - 1):
+        (x0, y0), (x1, y1) = pts[k], pts[k + 1]
+        seg = math.hypot(x1 - x0, y1 - y0)
+        while nxt <= run + seg:
+            t = (nxt - run) / max(seg, 1e-6)
+            ic.part(ic.circle((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t), link * 0.52), mat, metal=True, shadow=0.02)
+            nxt += link
+        run += seg
+
+
+def sickle(ic, at, angle, size, flip=False):
+    """A kama: a short haft from `at` along `angle`, the hooked blade at its far end curving back to its right-hand side."""
+    f = Frame(at, angle, size, flip)
+    ic.part(ic.capsule(f.pt(0, 0), f.pt(0.74, 0), 0.10 * size), WOOD, shadow=0.03)
+    ic.part(ic.capsule(f.pt(0.02, 0), f.pt(0.20, 0), 0.125 * size), LEATHER, shadow=0.025)
+    c = f.pt(0.62, 0.42)
+    outer, inner = [], []
+    for k in range(13):
+        t = k / 12.0
+        a = math.radians(-110.0 + 175.0 * t)
+        r_o = 0.46 * size
+        r_i = (0.46 - 0.17 * (1.0 - t) ** 0.8) * size
+        d = (math.cos(a), math.sin(a))
+        o = Frame(c, angle, 1.0, flip)
+        outer.append(o.pt(d[0] * r_o, d[1] * r_o))
+        inner.append(o.pt(d[0] * r_i, d[1] * r_i))
+    ic.part(ic.poly(outer + inner[::-1]), STEEL, metal=True, shadow=0.04)
+    ic.part(ic.capsule(f.pt(0.70, -0.02), f.pt(0.80, -0.02), 0.15 * size), GOLD, metal=True, shadow=0.025)
+
+
+def sling(ic, at, angle, size):
+    """A slingshot: the fork up along `angle` from the grip at `at`, its band between the tines."""
+    f = Frame(at, angle, size)
+    ic.part(ic.capsule(f.pt(0, 0), f.pt(0.50, 0), 0.13 * size), WOOD, shadow=0.035)
+    for v in (-0.30, 0.30):
+        ic.part(ic.path([f.pt(0.46, 0), f.pt(0.66, v * 0.8), f.pt(1.0, v)], 0.12 * size, 0.10 * size), WOOD, shadow=0.035)
+        ic.part(ic.capsule(f.pt(0.92, v), f.pt(1.0, v), 0.14 * size), CLOTH, shadow=0.02)
+    ic.part(ic.capsule(f.pt(0.02, 0), f.pt(0.26, 0), 0.155 * size), LEATHER, shadow=0.03)
+
+
+def pellet(ic, c, r, mat=SHADE):
+    ic.part(ic.circle(c, r), mat, metal=True, shadow=r * 0.45)
+
+
+def crane(ic, c, s):
+    """A crane in flight, seen from the side, heading right: white, black-tipped wings, a red crown."""
+    x, y = c
+    ic.part(ic.poly([(x - 0.10 * s, y - 0.04 * s), (x - 0.50 * s, y - 0.62 * s), (x - 0.20 * s, y - 0.50 * s), (x + 0.16 * s, y - 0.08 * s)]), WHITE, shadow=0.04)
+    ic.flat(ic.poly([(x - 0.50 * s, y - 0.62 * s), (x - 0.34 * s, y - 0.40 * s), (x - 0.24 * s, y - 0.50 * s)]), INK)
+    ic.part(ic.poly(oval((x, y), 0.30 * s, 0.14 * s)), WHITE, shadow=0.04)
+    ic.part(ic.path([(x + 0.22 * s, y - 0.04 * s), (x + 0.42 * s, y - 0.20 * s), (x + 0.56 * s, y - 0.30 * s)], 0.085 * s, 0.06 * s), WHITE, shadow=0.03)
+    ic.part(ic.circle((x + 0.60 * s, y - 0.33 * s), 0.07 * s), WHITE, shadow=0.02)
+    ic.flat(ic.circle((x + 0.59 * s, y - 0.385 * s), 0.04 * s), hx("e0242e"))
+    ic.part(ic.poly([(x + 0.65 * s, y - 0.36 * s), (x + 0.86 * s, y - 0.32 * s), (x + 0.65 * s, y - 0.29 * s)]), GOLD, shadow=0.02)
+    ic.part(ic.poly([(x - 0.04 * s, y + 0.06 * s), (x - 0.56 * s, y + 0.50 * s), (x - 0.20 * s, y + 0.46 * s), (x + 0.20 * s, y + 0.08 * s)]), WHITE, shadow=0.04)
+    ic.flat(ic.poly([(x - 0.56 * s, y + 0.50 * s), (x - 0.36 * s, y + 0.34 * s), (x - 0.24 * s, y + 0.46 * s)]), INK)
+    ic.flat(ic.capsule((x - 0.28 * s, y + 0.02 * s), (x - 0.66 * s, y + 0.10 * s), 0.03 * s), INK)
+
+
+def wisp(ic, c, r, mat=SOUL):
+    """A soul: a little flame with two dark eyes."""
+    ic.glow(ic.circle(c, r) | ic.poly([(c[0] - r * 0.85, c[1] - r * 0.3), (c[0] + r * 0.3, c[1] - r * 2.3), (c[0] + r * 0.85, c[1] - r * 0.3)]), mat, depth=r * 0.9, ink=True)
+    ic.flat(ic.circle((c[0] - r * 0.35, c[1]), r * 0.2) | ic.circle((c[0] + r * 0.35, c[1]), r * 0.2), INK)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Staff (leaves and wind)
+# ----------------------------------------------------------------------------------------------------------------
+def leaf_wall(ic):
+    # "Spin the staff before you so fast it's a wall": the wall of leaves it makes, the staff across it
+    for (x, y), ang, mat in (((0.22, 0.24), 60.0, LEAF), ((0.52, 0.16), 95.0, AUTUMN), ((0.80, 0.26), 125.0, LEAF), ((0.14, 0.60), 20.0, AUTUMN),
+            ((0.86, 0.62), 160.0, AUTUMN), ((0.30, 0.86), -30.0, LEAF), ((0.70, 0.86), 210.0, LEAF)):
+        leaf(ic, (x, y), ang, 0.21, mat)
+    ic.glow(ic.circle((0.50, 0.52), 0.25), LEAFWIND, depth=0.10)
+    staff(ic, (0.04, 0.94), (0.96, 0.10), w=0.085)
+
+
+def rising_gale(ic):
+    # "The staff swept up under the enemy you face, throwing them high, and you up after them on the wind"
+    for sgn in (-1.0, 1.0):
+        ic.glow(ic.path([(0.5 + sgn * 0.10, 1.02), (0.5 + sgn * 0.42, 0.66), (0.5 + sgn * 0.26, 0.36), (0.5 + sgn * 0.40, 0.04)], 0.17, 0.04), LEAFWIND, depth=0.055)
+    for (x, y), ang, mat in (((0.28, 0.20), -60.0, AUTUMN), ((0.72, 0.30), -110.0, LEAF), ((0.50, 0.10), -90.0, LEAF)):
+        leaf(ic, (x, y), ang, 0.13, mat)
+    staff(ic, (-0.10, 0.96), (0.84, 0.50), w=0.085)
+
+
+def thousand_leaves(ic):
+    # "Both ends of the staff everywhere at once ... like leaves in a gale"
+    ic.glow(ic.lens((-0.05, 0.36), (1.05, 0.64), 0.30), LEAFWIND, depth=0.07)
+    staff(ic, (-0.20, 0.34), (1.20, 0.66), w=0.10)
+    for (x, y), ang, mat in (((0.14, 0.14), 20.0, LEAF), ((0.40, 0.10), -30.0, AUTUMN), ((0.66, 0.16), 40.0, LEAF), ((0.90, 0.22), -10.0, AUTUMN),
+            ((0.10, 0.76), 30.0, AUTUMN), ((0.34, 0.86), -20.0, LEAF), ((0.60, 0.90), 15.0, AUTUMN), ((0.86, 0.84), -40.0, LEAF)):
+        leaf(ic, (x, y), ang, 0.11, mat)
+
+
+def crane_vault(ic):
+    # "Plant the staff and vault high over the enemy": the crane itself, over the planted staff
+    staff(ic, (0.22, 1.10), (0.36, 0.40), w=0.075)
+    ic.glow(ic.path(arc((0.50, 0.92), 0.58, 200.0, 330.0), 0.03, 0.10), LEAFWIND, depth=0.04)
+    crane(ic, (0.52, 0.44), 0.62)
+
+
+def autumn_gale(ic):
+    # "a whirlwind of leaves drags every enemy close in while the staff spins round you faster and faster"
+    arms = []
+    for turn in (0.0, 120.0, 240.0):
+        pts = []
+        for k in range(9):
+            t = k / 8.0
+            a = math.radians(turn + 220.0 * t)
+            r = 0.52 * (1.0 - 0.62 * t)
+            pts.append((0.5 + math.cos(a) * r, 0.5 + math.sin(a) * r))
+        arms.append(pts)
+        ic.glow(ic.path(pts, 0.035, 0.13), LEAFWIND, depth=0.05)
+    for k, pts in enumerate(arms):
+        for j, mat in ((1, AUTUMN), (4, LEAF if k % 2 else AUTUMN)):
+            leaf(ic, pts[j], 40.0 + 70.0 * k + 30.0 * j, 0.10, mat)
+    staff(ic, (0.30, 0.70), (0.70, 0.30), w=0.07)
+
+
+def pillar_of_wind(ic):
+    # "a pillar of wind and leaves throws every enemy round you high into the air"
+    for y, rx in ((0.10, 0.44), (0.30, 0.36), (0.50, 0.28), (0.70, 0.20), (0.88, 0.13)):
+        ic.glow(ic.poly(oval((0.50, y), rx, 0.12)), LEAFWIND, depth=0.05, ink=True)
+    staff(ic, (0.50, 1.10), (0.50, 0.30), w=0.07)
+    for (x, y), ang, mat in (((0.12, 0.34), 30.0, AUTUMN), ((0.88, 0.22), -40.0, LEAF), ((0.84, 0.60), 60.0, AUTUMN), ((0.18, 0.72), -20.0, LEAF)):
+        leaf(ic, (x, y), ang, 0.10, mat)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Chain sickle (cold green fire)
+# ----------------------------------------------------------------------------------------------------------------
+def binding_coil(ic):
+    # "The chain thrown round the enemy you face and pulled tight: bound and held where they stand"
+    bust(ic, (0.50, 0.50), 0.74, SHADE)
+    for y, dx in ((0.56, 0.0), (0.72, 0.03), (0.88, -0.02)):
+        chain(ic, [(0.02 + dx, y + 0.06), (0.50, y - 0.03), (0.98 + dx, y + 0.06)], link=0.075)
+    ic.glow(ic.star((0.84, 0.50), 0.11, 4, 0.3, 0.0), SOUL, depth=0.04, ink=True)
+
+
+def serpent_lash(ic):
+    # "The chain cracked out three times like a striking snake"
+    pts = [(-0.04, 0.86), (0.14, 0.60), (0.34, 0.74), (0.52, 0.46), (0.70, 0.56), (0.80, 0.30)]
+    ic.glow(ic.path(pts, 0.10, 0.14), SOUL, depth=0.04)
+    chain(ic, pts, link=0.07)
+    sickle(ic, (0.76, 0.36), -70.0, 0.44)
+    ic.glow(ic.star((0.90, 0.08), 0.10, 6, 0.4, 0.2), SPARK, depth=0.04, ink=True)
+
+
+def reel_and_reap(ic):
+    # "yanked in hard, and the sickle waiting for them: three cuts and a reaping"
+    ic.glow(ic.circle((0.50, 0.52), 0.50) & ~ic.circle((0.36, 0.66), 0.50), SOUL, depth=0.08)
+    chain(ic, [(0.02, 0.96), (0.14, 0.80), (0.10, 0.62)], link=0.07)
+    sickle(ic, (0.06, 1.02), -52.0, 1.02)
+
+
+def hook_step(ic):
+    # "The chain cast round the enemy you face and you pull yourself across to them in a blink"
+    bust(ic, (0.80, 0.34), 0.44, SHADE)
+    for y in (0.24, 0.92):
+        ic.glow(ic.lens((0.02, y + 0.10), (0.46, y - 0.06), 0.06), SOUL, depth=0.03)
+    chain(ic, [(-0.04, 0.96), (0.30, 0.70), (0.62, 0.46)], link=0.085)
+    sickle(ic, (0.50, 0.58), -40.0, 0.50)
+
+
+def harvest_of_souls(ic):
+    # "The chain catches fire with a cold green flame and you whirl it round you wider and wider"
+    ring = ic.circle((0.50, 0.52), 0.46) & ~ic.circle((0.50, 0.52), 0.30)
+    for k in range(8):
+        a = math.radians(k * 45.0 + 10.0)
+        c = (0.5 + math.cos(a) * 0.42, 0.52 + math.sin(a) * 0.42)
+        ring |= ic.poly([(c[0] - math.sin(a) * 0.08, c[1] + math.cos(a) * 0.08), (0.5 + math.cos(a + 0.25) * 0.60, 0.52 + math.sin(a + 0.25) * 0.60),
+            (c[0] + math.sin(a) * 0.08, c[1] - math.cos(a) * 0.08)])
+    ic.glow(ring, SOUL, depth=0.07)
+    chain(ic, arc((0.50, 0.52), 0.37, 0.0, 345.0, 1.0, 24), link=0.085)
+    wisp(ic, (0.50, 0.58), 0.10)
+
+
+def soul_chain(ic):
+    # "The burning chain cast out along a line fourteen paces long, catching everyone on it by the soul"
+    ic.glow(ic.lens((-0.10, 0.74), (1.10, 0.54), 0.26), SOUL, depth=0.07)
+    chain(ic, [(-0.04, 0.72), (0.50, 0.64), (1.04, 0.56)], link=0.085)
+    for x, y, r in ((0.20, 0.42, 0.10), (0.52, 0.34, 0.12), (0.82, 0.30, 0.10)):
+        wisp(ic, (x, y), r)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Slingshot (tricks)
+# ----------------------------------------------------------------------------------------------------------------
+def fire_pellet(ic):
+    # "A pellet packed with fire": the pellet away off the fork, burning
+    ic.glow(ic.poly([(0.36, 0.66), (0.44, 0.44), (0.30, 0.44), (0.50, 0.22), (0.50, 0.06), (0.70, 0.10), (0.94, 0.04), (0.90, 0.30), (0.96, 0.50), (0.74, 0.54), (0.60, 0.70)]), FIRE, depth=0.11)
+    pellet(ic, (0.70, 0.30), 0.13, CLOTH)
+    sling(ic, (-0.06, 1.06), -48.0, 0.70)
+
+
+def smoke_pellet(ic):
+    # "a thick cloud where it lands blinds everyone in it"
+    cloud = ic.circle((0.24, 0.62), 0.26) | ic.circle((0.50, 0.40), 0.32) | ic.circle((0.78, 0.60), 0.26) | ic.circle((0.40, 0.84), 0.22) | ic.circle((0.66, 0.86), 0.22)
+    ic.part(cloud, SMOKE, shadow=0.10)
+    ic.flat(ic.path(arc((0.30, 0.60), 0.13, 200.0, 330.0), 0.03) | ic.path(arc((0.54, 0.38), 0.16, 200.0, 330.0), 0.03) | ic.path(arc((0.74, 0.62), 0.11, 210.0, 320.0), 0.03), SMOKE[1])
+    pellet(ic, (0.50, 0.90), 0.09, SHADE)
+    for x, y in ((0.14, 0.20), (0.88, 0.22)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), PINK, depth=0.03)
+
+
+def blast_pellet(ic):
+    # "A pellet of black powder: it goes off where it lands"
+    ic.glow(ic.star((0.52, 0.52), 0.52, 10, 0.5, 0.1), FIRE, depth=0.15)
+    ic.glow(ic.star((0.52, 0.52), 0.24, 10, 0.5, 0.4), SPARK, depth=0.10)
+    pellet(ic, (0.52, 0.54), 0.15, SHADE)
+    ic.part(ic.path([(0.52, 0.40), (0.58, 0.30)], 0.035), WOOD, shadow=0.02)
+    ic.glow(ic.star((0.60, 0.26), 0.08, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def sticky_pellet(ic):
+    # "A pellet of hot tar: everyone in the splash is stuck where they stand"
+    splat = ic.poly(oval((0.50, 0.66), 0.44, 0.22))
+    for x, y, r in ((0.24, 0.56, 0.17), (0.50, 0.48, 0.22), (0.76, 0.56, 0.17), (0.36, 0.78, 0.15), (0.66, 0.80, 0.15)):
+        splat |= ic.circle((x, y), r)
+    for a, b in (((0.32, 0.46), (0.14, 0.10)), ((0.68, 0.46), (0.88, 0.16))):
+        splat |= ic.path([a, b], 0.07, 0.025)
+    ic.part(splat, SHADE, metal=True, shadow=0.07)
+    for x, y in ((0.12, 0.90), (0.90, 0.88), (0.30, 0.96)):
+        ic.part(ic.circle((x, y), 0.05), SHADE, metal=True, shadow=0.02)
+    ic.flat(ic.lens((0.34, 0.60), (0.52, 0.52), 0.05), hx("8a88a8"))
+    ic.glow(ic.star((0.78, 0.14), 0.09, 4, 0.3, 0.0), PINK, depth=0.03, ink=True)
+
+
+def bag_of_tricks(ic):
+    # "Empty the pouch: five trick pellets, one after another"
+    ic.part(ic.poly([(0.22, 0.98), (0.14, 0.66), (0.32, 0.46), (0.68, 0.46), (0.86, 0.66), (0.78, 0.98)]), LEATHER, shadow=0.08)
+    ic.part(ic.poly([(0.30, 0.50), (0.26, 0.36), (0.50, 0.42), (0.74, 0.36), (0.70, 0.50)]), LEATHER, shadow=0.04)
+    ic.part(ic.capsule((0.30, 0.48), (0.70, 0.48), 0.06), GOLD, metal=True, shadow=0.02)
+    for (x, y), mat in (((0.14, 0.26), CLOTH), ((0.36, 0.12), SMOKE), ((0.62, 0.10), SHADE), ((0.86, 0.24), FIRE), ((0.50, 0.26), PINK)):
+        pellet(ic, (x, y), 0.085, mat)
+
+
+def fireworks_finale(ic):
+    # "A stone straight up bursts into a shower of sparks"
+    for k in range(12):
+        a = math.radians(k * 30.0)
+        mat = (PINK, SPARK, FIRE)[k % 3]
+        ic.glow(ic.lens((0.5 + math.cos(a) * 0.16, 0.46 + math.sin(a) * 0.16), (0.5 + math.cos(a) * 0.50, 0.46 + math.sin(a) * 0.50), 0.08), mat, depth=0.03)
+        ic.glow(ic.circle((0.5 + math.cos(a) * 0.52, 0.46 + math.sin(a) * 0.52), 0.04), mat, depth=0.03)
+    ic.glow(ic.star((0.50, 0.46), 0.16, 8, 0.45, 0.2), SPARK, depth=0.06, ink=True)
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -1453,6 +1733,15 @@ SKILLS = {
     "rapier": [("needle_rain", "Needle Rain", False, needle_rain), ("glass_step", "Glass Step", False, glass_step),
         ("glass_feint", "Looking-Glass Feint", False, glass_feint), ("balestra", "Balestra", False, balestra),
         ("hall_of_mirrors", "Hall of Mirrors  (ult)", True, hall_of_mirrors), ("silver_meridian", "Silver Meridian  (ult)", True, silver_meridian)],
+    "staff": [("leaf_wall", "Leaf Wall", False, leaf_wall), ("rising_gale", "Rising Gale", False, rising_gale),
+        ("thousand_leaves", "Thousand Leaves", False, thousand_leaves), ("crane_vault", "Crane Vault", False, crane_vault),
+        ("autumn_gale", "Autumn Gale  (ult)", True, autumn_gale), ("pillar_of_wind", "Pillar of Wind  (ult)", True, pillar_of_wind)],
+    "sickle": [("binding_coil", "Binding Coil", False, binding_coil), ("serpent_lash", "Serpent Lash", False, serpent_lash),
+        ("reel_and_reap", "Reel and Reap", False, reel_and_reap), ("hook_step", "Hook Step", False, hook_step),
+        ("harvest_of_souls", "Harvest of Souls  (ult)", True, harvest_of_souls), ("soul_chain", "Soul Chain  (ult)", True, soul_chain)],
+    "slingshot": [("fire_pellet", "Fire Pellet", False, fire_pellet), ("smoke_pellet", "Smoke Pellet", False, smoke_pellet),
+        ("blast_pellet", "Blast Pellet", False, blast_pellet), ("sticky_pellet", "Sticky Pellet", False, sticky_pellet),
+        ("bag_of_tricks", "Bag of Tricks  (ult)", True, bag_of_tricks), ("fireworks_finale", "Fireworks Finale  (ult)", True, fireworks_finale)],
 }
 
 
