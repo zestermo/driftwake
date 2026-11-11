@@ -681,6 +681,12 @@ func _camera() -> Camera3D:
 	return _cam
 
 
+## A body's owner turns it (the rig's root, or the node over it) only when its facing has changed by more than this
+## (rad, 0.03 deg): writing an unchanged rotation still marks the whole body moved, and the engine's physics
+## interpolation re-walks and re-uploads every node under a moved one each frame (2026-11-11, the bench's `nofti`).
+const TURN_EPS := 0.0005
+
+
 ## A lod rig at rest poses one step less often from this far off the camera (m); REST_LOD false turns that off.
 const REST_LOD := true
 const REST_R := 6.0

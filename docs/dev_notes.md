@@ -11496,3 +11496,47 @@ Tests: cliptest, the cloth and gear tests; renders with outfitgrid `clothes`.
 - **Tested by** t/world/rig_rest_lod (the rates standing, walking, talking, close, far, not lod; 4 of 10 fighting
   grunts swing their cloth), t/combat/rival_rig_lod, t/world/body_shadow_lod, t/stronghold/fodder_crowd,
   t/world/actor_sleep. Expect at prepush: perftest's rig LOD check, clothlab / coat tests that read a fighting grunt's chains.
+
+## 2026-11-11: perf: what physics interpolation costs, turn guards, joints out of it, the grunt's sea check
+Benched on a quiet machine (two base runs agreed within 0.1 ms at the town stops; 2026-11-10's pairs were noise).
+Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 / 15.35 / 28.75 -> 15.13 / 14.06 / 25.2**
+(measured twice); the melee's frames over 33 ms 73 -> 14, ticks a frame 1.73 -> 1.51.
+- **The finding (bench `nofti`: SceneTree.physics_interpolation off):** 13.70 / 12.95 / 24.98. The engine's 3D
+  interpolation (SceneTreeFTI) costs ~3 ms a frame here: phys_eng -0.6 ms a tick, tail -0.6, draw -0.9, scripts -0.5.
+  How it works (godot master, scene_tree_fti.cpp): any Node3D whose transform is **written** (changed or not) goes on
+  its lists, and every frame it walks **that node's whole subtree**, recomputing and re-uploading each descendant to the
+  RenderingServer; an interpolated node set outside a tick is also slerped between its tick values and stays listed
+  ~2 ticks. A node with interpolation OFF is still walked when an ancestor is on the lists.
+- **Ruled out by ablation:** the 21 hulls riding the swell (`nobob`: -0.7 ms, all in their own tick scripts, nothing
+  in the tail or draw); taking the whole World node out (`ftioff=World`: nothing; the walk isn't per-node mode);
+  the joints alone out of it (nothing, while their body is still written every frame).
+- **Turn guards** (`Humanoid.TURN_EPS` 0.0005 rad): npc.gd and villager.gd wrote `humanoid.rotation.y = _facing` every
+  frame, the grunt `facing.rotation.y` every tick, turned or not, so every body in range was walked every frame
+  whatever its rig's pose rate. Now only when the facing has changed. Alone: 15.86 / 14.55 / 26.58.
+- **Joints out of the interpolation:** `pivot.physics_interpolation_mode = OFF` in BodyBuilder._skeleton and
+  ApeBuilder (the body over them still interpolates). They're posed a frame at a time in _process, so the blend was
+  never wanted (the cloth "haze" note of 10-05 was this mismatch). With the guards: 15.13 / 14.06.
+  **Set it on the bare pivot, before its parts**: set after the rig is built (outside the tree) it gained nothing
+  (16.39); switched as the rig enters the tree 15.55; on its first pose 15.43.
+- **Open lead, not understood:** switching every rig's pivot INHERIT -> OFF from the bench, 40 s into the run, read
+  14.37 / 13.43 twice (0.75 ms better than built off), same draws, nothing in the game handles the reset. Not
+  reproduced by any switch the game can make deterministically. Needs the engine source or a native profiler.
+- **The grunt's tick, timed in the melee** (temporary timers; 25 grunts, 2.63 ms a tick): move_and_slide 0.86, think
+  0.69 (64 us, 0.43 a grunt tick), **the sea check 0.66**, ground_safe 0.16, turn + feed 0.14, timers 0.08. The sea
+  check was `_sea_near()` then `_surface_depth()` again: two wave lookups a tick for anyone within 3 m of sea level
+  (a beach camp). Now `_sea_in()`: one lookup, kept, asked again every tick within 1 m of the waves, every 3rd up to
+  3 m above, every THINK_EVERY higher, at once on a fast fall. 0.66 -> 0.19 ms a tick; the tick 2.63 -> 2.20.
+- **Not the cost:** `_player_ok`'s sight check (no smoke clouds: one `is_empty`), the audit's "13 call sites".
+- **bench:** `nofti`, `nobob`, `ftioff=<path>+<path>` (those subtrees out of the interpolation), `ftitree` (the
+  root's, the world's and the islands' children with their node counts). The tree: World 40.3k nodes, Islands 39.8k
+  (Isle1 15.3k, Isle0 11.7k, Brinehollow 9.7k), GameMenu 1.1k, the ship 257, the captain 171.
+- **Left:** the same guard on the other bodies' turns (jungle_ape, pirate_boss, creature / scuttlebug / beasts'
+  `model.rotation.y`, captain_brain); move_and_slide on a grunt standing still; the think; the open lead above.
+  The remaining gap to `nofti` is ~1.4 ms in town.
+- **Zach to look at:** rigs no longer get the engine's one-tick blend between poses: a villager posed every 2nd-3rd
+  frame steps a touch more plainly; bodies in motion should look the same or crisper (no blend lag on limbs).
+- **Tested by** t/combat/rig_follows_body (new: a grunt running, the body drawn up to 7 cm between its tick
+  positions, every mesh drawn exactly on it), t/world/rig_rest_lod (the joints of a made body, the captain and a
+  grunt don't interpolate, the bodies do), t/gear/coat_drape, hakama_split, pauldron_follow, t/world/far_figures,
+  one_skin_ragdoll, actor_sleep, t/combat/rival_rig_lod, hit_jolt, lock_on, t/fauna/grunt_steps. Not run (prepush):
+  swimtest and perftest (a grunt knocked into the sea: `_sea_in`), clothlab, nettest (puppets' rigs), the world suites.

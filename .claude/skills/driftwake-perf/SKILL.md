@@ -72,6 +72,15 @@ are the history: v1.13 ran 42 ms a frame in Brinehollow, v1.14 9.2 ms.
   of 20 sword grunts, six swinging at once, kept alive for the whole sample: the fight the play sessions fall over
   in; `quick coop stops=melee` puts a guest in it), `naval`, `isles` (a chain island let go and built again).
 - The log is capped at 64 MB: past it the bench's Godot is stopped (an engine error flood once wrote 4.8 GB).
+- Ablation flags (2026-11-10/11), each a measurement, not a look: `norigs` / `rigs=N` (bodies stop posing), `nofti`
+  (physics interpolation off), `nobob` (hulls stop riding the swell), `ftioff=World/Islands+World/Ship` (those
+  subtrees out of the interpolation), `ftitree` (node counts of the tree's top levels). **Bound a fix with one of
+  these before building it**, and bench a base run before and after the ablation: two base runs agree within
+  ~0.1 ms at the town stops on a quiet machine; if they don't, something else is running.
+- **Never write an unchanged transform on a node with a big subtree** (a body, a hull): with physics interpolation
+  on, a written Node3D has its whole subtree re-walked and re-uploaded every frame (`Humanoid.TURN_EPS`; ~3 ms a
+  frame of the town was this, dev_notes 2026-11-11). Things posed in `_process` go out of the interpolation
+  (`physics_interpolation_mode = OFF`, set before their children are added), as the rigs' joints are.
 - Output in `tools/dev/out/bench/`: `brinehollow_<label>.txt` (results), `.log` (the whole Godot log),
   `brinehollow_<label>_<stop>.png` (one screenshot per stop, taken after its base sample so the save never
   lands in a measured frame: check the world looked right).

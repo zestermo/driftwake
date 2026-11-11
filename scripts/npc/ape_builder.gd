@@ -115,6 +115,8 @@ func _mb(node: Node3D) -> MeshBuilder:
 func _skeleton() -> void:
 	h.hip_y = HIP_Y
 	h.pivot = _node("Pivot", Vector3(0, HIP_Y, 0), h)
+	# (out of the physics interpolation, set before its parts: BodyBuilder._skeleton)
+	h.pivot.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	h.hips = _node("Hips", Vector3.ZERO, h.pivot)
 	h.leg_l = _node("LegL", Vector3(-LEG_X, -0.03, 0.02), h.hips)
 	h.leg_r = _node("LegR", Vector3(LEG_X, -0.03, 0.02), h.hips)

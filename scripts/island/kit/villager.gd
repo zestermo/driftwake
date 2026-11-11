@@ -126,12 +126,15 @@ func _process(delta: float) -> void:
 		speed = (_d - d0) / maxf(dt, 0.001) if _k == k0 else walk_speed
 	if not near:
 		_facing = yaw
-		humanoid.rotation.y = yaw
+		# (only when it turns: Humanoid.TURN_EPS)
+		if absf(angle_difference(humanoid.rotation.y, yaw)) > Humanoid.TURN_EPS:
+			humanoid.rotation.y = yaw
 		humanoid.ground_speed = speed
 		name_tag.visible = false
 		return
 	_facing = lerp_angle(_facing, yaw, minf(6.0 * dt, 1.0))
-	humanoid.rotation.y = _facing
+	if absf(angle_difference(humanoid.rotation.y, _facing)) > Humanoid.TURN_EPS:
+		humanoid.rotation.y = _facing
 	humanoid.ground_speed = lerpf(humanoid.ground_speed, speed, minf(8.0 * dt, 1.0))
 	name_tag.visible = to_player < 7.0 and not _in_dialogue and Settings.get_value("gameplay", "name_tags")
 	if not _in_dialogue:

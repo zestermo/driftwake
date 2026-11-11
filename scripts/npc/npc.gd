@@ -286,7 +286,10 @@ func _process(frame_delta: float) -> void:
 	elif waypoints.is_empty():
 		_facing = lerp_angle(_facing, _home_yaw, minf(2.0 * delta, 1.0))
 
-	humanoid.rotation.y = _facing
+	# (only when it turns: a write marks the whole body moved, and the engine's physics interpolation then re-walks
+	# and re-uploads its ~120 nodes every frame, turned or not; 2026-11-11)
+	if absf(angle_difference(humanoid.rotation.y, _facing)) > Humanoid.TURN_EPS:
+		humanoid.rotation.y = _facing
 	humanoid.ground_speed = lerpf(humanoid.ground_speed, walk_speed if moving else 0.0, minf(8.0 * delta, 1.0))
 
 

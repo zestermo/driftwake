@@ -117,6 +117,7 @@ var isles_done := -1.0
 ## grunt stood (-1 not yet).
 var melee_camp
 var melee_up := -1.0
+var _fti_done := false
 ## Hitches (base frames over HITCH_MS): each with its split, pipelines compiled and Perf's marks.
 var hitches: Array = []
 var pipes_at := PackedInt64Array()
@@ -663,6 +664,38 @@ func _begin(i: int) -> void:
 		for i2 in range(keep, bodies.size()):
 			bodies[i2].set_process(false)
 		print("bench: rigs: %d of %d bodies left posing" % [mini(keep, bodies.size()), bodies.size()])
+	# (two more ablations for the tail and the draw, 2026-11-10. nofti: physics interpolation off for the whole tree
+	# (what the per-frame interpolation pass costs; the picture stutters, it's a measurement). nobob: the crew's ship
+	# and every moored or enemy hull stop their physics tick (their riding of the swell moves the whole hull's subtree))
+	if phase == "base" and args.has("nofti") and physics_interpolation:
+		physics_interpolation = false
+		print("bench: physics interpolation off")
+	# (ftioff=World/Islands+World/Ship: those nodes and all under them out of the interpolation, to find which part of
+	# the tree its cost comes from; paths from the root, + between them. ftitree: the root's and the world's children
+	# with how many nodes each holds, to pick the paths)
+	if phase == "base" and args.has("ftitree") and not _fti_done:
+		for top in [root, root.get_node("World"), root.get_node("World/Islands")]:
+			for c in top.get_children():
+				var sc2 = c.get_script()
+				print("bench: ftitree %s/%s  %s%s  %d nodes" % [str(top.get_path()).trim_prefix("/root").trim_prefix("/"), c.name, c.get_class(),
+					(" " + (sc2 as Script).resource_path.get_file()) if sc2 else "", c.find_children("*", "", true, false).size() + 1])
+	if phase == "base" and args.has("ftioff") and not _fti_done:
+		for path in str(args["ftioff"]).split("+"):
+			var n2 := root.get_node_or_null(path)
+			if n2 == null:
+				push_error("bench: ftioff: no node %s" % path)
+				continue
+			n2.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+			print("bench: %s out of the interpolation" % path)
+	if phase == "base":
+		_fti_done = true
+	if phase == "base" and args.has("nobob"):
+		var hulls: Array = root.find_children("*", "", true, false).filter(func(n):
+			var sc = n.get_script()
+			return sc != null and (sc as Script).resource_path.get_file() in ["ship.gd", "moored_hull.gd", "enemy_ship.gd"] and n.is_physics_processing())
+		for h2 in hulls:
+			h2.set_physics_process(false)
+		print("bench: %d hulls stopped riding the swell" % hulls.size())
 	if phase == "probe":
 		_probe_begin()
 	elif phase == "far":

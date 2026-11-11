@@ -876,7 +876,7 @@ func _physics_process(delta: float) -> void:
 	if state == S.SWIM:
 		_swim_update(delta)
 		return
-	if _sea_near() and _surface_depth() > SWIM_ENTER_DEPTH:
+	if _sea_in():
 		_enter_swim(velocity.y)
 		_swim_update(delta)
 		return
@@ -1379,7 +1379,9 @@ func _move_tail_on(want: Vector3, accel: float, turn: float, running: bool, hv: 
 	velocity.x = hv.x * slow_k
 	velocity.z = hv.z * slow_k
 	move_and_slide()
-	facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(turn * delta, 1.0))
+	# (only when it turns: Humanoid.TURN_EPS)
+	if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:
+		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(turn * delta, 1.0))
 
 	if want.length() > 0.5 and state in [S.CHASE, S.CLOSE, S.RETURN, S.IDLE] and _flat(get_real_velocity()).length() < want.length() * 0.3:
 		_stuck += delta
@@ -3183,18 +3185,19 @@ func _surface(at: Vector3 = Vector3.INF) -> float:
 	return float(_ocean.call("surface_at", global_position if at == Vector3.INF else at))
 
 
-## Could the sea be up to the feet this tick? Well above it (3 m+) the waves are asked again only every THINK_EVERY
-## ticks (2026-11-08: surface_at every tick of every grunt in a fight).
-var _sea_tick := -1000
-var _sea_high := false
+## Deep enough in the sea to swim this tick? The waves are asked again sooner the nearer the feet are to them: every
+## tick within a metre, every 3rd up to 3 m above, every THINK_EVERY higher (a fast fall asks at once). 2026-11-08:
+## surface_at every tick of every grunt in a fight; 2026-11-11: it was still asked twice a tick by anyone within 3 m
+## of sea level (a beach camp: 27 us a grunt a tick, a quarter of its tick).
+var _sea_depth := -INF
+var _sea_next := 0
 
-func _sea_near() -> bool:
+func _sea_in() -> bool:
 	var now := Engine.get_physics_frames()
-	if _sea_high and now - _sea_tick < THINK_EVERY and velocity.y > -12.0:
-		return false
-	_sea_tick = now
-	_sea_high = _surface_depth() < -3.0
-	return not _sea_high
+	if now >= _sea_next or velocity.y < -12.0:
+		_sea_depth = _surface_depth()
+		_sea_next = now + (THINK_EVERY if _sea_depth < -3.0 else (3 if _sea_depth < -1.0 else 1))
+	return _sea_depth > SWIM_ENTER_DEPTH
 
 
 ## How far the feet are under the waves (negative on dry land).

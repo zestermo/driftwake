@@ -43,6 +43,13 @@ func _process(_d: float) -> bool:
 		1:
 			var cam: Camera3D = root.get_viewport().get_camera_3d()
 			check("the stage has a camera", cam != null)
+			# (2026-11-11) the joints are out of the engine's physics interpolation, the body over them in it
+			check("a body's joints don't interpolate, the body does", body.pivot.physics_interpolation_mode == Node.PHYSICS_INTERPOLATION_MODE_OFF
+					and not body.pivot.is_physics_interpolated() and not body.head.is_physics_interpolated() and body.is_physics_interpolated())
+			var cap = stage.player.find_children("*", "", true, false).filter(func(n): return n is Node3D and n.name == "Pivot")
+			check("the captain's too", cap.size() == 1 and not cap[0].is_physics_interpolated() and stage.player.is_physics_interpolated())
+			var gr = stage.camp.grunts[0]
+			check("and a grunt's", not gr.humanoid.pivot.is_physics_interpolated() and gr.is_physics_interpolated())
 			var fwd: Vector3 = -cam.global_basis.z
 			fwd.y = 0.0
 			fwd = fwd.normalized()
