@@ -71,6 +71,7 @@ AUTUMN = ramp("5a2a08", "b85a14", "f0a030", "ffd670", "fff2c0")
 SOUL = ramp("0c3a30", "1ea078", "5ef0b8", "c8ffe8", "ffffff")
 PINK = ramp("5a1040", "c8308a", "ff78c0", "ffc8e4", "ffffff")
 WHITE = ramp("5a6478", "a8b4c8", "e8eef6", "ffffff", "ffffff")
+TEAL = ramp("0c3a3a", "1e8a86", "65c9c0", "c0f2ec", "ffffff")
 TREES = {
     "sword": ("123262", "4db8ff"),
     "katana": ("3a1c48", "ff9ecc"),
@@ -90,6 +91,9 @@ TREES = {
     "staff": ("2c3a12", "c8e04a"),
     "sickle": ("0e2e36", "8affd0"),
     "slingshot": ("4a1236", "ff61b8"),
+    "long_gun": ("1c1e5a", "b8d6ff"),
+    "cannon": ("3a1a58", "ffcc38"),
+    "base": ("1a343c", "65c9c0"),
 }
 
 
@@ -1177,17 +1181,18 @@ def leg(ic, hip, knee, ankle, toe, w=0.15, hot=False):
     ic.part(ic.circle((ankle[0] + (toe[0] - ankle[0]) * 0.35, ankle[1] + (toe[1] - ankle[1]) * 0.35), w * 0.2), GOLD, metal=True, shadow=0.02)
 
 
-def fist(ic, at, angle, size, arm=True, wrap=True):
+def fist(ic, at, angle, size, arm=True, wrap=True, skin=None):
     """A fist driven along `angle`, knuckles first, seen from the side: the forearm behind it, the wrist bound."""
     f = Frame(at, angle, size)
+    sk = SKIN if skin is None else skin
     if arm:
-        ic.part(ic.capsule(f.pt(-1.7, 0.0), f.pt(-0.45, 0.0), 0.58 * size), SKIN, shadow=0.05)
+        ic.part(ic.capsule(f.pt(-1.7, 0.0), f.pt(-0.45, 0.0), 0.58 * size), sk, metal=skin is not None, shadow=0.05)
     if wrap:
         ic.part(ic.poly(f.pts([(-0.74, -0.33), (-0.42, -0.33), (-0.42, 0.33), (-0.74, 0.33)])), BONE, shadow=0.03)
-    ic.part(ic.poly(f.pts([(-0.48, -0.42), (0.28, -0.46), (0.50, -0.30), (0.52, 0.28), (0.34, 0.46), (-0.48, 0.42)])), SKIN, shadow=0.07)
+    ic.part(ic.poly(f.pts([(-0.48, -0.42), (0.28, -0.46), (0.50, -0.30), (0.52, 0.28), (0.34, 0.46), (-0.48, 0.42)])), sk, metal=skin is not None, shadow=0.07)
     for v in (-0.20, 0.02, 0.24):
-        ic.flat(ic.capsule(f.pt(0.08, v), f.pt(0.50, v), 0.035 * size), hx("8a4a3a"))
-    ic.part(ic.capsule(f.pt(-0.12, 0.40), f.pt(0.30, 0.36), 0.20 * size), SKIN, shadow=0.04)
+        ic.flat(ic.capsule(f.pt(0.08, v), f.pt(0.50, v), 0.035 * size), hx("8a4a3a") if skin is None else sk[0])
+    ic.part(ic.capsule(f.pt(-0.12, 0.40), f.pt(0.30, 0.36), 0.20 * size), sk, metal=skin is not None, shadow=0.04)
 
 
 def palm(ic, at, angle, size):
@@ -1684,6 +1689,290 @@ def fireworks_finale(ic):
     ic.glow(ic.star((0.50, 0.46), 0.16, 8, 0.45, 0.2), SPARK, depth=0.06, ink=True)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Pieces for the guns and the base skills
+# ----------------------------------------------------------------------------------------------------------------
+def musket(ic, at, angle, size):
+    """A long gun: `at` is the lock, the barrel runs along `angle`, the stock and butt behind it."""
+    f = Frame(at, angle, size)
+    ic.part(ic.poly(f.pts([(-0.36, -0.02), (-0.32, 0.22), (-0.06, 0.11), (0.52, 0.07), (0.52, -0.01), (0.02, -0.03), (-0.26, -0.08)])), WOOD, shadow=0.045)
+    ic.part(ic.capsule(f.pt(0.06, -0.06), f.pt(1.0, -0.06), 0.085 * size), STEEL, metal=True, shadow=0.03)
+    for u in (0.46, 0.78):
+        ic.part(ic.capsule(f.pt(u, -0.10), f.pt(u, 0.05), 0.045 * size), GOLD, metal=True, shadow=0.02)
+    ic.part(ic.poly(f.pts([(0.02, -0.10), (0.08, -0.22), (0.16, -0.19), (0.15, -0.09)])), IRON, metal=True, shadow=0.02)
+    ic.part(ic.path(f.pts([(0.06, 0.09), (0.11, 0.18), (0.20, 0.16), (0.22, 0.08)]), 0.03 * size), GOLD, metal=True, shadow=0.015)
+
+
+def cannon(ic, at, angle, size):
+    """A hand cannon: `at` is its breech, the muzzle along `angle`: black iron, gold-banded."""
+    f = Frame(at, angle, size)
+    ic.part(ic.poly(f.pts([(0.0, -0.21), (0.90, -0.16), (0.90, 0.16), (0.0, 0.21)])), SHADE, metal=True, shadow=0.07)
+    ic.part(ic.poly(f.pts([(0.86, -0.21), (1.0, -0.21), (1.0, 0.21), (0.86, 0.21)])), GOLD, metal=True, shadow=0.04)
+    for u in (0.10, 0.50):
+        ic.part(ic.poly(f.pts([(u, -0.225), (u + 0.09, -0.22), (u + 0.09, 0.22), (u, 0.225)])), GOLD, metal=True, shadow=0.03)
+    ic.part(ic.circle(f.pt(-0.08, 0.0), 0.085 * size), GOLD, metal=True, shadow=0.03)
+
+
+def eye(ic, c, w, iris):
+    """An open eye `w` wide: white, a glowing iris, a dark pupil, a glint."""
+    ic.part(ic.lens((c[0] - w / 2, c[1]), (c[0] + w / 2, c[1]), w * 0.62), WHITE, shadow=0.04)
+    ic.glow(ic.circle(c, w * 0.21), iris, depth=w * 0.12, ink=True)
+    ic.flat(ic.circle(c, w * 0.09), INK)
+    ic.flat(ic.circle((c[0] - w * 0.07, c[1] - w * 0.08), w * 0.035), hx("ffffff"))
+
+
+def heart(ic, c, s, mat):
+    m = ic.circle((c[0] - s * 0.25, c[1] - s * 0.18), s * 0.30) | ic.circle((c[0] + s * 0.25, c[1] - s * 0.18), s * 0.30) | ic.poly([(c[0] - s * 0.53, c[1] - s * 0.06), (c[0] + s * 0.53, c[1] - s * 0.06), (c[0], c[1] + s * 0.58)])
+    ic.part(m, mat, shadow=0.06)
+
+
+def crown(ic, c, s):
+    x, y = c
+    ic.part(ic.poly([(x - 0.5 * s, y + 0.30 * s), (x - 0.56 * s, y - 0.26 * s), (x - 0.28 * s, y + 0.02 * s), (x, y - 0.44 * s), (x + 0.28 * s, y + 0.02 * s),
+        (x + 0.56 * s, y - 0.26 * s), (x + 0.5 * s, y + 0.30 * s)]), GOLD, metal=True, shadow=0.06)
+    ic.part(ic.poly([(x - 0.52 * s, y + 0.22 * s), (x + 0.52 * s, y + 0.22 * s), (x + 0.50 * s, y + 0.40 * s), (x - 0.50 * s, y + 0.40 * s)]), GOLD, metal=True, shadow=0.03)
+    for dx, col in ((-0.28, "e0242e"), (0.0, "3aa0ff"), (0.28, "e0242e")):
+        ic.flat(ic.circle((x + dx * s, y + 0.31 * s), 0.055 * s), hx(col))
+    for dx, dy in ((-0.56, -0.26), (0.0, -0.44), (0.56, -0.26)):
+        ic.part(ic.circle((x + dx * s, y + dy * s), 0.07 * s), GOLD, metal=True, shadow=0.02)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Long gun (starlight)
+# ----------------------------------------------------------------------------------------------------------------
+def pin_shot(ic):
+    # "put a ball into the enemy in your sights ... it nails them where they stand"
+    bust(ic, (0.74, 0.50), 0.56, SHADE)
+    ic.glow(ic.lens((-0.05, 0.86), (0.72, 0.52), 0.13), MOON, depth=0.045)
+    ic.glow(ic.star((0.70, 0.54), 0.17, 6, 0.4, 0.2), SPARK, depth=0.06, ink=True)
+    ic.part(ic.poly([(0.66, 0.60), (0.74, 0.60), (0.72, 1.04), (0.68, 1.04)]), STEEL, metal=True, shadow=0.02)
+    ic.part(ic.capsule((0.62, 0.60), (0.78, 0.60), 0.06), STEEL, metal=True, shadow=0.02)
+
+
+def powder_burst(ic):
+    # "A double charge fired from the hip: a cone of fire and shot"
+    ic.part(ic.circle((0.56, 0.18), 0.20) | ic.circle((0.82, 0.24), 0.18) | ic.circle((0.60, 0.84), 0.20) | ic.circle((0.84, 0.78), 0.18), SMOKE, shadow=0.08)
+    ic.glow(ic.poly([(0.36, 0.50), (0.70, 0.22), (0.66, 0.38), (1.04, 0.30), (0.80, 0.50), (1.04, 0.70), (0.66, 0.62), (0.70, 0.78)]), FIRE, depth=0.11)
+    musket(ic, (-0.86, 0.60), -4.0, 1.30)
+
+
+def volley_line(ic):
+    # "Three paper cartridges, loaded and fired as fast as you can bite them"
+    for k, x in enumerate((0.22, 0.50, 0.78)):
+        ic.glow(ic.lens((x, 0.50), (x + 0.06, -0.04), 0.09), MOON, depth=0.035)
+        ic.part(ic.capsule((x, 0.62), (x, 0.92), 0.17), BONE, shadow=0.05)
+        ic.part(ic.circle((x, 0.58), 0.085), GOLD, metal=True, shadow=0.04)
+        ic.flat(ic.capsule((x - 0.07, 0.80), (x + 0.07, 0.80), 0.025), BONE[1])
+        ic.part(ic.poly([(x - 0.08, 0.94), (x + 0.08, 0.94), (x + 0.03, 1.04), (x - 0.03, 1.04)]), BONE, shadow=0.02)
+
+
+def stock_sweep(ic):
+    # "Let the gun out at arm's length, butt first, and swing round once"
+    ic.glow(ic.path(arc((0.44, 0.50), 0.48, 100.0, 330.0), 0.03, 0.15), MOON, depth=0.055)
+    musket(ic, (0.56, 0.42), 150.0, 1.05)
+    ic.glow(ic.star((0.88, 0.22), 0.14, 6, 0.4, 0.2), SPARK, depth=0.05, ink=True)
+
+
+def hawkeye(ic):
+    # "time slows while every enemy ahead is marked": the hawk's eye
+    ic.part(ic.poly([(-0.04, 0.34), (0.50, 0.12), (1.04, 0.26), (1.04, 0.44), (0.52, 0.30), (-0.04, 0.52)]), SHADE, shadow=0.05)
+    eye(ic, (0.50, 0.58), 0.92, MOON)
+    for x, y in ((0.10, 0.90), (0.90, 0.90)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03)
+
+
+def constellation(ic):
+    # "one shot straight up; it splits into stars that fall on up to eight foes"
+    stars = [(0.14, 0.30), (0.34, 0.12), (0.56, 0.26), (0.80, 0.10), (0.88, 0.42), (0.62, 0.52)]
+    for k in range(len(stars) - 1):
+        ic.flat(ic.capsule(stars[k], stars[k + 1], 0.022), MOON[2])
+    ic.glow(ic.lens((0.36, 1.04), (0.56, 0.30), 0.10), MOON, depth=0.04)
+    for k, (x, y) in enumerate(stars):
+        ic.glow(ic.star((x, y), 0.11 if k % 2 == 0 else 0.085, 4, 0.3, 0.0), SPARK, depth=0.04, ink=True)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Cannon (gold and violet)
+# ----------------------------------------------------------------------------------------------------------------
+def canister_shot(ic):
+    # "A canister of grape fired point-blank: a cone of a dozen balls"
+    ic.glow(ic.poly([(0.30, 0.50), (1.06, -0.04), (1.06, 1.04)]), FIRE, depth=0.15)
+    for x, y in ((0.52, 0.40), (0.56, 0.62), (0.68, 0.26), (0.72, 0.50), (0.70, 0.76), (0.86, 0.16), (0.88, 0.40), (0.90, 0.62), (0.86, 0.86)):
+        pellet(ic, (x, y), 0.05)
+    cannon(ic, (-0.56, 0.50), 0.0, 0.92)
+
+
+def chain_shot(ic):
+    # "Two balls on a chain, spinning down the line"
+    ic.glow(ic.path(arc((0.50, 0.50), 0.46, 200.0, 330.0), 0.03, 0.11), VIOLET, depth=0.04)
+    ic.glow(ic.path(arc((0.50, 0.50), 0.46, 20.0, 150.0), 0.03, 0.11), VIOLET, depth=0.04)
+    chain(ic, [(0.26, 0.72), (0.74, 0.28)], link=0.085)
+    pellet(ic, (0.22, 0.76), 0.19)
+    pellet(ic, (0.78, 0.24), 0.19)
+
+
+def mortar_lob(ic):
+    # "Tip the cannon up and lob three shells high"
+    for (x0, x1, top), r in (((0.24, 0.50, 0.30), 0.075), ((0.26, 0.74, 0.12), 0.085), ((0.28, 0.98, 0.26), 0.075)):
+        pts = [(x0 + (x1 - x0) * t, 0.74 - (0.74 - top) * (1.0 - (2.0 * t - 1.0) ** 2) * 1.0 + (0.20 * t)) for t in np.linspace(0.0, 0.62, 8)]
+        ic.glow(ic.path(pts, 0.025, 0.07), FIRE, depth=0.03)
+        pellet(ic, pts[-1], r)
+    cannon(ic, (0.02, 1.04), -62.0, 0.56)
+
+
+def rocket_charge(ic):
+    # "Turn the muzzle behind you and fire: the recoil hurls you ten paces forward"
+    ic.glow(ic.poly([(0.34, 0.50), (0.14, 0.14), (0.16, 0.36), (-0.06, 0.24), (0.04, 0.50), (-0.06, 0.76), (0.16, 0.64), (0.14, 0.86)]), FIRE, depth=0.11)
+    for y in (0.14, 0.86):
+        ic.glow(ic.lens((0.40, y), (0.98, y), 0.06), VIOLET, depth=0.03)
+    cannon(ic, (1.02, 0.50), 180.0, 0.76)
+
+
+def leviathan_shell(ic):
+    # "one giant shell at the reticle"
+    ic.glow(ic.poly([(1.04, -0.04), (0.60, 0.10), (0.74, 0.20), (0.44, 0.24), (0.60, 0.36), (0.50, 0.50), (0.78, 0.46), (0.82, 0.62), (0.94, 0.36)]), FIRE, depth=0.10)
+    f = Frame((0.84, 0.16), 135.0, 0.86)
+    ic.part(ic.poly(f.pts([(0.0, -0.24), (0.62, -0.24), (0.86, -0.14), (1.0, 0.0), (0.86, 0.14), (0.62, 0.24), (0.0, 0.24)])), SHADE, metal=True, shadow=0.08)
+    ic.part(ic.poly(f.pts([(0.10, -0.25), (0.22, -0.25), (0.22, 0.25), (0.10, 0.25)])), GOLD, metal=True, shadow=0.03)
+    ic.part(ic.poly(f.pts([(0.50, -0.25), (0.58, -0.25), (0.58, 0.25), (0.50, 0.25)])), GOLD, metal=True, shadow=0.03)
+    ic.glow(ic.star((0.14, 0.86), 0.12, 4, 0.3, 0.0), VIOLET, depth=0.04, ink=True)
+
+
+def hellfire_barrage(ic):
+    # "five shells walked out from your feet down the line, each burst bigger than the last"
+    ground(ic, 0.88)
+    for x, r in ((0.12, 0.10), (0.30, 0.15), (0.54, 0.22), (0.86, 0.32)):
+        ic.glow(ic.star((x, 0.86 - r * 0.9), r, 8, 0.5, 0.2 + x), FIRE, depth=r * 0.34, ink=True)
+        ic.glow(ic.star((x, 0.86 - r * 0.9), r * 0.42, 8, 0.5, 0.6 + x), SPARK, depth=r * 0.2)
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Base (the body and the will)
+# ----------------------------------------------------------------------------------------------------------------
+def soru(ic):
+    # "Kick off the ground so fast you vanish": where you were, and the streak you left
+    ghost_bust(ic, (0.24, 0.48), 0.52, TEAL)
+    for y, x0 in ((0.24, 0.46), (0.46, 0.38), (0.68, 0.46)):
+        ic.glow(ic.lens((x0, y), (1.04, y - 0.04), 0.10), TEAL, depth=0.04)
+    for x, r in ((0.16, 0.07), (0.30, 0.09), (0.44, 0.06)):
+        ic.part(ic.circle((x, 0.94), r), SMOKE, shadow=0.03)
+
+
+def tekkai(ic):
+    # "Harden your whole body": a body of iron, the blows ringing off it
+    bust(ic, (0.50, 0.52), 0.74, STEEL)
+    for x, y in ((0.30, 0.78), (0.50, 0.84), (0.70, 0.78)):
+        ic.part(ic.circle((x, y), 0.035), IRON, metal=True, shadow=0.015)
+    for x, y, r in ((0.12, 0.26, 0.11), (0.90, 0.40, 0.09)):
+        ic.glow(ic.star((x, y), r, 4, 0.3, 0.0), SPARK, depth=0.04, ink=True)
+
+
+def edy_reinforce(ic):
+    # "Edy through your whole body"
+    ic.glow(ic.poly([(0.06, 1.0), (0.00, 0.56), (0.14, 0.64), (0.12, 0.26), (0.30, 0.40), (0.38, 0.04), (0.50, 0.22), (0.62, 0.04), (0.70, 0.40),
+        (0.88, 0.26), (0.86, 0.64), (1.00, 0.56), (0.94, 1.0)]), TEAL, depth=0.12)
+    bust(ic, (0.50, 0.60), 0.56, SHADE)
+    ic.glow(ic.star((0.50, 0.80), 0.10, 4, 0.3, 0.0), TEAL, depth=0.04, ink=True)
+
+
+def armament_coat(ic):
+    # "Pour your Edy into your weapon (or fists)": the fist gone black with it
+    ic.glow(ic.star((0.62, 0.42), 0.46, 8, 0.5, 0.2), VIOLET, depth=0.12)
+    fist(ic, (0.56, 0.48), -30.0, 0.60, wrap=False, skin=SHADE)
+    for x, y in ((0.86, 0.14), (0.92, 0.62)):
+        ic.glow(ic.star((x, y), 0.08, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def foresight(ic):
+    # "Sense what's coming": the eye that sees it
+    for r in (0.50, 0.38):
+        ic.glow(ic.path(arc((0.50, 0.52), r, 200.0, 340.0), 0.04, 0.04), TEAL, depth=0.03)
+    eye(ic, (0.50, 0.56), 0.84, TEAL)
+    ic.glow(ic.star((0.50, 0.14), 0.09, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def will_swell(ic):
+    # "stamp the deck and a wave rolls over it": the wave over the planks
+    ic.part(ic.poly([(0.0, 1.0), (0.0, 0.80), (1.0, 0.72), (1.0, 1.0)]), WOOD, shadow=0.04)
+    for x in (0.26, 0.54, 0.80):
+        ic.flat(ic.capsule((x, 0.79 - x * 0.08), (x - 0.02, 1.0), 0.02), WOOD[0])
+    ic.glow(ic.poly([(-0.04, 0.82), (-0.04, 0.40), (0.20, 0.16), (0.50, 0.08), (0.78, 0.20), (0.92, 0.42), (0.84, 0.60), (0.72, 0.44), (0.56, 0.36), (0.44, 0.48),
+        (0.50, 0.66), (0.70, 0.76)]), WATER, depth=0.10, ink=True)
+    for x, y in ((0.90, 0.24), (0.98, 0.56), (0.80, 0.10)):
+        ic.glow(ic.circle((x, y), 0.035), WATER, depth=0.03, ink=True)
+
+
+def will_wind(ic):
+    # "whistle up a wind, 25% more sail speed": the sail full of it
+    ic.part(ic.capsule((0.70, -0.04), (0.70, 1.04), 0.07), WOOD, shadow=0.03)
+    ic.part(ic.poly([(0.68, 0.10), (0.26, 0.20), (0.12, 0.50), (0.24, 0.82), (0.68, 0.88), (0.54, 0.50)]), BONE, shadow=0.08)
+    ic.part(ic.capsule((0.50, 0.10), (0.88, 0.10), 0.06), WOOD, shadow=0.02)
+    for y, x1 in ((0.30, 0.50), (0.52, 0.42), (0.74, 0.50)):
+        ic.glow(ic.path([(1.02, y - 0.06), (0.86, y + 0.02), (x1 + 0.34, y)], 0.03, 0.07), WIND, depth=0.03)
+
+
+def will_twin(ic):
+    # "you and your linked crewmate close on the nearest foe from both sides and cross your weapons through them"
+    ic.glow(ic.star((0.50, 0.50), 0.50, 4, 0.3, math.radians(45.0)), PINK, depth=0.10)
+    cutlass(ic, (-0.28, 1.28), (0.84, 0.06), bend=0.06, w=0.15)
+    katana(ic, (1.30, 1.30), (0.14, 0.06), bend=0.10, w=0.085)
+    for dx in (-0.07, 0.07):
+        ic.part(ic.circle((0.50 + dx, 0.52), 0.11) & ~ic.circle((0.50 + dx, 0.52), 0.065), GOLD, metal=True, shadow=0.03)
+
+
+def will_glimpse(ic):
+    # "you see every foe and closed chest ... through walls": the eye through the stones
+    ic.part(ic.poly([(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]), STONE, shadow=0.03)
+    for y in (0.26, 0.52, 0.78):
+        ic.flat(ic.capsule((0.0, y), (1.0, y), 0.03), STONE[0])
+    for x, y0 in ((0.30, 0.0), (0.70, 0.0), (0.16, 0.26), (0.52, 0.26), (0.86, 0.26), (0.34, 0.52), (0.72, 0.52), (0.20, 0.78), (0.58, 0.78)):
+        ic.flat(ic.capsule((x, y0), (x, y0 + 0.26), 0.03), STONE[0])
+    ic.glow(ic.lens((0.08, 0.52), (0.92, 0.52), 0.56), VIOLET, depth=0.10, ink=True)
+    eye(ic, (0.50, 0.52), 0.66, VIOLET)
+
+
+def will_flag(ic):
+    # "Drive your flag into the ground: ... every captain within 6 m of it mends"
+    ic.glow(ic.poly(oval((0.46, 0.86), 0.50, 0.15)) & ~ic.poly(oval((0.46, 0.86), 0.34, 0.08)), VENOM, depth=0.04)
+    ground(ic, 0.90)
+    ic.part(ic.capsule((0.30, 1.0), (0.30, 0.06), 0.065), WOOD, shadow=0.03)
+    ic.part(ic.poly([(0.32, 0.10), (0.94, 0.16), (0.82, 0.34), (0.96, 0.54), (0.32, 0.56)]), SHADE, shadow=0.07)
+    ic.part(ic.circle((0.58, 0.31), 0.10) | ic.poly([(0.52, 0.36), (0.64, 0.36), (0.62, 0.46), (0.54, 0.46)]), BONE, shadow=0.03)
+    ic.flat(ic.circle((0.545, 0.31), 0.028) | ic.circle((0.615, 0.31), 0.028), INK)
+    ic.part(ic.circle((0.30, 0.05), 0.055), GOLD, metal=True, shadow=0.02)
+    for x, y in ((0.74, 0.72), (0.10, 0.62)):
+        ic.flat(ic.capsule((x - 0.06, y), (x + 0.06, y), 0.04) | ic.capsule((x, y - 0.06), (x, y + 0.06), 0.04), VENOM[3])
+
+
+def will_still_point(ic):
+    # "Find the still point: for 3 s every foe ... moves and strikes at half speed": the clock held still
+    ic.glow(ic.circle((0.50, 0.50), 0.50) & ~ic.circle((0.50, 0.50), 0.42), CYAN, depth=0.035)
+    ic.part(ic.circle((0.50, 0.50), 0.38), GOLD, metal=True, shadow=0.05)
+    ic.part(ic.circle((0.50, 0.50), 0.31), BONE, shadow=0.06)
+    for k in range(12):
+        a = math.radians(k * 30.0)
+        ic.flat(ic.capsule((0.5 + math.cos(a) * 0.24, 0.5 + math.sin(a) * 0.24), (0.5 + math.cos(a) * 0.28, 0.5 + math.sin(a) * 0.28), 0.03 if k % 3 == 0 else 0.018), INK)
+    ic.flat(ic.capsule((0.50, 0.50), (0.50, 0.27), 0.035) | ic.capsule((0.50, 0.50), (0.66, 0.56), 0.045) | ic.circle((0.50, 0.50), 0.04), INK)
+
+
+def will_berserk(ic):
+    # "every blow you land heals you ... and blows on you land 20% harder": the heart on fire
+    ic.glow(ic.poly([(0.08, 0.96), (0.02, 0.56), (0.16, 0.64), (0.12, 0.26), (0.30, 0.40), (0.36, 0.06), (0.50, 0.26), (0.64, 0.04), (0.72, 0.40),
+        (0.90, 0.24), (0.86, 0.64), (0.98, 0.56), (0.92, 0.96)]), FIRE, depth=0.12)
+    heart(ic, (0.50, 0.56), 0.62, HEAT)
+    ic.flat(ic.path([(0.52, 0.42), (0.44, 0.56), (0.54, 0.64), (0.48, 0.80)], 0.035), INK)
+
+
+def conquerors_haki(ic):
+    # "Unleash the will of a king: weak foes around you ... faint on the spot"
+    for r, w0 in ((0.50, 0.07), (0.36, 0.05)):
+        ic.glow(ic.circle((0.50, 0.56), r) & ~ic.circle((0.50, 0.56), r - w0), HEAT, depth=0.03)
+    for pts in ([(0.10, 0.06), (0.22, 0.26), (0.14, 0.30), (0.26, 0.48)], [(0.90, 0.06), (0.78, 0.26), (0.86, 0.30), (0.74, 0.48)],
+            [(0.06, 0.94), (0.20, 0.80), (0.14, 0.74), (0.28, 0.64)], [(0.94, 0.94), (0.80, 0.80), (0.86, 0.74), (0.72, 0.64)]):
+        ic.glow(ic.path(pts, 0.07, 0.035), VIOLET, depth=0.03, ink=True)
+    crown(ic, (0.50, 0.52), 0.62)
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -1742,6 +2031,17 @@ SKILLS = {
     "slingshot": [("fire_pellet", "Fire Pellet", False, fire_pellet), ("smoke_pellet", "Smoke Pellet", False, smoke_pellet),
         ("blast_pellet", "Blast Pellet", False, blast_pellet), ("sticky_pellet", "Sticky Pellet", False, sticky_pellet),
         ("bag_of_tricks", "Bag of Tricks  (ult)", True, bag_of_tricks), ("fireworks_finale", "Fireworks Finale  (ult)", True, fireworks_finale)],
+    "long_gun": [("pin_shot", "Pinning Shot", False, pin_shot), ("powder_burst", "Powder Burst", False, powder_burst),
+        ("volley_line", "Volley Line", False, volley_line), ("stock_sweep", "Stock Sweep", False, stock_sweep),
+        ("hawkeye", "Hawkeye  (ult)", True, hawkeye), ("constellation", "Constellation  (ult)", True, constellation)],
+    "cannon": [("canister_shot", "Canister Shot", False, canister_shot), ("chain_shot", "Chain Shot", False, chain_shot),
+        ("mortar_lob", "Mortar Lob", False, mortar_lob), ("rocket_charge", "Rocket Charge", False, rocket_charge),
+        ("leviathan_shell", "Leviathan Shell  (ult)", True, leviathan_shell), ("hellfire_barrage", "Hellfire Barrage  (ult)", True, hellfire_barrage)],
+    "base": [("soru", "Squall Step", False, soru), ("tekkai", "Ballast", False, tekkai), ("edy_reinforce", "Reinforce", False, edy_reinforce),
+        ("armament_coat", "Infuse", False, armament_coat), ("foresight", "Foresight", False, foresight), ("will_swell", "Swell", False, will_swell),
+        ("will_wind", "Call the Wind", False, will_wind), ("will_twin", "Twin Finisher", False, will_twin), ("will_glimpse", "Glimpse", False, will_glimpse),
+        ("will_flag", "Plant the Flag", False, will_flag), ("will_still_point", "Still Point", False, will_still_point),
+        ("will_berserk", "Berserk (Fury Will)", False, will_berserk), ("conquerors_haki", "Captain's Will  (ult)", True, conquerors_haki)],
 }
 
 
