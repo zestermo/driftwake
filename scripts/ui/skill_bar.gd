@@ -24,11 +24,13 @@ extends Control
 ## * The quick item (E): the selected food or drink, with how many you carry (hold E: the item
 ##   wheel to pick another).
 
-const W := 352.0
-const H := 70.0
+## (2026-11-11, the skill icon redo: every picture is drawn at 32 px for the bar, so a skill's slot is 34 (the icon and
+## a 1 px rim) and the ultimate's 36 (a 2 px rim); they were 26 and 34 round 24 px art, the ultimate's stretched to 30)
+const W := 394.0
+const H := 78.0
 const ORB_R := 25.0
-const SKILL := 26.0
-const ULT := 34.0
+const SKILL := 34.0
+const ULT := 36.0
 const ITEM := 26.0
 const GAP := 2.0
 const PLATE_Y := 20.0

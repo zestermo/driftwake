@@ -1006,8 +1006,9 @@ func _build_bars() -> void:
 	_hull_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_hull_box.offset_left = -60
 	_hull_box.offset_right = 60
-	_hull_box.offset_top = -76
-	_hull_box.offset_bottom = -68
+	# (just over the skill bar, whatever its height)
+	_hull_box.offset_top = -SkillBar.H - 6.0
+	_hull_box.offset_bottom = -SkillBar.H + 2.0
 	_hull_box.add_theme_constant_override("separation", 4)
 	_hull_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hull_box.visible = false

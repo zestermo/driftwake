@@ -9,8 +9,8 @@ extends Control
 const NPC_NEAR := 3.5
 const PLACE_NEAR := 22.0
 const EDGE := 16.0
-## The skill bar's band at the foot of the screen.
-const FOOT := 76.0
+## The skill bar's band at the foot of the screen (its height and a little air: it was a bare 76 for the 70 px bar).
+const FOOT := SkillBar.H + 6.0
 const GOLD := Color(1.0, 0.82, 0.3)
 const MARK := "quest"
 const W := 216.0

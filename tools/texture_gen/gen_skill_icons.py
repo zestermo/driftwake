@@ -7,8 +7,8 @@ is three hard bands, brightest at the core. Every icon sits on its tree's plate:
 gold-framed for an ultimate.
 
     py tools/texture_gen/gen_skill_icons.py            # review sheets -> tools/dev/out/iconreview/skills_<tree>.png
-    py tools/texture_gen/gen_skill_icons.py --write    # also assets/textures/icons/skill_<id>_32.png and _48.png
-                                                       # (nothing in the game reads those yet)
+    py tools/texture_gen/gen_skill_icons.py --write    # also assets/textures/icons/skill_<id>_16 / _32 / _48.png
+                                                       # (Skills.icon(id, px) picks the nearest size)
 """
 import math
 import os
@@ -2709,7 +2709,7 @@ def main():
         review(tree)
         if write:
             for sid, _name, ult, fn in skills:
-                for n in (32, 48):
+                for n in (16, 32, 48):
                     p = os.path.join(ICONS, "skill_%s_%d.png" % (sid, n))
                     render(fn, n, tree, ult).save(p)
                     print("  wrote", os.path.relpath(p, ROOT))

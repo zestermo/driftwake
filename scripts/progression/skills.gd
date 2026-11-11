@@ -565,23 +565,42 @@ static func tier_def(id: String, tier: int) -> Dictionary:
 static var _icon_cache: Dictionary = {}
 
 
-## The skill's icon. Falls back to reading the PNG straight off disk when the
-## editor hasn't imported it yet (fresh files added while it was closed).
-static func icon(id: String) -> Texture2D:
-	if _icon_cache.has(id):
-		return _icon_cache[id]
-	var path := ICON_DIR + "skill_" + str(get_skill(id).get("icon", id)) + ".png"
+## The sizes every skill picture is rendered at (tools/texture_gen/gen_skill_icons.py --write: one description an
+## icon, drawn fresh at each size, so none is a shrunk copy of another): 16 px for rows and tree nodes, 32 px for
+## the skill bars, 48 px where there's room.
+const ICON_SIZES := [16, 32, 48]
+
+
+## The size (of ICON_SIZES) to draw `px` across with: the one nearest it.
+static func icon_size(px: float) -> int:
+	return 16 if px <= 22.0 else (32 if px <= 40.0 else 48)
+
+
+## The skill's icon to draw `px` across (the HUD's 32 by default): its own picture at the nearest size, else the one
+## it borrows ("icon"), else (1.27) for a Driftfruit power without one, its fruit. Falls back to reading the PNG
+## straight off disk when the editor hasn't imported it yet (fresh files added while it was closed).
+static func icon(id: String, px: float = 32.0) -> Texture2D:
+	var size := icon_size(px)
+	var key := "%s@%d" % [id, size]
+	if _icon_cache.has(key):
+		return _icon_cache[key]
+	var sk := get_skill(id)
 	var tex: Texture2D = null
-	if ResourceLoader.exists(path):
-		tex = load(path) as Texture2D
-	if tex == null and FileAccess.file_exists(path):
-		var img := Image.load_from_file(path)
-		if img and not img.is_empty():
-			tex = ImageTexture.create_from_image(img)
-	# (1.27) a Driftfruit power without a picture of its own shows its fruit
-	var fr := str(get_skill(id).get("fruit", ""))
+	for nm in [id, str(sk.get("icon", ""))]:
+		if nm == "":
+			continue
+		var path := ICON_DIR + "skill_%s_%d.png" % [nm, size]
+		if ResourceLoader.exists(path):
+			tex = load(path) as Texture2D
+		if tex == null and FileAccess.file_exists(path):
+			var img := Image.load_from_file(path)
+			if img and not img.is_empty():
+				tex = ImageTexture.create_from_image(img)
+		if tex:
+			break
+	var fr := str(sk.get("fruit", ""))
 	if tex == null and fr != "" and ResourceLoader.exists(ICON_DIR + fr + "_fruit.png"):
 		tex = load(ICON_DIR + fr + "_fruit.png") as Texture2D
 	if tex:
-		_icon_cache[id] = tex
+		_icon_cache[key] = tex
 	return tex

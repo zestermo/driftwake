@@ -1095,6 +1095,11 @@ func _node_info(nid: String, x: float, y: float, w: float, limit: float, col: Co
 	var p := _pr()
 	var n := SkillTrees.node_def(nid)
 	var kind := str(n["kind"])
+	# (2026-11-11) its picture at full size, over its name (only one drawn at 48: a fruit power's borrowed fruit isn't)
+	var pic := SkillTreeDraw._icon(n, 48.0)
+	if pic and pic.get_width() == 48:
+		draw_texture_rect(pic, Rect2(x, y - 12.0, 48, 48), false)
+		y += 48.0
 	draw_string(_font, Vector2(x, y), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK)
 	y += 10.0
 	var t := str(n["tree"])
@@ -1460,7 +1465,7 @@ func _draw_edy_view() -> void:
 			_edy_glows.append([pos, s])
 		v.draw_colored_polygon(shape, fill)
 		# the icon: an ability's own, else a glyph
-		var ic: Texture2D = Skills.icon(str(e["skill"])) if str(e["skill"]) != "" else null
+		var ic: Texture2D = Skills.icon(str(e["skill"]), s * 1.5) if str(e["skill"]) != "" else null
 		var ink := UIStyle.CREAM if mine and not off else (Color(UIStyle.GILT, 0.9) if can else Color(UIStyle.CREAM, 0.45))
 		if ic:
 			var isz := s * 1.5
@@ -1666,9 +1671,9 @@ func _draw_path_row(r: Rect2) -> void:
 		var spent := WillPaths.spent_in(p, path)
 		var on := inspected() == "path:" + path
 		_box(c, tint.darkened(0.7) if open else SkillTreeDraw.NODE_BG, Color.WHITE if on else (tint if open else (SkillTreeDraw.DIM_RIM if why == "" else SkillTreeDraw.DIM_LINK)))
-		var ic := Skills.icon(PATH_ICONS[path])
+		var ic := Skills.icon(PATH_ICONS[path], 16.0)
 		if ic:
-			draw_texture_rect(ic, Rect2(c.get_center().x - 7.0, c.position.y + 3.0, 14, 14), false, Color.WHITE if why == "" else Color(0.5, 0.5, 0.5, 0.6))
+			draw_texture_rect(ic, Rect2(roundf(c.get_center().x - 8.0), c.position.y + 2.0, 16, 16), false, Color.WHITE if why == "" else Color(0.5, 0.5, 0.5, 0.6))
 		var name_s := "CAPTAIN'S" if path == "conq" else str(WillPaths.PATH_NAMES[path]).to_upper()
 		draw_string(SILK, Vector2(c.position.x, c.position.y + 22.0), name_s, HORIZONTAL_ALIGNMENT_CENTER, c.size.x, 8,
 			UIStyle.CREAM if open or spent > 0 else (SkillTreeDraw.TEXT_OFF if why == "" else SkillTreeDraw.TAG_OFF))
@@ -1743,7 +1748,7 @@ func _will_card(r: Rect2, aid: String, i: int, tint: Color, compact: bool) -> vo
 		_dashed(r.grow(-0.5), WILL_DIM)
 	var ib := Rect2(r.position + Vector2(4, 4), Vector2(18, 18))
 	_box(ib, UIStyle.OUTLINE, tint if mine else (UIStyle.GILT if can else WILL_DIM))
-	var ic := Skills.icon(str(v["skill"]) if str(v["skill"]) != "" else str(WILL_ICONS.get(vid, "")))
+	var ic := Skills.icon(str(v["skill"]) if str(v["skill"]) != "" else str(WILL_ICONS.get(vid, "")), 16.0)
 	if ic:
 		draw_texture_rect(ic, ib.grow(-1.0), false, Color.WHITE if mine or can else Color(0.55, 0.55, 0.6, 0.7))
 	var name_col := UIStyle.CREAM if mine or can else Color("8b80b0")
@@ -1782,9 +1787,9 @@ func _will_passive_row(r: Rect2, pid: String, tint: Color) -> void:
 	if can:
 		_glow(r, UIStyle.GILT)
 	draw_rect(Rect2(r.position.x, r.position.y - 2.0, r.size.x, 1), WILL_DIM)
-	var ic := Skills.icon(str(WILL_ICONS.get(pid, "")))
+	var ic := Skills.icon(str(WILL_ICONS.get(pid, "")), 16.0)
 	if ic:
-		draw_texture_rect(ic, Rect2(r.position + Vector2(2, 0), Vector2(12, 12)), false, Color.WHITE if mine or can else Color(0.55, 0.55, 0.6, 0.7))
+		draw_texture_rect(ic, Rect2(r.position + Vector2(0, -2), Vector2(16, 16)), false, Color.WHITE if mine or can else Color(0.55, 0.55, 0.6, 0.7))
 	draw_string(SILK, Vector2(r.position.x + 18.0, r.position.y + 9.0), "PASSIVE ·", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SkillTreeDraw.TAG_OFF)
 	draw_string(_font, Vector2(r.position.x + 70.0, r.position.y + 10.0), str(SkillTrees.node_def(pid)["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12,
 		UIStyle.CREAM if mine or can else Color("8b80b0"))
@@ -1867,16 +1872,16 @@ func _perk_card(r: Rect2, nid: String, i: int, v: Dictionary, reached: bool, pic
 		UIStyle.GILT if picked or open else (SkillTreeDraw.DIM_RIM if reached else SkillTreeDraw.NODE_BG))
 	if not reached:
 		_dashed(r.grow(-0.5), SkillTreeDraw.DIM_RIM)
-	var ib := Rect2(r.position + Vector2(3, (r.size.y - 16.0) * 0.5), Vector2(16, 16))
+	var ib := Rect2(r.position + Vector2(3, roundf((r.size.y - 18.0) * 0.5)), Vector2(18, 18))
 	_box(ib, UIStyle.OUTLINE, UIStyle.GILT if picked else SkillTreeDraw.DIM_RIM)
-	var ic := Skills.icon(str(v["skill"]) if str(v["skill"]) != "" else "perk_" + str(v["id"]))
+	var ic := Skills.icon(str(v["skill"]) if str(v["skill"]) != "" else "perk_" + str(v["id"]), 16.0)
 	if ic:
 		draw_texture_rect(ic, ib.grow(-1.0), false, Color.WHITE if not other else Color(1, 1, 1, 0.45))
 	else:
-		draw_string(SILK, Vector2(ib.position.x, ib.position.y + 11.0), SkillTreeDraw.glyph(str(v["name"])), HORIZONTAL_ALIGNMENT_CENTER, 16, 8,
+		draw_string(SILK, Vector2(ib.position.x, ib.position.y + 12.0), SkillTreeDraw.glyph(str(v["name"])), HORIZONTAL_ALIGNMENT_CENTER, 18, 8,
 			UIStyle.GILT if picked else SkillTreeDraw.TEXT_OFF)
 	var fade := other or not reached
-	draw_string(_font, Vector2(r.position.x + 23.0, r.position.y + 11.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 36.0, 12,
+	draw_string(_font, Vector2(r.position.x + 25.0, r.position.y + 11.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 38.0, 12,
 		UIStyle.GILT if picked else (Color("7d918d") if fade else UIStyle.CREAM))
 	var ls := _wrap(str(v["desc"]).to_upper(), r.size.x - 27.0, SILK, 8)
 	if r.size.y >= 22.0 and not ls.is_empty():
@@ -2103,14 +2108,14 @@ func _draw_loadout(body: Rect2) -> void:
 		draw_string(_font, r.position + Vector2(32, 21), nm, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 12, SkillTreeDraw.TEXT_OFF if locked else UIStyle.CREAM)
 		draw_string(SILK, r.position + Vector2(32, 29), "WITH CAPTAIN LEVELS" if locked else ("MASTERY %d" % p.tree_level(t) if t != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, UIStyle.TEXT_DIM)
 	y += 38.0
-	var bar := Rect2(x, y, lw, 96)
+	var bar := Rect2(x, y, lw, 104)
 	draw_style_box(UIStyle.chrome("slate"), bar)
 	UIStyle.draw_ribbon(self, bar.position + Vector2(7, 7), "Skill bar", true)
 	draw_string(SILK, bar.position + Vector2(84, 16), "ONE BAR FOR EVERY LOADOUT", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.TEXT_DIM)
 	var sw := (lw - 16.0 - 5.0 * 5.0) / 6.0
 	for j in range(BAR_ORDER.size()):
 		var slot: int = BAR_ORDER[j]
-		var sr := Rect2(bar.position.x + 8.0 + j * (sw + 5.0), bar.position.y + 24.0, sw, 66)
+		var sr := Rect2(bar.position.x + 8.0 + j * (sw + 5.0), bar.position.y + 24.0, sw, 74)
 		var sk: String = pl.power.loadout[slot]
 		var st := _skill_tree(sk) if sk != "" else ""
 		var col := _tree_color(st) if sk != "" else SkillTreeDraw.DIM_RIM
@@ -2118,7 +2123,7 @@ func _draw_loadout(body: Rect2) -> void:
 		var key := PowerComponent.key_name(slot)
 		draw_style_box(UIStyle.chrome("keycap", 0, 0), Rect2(sr.position.x + 3.0, sr.position.y + 3.0, 11, 12))
 		draw_string(SILK, Vector2(sr.position.x + 3.0, sr.position.y + 12.0), key, HORIZONTAL_ALIGNMENT_CENTER, 11, 8, UIStyle.PARCH_INK)
-		var ib := Rect2(Vector2(roundf(sr.get_center().x - 13.0), sr.position.y + 4.0), Vector2(26, 26))
+		var ib := Rect2(Vector2(roundf(sr.get_center().x - 17.0), sr.position.y + 4.0), Vector2(34, 34))
 		draw_rect(ib.grow(1.0), col)
 		draw_rect(ib, SkillTreeDraw.NODE_BG)
 		if sk != "":
@@ -2126,14 +2131,14 @@ func _draw_loadout(body: Rect2) -> void:
 			draw_texture_rect(Skills.icon(sk), ib.grow(-1.0), false, Color(0.55, 0.6, 0.62, 0.45) if cut else Color.WHITE)
 			var lines := _wrap(str(Skills.get_skill(sk)["name"]).to_upper(), sw - 4.0, SILK, 8)
 			for li in range(mini(lines.size(), 2)):
-				draw_string(SILK, Vector2(sr.position.x, sr.position.y + 40.0 + li * 9.0), lines[li], HORIZONTAL_ALIGNMENT_CENTER, sw, 8, UIStyle.CREAM)
+				draw_string(SILK, Vector2(sr.position.x, sr.position.y + 48.0 + li * 9.0), lines[li], HORIZONTAL_ALIGNMENT_CENTER, sw, 8, UIStyle.CREAM)
 			draw_rect(Rect2(sr.position.x + 4.0, sr.end.y - 13.0, sw - 8.0, 2), col)
 			var from := "ANY WEAPON" if st in ["base", "captain", "will"] else Progression.tree_name(st).to_upper()
 			draw_string(SILK, Vector2(sr.position.x, sr.end.y - 3.0), "NO LOADOUT" if cut else from, HORIZONTAL_ALIGNMENT_CENTER, sw, 8, UIStyle.DANGER_TEXT if cut else col)
 		else:
-			draw_string(SILK, Vector2(sr.position.x, sr.position.y + 44.0), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, sw, 8, SkillTreeDraw.TAG_OFF)
+			draw_string(SILK, Vector2(sr.position.x, sr.position.y + 52.0), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, sw, 8, SkillTreeDraw.TAG_OFF)
 		hit(sr, "bar:%d" % slot)
-	y += 102.0
+	y += 110.0
 	var pas := Rect2(x, y, lw, minf(body.end.y - y - 2.0, 64.0))
 	draw_style_box(UIStyle.chrome("slate"), pas)
 	draw_string(SILK, pas.position + Vector2(9, 15), "PASSIVES", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SkillTreeDraw.PASSIVE)
@@ -2196,21 +2201,21 @@ func _draw_library(card: Rect2) -> void:
 		draw_rect(Rect2(x, y + 9.0, w, 1), col.darkened(0.2))
 		y += 13.0
 		for id in groups[t]:
-			if y > card.end.y - 14.0:
+			if y > card.end.y - 18.0:
 				break
-			var r := Rect2(x - 2.0, y, w + 4.0, 13)
+			var r := Rect2(x - 2.0, y, w + 4.0, 17)
 			var passive: bool = p.is_passive(id)
 			if inspected() == "lib:" + id:
 				draw_rect(r, Color(UIStyle.GILT, 0.45))
-			var ib := Rect2(x, y + 0.5, 12, 12)
+			var ib := Rect2(x, y + 0.5, 16, 16)
 			draw_rect(ib, UIStyle.INK)
 			if passive:
 				var dc := ib.get_center()
 				draw_colored_polygon(PackedVector2Array([dc + Vector2(0, -5), dc + Vector2(5, 0), dc + Vector2(0, 5), dc + Vector2(-5, 0)]), SkillTreeDraw.PASSIVE)
 			else:
-				draw_texture_rect(Skills.icon(id), ib, false)
+				draw_texture_rect(Skills.icon(id, 16.0), ib, false)
 			var nm := str(_node_any(id)["name"]) if passive else str(Skills.get_skill(id)["name"])
-			draw_string(SILK, Vector2(x + 16.0, y + 9.0), nm.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, w - 60.0, 8, UIStyle.PARCH_INK)
+			draw_string(SILK, Vector2(x + 20.0, y + 11.0), nm.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, w - 64.0, 8, UIStyle.PARCH_INK)
 			var state := ""
 			var chip := Color("e8d6ae")
 			if passive:
@@ -2223,10 +2228,10 @@ func _draw_library(card: Rect2) -> void:
 				state = "NEEDS A LOADOUT" if cut else (("ON %s" % PowerComponent.key_name(at).to_upper()) if at >= 0 else "KNOWN")
 				chip = Color("c9a49a") if cut else (UIStyle.TEAL if at >= 0 else chip)
 			var sw := SILK.get_string_size(state, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 6.0
-			draw_rect(Rect2(x + w - sw, y + 2.0, sw, 9), chip)
-			draw_string(SILK, Vector2(x + w - sw + 3.0, y + 10.0), state, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.CREAM if chip == UIStyle.TEAL else UIStyle.INK)
+			draw_rect(Rect2(x + w - sw, y + 4.0, sw, 9), chip)
+			draw_string(SILK, Vector2(x + w - sw + 3.0, y + 12.0), state, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.CREAM if chip == UIStyle.TEAL else UIStyle.INK)
 			hit(r, "lib:" + id)
-			y += 14.0
+			y += 18.0
 	if inspected().begins_with("lib:") or inspected().begins_with("bar:") or inspected().begins_with("pas:"):
 		_loadout_tip(card)
 
@@ -2248,14 +2253,18 @@ func _loadout_tip(card: Rect2) -> void:
 	var title := str(_node_any(id)["name"]) if passive else str(Skills.get_skill(id)["name"])
 	var desc := str(_node_any(id)["desc"]) if passive else str(Skills.get_skill(id)["desc"])
 	var w := card.size.x + 30.0
-	var lines := _wrap(desc, w - 14.0, _font, 12)
+	var ic: Texture2D = null if passive else Skills.icon(id, 32.0)
+	var tx := 44.0 if ic else 7.0
+	var lines := _wrap(desc, w - tx - 7.0, _font, 12)
 	lines.resize(mini(lines.size(), 4))
-	var h := 20.0 + lines.size() * 11.0
+	var h := maxf(20.0 + lines.size() * 11.0, 42.0 if ic else 0.0)
 	var r := Rect2(card.position.x - 40.0, card.end.y - h - 4.0, w, h)
 	draw_style_box(UIStyle.chrome("paper", 0, 0), r)
-	draw_string(_font, r.position + Vector2(7, 13), title, HORIZONTAL_ALIGNMENT_LEFT, w - 14.0, 12, UIStyle.PARCH_INK)
+	if ic:
+		draw_texture_rect(ic, Rect2(r.position + Vector2(6, 5), Vector2(32, 32)), false)
+	draw_string(_font, r.position + Vector2(tx, 13), title, HORIZONTAL_ALIGNMENT_LEFT, w - tx - 7.0, 12, UIStyle.PARCH_INK)
 	for i in range(lines.size()):
-		draw_string(_font, r.position + Vector2(7, 25.0 + i * 11.0), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.PARCH_DIM)
+		draw_string(_font, r.position + Vector2(tx, 25.0 + i * 11.0), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.PARCH_DIM)
 
 
 ## The library group a tree's skills and passives go in (the Captain's and Will's together).

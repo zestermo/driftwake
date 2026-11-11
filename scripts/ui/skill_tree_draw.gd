@@ -321,7 +321,7 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, z: float, col: 
 		"stat":
 			_pips(s, id, n, r, z, pr, can, t)
 		"passive":
-			_diamond(s, c, PASSIVE_R * z, on, locked, _icon(n))
+			_diamond(s, c, PASSIVE_R * z, on, locked, _icon(n, PASSIVE_R * z * 1.1))
 		"root":
 			s.draw_circle(c, ROOT_R * z + 1.0, UIChrome.INK)
 			s.draw_circle(c, ROOT_R * z, UIStyle.GILT)
@@ -333,7 +333,7 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, z: float, col: 
 				s.draw_string(SILK, Vector2(c.x - 15.0, c.y + 3.0), glyph(str(n["name"])), HORIZONTAL_ALIGNMENT_CENTER, 30.0, 8, col)
 		_:
 			var rr := (ULT_R if str(n["kind"]) == "ult" else ABILITY_R) * z
-			_round(s, c, rr, on, locked, _icon(n), str(n["name"]), str(n["kind"]) == "ult")
+			_round(s, c, rr, on, locked, _icon(n, rr * 1.34), str(n["name"]), str(n["kind"]) == "ult")
 	if str(n["kind"]) in ["variant", "talent"]:
 		# (each half its own click: the version on that side)
 		var vs: Array = n["versions"]
@@ -349,12 +349,12 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, z: float, col: 
 		s.draw_rect(r.grow(4.0), Color(Color.WHITE, pulse), false, 1.0)
 
 
-## A node's picture: its own, or for a variant its active (else first) version's.
-static func _icon(n: Dictionary) -> Texture2D:
+## A node's picture to draw `px` across: its own, or for a variant its active (else first) version's.
+static func _icon(n: Dictionary, px: float = 16.0) -> Texture2D:
 	var p := pic(n)
 	if p == "" and not (n["versions"] as Array).is_empty():
 		p = pic(n["versions"][0])
-	return Skills.icon(p) if p != "" else null
+	return Skills.icon(p, px) if p != "" else null
 
 
 ## An ability: a round node, gold-rimmed, its icon inside (an ultimate a double rim).
@@ -367,9 +367,9 @@ static func _round(s: Control, c: Vector2, r: float, on: bool, locked: bool, ic:
 		s.draw_arc(c, r - 1.0, 0.0, TAU, 28, UIStyle.GILT if on or not locked else DIM_RIM, 2.5 if on else 1.5)
 		if ult:
 			s.draw_arc(c, r - 4.0, 0.0, TAU, 28, Color(UIStyle.GILT, 0.7), 1.0)
-	var isz := (r - 3.0) * 1.5
+	var isz := roundf(r * 1.34)
 	if ic:
-		s.draw_texture_rect(ic, Rect2(c - Vector2(isz, isz) * 0.5, Vector2(isz, isz)), false, Color.WHITE if on else Color(0.75, 0.82, 0.82, 0.4 if locked else 0.75))
+		s.draw_texture_rect(ic, Rect2((c - Vector2(isz, isz) * 0.5).round(), Vector2(isz, isz)), false, Color.WHITE if on else Color(0.75, 0.82, 0.82, 0.4 if locked else 0.75))
 	else:
 		s.draw_string(SILK, Vector2(c.x - r, c.y + 3.0), glyph(name_), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 8, UIStyle.CREAM if on else TAG_OFF)
 

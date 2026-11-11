@@ -11627,3 +11627,29 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   item icon (Skills.icon's 1.27 fallback): not part of this redo.
 - **Known weak ones:** Shoulder Throw (the two raised arms read a little like legs), Planted, Mortar Lob; Blade Dance
   / Tempest of Steel and Maelstrom / Axestorm share the "two blades wheeling" idea.
+
+## 2026-11-11: the new skill icons wired into the game
+- **Files:** `gen_skill_icons.py --write` renders every icon fresh at **16, 32 and 48 px**
+  (`assets/textures/icons/skill_<id>_<px>.png`, 188 x 3; default import settings). The 171 old 24 px
+  `skill_<id>.png` are gone. A purpose-rendered 16 beats a shrunk 32 (compared side by side), which is why three
+  sizes and not one.
+- **`Skills.icon(id, px = 32)`** picks the size nearest what's drawn (`Skills.icon_size`: <= 22 -> 16, <= 40 -> 32,
+  else 48): the skill's own picture, else the one it borrows (`"icon":`, now never needed for a weapon or base
+  skill), else a fruit power's fruit as before (those 24 px item icons are drawn as they were).
+- **HUD skill bar** (`skill_bar.gd`): a skill's slot 26 -> 34 and the ultimate's 34 -> 36 (the 32 px picture and
+  its rim; the ultimate's was the 24 px art stretched to 30), the bar 352 x 70 -> 394 x 78. What hangs off the
+  bar's height follows it: `ObjectiveHud.FOOT = SkillBar.H + 6` (the tracked marker's label ran into the bar's
+  "+2 COMBAT" line) and the hull box.
+- **Skill map** (`skill_map_screen.gd`, `skill_tree_draw.gd`): the loadout tab's bar draws 32 px pictures in 34 px
+  boxes (its slots 8 taller); the library's rows are 18 px for 16 px pictures (were 14 / 12); the tip under the
+  library has the skill's 32 px picture beside its words; a perk's row has an 18 px box; the Will paths and passives
+  16 px; a tree's round node the 16 px picture at zoom 1 (the square that fits the ring, `r * 1.34`); the inspected
+  node's card shows its **48 px** picture over its name.
+- **Left for a design pass:** the tree itself. Its nodes are 24 px rings, so the pictures there are 16 px markers;
+  showing the art on the map means bigger (square) nodes and the spacing that goes with them. The old generators
+  (`gen_psx_textures.py`'s `gen_skill_icons`, `gen_staff_icons.py`, `gen_sickle_icons.py`) still write the old
+  24 px files if run: remove them. The review sheets' "today" row is empty now (it read the old files).
+- **Tested by** t/ui/skill_icons (136 weapon and base skills and 40 move / perk names at all three sizes, the fruit
+  powers' fallback, the bar's slot sizes), the eleven t/ui/skills_* tests, t/ui/chrome_kit, t/ui/enemy_bars,
+  t/will/upgrades; uishots hud / skills_sword / skills_tip at 1920x1080. Not run: techtest (checks every skill has
+  an icon: the atomic test covers it), hudshot, the world suites.
