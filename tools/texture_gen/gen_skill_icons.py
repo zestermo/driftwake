@@ -102,6 +102,8 @@ TREES = {
     "wolf": ("2e2440", "b8a8e8"),
     "vine": ("143a1e", "5fd06a"),
     "perk": ("22263e", "f2c94c"),
+    "move_ground": ("163a52", "8ad8ff"),
+    "move_air": ("163a52", "8ad8ff"),
 }
 
 
@@ -2296,6 +2298,261 @@ def perk_v_stomach(ic):
         ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# Movement (the skill map's moves): a mix of small posed figures, things and arrows, so no two look alike
+# ----------------------------------------------------------------------------------------------------------------
+def man(ic, head, chest, hip, arms, legs, w=0.075, mat=None):
+    """A little figure: `arms` and `legs` are lists of points from the chest and the hip."""
+    m = BONE if mat is None else mat
+    for pts in legs:
+        ic.part(ic.path([hip] + list(pts), w * 1.15, w), m, shadow=0.025)
+    ic.part(ic.capsule(chest, hip, w * 1.9), m, shadow=0.035)
+    for pts in arms:
+        ic.part(ic.path([chest] + list(pts), w, w * 0.85), m, shadow=0.025)
+    ic.part(ic.circle(head, w * 1.45), m, shadow=0.03)
+
+
+def boot(ic, knee, ankle, toe, w=0.17):
+    """A sea boot from the knee down: leather, a turned cuff, a gold buckle."""
+    ic.part(ic.capsule(knee, ankle, w), LEATHER, shadow=0.04)
+    ic.part(ic.path([ankle, toe], w * 1.05, w * 0.78), LEATHER, shadow=0.04)
+    ic.part(ic.capsule((knee[0] - w * 0.1, knee[1]), (knee[0] + w * 0.1, knee[1]), w * 1.3), BONE, shadow=0.03)
+    ic.part(ic.circle((ankle[0] + (toe[0] - ankle[0]) * 0.3, ankle[1] + (toe[1] - ankle[1]) * 0.3), w * 0.2), GOLD, metal=True, shadow=0.02)
+
+
+def cloud(ic, c, sz):
+    x, y = c
+    ic.part(ic.circle((x - 0.42 * sz, y + 0.08 * sz), 0.30 * sz) | ic.circle((x, y - 0.10 * sz), 0.40 * sz) | ic.circle((x + 0.44 * sz, y + 0.06 * sz), 0.32 * sz)
+        | ic.poly([(x - 0.66 * sz, y + 0.10 * sz), (x + 0.70 * sz, y + 0.10 * sz), (x + 0.60 * sz, y + 0.36 * sz), (x - 0.56 * sz, y + 0.36 * sz)]), WHITE, shadow=0.05)
+
+
+def chevron(ic, c, sz, ang, mat=WIND, depth=0.05):
+    f = Frame(c, ang, sz)
+    ic.glow(ic.poly(f.pts([(-0.50, -0.50), (0.06, -0.50), (0.56, 0.0), (0.06, 0.50), (-0.50, 0.50), (0.0, 0.0)])), mat, depth=depth, ink=True)
+
+
+def wall(ic, x0, x1):
+    ic.part(ic.poly([(x0, -0.02), (x1, -0.02), (x1, 1.02), (x0, 1.02)]), STONE, shadow=0.04)
+    for k, y in enumerate((0.18, 0.40, 0.62, 0.84)):
+        ic.flat(ic.capsule((x0, y), (x1, y), 0.025), STONE[0])
+        xm = x0 + (x1 - x0) * (0.35 if k % 2 == 0 else 0.68)
+        ic.flat(ic.capsule((xm, y), (xm, y + 0.22), 0.025), STONE[0])
+
+
+def move_roll(ic):
+    # "Your dodge is a tumbling roll"
+    ic.glow(ic.path(arc((0.50, 0.54), 0.44, 150.0, 400.0), 0.03, 0.13), WIND, depth=0.05)
+    ic.part(ic.circle((0.50, 0.58), 0.25), BONE, shadow=0.07)
+    ic.part(ic.circle((0.66, 0.40), 0.11), BONE, shadow=0.03)
+    ic.flat(ic.path(arc((0.50, 0.58), 0.15, 200.0, 330.0), 0.03), BONE[0])
+    ground(ic, 0.90)
+
+
+def move_sidestep(ic):
+    # a step aside: where you stood, where you are
+    ghost_bust(ic, (0.28, 0.50), 0.50, WIND)
+    for y in (0.34, 0.56, 0.78):
+        ic.glow(ic.lens((0.34, y), (0.62, y), 0.05), WIND, depth=0.025)
+    bust(ic, (0.72, 0.50), 0.50, BONE)
+
+
+def move_rolling_guard(ic):
+    # a roll with your guard up
+    ic.glow(ic.path(arc((0.42, 0.54), 0.42, 120.0, 330.0), 0.03, 0.12), WIND, depth=0.05)
+    ic.part(ic.circle((0.40, 0.58), 0.22), BONE, shadow=0.06)
+    ic.part(ic.circle((0.30, 0.38), 0.10), BONE, shadow=0.03)
+    ic.part(ic.circle((0.70, 0.52), 0.25), WOOD, shadow=0.06)
+    ic.part((ic.circle((0.70, 0.52), 0.25) & ~ic.circle((0.70, 0.52), 0.19)) | ic.circle((0.70, 0.52), 0.07), IRON, metal=True, shadow=0.03)
+    ground(ic, 0.90)
+
+
+def move_afterimage(ic):
+    # an image of you left behind
+    ghost_bust(ic, (0.20, 0.50), 0.44, WIND)
+    ghost_bust(ic, (0.46, 0.50), 0.48, WIND)
+    bust(ic, (0.74, 0.50), 0.52, BONE)
+
+
+def move_shove(ic):
+    # a shove: the open hand, them going over
+    for y in (0.30, 0.50, 0.70):
+        ic.glow(ic.lens((0.44, y), (0.66, y), 0.055), SPARK, depth=0.03, ink=True)
+    f = Frame((0.84, 0.56), 24.0, 0.44)
+    ic.part(ic.poly(f.pts([(-0.62, 0.95), (-0.50, 0.30), (0.0, 0.12), (0.50, 0.30), (0.62, 0.95)])), SHADE, shadow=0.05)
+    ic.part(ic.circle(f.pt(0.0, -0.18), 0.36 * 0.44), SHADE, shadow=0.05)
+    palm_front(ic, (0.24, 0.50), 0.44)
+
+
+def move_disarm(ic):
+    # their blade knocked out of their hand, turning in the air
+    ic.glow(ic.path(arc((0.52, 0.44), 0.44, 200.0, 320.0), 0.03, 0.10), WIND, depth=0.04)
+    ic.glow(ic.path(arc((0.52, 0.44), 0.44, 20.0, 140.0), 0.03, 0.10), WIND, depth=0.04)
+    cutlass(ic, (0.24, 0.72), (0.82, 0.14), bend=0.06, w=0.13)
+    ic.glow(ic.star((0.22, 0.86), 0.13, 6, 0.4, 0.2), SPARK, depth=0.05, ink=True)
+
+
+def move_planted(ic):
+    # feet planted: nothing moves you
+    ground(ic, 0.76)
+    for x in (0.30, 0.70):
+        ic.flat(ic.path([(x, 0.78), (x - 0.06, 0.88), (x + 0.02, 1.0)], 0.03), INK)
+    boot(ic, (0.30, 0.14), (0.30, 0.62), (0.14, 0.72), w=0.19)
+    boot(ic, (0.70, 0.14), (0.70, 0.62), (0.86, 0.72), w=0.19)
+    for x in (0.50,):
+        chevron(ic, (x, 0.40), 0.26, 90.0, SPARK, 0.04)
+
+
+def move_slidekick(ic):
+    # a slide in low, boot first
+    ground(ic, 0.84)
+    for x, r in ((0.10, 0.08), (0.22, 0.10), (0.36, 0.07)):
+        ic.part(ic.circle((x, 0.80), r), SMOKE, shadow=0.03)
+    man(ic, (0.30, 0.44), (0.40, 0.56), (0.56, 0.68), [[(0.30, 0.70), (0.22, 0.78)], [(0.50, 0.44)]], [[(0.76, 0.66), (0.94, 0.60)], [(0.70, 0.78), (0.82, 0.80)]], w=0.085)
+    ic.glow(ic.star((0.94, 0.56), 0.09, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def move_dashstrike(ic):
+    # a dash that ends in a cut
+    for y, x1 in ((0.18, 0.56), (0.82, 0.56)):
+        ic.glow(ic.lens((0.02, y), (x1, y), 0.06), WIND, depth=0.03)
+    ic.glow(ic.lens((-0.05, 0.56), (0.84, 0.44), 0.26), WIND, depth=0.08)
+    cutlass(ic, (-0.50, 0.66), (0.92, 0.40), bend=-0.05, w=0.16, guard=False)
+    ic.glow(ic.star((0.90, 0.40), 0.10, 4, 0.3, 0.0), SPARK, depth=0.035, ink=True)
+
+
+def move_twindash(ic):
+    # two dashes, one after the other
+    for y in (0.14, 0.86):
+        ic.glow(ic.lens((0.02, y), (0.60, y), 0.05), WIND, depth=0.025)
+    chevron(ic, (0.30, 0.50), 0.50, 0.0)
+    chevron(ic, (0.68, 0.50), 0.50, 0.0)
+
+
+def move_crash(ic):
+    # a landing that hits like a blow
+    ic.glow(ic.poly(oval((0.50, 0.84), 0.52, 0.17)) & ~ic.poly(oval((0.50, 0.84), 0.34, 0.08)), SPARK, depth=0.04)
+    ground(ic, 0.88)
+    for x, lean in ((0.12, -0.04), (0.88, 0.04)):
+        shard(ic, x, 0.88, 0.22, 0.08, lean)
+    boot(ic, (0.56, -0.12), (0.52, 0.56), (0.34, 0.74), w=0.21)
+    ic.glow(ic.star((0.42, 0.84), 0.15, 8, 0.4, 0.2), SPARK, depth=0.05, ink=True)
+
+
+def move_dolphin(ic):
+    # a leap out of the water and back in
+    ic.glow(ic.path(arc((0.50, 0.92), 0.50, 200.0, 340.0), 0.03, 0.08), WIND, depth=0.03)
+    body = [(0.16, 0.66), (0.26, 0.40), (0.48, 0.26), (0.70, 0.30), (0.86, 0.48)]
+    ic.part(ic.path(body, 0.10, 0.20) | ic.path([(0.70, 0.30), (0.86, 0.48), (0.96, 0.56)], 0.20, 0.07), WATER, shadow=0.06)
+    ic.part(ic.poly([(0.44, 0.24), (0.50, 0.04), (0.62, 0.24)]), WATER, shadow=0.03)
+    ic.part(ic.poly([(0.20, 0.60), (0.02, 0.56), (0.12, 0.72), (0.06, 0.90), (0.24, 0.74)]), WATER, shadow=0.03)
+    ic.flat(ic.circle((0.78, 0.40), 0.025), INK)
+    ic.glow(ic.poly([(-0.04, 1.04), (-0.04, 0.84), (0.16, 0.76), (0.34, 0.86), (0.52, 0.78), (0.72, 0.88), (0.90, 0.78), (1.04, 0.86), (1.04, 1.04)]), WATER, depth=0.07, ink=True)
+
+
+def move_airdash(ic):
+    # a dash with nothing under you
+    cloud(ic, (0.30, 0.80), 0.40)
+    for y in (0.20, 0.56):
+        ic.glow(ic.lens((0.02, y), (0.46, y), 0.05), WIND, depth=0.025)
+    chevron(ic, (0.62, 0.38), 0.56, 0.0)
+
+
+def move_skydash(ic):
+    # a dash up into the sky
+    cloud(ic, (0.24, 0.84), 0.34)
+    ic.glow(ic.lens((0.06, 0.92), (0.52, 0.48), 0.10), WIND, depth=0.04)
+    chevron(ic, (0.62, 0.38), 0.54, -45.0)
+    for x, y in ((0.14, 0.20), (0.90, 0.80)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03)
+
+
+def move_skyleap(ic):
+    # a leap over the clouds
+    cloud(ic, (0.50, 0.84), 0.50)
+    pts = arc((0.50, 0.86), 0.56, 200.0, 325.0)
+    ic.glow(ic.path(pts, 0.05, 0.12), WIND, depth=0.045, ink=True)
+    chevron(ic, pts[-1], 0.30, 60.0)
+    ic.glow(ic.star((0.50, 0.14), 0.09, 4, 0.3, 0.0), SPARK, depth=0.03, ink=True)
+
+
+def move_skywalk(ic):
+    # steps across the sky: the prints you leave on the air
+    for (x, y), sz in (((0.20, 0.80), 0.15), ((0.50, 0.54), 0.17), ((0.78, 0.26), 0.19)):
+        ic.glow(ic.poly(oval((x, y + sz * 0.5), sz * 1.5, sz * 0.5)) & ~ic.poly(oval((x, y + sz * 0.5), sz * 1.0, sz * 0.26)), WIND, depth=0.03)
+        ic.part(ic.poly(oval((x, y - sz * 0.25), sz * 0.48, sz * 0.72)), BONE, shadow=0.03)
+        ic.part(ic.poly(oval((x, y + sz * 0.70), sz * 0.36, sz * 0.26)), BONE, shadow=0.02)
+
+
+def move_geppo(ic):
+    # a kick off the air itself
+    ic.glow(ic.poly(oval((0.46, 0.80), 0.48, 0.15)) & ~ic.poly(oval((0.46, 0.80), 0.30, 0.07)), WIND, depth=0.04, ink=True)
+    for x in (0.16, 0.46, 0.76):
+        ic.glow(ic.lens((x, 0.98), (x, 0.86), 0.05), WIND, depth=0.025)
+    boot(ic, (0.66, -0.10), (0.54, 0.50), (0.32, 0.66), w=0.20)
+    ic.glow(ic.star((0.40, 0.78), 0.11, 6, 0.4, 0.2), SPARK, depth=0.04, ink=True)
+
+
+def move_moonstep(ic):
+    # a second step, off the moon
+    ic.glow(ic.circle((0.42, 0.60), 0.38) & ~ic.circle((0.58, 0.48), 0.36), SPARK, depth=0.08, ink=True)
+    boot(ic, (0.86, -0.10), (0.70, 0.30), (0.50, 0.40), w=0.16)
+    for x, y in ((0.90, 0.70), (0.14, 0.16)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03)
+
+
+def move_heavenward(ic):
+    # straight up
+    ic.glow(ic.poly([(0.36, 1.04), (0.36, 0.46), (0.16, 0.46), (0.50, 0.04), (0.84, 0.46), (0.64, 0.46), (0.64, 1.04)]), WIND, depth=0.10, ink=True)
+    for x, y in ((0.14, 0.78), (0.86, 0.72), (0.14, 0.18)):
+        ic.glow(ic.star((x, y), 0.07, 4, 0.3, 0.0), SPARK, depth=0.03)
+
+
+def move_glide(ic):
+    # your coat spread like a wing
+    for y, x0 in ((0.20, 0.60), (0.84, 0.50)):
+        ic.glow(ic.lens((x0, y), (0.98, y - 0.04), 0.05), WIND, depth=0.025)
+    ic.part(ic.poly([(0.06, 0.30), (0.50, 0.16), (0.94, 0.34), (0.74, 0.50), (0.50, 0.44), (0.26, 0.52)]), CLOTH, shadow=0.07)
+    ic.flat(ic.capsule((0.50, 0.18), (0.50, 0.44), 0.025) | ic.capsule((0.50, 0.18), (0.26, 0.50), 0.02) | ic.capsule((0.50, 0.18), (0.74, 0.48), 0.02), CLOTH[0])
+    man(ic, (0.50, 0.52), (0.50, 0.62), (0.50, 0.76), [[(0.30, 0.50)], [(0.70, 0.50)]], [[(0.44, 0.92)], [(0.58, 0.90)]], w=0.06)
+
+
+def move_featherfall(ic):
+    # "a longer one lands soft": a feather, coming down
+    ic.glow(ic.path([(0.80, 0.06), (0.62, 0.30), (0.78, 0.52), (0.56, 0.76), (0.66, 0.96)], 0.04, 0.08), WIND, depth=0.03)
+    f = Frame((0.20, 0.84), -52.0, 0.86)
+    ic.part(ic.poly(f.pts([(0.10, 0.0), (0.30, -0.16), (0.62, -0.20), (0.96, -0.06), (1.0, 0.02), (0.70, 0.16), (0.36, 0.14)])), WHITE, shadow=0.06)
+    ic.flat(ic.capsule(f.pt(-0.10, 0.02), f.pt(0.94, -0.01), 0.022), WHITE[0])
+    for u in (0.36, 0.56, 0.76):
+        ic.flat(ic.capsule(f.pt(u, 0.0), f.pt(u + 0.07, 0.13), 0.018) | ic.capsule(f.pt(u, 0.0), f.pt(u + 0.08, -0.16), 0.018), WHITE[1])
+
+
+def move_walljump(ic):
+    # off the wall and away
+    wall(ic, -0.02, 0.26)
+    pts = arc((0.26, 0.90), 0.60, -84.0, -20.0)
+    ic.glow(ic.path(pts, 0.04, 0.11), WIND, depth=0.04, ink=True)
+    chevron(ic, pts[-1], 0.26, 30.0)
+    man(ic, (0.50, 0.50), (0.46, 0.60), (0.40, 0.72), [[(0.60, 0.50)], [(0.38, 0.48)]], [[(0.28, 0.66)], [(0.30, 0.84)]], w=0.065)
+
+
+def move_wallkick(ic):
+    # a kick against the wall
+    wall(ic, 0.74, 1.02)
+    for y in (0.24, 0.80):
+        ic.glow(ic.lens((0.02, y), (0.44, y), 0.05), WIND, depth=0.025)
+    boot(ic, (-0.10, 0.34), (0.44, 0.48), (0.70, 0.44), w=0.20)
+    ic.glow(ic.star((0.74, 0.44), 0.14, 6, 0.4, 0.2), SPARK, depth=0.05, ink=True)
+
+
+def move_wallrun(ic):
+    # running along the wall
+    wall(ic, 0.70, 1.02)
+    for y, r in ((0.90, 0.07), (0.76, 0.05)):
+        ic.part(ic.circle((0.64, y), r), SMOKE, shadow=0.02)
+    man(ic, (0.36, 0.30), (0.42, 0.40), (0.50, 0.56), [[(0.30, 0.52)], [(0.56, 0.30)]], [[(0.66, 0.50)], [(0.52, 0.76), (0.66, 0.80)]], w=0.07)
+    chevron(ic, (0.30, 0.14), 0.22, -90.0)
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -2376,6 +2633,15 @@ SKILLS = {
         ("perk_t_seadog", "Sea Dog", False, perk_t_seadog), ("perk_t_treasure", "Treasure Sense", False, perk_t_treasure),
         ("perk_t_warlord", "Warlord", False, perk_t_warlord), ("perk_t_wind", "Second Wind", False, perk_t_wind), ("perk_v_adren", "Adrenaline", False, perk_v_adren),
         ("perk_v_last", "Last Stand", False, perk_v_last), ("perk_v_mend", "Mend", False, perk_v_mend), ("perk_v_stomach", "Iron Stomach", False, perk_v_stomach)],
+    "move_ground": [("move_roll", "Roll", False, move_roll), ("move_sidestep", "Sidestep", False, move_sidestep),
+        ("move_rolling_guard", "Rolling Guard", False, move_rolling_guard), ("move_afterimage", "Afterimage", False, move_afterimage),
+        ("move_shove", "Shove", False, move_shove), ("move_disarm", "Disarm", False, move_disarm), ("move_planted", "Planted", False, move_planted),
+        ("move_slidekick", "Slide Kick", False, move_slidekick), ("move_dashstrike", "Dash Strike", False, move_dashstrike),
+        ("move_twindash", "Twin Dash", False, move_twindash), ("move_crash", "Crash Landing", False, move_crash), ("move_dolphin", "Dolphin", False, move_dolphin)],
+    "move_air": [("move_airdash", "Air Dash", False, move_airdash), ("move_skydash", "Sky Dash", False, move_skydash), ("move_skyleap", "Sky Leap", False, move_skyleap),
+        ("move_skywalk", "Sky Walk", False, move_skywalk), ("move_geppo", "Air Step", False, move_geppo), ("move_moonstep", "Moon Step", False, move_moonstep),
+        ("move_heavenward", "Heavenward", False, move_heavenward), ("move_glide", "Glide", False, move_glide), ("move_featherfall", "Feather Fall", False, move_featherfall),
+        ("move_walljump", "Wall Jump", False, move_walljump), ("move_wallkick", "Wall Kick", False, move_wallkick), ("move_wallrun", "Wall Run", False, move_wallrun)],
 }
 
 

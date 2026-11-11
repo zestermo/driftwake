@@ -11595,3 +11595,35 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   the bigger slots meanwhile (24 px centred in a 32 slot, 2x in a 48 one).
 - **Left:** 17 trees and the base, movement, will and perk icons (147); the UI's slot sizes; then the old
   `gen_skill_icons()` in gen_psx_textures.py and the staff / sickle icon scripts can go.
+
+## 2026-11-11: skill icon redo: all 188 drawn (still not wired into the game)
+- **Done:** every skill icon in ink and cel, from `tools/texture_gen/gen_skill_icons.py`: the 21 weapon trees and base
+  (136 skills), the fruit powers that have a picture of their own (ember 5, wolf 3, vine 3), 16 perks, 24 moves and
+  Falling Moon. All 171 `skill_*.png` files have a new drawing; 17 skills that borrowed another's icon (`"icon":` in
+  Skills.ALL: undertow, moonlit_severance, executioners_moon, golden_ricochet, twin_comet, powder_trail,
+  blood_moon_mark, serpents_nest, heavens_pike, mountain_breaker, eye_of_storm, avalanche, volcano_course,
+  typhoon_rush, constellation, hellfire_barrage, fireworks_finale) get their own. `skills_all.png` and
+  `skills_all_32.png` in tools/dev/out/iconreview/ show the lot; `skills_<tree>.png` each tree beside today's.
+- **Zach's steers on the way** (they are the style's rules now):
+  - A weapon must look like itself: the katana is curved, single-edged with a slanted point, a round guard seen at an
+    angle, a wrapped grip with a flat cap, a curved lacquered sheath (his first reaction: "a standard fantasy knight
+    sword"). The greatsword is the one that *is* a knight's sword.
+  - **An icon needn't show the whole weapon:** close-ups (a hand on the hilt, the sheath cracked open on a sliver of
+    steel), the weapon cropped by the frame, or no weapon at all. The plate's frame is drawn over the art so a crop
+    is framed cleanly. Bigger shapes read better at 32 px.
+  - **But not every icon a close-up of the same thing:** the first unarmed set was eight side-view fists and he
+    asked for all of them redone ("the hand/fist doesn't look good and all of them kind of look the same"). Now
+    each shows what its name evokes (a thrown figure, a cannonball, a meteor, a rising dragon, a leviathan, a
+    typhoon), and a hand only knuckles-on or palm-out (`fist_front`, `palm_front`). The moves were drawn with that
+    in mind: little posed figures (`man`), things (a feather, a dolphin, a crescent moon, clouds, walls) and arrows.
+- **Pieces** (drawn once, posed per icon): cutlass, katana (and its sheath), axe, pistol, dagger, knife, spear,
+  hammer, greatsword, rapier, staff, sickle and chain, sling, musket, cannon, leg, boot, fist_front, palm_front,
+  grip_hand, bust, ghost_bust, man, wolf_head, dragon_head, crane, wisp, eye, heart, crown, leaf, cloud, wall,
+  chevron, ground, shard, drop, pellet, wind_blade. Each tree's plate colour is in TREES (from FX.TREE_FX).
+- **Not done:** the game still draws the old 24 px PNGs. Wiring is its own change: `--write` the 32 / 48 px PNGs,
+  `Skills.icon(id, size)`, the HUD bar's slots 24 -> 32 px, the loadout, skill map and tooltips at 48 px, the
+  `"icon":` borrows dropped from Skills.ALL, then the old `gen_skill_icons()` (gen_psx_textures.py) and the staff
+  and sickle icon scripts removed. **81 of the 92 fruit powers have no picture of their own** and show their fruit's
+  item icon (Skills.icon's 1.27 fallback): not part of this redo.
+- **Known weak ones:** Shoulder Throw (the two raised arms read a little like legs), Planted, Mortar Lob; Blade Dance
+  / Tempest of Steel and Maelstrom / Axestorm share the "two blades wheeling" idea.
