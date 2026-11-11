@@ -468,6 +468,8 @@ sea: {deep: "#0D294D", surface: "#338099", foam: "#E6F2FF", shoal: "#29B8A8", la
 
 Give these to a tool that accepts reference images:
 - `docs/media/design/skill_icons.png`: every skill icon at 32 px (the icon style, all colour identities).
+- `docs/media/design/skill_icons_moves.png`: the 67 weapon move icons at 32 px (figures, objects and
+  front views beside the weapon close-ups: how a tree's pictures are kept different from each other).
 - `docs/media/design/ui_chrome.png`: the interface pieces (parchment page with a wax seal, the rope-bordered
   slate panel, wooden and gilt plank buttons, ribbons, a plank bar with a rope rule).
 - `docs/media/title.jpg`, `fight.jpg`, `village.jpg`, `sailing.jpg`, `outfits.jpg`: the game itself.
@@ -478,7 +480,7 @@ icon ramps, plates and shading `tools/texture_gen/gen_skill_icons.py`; style col
 the PS1 picture `scripts/psx/psx_settings.gd` and `shaders/psx/`; character proportions
 `scripts/npc/body_builder.gd`; names `docs/originality_plan.md`.
 
-**Settled and not:** the skill icon style (8.1) was picked on 2026-11-11 and all 188 skill icons
-follow it. Item icons (8.2) are still the older, simpler 24 px drawings and are due the same pass.
+**Settled and not:** the skill icon style (8.1) was picked on 2026-11-11 and all 255 skill icons
+follow it (188 skills, perks and moves; the 67 weapon move nodes are on `docs/media/design/skill_icons_moves.png`). Item icons (8.2) are still the older, simpler 24 px drawings and are due the same pass.
 The media screenshots predate some interface changes; where they disagree with this document, the
 document wins.

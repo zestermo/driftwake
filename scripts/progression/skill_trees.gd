@@ -262,9 +262,22 @@ static func _build() -> void:
 		_quick_hands()
 	_t = "katana"
 	_flowing_edge()
+	_move_pics()
 	for t in _trees.keys():
 		if t != "captain" and converted(t):
 			_map_layout(t)
+
+
+## A move's picture is named for its node (skill_<node>_<px>.png: gen_skill_icons.py's WEAPON_MOVES): a move, or a
+## variant's version, with no skill and no picture given shows its own where one is drawn.
+static func _move_pics() -> void:
+	for id in _nodes.keys():
+		var n: Dictionary = _nodes[id]
+		if not (str(n["kind"]) in ["move", "version"]) or str(n["skill"]) != "" or str(n.get("icon", "")) != "":
+			continue
+		var path := Skills.ICON_DIR + "skill_%s_32.png" % id
+		if ResourceLoader.exists(path) or FileAccess.file_exists(path):
+			_icon(id, id)
 
 
 static func _tree(id: String, branch_names: Array) -> void:

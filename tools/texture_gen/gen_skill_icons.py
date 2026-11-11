@@ -9,6 +9,8 @@ gold-framed for an ultimate.
     py tools/texture_gen/gen_skill_icons.py            # review sheets -> tools/dev/out/iconreview/skills_<tree>.png
     py tools/texture_gen/gen_skill_icons.py --write    # also assets/textures/icons/skill_<id>_16 / _32 / _48.png
                                                        # (Skills.icon(id, px) picks the nearest size)
+    py tools/texture_gen/gen_skill_icons.py --moves    # only the weapons' move nodes (WEAPON_MOVES): weapon_moves_<n>.png,
+                                                       # a tree a row beside its skills; with --write, their files
 """
 import math
 import os
@@ -2553,6 +2555,745 @@ def move_wallrun(ic):
     chevron(ic, (0.30, 0.14), 0.22, -90.0)
 
 
+# ----------------------------------------------------------------------------------------------------------------
+# The weapons' own moves (a tree's move nodes: a fourth combo hit, a sprint attack, an air attack, the air heavy).
+# Each is named for its tree node (skill_<node>_<px>.png) and sits on its tree's plate. A tree already has five to
+# nine pictures, so each of these is a different thing from all of them: a figure, an object, a view from the front.
+# ----------------------------------------------------------------------------------------------------------------
+def ring(ic, c, rx, ry, hole=0.62):
+    return ic.poly(oval(c, rx, ry, 28)) & ~ic.poly(oval(c, rx * hole, ry * hole, 28))
+
+
+def below(ic, y):
+    return ic.poly([(-0.1, y), (1.1, y), (1.1, 1.1), (-0.1, 1.1)])
+
+
+def right_of(ic, x):
+    return ic.poly([(x, -0.1), (1.1, -0.1), (1.1, 1.1), (x, 1.1)])
+
+
+def hit(ic, c, r, mat=SPARK, points=6):
+    ic.glow(ic.star(c, r, points, 0.4, 0.2), mat, depth=r * 0.36, ink=True)
+
+
+def glint(ic, c, r, mat=SPARK):
+    ic.glow(ic.star(c, r, 4, 0.24, 0.0), mat, depth=r * 0.3, ink=True)
+
+
+def streak(ic, a, b, mat, w=0.055):
+    ic.glow(ic.lens(a, b, w), mat, depth=w * 0.5)
+
+
+def drill(top, tip, rx, n=3, squash=0.30):
+    """A spinning column seen from the side: `n` rings from `top` (rx wide) narrowing toward `tip`."""
+    out = []
+    for k in range(n):
+        t = k / float(n)
+        r = rx * (1.0 - 0.58 * t)
+        out.append(((top[0] + (tip[0] - top[0]) * t, top[1] + (tip[1] - top[1]) * t), r, r * squash))
+    return out
+
+
+def sheath(ic, mouth, end, bend=0.06, w=0.11, cord=None):
+    """An empty katana sheath from its mouth to its end: dark lacquer, a gold end, a cord near the mouth."""
+    dx, dy = end[0] - mouth[0], end[1] - mouth[1]
+    ln = math.hypot(dx, dy)
+    ctrl = ((mouth[0] + end[0]) / 2 - dy / ln * bend * 2.0, (mouth[1] + end[1]) / 2 + dx / ln * bend * 2.0)
+    pts = [((1 - t) ** 2 * mouth[0] + 2 * (1 - t) * t * ctrl[0] + t * t * end[0], (1 - t) ** 2 * mouth[1] + 2 * (1 - t) * t * ctrl[1] + t * t * end[1])
+        for t in np.linspace(0.0, 1.0, 9)]
+    ic.part(ic.path(pts, w), SHADE, metal=True, shadow=0.04)
+    ic.part(ic.capsule(pts[-2], pts[-1], w * 1.08), GOLD, metal=True, shadow=0.03)
+    ic.part(ic.capsule(pts[2], ((pts[2][0] + pts[3][0]) / 2, (pts[2][1] + pts[3][1]) / 2), w * 1.14), cord if cord is not None else CLOTH, shadow=0.03)
+    ic.part(ic.circle(pts[0], w * 0.58), IRON, metal=True, shadow=0.02)
+    ic.flat(ic.circle(pts[0], w * 0.30), INK)
+
+
+# ---- sword
+def s_dash(ic):
+    # Running Cut: "Attack at a sprint: one low cut driving through the target": the cut low over the ground, the dust behind
+    ground(ic, 0.90)
+    for x, r in ((0.07, 0.10), (0.22, 0.07)):
+        ic.part(ic.circle((x, 0.84), r), SMOKE, shadow=0.03)
+    ic.glow(ic.circle((0.42, 0.18), 0.66) & ~ic.circle((0.36, 0.03), 0.70), WIND, depth=0.08)
+    cutlass(ic, (-0.34, 0.30), (0.92, 0.68), bend=0.07, w=0.16)
+
+
+def s_dive(ic):
+    # Boarding Dive: "a point-first dive at the enemy you're looking at": them, the point coming down on them
+    bust(ic, (0.72, 0.74), 0.50, SHADE)
+    for off in (-0.17, 0.17):
+        streak(ic, (0.02 + off, 0.06 - off), (0.40 + off, 0.44 - off), WIND, 0.06)
+    cutlass(ic, (-0.28, -0.26), (0.66, 0.60), bend=0.06, w=0.17)
+    hit(ic, (0.67, 0.61), 0.14)
+
+
+def s_airheavy(ic):
+    # Whirlpool Descent: "corkscrew down with the blade out ... and land in a wide ring of spray": the spout, the blade out of it
+    rings = drill((0.40, 0.15), (0.40, 0.92), 0.40)
+    for c, rx, ry in rings:
+        ic.glow(ring(ic, c, rx, ry), WATER, depth=0.04)
+    cutlass(ic, (0.22, 0.62), (1.02, 0.24), bend=0.06, w=0.16, guard=False)
+    for c, rx, ry in rings:
+        ic.glow(ring(ic, c, rx, ry) & below(ic, c[1]), WATER, depth=0.04)
+    ic.glow(ic.poly([(-0.02, 1.04), (0.08, 0.84), (0.24, 0.96), (0.40, 0.80), (0.56, 0.96), (0.72, 0.84), (0.82, 1.04)]), WATER, depth=0.06, ink=True)
+
+
+# ---- katana
+def k_full(ic):
+    # Full Draw: "Your iai charges to its second level: a gold glint": the whole blade out, gold running up it
+    ic.glow(ic.path(arc((1.06, 1.10), 0.92, 196.0, 262.0), 0.05, 0.13), SPARK, depth=0.045)
+    katana(ic, (0.02, 0.98), (0.92, 0.06), bend=0.15, w=0.075)
+    glint(ic, (0.90, 0.09), 0.20)
+    glint(ic, (0.50, 0.30), 0.09)
+
+
+def k_draw(ic):
+    # Quick Draw: "a quick cut straight out of the scabbard": the point just clear of the sheath's mouth, the flash of it
+    ic.glow(ic.lens((0.36, 0.72), (1.08, 0.10), 0.15), MOON, depth=0.05)
+    sheath(ic, (0.42, 0.64), (-0.10, 1.04), bend=-0.03, w=0.15)
+    katana(ic, (1.14, 0.10), (0.52, 0.55), bend=-0.11, w=0.08)
+    glint(ic, (0.46, 0.61), 0.13)
+
+
+def k_crescent(ic):
+    # Crescent Arc: "a little lift and one big arc swept down under you": the arc, the blade at the end of it
+    ic.glow(ic.circle((0.50, 0.22), 0.66) & ~ic.circle((0.50, 0.04), 0.70), MOON, depth=0.09)
+    katana(ic, (1.00, -0.36), (0.25, 0.70), bend=-0.08, w=0.085)
+
+
+def k_airheavy(ic):
+    # Blossom Cleave: "one vertical cleave down onto the enemy you look at": the blossom, cloven
+    ic.glow(ic.lens((0.50, -0.04), (0.50, 1.06), 0.17), MOON, depth=0.05)
+    for c, keep in (((0.40, 0.65), ~right_of(ic, 0.45)), ((0.60, 0.57), right_of(ic, 0.55))):
+        for k in range(5):
+            a = math.radians(-90.0 + 72.0 * k)
+            ic.part(ic.circle((c[0] + math.cos(a) * 0.21, c[1] + math.sin(a) * 0.21), 0.155) & keep, PETAL, shadow=0.05)
+        ic.part(ic.circle(c, 0.085) & keep, GOLD, metal=True, shadow=0.03)
+    katana(ic, (0.47, -0.62), (0.50, 0.58), bend=0.03, w=0.085)
+
+
+# ---- dual (two cutlasses)
+def d_spin(ic):
+    # Twin Spin: "both blades whirled round in a spin": point to tail, each chasing the other's cut
+    ic.glow(ic.path(arc((0.50, 0.50), 0.43, 190.0, 312.0), 0.03, 0.15), CYAN, depth=0.05)
+    ic.glow(ic.path(arc((0.50, 0.50), 0.43, 10.0, 132.0), 0.03, 0.15), VIOLET, depth=0.05)
+    cutlass(ic, (0.60, 0.40), (0.06, 0.86), bend=0.07, w=0.13)
+    cutlass(ic, (0.40, 0.60), (0.94, 0.14), bend=0.07, w=0.13)
+
+
+def d_cyclone(ic):
+    # Twin Cyclone: "a drill of turns down and forward cutting everyone close on every turn": the drill, a blade out each side
+    rings = drill((0.40, 0.14), (0.66, 0.96), 0.36, n=4)
+    for k, (c, rx, ry) in enumerate(rings):
+        ic.glow(ring(ic, c, rx, ry), CYAN if k % 2 == 0 else VIOLET, depth=0.04)
+    cutlass(ic, (0.50, 0.50), (1.04, 0.22), bend=0.06, w=0.13, guard=False)
+    cutlass(ic, (0.50, 0.50), (-0.02, 0.70), bend=0.06, w=0.13, guard=False)
+    for k, (c, rx, ry) in enumerate(rings):
+        ic.glow(ring(ic, c, rx, ry) & below(ic, c[1]), CYAN if k % 2 == 0 else VIOLET, depth=0.04)
+    hit(ic, (0.68, 0.92), 0.12)
+
+
+def d_airheavy(ic):
+    # Twin Meteor: "a rise with both blades crossed, a straight dive": the two of them falling side by side, burning
+    for x, mat in ((0.30, CYAN), (0.64, VIOLET)):
+        ic.glow(ic.poly([(x - 0.13, 0.50), (x + 0.02, 0.36), (x + 0.36, -0.10), (x + 0.10, -0.10), (x - 0.02, 0.14), (x - 0.22, -0.10), (x - 0.19, 0.30)]), mat, depth=0.07)
+    cutlass(ic, (0.50, -0.34), (0.20, 0.80), bend=0.05, w=0.14)
+    cutlass(ic, (0.86, -0.30), (0.56, 0.84), bend=0.05, w=0.14)
+    ground(ic, 0.92)
+    hit(ic, (0.22, 0.86), 0.10)
+    hit(ic, (0.58, 0.90), 0.10)
+
+
+# ---- axe
+def a_sky(ic):
+    # Skybreaker: "spring into a somersault and split the ground in a line ahead": the sky itself, broken on the edge
+    ic.glow(ic.lens((0.80, 0.62), (0.84, 1.08), 0.22), FIRE, depth=0.07)
+    cloud(ic, (0.34, 0.90), 0.46)
+    cloud(ic, (1.08, 0.94), 0.32)
+    axe(ic, (-0.10, 0.80), -30.0, 1.0)
+
+
+def a_airheavy(ic):
+    # Splitting Maul: "the axe brought down with all of it; the ground splits nine paces ahead": the head edge-on, a log split on it
+    ic.glow(ic.lens((0.50, 0.44), (0.50, 1.08), 0.26), FIRE, depth=0.08)
+    for sgn, tilt in ((-1.0, 0.04), (1.0, -0.02)):
+        x0 = 0.50 + sgn * 0.09
+        ic.part(ic.poly([(x0, 0.70 + tilt), (x0 + sgn * 0.30, 0.64 - tilt), (x0 + sgn * 0.44, 1.08), (x0 + sgn * 0.10, 1.08)]), WOOD, shadow=0.05)
+        ic.part(ic.poly([(x0, 0.70 + tilt), (x0 + sgn * 0.14, 0.60), (x0 + sgn * 0.30, 0.64 - tilt), (x0 + sgn * 0.17, 0.75)]), DUST, shadow=0.03)
+    ic.part(ic.capsule((0.50, -0.10), (0.50, 0.30), 0.085), WOOD, shadow=0.03)
+    ic.part(ic.poly([(0.37, 0.30), (0.63, 0.30), (0.65, 0.44), (0.50, 0.84), (0.35, 0.44)]), STEEL, metal=True, shadow=0.06)
+    ic.part(ic.poly([(0.34, 0.20), (0.66, 0.20), (0.66, 0.32), (0.34, 0.32)]), IRON, metal=True, shadow=0.03)
+
+
+# ---- dagger
+def dg_gut(ic):
+    # Gutting Strike: "the off hand seizes them and the blade goes in low. It bleeds.": the blade in under their belt
+    dagger(ic, (0.00, 1.00), (0.66, 0.34), w=0.17)
+    ic.part(ic.poly([(0.34, -0.05), (1.05, -0.05), (1.05, 1.05), (0.68, 1.05), (0.44, 0.60)]), SHADE, shadow=0.06)
+    ic.part(ic.poly([(0.385, 0.24), (1.05, 0.14), (1.05, 0.30), (0.41, 0.40)]), LEATHER, shadow=0.03)
+    ic.part(ic.poly([(0.56, 0.19), (0.70, 0.17), (0.72, 0.33), (0.58, 0.35)]), GOLD, metal=True, shadow=0.03)
+    hit(ic, (0.46, 0.57), 0.15, BLOOD)
+    drop(ic, (0.36, 0.86), 0.05, BLOOD)
+    drop(ic, (0.54, 0.95), 0.04, BLOOD)
+
+
+def dg_fang(ic):
+    # Fang Dive: "a dive at the enemy you're looking at that always finds the gap": the point through the join in their armour
+    ic.flat(ic.poly([(0.40, 0.58), (0.60, 0.58), (0.60, 1.02), (0.40, 1.02)]), hx("14060c"))
+    dagger(ic, (0.50, -0.46), (0.50, 0.84), w=0.19)
+    for sgn in (-1.0, 1.0):
+        ic.part(ic.poly([(0.5 + sgn * 0.56, 0.44), (0.5 + sgn * 0.07, 0.60), (0.5 + sgn * 0.035, 1.06), (0.5 + sgn * 0.56, 1.06)]), IRON, metal=True, shadow=0.06)
+        for y in (0.72, 0.92):
+            ic.part(ic.circle((0.5 + sgn * 0.16, y), 0.04), GOLD, metal=True, shadow=0.02)
+    glint(ic, (0.50, 0.60), 0.15, BLOOD)
+
+
+def dg_airheavy(ic):
+    # Shadow Fall: "you melt into the dark and fall out of it behind the enemy below": the dark, the blade out of it, them
+    bust(ic, (0.50, 0.94), 0.40, SMOKE)
+    dagger(ic, (0.50, 0.14), (0.50, 0.78), w=0.19)
+    ic.glow(ring(ic, (0.50, 0.12), 0.47, 0.15, 0.80), BLOOD, depth=0.03, ink=True)
+    ic.flat(ic.poly(oval((0.50, 0.12), 0.385, 0.122, 28)), hx("14060c"))
+    hit(ic, (0.50, 0.79), 0.10, BLOOD, 4)
+
+
+# ---- twin daggers
+def dd_whirl(ic):
+    # Fang Whirl: "a whirl with both blades out, then both driven in together": the whirl, and the pair of fangs
+    ic.glow(ic.path(arc((0.50, 0.46), 0.45, 120.0, 420.0), 0.03, 0.13), VENOM, depth=0.045)
+    dagger(ic, (0.33, -0.34), (0.39, 0.78), w=0.16)
+    dagger(ic, (0.67, -0.34), (0.61, 0.78), w=0.16)
+    drop(ic, (0.39, 0.93), 0.04, VENOM)
+    drop(ic, (0.61, 0.93), 0.04, VENOM)
+
+
+def dd_knives(ic):
+    # Knife Rain: "fling a fistful of knives down at up to four enemies below"
+    for x, y in ((0.14, 0.50), (0.38, 0.84), (0.62, 0.46), (0.86, 0.80)):
+        streak(ic, (x + 0.13, y - 0.92), (x + 0.085, y - 0.50), VENOM, 0.05)
+        knife(ic, (x + 0.08, y - 0.46), (x, y + 0.14), w=0.075)
+
+
+def dd_airheavy(ic):
+    # Viper Dive: "a corkscrew down with both blades out ... and a ring of venom where you land": the viper, striking down
+    ic.glow(ring(ic, (0.50, 0.87), 0.49, 0.14, 0.66), VENOM, depth=0.035)
+    ic.part(ic.path([(0.96, -0.06), (0.62, 0.04), (0.26, 0.16), (0.30, 0.34), (0.68, 0.40), (0.72, 0.56), (0.52, 0.66)], 0.10, 0.15), SNAKE, shadow=0.05)
+    ic.part(ic.poly([(0.34, 0.62), (0.52, 0.56), (0.66, 0.64), (0.64, 0.80), (0.50, 0.96), (0.36, 0.80)]), SNAKE, shadow=0.06)
+    ic.flat(ic.circle((0.42, 0.72), 0.04) | ic.circle((0.58, 0.72), 0.04), hx("ffd23a"))
+    ic.flat(ic.capsule((0.42, 0.69), (0.42, 0.75), 0.02) | ic.capsule((0.58, 0.69), (0.58, 0.75), 0.02), INK)
+    ic.flat(ic.poly([(0.44, 0.90), (0.48, 0.90), (0.455, 1.00)]) | ic.poly([(0.52, 0.90), (0.56, 0.90), (0.545, 1.00)]), hx("fbffe8"))
+
+
+# ---- polearm
+def pl_wheel(ic):
+    # Wheel Sweep: "the spear laid out at the waist and swung round once all about you": you in the middle of the ring it draws
+    c = (0.50, 0.64)
+    ic.glow(ring(ic, c, 0.50, 0.20, 0.74), BOLT, depth=0.035)
+    man(ic, (0.50, 0.22), (0.50, 0.42), (0.50, 0.62), [[(0.62, 0.54), (0.70, 0.60)], [(0.40, 0.52), (0.34, 0.60)]],
+        [[(0.42, 0.82), (0.40, 1.00)], [(0.58, 0.82), (0.62, 1.00)]], w=0.085)
+    spear(ic, (0.24, 0.57), (1.02, 0.66), w=0.07)
+    ic.glow(ring(ic, c, 0.50, 0.20, 0.74) & below(ic, c[1] + 0.03), BOLT, depth=0.035)
+
+
+def pl_vault(ic):
+    # Pole Vault: "plant the point and vault, half again as high and far as a running bound": over the top on the planted spear
+    ground(ic, 0.90)
+    ic.glow(ic.path(arc((0.56, 0.96), 0.66, 205.0, 290.0), 0.03, 0.11), BOLT, depth=0.04)
+    spear(ic, (0.64, 0.24), (0.26, 0.90), w=0.065)
+    man(ic, (0.86, 0.34), (0.76, 0.25), (0.62, 0.17), [[(0.70, 0.30), (0.64, 0.27)]], [[(0.48, 0.10), (0.34, 0.07)], [(0.50, 0.22), (0.38, 0.27)]], w=0.085)
+
+
+def pl_legs(ic):
+    # Leg Sweep: "sweep the head through their shins ... and puts them on the ground": their boots, going out from under them
+    ground(ic, 0.93)
+    ic.glow(ic.lens((-0.04, 0.90), (0.96, 0.66), 0.20), BOLT, depth=0.06)
+    boot(ic, (0.30, 0.06), (0.44, 0.52), (0.62, 0.48), w=0.17)
+    boot(ic, (0.60, 0.00), (0.74, 0.46), (0.92, 0.40), w=0.17)
+    spear(ic, (-0.50, 0.96), (0.98, 0.68), w=0.085)
+    hit(ic, (0.50, 0.74), 0.12)
+
+
+def pl_fall(ic):
+    # Falling Spear: "the spear raised overhead, point down, then a straight drop onto it": riding it down
+    ic.glow(ring(ic, (0.50, 0.90), 0.48, 0.12, 0.66), BOLT, depth=0.035)
+    for x in (0.16, 0.84):
+        streak(ic, (x, 0.02), (x, 0.50), BOLT, 0.06)
+    spear(ic, (0.50, 0.10), (0.50, 0.94), w=0.085)
+    man(ic, (0.50, 0.12), (0.50, 0.28), (0.50, 0.44), [[(0.60, 0.36), (0.52, 0.46)], [(0.40, 0.36), (0.48, 0.46)]],
+        [[(0.68, 0.40), (0.62, 0.56)], [(0.32, 0.40), (0.38, 0.56)]], w=0.085)
+
+
+def pl_airheavy(ic):
+    # Thunder Spike: "it's nailed into the ground and lightning bursts out round the shaft": them, nailed, the lightning out of it
+    ground(ic, 0.90)
+    for pts in ([(0.40, 0.70), (0.22, 0.54), (0.34, 0.44), (0.12, 0.20)], [(0.56, 0.70), (0.80, 0.56), (0.70, 0.42), (0.94, 0.22)]):
+        ic.glow(ic.path(pts, 0.11, 0.04), BOLT, depth=0.04, ink=True)
+    man(ic, (0.14, 0.80), (0.32, 0.82), (0.56, 0.83), [[(0.24, 0.68), (0.14, 0.62)]], [[(0.76, 0.80), (0.94, 0.84)], [(0.72, 0.74), (0.86, 0.66)]], w=0.085, mat=SHADE)
+    spear(ic, (0.66, -0.50), (0.44, 0.88), w=0.095)
+    hit(ic, (0.45, 0.80), 0.13, VIOLET)
+
+
+# ---- hammer
+def hm_spin(ic):
+    # Wrecking Spin: "the whole body turned round once behind it, and the head brought down at the end": the turn, where it ends
+    ic.glow(ring(ic, (0.44, 0.56), 0.48, 0.22, 0.70), DUST, depth=0.04)
+    ground(ic, 0.92)
+    hammer(ic, (0.50, -0.22), 72.0, 0.84)
+    ic.glow(ring(ic, (0.44, 0.56), 0.48, 0.22, 0.70) & below(ic, 0.60) & ~right_of(ic, 0.50), DUST, depth=0.04)
+    hit(ic, (0.78, 0.86), 0.15)
+
+
+def hm_rush(ic):
+    # Rising Crush: "drag the head low behind you, then swing it up off the ground through them": the groove, the head going up
+    ground(ic, 0.88)
+    ic.flat(ic.capsule((0.00, 0.92), (0.46, 0.92), 0.04), STONE[0])
+    for x, r in ((0.08, 0.07), (0.22, 0.09)):
+        ic.part(ic.circle((x, 0.82), r), SMOKE, shadow=0.03)
+    ic.glow(ic.path(arc((0.34, 0.50), 0.50, 86.0, -38.0), 0.03, 0.17), DUST, depth=0.06)
+    hammer(ic, (0.16, 0.98), -50.0, 0.84)
+    hit(ic, (0.86, 0.16), 0.13)
+
+
+def hm_fall(ic):
+    # Hammerfall: "heave the hammer up overhead and drop with it": the face of it, coming down on you
+    for k in range(8):
+        a = math.radians(22.5 + 45.0 * k)
+        streak(ic, (0.5 + math.cos(a) * 0.40, 0.5 + math.sin(a) * 0.40), (0.5 + math.cos(a) * 0.72, 0.5 + math.sin(a) * 0.72), DUST, 0.07)
+    ic.part(ic.capsule((0.60, 0.40), (1.04, -0.04), 0.10), WOOD, shadow=0.03)
+    ic.part(ic.poly([(0.20, 0.22), (0.80, 0.22), (0.80, 0.82), (0.20, 0.82)]), IRON, metal=True, shadow=0.05)
+    ic.part(ic.poly([(0.27, 0.29), (0.73, 0.29), (0.73, 0.75), (0.27, 0.75)]), STEEL, metal=True, shadow=0.07)
+    for x, y in ((0.335, 0.355), (0.665, 0.355), (0.335, 0.685), (0.665, 0.685)):
+        ic.part(ic.circle((x, y), 0.035), GOLD, metal=True, shadow=0.02)
+    ic.flat(ring(ic, (0.50, 0.52), 0.11, 0.11, 0.62), STEEL[1])
+
+
+def hm_airheavy(ic):
+    # Meteor Hammer: "you come down with the whole weight of it: a wide ring of broken ground and stone thrown up"
+    ic.glow(ic.path([(1.10, -0.12), (0.86, 0.14), (0.58, 0.44)], 0.10, 0.56), FIRE, depth=0.12)
+    ground(ic, 0.90)
+    for x, lean in ((0.07, -0.04), (0.20, -0.02), (0.93, 0.04)):
+        shard(ic, x, 0.90, 0.20, 0.07, lean)
+    hammer(ic, (1.08, -0.16), 128.0, 0.90)
+    hit(ic, (0.36, 0.84), 0.15)
+
+
+# ---- twin axes
+def dx_whirl(ic):
+    # Reaping Whirl: "both axes flung out level and two turns behind them": the two turns, wound out from the axe
+    pts = []
+    for k in range(33):
+        t = k / 32.0
+        a = math.radians(-60.0 + 720.0 * t)
+        r = 0.13 + 0.36 * t
+        pts.append((0.47 + math.cos(a) * r, 0.53 + math.sin(a) * r))
+    ic.glow(ic.path(pts, 0.03, 0.12), ICE, depth=0.04)
+    axe(ic, (0.20, 0.86), -47.0, 0.74)
+
+
+def dx_leap(ic):
+    # Raider's Leap: "leap with both axes raised and crash them down crossed into the one in front"
+    streak(ic, (0.50, 0.00), (0.50, 0.30), ICE, 0.08)
+    streak(ic, (0.16, 0.86), (0.04, 0.60), ICE, 0.06)
+    streak(ic, (0.84, 0.86), (0.96, 0.60), ICE, 0.06)
+    axe(ic, (0.88, 0.16), 150.0, 0.72, flip=True)
+    axe(ic, (0.12, 0.16), 30.0, 0.72)
+    hit(ic, (0.50, 0.86), 0.13)
+
+
+def dx_saw(ic):
+    # Buzzsaw: "drop turning over and over like a saw blade, cutting everything under you"
+    c = (0.50, 0.47)
+    ic.glow(ic.path(arc(c, 0.47, 205.0, 335.0), 0.03, 0.10), ICE, depth=0.04)
+    ic.glow(ic.path(arc(c, 0.47, 25.0, 155.0), 0.03, 0.10), ICE, depth=0.04)
+    teeth = []
+    for k in range(12):
+        a = 2.0 * math.pi * k / 12.0
+        teeth.append((c[0] + math.cos(a) * 0.41, c[1] + math.sin(a) * 0.41))
+        teeth.append((c[0] + math.cos(a + 0.10) * 0.29, c[1] + math.sin(a + 0.10) * 0.29))
+    ic.part(ic.poly(teeth), STEEL, metal=True, shadow=0.06)
+    ic.flat(ring(ic, c, 0.19, 0.19, 0.80), STEEL[1])
+    ic.part(ic.circle(c, 0.08), GOLD, metal=True, shadow=0.03)
+    ground(ic, 0.93)
+    hit(ic, (0.50, 0.90), 0.12)
+
+
+def dx_airheavy(ic):
+    # Glacier Drop: "both axes crashed into the ground in a wide ring of ice that freezes everyone round you": the floe, struck
+    floe = ic.poly(oval((0.50, 0.80), 0.56, 0.22, 24))
+    ic.part(floe, ICE, shadow=0.05)
+    for pts in ([(0.50, 0.76), (0.30, 0.70), (0.12, 0.76)], [(0.50, 0.76), (0.60, 0.88), (0.54, 1.00)], [(0.50, 0.76), (0.74, 0.74), (0.94, 0.80)], [(0.50, 0.76), (0.36, 0.90), (0.28, 0.98)]):
+        ic.flat(ic.path(pts, 0.03, 0.015) & floe, ICE[0])
+    for x, h, lean in ((0.10, 0.26, -0.05), (0.24, 0.16, -0.02), (0.90, 0.24, 0.05)):
+        shard(ic, x, 0.70, h, 0.07, lean, ICE)
+    axe(ic, (1.02, -0.20), 122.0, 1.0, flip=True)
+
+
+# ---- greatsword
+def gs_turn(ic):
+    # Gale Turn: "the backhand's momentum let carry you on round once more with the blade out at arm's length"
+    ic.glow(ic.path(arc((0.44, 0.54), 0.44, 30.0, 335.0), 0.03, 0.17), GALE, depth=0.06)
+    greatsword(ic, (0.34, 0.62), (0.98, 0.26), w=0.17)
+
+
+def gs_run(ic):
+    # Running Cleave: "the blade dragged behind you swung round in one flat sweep": the point dragging, the sparks off it
+    ground(ic, 0.88)
+    for y in (0.14, 0.34):
+        streak(ic, (0.02, y), (0.52, y), GALE, 0.055)
+    greatsword(ic, (1.24, 0.06), (0.16, 0.86), w=0.20)
+    for x, y in ((0.04, 0.62), (0.14, 0.56), (0.02, 0.76)):
+        streak(ic, (0.16, 0.84), (x, y), SPARK, 0.05)
+    hit(ic, (0.17, 0.85), 0.13)
+
+
+def gs_fall(ic):
+    # Falling Cleave: "heave the blade up overhead and drop with it": you, in the air under it
+    for x in (0.16, 0.84):
+        streak(ic, (x, 0.98), (x, 0.52), GALE, 0.06)
+    greatsword(ic, (0.50, 0.44), (0.86, -0.22), w=0.20)
+    man(ic, (0.44, 0.50), (0.46, 0.64), (0.50, 0.78), [[(0.44, 0.50), (0.50, 0.44)], [(0.56, 0.56), (0.54, 0.46)]],
+        [[(0.36, 0.86), (0.42, 0.98)], [(0.64, 0.84), (0.72, 0.94)]], w=0.085)
+
+
+def gs_airheavy(ic):
+    # Heaven's Cleave: "come straight down in one cleave; the ground splits in a line ahead": the heavens parted over the split
+    ic.glow(ic.poly([(0.36, -0.05), (0.64, -0.05), (0.80, 0.92), (0.20, 0.92)]), GALE, depth=0.11)
+    ground(ic, 0.88)
+    ic.flat(ic.path([(0.50, 0.84), (0.46, 0.92), (0.53, 0.97), (0.49, 1.04)], 0.045, 0.03), INK)
+    for x, lean in ((0.24, -0.04), (0.76, 0.04)):
+        shard(ic, x, 0.88, 0.16, 0.06, lean)
+    cloud(ic, (0.10, 0.26), 0.46)
+    cloud(ic, (0.90, 0.30), 0.46)
+
+
+# ---- rapier
+def rp_flurry(ic):
+    # Mercury Flurry: "three thrusts from the wrist, quick as a pulse, and a lunge behind the last": the hilt, winged
+    for a, b, w in (((0.36, 0.66), (0.12, 0.04), 0.17), ((0.32, 0.68), (0.00, 0.24), 0.16), ((0.30, 0.72), (-0.04, 0.48), 0.15)):
+        ic.part(ic.lens(a, b, w), WHITE, shadow=0.04)
+    rapier(ic, (0.16, 0.92), (0.98, 0.10), w=0.07)
+    for x, y in ((0.60, 0.16), (0.90, 0.40), (0.76, 0.06)):
+        glint(ic, (x, y), 0.08, SILVER)
+
+
+def rp_fleche(ic):
+    # Fleche: "the arm thrown out first and a running leap behind it, the point arriving before your feet": the arrow it's named for
+    for y in (0.16, 0.84):
+        streak(ic, (0.20, y), (0.76, y), SILVER, 0.055)
+    for sgn in (-1.0, 1.0):
+        for x in (0.00, 0.13):
+            ic.part(ic.poly([(x + 0.10, 0.52), (x - 0.06, 0.52 + sgn * 0.20), (x + 0.04, 0.52 + sgn * 0.20), (x + 0.20, 0.52)]), CLOTH, shadow=0.03)
+    rapier(ic, (0.22, 0.52), (1.00, 0.46), w=0.055)
+    glint(ic, (0.95, 0.46), 0.10)
+
+
+def rp_airheavy(ic):
+    # Mirror Fall: "you and your mirror image drop point-first ... and a ring of broken glass": the two points, the glass
+    ic.glow(ic.lens((0.98, -0.30), (0.54, 0.80), 0.10) | ic.poly(oval((0.89, -0.02), 0.13, 0.07, 16)), SILVER, depth=0.035, ink=True)
+    rapier(ic, (0.04, -0.30), (0.46, 0.80), w=0.07)
+    for pts in ([(0.50, 0.74), (0.42, 0.98), (0.58, 0.96)], [(0.30, 0.78), (0.10, 0.84), (0.26, 0.98)], [(0.70, 0.78), (0.90, 0.84), (0.76, 0.98)],
+            [(0.12, 0.62), (0.02, 0.72), (0.18, 0.72)], [(0.88, 0.60), (0.82, 0.72), (0.98, 0.70)]):
+        ic.part(ic.poly(pts), SILVER, metal=True, shadow=0.03)
+    hit(ic, (0.50, 0.80), 0.11, SPARK, 4)
+
+
+# ---- staff
+def sf_wheel(ic):
+    # Wind Wheel: "the staff swung round you once, low and wide": the wheel the wind turns, on its stick
+    staff(ic, (0.02, 1.06), (0.54, 0.46), w=0.075)
+    c = (0.54, 0.46)
+    for k in range(4):
+        a = math.radians(-24.0 + 90.0 * k)
+        b = a + math.radians(64.0)
+        ic.glow(ic.poly([c, (c[0] + math.cos(a) * 0.46, c[1] + math.sin(a) * 0.46), (c[0] + math.cos(b) * 0.30, c[1] + math.sin(b) * 0.30)]), LEAFWIND, depth=0.07, ink=True)
+    ic.part(ic.circle(c, 0.07), GOLD, metal=True, shadow=0.03)
+    leaf(ic, (0.12, 0.22), 30.0, 0.085)
+    leaf(ic, (0.90, 0.90), -35.0, 0.075, AUTUMN)
+
+
+def sf_vault(ic):
+    # Vault Kick: "the staff planted ahead, swung up on it and both feet driven through the one in front"
+    ground(ic, 0.93)
+    for y in (0.66, 0.80):
+        streak(ic, (0.42, y), (0.86, y - 0.10), LEAFWIND, 0.055)
+    staff(ic, (0.20, 0.98), (0.28, 0.04), w=0.075)
+    man(ic, (0.40, 0.22), (0.50, 0.33), (0.66, 0.40), [[(0.38, 0.38), (0.28, 0.34)], [(0.40, 0.30), (0.28, 0.22)]],
+        [[(0.82, 0.36), (0.96, 0.30)], [(0.82, 0.46), (0.96, 0.44)]], w=0.08)
+    hit(ic, (0.95, 0.36), 0.11)
+
+
+def sf_airheavy(ic):
+    # Crane Fall: "a breath's hang with the staff raised in both hands, then down ... a gale of leaves": both hands, the gale under it
+    ic.glow(ic.poly([(0.06, 0.44), (0.94, 0.44), (0.50, 1.02)]) & ~ic.poly([(0.30, 0.40), (0.70, 0.40), (0.50, 0.68)]), LEAFWIND, depth=0.07)
+    staff(ic, (-0.08, 0.28), (1.08, 0.28), w=0.10)
+    grip_hand(ic, (0.24, 0.28), 0.0, 0.30, thumb=False)
+    grip_hand(ic, (0.76, 0.28), 0.0, 0.30, thumb=False)
+    leaf(ic, (0.12, 0.84), -30.0, 0.09)
+    leaf(ic, (0.88, 0.82), 30.0, 0.09, AUTUMN)
+    leaf(ic, (0.50, 0.56), 80.0, 0.07)
+
+
+# ---- chain sickle
+def sk_circle(ic):
+    # Reaping Circle: "the weight whirled round you once at full length": the chain's whole circle, the weight on its end
+    c = (0.50, 0.52)
+    ic.glow(ic.path(arc(c, 0.47, -50.0, 34.0), 0.03, 0.11), SOUL, depth=0.04)
+    chain(ic, arc(c, 0.36, 120.0, 395.0, steps=24), link=0.078)
+    pellet(ic, (c[0] + math.cos(math.radians(40.0)) * 0.36, c[1] + math.sin(math.radians(40.0)) * 0.36), 0.13)
+    sickle(ic, (0.34, 0.70), -52.0, 0.42)
+
+
+def sk_rush(ic):
+    # Chain Rush: "the weight thrown ahead and you reeled in after it, the sickle cutting on arrival"
+    for y in (0.16, 0.90):
+        streak(ic, (0.04, y), (0.60, y), SOUL, 0.055)
+    chain(ic, [(0.36, 0.52), (0.84, 0.42)], link=0.08)
+    pellet(ic, (0.87, 0.41), 0.12)
+    sickle(ic, (0.00, 0.84), -34.0, 0.60)
+
+
+def sk_airheavy(ic):
+    # Grave Drop: "down on the enemy you look at sickle-first ... a burst of ghostfire": the grave it sends them to
+    ground(ic, 0.90)
+    ic.part(ic.poly([(0.28, 0.94), (0.28, 0.54)] + arc((0.48, 0.54), 0.20, 180.0, 360.0) + [(0.68, 0.94)]), STONE, shadow=0.06)
+    for y in (0.62, 0.72):
+        ic.flat(ic.capsule((0.38, y), (0.58, y), 0.03), STONE[0])
+    ic.flat(ic.path([(0.50, 0.34), (0.46, 0.44), (0.52, 0.50), (0.48, 0.58)], 0.03), INK)
+    wisp(ic, (0.12, 0.74), 0.085)
+    wisp(ic, (0.88, 0.72), 0.085)
+    sickle(ic, (1.04, 0.02), 152.0, 0.62, flip=True)
+
+
+# ---- corsair (cutlass and pistol)
+def cs_finale(ic):
+    # Powder Finale: "a full turn with the blade out, then a shot point-blank that knocks them flat": the turn, the shot that ends it
+    ic.glow(ic.path(arc((0.42, 0.52), 0.42, 80.0, 350.0), 0.03, 0.13), SPARK, depth=0.045)
+    ic.glow(ic.star((0.84, 0.44), 0.30, 8, 0.45, 0.2), FIRE, depth=0.10)
+    pistol(ic, (0.10, 0.58), -8.0, 0.66)
+
+
+def cs_drop(ic):
+    # Dead Man's Drop: "lean over the enemy you're looking at and fire down into them": the dead man, the muzzle over him
+    ic.part(ic.circle((0.40, 0.76), 0.23) | ic.poly([(0.27, 0.84), (0.53, 0.84), (0.50, 1.04), (0.30, 1.04)]), BONE, shadow=0.06)
+    ic.flat(ic.circle((0.31, 0.80), 0.06) | ic.circle((0.49, 0.80), 0.06) | ic.poly([(0.40, 0.86), (0.36, 0.93), (0.44, 0.93)]), INK)
+    ic.glow(ic.star((0.50, 0.50), 0.22, 7, 0.45, 0.3), FIRE, depth=0.08, ink=True)
+    pistol(ic, (0.96, -0.26), 122.0, 0.84, flip=True)
+
+
+def cs_airheavy(ic):
+    # Broadside Drop: "the blade first into the ground, and the powder in your belt goes up round you"
+    ic.glow(ic.star((0.50, 0.74), 0.60, 9, 0.52, 0.3), FIRE, depth=0.15)
+    for x, y, r in ((0.10, 0.26, 0.12), (0.90, 0.30, 0.12), (0.22, 0.12, 0.08)):
+        ic.part(ic.circle((x, y), r), SMOKE, shadow=0.04)
+    ground(ic, 0.90)
+    cutlass(ic, (0.50, -0.46), (0.50, 0.90), bend=0.04, w=0.17)
+
+
+# ---- pistol
+def g_kata(ic):
+    # Gun Kata: "a hop into a double spin, arms crossed, shooting everyone close": the two guns crossed, firing either way
+    ic.glow(ic.star((0.06, 0.34), 0.20, 7, 0.45, 0.2), FIRE, depth=0.07)
+    ic.glow(ic.star((0.94, 0.66), 0.20, 7, 0.45, 0.2), FIRE, depth=0.07)
+    pistol(ic, (0.74, 0.50), 194.0, 0.64, flip=True)
+    pistol(ic, (0.26, 0.50), 14.0, 0.64)
+
+
+def g_rain(ic):
+    # Gun Rain: "fire both guns down at once, the recoil launching you forward"
+    for x in (0.34, 0.66):
+        streak(ic, (x, 0.60), (x, 1.04), SPARK, 0.10)
+        ic.glow(ic.star((x, 0.62), 0.16, 6, 0.45, 0.3), FIRE, depth=0.06)
+    pistol(ic, (0.29, -0.14), 90.0, 0.66)
+    pistol(ic, (0.71, -0.14), 90.0, 0.66, flip=True)
+
+
+def g_hangshot(ic):
+    # Hang Shot: "hang a beat drawing a bead, then one heavy shot at the reticle": hung in the air, the one shot
+    cloud(ic, (0.28, 0.88), 0.40)
+    ic.glow(ic.star((0.86, 0.72), 0.22, 7, 0.45, 0.2), FIRE, depth=0.08)
+    pistol(ic, (0.10, 0.16), 36.0, 0.84)
+
+
+def g_airheavy(ic):
+    # Downward Volley: "empty the gun down into the enemy below, six shots as fast as the hammer falls"
+    ic.glow(ic.star((0.50, 0.34), 0.20, 7, 0.45, 0.3), FIRE, depth=0.07)
+    for x, y in ((0.36, 0.52), (0.62, 0.58), (0.40, 0.70), (0.66, 0.76), (0.34, 0.88), (0.58, 0.94)):
+        streak(ic, (x, y - 0.20), (x, y - 0.02), SPARK, 0.05)
+        pellet(ic, (x, y), 0.05)
+    pistol(ic, (0.45, -0.56), 90.0, 0.84)
+
+
+# ---- long gun
+def lg_rush(ic):
+    # Stock Rush: "the gun held crossways in both hands and driven into them with your shoulder"
+    for y in (0.20, 0.50, 0.80):
+        streak(ic, (0.02, y), (0.42, y), MOON, 0.055)
+    musket(ic, (0.60, 0.84), -84.0, 1.05)
+    grip_hand(ic, (0.665, 0.26), -84.0, 0.26, thumb=False)
+    grip_hand(ic, (0.625, 0.62), -84.0, 0.26, thumb=False)
+    hit(ic, (0.90, 0.44), 0.14)
+
+
+def lg_sky(ic):
+    # Sky Shot: "hang a beat drawing a bead down at the reticle, then one steady shot": from above the clouds, down
+    streak(ic, (0.58, 0.50), (0.92, 0.90), MOON, 0.12)
+    cloud(ic, (0.22, 0.88), 0.36)
+    cloud(ic, (0.94, 0.26), 0.28)
+    musket(ic, (-0.14, -0.06), 40.0, 0.98)
+    hit(ic, (0.90, 0.88), 0.13)
+
+
+def lg_airheavy(ic):
+    # Starfall Volley: "three steady shots fanned down at the enemies below, each a falling star"
+    for tx, ty in ((0.16, 0.76), (0.50, 0.88), (0.84, 0.76)):
+        streak(ic, (0.50, 0.04), (tx, ty), MOON, 0.13)
+        ic.glow(ic.star((tx, ty), 0.15, 5, 0.45, -math.pi / 2), SPARK, depth=0.05, ink=True)
+    ic.part(ic.capsule((0.50, -0.10), (0.50, 0.12), 0.13), STEEL, metal=True, shadow=0.03)
+    ic.part(ic.capsule((0.50, 0.08), (0.50, 0.13), 0.16), GOLD, metal=True, shadow=0.03)
+
+
+# ---- cannon
+def cn_ram(ic):
+    # Cannon Ram: "the cannon dropped to the hip and driven muzzle first into them at the run": the muzzle, coming at you
+    c = (0.54, 0.54)
+    for k in range(8):
+        a = math.radians(22.5 + 45.0 * k)
+        streak(ic, (c[0] + math.cos(a) * 0.46, c[1] + math.sin(a) * 0.46), (c[0] + math.cos(a) * 0.78, c[1] + math.sin(a) * 0.78), VIOLET, 0.07)
+    ic.part(ic.poly([(-0.10, -0.02), (0.14, -0.10), (0.80, 0.34), (0.34, 0.80)]), SHADE, metal=True, shadow=0.06)
+    ic.part(ic.circle(c, 0.39), GOLD, metal=True, shadow=0.06)
+    ic.part(ic.circle(c, 0.30), SHADE, metal=True, shadow=0.05)
+    ic.flat(ic.circle(c, 0.19), hx("08060c"))
+
+
+def cn_leap(ic):
+    # Recoil Leap: "turn the muzzle straight down and fire. The blast below ... throws you high up and on"
+    ic.glow(ic.poly([(0.46, 0.50), (0.36, 1.04), (-0.04, 0.62)]), FIRE, depth=0.10)
+    ic.glow(ic.star((0.12, 0.88), 0.22, 7, 0.45, 0.2), FIRE, depth=0.08)
+    for off in (-0.20, 0.20):
+        streak(ic, (0.50 + off, 0.36 + off), (0.80 + off, 0.06 + off), VIOLET, 0.06)
+    cannon(ic, (0.90, 0.06), 135.0, 0.66)
+
+
+def cn_airheavy(ic):
+    # Bombard Drop: "the muzzle turned straight down and fired: a great blast under you throws everyone round it down"
+    ic.part(ic.poly([(-0.05, 1.05), (-0.05, 0.62), (0.30, 0.58), (0.52, 0.63), (0.74, 0.58), (1.05, 0.62), (1.05, 1.05)]), STONE, shadow=0.04)
+    ic.glow(ring(ic, (0.50, 0.80), 0.54, 0.20, 0.52), FIRE, depth=0.06)
+    ic.glow(ic.lens((0.50, 0.26), (0.50, 0.86), 0.26), FIRE, depth=0.08)
+    for pts in ([(0.10, 0.36), (0.20, 0.30), (0.24, 0.42), (0.14, 0.46)], [(0.80, 0.28), (0.92, 0.32), (0.88, 0.44), (0.78, 0.40)]):
+        ic.part(ic.poly(pts), STONE, shadow=0.03)
+    cannon(ic, (0.50, -0.56), 90.0, 0.86)
+
+
+# ---- slingshot
+def sl_skid(ic):
+    # Skid Shot: "down into a slide, three stones fanned out ahead as you go"
+    ground(ic, 0.90)
+    for x, r in ((0.08, 0.08), (0.22, 0.10), (0.38, 0.07)):
+        ic.part(ic.circle((x, 0.84), r), SMOKE, shadow=0.03)
+    o = (0.50, 0.46)
+    for ang in (-30.0, -6.0, 18.0):
+        a = math.radians(ang)
+        p = (o[0] + math.cos(a) * 0.40, o[1] + math.sin(a) * 0.40)
+        streak(ic, (o[0] + math.cos(a) * 0.06, o[1] + math.sin(a) * 0.06), p, PINK, 0.07)
+        pellet(ic, p, 0.065)
+    sling(ic, (0.06, 0.66), -22.0, 0.50)
+
+
+def sl_hail(ic):
+    # Hail Shot: "hang a beat and loose three stones fanned down at the reticle": the hail it's named for
+    for x, y in ((0.18, 0.76), (0.50, 0.90), (0.82, 0.76)):
+        streak(ic, (0.5 + (x - 0.5) * 0.45, 0.40), (x, y - 0.06), PINK, 0.07)
+    cloud(ic, (0.50, 0.24), 0.64)
+    for x, y in ((0.18, 0.76), (0.50, 0.90), (0.82, 0.76)):
+        pellet(ic, (x, y), 0.085, ICE)
+
+
+def sl_airheavy(ic):
+    # Spark Shower: "a fan of five bright pellets down at the enemies below; they burst in sparks"
+    o = (0.50, 0.00)
+    for k, (x, y) in enumerate(((0.10, 0.56), (0.28, 0.80), (0.50, 0.88), (0.72, 0.80), (0.90, 0.56))):
+        mat = (PINK, SPARK)[k % 2]
+        streak(ic, o, (x, y), mat, 0.05)
+        ic.glow(ic.star((x, y), 0.12, 6, 0.4, 0.2), mat, depth=0.04, ink=True)
+    pellet(ic, (0.50, 0.06), 0.07)
+
+
+# ---- unarmed
+def u_round(ic):
+    # Uppercut: "a dipping rear uppercut that lifts them off their feet": them, off their feet
+    ic.glow(ic.poly([(0.34, 1.04), (0.52, 0.42), (0.70, 1.04)]), IMPACT, depth=0.09)
+    man(ic, (0.62, 0.16), (0.50, 0.28), (0.38, 0.44), [[(0.64, 0.40), (0.76, 0.48)], [(0.36, 0.20), (0.26, 0.10)]],
+        [[(0.22, 0.52), (0.10, 0.44)], [(0.32, 0.62), (0.20, 0.74)]], w=0.085, mat=SHADE)
+    hit(ic, (0.58, 0.34), 0.15)
+
+
+def u_meteor(ic):
+    # Diving Fist: "a punch that knocks them flat and bounces you back up for another (three in a row)": the three, one bound each
+    ground(ic, 0.90)
+    streak(ic, (0.00, 0.06), (0.30, 0.86), IMPACT, 0.17)
+    ic.glow(ic.path(arc((0.48, 0.88), 0.18, 180.0, 360.0, 2.5), 0.09, 0.07), IMPACT, depth=0.035)
+    ic.glow(ic.path(arc((0.79, 0.88), 0.13, 180.0, 360.0, 2.2), 0.07, 0.055), IMPACT, depth=0.03)
+    hit(ic, (0.30, 0.86), 0.15)
+    hit(ic, (0.66, 0.87), 0.12)
+    hit(ic, (0.92, 0.88), 0.09)
+
+
+def u_airheavy(ic):
+    # Hammer Fists: "both fists clasped overhead and brought down with you into the ground: a shockwave"
+    ic.glow(ring(ic, (0.50, 0.88), 0.52, 0.14, 0.62), IMPACT, depth=0.04)
+    for x in (0.12, 0.88):
+        streak(ic, (x, 0.74), (x, 0.30), IMPACT, 0.06)
+    man(ic, (0.50, 0.46), (0.50, 0.60), (0.50, 0.74), [[(0.28, 0.42), (0.45, 0.16)], [(0.72, 0.42), (0.55, 0.16)]],
+        [[(0.36, 0.78), (0.44, 0.92)], [(0.64, 0.78), (0.56, 0.92)]], w=0.085)
+    ic.part(ic.poly([(0.41, 0.06), (0.59, 0.06), (0.61, 0.20), (0.39, 0.20)]), BONE, shadow=0.03)
+
+
+# ---- black leg
+def bl_spin(ic):
+    # Handstand Spin: "down on both hands, the legs split out flat and two turns round"
+    c = (0.50, 0.30)
+    ic.glow(ring(ic, c, 0.50, 0.18, 0.72), HEAT, depth=0.035)
+    ground(ic, 0.93)
+    man(ic, (0.50, 0.74), (0.50, 0.58), (0.50, 0.38), [[(0.38, 0.74), (0.34, 0.92)], [(0.62, 0.74), (0.66, 0.92)]],
+        [[(0.28, 0.30), (0.06, 0.28)], [(0.72, 0.30), (0.94, 0.28)]], w=0.085)
+    ic.glow(ring(ic, c, 0.50, 0.18, 0.72) & below(ic, c[1] + 0.05), HEAT, depth=0.035)
+
+
+def bl_arrow(ic):
+    # Arrow Kick: "launch side-on and shoot one leg straight through them": the sole of it, coming at you
+    c = (0.50, 0.50)
+    for k in range(8):
+        a = math.radians(22.5 + 45.0 * k)
+        streak(ic, (c[0] + math.cos(a) * 0.44, c[1] + math.sin(a) * 0.44), (c[0] + math.cos(a) * 0.76, c[1] + math.sin(a) * 0.76), HEAT, 0.07)
+    ic.part(ic.capsule((0.50, 0.50), (0.08, 0.06), 0.24), SHADE, shadow=0.05)
+    sole = ic.poly(oval((0.52, 0.40), 0.19, 0.25, 20)) | ic.poly([(0.38, 0.50), (0.66, 0.50), (0.62, 0.74), (0.42, 0.74)]) | ic.circle((0.52, 0.76), 0.125)
+    ic.part(sole, LEATHER, shadow=0.05)
+    for y in (0.28, 0.38, 0.48):
+        ic.flat(ic.capsule((0.40, y), (0.64, y), 0.03) & sole, LEATHER[0])
+    ic.part(ic.circle((0.52, 0.76), 0.085), IRON, metal=True, shadow=0.03)
+
+
+def bl_cyclone(ic):
+    # Cyclone Heel: "turn flat like a top with one leg out, kicking everyone you pass"
+    rings = drill((0.38, 0.14), (0.38, 0.98), 0.36)
+    for c, rx, ry in rings:
+        ic.glow(ring(ic, c, rx, ry), HEAT, depth=0.04)
+    leg(ic, (0.36, 0.50), (0.58, 0.47), (0.80, 0.43), (0.99, 0.36), w=0.15)
+    for c, rx, ry in rings:
+        ic.glow(ring(ic, c, rx, ry) & below(ic, c[1]) & ~right_of(ic, 0.52), HEAT, depth=0.04)
+
+
+def bl_airheavy(ic):
+    # Comet Heels: "both heels brought down together like a falling star: a crater of heat"
+    for x in (0.38, 0.72):
+        ic.glow(ic.poly([(x - 0.16, 0.60), (x + 0.02, 0.76), (x + 0.20, 0.56), (x + 0.26, -0.10), (x + 0.08, 0.12), (x - 0.04, -0.10), (x - 0.12, 0.20)]), HEAT, depth=0.08)
+    ground(ic, 0.92)
+    leg(ic, (0.46, -0.30), (0.42, 0.24), (0.37, 0.72), (0.19, 0.62), w=0.16)
+    leg(ic, (0.80, -0.30), (0.76, 0.28), (0.71, 0.76), (0.53, 0.66), w=0.16)
+    hit(ic, (0.38, 0.86), 0.12)
+    hit(ic, (0.72, 0.90), 0.12)
+
+
 SKILLS = {
     "sword": [("flying_slash", "Flying Slash", False, flying_slash), ("riposte", "Riposte", False, riposte),
         ("swordfish", "Swordfish Flurry", False, swordfish), ("kraken_wake", "Kraken's Wake  (ult)", True, kraken_wake),
@@ -2645,6 +3386,39 @@ SKILLS = {
 }
 
 
+# The trees' move nodes: (tree node, name, picture), on the tree's plate.
+WEAPON_MOVES = {
+    "sword": [("s_dash", "Running Cut", s_dash), ("s_dive", "Boarding Dive", s_dive), ("s_airheavy", "Whirlpool Descent", s_airheavy)],
+    "katana": [("k_full", "Full Draw", k_full), ("k_draw", "Quick Draw", k_draw), ("k_crescent", "Crescent Arc", k_crescent),
+        ("k_airheavy", "Blossom Cleave", k_airheavy)],
+    "dual": [("d_spin", "Twin Spin", d_spin), ("d_cyclone", "Twin Cyclone", d_cyclone), ("d_airheavy", "Twin Meteor", d_airheavy)],
+    "axe": [("a_sky", "Skybreaker", a_sky), ("a_airheavy", "Splitting Maul", a_airheavy)],
+    "dagger": [("dg_gut", "Gutting Strike", dg_gut), ("dg_fang", "Fang Dive", dg_fang), ("dg_airheavy", "Shadow Fall", dg_airheavy)],
+    "dual_dagger": [("dd_whirl", "Fang Whirl", dd_whirl), ("dd_knives", "Knife Rain", dd_knives), ("dd_airheavy", "Viper Dive", dd_airheavy)],
+    "polearm": [("pl_wheel", "Wheel Sweep", pl_wheel), ("pl_vault", "Pole Vault", pl_vault), ("pl_legs", "Leg Sweep", pl_legs),
+        ("pl_fall", "Falling Spear", pl_fall), ("pl_airheavy", "Thunder Spike", pl_airheavy)],
+    "hammer": [("hm_spin", "Wrecking Spin", hm_spin), ("hm_rush", "Rising Crush", hm_rush), ("hm_fall", "Hammerfall", hm_fall),
+        ("hm_airheavy", "Meteor Hammer", hm_airheavy)],
+    "dual_axe": [("dx_whirl", "Reaping Whirl", dx_whirl), ("dx_leap", "Raider's Leap", dx_leap), ("dx_saw", "Buzzsaw", dx_saw),
+        ("dx_airheavy", "Glacier Drop", dx_airheavy)],
+    "greatsword": [("gs_turn", "Gale Turn", gs_turn), ("gs_run", "Running Cleave", gs_run), ("gs_fall", "Falling Cleave", gs_fall),
+        ("gs_airheavy", "Heaven's Cleave", gs_airheavy)],
+    "rapier": [("rp_flurry", "Mercury Flurry", rp_flurry), ("rp_fleche", "Fleche", rp_fleche), ("rp_airheavy", "Mirror Fall", rp_airheavy)],
+    "staff": [("sf_wheel", "Wind Wheel", sf_wheel), ("sf_vault", "Vault Kick", sf_vault), ("sf_airheavy", "Crane Fall", sf_airheavy)],
+    "sickle": [("sk_circle", "Reaping Circle", sk_circle), ("sk_rush", "Chain Rush", sk_rush), ("sk_airheavy", "Grave Drop", sk_airheavy)],
+    "corsair": [("cs_finale", "Powder Finale", cs_finale), ("cs_drop", "Dead Man's Drop", cs_drop), ("cs_airheavy", "Broadside Drop", cs_airheavy)],
+    "pistol": [("g_kata", "Gun Kata", g_kata), ("g_rain", "Gun Rain", g_rain), ("g_hangshot", "Hang Shot", g_hangshot),
+        ("g_airheavy", "Downward Volley", g_airheavy)],
+    "long_gun": [("lg_rush", "Stock Rush", lg_rush), ("lg_sky", "Sky Shot", lg_sky), ("lg_airheavy", "Starfall Volley", lg_airheavy)],
+    "cannon": [("cn_ram", "Cannon Ram", cn_ram), ("cn_leap", "Recoil Leap", cn_leap), ("cn_airheavy", "Bombard Drop", cn_airheavy)],
+    "slingshot": [("sl_skid", "Skid Shot", sl_skid), ("sl_hail", "Hail Shot", sl_hail), ("sl_airheavy", "Spark Shower", sl_airheavy)],
+    "unarmed": [("u_round", "Uppercut", u_round), ("u_meteor", "Diving Fist", u_meteor), ("u_airheavy", "Hammer Fists", u_airheavy)],
+    "black_leg": [("bl_spin", "Handstand Spin", bl_spin), ("bl_arrow", "Arrow Kick", bl_arrow), ("bl_cyclone", "Cyclone Heel", bl_cyclone),
+        ("bl_airheavy", "Comet Heels", bl_airheavy)],
+    # <<moves>>
+}
+
+
 def render(fn, n, tree, ult):
     ic = Icon(n)
     fn(ic)
@@ -2703,8 +3477,52 @@ def review(tree):
     print("  wrote", os.path.relpath(out, ROOT))
 
 
+def moves_review():
+    """The weapons' moves, a tree a row: the tree's skills small beside them (a move mustn't repeat one), each move at
+    48 px x3, then the row at 32 px x2 and 16 px x3 (the map's two sizes)."""
+    bg, text = (26, 28, 41, 255), (205, 210, 224, 255)
+    trees = [t for t in WEAPON_MOVES if WEAPON_MOVES[t]]
+    per = 7
+    for part in range(0, len(trees), per):
+        chunk = trees[part:part + per]
+        row = 16 + 144 + 14
+        sheet = Image.new("RGBA", (16 + 5 * 68 + 20 + 5 * 152 + 12 + 3 * 68 + 12 + 3 * 52 + 16, 8 + len(chunk) * row), bg)
+        d = ImageDraw.Draw(sheet)
+        for r, tree in enumerate(chunk):
+            y = 8 + r * row
+            moves = WEAPON_MOVES[tree]
+            d.text((16, y), "%s:  %s" % (tree, "   |   ".join(m[1] for m in moves)), fill=text)
+            y += 16
+            for i, (_sid, _n, ult, fn) in enumerate(SKILLS[tree][:10]):
+                sheet.alpha_composite(up(render(fn, 32, tree, ult), 2), (16 + (i % 5) * 68, y + (i // 5) * 68))
+            x = 16 + 5 * 68 + 20
+            for i, (_sid, _n, fn) in enumerate(moves):
+                sheet.alpha_composite(up(render(fn, 48, tree, False), 3), (x + i * 152, y))
+            x += 5 * 152 + 12
+            for i, (_sid, _n, fn) in enumerate(moves):
+                sheet.alpha_composite(up(render(fn, 32, tree, False), 2), (x + (i % 3) * 68, y + (i // 3) * 68))
+            x += 3 * 68 + 12
+            for i, (_sid, _n, fn) in enumerate(moves):
+                sheet.alpha_composite(up(render(fn, 16, tree, False), 3), (x + (i % 3) * 52, y + (i // 3) * 52))
+        os.makedirs(REVIEW, exist_ok=True)
+        out = os.path.join(REVIEW, "weapon_moves_%d.png" % (part // per + 1))
+        sheet.save(out)
+        print("  wrote", os.path.relpath(out, ROOT))
+
+
 def main():
     write = "--write" in sys.argv
+    moves_review()
+    if write:
+        for tree, moves in WEAPON_MOVES.items():
+            for sid, _name, fn in moves:
+                for n in (16, 32, 48):
+                    p = os.path.join(ICONS, "skill_%s_%d.png" % (sid, n))
+                    render(fn, n, tree, False).save(p)
+                    print("  wrote", os.path.relpath(p, ROOT))
+    # (--moves: only the weapons' moves, for a quick look while drawing them)
+    if "--moves" in sys.argv:
+        return
     for tree, skills in SKILLS.items():
         review(tree)
         if write:

@@ -55,6 +55,22 @@ func _process(_d: float) -> bool:
 				if t2 == null or t2.get_width() != px:
 					bad.append("%s@%d" % [id2, px])
 	check("the moves and perks have theirs too (%d names; missing: %s)" % [named, str(bad.slice(0, 6))], named >= 40 and bad.is_empty())
+	# (the weapons' own moves: a fourth hit, a sprint attack, the air attacks: each tile on a tree's map has a picture)
+	var ST = load("res://scripts/progression/skill_trees.gd")
+	var STD = load("res://scripts/ui/skill_tree_draw.gd")
+	var tiles := 0
+	var bare: Array = []
+	for t in ST.HEADERS.keys():
+		if not ST.converted(t) or t == "captain":
+			continue
+		for id in ST.nodes_of(t):
+			var n: Dictionary = ST.node_def(id)
+			if str(n["kind"]) == "version" or STD.shape_of(id) != "ability":
+				continue
+			tiles += 1
+			if STD._icon(n, 32.0) == null:
+				bare.append(id)
+	check("every ability tile on the trees' maps has a picture (%d tiles; none: %s)" % [tiles, str(bare.slice(0, 6))], tiles > 150 and bare.is_empty())
 	var B = load("res://scripts/ui/skill_bar.gd")
 	check("the HUD bar's slots hold a 32 px picture exactly (skill %d, ultimate %d)" % [int(B.SKILL), int(B.ULT)], int(B.SKILL) - 2 == 32 and int(B.ULT) - 4 == 32)
 	return TK.done(fails)

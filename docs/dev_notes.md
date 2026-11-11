@@ -11677,3 +11677,25 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   in `docs/media/design/`.
 - **Tested by** the eleven t/ui/skills_* tests and t/ui/skill_icons; uishots skills_sword and skillmapshot at
   1920x1080. Not run: the world suites.
+
+## 2026-11-11: the weapons' move nodes have pictures (67)
+- **What:** every ability tile on the trees' maps now has a picture: the 67 move nodes that showed two letters (a
+  tree's fourth combo hit, sprint attack, air attack and air heavy: Running Cut, Quick Draw, Buzzsaw, Comet Heels...).
+  `gen_skill_icons.py`'s `WEAPON_MOVES` (tree -> node, name, picture), drawn on the tree's plate in the same parts as
+  the skills, named for the **tree node** (`skill_s_dash_16/32/48.png`).
+- **Wiring** (`SkillTrees._move_pics`, at the end of `_build`): a move, or a variant's version, with no skill and no
+  picture given gets `icon = its own id` where `skill_<id>_32.png` exists, so a new move needs only its drawing.
+  Air Cut's tile shows its first version's (k_crescent); Falling Moon keeps its own.
+- **Rule kept while drawing:** a tree already had five to nine pictures of its weapon, so each move is a different
+  *thing* from all of them: a figure (Wheel Sweep, Pole Vault, Falling Cleave, Handstand Spin), an object the name
+  means (a cloven blossom, a split log, a saw blade, a pinwheel, a gravestone, hail from a cloud), a view from the
+  front (the hammer's face, the cannon's muzzle, the sole of the shoe), the victim (boots swept, the dead man's skull).
+  Checked a tree a row beside its skills: `py tools/texture_gen/gen_skill_icons.py --moves` ->
+  `tools/dev/out/iconreview/weapon_moves_<n>.png` (48 px x3, 32 px x2, 16 px x3).
+- **New pieces:** `ring`, `below`, `right_of`, `hit`, `glint`, `streak`, `drill` (a spinning column of rings: draw the
+  rings, the thing, then the rings' front halves), `sheath` (an empty katana sheath).
+- **Gotchas:** `axe()`'s head reads only on a slanted haft (level, it's a blob: Splitting Maul draws the head
+  edge-on instead); a katana drawn corner to corner needs `bend` ~0.15 or it reads as a straight sword; `knife()`
+  wants `w` ~0.075.
+- **Tested by** t/ui/skill_icons (every ability tile on every tree's map has a picture) and the eleven t/ui/skills_*;
+  uishots skills_sword at 1920x1080. Not run: the world suites.
