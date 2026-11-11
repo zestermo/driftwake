@@ -55,6 +55,8 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(40)
 		2:
 			check("a hull 60 m from the captain rides the swell", near.riding and not near.global_transform.is_equal_approx(xf_near))
+			# (2026-11-11) past FULL_R she rides it every FAR_EVERY ticks: a tick's heave is under a pixel out there
+			check("...every %d ticks at that range (%d)" % [near.FAR_EVERY, near._every], near._every == near.FAR_EVERY)
 			check("a hull 400 m away holds still", not far.riding and far.global_transform.is_equal_approx(xf_far))
 			p.global_position = Vector3(380.0, 4.0, 0.0)
 			p.reset_physics_interpolation()
@@ -64,6 +66,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(40)
 		4:
 			check("the far hull rides again once a captain comes near", far.riding and not far.global_transform.is_equal_approx(xf_far))
+			check("...every tick with the captain 20 m off (%d)" % far._every, far._every == 1)
 			check("...and the one left behind holds still", not near.riding)
 			# the ship moored beside the left-behind hull: it holds still till she gets under way
 			var gs := GDScript.new()

@@ -209,7 +209,8 @@ func _reset_update(delta: float) -> void:
 	var p := _target()
 	if reset.stage() != "wind" and p:
 		_face(_flat(p.global_position - global_position))
-	facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
+	if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
 	if reset.stage() == "air":
 		_feed_body(Vector3.ZERO, false)
 		humanoid.grounded = false
@@ -434,7 +435,8 @@ func _special_update(delta: float) -> void:
 		velocity.z = hv.z
 		move_and_slide()
 		if _special != "whirl":
-			facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
+			if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+				facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
 		_feed_body(hv, false)
 	else:
 		_feed_body(Vector3.ZERO, false)

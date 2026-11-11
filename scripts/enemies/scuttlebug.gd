@@ -488,7 +488,8 @@ func _physics_process(delta: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	move_and_slide()
-	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
+	if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
 	if state == S.WANDER and _wander_wait <= 0.0 and get_real_velocity().length() < 0.2:
 		_stuck += delta
 		if _stuck > 0.8:

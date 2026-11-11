@@ -527,7 +527,8 @@ func _physics_process(delta: float) -> void:
 				_face(nd)
 				want = nd * _speed() * 0.6
 	if _fly:
-		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
+		if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+			model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
 		return
 	if is_on_floor() and velocity.y < 0.0:
 		velocity.y = -0.5
@@ -540,7 +541,8 @@ func _physics_process(delta: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	move_and_slide()
-	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
+	if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
 
 
 ## Asleep (or not yet roused): what it does meanwhile (stays put at its post).
@@ -658,7 +660,8 @@ func _reset_tick(delta: float) -> void:
 		_face(_flat(reset.to - global_position))
 	elif p:
 		_face(_flat(p.global_position - global_position))
-	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
+	if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
 	if reset.stage() == "air":
 		return
 	velocity = Vector3(0.0, -0.5 if is_on_floor() else velocity.y - GRAVITY * delta, 0.0)

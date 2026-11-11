@@ -157,7 +157,8 @@ func _physics_process(delta: float) -> void:
 			_special_tick(p, to_p, dist)
 	if _buried() or reset.stage() == "air":
 		# under the floor or leaping home: moved by hand, no physics
-		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
+		if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+			model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
 		return
 	if is_on_floor() and velocity.y < 0.0:
 		velocity.y = -0.5
@@ -167,7 +168,8 @@ func _physics_process(delta: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	move_and_slide()
-	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
+	if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
 
 
 func _begin(what: String) -> void:

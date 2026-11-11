@@ -524,8 +524,8 @@ func _skeleton() -> void:
 	h.hip_y = 0.02 + (0.42 + 0.46) * Ls
 	h.pivot = _node("Pivot", Vector3(0, h.hip_y, 0), h)
 	# (the joints are posed a frame at a time in _process: out of the engine's physics interpolation, which blended
-	# each between ticks and kept every rig on its lists; the body over them still interpolates. Set on the bare pivot,
-	# before its parts: set once they're there it gains nothing. Humanoid.TURN_EPS, dev_notes 2026-11-11)
+	# each between ticks and kept every rig on its lists; the body over them still interpolates. Humanoid.TURN_EPS,
+	# dev_notes 2026-11-11)
 	h.pivot.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	h.hips = _node("Hips", Vector3.ZERO, h.pivot)
 	h.leg_l = _node("LegL", Vector3(-lg, -0.02, 0), h.hips)

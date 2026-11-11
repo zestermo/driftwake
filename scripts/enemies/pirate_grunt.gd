@@ -3380,7 +3380,8 @@ func _swim_update(delta: float) -> void:
 	_swim_vy = clampf(_swim_vy, -12.0, 6.0)
 	velocity = Vector3(hv.x, _swim_vy, hv.z)
 	move_and_slide()
-	facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(5.0 * delta, 1.0))
+	if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(5.0 * delta, 1.0))
 	_feed_body(hv, false)
 	humanoid.armed = false
 	humanoid.grounded = false

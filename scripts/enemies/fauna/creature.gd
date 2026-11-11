@@ -365,7 +365,8 @@ func _physics_process(delta: float) -> void:
 		_fly(delta)
 	else:
 		_walk(delta)
-	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
+	if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(_turn * delta, 1.0))
 
 
 ## (1.28) In a tar pool or on caltrops (GadgetZone, the host's): its steps at `k` of their speed for `secs`.

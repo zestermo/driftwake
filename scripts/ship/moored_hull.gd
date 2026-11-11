@@ -7,6 +7,10 @@ const HEAVE := 0.7
 const NEAR := 80.0
 const FAR := 90.0
 const CHECK_TICKS := 15
+## Past this from every captain (and the ship under way) she rides it every FAR_EVERY ticks (2026-11-11: 13 hulls in
+## Brinehollow's harbour were a fifth of the town's physics scripts; a tick's heave out there is a fraction of a pixel).
+const FULL_R := 30.0
+const FAR_EVERY := 3
 
 ## Origin height above the water, and how far bow and stern are from the middle.
 var freeboard := HullLayout.FREEBOARD
@@ -15,6 +19,7 @@ var riding := true
 
 var _base: Transform3D
 var _check := 0
+var _every := 1
 
 
 func _ready() -> void:
@@ -27,7 +32,10 @@ func _physics_process(_delta: float) -> void:
 	if _check <= 0:
 		_check = CHECK_TICKS
 		riding = _anyone_within(FAR if riding else NEAR)
+		_every = 1 if not riding or _anyone_within(FULL_R) else FAR_EVERY
 	if not riding:
+		return
+	if _every > 1 and (Engine.get_physics_frames() + get_instance_id()) % _every != 0:
 		return
 	var p := _base.origin
 	var fwd := -_base.basis.z

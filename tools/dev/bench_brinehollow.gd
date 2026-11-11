@@ -118,6 +118,10 @@ var isles_done := -1.0
 var melee_camp
 var melee_up := -1.0
 var _fti_done := false
+var _hums: Array = []
+var _hums_stop := -1
+var _walk_sum := 0
+var _walk_n := 0
 ## Hitches (base frames over HITCH_MS): each with its split, pipelines compiled and Perf's marks.
 var hitches: Array = []
 var pipes_at := PackedInt64Array()
@@ -746,6 +750,14 @@ func _step(d: float) -> void:
 			r["base"] = _summarise()
 			r["frames"] = rec["frame"].duplicate()
 			_viewports_line()
+			# (2026-11-11: the machine's script speed right after this stop's sample. On the Balanced power plan the whole CPU
+			# ran 10-15% slower for a minute at a time, the same code reading 13.3 and 15.0 ms; compare stops by frame / calib)
+			r["calib"] = _calib()
+			r["walking"] = float(_walk_sum) / maxf(_walk_n, 1)
+			print("bench: walking %s %.1f bodies on the move" % [stops[si], r["walking"]])
+			_walk_sum = 0
+			_walk_n = 0
+			print("bench: calib %s %.2f ms" % [stops[si], r["calib"]])
 			r["pipes"] = base_pipes
 			base_pipes = 0
 			# (after the sample: its save was ~65 ms in the base's first frame; the next phase's LEAD or settle skips it)
@@ -991,6 +1003,18 @@ func _sample(d: float) -> void:
 	_rec("nodes", Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	_rec("active", Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))
 	_rec("pairs", Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS))
+	# (2026-11-11: bodies on the move this frame, every 8th frame. A moving body is written every frame, and the engine's
+	# interpolation then walks all its nodes: the same code read 14.3 and 15.8 ms at the plaza by how many were walking)
+	if Engine.get_process_frames() % 8 == 0:
+		if _hums_stop != si:
+			_hums_stop = si
+			_hums = root.find_children("*", "", true, false).filter(func(n): return is_instance_of(n, humanoid_gd))
+		var w := 0
+		for hm in _hums:
+			if is_instance_valid(hm) and hm.is_processing() and hm.is_visible_in_tree() and hm.ground_speed > 0.05:
+				w += 1
+		_walk_sum += w
+		_walk_n += 1
 
 
 ## The other viewports drawn this frame (2026-11-10: the root's rcpu is only part of the draw): each SubViewport's
@@ -1421,7 +1445,7 @@ func _finish() -> void:
 	L.append(" TIME_PROCESS / TIME_PHYSICS_PROCESS (the F8 overlay's numbers: the worst in the last second, process including the draw);")
 	L.append(" draws/objects/prims_k = the visible pass, sh_* the shadow pass, tot_* both (the F8 overlay's DRAWS / PRIMS))")
 	for s in stops:
-		L.append("  %-8s %s; pipelines compiled in base %d" % [s, results[s]["enemies"], results[s]["pipes"]])
+		L.append("  %-8s %s; pipelines compiled in base %d; calib after it %.2f ms; %.1f bodies on the move" % [s, results[s]["enemies"], results[s]["pipes"], float(results[s].get("calib", 0.0)), float(results[s].get("walking", 0.0))])
 	L.append("")
 	L.append("== hitches (frames over %.0f ms in any phase once the route began: the split of that frame, pipelines compiled" % HITCH_MS)
 	L.append("  canvas/mesh/surface/draw/specialization, nodes made, Perf's marks; settle = just after the jump to the stop)")

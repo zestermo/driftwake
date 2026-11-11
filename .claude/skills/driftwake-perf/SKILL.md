@@ -75,12 +75,15 @@ are the history: v1.13 ran 42 ms a frame in Brinehollow, v1.14 9.2 ms.
 - Ablation flags (2026-11-10/11), each a measurement, not a look: `norigs` / `rigs=N` (bodies stop posing), `nofti`
   (physics interpolation off), `nobob` (hulls stop riding the swell), `ftioff=World/Islands+World/Ship` (those
   subtrees out of the interpolation), `ftitree` (node counts of the tree's top levels). **Bound a fix with one of
-  these before building it**, and bench a base run before and after the ablation: two base runs agree within
-  ~0.1 ms at the town stops on a quiet machine; if they don't, something else is running.
+  these before building it**. **One run each is not an A/B** (2026-11-11): the same code read 14.3 to 16.1 ms at
+  the plaza over nine runs on an idle machine (the start calib flat, the same draws, the same bodies walking: cause
+  not found), and several "findings" made from single runs that day didn't survive. Run each side three times or
+  more and compare the means; for one script's cost read the probe's per-script ms (`gate` mode), which holds.
+  Each stop's line in the result has `calib after it` and `bodies on the move` to rule those two out.
 - **Never write an unchanged transform on a node with a big subtree** (a body, a hull): with physics interpolation
-  on, a written Node3D has its whole subtree re-walked and re-uploaded every frame (`Humanoid.TURN_EPS`; ~3 ms a
-  frame of the town was this, dev_notes 2026-11-11). Things posed in `_process` go out of the interpolation
-  (`physics_interpolation_mode = OFF`, set before their children are added), as the rigs' joints are.
+  on, a written Node3D has its whole subtree re-walked and re-uploaded every frame (`Humanoid.TURN_EPS`; guarding
+  the bodies' turns and taking the joints out took ~1.3 ms off the town, dev_notes 2026-11-11). Things posed in
+  `_process` go out of the interpolation (`physics_interpolation_mode = OFF`), as the rigs' joints are.
 - Output in `tools/dev/out/bench/`: `brinehollow_<label>.txt` (results), `.log` (the whole Godot log),
   `brinehollow_<label>_<stop>.png` (one screenshot per stop, taken after its base sample so the save never
   lands in a measured frame: check the world looked right).

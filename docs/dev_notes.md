@@ -11516,9 +11516,10 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
 - **Joints out of the interpolation:** `pivot.physics_interpolation_mode = OFF` in BodyBuilder._skeleton and
   ApeBuilder (the body over them still interpolates). They're posed a frame at a time in _process, so the blend was
   never wanted (the cloth "haze" note of 10-05 was this mismatch). With the guards: 15.13 / 14.06.
-  **Set it on the bare pivot, before its parts**: set after the rig is built (outside the tree) it gained nothing
-  (16.39); switched as the rig enters the tree 15.55; on its first pose 15.43.
-- **Open lead, not understood:** switching every rig's pivot INHERIT -> OFF from the bench, 40 s into the run, read
+  (**Struck, see the correction in the next section: these single runs were inside the run-to-run spread.**)
+  ~~Set it on the bare pivot, before its parts: set after the rig is built (outside the tree) it gained nothing
+  (16.39); switched as the rig enters the tree 15.55; on its first pose 15.43.~~
+- **(Struck too: not a finding.)** ~~Open lead, not understood:~~ switching every rig's pivot INHERIT -> OFF from the bench, 40 s into the run, read
   14.37 / 13.43 twice (0.75 ms better than built off), same draws, nothing in the game handles the reset. Not
   reproduced by any switch the game can make deterministically. Needs the engine source or a native profiler.
 - **The grunt's tick, timed in the melee** (temporary timers; 25 grunts, 2.63 ms a tick): move_and_slide 0.86, think
@@ -11540,3 +11541,35 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   grunt don't interpolate, the bodies do), t/gear/coat_drape, hakama_split, pauldron_follow, t/world/far_figures,
   one_skin_ragdoll, actor_sleep, t/combat/rival_rig_lod, hit_jolt, lock_on, t/fauna/grunt_steps. Not run (prepush):
   swimtest and perftest (a grunt knocked into the sea: `_sea_in`), clothlab, nettest (puppets' rigs), the world suites.
+
+## 2026-11-11 (later): the other bodies' turn guards, far moored hulls, and a correction to the section above
+- **Correction: single runs were over-read above.** The same code (this commit's) read **14.27, 15.77, 15.81, 14.86,
+  15.32, 15.27, 14.91, 16.12, 16.12 ms** at the plaza over nine quick runs on an idle machine (market 13.15 to 14.95).
+  Not the machine's script speed (the bench now takes `calib` after every stop: flat at 23.4-23.7 ms), not what's
+  drawn (same draws, objects and triangles), not how many bodies walk (3.3-3.8 at the plaza every run). Cause not
+  found. The old code (c0b197a0) was tight: 16.70, 16.68, 16.75, 16.84, 16.54 over five runs.
+  What that leaves of the section above:
+  - **Holds:** the three changes together took the town from ~16.7 to ~15.4 ms at the plaza (means; -1.3 ms, ~8%),
+    ~15.3 to ~14.0 at the market, ~28.7 to ~25.1 in the melee (three old runs, five new). The sea check's 0.66 ->
+    0.19 ms a tick is from timers inside the tick and holds.
+  - **Doesn't hold:** every comparison between ways of setting the joints' mode (bare pivot 15.13, after the build
+    16.39, on entering the tree 15.55, on first pose 15.43, switched late from the bench 14.37): all inside the
+    nine-run spread. So "set it before the parts are added" and the "open lead" of 0.75 ms are **not findings**.
+    Nor is the split between the turn guards and the joints (one guard-only run, 15.86).
+  - **Weaker than written:** `nofti`'s ~3 ms is one run (13.70 against 16.7); it is below every run of the new code,
+    so interpolation still costs something, how much isn't known to better than a millisecond.
+- **Turn guards on the other bodies** (`Humanoid.TURN_EPS`): jungle_ape (3 sites), pirate_boss (2), jungle_beast
+  (3), brood_queen (2), creature, scuttlebug, canopy_spitter, captain_brain, and the grunt's swim turn. The write is
+  skipped when the facing is already there. Not measured on a stop (none has them awake); no behaviour change.
+- **Moored hulls** (`moored_hull.gd`): past `FULL_R` 30 m from every captain (and the ship under way) a riding hull
+  takes the swell every `FAR_EVERY` 3rd tick, staggered. 13 hulls in Brinehollow's harbour were 0.23 ms a tick, a
+  fifth of the town's physics scripts; the probe (gate mode, per-script) now reads physics scripts **1.10 -> 0.97
+  ms a tick at the plaza, 0.94 -> 0.84 at the market**. A tick's heave at 30 m is about a third of a pixel on the
+  960x540 grid. **Zach to look at:** hulls at the far end of the harbour from the plaza.
+- **Not touched:** the crew's ship (0.18 ms a tick + 0.11 a frame at anchor) and the one enemy ship awake near
+  Brinehollow (0.25 ms a tick): gameplay sims; they're now the two biggest tick scripts in the calm town.
+- **bench:** each stop's line has `calib after it` and `bodies on the move` (rigs with ground_speed > 0.05, sampled
+  every 8th frame). Rule for A/Bs from now on: three runs a side, compare means; the probe for a single script.
+- **Tested by** t/ship/moored_hulls (every 3rd tick at 60 m, every tick with the captain 20 m off), t/beast/ape_phases,
+  bear_king, roamers, t/boss/captain_phase_reset, brood_phase_reset, morrow_phase_reset, t/fauna/thorn_boar,
+  bog_hound, grunt_steps, t/combat/rival_rig_lod.

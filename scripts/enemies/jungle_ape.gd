@@ -334,7 +334,8 @@ func _physics_process(delta: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	move_and_slide()
-	facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(7.0 * delta, 1.0))
+	if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(7.0 * delta, 1.0))
 	_feed_body(hv, running)
 
 
@@ -628,10 +629,12 @@ func _special_update(delta: float) -> void:
 		velocity.x = hv.x
 		velocity.z = hv.z
 		move_and_slide()
-		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
+		if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+			facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
 		_feed_body(hv, false)
 	else:
-		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
+		if absf(angle_difference(facing.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+			facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
 		_feed_body(Vector3.ZERO, false)
 		humanoid.grounded = false
 

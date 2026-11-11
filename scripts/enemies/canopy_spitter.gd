@@ -139,7 +139,8 @@ func _physics_process(delta: float) -> void:
 			if global_position.y >= anchor.y - 0.01:
 				health.heal(health.max_health)
 				_set_state(S.HIDE)
-	model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(10.0 * delta, 1.0))
+	if absf(angle_difference(model.rotation.y, _yaw)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(10.0 * delta, 1.0))
 
 
 ## Gave up on the ground: back under its tree, then up the thread.

@@ -294,7 +294,8 @@ func _face_fight() -> void:
 	if d.length() < 0.5:
 		return
 	var want := atan2(-d.x, -d.z)
-	p.player_model.rotation.y = lerp_angle(p.player_model.rotation.y, want, 0.06)
+	if absf(angle_difference(p.player_model.rotation.y, want)) > Humanoid.TURN_EPS:   # (only when it turns: Humanoid.TURN_EPS)
+		p.player_model.rotation.y = lerp_angle(p.player_model.rotation.y, want, 0.06)
 
 
 ## The head on the fight: always for a watcher, now and then (a glance up) for the rest.
