@@ -11752,3 +11752,11 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
 - **Perf baseline reset** (it was a077df94, 2026-10-24, before 1.27): benched on the v1.30.3 tag (the worktree
   C:\GD\dw_v1303, its own perf_gate -Update), so the gate measures 1.31 against the last release. v1.30.3 on this
   machine: mean frame 14.20 ms at 13:00, 13.83 at 21:00 (calib 23.9).
+- **Release gate, 2026-11-11** (`prepush.ps1 -Release` on d5c04fda): every test up to date or carried (114 + 217
+  run over two passes, the seven co-op modes OK). Perf against v1.30.3 on this machine: mean frame **14.20 -> 14.12 ms
+  at 13:00 (-1%), 13.83 -> 14.02 at 21:00 (+1%)**, frame1t the same, draws + shadow draws -3 / +11 of ~1,190; the
+  widest stops +10% (dock, yard by day), +13% (terrace by night), isles -9%. Inside the 15% / 35% allowance.
+  **The gate still says fail on its absolute rule, physics ticks a frame over 0.8** (0.85 / 0.84): v1.30.3 is 0.85 /
+  0.83, so it's the standing frame time (over the 12 ms target), not 1.31. Shipped on that reading (Zach: "push and
+  release it"); the rule can't pass until the mean frame is under ~13.3 ms, so either it becomes relative to the
+  baseline or the optimisation pass comes first. New stop with no baseline: melee 28.1 ms by day (25.0 frame1t).

@@ -60,3 +60,6 @@ the icon redo (skills, moves, items) and the design language document; the relea
   (Balestra's hit is a `pierce` along the line it runs). Both pass.
 - rival_personality's plunge and t/gadgets/decoy's Mk III burst are in flaky.txt (retried once).
 - Then: `prepush.ps1` (tests, push), the perf baseline on the v1.30.3 worktree, `perf_gate.ps1`, tag v1.31.
+- **Done 2026-11-11:** tests green (two prepush passes), baseline reset on v1.30.3, perf within 1% of it (the gate's
+  absolute ticks rule fails as it does for v1.30.3: dev_notes "Release gate, 2026-11-11"), main pushed, **v1.31
+  tagged (unstable)**. The v1.30.3 worktree C:\GD\dw_v1303 can go (`git worktree remove`).
