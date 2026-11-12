@@ -79,9 +79,10 @@ func _process(d: float) -> bool:
 			wait = 0.6
 			step += 1
 		5:
-			# a cannon-ball blast throws you over the rail
+			# a cannon-ball blast throws you over the rail (9 up clears today's bulwark, as the Swell's throw does:
+			# 5 up, from when the sloop's rail was lower, lands you against it)
 			max_gap = 0.0
-			p.knock_down(ship.global_basis.x * 12.0 + Vector3.UP * 5.0)
+			p.knock_down(ship.global_basis.x * 12.0 + Vector3.UP * 9.0)
 			wait = 3.0
 			step += 1
 		6:

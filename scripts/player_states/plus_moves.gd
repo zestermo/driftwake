@@ -587,7 +587,7 @@ const MOVES := {
 			[0.64, "mirror"], [0.64, "trail", 0.22], [0.64, "sfx", "whoosh_big", -3.0, 1.3], [0.64, "kick", 0.12, 0.25], [0.66, "spray", 10]]},
 	"balestra": {"tree": "rapier", "slot": "tech", "kind": "skill", "name": "Balestra", "dur": 0.85,
 		"pose": ["rp_dash", 0.65], "enter": [["through"]], "dash": [[0.16, 0.4, 17.0]],
-		"at": [[0.08, "glint"], [0.08, "sfx", "thud", -8.0, 1.4], [0.36, "cone", 3.0, 0.6, 26.0, 8.0, "breaker"], [0.36, "mirror"],
+		"at": [[0.08, "glint"], [0.08, "sfx", "thud", -8.0, 1.4], [0.36, "pierce", 3.0, 3.6, 1.1, 26.0, 8.0, "breaker"], [0.36, "mirror"],
 			[0.36, "trail", 0.25], [0.36, "sfx", "whoosh_big", -3.0, 1.35], [0.38, "spray", 10], [0.38, "kick", 0.12, 0.25]]},
 	"hall_of_mirrors": {"tree": "rapier", "slot": "ult", "kind": "skill", "name": "Hall of Mirrors", "dur": 2.6, "need": true,
 		"pose": ["rp_parry", 0.6], "enter": [["invuln", true], ["moment"], ["gather"], ["mirror"], ["sfx", "whoosh_big", -2.0, 1.3]],

@@ -11737,3 +11737,15 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   under load, once alone) and passed twice (once on the commit before, once with these changes) on the same code:
   the burst's sphere misses the grunt it was set beside. Added to flaky.txt; not hunted (it's not in this change's
   path: no icon or UI code runs in it).
+
+## 2026-11-11: 1.31 release run: Balestra hits what it runs through; decktest's throw
+- **Balestra** (rapier) did no damage to a foe closer than ~3.4 m: its cone fired at 0.36 s, after the 17 m/s dash
+  (from 0.16 s) had carried the captain past them, and a cone skips what's behind. Its text says "through everyone on
+  the line". New op **`pierce ahead behind width dmg knock flags`** (PlusArts; `_line` gained `back`): everyone on the
+  line the lunge has run through and still reaches, a streak along it. Balestra: `[0.36, "pierce", 3.0, 3.6, 1.1, 26,
+  8, "breaker"]`. t/weapons/rapier_tree (red since before 1.30.3) passes: 148 damage on the dummy.
+- **decktest "thrown over the rail"** (red since before 1.30.3) was stale: its blast was 12 out / 5 up from when the
+  sloop's bulwark was lower, and the body stopped against the rail (hips at local x 4.1, aboard). 9 up, the Swell's
+  own throw, clears it; the root follows the body overboard and the captain comes up in the sea.
+- **Release text** brought up to today: What's new gains "New pictures", the releases page's v1.31 section the new
+  icons and the fixes, the roadmap's entry the date and the icons.

@@ -979,7 +979,7 @@
 		{
 			"v": "1.31",
 			"name": "Game Feel",
-			"date": "2026-11-10",
+			"date": "2026-11-11",
 			"unstable": true,
 			"status": "shipped",
 			"headline": "A new look and a new way to fight: cel shading and a toon sea, attacks that go where you push, lock-on, a camera that frames the fight, and motion everywhere.",
@@ -989,7 +989,8 @@
 			"added": [
 				["Cel shading", "Dithered two-step light, ink silhouettes and a toon sea; foliage, hair and coats in the wind."],
 				["Fight where you push", "Omni attacks, a target chevron, lock-on and a combat camera."],
-				["Motion", "Screen feel, banking and jolts, one-arm ropes, deck jobs, the skimmer's lean and Roll Out."]
+				["Motion", "Screen feel, banking and jolts, one-arm ropes, deck jobs, the skimmer's lean and Roll Out."],
+				["New icons", "Every skill and item icon redrawn in ink and cel; skill trees show abilities as picture tiles."]
 			]
 		},
 		{

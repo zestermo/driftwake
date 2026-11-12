@@ -12,7 +12,7 @@ extends RefCounted
 ## Ops (s is the TechniqueState, its helpers do the work; damage through Player.melee_hit so the Edy and the tree's
 ## bonuses count):
 ##   aim r · hop fwd up · dive speed · through · blink behind|side|front · pose a len · hold a blend · stop
-##   cone reach cos dmg knock flags · ring reach dmg knock flags · line len width dmg knock flags · hit reach dmg knock
+##   cone reach cos dmg knock flags · ring reach dmg knock flags · line len width dmg knock flags · pierce ahead behind width dmg knock flags (a lunge's: what it ran through too) · hit reach dmg knock
 ##   flags (the aimed foe) · fire reach n dmg flags (shots) · proj kind dmg · drag reach dmg (inward)
 ##   each reach n every tail op... (one op per foe round you, closest first; each_at: round the mark) · mark (the
 ##   reticle's spot) · here (where you stand) · blast d r dmg knock flags (a burst on the ground d ahead; d < 0: on
@@ -174,6 +174,10 @@ static func _op(s, a: Array) -> void:
 		"ring":
 			_hit(s, s._pc.enemies_in(p.global_position + Vector3(0, 0.9, 0), float(a[1])), float(a[2]), float(a[3]), str(a[4]))
 			_net(s).fx("ring", [p.global_position + Vector3(0, 0.2, 0), Vector3.UP, float(a[1]), s._col(), 0.3, 0.14])
+		"pierce":
+			# a lunge's blow: everyone on the line it has run through (a[2] behind) and still reaches (a[1] ahead)
+			_hit(s, _line(s, float(a[1]), float(a[3]), float(a[2])), float(a[4]), float(a[5]), str(a[6]))
+			_net(s).fx("streak", [s._chest() - s._dir * float(a[2]), s._chest() + s._dir * float(a[1]), s._col(), 0.16, 0.35])
 		"line":
 			_hit(s, _line(s, float(a[1]), float(a[2])), float(a[3]), float(a[4]), str(a[5]))
 			_net(s).fx("ground_crack", [p.global_position + s._dir * 0.8, s._dir, float(a[1]), s._col(FXS.ACCENT) if s._elem() else Color(0, 0, 0, 0), randi() % 10000, 0.12])
@@ -433,15 +437,15 @@ static func _cone(s, reach: float, cone: float) -> Array:
 	return out
 
 
-## Everyone on a line `length` ahead, `width` either side.
-static func _line(s, length: float, width: float) -> Array:
+## Everyone on a line `length` ahead (and `back` behind: a lunge's, what it ran through), `width` either side.
+static func _line(s, length: float, width: float, back := 0.5) -> Array:
 	var p: Player = s.player
 	var out: Array = []
-	for e in s._pc.enemies_in(p.global_position + Vector3(0, 0.9, 0) + s._dir * length * 0.5, length * 0.5 + width):
+	for e in s._pc.enemies_in(p.global_position + Vector3(0, 0.9, 0) + s._dir * (length - back) * 0.5, (length + back) * 0.5 + width):
 		var d: Vector3 = (e as Node3D).global_position - p.global_position
 		d.y = 0.0
 		var along := d.dot(s._dir)
-		if along >= -0.5 and along <= length and (d - s._dir * along).length() <= width:
+		if along >= -back and along <= length and (d - s._dir * along).length() <= width:
 			out.append(e)
 	return out
 

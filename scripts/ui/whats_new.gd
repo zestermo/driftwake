@@ -12,6 +12,7 @@ const NOTES := [
 	["A camera for fights", "With your blade out the camera draws back to fit the fight and leans toward it, never turning your view (Gameplay > Combat camera)."],
 	["Screen feel", "A red edge at low health, a blink when you're knocked flat, speed streaks when you fly, a bob at a sprint (Gameplay > Screen effects)."],
 	["Moves and work", "Ropes in either hand, one-arm grapple pulls, a skimmer you mount mid-air and jump off, Roll Out for tall drops, and every deck job animated."],
+	["New pictures", "Every skill and item icon redrawn in ink and cel, and the skill trees show each ability as a picture. Saves keep your bounty, sea chest and arena rank; big fights run smoother."],
 ]
 
 
