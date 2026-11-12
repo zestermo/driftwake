@@ -11749,3 +11749,6 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   own throw, clears it; the root follows the body overboard and the captain comes up in the sea.
 - **Release text** brought up to today: What's new gains "New pictures", the releases page's v1.31 section the new
   icons and the fixes, the roadmap's entry the date and the icons.
+- **Perf baseline reset** (it was a077df94, 2026-10-24, before 1.27): benched on the v1.30.3 tag (the worktree
+  C:\GD\dw_v1303, its own perf_gate -Update), so the gate measures 1.31 against the last release. v1.30.3 on this
+  machine: mean frame 14.20 ms at 13:00, 13.83 at 21:00 (calib 23.9).
