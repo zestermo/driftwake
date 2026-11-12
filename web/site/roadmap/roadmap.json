@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.27",
+	"here": "1.31",
 	"versions": [
 		{
 			"v": "0.1",
@@ -854,6 +854,7 @@
 			"headline": "Everything a two-hour co-op playtest turned up: more from every weapon, a new Brinehollow opening, a round Edy tree, villages worth finding, and saves without a limit.",
 			"img": "edy_banner",
 			"alt": "EDY over a night sea, and the five types' symbols",
+			"news": "/news/v1-26-the-playtest-overhaul/",
 			"github": true,
 			"added": [
 				["Weapons", "Every weapon: a second ultimate, a second crew technique, alternates, a launcher, an aerial heavy and bridges."],
@@ -872,6 +873,7 @@
 			"headline": "The Admiralty's stronghold as a raid ending in the Scouring, ten Driftfruits with five powers, two ultimates and an awakening each, and cities with undercities, upper floors and a night life.",
 			"img": "preview_127",
 			"alt": "Ironveil Hold seen from the sea, the Verdict's tower rising over it",
+			"news": "/news/v1-27-fortresses-and-fruit/",
 			"github": true,
 			"added": [
 				["The stronghold", "A hidden Admiralty fortress per world: districts, sealed rooms, three officers, muster flags, the vault and the Scouring."],
@@ -920,6 +922,7 @@
 			"headline": "Gadgets and life skills, three new weapons, two new island types, stops and great ships between the islands, and leviathans.",
 			"img": "preview_128",
 			"alt": "A coral atoll's stilt town over a turquoise lagoon",
+			"news": "/news/v1-28-tinkerers-and-the-open-sea/",
 			"github": true,
 			"added": [
 				["Gadgets and life", "Gadgets at the workbench, collectible books, island dishes and crew feasts, fishing by island with legends to land."],
@@ -936,6 +939,7 @@
 			"headline": "Your ship made a home: a cabin that grows with you, a galley pantry, your own flag, paint and figurehead, and new clothes.",
 			"img": "preview_129",
 			"alt": "The sloop's great cabin: a mess table, a stove and stern windows",
+			"news": "/news/v1-29-shipshape/",
 			"github": true,
 			"added": [
 				["The cabin", "Stepped down into the hull, and a Quarters upgrade that grows it to a great cabin."],
@@ -952,6 +956,7 @@
 			"headline": "A log that always says what's next, wall runs and air dashes, bosses that reset and fight back, the Admiralty raid, and the brig and galleon.",
 			"img": "preview_130",
 			"alt": "The floating restaurant's carved fish-head bow and timber hall, afloat on a blue sea",
+			"news": "/news/v1-30-full-sail/",
 			"github": true,
 			"added": [
 				["Always a next step", "A standing goal in the objective box and a Captain's Log with NEXT, QUESTS, NEWS and DONE."],
@@ -980,16 +985,17 @@
 			"v": "1.31",
 			"name": "Game Feel",
 			"date": "2026-11-11",
-			"unstable": true,
 			"status": "shipped",
-			"headline": "A new look and a new way to fight: cel shading and a toon sea, attacks that go where you push, lock-on, a camera that frames the fight, and motion everywhere.",
-			"img": "preview_130",
-			"alt": "The floating restaurant's carved fish-head bow and timber hall, afloat on a blue sea",
+			"headline": "A new look and a new way to fight: cel shading and a toon sea, attacks that go where you push, lock-on, a camera that frames the fight, motion everywhere, and clothes that hang.",
+			"img": "preview_131",
+			"alt": "Brinehollow's market street in cel shading: thatched half-timbered houses either side of a cobbled lane, the captain in a blue coat",
+			"news": "/news/v1-31-game-feel/",
 			"github": true,
 			"added": [
 				["Cel shading", "Dithered two-step light, ink silhouettes and a toon sea; foliage, hair and coats in the wind."],
 				["Fight where you push", "Omni attacks, a target chevron, lock-on and a combat camera."],
 				["Motion", "Screen feel, banking and jolts, one-arm ropes, deck jobs, the skimmer's lean and Roll Out."],
+				["Clothes and music", "Coats and capes as sewn cloth, new gear slots, sea tracks under sail and a sound pass (from 1.30.3)."],
 				["New icons", "Every skill and item icon redrawn in ink and cel; skill trees show abilities as picture tiles."]
 			]
 		},

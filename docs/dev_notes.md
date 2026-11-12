@@ -11760,3 +11760,6 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   0.83, so it's the standing frame time (over the 12 ms target), not 1.31. Shipped on that reading (Zach: "push and
   release it"); the rule can't pass until the mean frame is under ~13.3 ms, so either it becomes relative to the
   baseline or the optimisation pass comes first. New stop with no baseline: melee 28.1 ms by day (25.0 frame1t).
+
+## v1.31 made stable (2026-11-12)
+- v1.31 was tagged unstable (tools/release/UNSTABLE left from 1.30.x); Zach: it should be stable. GitHub release flipped (`gh release edit v1.31 --prerelease=false --latest`), UNSTABLE removed, the releases page moves v1.31 to Stable (with a v1.30.3 bullet: everything since v1.30.2), news post v1-31-game-feel, home latest, roadmap (1.31 no longer unstable, "here" 1.31: it had been left on 1.27; news links backfilled for 1.26-1.30). Images: preview_131 (celshot day), toon-sea, cel-night (celshot), skill-icons (skillmapshot combat at 1920x1080). The installed build needs no rebuild: the updater reads the release's prerelease flag from GitHub.
