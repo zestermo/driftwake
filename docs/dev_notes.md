@@ -11699,3 +11699,41 @@ Plaza / market / melee (quick, editor build, 5600G + 3080), ms a frame: **16.68 
   wants `w` ~0.075.
 - **Tested by** t/ui/skill_icons (every ability tile on every tree's map has a picture) and the eleven t/ui/skills_*;
   uishots skills_sword at 1920x1080. Not run: the world suites.
+
+## 2026-11-11: item icons in ink and cel, 32 px
+- **What:** every item's picture is now **32 px** (was 24, shown at 1.5x) in the skill icons' style, and shown as
+  drawn: 2 screen pixels a texel at 1080p. Zach picked 32 over 36 (the 16 / 32 / 48 system the skill icons use).
+- **Painted** (`tools/texture_gen/gen_item_icons.py`, 79): food, dishes, ingredients, materials, beast parts, the
+  ten Driftfruit, coin, sea-gem, the plain weapons. Parts in 0..1 on gen_skill_icons' `Icon`, no plate or frame.
+  `--write`: `<id>.png` (32), `<id>_16.png`, `<id>_48.png`; the .tres items point at `<id>.png` as before.
+  Helpers: `ball`, `driftfruit` (one form, ten ramps), `bowl` (+ `bits`, `steam`; its material says the island),
+  `plate`, `sack`, `skewer`. **Draw from the item's name and description, not its file name**: `fish` is Grilled
+  Snapper on a stick, `iron` is Scrap Iron (a knee, a band, a bolt), `copper` is Copper Sheet.
+- **Drawn by the game, same manner, 32 px:**
+  - `WeaponDesigns.mesh_icon` (weapons, fish, bait, rods, gadgets, books, instruments): each surface in a flat tone,
+    a facet turned up-left lit and one turned down-right in shadow, a light edge along the silhouette's upper left
+    and a shadow along its lower right, ink round it and between two materials (on the one behind). Rows are filled
+    by span (where the row's middle crosses the triangle's edges), not a point-in-triangle test a pixel: the item
+    table's load is 671 ms with 99 weapon icons at 32 px (was 618 at 24).
+  - `GearIcons`: the shapes stay on their 24 grid and are drawn `K` = 32/24 times that; each layer flat with a
+    shadow rim (2 px on a big layer) and a light edge, ink where it lies over another; `d` / `l` layers (folds,
+    bands of the same cloth) flat and uninked. Patterns re-pitched for 32.
+- **Sizes a screen** (`ItemData.sized(tex, px)`: a painted icon's own 16 / 48 rendering, anything else as it is):
+  inventory / shop / container slots 32 in a 42 slot (`InventoryScreen.ICON`); HUD quick slot 32 (already);
+  wheels 32 (was 24); pickup toasts, the meal, the gold counter and the shop's coin 16; galley and workbench lists
+  16, their cards 32; fish journal cells 34; gadget belt slots 36; the skill map's header chip, chart hubs and
+  loadout chips hold 32 (`HEAD_H` 40, loadout chips 38 high); a tree's root ring 48 across (`ROOT_R` 24); vendor
+  badges and the capital's signs read the 32 px file.
+- **Old generators:** `gen_psx_textures.py`'s `_icon` returns at once (its 24 px item and skill drawings would
+  overwrite the new files); `gen_dish_icons.py`, `gen_ship_icons.py`, `gen_staff_icons.py`, `gen_sickle_icons.py`
+  are gone. The dead drawing functions in gen_psx_textures.py (lines ~957-3280) can be deleted in a quiet moment.
+- **Looking at them:** `py tools/texture_gen/gen_item_icons.py` (old beside new in slots, and a 48 / 16 sheet);
+  `tools/dev/itemicons.gd` (headless: every model-drawn icon and a spread of gear, in slots at 2x).
+- **Tested by** t/ui/item_icons (every item 32 px, the painted ones' 16 and 48, sized(), gear, the slot) and the
+  t/ui, t/gear, t/items, t/food, t/fishing, t/gadgets, t/books groups; uishots inventory, items, shop, belt,
+  skills_sword and skillmapshot at 1920x1080. **Not looked at in a render:** the galley, the fish journal and the
+  workbench screens (no shot tool opens them). Not run: the world suites.
+- **Flake seen while testing this:** t/gadgets/decoy's "a Mk III goes off when it falls apart" failed twice (once
+  under load, once alone) and passed twice (once on the commit before, once with these changes) on the same code:
+  the burst's sphere misses the grunt it was set beside. Added to flaky.txt; not hunted (it's not in this change's
+  path: no icon or UI code runs in it).

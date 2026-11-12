@@ -21,7 +21,10 @@ const RARITY_VALUE := [1.0, 1.6, 2.56, 4.1, 6.55, 10.49, 16.78]
 @export var stackable: bool = true
 @export var max_stack: int = 99
 @export var item_type: ItemType = ItemType.LOOT
+## The item's picture, 32 px (painted: tools/texture_gen/gen_item_icons.py; a weapon's, fish's or gadget's from its
+## model: WeaponDesigns.mesh_icon; gear's: GearIcons). Shown smaller or larger with sized().
 @export var icon: Texture2D
+static var _sized: Dictionary = {}
 
 @export_group("Weapon")
 ## Model name understood by Props.weapon_mesh() ("cutlass", "axe").
@@ -124,3 +127,19 @@ func type_name() -> String:
 		ItemType.CONSUMABLE:
 			return "Consumable"
 	return "Loot"
+
+
+## `tex` at the size nearest `px` (16 / 32 / 48): a painted icon's own rendering at that size (<name>_16.png and
+## <name>_48.png beside <name>.png); any other picture as it is (the screen scales it: 16 is a clean half).
+static func sized(tex: Texture2D, px: float) -> Texture2D:
+	if tex == null:
+		return null
+	var want := 16 if px <= 20.0 else (48 if px >= 44.0 else 32)
+	var path := tex.resource_path
+	if want == 32 or not path.ends_with(".png"):
+		return tex
+	var key := "%s@%d" % [path, want]
+	if not _sized.has(key):
+		var p := "%s_%d.png" % [path.trim_suffix(".png"), want]
+		_sized[key] = load(p) if ResourceLoader.exists(p) else tex
+	return _sized[key]

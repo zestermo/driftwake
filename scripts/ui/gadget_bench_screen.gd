@@ -69,6 +69,7 @@ func _init(menu: Node) -> void:
 		var b := UIStyle.button("", W_LIST)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.expand_icon = false
+		b.add_theme_constant_override("icon_max_width", 16)
 		b.add_theme_font_size_override("font_size", 12)
 		b.pressed.connect(func(): _pick(id))
 		b.focus_entered.connect(func(): _pick(id))
@@ -165,7 +166,7 @@ func _show_card() -> void:
 	row.add_theme_constant_override("separation", 4)
 	var ic := TextureRect.new()
 	ic.texture = GadgetModels.icon(_sel, maxi(t, 0))
-	ic.custom_minimum_size = Vector2(28, 28)
+	ic.custom_minimum_size = Vector2(32, 32)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	row.add_child(ic)

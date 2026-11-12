@@ -24,7 +24,7 @@ const TABS := [["captain", "Captain", "crown"], ["combat", "Combat", "swords"], 
 	["loadout", "Loadout", "chest"], ["fruit", "Powers", "fruit"]]
 const CARD_W := 152.0
 const RAIL_H := 14.0
-const HEAD_H := 32.0
+const HEAD_H := 40.0
 const WILL := Color("c9a8ff")
 const WILL_DIM := Color("4b3d78")
 const WILL_DARK := Color("120f22")
@@ -1000,15 +1000,15 @@ func _draw_header(body: Rect2, tree_id: String) -> Rect2:
 	var mine := SkillTrees.pool_of(tree_id) if tree_id != "" else ""
 	if tree_id != "":
 		var td := SkillTrees.tree_def(tree_id)
-		var ib := Rect2(x, cy - 13.0, 26, 26)
+		var ib := Rect2(x, cy - 17.0, 34, 34)
 		draw_rect(ib.grow(1.0), UIStyle.BORDER_DIM)
 		draw_rect(ib, UIStyle.INK)
 		var ic := SkillTreeDraw.tree_icon(tree_id)
 		if ic:
-			draw_texture_rect(ic, Rect2(ib.position + Vector2(1, 1), Vector2(24, 24)), false)
+			draw_texture_rect(ic, Rect2(ib.position + Vector2(1, 1), Vector2(32, 32)), false)
 		else:
-			draw_string(SILK, Vector2(ib.position.x, ib.position.y + 17.0), SkillTreeDraw.glyph(str(td["name"])), HORIZONTAL_ALIGNMENT_CENTER, 26, 8, td["color"])
-		x += 34.0
+			draw_string(SILK, Vector2(ib.position.x, ib.position.y + 21.0), SkillTreeDraw.glyph(str(td["name"])), HORIZONTAL_ALIGNMENT_CENTER, 34, 8, td["color"])
+		x += 42.0
 		UIStyle.draw_title(self, Vector2(x, cy + 6.0), str(td["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
 		x += UIStyle.TITLE_FONT.get_string_size(str(td["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 10.0
 		var word := "LEVEL" if td["section"] == "adventure" else "MASTERY"
@@ -1226,7 +1226,7 @@ func _draw_chart(whole: Rect2) -> void:
 				draw_rect(Rect2(q - Vector2(2, 2), Vector2(5, 5)), col if on else SkillTreeDraw.DIM_RIM)
 				draw_rect(Rect2(q - Vector2(1, 1), Vector2(3, 3)), SkillTreeDraw.NODE_BG)
 				prev = q
-		var hr := Rect2(hp - Vector2(13, 13), Vector2(26, 26))
+		var hr := Rect2(hp - Vector2(17, 17), Vector2(34, 34))
 		if t == hand:
 			draw_rect(hr.grow(3.0), Color(UIStyle.GILT, 0.3))
 		draw_rect(hr.grow(1.0), UIChrome.INK)
@@ -1234,7 +1234,7 @@ func _draw_chart(whole: Rect2) -> void:
 		draw_rect(hr.grow(-2.0), SkillTreeDraw.NODE_BG)
 		var ic := SkillTreeDraw.tree_icon(t)
 		if ic:
-			draw_texture_rect(ic, Rect2(hp - Vector2(12, 12), Vector2(24, 24)), false)
+			draw_texture_rect(ic, Rect2(hp - Vector2(16, 16), Vector2(32, 32)), false)
 		else:
 			draw_string(SILK, Vector2(hr.position.x, hp.y + 3.0), SkillTreeDraw.glyph(Progression.tree_name(t)), HORIZONTAL_ALIGNMENT_CENTER, 26, 8, col)
 		hit(hr, "w:" + t)
@@ -2090,24 +2090,24 @@ func _draw_loadout(body: Rect2) -> void:
 	var y := body.position.y + 2.0
 	var cw := (lw - 12.0) / Player.LOADOUTS
 	for i in range(Player.LOADOUTS):
-		var r := Rect2(x + i * (cw + 6.0), y, cw, 32)
+		var r := Rect2(x + i * (cw + 6.0), y, cw, 38)
 		var locked := i >= pl.loadout_slots()
 		var t := _loadout_tree(i)
 		var lo: Array = pl.loadouts[i]
 		var inhand := i == pl.loadout_at and not locked
 		draw_style_box(UIStyle.frame(UIStyle.BG_LIGHT if inhand else (UIStyle.DISABLED if locked else UIStyle.BG_DARK), UIStyle.SUN if inhand else UIStyle.OUTLINE, 0, "chip"), r)
 		var col := SkillTreeDraw.TEXT_OFF if locked else _tree_color(t)
-		var ib := Rect2(r.position + Vector2(4, 4), Vector2(24, 24))
+		var ib := Rect2(r.position + Vector2(3, 3), Vector2(32, 32))
 		draw_rect(ib.grow(1.0), col)
 		draw_rect(ib, SkillTreeDraw.NODE_BG)
 		var item: ItemData = ItemDB.get_item(lo[0]) if not lo.is_empty() and str(lo[0]) != "" else null
 		if item:
 			draw_texture_rect(item.icon, ib, false)
-		draw_string(SILK, r.position + Vector2(32, 10), "LOADOUT %d%s" % [i + 1, " · IN HAND" if inhand else ""], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, col)
+		draw_string(SILK, r.position + Vector2(40, 12), "LOADOUT %d%s" % [i + 1, " · IN HAND" if inhand else ""], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, col)
 		var nm := "Locked" if locked else (item.display_name if item else (("Black Leg" if lo[0] == Player.BLACK_LEG else "Fists") if not lo.is_empty() else "Empty"))
-		draw_string(_font, r.position + Vector2(32, 21), nm, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 12, SkillTreeDraw.TEXT_OFF if locked else UIStyle.CREAM)
-		draw_string(SILK, r.position + Vector2(32, 29), "WITH CAPTAIN LEVELS" if locked else ("MASTERY %d" % p.tree_level(t) if t != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, UIStyle.TEXT_DIM)
-	y += 38.0
+		draw_string(_font, r.position + Vector2(40, 24), nm, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 42.0, 12, SkillTreeDraw.TEXT_OFF if locked else UIStyle.CREAM)
+		draw_string(SILK, r.position + Vector2(40, 33), "WITH CAPTAIN LEVELS" if locked else ("MASTERY %d" % p.tree_level(t) if t != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, UIStyle.TEXT_DIM)
+	y += 44.0
 	var bar := Rect2(x, y, lw, 104)
 	draw_style_box(UIStyle.chrome("slate"), bar)
 	UIStyle.draw_ribbon(self, bar.position + Vector2(7, 7), "Skill bar", true)

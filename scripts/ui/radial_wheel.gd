@@ -3,7 +3,7 @@ extends CanvasLayer
 ## The radial wheels: emotes (T), quick items (E), loadouts (X), actions (N). Hold the key, move the
 ## mouse (or the right stick) toward a segment (the camera holds still), let go (or click, or A) to pick it;
 ## right click, B or Esc puts it away. A round wheel in the whimsical style (UIStyle, on a crisp PixelCanvas): a dark donut of
-## segments in a twisted rope ring with brass nails, each segment a symbol (the entry's 24 px icon, or its
+## segments in a twisted rope ring with brass nails, each segment a symbol (the entry's 32 px icon, or its
 ## initial in a medallion) over a short label, the one you point at gilded, greyed ones dim, the current
 ## choice starred, a count badge where there is one; the hub in the middle names the wheel, or the pointed
 ## entry in full with its second line.
@@ -354,7 +354,7 @@ func _draw_entry(i: int, c: Vector2, rm: float, w: float) -> void:
 	var on := i == _pick
 	var dim := _dim(id)
 	var tex: Texture2D = _shown[i][2]
-	var sym := Rect2(p + Vector2(-12, -17), Vector2(24, 24))
+	var sym := Rect2(p + Vector2(-16, -22), Vector2(32, 32))
 	if tex:
 		_root.draw_texture_rect(tex, sym, false, Color(0.55, 0.6, 0.62, 0.5) if dim and not on else Color.WHITE)
 	else:

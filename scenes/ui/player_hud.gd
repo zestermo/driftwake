@@ -514,8 +514,8 @@ func _build_gold() -> void:
 	_gold_delta.add_theme_font_size_override("font_size", 8)
 	_gold_box.add_child(_gold_delta)
 	var icon := TextureRect.new()
-	icon.texture = load("res://assets/textures/icons/gold.png")
-	icon.custom_minimum_size = Vector2(14, 14)
+	icon.texture = load("res://assets/textures/icons/gold_16.png")
+	icon.custom_minimum_size = Vector2(16, 16)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_gold_box.add_child(icon)
@@ -565,7 +565,7 @@ func _build_meal() -> void:
 	_meal_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.45))
 	_meal_box.add_child(_meal_label)
 	_meal_icon = TextureRect.new()
-	_meal_icon.custom_minimum_size = Vector2(12, 12)
+	_meal_icon.custom_minimum_size = Vector2(16, 16)
 	_meal_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_meal_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_meal_box.add_child(_meal_icon)
@@ -580,7 +580,7 @@ func _update_meal() -> void:
 		return
 	var s := ceili(pr.meal_left)
 	_meal_label.text = "%s  %d:%02d" % [Food.MEALS[pr.meal]["name"], s / 60, s % 60]
-	_meal_icon.texture = ItemDB.get_item(pr.meal).icon
+	_meal_icon.texture = ItemData.sized(ItemDB.get_item(pr.meal).icon, 16)
 	# (its last minute blinks)
 	_meal_box.modulate.a = 1.0 if s > 60 or s % 2 == 0 else 0.45
 
@@ -781,8 +781,8 @@ func _feed_add(item: ItemData, quantity: int) -> void:
 	hb.add_theme_constant_override("separation", 4)
 	row.add_child(hb)
 	var ic := TextureRect.new()
-	ic.texture = item.icon
-	ic.custom_minimum_size = Vector2(12, 12)
+	ic.texture = ItemData.sized(item.icon, 16)
+	ic.custom_minimum_size = Vector2(16, 16)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

@@ -5,7 +5,7 @@ extends Control
 
 const FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const FS := 8
-const SLOT := 26.0
+const SLOT := 36.0
 const GAP := 3.0
 const W := SLOT * GadgetData.BAG_SLOTS + GAP * (GadgetData.BAG_SLOTS - 1)
 const H := SLOT + 12.0

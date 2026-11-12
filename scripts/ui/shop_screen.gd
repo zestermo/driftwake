@@ -67,7 +67,7 @@ func _init(menu: Node) -> void:
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(gap)
 	var coin := TextureRect.new()
-	coin.texture = load("res://assets/textures/icons/gold.png")
+	coin.texture = load("res://assets/textures/icons/gold_16.png")
 	coin.custom_minimum_size = Vector2(16, 16)
 	coin.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER

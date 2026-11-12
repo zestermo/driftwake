@@ -101,7 +101,7 @@ static func make_badge(shop_id: String) -> Node3D:
 	for i in range(2):
 		var s := Sprite3D.new()
 		s.texture = badge() if i == 0 else sign_for(trade_of(shop_id))
-		s.pixel_size = BADGE_SIZE / 32.0 if i == 0 else BADGE_SIZE * 0.66 / 24.0
+		s.pixel_size = BADGE_SIZE / 32.0 if i == 0 else BADGE_SIZE * 0.66 / 32.0
 		s.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		s.no_depth_test = true
 		s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST

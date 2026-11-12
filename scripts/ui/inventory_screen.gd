@@ -6,9 +6,9 @@ extends Control
 ## show only in their slots. Drawn into a SubViewport shown at a whole multiple of its pixels
 ## (_fit_canvas), so the pixel fonts and icons stay crisp at any window size.
 
-## Slots show their 24 px icons at 1.5x (ICON) on the 960x540 canvas: 3 screen pixels a texel at 1080p, 6 at 4K.
+## Slots show their 32 px icons as drawn (ICON) on the 960x540 canvas: 2 screen pixels a texel at 1080p, 4 at 4K.
 const SLOT := 42
-const ICON := 36
+const ICON := 32
 const GAP := 3
 const COLS := 5
 const PANEL_W := 400

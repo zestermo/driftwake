@@ -1197,7 +1197,8 @@ static func _pistol(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 ## where textures have no pixels to read).
 const TEX_TONE := {"metal": Color(0.62, 0.63, 0.66), "planks_dark": Color(0.33, 0.23, 0.15), "planks": Color(0.56, 0.4, 0.25),
 	"fabric": Color(0.75, 0.72, 0.68), "leather": Color(0.5, 0.36, 0.24), "bark": Color(0.45, 0.35, 0.25)}
-const ICON := 24
+## An item icon's side (the painted ones' size: gen_item_icons.py).
+const ICON := 32
 
 
 static func icon(model: String) -> Texture2D:
@@ -1209,6 +1210,9 @@ static func icon(model: String) -> Texture2D:
 
 
 ## Any mesh as an icon: turned by `view`, seen from +X (down -X, right = -Z), the picture turned by `turn`.
+## Drawn like the painted item icons (gen_item_icons.py), ink and cel: each surface in its flat tone, a facet turned
+## up and left lit and one turned down and right in shadow, a light edge along the silhouette's upper left and a
+## shadow along its lower right, ink round it and between its materials.
 static func mesh_icon(mesh: ArrayMesh, view := Basis(), turn := -PI * 0.25) -> ImageTexture:
 	var tris: Array = []
 	var lo := Vector2(INF, INF)
@@ -1219,6 +1223,7 @@ static func mesh_icon(mesh: ArrayMesh, view := Basis(), turn := -PI * 0.25) -> I
 		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
 		var norms: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
 		var col := _tone(mesh.surface_get_material(s))
+		var tones := [Color(col.r * 0.6, col.g * 0.58, col.b * 0.68), col, col.lerp(Color.WHITE, 0.38)]
 		for i in range(0, verts.size() - 2, 3):
 			var pts: Array = []
 			var depth := 0.0
@@ -1230,46 +1235,86 @@ static func mesh_icon(mesh: ArrayMesh, view := Basis(), turn := -PI * 0.25) -> I
 				lo = Vector2(minf(lo.x, q.x), minf(lo.y, q.y))
 				hi = Vector2(maxf(hi.x, q.x), maxf(hi.y, q.y))
 			var nv: Vector3 = view * norms[i]
-			var shade := 0.55 + 0.45 * absf(nv.x) + 0.15 * nv.y
-			tris.append([pts, col * shade, depth])
+			var n2: Vector2 = rot * Vector2(-nv.z, -nv.y)
+			var lit := -0.55 * n2.x - 0.55 * n2.y + 0.35 * absf(nv.x)
+			tris.append([pts, tones[2 if lit > 0.6 else (0 if lit < -0.25 else 1)], depth, s])
 	tris.sort_custom(func(a, b): return float(a[2]) < float(b[2]))
+	var n := ICON
 	var span := maxf(hi.x - lo.x, hi.y - lo.y)
-	var k := (ICON - 3.0) / maxf(span, 0.001)
-	var off := Vector2(ICON, ICON) * 0.5 - (lo + hi) * 0.5 * k
-	var img := Image.create(ICON, ICON, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	for t in tris:
-		var a: Vector2 = t[0][0] * k + off
-		var b: Vector2 = t[0][1] * k + off
-		var c: Vector2 = t[0][2] * k + off
-		var col: Color = t[1]
-		col.a = 1.0
-		var x0 := clampi(int(floor(minf(a.x, minf(b.x, c.x)))), 0, ICON - 1)
-		var x1 := clampi(int(ceil(maxf(a.x, maxf(b.x, c.x)))), 0, ICON - 1)
-		var y0 := clampi(int(floor(minf(a.y, minf(b.y, c.y)))), 0, ICON - 1)
-		var y1 := clampi(int(ceil(maxf(a.y, maxf(b.y, c.y)))), 0, ICON - 1)
+	var k := (n - 3.0) / maxf(span, 0.001)
+	var off := Vector2(n, n) * 0.5 - (lo + hi) * 0.5 * k
+	# what each pixel shows: its colour, its surface (-1: nothing) and how late it was drawn (later: nearer)
+	var px := PackedColorArray()
+	px.resize(n * n)
+	var sid := PackedInt32Array()
+	sid.resize(n * n)
+	sid.fill(-1)
+	var ord := PackedInt32Array()
+	ord.resize(n * n)
+	for ti in range(tris.size()):
+		var t: Array = tris[ti]
+		var p: Array = [t[0][0] * k + off, t[0][1] * k + off, t[0][2] * k + off]
+		var y0 := clampi(int(floor(minf(p[0].y, minf(p[1].y, p[2].y)))), 0, n - 1)
+		var y1 := clampi(int(ceil(maxf(p[0].y, maxf(p[1].y, p[2].y)))), 0, n - 1)
 		var any := false
 		for y in range(y0, y1 + 1):
-			for x in range(x0, x1 + 1):
-				if Geometry2D.point_is_inside_triangle(Vector2(x + 0.5, y + 0.5), a, b, c):
-					img.set_pixel(x, y, col)
-					any = true
+			# (the row's span: where its middle crosses the triangle's edges)
+			var yc := y + 0.5
+			var xa := INF
+			var xb := -INF
+			for e in range(3):
+				var a: Vector2 = p[e]
+				var b: Vector2 = p[(e + 1) % 3]
+				if (a.y <= yc) != (b.y <= yc):
+					var x := a.x + (yc - a.y) / (b.y - a.y) * (b.x - a.x)
+					xa = minf(xa, x)
+					xb = maxf(xb, x)
+			if xa > xb:
+				continue
+			for x in range(maxi(int(ceil(xa - 0.5)), 0), mini(int(floor(xb - 0.5)), n - 1) + 1):
+				var i := y * n + x
+				px[i] = t[1]
+				sid[i] = t[3]
+				ord[i] = ti
+				any = true
 		# (thin parts - a rapier's blade - still get their pixel)
 		if not any:
-			var m := (a + b + c) / 3.0
-			img.set_pixel(clampi(int(m.x), 0, ICON - 1), clampi(int(m.y), 0, ICON - 1), col)
-	# a dark outline, like the painted icons
-	var out := img.duplicate() as Image
-	for y in range(ICON):
-		for x in range(ICON):
-			if img.get_pixel(x, y).a > 0.0:
-				continue
-			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var n: Vector2i = Vector2i(x, y) + d
-				if n.x >= 0 and n.y >= 0 and n.x < ICON and n.y < ICON and img.get_pixel(n.x, n.y).a > 0.0:
-					out.set_pixel(x, y, Color(0.08, 0.055, 0.04))
-					break
-	return ImageTexture.create_from_image(out)
+			var m: Vector2 = (p[0] + p[1] + p[2]) / 3.0
+			var i2 := clampi(int(m.y), 0, n - 1) * n + clampi(int(m.x), 0, n - 1)
+			px[i2] = t[1]
+			sid[i2] = t[3]
+			ord[i2] = ti
+	var ink := Color8(14, 12, 20)
+	var out := PackedByteArray()
+	out.resize(n * n * 4)
+	for y in range(n):
+		for x in range(n):
+			var i := y * n + x
+			var c: Color
+			var right := sid[i + 1] if x < n - 1 else -1
+			var down := sid[i + n] if y < n - 1 else -1
+			var left := sid[i - 1] if x > 0 else -1
+			var up := sid[i - n] if y > 0 else -1
+			if sid[i] < 0:
+				# ink round the shape
+				if right < 0 and down < 0 and left < 0 and up < 0:
+					continue
+				c = ink
+			else:
+				c = px[i]
+				# ink between two materials, on the one behind
+				if (right >= 0 and right != sid[i] and ord[i + 1] > ord[i]) or (down >= 0 and down != sid[i] and ord[i + n] > ord[i]) \
+						or (left >= 0 and left != sid[i] and ord[i - 1] > ord[i]) or (up >= 0 and up != sid[i] and ord[i - n] > ord[i]):
+					c = ink
+				elif left < 0 or up < 0:
+					c = c.lerp(Color.WHITE, 0.38)
+				elif right < 0 or down < 0:
+					c = Color(c.r * 0.6, c.g * 0.58, c.b * 0.68)
+			out[i * 4] = int(clampf(c.r, 0.0, 1.0) * 255.0)
+			out[i * 4 + 1] = int(clampf(c.g, 0.0, 1.0) * 255.0)
+			out[i * 4 + 2] = int(clampf(c.b, 0.0, 1.0) * 255.0)
+			out[i * 4 + 3] = 255
+	return ImageTexture.create_from_image(Image.create_from_data(n, n, false, Image.FORMAT_RGBA8, out))
 
 
 static func _tone(mat: Material) -> Color:

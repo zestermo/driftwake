@@ -6,7 +6,7 @@ extends Control
 
 const W_ROWS := 300
 const W_CARD := 260
-const CELL := Vector2(26, 26)
+const CELL := Vector2(34, 34)
 
 var _menu: Node
 var _count: Label

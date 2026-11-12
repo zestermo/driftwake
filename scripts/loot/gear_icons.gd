@@ -1,11 +1,14 @@
 class_name GearIcons
 extends RefCounted
-## 24x24 pixel-art icons for gear, drawn at runtime in the item's own colors
-## (so a navy long coat gets a navy icon). Same style as the generated item
-## icons: flat fills, a little top-down shading, 1px dark outline.
+## 32x32 pixel-art icons for gear, drawn at runtime in the item's own colors
+## (so a navy long coat gets a navy icon). Same style as the painted item
+## icons (gen_item_icons.py), ink and cel: flat colour, a hard shadow lower right,
+## a light edge upper left, ink round each part. The shapes are laid out on a
+## 24 grid (_shapes) and drawn K times that.
 
-const SIZE := 24
-const OUTLINE := Color(0.08, 0.055, 0.04)
+const SIZE := 32
+const K := SIZE / 24.0
+const OUTLINE := Color8(14, 12, 20)
 const GOLD := Color(0.88, 0.69, 0.31)
 const STEEL := Color(0.78, 0.82, 0.85)
 const LEATHER := Color(0.36, 0.22, 0.12)
@@ -42,7 +45,7 @@ static func icon(it: ItemData) -> Texture2D:
 			"w": col = LEATHER
 			"r": col = Color(0.78, 0.16, 0.18)
 			"i": col = Color(0.92, 0.88, 0.76)
-		_fill(img, layer[1], col)
+		_fill(img, layer[1], col, str(layer[0]) in ["d", "l"])
 	if pat != "":
 		_pattern(img, pat)
 	_outline(img)
@@ -605,20 +608,41 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 
 
 ## Even-odd polygon fill sampled at pixel centers, shaded lighter at the top.
-static func _fill(img: Image, poly: Array, col: Color) -> void:
+## One layer, ink and cel like the painted icons (gen_item_icons.py): its flat colour, a hard shadow along its lower
+## right, a light edge up and left, ink where it lies over what's already drawn. `plain`: a fold or a band of the
+## garment's own cloth (codes d and l), flat and uninked.
+static func _fill(img: Image, poly: Array, col: Color, plain := false) -> void:
 	var pts := PackedVector2Array()
 	for p in poly:
-		pts.append(p)
+		pts.append(p * K)
 	var miny := SIZE
 	var maxy := 0
 	for p in pts:
 		miny = mini(miny, int(floor(p.y)))
 		maxy = maxi(maxy, int(ceil(p.y)))
+	var mask := {}
 	for y in range(maxi(miny, 0), mini(maxy + 1, SIZE)):
 		for x in range(SIZE):
 			if Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
-				var shade := 1.12 - 0.26 * float(y) / SIZE
-				img.set_pixel(x, y, Color(col.r * shade, col.g * shade, col.b * shade, 1.0))
+				mask[Vector2i(x, y)] = true
+	var deep := 2 if mask.size() > 90 else 1
+	var dark := Color(col.r * 0.62, col.g * 0.6, col.b * 0.7)
+	var light := col.lerp(Color.WHITE, 0.35)
+	for q in mask.keys():
+		var c := col
+		if not plain:
+			if not mask.has(q + Vector2i(-1, -1)):
+				c = light
+			elif not mask.has(q + Vector2i(deep, deep)):
+				c = dark
+		img.set_pixelv(q, c)
+	if plain:
+		return
+	for q in mask.keys():
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var e: Vector2i = q + d
+			if not mask.has(e) and e.x >= 0 and e.y >= 0 and e.x < SIZE and e.y < SIZE and img.get_pixelv(e).a > 0.0:
+				img.set_pixelv(e, OUTLINE)
 
 
 ## A tailor's skin over the filled shape (Gear.PATTERN_NAMES): stripes, a check, a brocade lattice, a patch.
@@ -626,14 +650,14 @@ static func _pattern(img: Image, pat: String) -> void:
 	for y in range(SIZE):
 		for x in range(SIZE):
 			var c := img.get_pixel(x, y)
-			if c.a == 0.0:
+			if c.a == 0.0 or c.is_equal_approx(OUTLINE):
 				continue
 			var k := 1.0
 			match pat:
-				"stripes": k = 0.62 if y % 4 == 0 else 1.0
-				"check": k = (0.75 if x % 6 < 2 else 1.0) * (0.75 if y % 6 < 2 else 1.0)
-				"brocade": k = 1.35 if (x + y) % 6 == 0 or (x - y + 24) % 6 == 0 else 0.9
-				"patched": k = 0.7 if x in range(13, 18) and y in range(11, 16) else 1.0
+				"stripes": k = 0.62 if y % 5 == 0 else 1.0
+				"check": k = (0.75 if x % 8 < 2 else 1.0) * (0.75 if y % 8 < 2 else 1.0)
+				"brocade": k = 1.35 if (x + y) % 8 == 0 or (x - y + 32) % 8 == 0 else 0.9
+				"patched": k = 0.7 if x in range(17, 24) and y in range(15, 22) else 1.0
 			img.set_pixel(x, y, Color(minf(c.r * k, 1.0), minf(c.g * k, 1.0), minf(c.b * k, 1.0), 1.0))
 
 

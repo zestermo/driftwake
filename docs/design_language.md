@@ -295,10 +295,22 @@ Sizes: **16, 32 and 48 px**, each drawn for its size (never a larger one shrunk)
 - No text, letters, numbers or logos in an icon.
 
 ### 8.2 Item icons
-24 x 24 px on a transparent ground: one object, three-quarter or side view, filling most of the
-tile, in the same ramps with a dark outline. Food, ingredients, ores, cloth, beast parts, weapons,
-Driftfruit (a round odd fruit in its colour), coins and pearls. New item art should follow 8.1's
-shading (hard shadow lower right, light edge upper left, ink) without the plate and frame.
+32 x 32 px on a transparent ground (a 16 px and a 48 px rendering beside it for lists and cards):
+one object, three-quarter or side view, filling most of the tile, in 8.1's shading without the plate
+and frame: flat colour, one hard shadow along the lower right, a one-pixel light edge up and left,
+near-black ink (`#0E0C14`) round the object and between its parts. Draw what the item *is* (read its
+name and description: "Scrap Iron" is a knee, a band and a bolt off a wreck, not an ingot).
+
+- **Food and dishes:** a bowl seen from a little above (the rim's oval, what's in it, two wisps of
+  steam if it's hot); the bowl's material says where the dish is from (wood, blue glaze, black iron,
+  red clay, shell, jade). A plate, a pot, a steamer, skewers where the dish calls for one.
+- **Ingredients:** two or three of the thing, or one whole and one cut open.
+- **Materials and beast parts:** the piece itself, a little worn (rivets, rust flecks, a broken root).
+- **Driftfruit:** all ten are one form (a round fruit, three curls on the skin, a stalk and a leaf);
+  only the colour changes.
+- **Weapons, fish, gadgets, instruments, clothing:** drawn by the game from the item's own model or
+  colours in the same manner (flat tone, lit facet, shadowed facet, light edge, ink), so a new design
+  needs no icon drawn.
 
 ### 8.3 Other marks (guidance for new work)
 Map and HUD markers: one flat colour with a dark outline, readable at 8-12 px. Posters, notices
@@ -468,6 +480,7 @@ sea: {deep: "#0D294D", surface: "#338099", foam: "#E6F2FF", shoal: "#29B8A8", la
 
 Give these to a tool that accepts reference images:
 - `docs/media/design/skill_icons.png`: every skill icon at 32 px (the icon style, all colour identities).
+- `docs/media/design/item_icons.png`: every painted item icon at 48 px with its 16 px rendering (8.2).
 - `docs/media/design/skill_icons_moves.png`: the 67 weapon move icons at 32 px (figures, objects and
   front views beside the weapon close-ups: how a tree's pictures are kept different from each other).
 - `docs/media/design/ui_chrome.png`: the interface pieces (parchment page with a wax seal, the rope-bordered
@@ -481,6 +494,6 @@ the PS1 picture `scripts/psx/psx_settings.gd` and `shaders/psx/`; character prop
 `scripts/npc/body_builder.gd`; names `docs/originality_plan.md`.
 
 **Settled and not:** the skill icon style (8.1) was picked on 2026-11-11 and all 255 skill icons
-follow it (188 skills, perks and moves; the 67 weapon move nodes are on `docs/media/design/skill_icons_moves.png`). Item icons (8.2) are still the older, simpler 24 px drawings and are due the same pass.
+follow it (188 skills, perks and moves; the 67 weapon move nodes are on `docs/media/design/skill_icons_moves.png`). The item icons (8.2) followed on the same day: 79 painted, the rest drawn by the game in the same manner.
 The media screenshots predate some interface changes; where they disagree with this document, the
 document wins.

@@ -936,6 +936,10 @@ ICON_OUT = os.path.join(ROOT, "assets", "textures", "icons")
 
 
 def _icon(name, draw_fn):
+    # (2026-11-11) The 24 px icons drawn below are superseded and no longer written: the skills' by
+    # gen_skill_icons.py, the items' by gen_item_icons.py (ink and cel, 16 / 32 / 48 px). Writing them
+    # would put stale skill_<id>.png files back and overwrite the items' 32 px pictures.
+    return
     img = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     draw_fn(d)

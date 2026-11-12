@@ -109,7 +109,6 @@ tools/dev/t/food/*                      t/food
 scripts/items/food.gd                   t/food t/economy t/sea/restaurant
 scripts/ui/galley_screen.gd             t/food
 scripts/sea/floating_restaurant.gd      t/sea/restaurant t/sea/cookoff
-tools/texture_gen/gen_dish_icons.py     t/food/island_dishes
 scripts/items/cook_timing.gd             t/food/cook_game
 scripts/items/cook_scene.gd              t/food/cook_game
 scripts/ui/cook_game_screen.gd           t/food/cook_game
@@ -808,11 +807,9 @@ scripts/dialogue/dialogue_manager.gd    t/story/edy_tokens
 scripts/progression/edy_types.gd        t/story/edy_tokens
 scripts/npc/staff_moves.gd              t/weapons/staff_combo
 scripts/npc/staff_moves.gd              t/weapons/staff_tree t/weapons/staff_moves t/weapons/plus_staff
-tools/texture_gen/gen_staff_icons.py    t/weapons/staff_tree
 scripts/npc/sickle_moves.gd             t/weapons/sickle_combo
 scripts/npc/sickle_moves.gd             t/weapons/sickle_tree t/weapons/sickle_moves t/weapons/plus_sickle
 scripts/npc/sickle_moves.gd             t/weapons/sickle_heavy
-tools/texture_gen/gen_sickle_icons.py   t/weapons/sickle_tree
 scripts/island/themes/atoll_reef.gd     t/island/atoll_reef
 scripts/island/themes/atoll_seabed.gd   t/island/atoll_seabed
 scripts/island/themes/atoll_deeplife.gd t/island/atoll_harvest t/swim/atoll_shark
@@ -873,3 +870,6 @@ scripts/player_states/dodge_state.gd    t/player/roll_out
 scripts/player_states/swing_state.gd    t/player/rope_hand
 scripts/player_states/skimmer_state.gd  t/gadgets/skimmer_moves
 scenes/player/camera_rig.gd             t/combat/combat_camera
+tools/texture_gen/gen_item_icons.py     t/ui/item_icons
+scripts/loot/gear_icons.gd              t/ui/item_icons
+scripts/loot/item_data.gd               t/ui/item_icons

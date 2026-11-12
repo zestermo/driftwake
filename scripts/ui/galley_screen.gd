@@ -170,7 +170,7 @@ func _refresh() -> void:
 		var known := Food.known(pr, id)
 		var ready := known and not Food.picks(inv, id, Food.pantry_of(pl)).is_empty()
 		b.text = str(Food.MEALS[id]["name"]) if known else "???"
-		b.icon = ItemDB.get_item(id).icon if known else null
+		b.icon = ItemData.sized(ItemDB.get_item(id).icon, 16) if known else null
 		b.add_theme_color_override("font_color", UIStyle.GOOD if ready else (UIStyle.TEXT if known else UIStyle.TEXT_DISABLED))
 	_show_pantry()
 	_show_card()
@@ -193,7 +193,7 @@ func _show_pantry() -> void:
 		var b := UIStyle.button("%s x%d" % [st.item.display_name, st.quantity], W_PANTRY)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_font_size_override("font_size", 10)
-		b.icon = st.item.icon
+		b.icon = ItemData.sized(st.item.icon, 16)
 		b.expand_icon = false
 		b.tooltip_text = "Take one out"
 		var idx := i
@@ -250,7 +250,7 @@ func _show_card() -> void:
 	row.add_theme_constant_override("separation", 4)
 	var ic := TextureRect.new()
 	ic.texture = it.icon
-	ic.custom_minimum_size = Vector2(24, 24)
+	ic.custom_minimum_size = Vector2(32, 32)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	row.add_child(ic)

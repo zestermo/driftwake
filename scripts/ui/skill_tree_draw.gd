@@ -34,7 +34,7 @@ const RIM := 2.0
 ## The node size (size_k) the big tiles show from: one wheel notch out from zoom 1 (rings 59 px apart; a tile and its
 ## name are 56 tall, so any further out they'd run into each other).
 const BIG_FROM := 0.93
-const ROOT_R := 20.0
+const ROOT_R := 24.0
 const PASSIVE_R := 10.0
 const PIP := 7.0
 ## Names show from this zoom (and always on the picked node).
@@ -348,7 +348,7 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, z: float, col: 
 			s.draw_circle(c, ROOT_R * z - 3.0, ROOT_BG)
 			var ic := tree_icon(str(n["tree"]))
 			if ic:
-				s.draw_texture_rect(ic, Rect2((c - Vector2(12, 12) * z).round(), (Vector2(24, 24) * z).round()), false)
+				s.draw_texture_rect(ic, Rect2((c - Vector2(16, 16) * z).round(), (Vector2(32, 32) * z).round()), false)
 			else:
 				s.draw_string(SILK, Vector2(c.x - 15.0, c.y + 3.0), glyph(str(n["name"])), HORIZONTAL_ALIGNMENT_CENTER, 30.0, 8, col)
 		_:
